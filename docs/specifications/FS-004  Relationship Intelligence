@@ -1,0 +1,619 @@
+# FS-004 Relationship Intelligence
+
+## Document Information
+
+| Property | Value |
+|----------|---------|
+| ID | FS-004 |
+| Title | Relationship Intelligence |
+| Status | Review |
+| Priority | High |
+| Category | Relationship Intelligence |
+| Version | 1.0 |
+| Related | FS-001 Opportunity Stakeholder Management · FS-002 Contact Management · FS-003 Company Management |
+| Governing Standards | SmartCRM Constitution v6.0 · SmartAssist Constitution · SmartCRM North Star |
+
+---
+
+# 1. Purpose
+
+Business is driven by relationships.
+
+Companies buy.
+
+People decide.
+
+Relationships influence outcomes.
+
+SmartCRM must provide a trusted and reusable relationship layer that connects people, companies, stakeholders, opportunities and future knowledge graphs.
+
+Relationship Intelligence provides visibility into:
+
+- Who knows whom
+- How people are connected
+- Relationship strength
+- Relationship history
+- Influence potential
+- Relationship coverage
+
+while remaining faithful to the Reality First principle.
+
+---
+
+# 2. Problem Statement
+
+Traditional CRMs store:
+
+- Companies
+- Contacts
+- Opportunities
+
+but rarely capture relationships.
+
+As a result:
+
+- Decision chains become invisible
+- Influence paths are unknown
+- Relationship knowledge lives in personal memory
+- SmartAssist lacks relationship context
+- Warm introductions are missed
+- Stakeholder coverage appears stronger than reality
+
+Without Relationship Intelligence:
+
+- Relationship knowledge is fragmented
+- Opportunity risk increases
+- Contact knowledge is not reusable
+- Future graph capabilities become difficult
+
+**Core Problem:**
+
+SmartCRM currently knows companies and contacts, but does not know how those people are connected, influence one another, or help opportunities succeed.
+
+---
+
+# 3. SmartAssist-First Principle
+
+Relationship Intelligence is designed to be AI-assisted by default.
+
+SmartAssist is available throughout the Relationship Intelligence experience.
+
+SmartAssist may:
+
+- Suggest relationships
+- Suggest missing connections
+- Identify relationship gaps
+- Suggest engagement paths
+- Suggest warm introductions
+- Surface important relationship insights
+- Highlight weak stakeholder coverage
+- Recommend who to engage next
+
+SmartAssist assists users.
+
+SmartAssist does not make decisions on behalf of users.
+
+All relationship changes require user approval.
+
+## SmartAssist Hard Rules
+
+### Rule 1
+
+Never invent relationships.
+
+### Rule 2
+
+Never invent influence.
+
+### Rule 3
+
+Never automatically create relationships.
+
+### Rule 4
+
+User approval is always required.
+
+### Rule 5
+
+Unknown is preferred over fiction.
+
+### Rule 6
+
+SmartAssist may recommend but never decide.
+
+### Rule 7
+
+SmartAssist shall always assist.
+
+---
+
+# 4. Business Goals
+
+### BG-01
+
+Create a single source of truth for relationships.
+
+### BG-02
+
+Make business relationships visible throughout SmartCRM.
+
+### BG-03
+
+Enable relationship-driven opportunity management.
+
+### BG-04
+
+Enable SmartAssist relationship recommendations.
+
+### BG-05
+
+Prepare for Influence Mapping.
+
+### BG-06
+
+Prepare for Decision Maker Intelligence.
+
+### BG-07
+
+Prepare for Relationship Graph.
+
+### BG-08
+
+Prepare for Organization Graph.
+
+---
+
+# 5. Relationship Ownership
+
+Relationships are first-class business assets.
+
+A relationship may have an owner.
+
+The owner is responsible for:
+
+- Relationship accuracy
+- Relationship notes
+- Relationship maintenance
+- Review of SmartAssist recommendations
+
+A relationship may exist without an owner.
+
+Ownership may be reassigned by authorized users.
+
+## 5.1 Ownership Rules
+
+A relationship owner does not own the contacts participating in the relationship.
+
+A relationship owner owns the relationship record itself.
+
+Changing the owner of a contact shall not automatically change the owner of any relationship.
+
+Relationship ownership exists independently from Contact Ownership and Company Ownership.
+
+Ownership changes must be auditable.
+
+---
+
+## 5.2 Relationship Lifecycle
+
+Relationships may exist in different states.
+
+| Status | Description |
+|----------|----------|
+| Suggested | Suggested by SmartAssist or imported source |
+| Confirmed | Verified by a user |
+| Active | Current valid relationship |
+| Archived | Historical relationship retained for reference |
+
+Lifecycle:
+
+```text
+Suggested
+    ↓
+Confirmed
+    ↓
+Active
+    ↓
+Archived
+```
+
+Relationships shall never be automatically promoted between lifecycle states.
+
+User approval is always required.
+
+SmartAssist may recommend transitions.
+
+Users make the final decision.
+
+### Lifecycle Rules
+
+Suggested relationships are not considered verified.
+
+Only user-confirmed relationships may become Active relationships.
+
+Archived relationships are retained for historical context and reporting.
+
+SmartAssist may suggest lifecycle changes but may never perform them automatically.
+
+Users remain the final authority on relationship status.
+
+---
+
+## 5.3 Relationship Intelligence States
+
+Relationship Intelligence shall distinguish between verified knowledge and system intelligence.
+
+| State | Definition |
+|---------|---------|
+| Known | Verified relationship exists |
+| Suggested | SmartAssist recommendation awaiting user confirmation |
+| Unknown | Relationship status is not known |
+| Weak Coverage | Limited relationship coverage exists |
+| Missing Critical | Relationship gap may impact opportunity success |
+
+These states are informational.
+
+They do not automatically create, modify, activate or archive relationships.
+
+Unknown is preferred over fiction.
+
+
+# 6. Reality First Principle
+
+
+SmartCRM shall never invent:
+
+- Relationships
+- Reporting structures
+- Influence chains
+- Decision Makers
+- Organization structures
+
+Unknown information shall remain unknown until verified.
+
+## Allowed
+
+- User-created relationships
+- User-approved SmartAssist suggestions
+- Imported relationships that require verification
+- Unknown relationship information
+
+## Not Allowed
+
+- AI-generated relationships stored automatically
+- Invented reporting structures
+- Invented influence paths
+- Invented organization charts
+- Invented relationship strength
+- Invented decision makers
+
+Reality is preferred over completeness.
+
+Unknown is preferred over fiction.
+
+# 7. Relationship Model
+
+## 7.1 Relationship Entity
+
+```ts
+interface Relationship {
+  id: string;
+
+  sourceContactId: string;
+  targetContactId: string;
+
+  relationshipType: RelationshipType;
+
+  relationshipStatus:
+    | "suggested"
+    | "confirmed"
+    | "active"
+    | "archived";
+
+  statusReason?: string;
+
+  sourceType:
+    | "user_created"
+    | "user_confirmed"
+    | "smartassist_suggested"
+    | "imported"
+    | "outlook"
+    | "meeting_intelligence";
+
+  strengthScore?: number;
+
+  confidenceScore?: number;
+
+  ownerId?: string;
+
+  notes?: string;
+
+  aiSummary?: string;
+
+  aiInsights?: string[];
+
+  lastAnalyzedAt?: string;
+
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+### Status Reason
+
+Status Reason stores the explanation for lifecycle transitions.
+
+Examples:
+
+- Relationship archived because stakeholder left company
+- Relationship archived because supplier relationship ended
+- Relationship confirmed by account owner
+- Relationship suggested from Meeting Intelligence
+
+Status Reason improves auditability and explainability.
+
+## 7.2 Relationship Types
+
+```ts
+type RelationshipType =
+  | "reports_to"
+  | "manages"
+  | "colleague"
+  | "advisor"
+  | "consultant"
+  | "supplier"
+  | "customer"
+  | "partner"
+  | "investor"
+  | "decision_influencer"
+  | "technical_influencer"
+  | "other";
+```
+
+Relationships may exist between:
+
+- Contacts within the same organization
+- Contacts in different organizations
+- Customers and partners
+- Customers and suppliers
+- Consultants and clients
+- Investors and organizations
+- Other verified business relationships
+
+All relationships must resolve to real contacts.
+
+SmartCRM shall never create fictional relationship participants.
+
+### Relationship Scope
+
+Relationship Intelligence is primarily based on relationships between contacts.
+
+All relationships shall resolve to real contact records.
+
+Relationships may represent:
+
+- Reporting structures
+- Professional relationships
+- Advisory relationships
+- Commercial relationships
+- Supplier relationships
+- Partner relationships
+- Investment relationships
+- Opportunity influence relationships
+
+Relationships do not exist independently of contacts.
+
+Contacts remain the system of record for people.
+
+Relationship Intelligence remains the system of record for connections.
+
+### Relationship Registry
+
+The Relationship Registry is the single source of truth for relationship data across SmartCRM.
+
+Future features shall reuse the Relationship Registry.
+
+Future features shall not create independent relationship stores.
+
+Examples of prohibited patterns:
+
+- Opportunity-specific relationship stores
+- Meeting-specific relationship stores
+- Email-specific relationship stores
+- Project-specific relationship stores
+
+All relationship intelligence shall derive from the Relationship Registry.
+
+
+## 7.3 Relationship Confidence
+
+Relationship confidence represents how reliable SmartCRM believes the relationship information is.
+
+Confidence may be influenced by:
+
+- User verification
+- Number of interactions
+- Number of supporting sources
+- Relationship age
+- Data quality
+
+Confidence is displayed as:
+
+- Low
+- Medium
+- High
+
+Relationship Confidence and Relationship Strength are different measurements.
+
+A relationship may have:
+
+- High Strength and Low Confidence
+- Low Strength and High Confidence
+- High Strength and High Confidence
+- Low Strength and Low Confidence
+
+
+## 7.4 Relationship Source
+
+Every relationship shall have a source.
+
+Relationship source provides explainability and auditability.
+
+Users must always be able to understand how a relationship entered SmartCRM.
+
+Possible sources include:
+
+- User Created
+- User Confirmed
+- SmartAssist Suggestion
+- Outlook Synchronization
+- Meeting Intelligence
+- Imported Data
+
+Relationship source information shall remain available for audit and review purposes.
+
+
+### Relationship Explainability
+
+Whenever SmartAssist recommends a relationship or relationship-related action, SmartAssist shall explain:
+
+1. What was observed
+2. Why the recommendation was generated
+3. What action is recommended
+4. What outcome is expected
+
+Users shall never receive unexplained relationship recommendations.
+
+System thinking must be visible and understandable.
+
+Example:
+
+What is happening?
+
+Only one verified relationship exists within this customer organization.
+
+Why does it matter?
+
+Single-threaded relationship coverage increases opportunity risk.
+
+What should happen next?
+
+Identify additional stakeholders and relationship paths.
+
+Expected Outcome
+
+Improved relationship coverage and lower opportunity risk.
+
+
+## 7.5 Relationship Strength
+
+Relationship Strength is derived from evidence.
+
+Relationship Strength is not manually maintained.
+
+Relationship Strength may be derived from:
+
+- Meetings
+- Calls
+- Emails
+- Introductions
+- Shared opportunities
+- Shared projects
+- Historical interactions
+
+The exact scoring algorithm may evolve over time.
+
+Users manage activities.
+
+SmartCRM calculates relationship strength.
+
+Example:
+
+```ts
+strength =
+  meetings * 5 +
+  calls * 3 +
+  emails * 1 +
+  introductions * 10;
+```
+
+Score is normalized to:
+
+```text
+0 - 100
+```
+
+Displayed as:
+
+- Weak
+- Medium
+- Strong
+
+
+## 7.6 Relationship Interaction
+
+Relationships may accumulate interaction evidence over time.
+
+Interaction history contributes to relationship strength and confidence.
+
+```ts
+interface RelationshipInteraction {
+  id: string;
+
+  relationshipId: string;
+
+  type:
+    | "meeting"
+    | "call"
+    | "email"
+    | "introduction"
+    | "note";
+
+  interactionDate: string;
+
+  summary?: string;
+
+  createdBy: string;
+}
+```
+
+Interaction history is evidence.
+
+It does not automatically create relationships.
+
+### Interaction Rules
+
+Relationship Interactions are evidence.
+
+Relationship Interactions may contribute to:
+
+- Relationship Strength
+- Relationship Confidence
+- SmartAssist Recommendations
+
+Relationship Interactions do not automatically create, modify or archive relationships.
+
+Users remain responsible for confirming relationship records.
+
+
+## 7.7 AI-Ready Fields
+
+Relationship Intelligence shall support future SmartAssist capabilities.
+
+The following fields exist to support future intelligence features:
+
+```ts
+aiSummary?: string;
+
+aiInsights?: string[];
+
+lastAnalyzedAt?: string;
+```
+
+These fields are advisory.
+
+They are not system-of-record relationship data.
+
+Relationship records remain user-controlled.
+
+SmartAssist may enrich understanding but does not own relationship facts.
