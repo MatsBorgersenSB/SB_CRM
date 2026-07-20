@@ -1,0 +1,142 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  resolveDevDisplayName,
+  resolveOutlookSenderDetails,
+} from "@/lib/m365/outlook-context";
+
+export type OutlookPaneLoadState<T> =
+  | { status: "loading" }
+  | { status: "ready"; payload: T }
+  | { status: "not-found" }
+  | { status: "empty"; message: string }
+  | { status: "error"; message: string };
+
+type UseOutlookM365PaneLoadOptions<T> = {
+  apiPath: string;
+  expectedKind: string;
+  emptyMessage: string;
+  errorMessage: string;
+  unexpectedPayloadMessage: string;
+};
+
+/**
+ * Loads an M365 payload for Outlook task panes after mount.
+ * Email: ?email= query param first, then Office.js counterparty resolution.
+ */
+export function useOutlookM365PaneLoad<T extends { kind: string }>({
+  apiPath,
+  expectedKind,
+  emptyMessage,
+  errorMessage,
+  unexpectedPayloadMessage,
+}: UseOutlookM365PaneLoadOptions<T>) {
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get("email");
+  const nameParam = searchParams.get("name");
+
+  const [state, setState] = useState<OutlookPaneLoadState<T>>({ status: "loading" });
+  const [resolvedEmail, setResolvedEmail] = useState<string | null>(null);
+  const [resolvedDisplayName, setResolvedDisplayName] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const mountedRef = useRef(false);
+  const requestIdRef = useRef(0);
+
+  const reload = useCallback(() => {
+    setReloadKey((current) => current + 1);
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const requestId = ++requestIdRef.current;
+
+    const safeSetState = (next: OutlookPaneLoadState<T>) => {
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+      setState(next);
+    };
+
+    const safeSetSender = (email: string | null, displayName: string | null) => {
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+      setResolvedEmail(email);
+      setResolvedDisplayName(displayName);
+    };
+
+    void (async () => {
+      safeSetState({ status: "loading" });
+
+      const devEmail = emailParam?.trim().toLowerCase() || null;
+      const devName = resolveDevDisplayName(searchParams);
+
+      let email = devEmail;
+      let displayName = devName;
+
+      if (!email) {
+        const sender = await resolveOutlookSenderDetails();
+        email = sender?.email ?? null;
+        displayName = displayName ?? sender?.displayName ?? null;
+      }
+
+      safeSetSender(email, displayName);
+
+      if (!email) {
+        safeSetState({ status: "empty", message: emptyMessage });
+        return;
+      }
+
+      try {
+        const response = await fetch(`${apiPath}?email=${encodeURIComponent(email)}`);
+
+        if (requestId !== requestIdRef.current || !mountedRef.current) return;
+
+        if (response.status === 404) {
+          safeSetState({ status: "not-found" });
+          return;
+        }
+
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          safeSetState({
+            status: "error",
+            message: body?.error ?? errorMessage,
+          });
+          return;
+        }
+
+        const payload = (await response.json()) as T;
+        if (requestId !== requestIdRef.current || !mountedRef.current) return;
+
+        if (payload.kind !== expectedKind) {
+          safeSetState({ status: "error", message: unexpectedPayloadMessage });
+          return;
+        }
+
+        safeSetState({ status: "ready", payload });
+      } catch {
+        safeSetState({ status: "error", message: errorMessage });
+      }
+    })();
+
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [
+    apiPath,
+    emailParam,
+    nameParam,
+    emptyMessage,
+    errorMessage,
+    expectedKind,
+    reloadKey,
+    searchParams,
+    unexpectedPayloadMessage,
+  ]);
+
+  return { state, resolvedEmail, resolvedDisplayName, reload };
+}

@@ -1,0 +1,226 @@
+---
+description: SmartCRM Knowledge & Decision Architecture — organizational intelligence, not CRM records
+alwaysApply: true
+---
+
+# SmartCRM North Star
+
+SmartCRM is NOT a CRM.
+
+SmartCRM is an **Organizational Knowledge and Decision System** — the **intelligence layer** above Microsoft 365.
+
+**Purpose:** Transform information into understanding, understanding into priorities, and priorities into action.
+
+**Not:** Store records. **Yes:** Increase understanding with every interaction.
+
+## Fundamental principle
+
+Everything builds knowledge. Every activity, meeting, email, contact, company, opportunity, document, Teams conversation, and Planner task must contribute to organizational knowledge. Nothing should exist in SmartCRM without increasing understanding.
+
+## North star questions (every screen)
+
+Every surface must continuously answer at least one:
+
+1. **What do we know?**
+2. **What don't we know?**
+3. **What changed?**
+4. **What deserves attention?**
+5. **What should happen next?**
+
+If a screen cannot answer one of these, challenge its purpose.
+
+## The knowledge flow
+
+All functionality must support:
+
+```
+Sources → Knowledge → Understanding → Prioritization → Action
+```
+
+| Stage | Role |
+|-------|------|
+| **Sources** | Inputs (companies, contacts, opportunities, activities, meetings, emails, documents, SharePoint, Teams, Outlook, Planner). Sources are NOT the product. |
+| **Knowledge** | Facts, decisions, risks, commitments, relationships, unknowns extracted from sources. Knowledge is more important than records. |
+| **Understanding** | Business insights — prose, not field dumps. *Bad:* `Feedstock = Mixed Plastics`. *Good:* "Mixed plastics have been identified as the primary feedstock for the proposed solution." |
+| **Prioritization** | The brain — identify what deserves attention so users can safely ignore 99% and focus on what matters. Never force manual navigation through thousands of records. |
+| **Action** | Every important insight leads to execution (Prepare Email, Prepare Meeting, validation plan, briefing, action plan, follow-up tasks, Outlook invitation). Identify problems AND help solve them. |
+
+## Knowledge types
+
+Capture and surface: **facts** · **decisions** · **risks** · **commitments** · **relationships** · **unknowns**
+
+Understanding must always be written as business insights, not CRM field values.
+
+## Role in the stack
+
+| System | Role |
+|--------|------|
+| Outlook | Communication |
+| Teams | Collaboration |
+| Planner Premium | Execution |
+| SharePoint | Knowledge |
+| Power BI | Analytics (supporting only) |
+| Copilot | Conversation (enhances, never replaces engines) |
+| **SmartCRM** | **Intelligence** — what matters, what's at risk, what next |
+
+SmartCRM does not compete with M365. It provides relationship, opportunity, and knowledge intelligence.
+
+## Mission — living business workspace
+
+The system is already intelligent. The challenge is no longer functionality — it is making intelligence feel **effortless**.
+
+SmartCRM must be **extremely powerful, extremely simple, and extremely human**. The user must never feel overwhelmed.
+
+Every surface must answer immediately (subset of north star questions):
+
+1. **What am I looking at?**
+2. **What matters?** (what we know / what deserves attention)
+3. **What should I do next?**
+
+Transform from traditional CRM interface into a **living business workspace**:
+
+- **Decide first** — lead with status + next action + impact
+- **Explain on demand** — scores, breakdowns, and engine detail live in collapsed expert tiers only
+- **Living records** — companies, deals, and documents feel alive (context, change, momentum) — not static database rows
+- **Adaptive workspaces** — each surface adapts to role and task; show what matters for *this* moment, hide the rest
+
+## Governing principles
+
+1. **Michelin** — few ingredients, perfectly chosen. No widget/dashboard/card sprawl.
+2. **Human-first design** — write for the person deciding, not the system that scored.
+3. **Living records** — records breathe: last touch, momentum, open commitments, what changed.
+4. **Less is more** — if it does not drive a decision, remove, merge, or collapse it.
+5. **Progressive disclosure** — must-see first; nice-to-have and expert detail behind expand.
+6. **Adaptive workspaces** — layout and emphasis shift by context (account, deal, document, focus).
+7. **Workspace utilization** — use available screen width; present actions, context, and intelligence simultaneously on modern displays. Avoid narrow document-style layouts on decision workspaces. Wider breakpoints show more context without scrolling.
+8. **Maximum confidence** — decisive status and clear next action; never expose rule IDs, confidence %, or engine internals in primary UI.
+9. **3-second test** — What am I looking at? What matters? What next?
+10. **5-second test** — What matters, at risk, why care, what happens next.
+11. **Hierarchy** — Primary → Secondary → Supporting. One hero per surface.
+12. **Decision quality** — Every element must drive a decision or be removed/merged/collapsed.
+13. **Impact mandatory** — Every risk, recommendation, and warning includes impact (`ImpactContext`). No impact → do not render.
+14. **Context before navigation** — Intelligence appears in Outlook/Teams/SharePoint; never require multi-screen CRM hops for context.
+15. **Time to value** — Insight ≤3s, action ≤5s.
+16. **Knowledge before questions** — Before requesting information from a user, search existing relationship and company knowledge first. Never ask what the system already knows.
+17. **SmartAssist decision partnership** — SmartAssist assists throughout business development: understand customer objectives, evaluate opportunities, reduce uncertainty, validate assumptions, prioritize effort, determine the best next action. **The system does the thinking. The user makes the decision.**
+
+## SmartAssist decision partnership
+
+SmartAssist exists to assist users throughout the business development process by helping them understand customer objectives, evaluate opportunities, reduce uncertainty, validate assumptions, prioritize effort, and determine the best next action.
+
+**The system does the thinking.**
+
+**The user makes the decision.**
+
+## Knowledge before questions
+
+Before requesting information from a user, SmartCRM shall attempt to determine whether the answer already exists within:
+
+- Relationships
+- Activities
+- Emails
+- Documents
+- SharePoint
+- Research
+- SmartDocs
+- Previous interactions
+
+If the answer exists, use it. If partial, show what is known and ask only for the gap. Users should never re-type what SmartCRM already holds.
+
+## Information budgets (hard limits)
+
+| Surface | Max blocks | Scroll |
+|---------|------------|--------|
+| Outlook Relationship Card | 5 | None |
+| Outlook Meeting Briefing | 7 sections | Soft (topics only) |
+| Outlook Daily Focus | 4 | None |
+| Teams Account Workspace | 7 | One screen |
+| Web Company 360 Hero | 1 hero | Above fold |
+
+When budget exceeded: prioritize, summarize, collapse — never add another card.
+
+## Outlook Relationship Card (exactly 5 blocks)
+
+1. Relationship Health
+2. Top Risk (+ impact)
+3. Next Best Action (+ impact)
+4. Open Opportunities
+5. Open Commitments
+
+Actions only: Execute in Planner · Open in SmartCRM
+
+## Meeting Briefing must include
+
+Relationship Summary · What Changed · Open Opportunities · Top Risks · Discussion Topics · **Meeting Objective** (singular) · Next Best Action
+
+## M365 UI package (`@smartcrm/m365-ui`)
+
+Shared Fluent components: `RelationshipHeader`, `HealthRing`, `NextBestActionCard`, `MeetingBriefing`, `ImpactContext`, `DailyFocus`, `AccountWorkspace`
+
+Use SmartCRM brand colors. Do NOT redesign brand. Do NOT embed CRM screens/iframes in Teams.
+
+## Engine rule
+
+All intelligence from existing engines (health, NBA, opportunity, SmartDocs, graph, briefing). Copilot explains; SmartCRM decides. No AI before UX/M365 phases are solid.
+
+## Ship gate
+
+Before shipping any UI: decision named, impact present, 3s/5s test pass, information budget respected, no required navigation to understand context.
+
+## Opportunity Operating System (deal workspace)
+
+We are not designing a CRM page. We are designing an **Opportunity Operating System**.
+
+**Objective:** Help the seller understand what matters and what to do next — not display information.
+
+### Michelin test (opportunity)
+
+Before adding or keeping any element: *"Does this help the seller make a better decision?"*
+
+If not: **remove it** — do not hide, collapse, or relocate. Less is better. Clarity beats completeness.
+
+### Apple test (opportunity)
+
+Within 5 seconds the user must understand:
+
+1. **What am I looking at?** (which opportunity)
+2. **What the customer wants**
+3. **What is blocking progress**
+4. **What should happen next**
+
+### Mission Control structure
+
+| Tab | Purpose |
+|-----|---------|
+| Overview | Three answers only — want, block, next |
+| Gaps | Full gap depth |
+| Understanding | Confirmed insights |
+| Actions | Discovery prep + workspace execution |
+| Ask | Opportunity-scoped question (not generic chat) |
+
+One tab visible at a time. Default: **Overview**. No AI thinking prompts on screen — answers only.
+
+### Opportunity information budget
+
+| Surface | Max primary blocks |
+|---------|------------------|
+| Header | Title + one metadata line |
+| Overview | 3 insights |
+| Gaps / Understanding | Lists only — no CRM tables |
+
+Avoid dashboards, reports, and traditional CRM layouts on primary surfaces.
+
+## Relationship-first navigation (Phase 4D)
+
+Users navigate **relationships**, not menus. Every business object is a link to its 360 view:
+
+| Object | Route |
+|--------|-------|
+| Company | `/companies/{id}` |
+| Contact | `/contacts/{contactId}` |
+| Opportunity | `/deals/{dealId}` |
+| Document | `/documents/{documentId}` |
+| Document Set | `/document-sets/{setId}` |
+| Transmission Package | Deal commercial tab or document set |
+
+Emails expose compose actions (Outlook, M365, copy). Phones expose call and copy. Use `@/components/relationship/relationship-links`.

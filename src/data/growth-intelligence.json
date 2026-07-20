@@ -1,0 +1,589 @@
+{
+  "competitiveContext": {
+    "business": {
+      "summary": "StandardBio sells pyrolysis machinery and paid engineering services to waste operators, industrial sites and circular economy projects — not biochar credits.",
+      "focusAreas": [
+        "Machinery sales with commissioning quality",
+        "Paid feasibility and bankability assessments",
+        "Engineering contracts that filter serious buyers"
+      ]
+    },
+    "markets": [
+      {
+        "id": "mkt-eu-waste",
+        "name": "EU municipal & industrial waste pyrolysis",
+        "geography": "EU / Nordics / DACH",
+        "competitiveIntensity": "high",
+        "summary": "Highest machinery ticket size; landfill diversion regulations drive CAPEX."
+      },
+      {
+        "id": "mkt-circular",
+        "name": "Circular economy & biochar ecosystem",
+        "geography": "EU / Italy",
+        "competitiveIntensity": "medium",
+        "summary": "Credibility and certification narratives dominate; limited direct machinery buyer density."
+      },
+      {
+        "id": "mkt-nordic-tenders",
+        "name": "Nordic feasibility tenders",
+        "geography": "Nordics",
+        "competitiveIntensity": "high",
+        "summary": "Price-led Asian OEM entry; bankability is the differentiator."
+      }
+    ],
+    "technologies": [
+      {
+        "id": "tech-modular-pyrolysis",
+        "name": "Modular EU-certified pyrolysis",
+        "maturity": "commercial",
+        "summary": "PYREG leads on certification and registry pre-approval narrative."
+      },
+      {
+        "id": "tech-continuous-pyrolysis",
+        "name": "Continuous flow pyrolysis",
+        "maturity": "commercial",
+        "summary": "ETIA/Biogreen leverages industrial thermal processing heritage."
+      },
+      {
+        "id": "tech-price-oem",
+        "name": "Mid-scale price-competitive OEM",
+        "maturity": "emerging",
+        "summary": "Asian OEMs entering EU tenders at 30% discount — bankability concerns limit close rate."
+      }
+    ]
+  },
+  "competitorProfiles": {
+    "CO-1010": {
+      "companyName": "PYREG",
+      "threatLevel": "critical",
+      "competitorClass": "direct",
+      "positioning": "Modular EU-certified pyrolysis systems with carbon registry pre-approval",
+      "strengths": ["EBC certification", "Registry pre-approval", "Strong EU brand", "Modular scalability"],
+      "weaknesses": ["Premium pricing", "Carbon-pathway narrative may not suit all buyers"],
+      "successFactors": ["Certification credibility", "Decentralized plant references", "Technical webinar presence"],
+      "recentActivity": "Announced 3 new European installations Q1 2026; active at ECOMONDO",
+      "memberships": ["European Biochar Industry Consortium", "IBI"],
+      "certifications": ["EBC Type Certified", "Puro.earth pre-approved"],
+      "eventPresence": ["ECOMONDO", "EU Biochar Conference"],
+      "learnings": "Certification alignment accelerates customer project finance — StandardBio should support customer bankability without selling credits.",
+      "whyWeCompete": "PYREG sets buyer expectations on certification and bankability — customers use their references in project finance conversations.",
+      "whereWeCompete": {
+        "markets": ["EU municipal & industrial waste pyrolysis", "Circular economy & biochar ecosystem"],
+        "geographies": ["EU", "DACH", "Nordics"],
+        "segments": ["Municipal waste operators", "Circular economy projects", "Biochar offtake pathways"]
+      },
+      "howWeCompete": {
+        "theirApproach": "Lead with EBC certification and carbon registry pre-approval; premium pricing justified by bankability narrative.",
+        "ourCounter": "Support customer bankability without selling credits; compete on commissioning quality and paid engineering rigor.",
+        "winConditions": ["Buyer values machinery reliability over certification brand", "Paid feasibility filters serious intent"],
+        "loseConditions": ["Buyer led by financier requiring PYREG-class certification references", "Price-only tender evaluation"]
+      },
+      "whatsChanging": [
+        {
+          "change": "Extended EU order backlog reported Q1 2026",
+          "implication": "Delivery timeline advantage window for StandardBio on mid-scale projects",
+          "dateLabel": "Q1 2026"
+        },
+        {
+          "change": "Active ECOMONDO presence with 3 new installation announcements",
+          "implication": "Counter-position required at circular economy events — meeting-led strategy",
+          "dateLabel": "Q1 2026"
+        }
+      ]
+    },
+    "CO-1011": {
+      "companyName": "ETIA / Biogreen",
+      "threatLevel": "high",
+      "competitorClass": "direct",
+      "positioning": "Continuous pyrolysis from industrial thermal processing heritage",
+      "strengths": ["Decades of thermal engineering", "Global waste-to-energy references", "Continuous flow systems"],
+      "weaknesses": ["Less agile on small modular projects", "Heavier project development overhead"],
+      "successFactors": ["Industrial credibility", "EPC partnerships", "Waste operator relationships"],
+      "recentActivity": "Expanded Biogreen presence at IFAT with waste-sector focus",
+      "memberships": ["CEWEP", "EUBIA"],
+      "certifications": ["ISO 9001", "CE marking"],
+      "eventPresence": ["IFAT", "Pollutec"],
+      "learnings": "Waste-sector event presence drives machinery pipeline — meeting-led attendance outperforms booth-only.",
+      "whyWeCompete": "ETIA/Biogreen owns waste-sector relationships and IFAT visibility — direct overlap on machinery pipeline events.",
+      "whereWeCompete": {
+        "markets": ["EU municipal & industrial waste pyrolysis"],
+        "geographies": ["EU", "DACH", "France"],
+        "segments": ["Industrial waste processors", "Waste-to-energy developers", "Municipal utilities"]
+      },
+      "howWeCompete": {
+        "theirApproach": "Industrial credibility and EPC partnerships; continuous flow systems for large-scale waste operators.",
+        "ourCounter": "Agility on modular mid-scale projects; lighter project development overhead with paid feasibility entry.",
+        "winConditions": ["Mid-scale modular project scope", "Buyer wants faster decision cycle"],
+        "loseConditions": ["Large EPC-led waste-to-energy project", "Buyer prioritizes decades of thermal references"]
+      },
+      "whatsChanging": [
+        {
+          "change": "Expanded IFAT waste-sector booth and meeting program",
+          "implication": "IFAT requires pre-booked meetings and counter-positioning before May 2026",
+          "dateLabel": "Q1 2026"
+        }
+      ]
+    },
+    "CO-1012": {
+      "companyName": "Carbofex (Emerging OEM)",
+      "threatLevel": "medium",
+      "competitorClass": "emerging",
+      "positioning": "Price-competitive mid-scale pyrolysis OEM from Asia",
+      "strengths": ["Lower CAPEX", "Fast delivery", "Growing reference list in SE Asia"],
+      "weaknesses": ["Limited EU support network", "Weaker certification track record", "Bankability concerns"],
+      "successFactors": ["Price advantage on tenders", "Government-backed export programs"],
+      "recentActivity": "Entered 2 Nordic feasibility tenders at 30% below EU OEM pricing",
+      "memberships": [],
+      "certifications": [],
+      "eventPresence": ["China International Environmental Protection Exhibition"],
+      "learnings": "Never compete on price — compete on bankability, commissioning quality and paid engineering rigor.",
+      "whyWeCompete": "Price-led disruption on Nordic tenders — reshapes buyer expectations on CAPEX but creates bankability opening.",
+      "whereWeCompete": {
+        "markets": ["Nordic feasibility tenders"],
+        "geographies": ["Nordics", "SE Asia export targets"],
+        "segments": ["Price-sensitive mid-scale projects", "Government-backed export programs"]
+      },
+      "howWeCompete": {
+        "theirApproach": "30% below EU OEM pricing; fast delivery; growing SE Asia reference list.",
+        "ourCounter": "Never compete on price — paid feasibility, commissioning quality, and bankability documentation.",
+        "winConditions": ["Financier requires EU support network", "Buyer values commissioning over CAPEX discount"],
+        "loseConditions": ["Price-only tender with no bankability gate", "Buyer prioritizes lowest CAPEX"]
+      },
+      "whatsChanging": [
+        {
+          "change": "Entered 2 Nordic feasibility tenders at 30% below EU OEM pricing",
+          "implication": "Reinforces no-price-competition positioning; bankability as differentiator",
+          "dateLabel": "May 2026"
+        }
+      ]
+    }
+  },
+  "potentialMissingCompetitors": [
+    {
+      "name": "WOW",
+      "status": "unclassified",
+      "reason": "Insufficient overlap analysis completed."
+    },
+    {
+      "name": "WAI",
+      "status": "requires_validation",
+      "reason": "Business overlap identified. Service overlap unconfirmed."
+    }
+  ],
+  "events": [
+    {
+      "id": "evt-ifat-2026",
+      "name": "IFAT Munich",
+      "location": "Munich, Germany",
+      "dateLabel": "May 2026",
+      "horizon": "90d",
+      "audienceQuality": "high",
+      "decisionMakerDensity": "high",
+      "strategicRelevance": 92,
+      "competitivePresence": ["PYREG", "ETIA/Biogreen"],
+      "estimatedCost": "€18–35k (meeting suite + travel)",
+      "returnPotential": "5–8 qualified project conversations; 1–2 paid feasibility engagements",
+      "recommendation": "attend",
+      "planningStatus": "needs_planning",
+      "impact": ["Direct access to waste operators with CAPEX budgets", "Competitor visibility requires counter-positioning", "Highest machinery pipeline event in EU waste sector"]
+    },
+    {
+      "id": "evt-ecomondo-2026",
+      "name": "ECOMONDO",
+      "location": "Rimini, Italy",
+      "dateLabel": "Nov 2026",
+      "horizon": "12m",
+      "audienceQuality": "high",
+      "decisionMakerDensity": "medium",
+      "strategicRelevance": 85,
+      "competitivePresence": ["PYREG", "Carbofex"],
+      "estimatedCost": "€12–22k",
+      "returnPotential": "Circular economy project leads; partnership introductions",
+      "recommendation": "attend",
+      "planningStatus": "needs_planning",
+      "impact": ["Strong circular economy and biochar ecosystem presence", "Partner and offtaker networking value"]
+    },
+    {
+      "id": "evt-eu-biochar-2026",
+      "name": "EU Biochar Industry Conference",
+      "location": "Rotterdam, Netherlands",
+      "dateLabel": "Sep 2026",
+      "horizon": "12m",
+      "audienceQuality": "medium",
+      "decisionMakerDensity": "medium",
+      "strategicRelevance": 72,
+      "competitivePresence": ["PYREG", "EBI members"],
+      "estimatedCost": "€4–8k",
+      "returnPotential": "Credibility and ecosystem connections; limited direct machinery sales",
+      "recommendation": "monitor",
+      "planningStatus": "needs_planning",
+      "impact": ["Credibility with certification bodies and offtakers", "Not primary machinery buyer audience"]
+    }
+  ],
+  "memberships": [
+    {
+      "id": "mem-ebi",
+      "name": "European Biochar Industry Consortium (EBI)",
+      "organizationCompanyId": "CO-1013",
+      "strategicRelevance": 88,
+      "decisionMakerAccess": "high",
+      "partnerAccess": "high",
+      "marketInfluence": "high",
+      "competitiveParticipation": ["PYREG", "Carbofex"],
+      "commercialPotential": "Access to offtakers, investors and certification working groups",
+      "recommendation": "join",
+      "timing": "Q3 2026",
+      "impact": ["Credibility with project financiers", "Competitor-dominated — active participation required", "Supports customer bankability without selling biochar"]
+    },
+    {
+      "id": "mem-ibi",
+      "name": "International Biochar Initiative (IBI)",
+      "strategicRelevance": 75,
+      "decisionMakerAccess": "medium",
+      "partnerAccess": "high",
+      "marketInfluence": "medium",
+      "competitiveParticipation": ["PYREG", "Multiple US producers"],
+      "commercialPotential": "Research partnerships and global credibility",
+      "recommendation": "evaluate",
+      "timing": "Q4 2026",
+      "impact": ["Global research network access", "Lower direct machinery buyer density than EU waste events"]
+    }
+  ],
+  "marketSegments": [
+    {
+      "id": "seg-municipal-waste-eu",
+      "name": "Municipal & Industrial Waste Pyrolysis",
+      "geography": "EU / Nordics",
+      "machineryPotential": "high",
+      "servicesPotential": "high",
+      "trend": "growing",
+      "summary": "Landfill diversion and waste hierarchy regulations drive CAPEX budgets. Highest machinery ticket size.",
+      "opportunityCount": 3,
+      "impact": ["Aligns with Legacy Materials and Nordic pipeline", "Paid feasibility entry before machinery sale"]
+    },
+    {
+      "id": "seg-agri-residue",
+      "name": "Agricultural Residue (Decentralized)",
+      "geography": "EU / Nordics",
+      "machineryPotential": "medium",
+      "servicesPotential": "high",
+      "trend": "emerging",
+      "summary": "Smaller units but strong attach for training, commissioning and paid consulting.",
+      "opportunityCount": 2,
+      "impact": ["Training and commissioning services revenue", "Lower machinery ticket — volume play"]
+    },
+    {
+      "id": "seg-chemical-industrial",
+      "name": "Chemical & Industrial Decarbonization",
+      "geography": "DACH / Italy",
+      "machineryPotential": "high",
+      "servicesPotential": "medium",
+      "trend": "growing",
+      "summary": "Industrial sites seeking waste valorization and energy co-generation pathways.",
+      "opportunityCount": 1,
+      "impact": ["Reclaim Industries pipeline fit", "Engineering services attach high"]
+    }
+  ],
+  "marketingChannels": [
+    {
+      "id": "ch-events-targeted",
+      "name": "Targeted trade show meetings",
+      "awareness": 85,
+      "credibility": 90,
+      "commercialImpact": 95,
+      "strategicValue": 90,
+      "longTermInfluence": 80,
+      "rank": 1,
+      "summary": "Pre-booked meetings at waste and circular economy events. Decision-maker density beats attendance volume.",
+      "impact": ["Highest direct pipeline contribution", "Competitor presence requires meeting-led strategy"]
+    },
+    {
+      "id": "ch-paid-feasibility",
+      "name": "Paid feasibility & bankability assessments",
+      "awareness": 55,
+      "credibility": 95,
+      "commercialImpact": 90,
+      "strategicValue": 85,
+      "longTermInfluence": 88,
+      "rank": 2,
+      "summary": "Productized paid consulting filters serious buyers and converts to machinery sales.",
+      "impact": ["Positions consulting as paid product", "Filters price shoppers"]
+    },
+    {
+      "id": "ch-partner-referrals",
+      "name": "EPC & waste operator partner channel",
+      "awareness": 40,
+      "credibility": 90,
+      "commercialImpact": 88,
+      "strategicValue": 92,
+      "longTermInfluence": 95,
+      "rank": 3,
+      "summary": "Referrals from trusted implementers carry highest close rates.",
+      "impact": ["Long-term pipeline multiplier", "Requires formal partner program"]
+    },
+    {
+      "id": "ch-linkedin-technical",
+      "name": "LinkedIn technical authority",
+      "awareness": 80,
+      "credibility": 70,
+      "commercialImpact": 55,
+      "strategicValue": 65,
+      "longTermInfluence": 75,
+      "rank": 4,
+      "summary": "Engineer-to-engineer content on commissioning, feedstock handling and project economics.",
+      "impact": ["Builds credibility with project developers", "Indirect pipeline contribution"]
+    },
+    {
+      "id": "ch-associations",
+      "name": "Industry association working groups",
+      "awareness": 50,
+      "credibility": 88,
+      "commercialImpact": 60,
+      "strategicValue": 85,
+      "longTermInfluence": 90,
+      "rank": 5,
+      "summary": "EBI/IBI technical participation — credibility and ecosystem access.",
+      "impact": ["Long-term influence on certification standards", "Competitor-dominated without active contribution"]
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "rec-feasibility-product",
+      "what": "Launch paid Project Bankability Assessment product",
+      "why": "Competitors bundle free scoping; StandardBio loses margin and signals low value for engineering expertise.",
+      "when": "30 days",
+      "where": "Nordics, DACH, UK waste and biomass developers",
+      "how": "Fixed-scope deliverable with published pricing; CRM tracks assessment → machinery conversion.",
+      "expectedOutcome": "2–4 paid assessments per quarter; 25–40% conversion to machinery or project development within 12 months.",
+      "confidencePercent": 88,
+      "horizon": "30d",
+      "outcomes": ["Paid consulting engagements", "Machinery sales", "Market credibility"],
+      "priority": "critical",
+      "status": "proposed"
+    },
+    {
+      "id": "rec-ifat-planning",
+      "what": "Plan IFAT 2026 meeting-led presence",
+      "why": "Highest decision-maker density in EU waste sector; PYREG and ETIA will be active.",
+      "when": "90 days",
+      "where": "Munich, Germany",
+      "how": "Pre-book 15–20 targeted meetings; bring paid assessment offer, not machinery brochure.",
+      "expectedOutcome": "5–8 qualified conversations; 1–2 paid feasibility engagements within 6 months.",
+      "confidencePercent": 82,
+      "horizon": "90d",
+      "outcomes": ["Machinery sales", "Market awareness", "Strategic partnerships"],
+      "priority": "high",
+      "status": "proposed"
+    },
+    {
+      "id": "rec-ebi-membership",
+      "what": "Join EBI with working-group participation",
+      "why": "PYREG dominates certification narrative; StandardBio needs ecosystem credibility for customer bankability.",
+      "when": "Q3 2026",
+      "where": "European Biochar Industry Consortium",
+      "how": "Technical committee contribution; machinery performance data sharing.",
+      "expectedOutcome": "Partner introductions, investor visibility, improved customer project finance conversations.",
+      "confidencePercent": 79,
+      "horizon": "12m",
+      "outcomes": ["Strategic partnerships", "Market credibility", "Machinery sales"],
+      "priority": "high",
+      "status": "proposed"
+    },
+    {
+      "id": "rec-partner-map",
+      "what": "Build neutral ecosystem partner map",
+      "why": "Customers stall on offtake uncertainty; StandardBio connects without selling biochar or credits.",
+      "when": "30 days (v1); 12 months (formal program)",
+      "where": "EU / Nordics",
+      "how": "10–15 offtaker, investor and research referral agreements tracked in CRM.",
+      "expectedOutcome": "Shorter sales cycles on stalled machinery deals.",
+      "confidencePercent": 85,
+      "horizon": "90d",
+      "outcomes": ["Strategic partnerships", "Machinery sales", "Project development contracts"],
+      "priority": "high",
+      "status": "proposed"
+    }
+  ],
+  "strategicInitiatives": [
+    {
+      "id": "init-feasibility-gtm",
+      "name": "Paid Feasibility Go-to-Market",
+      "horizon": "90d",
+      "status": "planned",
+      "owner": "Commercial Director",
+      "outcomes": ["Paid consulting engagements", "Market credibility"],
+      "summary": "Productize and launch Project Bankability Assessment as entry offer.",
+      "nextMilestone": "Publish scope, pricing and CRM tracking by end of month",
+      "impact": ["Converts free pre-sales into paid revenue", "Filters serious machinery buyers"]
+    },
+    {
+      "id": "init-event-2026",
+      "name": "EU Waste Events 2026 Program",
+      "horizon": "12m",
+      "status": "planned",
+      "owner": "BD Director",
+      "outcomes": ["Machinery sales", "Market awareness", "Strategic partnerships"],
+      "summary": "Meeting-led presence at IFAT and ECOMONDO with competitor counter-positioning.",
+      "nextMilestone": "IFAT meeting target list and budget approval",
+      "impact": ["Primary pipeline generation channel for EU waste segment"]
+    },
+    {
+      "id": "init-partner-ecosystem",
+      "name": "Neutral Ecosystem Partner Program",
+      "horizon": "36m",
+      "status": "planned",
+      "owner": "CEO / BD",
+      "outcomes": ["Strategic partnerships", "Machinery sales"],
+      "summary": "Formal referral network of offtakers, investors and research organizations.",
+      "nextMilestone": "Partner map v1 with 10 targets",
+      "impact": ["Removes offtake blockage without commodity sales"]
+    }
+  ],
+  "marketIntelligence": [
+    {
+      "id": "mi-landfill-eu",
+      "category": "regulation",
+      "title": "EU landfill diversion targets accelerating waste-to-pyrolysis projects",
+      "summary": "Member states tightening landfill restrictions; municipal waste operators evaluating thermal treatment alternatives.",
+      "dateLabel": "Jul 2026",
+      "relevance": "high",
+      "impact": ["Municipal waste segment opportunity expanding", "Government Agency engagement increasing"]
+    },
+    {
+      "id": "mi-pyreg-backlog",
+      "category": "competitor_activity",
+      "title": "PYREG reporting extended EU order backlog",
+      "summary": "Leading EU OEM signaling 18-month delivery windows — capacity gap for alternative suppliers.",
+      "dateLabel": "Q1 2026",
+      "relevance": "high",
+      "impact": ["Window for StandardBio on delivery timeline advantage", "Competitor strength also validates market demand"]
+    },
+    {
+      "id": "mi-carbon-finance",
+      "category": "funding",
+      "title": "Project finance increasingly requires certification pathway clarity",
+      "summary": "Investors demanding EBC/registry alignment before machinery CAPEX approval.",
+      "dateLabel": "Jun 2026",
+      "relevance": "high",
+      "impact": ["Paid feasibility must address certification gaps", "EBI membership strategically valuable"]
+    },
+    {
+      "id": "mi-chinese-oem",
+      "category": "competitor_activity",
+      "title": "Asian OEMs entering Nordic feasibility tenders at 30% discount",
+      "summary": "Price-led competition on mid-scale projects; bankability concerns limit close rate.",
+      "dateLabel": "May 2026",
+      "relevance": "medium",
+      "impact": ["Reinforces no-price-competition positioning", "Commissioning quality as differentiator"]
+    }
+  ],
+  "eventPlanning": {
+    "evt-ifat-2026": {
+      "targetIndustries": ["Waste Management", "Energy & Infrastructure"],
+      "targetGeographies": ["Germany", "United Kingdom", "EU"],
+      "focusSegments": ["municipal waste operators", "industrial waste processors", "waste-to-energy developers"],
+      "discussionThemes": ["pyrolysis CAPEX and bankability", "modular plant deployment", "waste feedstock qualification"],
+      "prospectCompanies": [
+        {
+          "id": "epc-stadtwerke-muenchen",
+          "name": "Stadtwerke München Waste Division",
+          "industry": "Waste Management",
+          "geography": "Germany",
+          "domain": "swm.de",
+          "contactPageUrl": "https://www.swm.de/unternehmen/kontakt",
+          "relevanceReasons": ["Municipal waste operator in IFAT host city", "Active CAPEX in waste infrastructure", "Decision-maker density at IFAT"],
+          "contacts": [
+            {
+              "id": "epc-swm-head",
+              "name": "Dr. Klaus Weber",
+              "jobTitle": "Head of Waste Infrastructure",
+              "role": "Executive Sponsor",
+              "email": "k.weber@swm.de",
+              "linkedInUrl": "https://www.linkedin.com/in/klaus-weber-swm",
+              "whyRelevant": "Budget authority for waste technology procurement in Munich metro",
+              "discussionTopics": ["Municipal pyrolysis pilot criteria", "IFAT meeting on thermal treatment roadmap"]
+            }
+          ]
+        },
+        {
+          "id": "epc-remondis-de",
+          "name": "Remondis Technik SE",
+          "industry": "Waste Management",
+          "geography": "Germany",
+          "domain": "remondis.de",
+          "contactPageUrl": "https://www.remondis.de/kontakt",
+          "relevanceReasons": ["Major EU waste operator with machinery CAPEX programs", "IFAT regular exhibitor audience overlap"],
+          "contacts": [
+            {
+              "id": "epc-remondis-proc",
+              "name": "Sabine Hartmann",
+              "jobTitle": "Director Technology Procurement",
+              "role": "Procurement",
+              "email": "s.hartmann@remondis.de",
+              "phone": "+49 2306 106 4200",
+              "whyRelevant": "Leads technology vendor evaluation for thermal treatment projects",
+              "discussionTopics": ["Vendor qualification process", "Commissioning support expectations", "Paid feasibility scope"]
+            }
+          ]
+        }
+      ]
+    },
+    "evt-ecomondo-2026": {
+      "targetIndustries": ["Textile Recovery", "Polymer Processing", "Chemical Manufacturing"],
+      "targetGeographies": ["Italy", "EU", "France"],
+      "focusSegments": ["circular economy operators", "textile recovery", "biochar offtakers"],
+      "discussionThemes": ["circular feedstock pathways", "biochar offtake agreements", "partnership introductions"],
+      "prospectCompanies": [
+        {
+          "id": "epc-hera-italy",
+          "name": "Hera Group Circular Solutions",
+          "industry": "Waste Management",
+          "geography": "Italy",
+          "domain": "gruppohera.it",
+          "contactPageUrl": "https://www.gruppohera.it/contatti",
+          "relevanceReasons": ["Leading Italian multi-utility with circular economy mandate", "ECOMONDO anchor audience"],
+          "contacts": [
+            {
+              "id": "epc-hera-circ",
+              "name": "Marco Bellini",
+              "jobTitle": "Circular Economy Director",
+              "role": "Executive Sponsor",
+              "email": "m.bellini@gruppohera.it",
+              "linkedInUrl": "https://www.linkedin.com/in/marco-bellini-circular",
+              "whyRelevant": "Sets strategic direction for circular feedstock and thermal treatment pilots",
+              "discussionTopics": ["Italian circular economy project pipeline", "Biochar offtake partner introductions"]
+            }
+          ]
+        }
+      ]
+    },
+    "evt-eu-biochar-2026": {
+      "targetIndustries": ["Energy & Infrastructure", "Chemical Manufacturing"],
+      "targetGeographies": ["Netherlands", "EU", "Germany"],
+      "focusSegments": ["biochar producers", "certification bodies", "project financiers"],
+      "discussionThemes": ["EBC certification pathways", "customer bankability without selling credits", "ecosystem credibility"],
+      "prospectCompanies": [
+        {
+          "id": "epc-ebc-netherlands",
+          "name": "European Biochar Certificate (EBC)",
+          "industry": "Energy & Infrastructure",
+          "geography": "Netherlands",
+          "domain": "european-biochar.org",
+          "contactPageUrl": "https://www.european-biochar.org/en/contact",
+          "relevanceReasons": ["Certification body central to biochar bankability narrative", "Conference ecosystem anchor"],
+          "contacts": [
+            {
+              "id": "epc-ebc-tech",
+              "name": "Dr. Hans-Peter Schmidt",
+              "jobTitle": "Technical Director",
+              "role": "Executive Sponsor",
+              "email": "info@european-biochar.org",
+              "whyRelevant": "Influences certification requirements affecting customer project finance",
+              "discussionTopics": ["Supporting customer bankability", "Machinery commissioning quality standards"]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

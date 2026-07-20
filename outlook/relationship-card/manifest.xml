@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
+  xsi:type="MailApp"
+>
+  <Id>6f3c8b2a-9d4e-4a1c-b7e2-smartcrm-outlook-v1</Id>
+  <Version>1.1.0.0</Version>
+  <ProviderName>SmartCRM</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="SmartCRM for Outlook" />
+  <Description DefaultValue="Relationship intelligence and meeting briefings — prepare in under 30 seconds." />
+  <IconUrl DefaultValue="https://localhost:3000/favicon.ico" />
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/favicon.ico" />
+  <SupportUrl DefaultValue="https://localhost:3000" />
+  <AppDomains>
+    <AppDomain>https://localhost:3000</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Mailbox" />
+  </Hosts>
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.5" />
+    </Sets>
+  </Requirements>
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://localhost:3000/outlook/relationship-card" />
+        <RequestedHeight>450</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+  <Permissions>ReadItem</Permissions>
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read" />
+    <Rule xsi:type="ItemIs" ItemType="Appointment" FormType="Read" />
+  </Rule>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.5">
+        <bt:Set Name="Mailbox" />
+      </bt:Sets>
+    </Requirements>
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="SmartCRM.Group">
+                <Label resid="SmartCRM.GroupLabel" />
+                <Control xsi:type="Button" id="SmartCRM.RelationshipCard">
+                  <Label resid="SmartCRM.RelationshipCard.Label" />
+                  <Supertip>
+                    <Title resid="SmartCRM.RelationshipCard.Label" />
+                    <Description resid="SmartCRM.RelationshipCard.Description" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="SmartCRM.Icon16" />
+                    <bt:Image size="32" resid="SmartCRM.Icon32" />
+                    <bt:Image size="80" resid="SmartCRM.Icon80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="SmartCRM.RelationshipCard.Url" />
+                  </Action>
+                </Control>
+                <Control xsi:type="Button" id="SmartCRM.MeetingBriefing">
+                  <Label resid="SmartCRM.MeetingBriefing.Label" />
+                  <Supertip>
+                    <Title resid="SmartCRM.MeetingBriefing.Label" />
+                    <Description resid="SmartCRM.MeetingBriefing.Description" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="SmartCRM.Icon16" />
+                    <bt:Image size="32" resid="SmartCRM.Icon32" />
+                    <bt:Image size="80" resid="SmartCRM.Icon80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="SmartCRM.MeetingBriefing.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+          <ExtensionPoint xsi:type="AppointmentOrganizerCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="SmartCRM.AppointmentGroup">
+                <Label resid="SmartCRM.GroupLabel" />
+                <Control xsi:type="Button" id="SmartCRM.MeetingBriefing.Appointment">
+                  <Label resid="SmartCRM.MeetingBriefing.Label" />
+                  <Supertip>
+                    <Title resid="SmartCRM.MeetingBriefing.Label" />
+                    <Description resid="SmartCRM.MeetingBriefing.Description" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="SmartCRM.Icon16" />
+                    <bt:Image size="32" resid="SmartCRM.Icon32" />
+                    <bt:Image size="80" resid="SmartCRM.Icon80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="SmartCRM.MeetingBriefing.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="SmartCRM.Icon16" DefaultValue="https://localhost:3000/favicon.ico" />
+        <bt:Image id="SmartCRM.Icon32" DefaultValue="https://localhost:3000/favicon.ico" />
+        <bt:Image id="SmartCRM.Icon80" DefaultValue="https://localhost:3000/favicon.ico" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="SmartCRM.RelationshipCard.Url" DefaultValue="https://localhost:3000/outlook/relationship-card" />
+        <bt:Url id="SmartCRM.MeetingBriefing.Url" DefaultValue="https://localhost:3000/outlook/meeting-briefing" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="SmartCRM.GroupLabel" DefaultValue="SmartCRM" />
+        <bt:String id="SmartCRM.RelationshipCard.Label" DefaultValue="Relationship Card" />
+        <bt:String id="SmartCRM.MeetingBriefing.Label" DefaultValue="Meeting Briefing" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="SmartCRM.RelationshipCard.Description" DefaultValue="Relationship health, top risk, and next best action for this contact." />
+        <bt:String id="SmartCRM.MeetingBriefing.Description" DefaultValue="Prepare for your meeting in under 30 seconds — objective, risks, and action." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

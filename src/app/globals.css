@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3f3f3;
+  --foreground: #1f1c24;
+  --dashboard-bg: #f7f7f8;
+  --dashboard-surface: #ffffff;
+  --dashboard-card: #ffffff;
+  --dashboard-card-border: rgba(31, 28, 36, 0.08);
+  --dashboard-muted: rgba(31, 28, 36, 0.45);
+  --command-overlay: rgba(15, 14, 17, 0.52);
+  --command-surface: #ffffff;
+  --command-border: rgba(31, 28, 36, 0.1);
+  --command-muted: rgba(31, 28, 36, 0.45);
+  --command-subtle: rgba(31, 28, 36, 0.06);
+  --command-hover: rgba(230, 81, 37, 0.08);
+  --command-text: #1f1c24;
+  --command-shadow: 0 24px 80px -12px rgba(31, 28, 36, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #121014;
+    --foreground: #f3f3f3;
+    --dashboard-bg: #0c0b0d;
+    --dashboard-surface: #161418;
+    --dashboard-card: #1a181c;
+    --dashboard-card-border: rgba(255, 255, 255, 0.08);
+    --dashboard-muted: rgba(243, 243, 243, 0.5);
+    --command-overlay: rgba(0, 0, 0, 0.72);
+    --command-surface: #1a181c;
+    --command-border: rgba(255, 255, 255, 0.1);
+    --command-muted: rgba(243, 243, 243, 0.45);
+    --command-subtle: rgba(255, 255, 255, 0.04);
+    --command-hover: rgba(230, 81, 37, 0.14);
+    --command-text: #f3f3f3;
+    --command-shadow: 0 24px 80px -12px rgba(0, 0, 0, 0.65);
+  }
+}
+
+.dark {
+  --background: #121014;
+  --foreground: #f3f3f3;
+  --dashboard-bg: #0c0b0d;
+  --dashboard-surface: #161418;
+  --dashboard-card: #1a181c;
+  --dashboard-card-border: rgba(255, 255, 255, 0.08);
+  --dashboard-muted: rgba(243, 243, 243, 0.5);
+  --command-overlay: rgba(0, 0, 0, 0.72);
+  --command-surface: #1a181c;
+  --command-border: rgba(255, 255, 255, 0.1);
+  --command-muted: rgba(243, 243, 243, 0.45);
+  --command-subtle: rgba(255, 255, 255, 0.04);
+  --command-hover: rgba(230, 81, 37, 0.14);
+  --command-text: #f3f3f3;
+  --command-shadow: 0 24px 80px -12px rgba(0, 0, 0, 0.65);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-upcycle-orange: #e65125;
+  --color-carbon-blue: #1f1c24;
+  --color-thermal-red: #801712;
+  --color-flame: #fad491;
+  --color-light-grey: #f3f3f3;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.dashboard-card {
+  background: var(--dashboard-card);
+  border: 1px solid var(--dashboard-card-border);
+  border-radius: 0;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.dashboard-card:hover {
+  border-color: color-mix(in srgb, var(--dashboard-card-border) 60%, #e65125 40%);
+}
+
+/* Display-aware workspace — fluid content after sidebar */
+.workspace-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 1280px) {
+  .workspace-grid {
+    gap: 1.25rem;
+  }
+}
+
+.drawer-panel {
+  transform: translate3d(100%, 0, 0);
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drawer-panel-open {
+  transform: translate3d(0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-panel {
+    transition: none;
+  }
+
+  .command-palette {
+    animation: none;
+  }
+}
+
+.command-palette-backdrop {
+  background: var(--command-overlay);
+}
+
+.command-palette {
+  background: var(--command-surface);
+  border: 1px solid var(--command-border);
+  box-shadow: var(--command-shadow);
+  color: var(--command-text);
+  animation: command-palette-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes command-palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

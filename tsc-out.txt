@@ -1,0 +1,14 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+src/components/project/project-intelligence-section.tsx(31,55): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/components/project/project-intelligence-section.tsx(32,55): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/components/project/project-intelligence-section.tsx(33,43): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/components/project/project-intelligence-section.tsx(34,50): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/lib/opportunity-understanding-model.ts(145,3): error TS2322: Type '{ id: UnderstandingFieldId; topic: string; answer: string; fieldId: UnderstandingFieldId; source: "captured" | "derived" | "empty"; }[]' is not assignable to type 'UnderstandingConfirmedRow[]'.
+  Type '{ id: UnderstandingFieldId; topic: string; answer: string; fieldId: UnderstandingFieldId; source: "captured" | "derived" | "empty"; }' is not assignable to type 'UnderstandingConfirmedRow'.
+    Types of property 'source' are incompatible.
+      Type '"captured" | "derived" | "empty"' is not assignable to type '"captured" | "derived"'.
+        Type '"empty"' is not assignable to type '"captured" | "derived"'.

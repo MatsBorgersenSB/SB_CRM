@@ -1,0 +1,240 @@
+{
+  "entities": {
+    "pyreg": {
+      "aliases": ["pyreg", "pyreg gmbh", "carbofex"],
+      "kind": "competitor",
+      "executiveSummary": {
+        "industry": "Pyrolysis technology / biochar OEM",
+        "location": "Dörth, Germany (EU)",
+        "size": "~120 employees · €25M+ estimated revenue",
+        "businessFocus": "Modular EU-certified pyrolysis systems with carbon registry pre-approval and decentralized plant references."
+      },
+      "whyItMatters": [
+        "Direct competitor on EU machinery sales — certification-led positioning shapes buyer expectations.",
+        "18-month delivery backlog signals market demand Standard Bio can capture on timeline.",
+        "Their EBC/registry narrative sets the bar for paid feasibility and bankability work."
+      ],
+      "recentNews": [
+        {
+          "label": "3 new European installations announced Q1 2026",
+          "detail": "Press release · ECOMONDO presence",
+          "source": "Press Releases"
+        },
+        {
+          "label": "Extended EU order backlog reported",
+          "detail": "Industry media · 18-month delivery windows",
+          "source": "Industry Media"
+        },
+        {
+          "label": "Active at ECOMONDO and EU Biochar Conference",
+          "detail": "Event presence reinforces certification credibility",
+          "source": "Industry Media"
+        }
+      ],
+      "projectSignals": [
+        {
+          "label": "Decentralized modular plants",
+          "detail": "Targeting waste operators and agricultural residue projects"
+        },
+        {
+          "label": "Registry pre-approval pathway",
+          "detail": "Customers using PYREG references for project finance"
+        }
+      ],
+      "risks": {
+        "commercial": [
+          {
+            "label": "Premium pricing sets buyer anchor",
+            "detail": "May compress Standard Bio margin on comparable specs"
+          }
+        ],
+        "competitive": [
+          {
+            "label": "Strong certification brand",
+            "detail": "EBC Type Certified · Puro.earth pre-approved"
+          },
+          {
+            "label": "High event visibility",
+            "detail": "Dominates circular economy conference circuit"
+          }
+        ]
+      },
+      "opportunities": [
+        {
+          "label": "Delivery timeline gap",
+          "detail": "Backlog creates window for faster commissioning alternative"
+        },
+        {
+          "label": "Paid bankability assessments",
+          "detail": "Help buyers compare certification paths without price competition"
+        }
+      ],
+      "recommendedActions": [
+        "Monitor PYREG tender appearances in Nordics and DACH",
+        "Position Standard Bio on commissioning quality and delivery speed",
+        "Use paid feasibility to address certification gaps early"
+      ],
+      "overallAssessment": {
+        "priority": "high",
+        "strategicPriority": "Critical competitor — monitor weekly",
+        "summary": "Market-validating competitor with certification moat. Compete on bankability, delivery and paid engineering rigor — not price."
+      }
+    },
+    "norske skog": {
+      "aliases": ["norske skog", "norske skog asa"],
+      "kind": "company",
+      "executiveSummary": {
+        "industry": "Pulp & paper / forest products",
+        "location": "Oslo, Norway · Nordic operations",
+        "size": "~2,300 employees · NOK 12B+ revenue",
+        "businessFocus": "Integrated forest industry group exploring biomass valorization and decarbonization pathways at mill sites."
+      },
+      "whyItMatters": [
+        "Large Nordic industrial operator with CAPEX capacity for waste-to-energy and pyrolysis pilots.",
+        "Mill-site residue streams align with Standard Bio feedstock and machinery offerings.",
+        "Sustainability programs create entry for paid feasibility before machinery decisions."
+      ],
+      "recentNews": [
+        {
+          "label": "Sustainability roadmap update 2026",
+          "detail": "Increased focus on circular biomass and site decarbonization",
+          "source": "Company Website"
+        },
+        {
+          "label": "Exploring biochar co-product pathways",
+          "detail": "Industry media coverage of pilot evaluations",
+          "source": "Industry Media"
+        },
+        {
+          "label": "Nordic green investment program eligibility",
+          "detail": "Public funding programs for industrial decarbonization",
+          "source": "Funding Programs"
+        }
+      ],
+      "projectSignals": [
+        {
+          "label": "Mill residue valorization feasibility",
+          "detail": "Early-stage planning at multiple Nordic sites"
+        },
+        {
+          "label": "Facility upgrade programs",
+          "detail": "Thermal treatment alternatives under evaluation"
+        }
+      ],
+      "risks": {
+        "commercial": [
+          {
+            "label": "Long corporate procurement cycles",
+            "detail": "Machinery decision may be 18–36 months out"
+          }
+        ],
+        "relationship": [
+          {
+            "label": "No established Standard Bio relationship",
+            "detail": "Greenfield account — requires executive sponsor mapping"
+          }
+        ]
+      },
+      "opportunities": [
+        {
+          "label": "Paid feasibility engagement",
+          "detail": "Entry via bankability and feedstock assessment before CAPEX"
+        },
+        {
+          "label": "Machinery contract path",
+          "detail": "Mid-scale pyrolysis for mill residue if feasibility positive"
+        }
+      ],
+      "recommendedActions": [
+        "Map executive sponsor and sustainability lead via LinkedIn",
+        "Propose paid feasibility scoped to one mill site",
+        "Connect to Nordic reference projects in CRM knowledge base"
+      ],
+      "overallAssessment": {
+        "priority": "medium",
+        "strategicPriority": "Strategic prospect — nurture with paid services",
+        "summary": "High-value Nordic industrial target. Lead with paid engineering and relationship building — not unpaid consulting."
+      }
+    },
+    "swedish biochar market": {
+      "aliases": [
+        "swedish biochar market",
+        "sweden biochar",
+        "nordic biochar market",
+        "biochar market sweden"
+      ],
+      "kind": "market",
+      "executiveSummary": {
+        "industry": "Biochar & carbon removal",
+        "location": "Sweden / Nordics",
+        "businessFocus": "Growing regulatory and agricultural demand for certified biochar; machinery demand driven by waste hierarchy and soil improvement programs."
+      },
+      "whyItMatters": [
+        "Sweden leads Nordic biochar adoption with municipal and agricultural offtake programs.",
+        "Machinery sales attach to waste operators diversifying beyond landfill.",
+        "Certification clarity (EBC) increasingly required for project finance."
+      ],
+      "recentNews": [
+        {
+          "label": "EU landfill diversion accelerating Nordic waste-to-pyrolysis",
+          "detail": "Regulatory tailwind for municipal projects",
+          "source": "Industry Media"
+        },
+        {
+          "label": "Project finance requires certification pathway clarity",
+          "detail": "Investors demanding EBC/registry alignment",
+          "source": "Investment News"
+        },
+        {
+          "label": "Asian OEMs entering Nordic tenders at discount",
+          "detail": "Price competition — bankability concerns limit close rate",
+          "source": "Tender Platforms"
+        }
+      ],
+      "projectSignals": [
+        {
+          "label": "Municipal waste pyrolysis segment growing",
+          "detail": "EU / Nordics — highest machinery ticket size"
+        },
+        {
+          "label": "Agricultural residue decentralized units emerging",
+          "detail": "Smaller units with training and commissioning attach"
+        }
+      ],
+      "risks": {
+        "commercial": [
+          {
+            "label": "Offtake uncertainty stalls projects",
+            "detail": "Customers delay machinery CAPEX without buyer clarity"
+          }
+        ],
+        "competitive": [
+          {
+            "label": "PYREG and EU OEMs dominate credibility narrative",
+            "detail": "Certification-led competition in circular economy events"
+          }
+        ]
+      },
+      "opportunities": [
+        {
+          "label": "Paid feasibility as market entry product",
+          "detail": "Filters serious buyers in growing segment"
+        },
+        {
+          "label": "Nordic Polymers and Legacy Materials references",
+          "detail": "Existing CRM relationships demonstrate regional delivery"
+        }
+      ],
+      "recommendedActions": [
+        "Target IFAT and EU Biochar Conference with pre-booked meetings",
+        "Productize paid bankability assessment for Swedish municipal operators",
+        "Leverage EBI ecosystem for offtake introductions without selling biochar"
+      ],
+      "overallAssessment": {
+        "priority": "high",
+        "strategicPriority": "Growth market — active pursuit",
+        "summary": "Swedish biochar market is expanding with regulatory tailwinds. Standard Bio should lead with paid services and machinery on bankability — avoid commodity positioning."
+      }
+    }
+  }
+}
