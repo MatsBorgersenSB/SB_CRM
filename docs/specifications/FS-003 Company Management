@@ -1,8 +1,20 @@
 # FS-003 Company Management
 
+## SmartAssist-First Principle
+
+Company Management is designed to be AI-assisted by default.
+
+SmartAssist is available throughout the Company Management experience.
+
+SmartAssist assists users.
+
+SmartAssist does not make decisions on behalf of users.
+
+All AI-generated actions require user review and approval.
+
 ## Status
 
-Draft
+Review
 
 ## Owner
 
@@ -34,12 +46,14 @@ Companies may exist independently without a parent company.
 
 - Company ID
 - Company Name
+- Alternative Names (0..*)
 - Parent Company (Optional)
 - Organization Number
 - VAT Number
 - Website (optional)
 - Industry (optional)
 - Company Size
+- Company Types (0..*)
 - Email Addresses (0..*)
 - Phone Numbers (0..*)
 - Status
@@ -66,14 +80,13 @@ A company may have:
 - Unknown
 
 ---
-### Company Type
+### Company Types
 
-A company may have one of the following types:
+A company may have one or more Company Types.
 
 - Customer
 - Prospect
 - Supplier
-- consultant
 - Partner
 - Competitor
 - Internal
@@ -226,8 +239,8 @@ SmartCRM shall detect possible duplicate companies based on:
 - Organization Number
 - VAT Number
 - Website
-- Main Email
-- Main Phone Number
+- Email Addresses (0..*)
+- Phone Numbers (0..*)
 
 Users shall be warned before creating duplicate companies.
 
@@ -241,13 +254,14 @@ Users shall be able to search companies by:
 
 - Company Name
 - Organization Number
+- Alternative Names
 - Website
 - Email
 - Phone Number
 - City
 - Country
 - Industry
-- Notes
+- Company Notes
 
 Search results should appear instantly.
 
@@ -416,7 +430,7 @@ Companies linked to contacts, opportunities, projects, meetings, or activities c
 
 ### AC-21
 
-A company may have a defined Company Type.
+A company may have one or more Company Types.
 
 ### AC-22
 
@@ -441,6 +455,18 @@ Users can view company hierarchy from Company Details.
 ### AC-27
 
 Companies can exist without a parent company.
+
+### AC-28
+
+A company may store one or more alternative names.
+
+### AC-29
+
+Alternative names are searchable.
+
+### AC-30
+
+Users can search for parent and child companies.
 
 ---
 
