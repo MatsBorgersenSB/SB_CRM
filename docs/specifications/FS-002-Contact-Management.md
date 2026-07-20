@@ -1,5 +1,27 @@
 # FS-002 Contact Management
 
+## SmartAssist-First Principle
+
+Contact Management is designed to be AI-assisted by default.
+
+SmartAssist is available throughout the Contact Management experience.
+
+SmartAssist may:
+
+- Suggest existing contacts
+- Suggest duplicate contacts
+- Suggest contact updates
+- Suggest company associations
+- Surface relevant Personal Notes before meetings
+
+SmartAssist assists users.
+
+SmartAssist does not make decisions on behalf of users.
+
+All AI-generated actions require user review and approval.
+
+SmartAssist may surface insights and recommendations based on contacts, companies, opportunities, meetings, and historical interactions.
+
 ## Status
 
 Review
@@ -26,8 +48,9 @@ Contact ID
 - Job Title
 - Email Addresses (0..*)
 - Phone Numbers (0..*)
+- Preferred Contact Method (Optional)
 - LinkedIn URL (Optional)
-- Company
+- Company (optional)
 - Business Address (Optional)
 - Status
 - Personal Notes
@@ -141,9 +164,9 @@ SmartAssist may suggest merging duplicate contacts.Show more lines
 
 ## Search
 Users shall be able to search contacts by:
-- Name
-- Email
-- Phone
+- Full Name
+- Email Addresses
+- Phone Numbers
 - Company
 - Job Title
 - Personal Notes
@@ -157,6 +180,8 @@ The same contact may participate in multiple opportunities.
 A contact shall exist as a single record and be reused across the system.
 
 ## SmartAssist Integration
+SmartAssist is available throughout the Contact Management experience.
+
 SmartAssist may suggest:
 - Existing contacts
 - Duplicate contacts
@@ -179,7 +204,7 @@ One email may be marked as Primary.
 
 ### Phone Numbers
 
-contact may have:
+A contact may have:
 - Mobile
 - Office
 - Home
