@@ -1,0 +1,94 @@
+# SmartCRM — Cursor Project Rules
+
+These rules apply to all agent work in this repository.
+
+## What SmartCRM is
+
+SmartCRM is **not** a traditional CRM.
+
+SmartCRM is an **Organizational Knowledge and Decision System** — the intelligence layer above Microsoft 365.
+
+**Purpose:** Transform information into understanding, understanding into priorities, and priorities into action.
+
+**North Star questions (every screen):**
+1. What do we know?
+2. What don't we know?
+3. What changed?
+4. What deserves attention?
+5. What should happen next?
+
+## Constitution (always apply)
+
+Full sources of truth:
+- `.cursor/rules/smartcrm-north-star.mdc`
+- `.cursor/rules/smartassist-constitution.mdc`
+
+### Non-negotiable principles
+
+| Principle | Rule |
+|-----------|------|
+| **System thinks, user decides** | SmartAssist recommends; the user chooses |
+| **Knowledge before questions** | Search existing knowledge before asking the user |
+| **Reality First** | Never invent people, companies, relationships, or facts. Unknown over fiction |
+| **Michelin** | Few ingredients, perfectly chosen — no widget/card sprawl |
+| **Apple / 3-Second Test** | What am I looking at? What matters? What next? |
+| **12-Year-Old Rule** | Interactions must be obvious without CRM jargon |
+| **Impact mandatory** | Risks and recommendations include why they matter |
+| **Single source of truth** | Do not duplicate Contacts, Companies, Relationships, or Stakeholders across stores |
+
+### SmartAssist
+
+SmartAssist is a **Business Development Intelligence Assistant**, not a chatbot.
+
+- Observe before asking
+- Discover before requesting
+- Reuse knowledge before creating work
+- Recommend before reporting
+- Never auto-create or auto-modify Contacts, Companies, Relationships, or Stakeholders without user approval
+
+## Feature & architecture documentation
+
+Canonical product docs live under `/docs`:
+
+| ID | File |
+|----|------|
+| AD-001 | `docs/AD-001-filter-transparency.md` |
+| FS-001 | `docs/FS-001-opportunity-stakeholders.md` |
+| FS-002 | `docs/FS-002-contact-management.md` |
+| FS-003 | `docs/FS-003-company-management.md` |
+| FS-004 | `docs/FS-004-relationship-intelligence.md` |
+| FS-005 | `docs/FS-005-opportunity-workspace.md` |
+
+When implementing or changing behaviour covered by an FS/AD, **read the relevant doc first** and keep code aligned with it.
+
+Additional copies may exist under `docs/specifications/` and `docs/architecture/` — prefer `/docs` as the agent-facing canonical path unless the user specifies otherwise.
+
+### Spec section standard (FS)
+
+Feature Specifications should include, as applicable:
+
+- Problem Statement
+- Business Goals
+- User Stories
+- Functional Requirements
+- SmartAssist Behaviour
+- UX Design
+- Reality First Principle
+- Persistence / Ownership Rules
+- Acceptance Criteria
+
+Architecture Decisions (AD) should include: Decision, Rationale, Requirements, Consequences, Compliance tests.
+
+## Engineering defaults
+
+- Prefer editing existing files over creating new ones
+- Do not invent data to make UI look complete
+- Filtered collections must follow **AD-001 Filter Transparency**
+- Opportunity people live on the opportunity roster and reference Contact Registry IDs — never invent contacts
+- Match existing TypeScript / React / design-system patterns in `src/`
+- Do not commit unless the user asks
+- Do not push unless the user asks
+
+## Next.js note
+
+This project may use a Next.js version with breaking changes. Before writing Next.js-specific code, check `AGENTS.md` and `node_modules/next/dist/docs/` when relevant.
