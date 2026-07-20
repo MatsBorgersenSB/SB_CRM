@@ -1,0 +1,25 @@
+# SmartCRM Project Context
+
+Repository:
+https://github.com/MatsBorgersenSB/SB_CRM
+
+Branches:
+- main = stable
+- develop = sandbox
+
+Development:
+- AI-assisted development using Cursor
+- GitHub as source control
+
+Current Phase:
+- Opportunity Management
+- Contact Intelligence
+
+Architecture:
+- Next.js
+- TypeScript
+
+Rules:
+- Reality First principle
+- Unknown data remains unknown
+- No hallucinated contacts
