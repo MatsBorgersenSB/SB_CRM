@@ -22,7 +22,10 @@ const SEED_OWNER_ID = "seed-owner-commercial-01";
 async function main() {
   console.log("Seeding SmartCRM core data…");
 
-  // Idempotent cleanup of previous seed markers (m365GraphId prefix)
+  // Idempotent cleanup of previous seed markers (m365GraphId / seed-meeting- prefix)
+  await prisma.meetingRecord.deleteMany({
+    where: { externalEventId: { startsWith: "seed-meeting-" } },
+  });
   await prisma.decisionMakerProfile.deleteMany({
     where: { contact: { m365GraphId: { startsWith: "seed-m365-" } } },
   });
@@ -255,12 +258,113 @@ async function main() {
     ],
   });
 
+  // FS-008 — Meeting Intelligence (sample meetings + proposed commitments)
+  const circularDiscoveryStart = new Date("2026-07-10T09:00:00.000Z");
+  const circularDiscoveryEnd = new Date("2026-07-10T10:00:00.000Z");
+  const thermalKickoffStart = new Date("2026-07-14T13:00:00.000Z");
+  const thermalKickoffEnd = new Date("2026-07-14T14:00:00.000Z");
+
+  const circularMeeting = await prisma.meetingRecord.create({
+    data: {
+      externalEventId: "seed-meeting-circular-fiber-discovery",
+      provider: "m365_graph",
+      subject: "Circular Fiber Reactor — Discovery Review",
+      startTime: circularDiscoveryStart,
+      endTime: circularDiscoveryEnd,
+      location: "Acme Renewables — Oslo Plant",
+      webLink: "https://teams.microsoft.com/l/meetup-join/seed-circular-fiber",
+      organizerEmail: "anna.berg@acme-renewables.example",
+      aiSummary:
+        "Discussed feedstock volume assumptions and CAPEX envelope. Anna owns site acceptance; Bjorn requested ROI pack before next gate.",
+      syncStatus: "pending_review",
+      opportunityId: circularFiber.id,
+      companyId: acme.id,
+      participants: {
+        create: [
+          {
+            email: "anna.berg@acme-renewables.example",
+            name: "Anna Berg",
+            contactId: anna.id,
+            companyId: acme.id,
+            isExternal: true,
+            responseStatus: "accepted",
+          },
+          {
+            email: "bjorn.haugen@acme-renewables.example",
+            name: "Bjorn Haugen",
+            contactId: bjorn.id,
+            companyId: acme.id,
+            isExternal: true,
+            responseStatus: "accepted",
+          },
+        ],
+      },
+      commitments: {
+        create: [
+          {
+            description: "Send CAPEX ROI pack to Bjorn ahead of investment committee.",
+            ownerEmail: "bjorn.haugen@acme-renewables.example",
+            dueDate: new Date("2026-07-24T17:00:00.000Z"),
+            status: "proposed",
+          },
+          {
+            description: "Confirm annual feedstock volume and moisture limits with plant ops.",
+            ownerEmail: "anna.berg@acme-renewables.example",
+            dueDate: new Date("2026-07-22T17:00:00.000Z"),
+            status: "proposed",
+          },
+        ],
+      },
+    },
+  });
+
+  const thermalMeeting = await prisma.meetingRecord.create({
+    data: {
+      externalEventId: "seed-meeting-thermal-recovery-kickoff",
+      provider: "m365_graph",
+      subject: "Thermal Recovery System — Qualification Kickoff",
+      startTime: thermalKickoffStart,
+      endTime: thermalKickoffEnd,
+      location: "Microsoft Teams",
+      webLink: "https://teams.microsoft.com/l/meetup-join/seed-thermal-recovery",
+      organizerEmail: "clara.lindqvist@global-techcorp.example",
+      aiSummary:
+        "Introduced heat recovery scope. Clara sponsors sustainability case; technical fit to be validated with David. Anna and Bjorn joined as reference stakeholders from Acme.",
+      syncStatus: "pending_review",
+      opportunityId: thermalRecovery.id,
+      companyId: techcorp.id,
+      participants: {
+        create: [
+          {
+            email: "anna.berg@acme-renewables.example",
+            name: "Anna Berg",
+            contactId: anna.id,
+            companyId: acme.id,
+            isExternal: true,
+            responseStatus: "accepted",
+          },
+          {
+            email: "bjorn.haugen@acme-renewables.example",
+            name: "Bjorn Haugen",
+            contactId: bjorn.id,
+            companyId: acme.id,
+            isExternal: true,
+            responseStatus: "tentative",
+          },
+        ],
+      },
+    },
+  });
+
   console.log("Seed complete:", {
     companies: [acme.name, techcorp.name],
     contacts: [anna.fullName, bjorn.fullName, clara.fullName, david.fullName],
     opportunities: [circularFiber.name, thermalRecovery.name],
     influenceProfiles: 4,
     decisionMakerProfiles: 4,
+    meetings: [circularMeeting.subject, thermalMeeting.subject],
+    meetingParticipants: 4,
+    proposedCommitments: 2,
   });
 }
 

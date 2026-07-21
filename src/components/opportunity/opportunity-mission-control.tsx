@@ -9,6 +9,7 @@ import type { PipelineRow } from "@/types/pipeline";
 import { OpportunityActionsTabBar } from "@/components/opportunity/opportunity-actions-tab-bar";
 import { OpportunityKnowledgeView } from "@/components/opportunity/opportunity-knowledge-view";
 import { OpportunityUnderstandingCapturePanel } from "@/components/opportunity/opportunity-understanding-capture-panel";
+import { InfluenceMatrix } from "@/components/opportunities/influence-matrix";
 import { OpportunityMissionControlTabBar } from "@/components/opportunity/opportunity-mission-control-tab-bar";
 import { OpportunityQuestionBox } from "@/components/opportunity/opportunity-question-box";
 import { OpportunityQuestionsWorkspace } from "@/components/opportunity/opportunity-questions-workspace";
@@ -20,6 +21,7 @@ import type { CommercialPackage } from "@/types/commercial-package";
 import type { OpportunityActionTab } from "@/types/opportunity-actions";
 import type { OpportunityMissionControlView } from "@/types/opportunity-mission-control";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
+import type { UserRole } from "@/types/auth";
 import {
   SmartAssistCategoryBadge,
   SmartAssistConfidenceLabel,
@@ -55,6 +57,8 @@ export function OpportunityMissionControl({
   focusFieldId,
   onAnswerNow,
   onSaveUnderstandingField,
+  role = "superuser",
+  influenceReadOnly = false,
 }: {
   view: OpportunityMissionControlView;
   onViewChange: (view: OpportunityMissionControlView) => void;
@@ -76,6 +80,8 @@ export function OpportunityMissionControl({
     fieldId: UnderstandingFieldId,
     value: string,
   ) => Promise<void>;
+  role?: UserRole;
+  influenceReadOnly?: boolean;
 }) {
   const understanding = useMemo(
     () =>
@@ -177,6 +183,14 @@ export function OpportunityMissionControl({
             focusFieldId={focusFieldId}
             onSaveField={onSaveUnderstandingField}
             readOnly={!onSaveUnderstandingField}
+          />
+        ) : null}
+
+        {view === "influence" ? (
+          <InfluenceMatrix
+            opportunityId={pipeline.id}
+            role={role}
+            readOnly={influenceReadOnly}
           />
         ) : null}
 

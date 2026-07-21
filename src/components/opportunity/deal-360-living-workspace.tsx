@@ -324,6 +324,8 @@ export function Deal360LivingWorkspace({
         onSaveUnderstandingField={
           onPipelinePatch ? handleSaveUnderstandingField : undefined
         }
+        role={role}
+        influenceReadOnly={dealTeam.readOnly}
       />
     </WorkspaceStack>
   );

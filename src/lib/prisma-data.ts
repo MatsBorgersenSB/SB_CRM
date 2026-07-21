@@ -9,6 +9,7 @@ import {
   readActivities as readJsonActivities,
   readCommercialPackages as readJsonCommercialPackages,
   readCompanies as readJsonCompanies,
+  readOutlookEvidence as readJsonOutlookEvidence,
   readPipelines as readJsonPipelines,
 } from "@/lib/pipeline-db";
 
@@ -80,4 +81,8 @@ export async function readLiveActivities() {
 
 export async function readLiveCommercialPackages() {
   return readJsonCommercialPackages();
+}
+
+export async function readLiveOutlookEvidence() {
+  return readJsonOutlookEvidence();
 }

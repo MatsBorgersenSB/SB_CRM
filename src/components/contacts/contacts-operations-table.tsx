@@ -1,7 +1,7 @@
 "use client";
 
 import { getActivitiesForContact } from "@/lib/activity-utils";
-import { formatRelativeTime } from "@/lib/relative-time";
+import { formatLastContact, formatRelativeTime } from "@/lib/relative-time";
 import type { GlobalContactRecord } from "@/lib/contact-utils";
 import { getContactDisplayName } from "@/types/contact";
 import {
@@ -22,6 +22,9 @@ import {
 } from "@/components/ui/workspace-table";
 import type { Activity } from "@/types/activity";
 
+const cellTruncate = "min-w-0 max-w-full overflow-hidden";
+const textTruncate = "block min-w-0 truncate";
+
 export function ContactsOperationsTable({
   records,
   activities,
@@ -38,106 +41,119 @@ export function ContactsOperationsTable({
   }
 
   return (
-    <WorkspaceTable>
-      <colgroup>
-        <col className="w-[18%]" />
-        <col className="w-[14%]" />
-        <col className="w-[16%]" />
-        <col className="w-[18%]" />
-        <col className="w-[12%]" />
-        <col className="w-[10%]" />
-        <col className="w-[10%]" />
-        <col className="w-[10%]" />
-      </colgroup>
-      <WorkspaceTableHead>
-        <WorkspaceTableHeadRow>
-          <WorkspaceTableHeadCell>
-            <IconLabel icon="contact" iconSize="xs">
-              Name
-            </IconLabel>
-          </WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Role</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>
-            <IconLabel icon="email" iconSize="xs">
-              Email
-            </IconLabel>
-          </WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>
-            <IconLabel icon="phone" iconSize="xs">
-              Phone
-            </IconLabel>
-          </WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Employment</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Status</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>
-            <IconLabel icon="meeting" iconSize="xs">
-              Last Contact
-            </IconLabel>
-          </WorkspaceTableHeadCell>
-        </WorkspaceTableHeadRow>
-      </WorkspaceTableHead>
-      <WorkspaceTableBody>
-        {records.map((record) => {
-          const phone = record.contact.Mobile || record.contact.Phone;
-          const lastActivity = getActivitiesForContact(
-            activities,
-            record.contact.ContactID,
-            record.contact,
-          )[0];
-          const role = record.contact.JobTitle || record.contact.Role || "—";
+    <div className="w-full overflow-x-auto">
+      <WorkspaceTable className="min-w-[72rem]">
+        <colgroup>
+          <col className="min-w-[10rem] w-[14%]" />
+          <col className="min-w-[8rem] w-[11%]" />
+          <col className="min-w-[10rem] w-[13%]" />
+          <col className="min-w-[14rem] w-[18%]" />
+          <col className="min-w-[9rem] w-[12%]" />
+          <col className="min-w-[7rem] w-[10%]" />
+          <col className="min-w-[6rem] w-[9%]" />
+          <col className="min-w-[8rem] w-[13%]" />
+        </colgroup>
+        <WorkspaceTableHead>
+          <WorkspaceTableHeadRow>
+            <WorkspaceTableHeadCell className="min-w-[10rem]">
+              <IconLabel icon="contact" iconSize="xs">
+                Name
+              </IconLabel>
+            </WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell className="min-w-[8rem]">Role</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell className="min-w-[10rem]">Company</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell className="min-w-[14rem]">
+              <IconLabel icon="email" iconSize="xs">
+                Email
+              </IconLabel>
+            </WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell className="min-w-[9rem]">
+              <IconLabel icon="phone" iconSize="xs">
+                Phone
+              </IconLabel>
+            </WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell className="min-w-[7rem]">Employment</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell className="min-w-[6rem]">Status</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell className="min-w-[8rem]">
+              <IconLabel icon="meeting" iconSize="xs">
+                Last Contact
+              </IconLabel>
+            </WorkspaceTableHeadCell>
+          </WorkspaceTableHeadRow>
+        </WorkspaceTableHead>
+        <WorkspaceTableBody>
+          {records.map((record) => {
+            const phone = record.contact.Mobile || record.contact.Phone;
+            const lastActivity = getActivitiesForContact(
+              activities,
+              record.contact.ContactID,
+              record.contact,
+            )[0];
+            const role = record.contact.JobTitle || record.contact.Role || "—";
 
-          return (
-            <WorkspaceTableBodyRow key={`${record.companyId}-${record.contact.ContactID}`}>
-              <WorkspaceTableBodyCell>
-                <ContactLink
-                  contactId={record.contact.ContactID}
-                  companyId={record.companyId}
-                  className="block truncate font-semibold text-carbon-blue hover:text-upcycle-orange"
-                >
-                  {getContactDisplayName(record.contact)}
-                </ContactLink>
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell className="truncate text-carbon-blue/65">
-                {role}
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell>
-                <CompanyLink
-                  companyId={record.companyId}
-                  className="block truncate text-carbon-blue/75 hover:text-upcycle-orange"
-                >
-                  {record.companyName}
-                </CompanyLink>
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell>
-                {record.contact.Email ? (
-                  <EmailActionMenu email={record.contact.Email} />
-                ) : (
-                  <span className="text-carbon-blue/35">—</span>
-                )}
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell>
-                {phone ? (
-                  <PhoneActionMenu phone={phone} />
-                ) : (
-                  <span className="text-carbon-blue/35">—</span>
-                )}
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell className="text-carbon-blue/65">
-                {record.contact.EmploymentStatus ?? "Active"}
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell className="text-carbon-blue/65">
-                {record.contact.IsArchived ? "Archived" : record.contact.Status}
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell className="text-carbon-blue/55">
-                {lastActivity
-                  ? formatRelativeTime(lastActivity.ActivityDate)
-                  : "No interaction"}
-              </WorkspaceTableBodyCell>
-            </WorkspaceTableBodyRow>
-          );
-        })}
-      </WorkspaceTableBody>
-    </WorkspaceTable>
+            return (
+              <WorkspaceTableBodyRow key={`${record.companyId}-${record.contact.ContactID}`}>
+                <WorkspaceTableBodyCell className={cellTruncate}>
+                  <ContactLink
+                    contactId={record.contact.ContactID}
+                    companyId={record.companyId}
+                    className={`${textTruncate} font-semibold text-carbon-blue hover:text-upcycle-orange`}
+                  >
+                    {getContactDisplayName(record.contact)}
+                  </ContactLink>
+                </WorkspaceTableBodyCell>
+                <WorkspaceTableBodyCell className={`${cellTruncate} text-carbon-blue/65`}>
+                  <span className={textTruncate} title={role}>
+                    {role}
+                  </span>
+                </WorkspaceTableBodyCell>
+                <WorkspaceTableBodyCell className={cellTruncate}>
+                  <CompanyLink
+                    companyId={record.companyId}
+                    className={`${textTruncate} text-carbon-blue/75 hover:text-upcycle-orange`}
+                  >
+                    {record.companyName}
+                  </CompanyLink>
+                </WorkspaceTableBodyCell>
+                <WorkspaceTableBodyCell className={cellTruncate}>
+                  {record.contact.Email ? (
+                    <EmailActionMenu
+                      email={record.contact.Email}
+                      className={`${textTruncate} max-w-full`}
+                    />
+                  ) : (
+                    <span className="text-carbon-blue/35">—</span>
+                  )}
+                </WorkspaceTableBodyCell>
+                <WorkspaceTableBodyCell className={cellTruncate}>
+                  {phone ? (
+                    <PhoneActionMenu phone={phone} className={`${textTruncate} max-w-full`} />
+                  ) : (
+                    <span className="text-carbon-blue/35">—</span>
+                  )}
+                </WorkspaceTableBodyCell>
+                <WorkspaceTableBodyCell className={`${cellTruncate} text-carbon-blue/65`}>
+                  <span className={textTruncate}>
+                    {record.contact.EmploymentStatus ?? "Active"}
+                  </span>
+                </WorkspaceTableBodyCell>
+                <WorkspaceTableBodyCell className={`${cellTruncate} text-carbon-blue/65`}>
+                  <span className={textTruncate}>
+                    {record.contact.IsArchived ? "Archived" : record.contact.Status}
+                  </span>
+                </WorkspaceTableBodyCell>
+                <WorkspaceTableBodyCell className={`${cellTruncate} text-carbon-blue/55`}>
+                  <span className={textTruncate}>
+                    {lastActivity
+                      ? formatRelativeTime(lastActivity.ActivityDate)
+                      : formatLastContact(null)}
+                  </span>
+                </WorkspaceTableBodyCell>
+              </WorkspaceTableBodyRow>
+            );
+          })}
+        </WorkspaceTableBody>
+      </WorkspaceTable>
+    </div>
   );
 }

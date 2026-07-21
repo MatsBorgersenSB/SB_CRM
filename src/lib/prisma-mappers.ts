@@ -134,6 +134,18 @@ function mapRelationshipLevel(jobTitle: string | null | undefined): Relationship
   return "Tactical";
 }
 
+/** Map Prisma owner ids onto SharePoint-shaped person fields. */
+function mapOwnerPerson(ownerId: string | null | undefined): {
+  Id: number;
+  Title: string;
+} | null {
+  if (!ownerId) return null;
+  // Seed owner aligns with the default demo auth user so "My Opportunities" shows live rows.
+  const title =
+    ownerId === "seed-owner-commercial-01" ? "Mats Borgersen" : ownerId;
+  return { Id: stableNumericId(ownerId), Title: title };
+}
+
 export function mapPrismaContactToApp(
   contact: PrismaContact,
   companyLookup: { Id: number; Title: string },
@@ -161,6 +173,8 @@ export function mapPrismaContactToApp(
     LinkedInURL: contact.linkedInUrl?.trim() || "",
     Status: mapContactStatus(contact.status),
     RelationshipLevel: mapRelationshipLevel(contact.jobTitle),
+    EmploymentStatus: "Active",
+    IsArchived: contact.status === "archived",
   };
 }
 
@@ -182,9 +196,7 @@ export function mapPrismaCompanyToApp(company: PrismaCompanyWithRelations): Comp
     Industry: mapIndustry(company.industry),
     CompanyTypes: mapCompanyTypes(company.types),
     Status: mapCompanyStatus(company.status, company.types),
-    AccountOwner: company.ownerId
-      ? { Id: stableNumericId(company.ownerId), Title: company.ownerId }
-      : null,
+    AccountOwner: mapOwnerPerson(company.ownerId),
     Phone: primaryPhone(company.phoneNumbers),
     Email: primaryEmail(company.emails),
     AddressLine1: company.addressLine1 ?? "",
@@ -259,9 +271,7 @@ export function mapPrismaOpportunityToPipelineRow(
     expectedCloseDate: opportunity.expectedCloseDate
       ? opportunity.expectedCloseDate.toISOString().slice(0, 10)
       : undefined,
-    opportunityOwner: opportunity.ownerId
-      ? { Id: stableNumericId(opportunity.ownerId), Title: opportunity.ownerId }
-      : null,
+    opportunityOwner: mapOwnerPerson(opportunity.ownerId),
     offeringIds: [],
     team: mapTeam(opportunity.team),
   };

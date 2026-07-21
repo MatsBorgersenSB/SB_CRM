@@ -1,12 +1,15 @@
 import { ContactsShell } from "@/components/layout/contacts-shell";
-import { readActivities, readCompanies, readOutlookEvidence, readPipelines } from "@/lib/pipeline-db";
+import {
+  readLiveActivities,
+  readLiveOutlookEvidence,
+  readLivePortfolio,
+} from "@/lib/prisma-data";
 
 export default async function ContactsPage() {
-  const [companies, activities, pipelines, outlookEvidence] = await Promise.all([
-    readCompanies(),
-    readActivities(),
-    readPipelines(),
-    readOutlookEvidence(),
+  const [{ companies, pipelines }, activities, outlookEvidence] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
+    readLiveOutlookEvidence(),
   ]);
 
   return (

@@ -1,18 +1,16 @@
 import { Suspense } from "react";
 import { CompaniesOperationsShell } from "@/components/layout/companies-operations-shell";
 import {
-  readActivities,
-  readCommercialPackages,
-  readCompanies,
-  readPipelines,
-} from "@/lib/pipeline-db";
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLivePortfolio,
+} from "@/lib/prisma-data";
 
 export default async function CompaniesPage() {
-  const [companies, pipelines, activities, commercialPackages] = await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
-    readCommercialPackages(),
+  const [{ companies, pipelines }, activities, commercialPackages] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
+    readLiveCommercialPackages(),
   ]);
 
   return (

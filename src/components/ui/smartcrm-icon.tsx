@@ -145,9 +145,9 @@ export function IconLabel({
   iconSize?: keyof typeof SIZE_CLASS;
 }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 ${className}`}>
+    <span className={`inline-flex min-w-0 max-w-full items-center gap-1.5 ${className}`}>
       <SmartCRMIcon name={icon} size={iconSize} />
-      <span>{children}</span>
+      <span className="min-w-0 truncate">{children}</span>
     </span>
   );
 }

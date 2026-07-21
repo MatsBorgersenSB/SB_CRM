@@ -1,6 +1,10 @@
 import { Suspense } from "react";
 import { Deal360PageShell } from "@/components/layout/deal-360-page-shell";
-import { readActivities, readCommercialPackages, readCompanies, readPipelines } from "@/lib/pipeline-db";
+import {
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLivePortfolio,
+} from "@/lib/prisma-data";
 
 type Deal360PageProps = {
   params: Promise<{ id: string }>;
@@ -9,11 +13,10 @@ type Deal360PageProps = {
 export default async function Deal360Page({ params }: Deal360PageProps) {
   const { id } = await params;
 
-  const [companies, pipelines, activities, commercialPackages] = await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
-    readCommercialPackages(),
+  const [{ companies, pipelines }, activities, commercialPackages] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
+    readLiveCommercialPackages(),
   ]);
 
   return (

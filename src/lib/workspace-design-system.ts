@@ -63,4 +63,5 @@ export const WORKSPACE_TABLE_HEAD_CELL_CLASS =
 export const WORKSPACE_TABLE_BODY_ROW_CLASS =
   "border-b border-carbon-blue/10 last:border-b-0 transition-colors hover:bg-carbon-blue/[0.03]";
 
-export const WORKSPACE_TABLE_BODY_CELL_CLASS = "px-3 py-3 text-[12px] text-carbon-blue/80";
+export const WORKSPACE_TABLE_BODY_CELL_CLASS =
+  "min-w-0 overflow-hidden px-3 py-3 text-[12px] text-carbon-blue/80";

@@ -30,7 +30,7 @@ export function ActionMenu({
   }, [open]);
 
   return (
-    <div ref={ref} className={`relative inline-block max-w-full ${className}`}>
+    <div ref={ref} className={`relative block w-full min-w-0 max-w-full ${className}`}>
       <button
         type="button"
         onClick={(event) => {
@@ -38,7 +38,7 @@ export function ActionMenu({
           event.stopPropagation();
           setOpen((value) => !value);
         }}
-        className="truncate text-left text-inherit underline-offset-2 transition-colors hover:text-upcycle-orange hover:underline"
+        className="block w-full min-w-0 max-w-full truncate text-left text-inherit underline-offset-2 transition-colors hover:text-upcycle-orange hover:underline"
       >
         {label}
       </button>
