@@ -1,11 +1,10 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { readActivities, readCompanies, readPipelines } from "@/lib/pipeline-db";
+import { readLiveActivities, readLivePortfolio } from "@/lib/prisma-data";
 
 export default async function DealsPage() {
-  const [pipelines, companies, activities] = await Promise.all([
-    readPipelines(),
-    readCompanies(),
-    readActivities(),
+  const [{ companies, pipelines }, activities] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
   ]);
 
   return (

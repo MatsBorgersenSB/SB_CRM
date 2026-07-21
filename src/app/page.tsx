@@ -1,17 +1,15 @@
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import {
-  readActivities,
-  readCommercialPackages,
-  readCompanies,
-  readPipelines,
-} from "@/lib/pipeline-db";
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLivePortfolio,
+} from "@/lib/prisma-data";
 
 export default async function Home() {
-  const [pipelines, companies, activities, commercialPackages] = await Promise.all([
-    readPipelines(),
-    readCompanies(),
-    readActivities(),
-    readCommercialPackages(),
+  const [{ companies, pipelines }, activities, commercialPackages] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
+    readLiveCommercialPackages(),
   ]);
 
   return (

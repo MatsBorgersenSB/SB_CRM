@@ -8,7 +8,7 @@ import {
 import type { NextBestAction } from "@/lib/next-best-action-engine";
 import { computeOpportunityIntelligence } from "@/lib/opportunity-intelligence-engine";
 import { computeRelationshipHealth } from "@/lib/relationship-health-engine";
-import { daysBetween } from "@/lib/relative-time";
+import { daysBetween, formatLastContact } from "@/lib/relative-time";
 import type { Activity } from "@/types/activity";
 import type {
   AttentionItem,
@@ -222,16 +222,18 @@ function buildCompanyAttention(
 
     const daysSince = lastActivity
       ? daysBetween(lastActivity.ActivityDate)
-      : Infinity;
+      : null;
 
-    if (daysSince >= COLD_CONTACT_DAYS) {
+    // Only emit cold-contact when a real last-contact date exists.
+    // Missing dates are covered by no_activity — never show "Infinity days ago".
+    if (daysSince != null && Number.isFinite(daysSince) && daysSince >= COLD_CONTACT_DAYS) {
       pushItem(items, {
         id: `attn-cold-${company.CompanyID}`,
         sourceObjectId: company.CompanyID,
         sourceObjectName: company.Title,
         objectType: "Company",
         severity: daysSince >= 60 ? "urgent" : "needs_attention",
-        recommendation: `Last contact ${daysSince} days ago — relationship is cooling (health ${health.score}/100).`,
+        recommendation: `Last contact ${formatLastContact(lastActivity?.ActivityDate, daysSince)} — relationship is cooling (health ${health.score}/100).`,
         suggestedAiAction: "Schedule Follow-Up Call",
         href: company360Href(company.CompanyID),
         companyId: company.CompanyID,
@@ -313,14 +315,14 @@ function buildContactAttention(
       }
 
       const daysSince = daysBetween(contactActivities[0]!.ActivityDate);
-      if (daysSince >= COLD_CONTACT_DAYS) {
+      if (Number.isFinite(daysSince) && daysSince >= COLD_CONTACT_DAYS) {
         pushItem(items, {
           id: `attn-contact-cold-${contact.ContactID}`,
           sourceObjectId: contact.ContactID,
           sourceObjectName: getContactDisplayName(contact),
           objectType: "Contact",
           severity: daysSince >= 60 ? "urgent" : "needs_attention",
-          recommendation: `Last interaction ${daysSince} days ago — relationship may be cooling.`,
+          recommendation: `Last interaction ${formatLastContact(contactActivities[0]!.ActivityDate, daysSince)} — relationship may be cooling.`,
           suggestedAiAction: "Schedule Follow-Up Call",
           href: contact360Href(contact.ContactID, company.CompanyID),
           companyId: company.CompanyID,
@@ -357,11 +359,28 @@ function buildOpportunityAttention(
     );
 
     const dealActivities = getActivitiesForDeal(activities, deal.id);
-    const daysSince = dealActivities[0]
-      ? daysBetween(dealActivities[0].ActivityDate)
-      : STALLED_DAYS + 1;
+    const lastDealActivity = dealActivities[0];
+    const daysSince = lastDealActivity
+      ? daysBetween(lastDealActivity.ActivityDate)
+      : null;
 
-    if (daysSince >= STALLED_DAYS) {
+    if (daysSince == null || !Number.isFinite(daysSince)) {
+      pushItem(items, {
+        id: `attn-stalled-${deal.id}`,
+        sourceObjectId: deal.id,
+        sourceObjectName: deal.assetName,
+        objectType: "Opportunity",
+        severity: "needs_attention",
+        recommendation: `No contact recorded at ${deal.status} — momentum cannot be confirmed.`,
+        suggestedAiAction: "Re-engage Stalled Opportunity",
+        href: deal360Href(deal.id),
+        companyId: company?.CompanyID,
+        companyName: company?.Title,
+        ruleId: "stalled_opportunity",
+        contactEmail: company?.contacts[0]?.Email,
+        contactPhone: company?.contacts[0]?.Mobile || company?.contacts[0]?.Phone,
+      });
+    } else if (daysSince >= STALLED_DAYS) {
       pushItem(items, {
         id: `attn-stalled-${deal.id}`,
         sourceObjectId: deal.id,

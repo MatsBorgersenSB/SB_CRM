@@ -1,13 +1,16 @@
 import { Suspense } from "react";
 import { OpportunitiesOperationsShell } from "@/components/layout/opportunities-operations-shell";
-import { readActivities, readCommercialPackages, readCompanies, readPipelines } from "@/lib/pipeline-db";
+import {
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLivePortfolio,
+} from "@/lib/prisma-data";
 
 export default async function OpportunitiesPage() {
-  const [pipelines, companies, activities, commercialPackages] = await Promise.all([
-    readPipelines(),
-    readCompanies(),
-    readActivities(),
-    readCommercialPackages(),
+  const [{ companies, pipelines }, activities, commercialPackages] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
+    readLiveCommercialPackages(),
   ]);
 
   return (

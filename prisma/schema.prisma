@@ -1,0 +1,375 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+// ==========================================
+// FS-003: Company Management (Company Registry)
+// ==========================================
+
+enum CompanyStatus {
+  active
+  archived
+}
+
+enum CompanySize {
+  micro
+  small
+  medium
+  large
+  unknown
+}
+
+enum CompanyType {
+  customer
+  prospect
+  supplier
+  partner
+  competitor
+  internal
+  other
+}
+
+model Company {
+  id                 String        @id @default(uuid())
+  name               String
+  alternativeNames   String[]      @default([])
+  organizationNumber String?       @unique
+  vatNumber          String?
+  website            String?
+  industry           String?
+  size               CompanySize   @default(unknown)
+  types              CompanyType[] @default([prospect])
+  status             CompanyStatus @default(active)
+
+  ownerId         String?
+  parentCompanyId String?
+  parentCompany   Company?  @relation("CompanyHierarchy", fields: [parentCompanyId], references: [id], onDelete: SetNull)
+  childCompanies  Company[] @relation("CompanyHierarchy")
+
+  addressLine1 String?
+  addressLine2 String?
+  postalCode   String?
+  city         String?
+  stateRegion  String?
+  country      String?
+
+  emails       Json[] @default([]) // Array of { address, type, isPrimary }
+  phoneNumbers Json[] @default([]) // Array of { number, type, isPrimary }
+
+  contacts      Contact[]
+  opportunities Opportunity[]
+  notes         CompanyNote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([organizationNumber])
+  @@map("company_registry")
+}
+
+model CompanyNote {
+  id        String   @id @default(uuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@map("company_notes")
+}
+
+// ==========================================
+// FS-002: Contact Management (Contact Registry)
+// ==========================================
+
+enum ContactStatus {
+  active
+  archived
+}
+
+model Contact {
+  id                     String        @id @default(uuid())
+  firstName              String?
+  lastName               String?
+  fullName               String?
+  jobTitle               String?
+  preferredContactMethod String?
+  linkedInUrl            String?
+  status                 ContactStatus @default(active)
+  personalNotes          String?
+
+  m365GraphId     String? @unique
+  m365ImmutableId String? @unique
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  ownerId   String?
+
+  emails       Json[] @default([]) // Array of { address, type, isPrimary }
+  phoneNumbers Json[] @default([]) // Array of { number, type, isPrimary }
+
+  // Directed Graph Connections (FS-004)
+  sourceRelationships Relationship[] @relation("SourceContact")
+  targetRelationships Relationship[] @relation("TargetContact")
+
+  // Intelligence Relations (FS-006 & FS-007)
+  influenceProfiles    StakeholderInfluenceProfile[]
+  decisionMakerProfiles DecisionMakerProfile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fullName])
+  @@index([companyId])
+  @@map("contact_registry")
+}
+
+// ==========================================
+// FS-004: Relationship Intelligence
+// ==========================================
+
+enum RelationshipStatus {
+  suggested
+  confirmed
+  active
+  archived
+}
+
+enum RelationshipType {
+  reports_to
+  manages
+  colleague
+  advisor
+  consultant
+  supplier
+  customer
+  partner
+  investor
+  decision_influencer
+  technical_influencer
+  other
+}
+
+model Relationship {
+  id                 String             @id @default(uuid())
+  sourceContactId    String
+  sourceContact      Contact            @relation("SourceContact", fields: [sourceContactId], references: [id], onDelete: Cascade)
+  targetContactId    String
+  targetContact      Contact            @relation("TargetContact", fields: [targetContactId], references: [id], onDelete: Cascade)
+  relationshipType   RelationshipType
+  relationshipStatus RelationshipStatus @default(suggested)
+  statusReason       String?
+  sourceType         String             @default("user_created") // user_created | smartassist_suggested | meeting_intelligence etc.
+
+  strengthScore   Int?    @default(0)  // System-computed (0-100)
+  confidenceScore Int?    @default(50) // System-computed (0-100)
+  ownerId         String?
+  notes           String?
+
+  aiSummary      String?
+  aiInsights     String[]                  @default([])
+  lastAnalyzedAt DateTime?
+
+  interactions RelationshipInteraction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sourceContactId, targetContactId, relationshipType])
+  @@map("relationship_registry")
+}
+
+model RelationshipInteraction {
+  id              String       @id @default(uuid())
+  relationshipId  String
+  relationship    Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  type            String       // meeting | call | email | introduction | note
+  interactionDate DateTime
+  summary         String?
+  createdBy       String
+  createdAt       DateTime     @default(now())
+
+  @@map("relationship_interactions")
+}
+
+// ==========================================
+// FS-001 & FS-005: Opportunity Workspace
+// ==========================================
+
+enum OpportunityStatus {
+  open
+  on_hold
+  closed_won
+  closed_lost
+  archived
+}
+
+enum OpportunityStage {
+  prospecting
+  qualification
+  discovery
+  proposal
+  negotiation
+  commitment
+  closed_won
+  closed_lost
+}
+
+model Opportunity {
+  id                String            @id @default(uuid())
+  name              String
+  companyId         String
+  company           Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  ownerId           String
+  stage             OpportunityStage  @default(prospecting)
+  status            OpportunityStatus @default(open)
+  value             Float?
+  currency          String?           @default("USD")
+  probability       Int?              @default(10)
+  expectedCloseDate DateTime?
+  description       String?
+  nextStep          String?
+
+  // FS-001 Stakeholder Roster stored as normalized relations or atomic JSON array
+  team     Json[]               @default([]) // Array of { contactId: string, projectRole: string }
+  insights OpportunityInsight[]
+
+  // FS-006 & FS-007 Intelligence Relations
+  influenceProfiles    StakeholderInfluenceProfile[]
+  decisionMakerProfiles DecisionMakerProfile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([ownerId])
+  @@index([stage])
+  @@map("opportunity_registry")
+}
+
+model OpportunityInsight {
+  id              String      @id @default(uuid())
+  opportunityId   String
+  opportunity     Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  type            String      // stakeholder_risk | relationship_gap | activity_stagnation | next_best_action
+  observation     String
+  reasoning       String
+  recommendation  String
+  expectedOutcome String?
+  confidence      Int?
+  createdAt       DateTime    @default(now())
+
+  @@map("opportunity_insights")
+}
+
+// ==========================================
+// FS-006: Influence Mapping
+// ==========================================
+
+enum InfluenceLevel {
+  high
+  medium
+  low
+  unknown
+}
+
+enum SentimentStance {
+  champion
+  positive
+  neutral
+  blocker
+  unknown
+}
+
+model StakeholderInfluenceProfile {
+  id             String          @id @default(uuid())
+  opportunityId  String
+  opportunity    Opportunity     @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  contactId      String
+  contact        Contact         @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  influenceLevel InfluenceLevel  @default(unknown)
+  stance         SentimentStance @default(unknown)
+  notes          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([opportunityId, contactId])
+  @@map("stakeholder_influence_profiles")
+}
+
+// ==========================================
+// FS-007: Decision Maker Intelligence
+// ==========================================
+
+enum AuthorityClass {
+  economic_buyer
+  technical_decision_maker
+  commercial_decision_maker
+  executive_sponsor
+}
+
+enum VerificationState {
+  known
+  assumed_unconfirmed
+  unknown
+}
+
+model DecisionMakerProfile {
+  id                String            @id @default(uuid())
+  opportunityId     String
+  opportunity       Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  contactId         String
+  contact           Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  authorityClass    AuthorityClass
+  verificationState VerificationState @default(unknown)
+  signOffThreshold  Float?
+  verifiedByUserId  String?
+  verifiedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([opportunityId, contactId, authorityClass])
+  @@map("decision_maker_profiles")
+}
+
+// ==========================================
+// M365 & Platform Integration Registry
+// ==========================================
+
+enum IntegrationProvider {
+  m365_graph
+  google_workspace
+  hubspot
+  salesforce
+}
+
+model ExternalIntegration {
+  id               String              @id @default(uuid())
+  provider         IntegrationProvider @default(m365_graph)
+  tenantId         String?             // Microsoft Entra ID (Azure AD) Tenant ID
+  userObjectId     String?             // M365 User Object ID
+  accessToken      String?             // Encrypted OAuth Access Token
+  refreshToken     String?             // Encrypted OAuth Refresh Token
+  tokenExpiresAt   DateTime?
+  deltaSyncToken   String?             // M365 Graph Delta Sync Token for incremental sync
+  
+  status           String              @default("active") // active | revoked | error
+  lastSyncedAt     DateTime?
+
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@map("external_integrations")
+}
+
+// Add these optional M365 mapping fields to your existing Contact model:
+// m365GraphId    String?   @unique // Microsoft Graph Contact / User Object ID
+// m365ImmutableId String?  @unique // Immutable ID across tenant transfers

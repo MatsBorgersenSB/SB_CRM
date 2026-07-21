@@ -20,13 +20,32 @@ export function formatRelativeTime(value: string | Date): string {
   return `${years} year${years === 1 ? "" : "s"} ago`;
 }
 
-export function formatDaysAgo(value: string | Date | null): string {
-  if (!value) return "No contact recorded";
+export function formatDaysAgo(value: string | Date | null | undefined): string {
+  if (value == null || value === "") return "No contact recorded";
   const date = typeof value === "string" ? new Date(value.includes("T") ? value : value.replace(" ", "T")) : value;
+  if (Number.isNaN(date.getTime())) return "No contact recorded";
   const diffDay = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  if (!Number.isFinite(diffDay)) return "No contact recorded";
   if (diffDay === 0) return "Today";
   if (diffDay === 1) return "1 day ago";
   return `${diffDay} days ago`;
+}
+
+/**
+ * Display helper for last-contact labels.
+ * Never renders "Infinity days ago" — null/missing/invalid → "No contact recorded".
+ */
+export function formatLastContact(
+  value: string | Date | null | undefined,
+  daysSince?: number | null,
+): string {
+  if (daysSince != null) {
+    if (!Number.isFinite(daysSince)) return "No contact recorded";
+    if (daysSince <= 0) return "Today";
+    if (daysSince === 1) return "1 day ago";
+    return `${daysSince} days ago`;
+  }
+  return formatDaysAgo(value);
 }
 
 export function daysBetween(from: string | Date, to: Date = new Date()): number {
