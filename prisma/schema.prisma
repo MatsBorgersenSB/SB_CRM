@@ -64,6 +64,7 @@ model Company {
   contacts      Contact[]
   opportunities Opportunity[]
   notes         CompanyNote[]
+  meetings      MeetingRecord[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -121,6 +122,9 @@ model Contact {
   // Intelligence Relations (FS-006 & FS-007)
   influenceProfiles    StakeholderInfluenceProfile[]
   decisionMakerProfiles DecisionMakerProfile[]
+
+  // FS-008 Meeting Intelligence
+  meetingParticipants MeetingParticipantRecord[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -244,6 +248,9 @@ model Opportunity {
   influenceProfiles    StakeholderInfluenceProfile[]
   decisionMakerProfiles DecisionMakerProfile[]
 
+  // FS-008 Meeting Intelligence
+  meetings MeetingRecord[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -338,6 +345,109 @@ model DecisionMakerProfile {
 
   @@unique([opportunityId, contactId, authorityClass])
   @@map("decision_maker_profiles")
+}
+
+// ==========================================
+// FS-008: Meeting Intelligence
+// ==========================================
+
+enum MeetingProvider {
+  m365_graph
+  google_workspace
+  manual
+}
+
+enum SyncStatus {
+  pending_review
+  processed
+  ignored
+}
+
+enum CommitmentState {
+  proposed
+  confirmed
+  completed
+  dismissed
+}
+
+enum MeetingResponseStatus {
+  accepted
+  declined
+  tentative
+  none
+}
+
+model MeetingRecord {
+  id              String          @id @default(uuid())
+  externalEventId String // M365 iCalUId or Event ID
+  provider        MeetingProvider @default(m365_graph)
+  subject         String
+  startTime       DateTime
+  endTime         DateTime
+  location        String?
+  webLink         String?
+  organizerEmail  String
+  aiSummary       String?
+  syncStatus      SyncStatus      @default(pending_review)
+
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  participants MeetingParticipantRecord[]
+  commitments  MeetingCommitmentRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, externalEventId])
+  @@index([opportunityId])
+  @@index([companyId])
+  @@index([startTime])
+  @@index([syncStatus])
+  @@map("meeting_records")
+}
+
+model MeetingParticipantRecord {
+  id             String                @id @default(uuid())
+  meetingId      String
+  meeting        MeetingRecord         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  email          String
+  name           String?
+  contactId      String?
+  contact        Contact?              @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId      String?
+  isExternal     Boolean               @default(true)
+  responseStatus MeetingResponseStatus @default(none)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([meetingId, email])
+  @@index([contactId])
+  @@index([email])
+  @@map("meeting_participant_records")
+}
+
+model MeetingCommitmentRecord {
+  id                String          @id @default(uuid())
+  meetingId         String
+  meeting           MeetingRecord   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  description       String
+  ownerEmail        String
+  dueDate           DateTime?
+  status            CommitmentState @default(proposed)
+  confirmedByUserId String?
+  confirmedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([meetingId])
+  @@index([status])
+  @@index([ownerEmail])
+  @@map("meeting_commitment_records")
 }
 
 // ==========================================
