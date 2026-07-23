@@ -17,6 +17,8 @@ export type AuditAction =
   | "DEAL_INSIGHTS_VIEWED"
   | "ANALYTICS_VIEWED"
   | "ANALYTICS_REPORT_EXPORTED"
+  | "NOTIFICATION_CREATED"
+  | "WEBHOOK_DISPATCHED"
   | (string & {});
 
 export type LogAuditEventInput = {

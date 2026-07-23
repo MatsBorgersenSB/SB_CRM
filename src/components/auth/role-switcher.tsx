@@ -1,6 +1,7 @@
 "use client";
 
 import { EnterpriseRoleBadge } from "@/components/auth/enterprise-role-badge";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/lib/companies-data";
 import {
@@ -15,6 +16,7 @@ export function RoleSwitcher({ companies }: { companies?: Company[] }) {
 
   return (
     <div className="flex items-center gap-2">
+      <NotificationBell />
       <EnterpriseRoleBadge
         accessRole={user.role}
         compact

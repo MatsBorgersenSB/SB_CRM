@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { AssistedEverythingPanel } from "@/components/administration/assisted-everything-panel";
+import { WebhookChannelConfigCard } from "@/components/notifications/webhook-channel-config-card";
+import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
@@ -20,11 +22,12 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
 
   return (
     <WorkspaceChrome>
-        <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
+        <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
           <div className="flex items-center gap-2 text-[11px] text-carbon-blue/55">
             <SmartCRMIcon name="edit" size="xs" />
             <span className="font-semibold text-carbon-blue">Administration</span>
           </div>
+          <RoleSwitcher companies={visibleCompanies} />
         </header>
 
         <WorkspaceMain>
@@ -84,6 +87,13 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
                 </Link>
               </WorkspacePanel>
             ) : null}
+
+            <WorkspacePanel title="Collaboration webhooks">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                FS-015 · Slack & Teams
+              </p>
+              <WebhookChannelConfigCard />
+            </WorkspacePanel>
 
             <WorkspacePanel title="Company Master Data">
               <p className="mb-4 text-sm text-carbon-blue/55">

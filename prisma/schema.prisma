@@ -743,6 +743,34 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+// ==========================================
+// FS-015: Real-Time Notifications & Team Collaboration
+// ==========================================
+
+enum NotificationType {
+  INFO
+  ALERT
+  APPROVAL
+  DEAL_WIN
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  read      Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
 // Add these optional M365 mapping fields to your existing Contact model:
 // m365GraphId    String?   @unique // Microsoft Graph Contact / User Object ID
 // m365ImmutableId String?  @unique // Immutable ID across tenant transfers
