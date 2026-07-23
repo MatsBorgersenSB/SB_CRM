@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
+import { ATTIO_GROUP_ACTIONS } from "@/lib/attio-workspace-surfaces";
 import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
 import type { InfluenceLevel, SentimentStance } from "@/generated/prisma";
@@ -314,7 +315,7 @@ export function InfluenceMatrix({
             {QUADRANTS.map((quadrant) => (
               <div
                 key={quadrant.id}
-                className={`min-h-[12rem] border px-3 py-3 ${quadrant.className}`}
+                className={`group min-h-[12rem] rounded-lg border border-slate-200/80 px-3 py-3 shadow-sm dark:border-slate-800 ${quadrant.className}`}
               >
                 <div className="mb-3 flex items-baseline justify-between gap-2">
                   <div>
@@ -384,7 +385,7 @@ function InfluenceCard({
   ) => Promise<void>;
 }) {
   return (
-    <article className="border border-carbon-blue/12 bg-white px-3 py-2.5 shadow-[0_1px_0_rgba(15,23,42,0.03)]">
+    <article className="group rounded-lg border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-[13px] font-semibold text-carbon-blue">
@@ -401,7 +402,7 @@ function InfluenceCard({
         </span>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className={`mt-2 flex flex-wrap gap-2 ${ATTIO_GROUP_ACTIONS}`}>
         <label className="flex min-w-[7.5rem] flex-1 flex-col gap-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
           Influence
           <select

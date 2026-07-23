@@ -4,10 +4,10 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { ExecutiveKpiRibbon } from "@/components/dashboard/executive-kpi-ribbon";
-import { PipelineDetail } from "@/components/data/pipeline-detail";
 import { PipelineTable } from "@/components/data/pipeline-table";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { SlideDrawer } from "@/components/ui/slide-drawer";
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/lib/companies-data";
@@ -75,9 +75,12 @@ export function AppShell({ initialPipelines, companies, activities }: AppShellPr
     setDrawerOpen(false);
   }, []);
 
-  const handleRowUpdate = useCallback((row: PipelineRow) => {
-    patchPipeline(row.id, row);
-  }, [patchPipeline]);
+  const handleRowUpdate = useCallback(
+    (row: PipelineRow) => {
+      patchPipeline(row.id, row);
+    },
+    [patchPipeline],
+  );
 
   const handleDocumentCreated = useCallback(
     (record: SmartDocLibraryRecord) => {
@@ -121,11 +124,14 @@ export function AppShell({ initialPipelines, companies, activities }: AppShellPr
           </div>
           <div className="flex items-center gap-3">
             <RoleSwitcher companies={companyRows} />
-            <span className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-upcycle-orange">
-              {visiblePipelines.length}
-            </span>
           </div>
         </header>
+        <FilterTransparencyBar
+          entityLabel="Deals"
+          filteredCount={visiblePipelines.length}
+          totalCount={pipelines.length}
+          activeFilters={[]}
+        />
         <main className="flex-1 overflow-auto p-3">
           <div className="flex flex-col gap-3">
             {canViewExecutiveKpis(user.role) ? (

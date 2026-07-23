@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
+import { ATTIO_GROUP_ACTIONS } from "@/lib/attio-workspace-surfaces";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
@@ -158,8 +159,9 @@ export function EmailIntelligence({
   const [sentimentFilter, setSentimentFilter] = useState<"all" | SentimentGrade>("all");
   const [directionFilter, setDirectionFilter] = useState<"all" | "inbound" | "outbound">("all");
   const [deletedFilter, setDeletedFilter] = useState<"all" | "active" | "deleted">("all");
+  // FS-009 Privacy First — exclude internal-only by default (AD-001 chip visible).
   const [domainFilter, setDomainFilter] = useState<"all" | "external" | "internal_only">(
-    "all",
+    "external",
   );
 
   const load = useCallback(async () => {
@@ -264,10 +266,7 @@ export function EmailIntelligence({
       chips.push({
         id: "domain",
         label: "Domain",
-        value:
-          domainFilter === "external"
-            ? "Has external parties"
-            : "Internal-only",
+        value: domainFilter === "external" ? "External" : "Internal-only",
         onRemove: () => setDomainFilter("all"),
       });
     }
@@ -386,8 +385,8 @@ export function EmailIntelligence({
             }
             className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
           >
+            <option value="external">External (default)</option>
             <option value="all">All domains</option>
-            <option value="external">Has external parties</option>
             <option value="internal_only">Internal-only</option>
           </select>
         </label>
@@ -404,7 +403,8 @@ export function EmailIntelligence({
                 setSentimentFilter("all");
                 setDirectionFilter("all");
                 setDeletedFilter("all");
-                setDomainFilter("all");
+                // Restore constitutional privacy default (not unfiltered "all").
+                setDomainFilter("external");
               }
             : undefined
         }
@@ -433,7 +433,7 @@ export function EmailIntelligence({
             return (
               <article
                 key={thread.conversationId}
-                className="border border-carbon-blue/12 bg-white px-4 py-4"
+                className="group rounded-lg border border-slate-200/80 bg-white px-4 py-4 shadow-sm transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700"
               >
                 <header className="border-b border-carbon-blue/8 pb-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
@@ -473,7 +473,7 @@ export function EmailIntelligence({
                             ))}
                           </ul>
                           {!readOnly ? (
-                            <div className="mt-3">
+                            <div className={`mt-3 ${ATTIO_GROUP_ACTIONS}`}>
                               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/45">
                                 Confirmed action — outbound execution
                               </p>
@@ -508,10 +508,10 @@ export function EmailIntelligence({
                       return (
                         <li
                           key={message.id}
-                          className={`border px-3 py-3 ${
+                          className={`group/msg rounded-lg border px-3 py-3 transition-colors ${
                             message.isDeletedInSource
-                              ? "border-carbon-blue/15 bg-carbon-blue/[0.03] opacity-90"
-                              : "border-carbon-blue/10 bg-carbon-blue/[0.015]"
+                              ? "border-slate-200/80 bg-slate-50/50 opacity-90 dark:border-slate-800 dark:bg-slate-900/50"
+                              : "border-slate-200/80 bg-white shadow-sm hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700"
                           }`}
                         >
                           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -611,7 +611,7 @@ export function EmailIntelligence({
                                   : ""}
                               </p>
                               {!readOnly ? (
-                                <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                                <div className={`mt-2.5 flex flex-wrap items-center gap-2 ${ATTIO_GROUP_ACTIONS.replace("group-hover:", "group-hover/msg:")}`}>
                                   {(message.sentiment === "cautious" ||
                                     message.sentiment === "negative" ||
                                     !message.isOutbound) &&

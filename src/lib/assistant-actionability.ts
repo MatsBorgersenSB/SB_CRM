@@ -9,6 +9,8 @@ export type ActionableRecommendationView = {
   why: string;
   impact: string;
   recommendedAction: string;
+  /** FR-015 expected deal / system impact */
+  expectedOutcome: string;
   resolutionHref: string;
   resolutionLabel: string;
   severity: "critical" | "warning" | "healthy";
@@ -92,6 +94,7 @@ export function configRecommendationToView(
     why: recommendation.why,
     impact: recommendation.impact,
     recommendedAction: recommendation.nextAction,
+    expectedOutcome: recommendation.expectedOutcome,
     resolutionHref: recommendation.href,
     resolutionLabel: recommendation.resolutionLabel,
     severity: recommendation.severity,
@@ -107,6 +110,8 @@ export function userAccessGapToView(gap: UserAccessGap): ActionableRecommendatio
     why: gap.why,
     impact: gap.impact,
     recommendedAction: gap.recommendedAction,
+    expectedOutcome:
+      "Resolving this gap restores clear ownership and reduces operational risk.",
     resolutionHref: gap.href,
     resolutionLabel: gap.resolutionLabel,
     severity: gap.severity,

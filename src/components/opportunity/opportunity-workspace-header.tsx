@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import type { SharePointPerson } from "@/types/company";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
-import {
-  formatDealValue,
-  parseSalesValueInput,
-} from "@/types/pipeline";
+import { formatDealValue, parseSalesValueInput } from "@/types/pipeline";
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
 import {
   buildAssignableOwnerOptions,
@@ -15,7 +13,6 @@ import {
 } from "@/lib/opportunity-owner";
 import { CompanyLink } from "@/components/relationship/relationship-links";
 import { opportunityStageLabel } from "@/lib/opportunity-overview";
-import { EDITORIAL_LABEL, EDITORIAL_PAGE_TITLE } from "@/lib/editorial-design-system";
 import type { CommercialPackage } from "@/types/commercial-package";
 import {
   canAssignOpportunityOwner,
@@ -25,9 +22,13 @@ import {
 import type { UserRole } from "@/types/auth";
 import { OpportunityOfferingsPanel } from "@/components/opportunity/opportunity-offerings-panel";
 import { formatOfferingLabels } from "@/lib/standard-bio-offerings";
-
-const STICKY_NEGATIVE_MARGIN =
-  "-mx-4 px-4 sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8";
+import {
+  ATTIO_PILL,
+  ATTIO_PILL_STATIC,
+  ATTIO_STATUS_DOT,
+  ATTIO_SURFACE,
+  ATTIO_SURFACE_HEADER,
+} from "@/lib/attio-workspace-surfaces";
 
 function formatTimelineDate(value: string | undefined): string {
   if (!value) return "—";
@@ -56,9 +57,6 @@ export function OpportunityWorkspaceHeader({
   role: UserRole;
   onPipelinePatch?: (patch: Partial<PipelineRow>) => Promise<void>;
 }) {
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const [compact, setCompact] = useState(false);
-
   const company = findCompanyForDeal(pipeline.id, companies);
   const stageLabel = opportunityStageLabel(pipeline, commercialPackages);
   const owner = resolveOpportunityOwner(pipeline, company);
@@ -66,7 +64,6 @@ export function OpportunityWorkspaceHeader({
   const valueLabel = formatDealValue(pipeline.currency, pipeline.salesValue);
   const timelineLabel = formatTimelineDate(pipeline.expectedCloseDate);
   const ownerLabel = owner?.Title ?? "—";
-  const accountLabel = company?.Title ?? "—";
 
   const canEditOwner = canAssignOpportunityOwner(role) && Boolean(onPipelinePatch);
   const canEditTimeline = canEditExpectedCloseDate(role) && Boolean(onPipelinePatch);
@@ -90,158 +87,120 @@ export function OpportunityWorkspaceHeader({
 
   const offeringsLabel = formatOfferingLabels(pipeline.offeringIds);
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const scrollRoot = sentinel.closest("main");
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setCompact(!entry?.isIntersecting);
-      },
-      { root: scrollRoot, threshold: 0 },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <>
-      <div ref={sentinelRef} className="h-px w-full shrink-0" aria-hidden />
-
-      {compact ? (
-        <header
-          aria-label="Opportunity context"
-          className={`sticky top-0 z-20 ${STICKY_NEGATIVE_MARGIN} border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 py-2.5 backdrop-blur-sm`}
+    <header aria-label="Opportunity context" className={`${ATTIO_SURFACE} overflow-hidden`}>
+      <div className={ATTIO_SURFACE_HEADER}>
+        <nav
+          aria-label="Breadcrumb"
+          className="flex min-w-0 flex-wrap items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400"
         >
-          <div className="flex min-w-0 items-center gap-2 overflow-x-auto text-[12px] text-carbon-blue/75 sm:gap-3">
-            <CompactField label="Opportunity" value={pipeline.assetName} emphasize />
-            <CompactDivider />
-            <CompactField label="Account" value={accountLabel} />
-            <CompactDivider />
-            <CompactField label="Value" value={valueLabel} className="tabular-nums" />
-            <CompactDivider />
-            <CompactField label="Stage" value={stageLabel} />
-            <CompactDivider />
-            <CompactField label="Owner" value={ownerLabel} />
-            <CompactDivider />
-            <CompactField label="Offerings" value={offeringsLabel} />
-          </div>
-        </header>
-      ) : null}
+          <Link
+            href="/opportunities"
+            className="font-medium transition-colors hover:text-slate-800 dark:hover:text-slate-200"
+          >
+            Opportunities
+          </Link>
+          <span aria-hidden className="text-slate-300 dark:text-slate-600">
+            /
+          </span>
+          <span className="truncate font-semibold text-slate-800 dark:text-slate-100">
+            {pipeline.assetName}
+          </span>
+        </nav>
+      </div>
 
-      <div className="flex flex-col gap-8 pb-1">
-        <div className="min-w-0">
-          <h1 className={EDITORIAL_PAGE_TITLE}>{pipeline.assetName}</h1>
+      <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-[22px] font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-[24px]">
+              {pipeline.assetName}
+            </h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className={ATTIO_PILL_STATIC}>
+                <span className={ATTIO_STATUS_DOT} aria-hidden />
+                <span className="font-medium text-slate-700 dark:text-slate-200">
+                  {stageLabel}
+                </span>
+              </span>
+              {company ? (
+                <CompanyLink
+                  companyId={company.CompanyID}
+                  className={`${ATTIO_PILL_STATIC} hover:border-slate-300 hover:bg-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-800`}
+                >
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                    Account
+                  </span>
+                  <span className="font-medium text-slate-700 dark:text-slate-200">
+                    {company.Title}
+                  </span>
+                </CompanyLink>
+              ) : (
+                <span className={ATTIO_PILL_STATIC}>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                    Account
+                  </span>
+                  <span>—</span>
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-[13px] text-carbon-blue/70">
-          <MetadataItem label="Account">
-            {company ? (
-              <CompanyLink
-                companyId={company.CompanyID}
-                className="text-carbon-blue hover:text-upcycle-orange"
-              >
-                {company.Title}
-              </CompanyLink>
-            ) : (
-              "—"
-            )}
-          </MetadataItem>
-          <span className="hidden text-carbon-blue/15 sm:inline" aria-hidden>
-            ·
-          </span>
-          <MetadataItem label="Owner">
-            <OwnerSelect
-              owner={owner}
-              options={ownerOptions}
-              editable={canEditOwner}
-              onChange={handleOwnerChange}
-            />
-          </MetadataItem>
-          <span className="hidden text-carbon-blue/15 sm:inline" aria-hidden>
-            ·
-          </span>
-          <MetadataItem label="Stage">
-            <span>{stageLabel}</span>
-          </MetadataItem>
-          <span className="hidden text-carbon-blue/15 sm:inline" aria-hidden>
-            ·
-          </span>
-          <MetadataItem label="Value">
+        <dl className="flex flex-wrap gap-1.5">
+          <AttributePill label="Stage">
+            <span className="inline-flex items-center gap-1.5">
+              <span className={ATTIO_STATUS_DOT} aria-hidden />
+              {stageLabel}
+            </span>
+          </AttributePill>
+
+          <AttributePill label="Value">
             <EditableValue
               displayValue={valueLabel}
               rawValue={String(pipeline.salesValue)}
               editable={canEditValue}
               onCommit={(raw) => void handleValueChange(parseSalesValueInput(raw))}
-              className="tabular-nums"
+              className="font-mono tabular-nums"
             />
-          </MetadataItem>
-          <span className="hidden text-carbon-blue/15 sm:inline" aria-hidden>
-            ·
-          </span>
-          <MetadataItem label="Close">
+          </AttributePill>
+
+          <AttributePill label="Owner">
+            <OwnerSelect
+              owner={owner}
+              options={ownerOptions}
+              editable={canEditOwner}
+              onChange={handleOwnerChange}
+              fallbackLabel={ownerLabel}
+            />
+          </AttributePill>
+
+          <AttributePill label="Close date">
             <EditableCloseDate
               value={pipeline.expectedCloseDate}
               displayValue={timelineLabel}
               editable={canEditTimeline}
               onChange={handleCloseDateChange}
             />
-          </MetadataItem>
+          </AttributePill>
+
+          <AttributePill label="Offerings">
+            <span className="truncate">{offeringsLabel}</span>
+          </AttributePill>
         </dl>
 
-        <OpportunityOfferingsPanel
-          pipeline={pipeline}
-          onSave={onPipelinePatch ? handleOfferingsChange : undefined}
-          readOnly={!onPipelinePatch}
-        />
+        <div className="border-t border-slate-200/80 pt-3 dark:border-slate-800">
+          <OpportunityOfferingsPanel
+            pipeline={pipeline}
+            onSave={onPipelinePatch ? handleOfferingsChange : undefined}
+            readOnly={!onPipelinePatch}
+          />
+        </div>
       </div>
-    </>
+    </header>
   );
 }
 
-function CompactField({
-  label,
-  value,
-  emphasize = false,
-  className = "",
-}: {
-  label: string;
-  value: string;
-  emphasize?: boolean;
-  className?: string;
-}) {
-  return (
-    <div className="min-w-0 shrink-0">
-      <span className="sr-only">{label}: </span>
-      <span
-        className={`block max-w-[9rem] truncate sm:max-w-[11rem] ${
-          emphasize ? "font-semibold text-carbon-blue" : "text-carbon-blue/75"
-        } ${className}`}
-        title={`${label}: ${value}`}
-      >
-        {emphasize ? (
-          value
-        ) : (
-          <>
-            <span className="text-[11px] font-medium text-carbon-blue/40">
-              {label}
-            </span>
-            <span className="mt-0.5 block truncate">{value}</span>
-          </>
-        )}
-      </span>
-    </div>
-  );
-}
-
-function CompactDivider() {
-  return <span aria-hidden className="h-3 w-px shrink-0 bg-carbon-blue/15" />;
-}
-
-function MetadataItem({
+function AttributePill({
   label,
   children,
 }: {
@@ -249,9 +208,11 @@ function MetadataItem({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 items-baseline gap-1.5">
-      <dt className={EDITORIAL_LABEL}>{label}</dt>
-      <dd className="text-carbon-blue/80">{children}</dd>
+    <div className={`${ATTIO_PILL} group/pill cursor-default`}>
+      <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+        {label}
+      </dt>
+      <dd className="min-w-0 font-medium text-slate-800 dark:text-slate-100">{children}</dd>
     </div>
   );
 }
@@ -261,14 +222,16 @@ function OwnerSelect({
   options,
   editable,
   onChange,
+  fallbackLabel,
 }: {
   owner: SharePointPerson | null;
   options: SharePointPerson[];
   editable: boolean;
   onChange: (owner: SharePointPerson) => void | Promise<void>;
+  fallbackLabel: string;
 }) {
   if (!editable) {
-    return <span className="font-medium text-carbon-blue/75">{owner?.Title ?? "—"}</span>;
+    return <span>{fallbackLabel}</span>;
   }
 
   const choices =
@@ -283,7 +246,7 @@ function OwnerSelect({
         const selected = choices.find((option) => option.Id === Number(event.target.value));
         if (selected) void onChange(selected);
       }}
-      className="max-w-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-5 text-[13px] text-carbon-blue/80 outline-none hover:text-upcycle-orange focus:text-upcycle-orange"
+      className="max-w-[10rem] cursor-pointer border-0 bg-transparent py-0 pl-0 pr-4 text-[12px] font-medium text-slate-800 outline-none dark:text-slate-100"
       aria-label="Opportunity owner"
     >
       {!owner ? <option value="">Select owner</option> : null}
@@ -318,7 +281,7 @@ function EditableCloseDate({
   }, [editing]);
 
   if (!editable) {
-    return <span className="font-medium text-carbon-blue/75">{displayValue}</span>;
+    return <span className="tabular-nums">{displayValue}</span>;
   }
 
   if (editing) {
@@ -327,7 +290,7 @@ function EditableCloseDate({
         ref={inputRef}
         type="date"
         defaultValue={toDateInputValue(value)}
-        className="w-full min-w-0 border border-upcycle-orange/40 bg-white px-1.5 py-0.5 text-[12px] text-carbon-blue outline-none"
+        className="w-full min-w-0 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
         onBlur={() => setEditing(false)}
         onChange={(event) => {
           const next = event.target.value || undefined;
@@ -348,7 +311,7 @@ function EditableCloseDate({
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className="font-medium text-carbon-blue/75 underline decoration-carbon-blue/15 decoration-dotted underline-offset-2 hover:text-upcycle-orange hover:decoration-upcycle-orange/40"
+      className="tabular-nums hover:text-slate-950 dark:hover:text-white"
       title="Click to change expected close date"
     >
       {displayValue}
@@ -390,7 +353,7 @@ function EditableValue({
         type="text"
         inputMode="numeric"
         defaultValue={rawValue}
-        className={`w-full min-w-0 border border-upcycle-orange/40 bg-white px-1.5 py-0.5 text-[13px] text-carbon-blue outline-none ${className}`}
+        className={`w-full min-w-[6rem] rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 ${className}`}
         onBlur={(event) => {
           onCommit(event.target.value);
           setEditing(false);
@@ -414,7 +377,7 @@ function EditableValue({
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className={`text-left underline decoration-carbon-blue/20 decoration-dotted underline-offset-2 hover:text-upcycle-orange hover:decoration-upcycle-orange/50 ${className}`}
+      className={`text-left hover:text-slate-950 dark:hover:text-white ${className}`}
       title="Click to edit deal value"
     >
       {displayValue}

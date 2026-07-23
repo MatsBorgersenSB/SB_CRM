@@ -5,17 +5,16 @@ import {
   SmartAssistCategoryBadge,
   SmartAssistConfidenceLabel,
 } from "@/components/smartassist/smartassist-intelligence-display";
+import { ExplainabilityBlock } from "@/components/ui/explainability-block";
 import type { InsightCategory } from "@/types/smartassist-intelligence";
 import {
   EDITORIAL_BODY,
-  EDITORIAL_BODY_MUTED,
   EDITORIAL_CONTENT,
   EDITORIAL_DIVIDER,
   EDITORIAL_EMPTY,
   EDITORIAL_GAP_LIST,
   EDITORIAL_GAP_SECTION,
   EDITORIAL_LABEL,
-  EDITORIAL_TITLE,
 } from "@/lib/editorial-design-system";
 
 const PRIORITY_DOT: Record<CriticalKnowledgeGap["priority"], string> = {
@@ -39,6 +38,16 @@ function confirmedCategory(rowId: string, answer: string): InsightCategory {
 
 function confirmedConfidence(category: InsightCategory): "high" | "medium" | "low" {
   return category === "known" ? "high" : "medium";
+}
+
+function expectedOutcomeForGap(gap: CriticalKnowledgeGap): string {
+  if (gap.priority === "high") {
+    return "Closing this gap unblocks progression and reduces risk of stalled commercial decisions.";
+  }
+  if (gap.priority === "medium") {
+    return "Filling this understanding improves qualification quality and next-step confidence.";
+  }
+  return "Capturing this detail sharpens deal context without delaying near-term actions.";
 }
 
 export function OpportunityKnowledgeView({
@@ -79,18 +88,24 @@ export function OpportunityKnowledgeView({
                           confidence={gap.priority === "high" ? "high" : "medium"}
                         />
                       </div>
-                      <p className={EDITORIAL_TITLE}>{gap.missingInformation}</p>
-                      <p className={EDITORIAL_BODY_MUTED}>{gap.whyItMatters}</p>
-                      <p className={EDITORIAL_BODY}>{gap.recommendedAction}</p>
-                      {canAnswer ? (
-                        <button
-                          type="button"
-                          onClick={() => onAnswerNow?.(gap.fieldId!)}
-                          className="mt-1 inline-flex border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
-                        >
-                          Answer Now
-                        </button>
-                      ) : null}
+                      <ExplainabilityBlock
+                        compact
+                        observation={gap.missingInformation}
+                        reasoning={gap.whyItMatters}
+                        recommendedAction={gap.recommendedAction}
+                        expectedOutcome={expectedOutcomeForGap(gap)}
+                        footer={
+                          canAnswer ? (
+                            <button
+                              type="button"
+                              onClick={() => onAnswerNow?.(gap.fieldId!)}
+                              className="inline-flex rounded-md border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+                            >
+                              Answer Now
+                            </button>
+                          ) : undefined
+                        }
+                      />
                     </div>
                   </li>
                 );

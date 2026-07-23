@@ -148,15 +148,24 @@ export function Deal360PageShell({
 
   return (
     <WorkspaceChrome>
-        <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-          <div className="min-w-0 truncate text-[11px] text-carbon-blue/50">
+        <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/95">
+          <nav
+            aria-label="Breadcrumb"
+            className="min-w-0 truncate text-[12px] text-slate-500 dark:text-slate-400"
+          >
             <Link
               href="/opportunities"
-              className="font-medium text-carbon-blue/45 transition-colors hover:text-upcycle-orange"
+              className="font-medium text-slate-500 transition-colors hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
             >
               Opportunities
             </Link>
-          </div>
+            <span aria-hidden className="mx-1.5 text-slate-300 dark:text-slate-600">
+              /
+            </span>
+            <span className="font-semibold text-slate-800 dark:text-slate-100">
+              {pipeline.assetName}
+            </span>
+          </nav>
           <RoleSwitcher companies={scopedCompanies} />
         </header>
 

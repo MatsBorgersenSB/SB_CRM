@@ -295,7 +295,7 @@ export function Deal360LivingWorkspace({
   );
 
   return (
-    <WorkspaceStack className="gap-10 xl:gap-12">
+    <WorkspaceStack className="gap-5 xl:gap-6">
       <OpportunityWorkspaceHeader
         pipeline={pipeline}
         companies={companies}

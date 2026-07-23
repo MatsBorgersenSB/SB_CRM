@@ -28,6 +28,7 @@ import {
   SmartAssistCategoryBadge,
   SmartAssistConfidenceLabel,
 } from "@/components/smartassist/smartassist-intelligence-display";
+import { ExplainabilityBlock } from "@/components/ui/explainability-block";
 import type { InsightCategory } from "@/types/smartassist-intelligence";
 import { confidenceToCategory } from "@/lib/smartassist-intelligence-layer";
 import {
@@ -40,6 +41,7 @@ import {
   EDITORIAL_INSIGHT_STANDARD,
   EDITORIAL_LABEL,
 } from "@/lib/editorial-design-system";
+import { ATTIO_SURFACE, ATTIO_SURFACE_HEADER } from "@/lib/attio-workspace-surfaces";
 
 export function OpportunityMissionControl({
   view,
@@ -134,20 +136,23 @@ export function OpportunityMissionControl({
   );
 
   return (
-    <section aria-label="Mission control" className="flex flex-col">
-      <OpportunityMissionControlTabBar active={view} onChange={onViewChange} />
-
-      {view === "actions" ? (
-        <div className="mt-4">
-          <OpportunityActionsTabBar
-            active={actionTab}
-            onChange={onActionTabChange}
-            counts={discoveryCounts}
-          />
+    <section aria-label="Mission control" className="flex flex-col gap-4">
+      <div className={`${ATTIO_SURFACE} overflow-hidden`}>
+        <div className={ATTIO_SURFACE_HEADER}>
+          <OpportunityMissionControlTabBar active={view} onChange={onViewChange} />
         </div>
-      ) : null}
 
-      <div className="mt-10">
+        {view === "actions" ? (
+          <div className="border-b border-slate-200/80 px-3 py-2 dark:border-slate-800">
+            <OpportunityActionsTabBar
+              active={actionTab}
+              onChange={onActionTabChange}
+              counts={discoveryCounts}
+            />
+          </div>
+        ) : null}
+
+        <div className="px-4 py-5 sm:px-5">
         {view === "overview" ? (
           <OverviewPanel
             objective={understanding.clientObjective.statement}
@@ -156,14 +161,20 @@ export function OpportunityMissionControl({
             blocker={
               topGap
                 ? {
-                    headline: topGap.missingInformation,
-                    detail: topGap.recommendedAction,
+                    observation: topGap.missingInformation,
+                    reasoning: topGap.whyItMatters,
+                    recommendedAction: topGap.recommendedAction,
+                    expectedOutcome:
+                      topGap.priority === "high"
+                        ? "Closing this gap unblocks progression and reduces stalled-decision risk."
+                        : "Filling this understanding improves qualification and next-step confidence.",
                     fieldId: topGap.fieldId,
                   }
                 : null
             }
             nextAction={understanding.nextBestAction.action}
             nextActionWhy={understanding.nextBestAction.why}
+            nextActionOutcome={understanding.nextBestAction.expectedImpact}
             hasCriticalGaps={understanding.knowledgeModel.criticalGaps.length > 0}
             stakeholdersOverview={stakeholdersOverview}
             onAnswerNow={onAnswerNow}
@@ -261,6 +272,7 @@ export function OpportunityMissionControl({
             <OpportunityQuestionBox context={askContext} />
           </div>
         ) : null}
+        </div>
       </div>
     </section>
   );
@@ -273,6 +285,7 @@ function OverviewPanel({
   blocker,
   nextAction,
   nextActionWhy,
+  nextActionOutcome,
   hasCriticalGaps,
   stakeholdersOverview,
   onAnswerNow,
@@ -280,9 +293,16 @@ function OverviewPanel({
   objective: string;
   objectiveConfidence: "high" | "medium" | "low";
   objectiveConfidenceReason?: string;
-  blocker: { headline: string; detail: string; fieldId?: string } | null;
+  blocker: {
+    observation: string;
+    reasoning: string;
+    recommendedAction: string;
+    expectedOutcome: string;
+    fieldId?: string;
+  } | null;
   nextAction: string;
   nextActionWhy: string;
+  nextActionOutcome: string;
   hasCriticalGaps: boolean;
   stakeholdersOverview?: ReactNode;
   onAnswerNow?: (fieldId: string) => void;
@@ -300,39 +320,58 @@ function OverviewPanel({
         category={objectiveCategory}
         confidence={objectiveConfidence}
       />
-      <div className={EDITORIAL_CONTENT}>
-        <p className={EDITORIAL_LABEL}>What is blocking progress</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <SmartAssistCategoryBadge category={blocker ? "missing_critical" : "known"} />
-          <SmartAssistConfidenceLabel confidence={blocker ? "high" : "medium"} />
+
+      {blocker ? (
+        <ExplainabilityBlock
+          title="What is blocking progress"
+          observation={blocker.observation}
+          reasoning={blocker.reasoning}
+          recommendedAction={blocker.recommendedAction}
+          expectedOutcome={blocker.expectedOutcome}
+          footer={
+            blocker.fieldId && onAnswerNow ? (
+              <button
+                type="button"
+                onClick={() => onAnswerNow(blocker.fieldId!)}
+                className="inline-flex rounded-md border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+              >
+                Answer Now
+              </button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <SmartAssistCategoryBadge category="missing_critical" />
+                <SmartAssistConfidenceLabel confidence="high" />
+              </div>
+            )
+          }
+        />
+      ) : (
+        <div className="rounded-lg border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <p className={EDITORIAL_LABEL}>What is blocking progress</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <SmartAssistCategoryBadge category="known" />
+            <SmartAssistConfidenceLabel confidence="medium" />
+          </div>
+          <p className={`mt-2.5 ${EDITORIAL_INSIGHT_STANDARD}`}>
+            Nothing critical is blocking progress right now.
+          </p>
         </div>
-        <p className={`mt-2.5 ${EDITORIAL_INSIGHT_STANDARD}`}>
-          {blocker?.headline ?? "Nothing critical is blocking progress right now."}
-        </p>
-        {blocker?.detail ? (
-          <p className={`mt-2.5 ${EDITORIAL_BODY_MUTED}`}>{blocker.detail}</p>
-        ) : null}
-        {blocker?.fieldId && onAnswerNow ? (
-          <button
-            type="button"
-            onClick={() => onAnswerNow(blocker.fieldId!)}
-            className="mt-3 inline-flex border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
-          >
-            Answer Now
-          </button>
-        ) : null}
-      </div>
-      <MissionInsight
-        label="What should happen next"
-        answer={nextAction}
-        detail={nextActionWhy}
-        prominent
-        category={hasCriticalGaps ? "missing_critical" : "assumed"}
-        confidence="medium"
+      )}
+
+      <ExplainabilityBlock
+        title="What should happen next"
+        observation={
+          hasCriticalGaps
+            ? "Critical knowledge gaps remain on this opportunity."
+            : "Opportunity understanding is sufficient to advance commercially."
+        }
+        reasoning={nextActionWhy}
+        recommendedAction={nextAction}
+        expectedOutcome={nextActionOutcome}
       />
 
       {stakeholdersOverview ? (
-        <section className="border-t border-carbon-blue/10 pt-8">
+        <section className="border-t border-slate-200/80 pt-8 dark:border-slate-800">
           <p className={`${EDITORIAL_LABEL} mb-1`}>Stakeholders</p>
           <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
             User-controlled. Add, edit role, or remove — SmartAssist never invents contacts.
@@ -360,7 +399,7 @@ function MissionInsight({
   confidence?: "high" | "medium" | "low";
 }) {
   return (
-    <div className={EDITORIAL_CONTENT}>
+    <div className="rounded-lg border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-950">
       <p className={EDITORIAL_LABEL}>{label}</p>
       {category && confidence ? (
         <div className="mt-2 flex flex-wrap items-center gap-2">

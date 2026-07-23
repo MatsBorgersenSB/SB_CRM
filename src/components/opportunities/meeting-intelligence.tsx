@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
+import { ATTIO_GROUP_ACTIONS } from "@/lib/attio-workspace-surfaces";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
@@ -120,6 +121,10 @@ export function MeetingIntelligence({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [syncFilter, setSyncFilter] = useState<"all" | SyncStatus>("all");
   const [commitmentFilter, setCommitmentFilter] = useState<"all" | "proposed" | "open">("all");
+  // FS-008 Privacy First — exclude internal-only meetings by default (AD-001 chip visible).
+  const [domainFilter, setDomainFilter] = useState<"all" | "external" | "internal_only">(
+    "external",
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -158,16 +163,25 @@ export function MeetingIntelligence({
     return meetings.filter((meeting) => {
       if (syncFilter !== "all" && meeting.syncStatus !== syncFilter) return false;
       if (commitmentFilter === "proposed") {
-        return meeting.commitments.some((item) => item.status === "proposed");
+        if (!meeting.commitments.some((item) => item.status === "proposed")) return false;
       }
       if (commitmentFilter === "open") {
-        return meeting.commitments.some((item) =>
-          item.status === "proposed" || item.status === "confirmed",
-        );
+        if (
+          !meeting.commitments.some(
+            (item) => item.status === "proposed" || item.status === "confirmed",
+          )
+        ) {
+          return false;
+        }
       }
+      const internalOnly =
+        meeting.participants.length > 0 &&
+        meeting.participants.every((participant) => !participant.isExternal);
+      if (domainFilter === "external" && internalOnly) return false;
+      if (domainFilter === "internal_only" && !internalOnly) return false;
       return true;
     });
-  }, [meetings, syncFilter, commitmentFilter]);
+  }, [meetings, syncFilter, commitmentFilter, domainFilter]);
 
   const activeFilters = useMemo((): FilterSummaryChip[] => {
     const chips: FilterSummaryChip[] = [];
@@ -187,8 +201,16 @@ export function MeetingIntelligence({
         onRemove: () => setCommitmentFilter("all"),
       });
     }
+    if (domainFilter !== "all") {
+      chips.push({
+        id: "domain",
+        label: "Domain",
+        value: domainFilter === "external" ? "External" : "Internal-only",
+        onRemove: () => setDomainFilter("all"),
+      });
+    }
     return chips;
-  }, [syncFilter, commitmentFilter]);
+  }, [syncFilter, commitmentFilter, domainFilter]);
 
   const updateCommitment = async (
     commitmentId: string,
@@ -271,6 +293,20 @@ export function MeetingIntelligence({
             <option value="open">Has open</option>
           </select>
         </label>
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+          Domains
+          <select
+            value={domainFilter}
+            onChange={(event) =>
+              setDomainFilter(event.target.value as "all" | "external" | "internal_only")
+            }
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+          >
+            <option value="external">External (default)</option>
+            <option value="all">All domains</option>
+            <option value="internal_only">Internal-only</option>
+          </select>
+        </label>
       </div>
 
       <FilterTransparencyBar
@@ -283,6 +319,7 @@ export function MeetingIntelligence({
             ? () => {
                 setSyncFilter("all");
                 setCommitmentFilter("all");
+                setDomainFilter("external");
               }
             : undefined
         }
@@ -309,7 +346,7 @@ export function MeetingIntelligence({
           {filteredMeetings.map((meeting) => (
             <article
               key={meeting.id}
-              className="border border-carbon-blue/12 bg-white px-4 py-4"
+              className="group rounded-lg border border-slate-200/80 bg-white px-4 py-4 shadow-sm transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700"
             >
               {/* 1. Meeting Timeline & AI Summary */}
               <header className="border-b border-carbon-blue/8 pb-3">
@@ -436,12 +473,12 @@ export function MeetingIntelligence({
                             </span>
                           </div>
                           {isProposed && !readOnly ? (
-                            <div className="mt-2.5 flex flex-wrap gap-2">
+                            <div className={`mt-2.5 flex flex-wrap gap-2 ${ATTIO_GROUP_ACTIONS}`}>
                               <button
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void updateCommitment(commitment.id, "confirmed")}
-                                className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
+                                className="rounded-md border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
                               >
                                 {busy ? "Saving…" : "Confirm"}
                               </button>
@@ -449,14 +486,14 @@ export function MeetingIntelligence({
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void updateCommitment(commitment.id, "dismissed")}
-                                className="border border-carbon-blue/20 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/70 hover:text-carbon-blue disabled:opacity-50"
+                                className="rounded-md border border-slate-200/80 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:text-slate-900 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
                               >
                                 Dismiss
                               </button>
                             </div>
                           ) : null}
                           {commitment.status === "confirmed" && !readOnly ? (
-                            <div className="mt-2.5">
+                            <div className={`mt-2.5 ${ATTIO_GROUP_ACTIONS}`}>
                               <DraftInOutlookButton
                                 toEmail={commitment.ownerEmail}
                                 subject={`Action follow-up: ${commitment.description.slice(0, 80)}`}
