@@ -50,12 +50,14 @@ export function canCreateCompany(role: UserRole): boolean {
   return role === "superuser";
 }
 
+/** FS-013: high-privilege deletes — enterprise ADMIN only. */
 export function canDeleteContact(role: UserRole): boolean {
-  return role === "superuser";
+  return role === "superuser" || role === "admin";
 }
 
+/** FS-013: high-privilege deletes — enterprise ADMIN only. */
 export function canDeleteCompany(role: UserRole): boolean {
-  return role === "superuser";
+  return role === "superuser" || role === "admin";
 }
 
 export function canWritePipelineField(

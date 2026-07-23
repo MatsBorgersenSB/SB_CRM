@@ -12,6 +12,9 @@ import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
 import type { UpdateDealInput } from "@/types/deal";
 
+/**
+ * FS-013 — Opportunity (deal) stage / field updates with RBAC + audit logging.
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -22,7 +25,7 @@ export async function PATCH(
 
   if (!canUpdateDealStage({ role })) {
     return sharePointErrorResponse(
-      SharePointServiceError.forbidden("Insufficient role to update deal"),
+      SharePointServiceError.forbidden("Insufficient role to update opportunity"),
     );
   }
 
@@ -39,7 +42,7 @@ export async function PATCH(
     await logAuditEvent({
       ...actor,
       action: stageChanged ? "STAGE_CHANGED" : "DEAL_UPDATED",
-      entityType: "Deal",
+      entityType: "Opportunity",
       entityId: id,
       ipAddress: clientIpFromRequest(request),
       metadata: {

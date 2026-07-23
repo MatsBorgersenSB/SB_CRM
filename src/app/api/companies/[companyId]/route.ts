@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getRequestRole } from "@/lib/api-auth";
 import { canDeleteCompany } from "@/lib/permissions";
+import {
+  clientIpFromRequest,
+  logAuditEvent,
+  resolveAuditActor,
+} from "@/lib/security/audit-logger";
+import { canPerformHighPrivilegeAction } from "@/lib/security/rbac";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
@@ -44,15 +50,27 @@ export async function DELETE(
   const { companyId } = await params;
   const role = getRequestRole(request);
 
-  if (!canDeleteCompany(role)) {
+  // FS-013: high-privilege delete — enterprise ADMIN only
+  if (!canPerformHighPrivilegeAction({ role }) || !canDeleteCompany(role)) {
     return sharePointErrorResponse(
-      SharePointServiceError.forbidden("Only superusers can delete companies"),
+      SharePointServiceError.forbidden("Only ADMIN can delete companies"),
     );
   }
 
   try {
     const { companies } = getServerSharePointServices();
     await companies.delete(companyId);
+
+    const actor = resolveAuditActor(request, role);
+    await logAuditEvent({
+      ...actor,
+      action: "COMPANY_DELETED",
+      entityType: "Company",
+      entityId: companyId,
+      ipAddress: clientIpFromRequest(request),
+      metadata: { privileged: true },
+    });
+
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     return sharePointErrorResponse(error);

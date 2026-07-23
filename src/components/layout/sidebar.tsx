@@ -18,6 +18,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useCallback } from "react";
+import { EnterpriseRoleBadge } from "@/components/auth/enterprise-role-badge";
 import { useAuth } from "@/context/auth-context";
 import { useUniversalSearch } from "@/context/universal-search-context";
 import { canAccessRoute } from "@/lib/permissions";
@@ -149,7 +150,10 @@ export function Sidebar() {
   return (
     <aside className="flex w-52 shrink-0 flex-col border-r border-carbon-blue/20 bg-carbon-blue text-light-grey">
       <div className="border-b border-white/10 px-4 py-4">
-        <p className="text-sm font-semibold tracking-tight text-white">SmartCRM</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold tracking-tight text-white">SmartCRM</p>
+          <EnterpriseRoleBadge accessRole={user.role} />
+        </div>
         <p className="mt-0.5 text-[10px] text-light-grey/45">Living workspace</p>
       </div>
 
