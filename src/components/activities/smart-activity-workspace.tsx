@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
 import { ActivityWorkManagementWorkspace } from "@/components/activities/activity-work-management-workspace";
+import { GenerateAiDraftControl } from "@/components/ai/generate-ai-draft-drawer";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import {
   ActivityPlanningRow,
@@ -390,14 +391,36 @@ export function SmartActivityWorkspace({
             onClearAll={handleClearAllFilters}
           />
         </div>
-        <button
-          type="button"
-          onClick={() => openWizard()}
-          className="inline-flex shrink-0 items-center justify-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
-        >
-          <Plus className="size-3.5" strokeWidth={2} />
-          New Activity
-        </button>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {context?.contactName || context?.dealName ? (
+            <GenerateAiDraftControl
+              draftContext={{
+                contactName: context.contactName || "Stakeholder",
+                companyName: context.companyName,
+                dealStage: context.dealId
+                  ? pipelines.find((row) => row.id === context.dealId)?.status
+                  : undefined,
+                dealId: context.dealId,
+                contactId: context.contactId,
+                context: [
+                  context.dealName ? `Opportunity: ${context.dealName}` : null,
+                  context.companyName ? `Company: ${context.companyName}` : null,
+                  "Follow up on recent activity and confirm the next commercial step.",
+                ]
+                  .filter(Boolean)
+                  .join(". "),
+              }}
+            />
+          ) : null}
+          <button
+            type="button"
+            onClick={() => openWizard()}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
+          >
+            <Plus className="size-3.5" strokeWidth={2} />
+            New Activity
+          </button>
+        </div>
       </div>
 
       {isPage ? <ActivityIntelligencePanel intelligence={intelligence} /> : null}

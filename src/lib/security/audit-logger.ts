@@ -12,6 +12,9 @@ export type AuditAction =
   | "EXPORT_DATA"
   | "WORKFLOW_APPROVED"
   | "WORKFLOW_DISMISSED"
+  | "AI_DRAFT_GENERATED"
+  | "MEETING_ANALYZED"
+  | "DEAL_INSIGHTS_VIEWED"
   | (string & {});
 
 export type LogAuditEventInput = {

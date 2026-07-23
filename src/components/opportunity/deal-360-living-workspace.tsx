@@ -21,6 +21,7 @@ import {
 } from "@/types/opportunity-actions";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
+import { DealVelocityCard } from "@/components/ai/deal-velocity-card";
 import { workspaceDocumentsContextFromOpportunity } from "@/lib/workspace-documents-data";
 import { getActivitiesForDeal } from "@/lib/activity-utils";
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
@@ -303,6 +304,8 @@ export function Deal360LivingWorkspace({
         role={role}
         onPipelinePatch={onPipelinePatch}
       />
+
+      <DealVelocityCard dealId={pipeline.id} />
 
       <OpportunityMissionControl
         view={missionView}

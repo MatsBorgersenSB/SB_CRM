@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
+import { MeetingNotesAnalyzer } from "@/components/ai/meeting-notes-analyzer";
 import { ATTIO_GROUP_ACTIONS } from "@/lib/attio-workspace-surfaces";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
@@ -264,6 +265,8 @@ export function MeetingIntelligence({
           SmartAssist commitments — the system proposes; you decide.
         </p>
       </div>
+
+      <MeetingNotesAnalyzer opportunityId={opportunityId} role={role} />
 
       <div className="flex flex-wrap items-end gap-3 border border-carbon-blue/10 bg-white px-3 py-3">
         <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
