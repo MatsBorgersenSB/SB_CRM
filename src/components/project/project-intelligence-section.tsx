@@ -28,10 +28,20 @@ export function ProjectIntelligenceSection({
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <InsightCard title="What changed?" body={intelligence.whatChanged} />
-        <InsightCard title="What requires attention?" body={intelligence.requiresAttention} accent />
-        <InsightCard title="What should happen next?" body={intelligence.recommendedNext} />
-        <InsightCard title="Biggest risk" body={intelligence.biggestRisk} />
-        <InsightCard title="Biggest opportunity" body={intelligence.biggestOpportunity} />
+        <InsightCard
+          title="What requires attention?"
+          body={intelligence.requiresAttention ?? ""}
+          accent
+        />
+        <InsightCard
+          title="What should happen next?"
+          body={intelligence.recommendedNext ?? ""}
+        />
+        <InsightCard title="Biggest risk" body={intelligence.biggestRisk ?? ""} />
+        <InsightCard
+          title="Biggest opportunity"
+          body={intelligence.biggestOpportunity ?? ""}
+        />
       </div>
     </div>
   );

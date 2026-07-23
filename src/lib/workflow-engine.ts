@@ -246,8 +246,8 @@ async function runSideEffect(
         ActivityDescription:
           payload.recommendation ||
           "Created by FS-011 Autonomous Workflow Engine after user approval.",
-        ActionRequired: payload.recommendation || subject,
-        NextAction: "Complete workflow follow-up",
+        ActionRequired: true,
+        NextAction: payload.recommendation || "Complete workflow follow-up",
         NextActionDate: due.toISOString().slice(0, 10),
         ActionStatus: "Planned",
         ActionOutcome: "",

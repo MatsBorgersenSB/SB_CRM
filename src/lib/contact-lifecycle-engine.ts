@@ -341,6 +341,7 @@ export function toActionableInsight(
   why: string;
   impact: string;
   recommendedAction: string;
+  expectedOutcome: string;
   resolutionHref: string;
   resolutionLabel: string;
   severity: "critical" | "warning" | "healthy";
@@ -352,6 +353,8 @@ export function toActionableInsight(
     why: insight.why,
     impact: insight.impact,
     recommendedAction: insight.recommendedAction,
+    expectedOutcome:
+      "Lifecycle risk is addressed with a clear owner action — relationship continuity stays commercially protected.",
     resolutionHref: insight.resolutionHref,
     resolutionLabel: insight.resolutionLabel,
     severity:

@@ -353,6 +353,7 @@ export function toActionableTouchpoint(
   why: string;
   impact: string;
   recommendedAction: string;
+  expectedOutcome: string;
   resolutionHref: string;
   resolutionLabel: string;
   severity: "critical" | "warning" | "healthy";
@@ -364,6 +365,8 @@ export function toActionableTouchpoint(
     why: candidate.why,
     impact: candidate.impact,
     recommendedAction: candidate.recommendedAction,
+    expectedOutcome:
+      "Reconciled Outlook evidence becomes durable CRM activity — no silent gaps in relationship history.",
     resolutionHref: candidate.resolutionHref,
     resolutionLabel: candidate.resolutionLabel,
     severity:

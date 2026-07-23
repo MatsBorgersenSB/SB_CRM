@@ -145,9 +145,9 @@ export function buildConfirmedFromUnderstandingModel(
   return resolveAllUnderstandingFields(pipeline)
     .filter(
       (entry): entry is ResolvedUnderstandingField & { source: "captured" | "derived" } =>
-        entry.source !== "empty",
+        entry.source === "captured" || entry.source === "derived",
     )
-    .map((entry) => ({
+    .map((entry): UnderstandingConfirmedRow => ({
       id: entry.definition.id,
       topic: entry.definition.label,
       answer:
