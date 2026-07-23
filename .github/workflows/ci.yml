@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Lint-free build checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Prisma generate / Next build do not require a live DB; placeholder URL is enough.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/smartcrm?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/smartcrm?schema=public
+      NEXT_TELEMETRY_DISABLED: "1"
+      TOKEN_ENCRYPTION_SECRET: ci-placeholder-token-encryption-secret
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build Next.js (standalone)
+        run: npm run build
