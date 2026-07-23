@@ -12,9 +12,10 @@ type Deal360PageProps = {
 
 /**
  * Opportunity detail — Mission Control tabs are URL-driven:
- * `?view=overview|gaps|understanding|influence|meetings|actions|ask`
+ * `?view=overview|gaps|understanding|influence|meetings|emails|actions|ask`
  *
- * Meetings tab (`?view=meetings`) renders `<MeetingIntelligence opportunityId={id} />`
+ * Meetings tab (`?view=meetings`) → `<MeetingIntelligence />`
+ * Emails tab (`?view=emails`) → `<EmailIntelligence />`
  * inside Deal360LivingWorkspace → OpportunityMissionControl.
  */
 export default async function Deal360Page({ params }: Deal360PageProps) {

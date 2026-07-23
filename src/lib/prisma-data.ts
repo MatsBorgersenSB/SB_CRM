@@ -91,3 +91,8 @@ export {
   readMeetingsForOpportunity,
   resolveOpportunityId,
 } from "@/lib/meeting-intelligence-data";
+
+export {
+  readEmailsForOpportunity,
+  buildEmailThreadSummary,
+} from "@/lib/email-intelligence-data";

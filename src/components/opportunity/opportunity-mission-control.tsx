@@ -11,6 +11,7 @@ import { OpportunityKnowledgeView } from "@/components/opportunity/opportunity-k
 import { OpportunityUnderstandingCapturePanel } from "@/components/opportunity/opportunity-understanding-capture-panel";
 import { InfluenceMatrix } from "@/components/opportunities/influence-matrix";
 import { MeetingIntelligence } from "@/components/opportunities/meeting-intelligence";
+import { EmailIntelligence } from "@/components/opportunities/email-intelligence";
 import { OpportunityMissionControlTabBar } from "@/components/opportunity/opportunity-mission-control-tab-bar";
 import { OpportunityQuestionBox } from "@/components/opportunity/opportunity-question-box";
 import { OpportunityQuestionsWorkspace } from "@/components/opportunity/opportunity-questions-workspace";
@@ -201,6 +202,10 @@ export function OpportunityMissionControl({
             role={role}
             readOnly={influenceReadOnly}
           />
+        ) : null}
+
+        {view === "emails" ? (
+          <EmailIntelligence opportunityId={pipeline.id} role={role} />
         ) : null}
 
         {view === "actions" ? (

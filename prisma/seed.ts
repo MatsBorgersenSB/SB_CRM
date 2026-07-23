@@ -7,6 +7,7 @@ import {
   type SentimentStance,
   type AuthorityClass,
   type VerificationState,
+  type SentimentGrade,
 } from "@src/generated/prisma";
 
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
@@ -22,7 +23,10 @@ const SEED_OWNER_ID = "seed-owner-commercial-01";
 async function main() {
   console.log("Seeding SmartCRM core data…");
 
-  // Idempotent cleanup of previous seed markers (m365GraphId / seed-meeting- prefix)
+  // Idempotent cleanup of previous seed markers
+  await prisma.emailMessageRecord.deleteMany({
+    where: { externalMessageId: { startsWith: "seed-email-" } },
+  });
   await prisma.meetingRecord.deleteMany({
     where: { externalEventId: { startsWith: "seed-meeting-" } },
   });
@@ -394,6 +398,59 @@ async function main() {
     },
   });
 
+  // FS-009 — Email & Interaction Intelligence
+  // 3-message thread: Mats Borgersen ↔ Anna Berg on Circular Fiber Reactor
+  const MATS_EMAIL = "mats.borgersen@standardbio.com";
+  const ANNA_EMAIL = "anna.berg@acme-renewables.example";
+  const circularCapexConversationId = "seed-conv-circular-fiber-capex-2026";
+
+  const circularEmails = await prisma.emailMessageRecord.createMany({
+    data: [
+      {
+        externalMessageId: "seed-email-circular-capex-01",
+        conversationId: circularCapexConversationId,
+        opportunityId: circularFiberOpportunityId,
+        contactId: anna.id,
+        subject: "Circular Fiber Reactor — CAPEX payback clarification",
+        bodyPreview:
+          "Hi Anna — attached is the revised CAPEX payback model (base case 4.2 years). Happy to walk through site power assumptions and feedstock volume inputs before your plant ops review.",
+        senderEmail: MATS_EMAIL,
+        recipientEmails: [ANNA_EMAIL],
+        sentAt: new Date("2026-07-11T08:15:00.000Z"),
+        sentiment: "positive" satisfies SentimentGrade,
+        isOutbound: true,
+      },
+      {
+        externalMessageId: "seed-email-circular-capex-02",
+        conversationId: circularCapexConversationId,
+        opportunityId: circularFiberOpportunityId,
+        contactId: anna.id,
+        subject: "Re: Circular Fiber Reactor — CAPEX payback clarification",
+        bodyPreview:
+          "Thanks Mats. Payback looks directionally OK, but we still need clarity on peak site power draw during start-up. Until that is confirmed with facilities, I cannot endorse the investment case to Bjorn.",
+        senderEmail: ANNA_EMAIL,
+        recipientEmails: [MATS_EMAIL],
+        sentAt: new Date("2026-07-12T14:40:00.000Z"),
+        sentiment: "cautious" satisfies SentimentGrade,
+        isOutbound: false,
+      },
+      {
+        externalMessageId: "seed-email-circular-capex-03",
+        conversationId: circularCapexConversationId,
+        opportunityId: circularFiberOpportunityId,
+        contactId: anna.id,
+        subject: "Re: Circular Fiber Reactor — CAPEX payback clarification",
+        bodyPreview:
+          "Understood. We will send the start-up power profile Tuesday and propose a short contract redline review covering warranty limits and acceptance criteria. Please confirm availability mid-week.",
+        senderEmail: MATS_EMAIL,
+        recipientEmails: [ANNA_EMAIL],
+        sentAt: new Date("2026-07-13T09:05:00.000Z"),
+        sentiment: "neutral" satisfies SentimentGrade,
+        isOutbound: true,
+      },
+    ],
+  });
+
   console.log("Seed complete:", {
     companies: [acme.name, techcorp.name],
     contacts: [anna.fullName, bjorn.fullName, clara.fullName, david.fullName],
@@ -415,6 +472,8 @@ async function main() {
     ],
     meetingParticipants: 6,
     proposedCommitments: 4,
+    emailMessages: circularEmails.count,
+    emailConversationId: circularCapexConversationId,
   });
 }
 

@@ -120,6 +120,7 @@ export function Deal360PageShell({
       knowledge: "view=understanding",
       influence: "view=influence",
       meetings: "view=meetings",
+      emails: "view=emails",
       viability: "view=actions&action=activities",
       cvm: "view=actions&action=activities",
       commercial: "view=actions&action=activities",
