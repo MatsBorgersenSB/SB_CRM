@@ -66,6 +66,10 @@ model Company {
   notes         CompanyNote[]
   meetings      MeetingRecord[]
 
+  // FS-010 Growth & Expansion Intelligence
+  healthRecords    AccountHealthRecord[]
+  expansionSignals ExpansionSignal[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -259,6 +263,9 @@ model Opportunity {
 
   // FS-009 / SmartDocs — M365 email attachments
   documents DocumentRecord[]
+
+  // FS-010 Growth & Expansion Intelligence
+  expansionSignals ExpansionSignal[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -573,6 +580,63 @@ model WebhookSubscription {
   @@index([integrationId])
   @@index([expiresAt])
   @@map("webhook_subscriptions")
+}
+
+// ==========================================
+// FS-010: Growth & Expansion Intelligence
+// ==========================================
+
+enum SignalType {
+  upsell
+  cross_sell
+  renewal_risk
+  churn_risk
+}
+
+enum SignalStatus {
+  detected
+  reviewing
+  actioned
+  dismissed
+}
+
+model AccountHealthRecord {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  healthScore     Int
+  engagementScore Int
+  sentimentScore  Int
+  calculatedAt    DateTime @default(now())
+
+  @@index([companyId])
+  @@index([calculatedAt])
+  @@index([healthScore])
+  @@map("account_health_records")
+}
+
+model ExpansionSignal {
+  id              String       @id @default(uuid())
+  companyId       String
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  opportunityId   String?
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  type            SignalType
+  status          SignalStatus @default(detected)
+  title           String
+  observation     String
+  reasoning       String
+  recommendation  String
+  expectedOutcome String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([companyId])
+  @@index([opportunityId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("expansion_signals")
 }
 
 // Add these optional M365 mapping fields to your existing Contact model:

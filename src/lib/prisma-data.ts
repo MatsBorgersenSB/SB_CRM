@@ -1,6 +1,6 @@
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
-import { prisma } from "@/lib/prisma";
+import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import {
   mapPrismaCompanyToApp,
   mapPrismaOpportunityToPipelineRow,
@@ -25,21 +25,23 @@ export type LivePortfolio = {
  */
 export async function readLivePortfolio(): Promise<LivePortfolio> {
   try {
-    const [companies, opportunities] = await Promise.all([
-      prisma.company.findMany({
-        where: { status: "active" },
-        include: {
-          contacts: { where: { status: "active" } },
-          opportunities: { select: { id: true } },
-        },
-        orderBy: { name: "asc" },
-      }),
-      prisma.opportunity.findMany({
-        where: { status: { in: ["open", "on_hold"] } },
-        include: { company: { select: { id: true, name: true } } },
-        orderBy: { updatedAt: "desc" },
-      }),
-    ]);
+    const [companies, opportunities] = await withPrismaRetry((prisma) =>
+      Promise.all([
+        prisma.company.findMany({
+          where: { status: "active" },
+          include: {
+            contacts: { where: { status: "active" } },
+            opportunities: { select: { id: true } },
+          },
+          orderBy: { name: "asc" },
+        }),
+        prisma.opportunity.findMany({
+          where: { status: { in: ["open", "on_hold"] } },
+          include: { company: { select: { id: true, name: true } } },
+          orderBy: { updatedAt: "desc" },
+        }),
+      ]),
+    );
 
     if (companies.length === 0 && opportunities.length === 0) {
       const [jsonCompanies, jsonPipelines] = await Promise.all([
@@ -55,7 +57,13 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
       source: "prisma",
     };
   } catch (error) {
-    console.error("[prisma-data] Falling back to JSON portfolio:", error);
+    const hint = isPrismaConnectionError(error)
+      ? " (DB connection closed — ensure `npx prisma dev` is running, then refresh)"
+      : "";
+    console.warn(
+      `[prisma-data] Falling back to JSON portfolio${hint}:`,
+      error instanceof Error ? error.message : error,
+    );
     const [companies, pipelines] = await Promise.all([
       readJsonCompanies(),
       readJsonPipelines(),
