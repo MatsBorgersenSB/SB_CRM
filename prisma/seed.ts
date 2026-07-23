@@ -258,11 +258,15 @@ async function main() {
     ],
   });
 
-  // FS-008 — Meeting Intelligence (sample meetings + proposed commitments)
+  // FS-008 — Meeting Intelligence
+  // Explicit opportunityId links to seeded Opportunities by Prisma UUID.
   const circularDiscoveryStart = new Date("2026-07-10T09:00:00.000Z");
   const circularDiscoveryEnd = new Date("2026-07-10T10:00:00.000Z");
   const thermalKickoffStart = new Date("2026-07-14T13:00:00.000Z");
   const thermalKickoffEnd = new Date("2026-07-14T14:00:00.000Z");
+
+  const circularFiberOpportunityId = circularFiber.id;
+  const thermalRecoveryOpportunityId = thermalRecovery.id;
 
   const circularMeeting = await prisma.meetingRecord.create({
     data: {
@@ -277,7 +281,8 @@ async function main() {
       aiSummary:
         "Discussed feedstock volume assumptions and CAPEX envelope. Anna owns site acceptance; Bjorn requested ROI pack before next gate.",
       syncStatus: "pending_review",
-      opportunityId: circularFiber.id,
+      // Explicit FS-005 opportunity link
+      opportunityId: circularFiberOpportunityId,
       companyId: acme.id,
       participants: {
         create: [
@@ -331,7 +336,8 @@ async function main() {
       aiSummary:
         "Introduced heat recovery scope. Clara sponsors sustainability case; technical fit to be validated with David. Anna and Bjorn joined as reference stakeholders from Acme.",
       syncStatus: "pending_review",
-      opportunityId: thermalRecovery.id,
+      // Explicit FS-005 opportunity link
+      opportunityId: thermalRecoveryOpportunityId,
       companyId: techcorp.id,
       participants: {
         create: [
@@ -351,6 +357,38 @@ async function main() {
             isExternal: true,
             responseStatus: "tentative",
           },
+          {
+            email: "clara.lindqvist@global-techcorp.example",
+            name: "Clara Lindqvist",
+            contactId: clara.id,
+            companyId: techcorp.id,
+            isExternal: true,
+            responseStatus: "accepted",
+          },
+          {
+            email: "guest.engineer@external-partner.example",
+            name: "Guest Engineer",
+            contactId: null,
+            companyId: null,
+            isExternal: true,
+            responseStatus: "tentative",
+          },
+        ],
+      },
+      commitments: {
+        create: [
+          {
+            description: "Share heat recovery P&ID assumptions with David for technical fit.",
+            ownerEmail: "david.okoye@global-techcorp.example",
+            dueDate: new Date("2026-07-21T17:00:00.000Z"),
+            status: "proposed",
+          },
+          {
+            description: "Confirm sustainability KPI framing with Clara before next steering.",
+            ownerEmail: "clara.lindqvist@global-techcorp.example",
+            dueDate: new Date("2026-07-25T17:00:00.000Z"),
+            status: "proposed",
+          },
         ],
       },
     },
@@ -359,12 +397,24 @@ async function main() {
   console.log("Seed complete:", {
     companies: [acme.name, techcorp.name],
     contacts: [anna.fullName, bjorn.fullName, clara.fullName, david.fullName],
-    opportunities: [circularFiber.name, thermalRecovery.name],
+    opportunities: [
+      { name: circularFiber.name, id: circularFiberOpportunityId },
+      { name: thermalRecovery.name, id: thermalRecoveryOpportunityId },
+    ],
     influenceProfiles: 4,
     decisionMakerProfiles: 4,
-    meetings: [circularMeeting.subject, thermalMeeting.subject],
-    meetingParticipants: 4,
-    proposedCommitments: 2,
+    meetings: [
+      {
+        subject: circularMeeting.subject,
+        opportunityId: circularMeeting.opportunityId,
+      },
+      {
+        subject: thermalMeeting.subject,
+        opportunityId: thermalMeeting.opportunityId,
+      },
+    ],
+    meetingParticipants: 6,
+    proposedCommitments: 4,
   });
 }
 

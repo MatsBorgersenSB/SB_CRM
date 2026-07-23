@@ -10,6 +10,7 @@ import { OpportunityActionsTabBar } from "@/components/opportunity/opportunity-a
 import { OpportunityKnowledgeView } from "@/components/opportunity/opportunity-knowledge-view";
 import { OpportunityUnderstandingCapturePanel } from "@/components/opportunity/opportunity-understanding-capture-panel";
 import { InfluenceMatrix } from "@/components/opportunities/influence-matrix";
+import { MeetingIntelligence } from "@/components/opportunities/meeting-intelligence";
 import { OpportunityMissionControlTabBar } from "@/components/opportunity/opportunity-mission-control-tab-bar";
 import { OpportunityQuestionBox } from "@/components/opportunity/opportunity-question-box";
 import { OpportunityQuestionsWorkspace } from "@/components/opportunity/opportunity-questions-workspace";
@@ -188,6 +189,14 @@ export function OpportunityMissionControl({
 
         {view === "influence" ? (
           <InfluenceMatrix
+            opportunityId={pipeline.id}
+            role={role}
+            readOnly={influenceReadOnly}
+          />
+        ) : null}
+
+        {view === "meetings" ? (
+          <MeetingIntelligence
             opportunityId={pipeline.id}
             role={role}
             readOnly={influenceReadOnly}

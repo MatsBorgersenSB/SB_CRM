@@ -86,3 +86,8 @@ export async function readLiveCommercialPackages() {
 export async function readLiveOutlookEvidence() {
   return readJsonOutlookEvidence();
 }
+
+export {
+  readMeetingsForOpportunity,
+  resolveOpportunityId,
+} from "@/lib/meeting-intelligence-data";

@@ -118,6 +118,8 @@ export function Deal360PageShell({
       overview: "",
       intelligence: "view=understanding",
       knowledge: "view=understanding",
+      influence: "view=influence",
+      meetings: "view=meetings",
       viability: "view=actions&action=activities",
       cvm: "view=actions&action=activities",
       commercial: "view=actions&action=activities",

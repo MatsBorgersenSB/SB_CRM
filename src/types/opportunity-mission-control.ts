@@ -3,6 +3,7 @@ export const OPPORTUNITY_MISSION_CONTROL_VIEWS = [
   { id: "gaps", label: "Gaps" },
   { id: "understanding", label: "Understanding" },
   { id: "influence", label: "Influence Map" },
+  { id: "meetings", label: "Meetings" },
   { id: "actions", label: "Actions" },
   { id: "ask", label: "Ask" },
 ] as const;
