@@ -207,6 +207,10 @@ export function canAccessRoute(role: UserRole, href: string): boolean {
     return canAccessIntelligenceCenter(role);
   }
 
+  if (href === "/workflows" || href.startsWith("/workflows")) {
+    return canAccessIntelligenceCenter(role);
+  }
+
   if (href === "/growth" || href.startsWith("/growth")) {
     return canAccessIntelligenceCenter(role);
   }

@@ -8,6 +8,7 @@ import {
   FileText,
   FolderKanban,
   LayoutDashboard,
+  ListChecks,
   Radar,
   Search,
   Settings,
@@ -88,6 +89,13 @@ const navItems: NavItem[] = [
     href: "/intelligence",
     icon: Radar,
     match: (p) => p.startsWith("/intelligence"),
+    section: "intelligence",
+  },
+  {
+    label: "Workflows",
+    href: "/workflows",
+    icon: ListChecks,
+    match: (p) => p.startsWith("/workflows"),
     section: "intelligence",
   },
   {

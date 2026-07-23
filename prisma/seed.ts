@@ -11,6 +11,7 @@ import {
   type SignalType,
   type SignalStatus,
 } from "@src/generated/prisma";
+import { Prisma } from "@src/generated/prisma";
 
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 if (!connectionString) {
@@ -26,6 +27,28 @@ async function main() {
   console.log("Seeding SmartCRM core data…");
 
   // Idempotent cleanup of previous seed markers
+  await prisma.workflowExecution.deleteMany({
+    where: {
+      rule: {
+        name: {
+          in: [
+            "High Churn Risk Mitigation",
+            "Post-Meeting Follow-up Auto-Draft",
+          ],
+        },
+      },
+    },
+  });
+  await prisma.workflowRule.deleteMany({
+    where: {
+      name: {
+        in: [
+          "High Churn Risk Mitigation",
+          "Post-Meeting Follow-up Auto-Draft",
+        ],
+      },
+    },
+  });
   await prisma.expansionSignal.deleteMany({
     where: {
       OR: [
@@ -602,6 +625,114 @@ startxref
     }),
   ]);
 
+  // ==========================================
+  // FS-011 Autonomous Workflow Engine
+  // ==========================================
+
+  const [churnRule, followUpRule] = await Promise.all([
+    prisma.workflowRule.create({
+      data: {
+        name: "High Churn Risk Mitigation",
+        triggerType: "expansion_signal_detected",
+        conditions: {
+          signalTypes: ["churn_risk", "renewal_risk"],
+          actionType: "create_task",
+        } satisfies Prisma.InputJsonValue,
+        status: "active",
+      },
+    }),
+    prisma.workflowRule.create({
+      data: {
+        name: "Post-Meeting Follow-up Auto-Draft",
+        triggerType: "meeting_commitment_confirmed",
+        conditions: {
+          actionType: "generate_outlook_draft",
+        } satisfies Prisma.InputJsonValue,
+        status: "active",
+      },
+    }),
+  ]);
+
+  const workflowExecutions = await Promise.all([
+    prisma.workflowExecution.create({
+      data: {
+        ruleId: churnRule.id,
+        companyId: acme.id,
+        opportunityId: circularFiberOpportunityId,
+        actionType: "create_task",
+        status: "pending_approval",
+        payload: {
+          title: "Schedule Executive Review for Acme Renewables Churn Risk",
+          observation:
+            "Expansion signal 'Delayed Contract Renewal on Site B' is detected while Acme Account Health Index remains expansion-ready overall.",
+          reasoning:
+            "Site B renewal delay can contaminate Circular Fiber confidence and free budget for competitors if left unowned.",
+          recommendation:
+            "Create an Executive Review task for the commercial owner with a 5-day due window.",
+          expectedOutcome:
+            "Renewal risk is triaged in an executive checkpoint before CAPEX momentum stalls.",
+          action: {
+            subject: "Executive Review — Acme Site B renewal risk",
+            activityType: "Meeting",
+            dueInDays: 5,
+            companyName: "Acme Renewables",
+            dealId: circularFiberOpportunityId,
+          },
+        } satisfies Prisma.InputJsonValue,
+      },
+    }),
+    prisma.workflowExecution.create({
+      data: {
+        ruleId: followUpRule.id,
+        companyId: acme.id,
+        opportunityId: circularFiberOpportunityId,
+        actionType: "generate_outlook_draft",
+        status: "pending_approval",
+        payload: {
+          title: "Prepare M365 Proposal Draft for Circular Fiber Reactor CAPEX Pack",
+          observation:
+            "Meeting commitments on Circular Fiber were confirmed; CAPEX payback thread is active with Anna Berg.",
+          reasoning:
+            "A structured CAPEX pack draft keeps momentum while stakeholders are warm and reduces cycle time to proposal.",
+          recommendation:
+            "Generate an Outlook draft summarizing CAPEX pack scope, payback assumptions, and next decision checkpoint.",
+          expectedOutcome:
+            "Commercial owner opens a ready draft in Outlook without composing from scratch.",
+          action: {
+            toEmail: "bjorn.haugen@acme-renewables.example",
+            subject: "Circular Fiber Reactor — CAPEX pack draft",
+            bodyHtml:
+              "<p>Hi Bjorn,</p><p>Following our confirmed actions, please find the CAPEX pack outline for the Circular Fiber Reactor. Happy to align on payback assumptions and secondary-line scope.</p><p>Best regards</p>",
+          },
+        } satisfies Prisma.InputJsonValue,
+      },
+    }),
+    prisma.workflowExecution.create({
+      data: {
+        ruleId: churnRule.id,
+        companyId: acme.id,
+        opportunityId: circularFiberOpportunityId,
+        actionType: "update_stage",
+        status: "pending_approval",
+        payload: {
+          title: "Update Deal Probability to 75% following Commercial Alignment",
+          observation:
+            "Commercial alignment on CAPEX payback and stakeholder coverage indicates stronger close likelihood than the current 35% probability.",
+          reasoning:
+            "Probability should reflect confirmed economic-buyer engagement and documented payback analysis — not lag behind evidence.",
+          recommendation:
+            "Update Circular Fiber Reactor probability to 75% after explicit approval (no silent stage writes).",
+          expectedOutcome:
+            "Forecast accuracy improves and portfolio reviews show realistic Circular Fiber weighting.",
+          action: {
+            probability: 75,
+            opportunityId: circularFiberOpportunityId,
+          },
+        } satisfies Prisma.InputJsonValue,
+      },
+    }),
+  ]);
+
   console.log("Seed complete:", {
     companies: [acme.name, techcorp.name, standardBio.name],
     contacts: [anna.fullName, bjorn.fullName, clara.fullName, david.fullName],
@@ -637,6 +768,13 @@ startxref
       type: signal.type,
       status: signal.status,
       companyId: signal.companyId,
+    })),
+    workflowRules: [churnRule.name, followUpRule.name],
+    workflowExecutions: workflowExecutions.map((execution) => ({
+      id: execution.id,
+      actionType: execution.actionType,
+      status: execution.status,
+      title: (execution.payload as { title?: string }).title,
     })),
   });
 }
