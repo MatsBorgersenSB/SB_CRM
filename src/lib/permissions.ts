@@ -205,6 +205,10 @@ export function canAccessRoute(role: UserRole, href: string): boolean {
     );
   }
 
+  if (href === "/analytics" || href.startsWith("/analytics")) {
+    return canAccessIntelligenceCenter(role);
+  }
+
   if (href === "/intelligence" || href.startsWith("/intelligence")) {
     return canAccessIntelligenceCenter(role);
   }

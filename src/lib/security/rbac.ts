@@ -60,3 +60,8 @@ export function canPerformHighPrivilegeAction(user: Pick<AuthUser, "role">): boo
 export function canUpdateDealStage(user: Pick<AuthUser, "role">): boolean {
   return hasRole(user, ["ADMIN", "MANAGER", "REP"]);
 }
+
+/** FS-014: CSV analytics export — ADMIN and MANAGER only. */
+export function canExportAnalytics(user: Pick<AuthUser, "role">): boolean {
+  return isManagerOrAbove(user);
+}
