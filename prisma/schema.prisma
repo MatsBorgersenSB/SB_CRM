@@ -70,6 +70,9 @@ model Company {
   healthRecords    AccountHealthRecord[]
   expansionSignals ExpansionSignal[]
 
+  // FS-011 Autonomous Workflow Engine
+  workflowExecutions WorkflowExecution[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -266,6 +269,9 @@ model Opportunity {
 
   // FS-010 Growth & Expansion Intelligence
   expansionSignals ExpansionSignal[]
+
+  // FS-011 Autonomous Workflow Engine
+  workflowExecutions WorkflowExecution[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -638,6 +644,62 @@ model ExpansionSignal {
   @@index([createdAt])
   @@map("expansion_signals")
 }
+
+// ==========================================
+// FS-011: Autonomous Workflow Engine
+// ==========================================
+
+enum WorkflowStatus {
+  active
+  paused
+  archived
+}
+
+enum ExecutionStatus {
+  pending_approval
+  approved
+  executed
+  dismissed
+  failed
+}
+
+model WorkflowRule {
+  id          String         @id @default(uuid())
+  name        String
+  triggerType String // expansion_signal_detected | email_sentiment_drop | meeting_commitment_confirmed
+  conditions  Json?
+  status      WorkflowStatus @default(active)
+  createdAt   DateTime       @default(now())
+
+  executions WorkflowExecution[]
+
+  @@index([triggerType])
+  @@index([status])
+  @@map("workflow_rules")
+}
+
+model WorkflowExecution {
+  id            String          @id @default(uuid())
+  ruleId        String
+  rule          WorkflowRule    @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  opportunityId String?
+  opportunity   Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  companyId     String?
+  company       Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  actionType    String // create_task | generate_outlook_draft | update_stage
+  payload       Json
+  status        ExecutionStatus @default(pending_approval)
+  executedAt    DateTime?
+  createdAt     DateTime        @default(now())
+
+  @@index([ruleId])
+  @@index([opportunityId])
+  @@index([companyId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("workflow_executions")
+}
+
 
 // Add these optional M365 mapping fields to your existing Contact model:
 // m365GraphId    String?   @unique // Microsoft Graph Contact / User Object ID
