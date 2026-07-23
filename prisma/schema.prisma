@@ -126,6 +126,9 @@ model Contact {
   // FS-008 Meeting Intelligence
   meetingParticipants MeetingParticipantRecord[]
 
+  // FS-009 Email & Interaction Intelligence
+  emailMessages EmailMessageRecord[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -250,6 +253,9 @@ model Opportunity {
 
   // FS-008 Meeting Intelligence
   meetings MeetingRecord[]
+
+  // FS-009 Email & Interaction Intelligence
+  emailMessages EmailMessageRecord[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -448,6 +454,42 @@ model MeetingCommitmentRecord {
   @@index([status])
   @@index([ownerEmail])
   @@map("meeting_commitment_records")
+}
+
+// ==========================================
+// FS-009: Email & Interaction Intelligence
+// ==========================================
+
+enum SentimentGrade {
+  positive
+  neutral
+  cautious
+  negative
+}
+
+model EmailMessageRecord {
+  id                String         @id @default(uuid())
+  externalMessageId String         @unique
+  conversationId    String
+  opportunityId     String?
+  opportunity       Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  contactId         String?
+  contact           Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  subject           String
+  bodyPreview       String?
+  senderEmail       String
+  recipientEmails   String[]
+  sentAt            DateTime
+  sentiment         SentimentGrade @default(neutral)
+  isOutbound        Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+
+  @@index([conversationId])
+  @@index([opportunityId])
+  @@index([contactId])
+  @@index([sentAt])
+  @@index([senderEmail])
+  @@map("email_message_records")
 }
 
 // ==========================================
