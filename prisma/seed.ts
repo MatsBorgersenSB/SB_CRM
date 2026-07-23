@@ -27,6 +27,9 @@ async function main() {
   await prisma.emailMessageRecord.deleteMany({
     where: { externalMessageId: { startsWith: "seed-email-" } },
   });
+  await prisma.documentRecord.deleteMany({
+    where: { externalAttachmentId: { startsWith: "seed-attach-" } },
+  });
   await prisma.meetingRecord.deleteMany({
     where: { externalEventId: { startsWith: "seed-meeting-" } },
   });
@@ -419,6 +422,7 @@ async function main() {
         sentAt: new Date("2026-07-11T08:15:00.000Z"),
         sentiment: "positive" satisfies SentimentGrade,
         isOutbound: true,
+        m365CategoryName: "SmartCRM / Circular Fiber Reactor",
       },
       {
         externalMessageId: "seed-email-circular-capex-02",
@@ -427,12 +431,13 @@ async function main() {
         contactId: anna.id,
         subject: "Re: Circular Fiber Reactor — CAPEX payback clarification",
         bodyPreview:
-          "Thanks Mats. Payback looks directionally OK, but we still need clarity on peak site power draw during start-up. Until that is confirmed with facilities, I cannot endorse the investment case to Bjorn.",
+          "Thanks Mats. Payback looks directionally OK, but we still need clarity on peak site power draw during start-up. Until that is confirmed with facilities, I cannot endorse the investment case to Bjorn. Attaching our internal CAPEX payback analysis for reference.",
         senderEmail: ANNA_EMAIL,
         recipientEmails: [MATS_EMAIL],
         sentAt: new Date("2026-07-12T14:40:00.000Z"),
         sentiment: "cautious" satisfies SentimentGrade,
         isOutbound: false,
+        m365CategoryName: "SmartCRM / Circular Fiber Reactor",
       },
       {
         externalMessageId: "seed-email-circular-capex-03",
@@ -447,9 +452,57 @@ async function main() {
         sentAt: new Date("2026-07-13T09:05:00.000Z"),
         sentiment: "neutral" satisfies SentimentGrade,
         isOutbound: true,
+        m365CategoryName: "SmartCRM / Circular Fiber Reactor",
       },
     ],
   });
+
+  const annaEmail = await prisma.emailMessageRecord.findUnique({
+    where: { externalMessageId: "seed-email-circular-capex-02" },
+  });
+
+  // Minimal valid PDF bytes for preview/download demos (CAPEX_Payback_Analysis_Acme.pdf)
+  const samplePdfBase64 = Buffer.from(
+    `%PDF-1.4
+1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj
+2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
+3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources<< /Font<< /F1 5 0 R >> >> >>endobj
+4 0 obj<< /Length 68 >>stream
+BT /F1 18 Tf 72 720 Td (CAPEX Payback Analysis - Acme) Tj ET
+endstream
+endobj
+5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000266 00000 n 
+0000000386 00000 n 
+trailer<< /Size 6 /Root 1 0 R >>
+startxref
+465
+%%EOF`,
+    "utf8",
+  ).toString("base64");
+
+  let seedAttachmentCount = 0;
+  if (annaEmail) {
+    await prisma.documentRecord.create({
+      data: {
+        name: "CAPEX_Payback_Analysis_Acme.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 1245184,
+        source: "m365_email",
+        externalAttachmentId: "seed-attach-capex-payback-acme",
+        contentBase64: samplePdfBase64,
+        opportunityId: circularFiberOpportunityId,
+        emailMessageId: annaEmail.id,
+      },
+    });
+    seedAttachmentCount = 1;
+  }
 
   console.log("Seed complete:", {
     companies: [acme.name, techcorp.name],
@@ -474,6 +527,7 @@ async function main() {
     proposedCommitments: 4,
     emailMessages: circularEmails.count,
     emailConversationId: circularCapexConversationId,
+    emailAttachments: seedAttachmentCount,
   });
 }
 

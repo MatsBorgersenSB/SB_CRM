@@ -1,4 +1,5 @@
 import { getPrisma } from "@/lib/prisma";
+import { isExternalEmail } from "@/lib/domain-rules";
 import type { CommitmentState, SyncStatus } from "@/generated/prisma";
 
 export type MeetingIntelligenceDto = {
@@ -116,12 +117,14 @@ function toMeetingDto(meeting: {
           primaryEmail(participant.contact.emails) ||
           null
         : null;
+      // Domain rules are authoritative for external vs internal (Gap 5).
+      const isExternal = isExternalEmail(participant.email);
       return {
         id: participant.id,
         email: participant.email,
         name: participant.name,
         contactId: participant.contactId,
-        isExternal: participant.isExternal,
+        isExternal,
         responseStatus: participant.responseStatus,
         resolved,
         contactName,

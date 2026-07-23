@@ -28,6 +28,9 @@ function isClientCurrent(client: PrismaClient | undefined): client is PrismaClie
     "meetingParticipantRecord",
     "meetingCommitmentRecord",
     "emailMessageRecord",
+    "documentRecord",
+    "externalIntegration",
+    "webhookSubscription",
     "stakeholderInfluenceProfile",
   ] as const;
   return required.every((key) => {

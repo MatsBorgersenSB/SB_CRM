@@ -1,6 +1,18 @@
 import { getPrisma } from "@/lib/prisma";
 import { resolveOpportunityId } from "@/lib/meeting-intelligence-data";
+import { isExternalEmail, isInternalEmail } from "@/lib/domain-rules";
 import type { SentimentGrade } from "@/generated/prisma";
+import type { IngestedSmartDoc } from "@/lib/smartdocs-ingestion";
+
+export type EmailAttachmentDto = {
+  id: string;
+  name: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  source: string;
+  hasContent: boolean;
+  downloadUrl: string;
+};
 
 export type EmailMessageIntelligenceDto = {
   id: string;
@@ -16,7 +28,17 @@ export type EmailMessageIntelligenceDto = {
   sentAt: string;
   sentiment: SentimentGrade;
   isOutbound: boolean;
+  /** Domain-rules classification (Gap 5). */
+  senderIsInternal: boolean;
+  senderIsExternal: boolean;
+  /** True when every participant domain is internal (privacy / noise filter cue). */
+  isInternalOnly: boolean;
+  recipientDomains: Array<{ email: string; isInternal: boolean; isExternal: boolean }>;
+  m365CategoryName: string | null;
+  isDeletedInSource: boolean;
+  deletedAtInSource: string | null;
   createdAt: string;
+  attachments: EmailAttachmentDto[];
 };
 
 export type EmailThreadSummary = {
@@ -42,6 +64,25 @@ function contactDisplayName(contact: {
   );
 }
 
+function toAttachmentDto(doc: {
+  id: string;
+  name: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  source: string;
+  contentBase64: string | null;
+}): EmailAttachmentDto {
+  return {
+    id: doc.id,
+    name: doc.name,
+    mimeType: doc.mimeType,
+    sizeBytes: doc.sizeBytes,
+    source: doc.source,
+    hasContent: Boolean(doc.contentBase64),
+    downloadUrl: `/api/documents/${encodeURIComponent(doc.id)}/download`,
+  };
+}
+
 function toEmailDto(message: {
   id: string;
   externalMessageId: string;
@@ -55,13 +96,36 @@ function toEmailDto(message: {
   sentAt: Date;
   sentiment: SentimentGrade;
   isOutbound: boolean;
+  m365CategoryName: string | null;
+  isDeletedInSource: boolean;
+  deletedAtInSource: Date | null;
   createdAt: Date;
   contact: {
     fullName: string | null;
     firstName: string | null;
     lastName: string | null;
   } | null;
+  documents: Array<{
+    id: string;
+    name: string;
+    mimeType: string | null;
+    sizeBytes: number | null;
+    source: string;
+    contentBase64: string | null;
+  }>;
 }): EmailMessageIntelligenceDto {
+  const senderIsInternal = isInternalEmail(message.senderEmail);
+  const senderIsExternal = isExternalEmail(message.senderEmail);
+  const recipientDomains = message.recipientEmails.map((email) => ({
+    email,
+    isInternal: isInternalEmail(email),
+    isExternal: isExternalEmail(email),
+  }));
+  const participantEmails = [message.senderEmail, ...message.recipientEmails];
+  const isInternalOnly =
+    participantEmails.length > 0 &&
+    participantEmails.every((address) => isInternalEmail(address));
+
   return {
     id: message.id,
     externalMessageId: message.externalMessageId,
@@ -76,7 +140,15 @@ function toEmailDto(message: {
     sentAt: message.sentAt.toISOString(),
     sentiment: message.sentiment,
     isOutbound: message.isOutbound,
+    senderIsInternal,
+    senderIsExternal,
+    isInternalOnly,
+    recipientDomains,
+    m365CategoryName: message.m365CategoryName,
+    isDeletedInSource: message.isDeletedInSource,
+    deletedAtInSource: message.deletedAtInSource?.toISOString() ?? null,
     createdAt: message.createdAt.toISOString(),
+    attachments: message.documents.map(toAttachmentDto),
   };
 }
 
@@ -117,6 +189,11 @@ export function buildEmailThreadSummary(
     takeaways.push(
       "Open commercial topics include CAPEX payback, site power requirements, and/or contract review.",
     );
+  }
+
+  const attachmentCount = sorted.reduce((sum, m) => sum + m.attachments.length, 0);
+  if (attachmentCount > 0) {
+    takeaways.push(`${attachmentCount} commercial attachment(s) linked from Outlook.`);
   }
 
   if (sentimentMix.cautious > 0 || sentimentMix.negative > 0) {
@@ -174,6 +251,17 @@ export async function readEmailsForOpportunity(
       contact: {
         select: { fullName: true, firstName: true, lastName: true },
       },
+      documents: {
+        select: {
+          id: true,
+          name: true,
+          mimeType: true,
+          sizeBytes: true,
+          source: true,
+          contentBase64: true,
+        },
+        orderBy: { name: "asc" },
+      },
     },
     orderBy: [{ conversationId: "asc" }, { sentAt: "asc" }],
   });
@@ -181,4 +269,43 @@ export async function readEmailsForOpportunity(
   return messages.map(toEmailDto);
 }
 
+/**
+ * Soft-tombstone when Outlook reports the message removed.
+ */
+export async function markEmailDeletedInSource(
+  externalMessageId: string,
+  deletedAt: Date = new Date(),
+): Promise<void> {
+  const prisma = getPrisma();
+  await prisma.emailMessageRecord.updateMany({
+    where: { externalMessageId },
+    data: {
+      isDeletedInSource: true,
+      deletedAtInSource: deletedAt,
+    },
+  });
+}
+
+/**
+ * Permanently remove a SmartCRM email record (user sovereignty / accidental sync).
+ */
+export async function purgeEmailFromSmartCrm(
+  opportunityKey: string,
+  emailId: string,
+): Promise<boolean> {
+  const prisma = getPrisma();
+  const opportunityId = await resolveOpportunityId(opportunityKey);
+  if (!opportunityId) return false;
+
+  const existing = await prisma.emailMessageRecord.findFirst({
+    where: { id: emailId, opportunityId },
+    select: { id: true },
+  });
+  if (!existing) return false;
+
+  await prisma.emailMessageRecord.delete({ where: { id: existing.id } });
+  return true;
+}
+
+export type { IngestedSmartDoc };
 export { resolveOpportunityId };

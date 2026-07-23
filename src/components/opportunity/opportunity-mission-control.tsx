@@ -205,7 +205,11 @@ export function OpportunityMissionControl({
         ) : null}
 
         {view === "emails" ? (
-          <EmailIntelligence opportunityId={pipeline.id} role={role} />
+          <EmailIntelligence
+            opportunityId={pipeline.id}
+            role={role}
+            readOnly={influenceReadOnly}
+          />
         ) : null}
 
         {view === "actions" ? (

@@ -9,7 +9,7 @@
 | Status | Approved |
 | Owner | SmartCRM |
 | Category | SmartAssist & Integrations |
-| Version | 1.0 |
+| Version | 1.1 |
 | Related | FS-001 Opportunity Stakeholder Management · FS-002 Contact Registry · FS-003 Company Registry · FS-004 Relationship Intelligence · FS-005 Opportunity Workspace · FS-008 Meeting Intelligence |
 | Governing Standards | SmartCRM Constitution v6.0 · SmartAssist Constitution · SmartCRM North Star |
 
@@ -31,6 +31,33 @@ Email threads are the continuous signal layer between meetings. Commercial teams
 4. **Sentiment as Advisory Signal:** Sentiment grades (`positive` · `neutral` · `cautious` · `negative`) are AI-derived suggestions. They inform Relationship Intelligence (`FS-004`) and workspace cues but **shall not auto-update influence stance or decision-maker verification** without user confirmation.
 5. **Privacy & Scope Filtering:** Sync respects OAuth scopes on `ExternalIntegration`. Internal-only mail (all participants share the host tenant domain) is excluded from external deal intelligence by default. Personal / non-commercial folders are out of scope unless explicitly opted in.
 6. **Idempotency & Delta Sync:** Ingestion uses Graph message IDs (`externalMessageId`) and delta tokens to prevent duplicates across folder moves, replies, and re-syncs.
+
+### 2.5 M365 Outlook Category Auto-Tagging
+
+SmartCRM shall apply Microsoft Outlook categories via Graph API so commercial users see **visual badges in Outlook Desktop, Web, and Mobile without installing an add-in**.
+
+| Rule | Behavior |
+| :--- | :--- |
+| Master category | Ensure mailbox master category **`SmartCRM`** exists (`POST /me/outlook/masterCategories` when missing). |
+| Opportunity subcategory | When a message is attributed to an opportunity, apply **`SmartCRM / {Opportunity Name}`** (sanitized) in addition to `SmartCRM`. |
+| Persistence | Store the applied category label on `EmailMessageRecord.m365CategoryName`. |
+| Graph write | Use **`PATCH /me/messages/{id}`** with `categories: [...]` (merge with existing categories; never strip unrelated user categories). |
+| Timing | Category updates run after successful ingest/attribution — never before the SmartCRM record exists. |
+| Failure mode | Category write failures are logged and retried; they shall not roll back the CRM ingest. |
+
+Users retain full Outlook category control. SmartCRM only adds its own labels; removal of `SmartCRM*` categories by the user is respected on the next sync (CRM does not force-reapply within the same delta window if the user cleared them intentionally — future revision may add an explicit “re-tag” action).
+
+### 2.6 Deletion Handling & User Sovereignty
+
+Deleting mail in Outlook must **not** silently erase commercial evidence from SmartCRM. Tombstoning preserves auditability while giving users explicit purge control (AD-001 Filter Transparency).
+
+| Event | SmartCRM Behavior |
+| :--- | :--- |
+| Message removed / soft-deleted in Outlook (delta `@removed` or 404 on refresh) | Set `isDeletedInSource = true` and `deletedAtInSource = now()`. Keep the CRM record. |
+| UI display | Show AD-001 badge **`[Deleted in Outlook]`** on tombstoned messages. Filters must still count these rows unless the user filters them out. |
+| Accidental sync / user purge | Provide **Purge from SmartCRM** — permanently deletes the `EmailMessageRecord` from Prisma after explicit user confirmation. |
+| Sovereignty | SmartCRM never auto-purges tombstoned rows. Only the user (or an authorized admin action) may purge. |
+| Outlook side | Purging from SmartCRM does **not** restore or further modify the Outlook mailbox item. |
 
 ---
 
@@ -65,6 +92,9 @@ export interface EmailMessageIntelligenceRecord {
   sentAt: string;
   sentiment: SentimentGrade;
   isOutbound: boolean;       // true when sent from connected mailbox
+  m365CategoryName?: string; // Outlook category applied via Graph (e.g. SmartCRM / Deal)
+  isDeletedInSource: boolean;
+  deletedAtInSource?: string;
   createdAt: string;
 }
 ```
@@ -92,6 +122,9 @@ model EmailMessageRecord {
   sentAt             DateTime
   sentiment          SentimentGrade @default(neutral)
   isOutbound         Boolean        @default(false)
+  m365CategoryName   String?
+  isDeletedInSource  Boolean        @default(false)
+  deletedAtInSource  DateTime?
   createdAt          DateTime       @default(now())
 
   opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
@@ -179,6 +212,10 @@ Ambiguous attribution remains `opportunityId = null` until resolved—no silent 
 | FR-009-06 | System shall expose email threads in Opportunity Workspace (`FS-005`) as interaction evidence. |
 | FR-009-07 | System shall not persist full message bodies by default. |
 | FR-009-08 | System shall exclude internal-only mail from external deal intelligence by default. |
+| FR-009-09 | System shall apply Outlook category `SmartCRM` (and opportunity subcategory) via Graph PATCH after attribution. |
+| FR-009-10 | System shall tombstone CRM records when mail is deleted in Outlook (`isDeletedInSource`) and surface `[Deleted in Outlook]`. |
+| FR-009-11 | System shall allow explicit **Purge from SmartCRM** deletion of a tombstoned or accidental sync record. |
+| FR-009-12 | System shall authenticate M365 via OAuth (`Mail.Read`, `Mail.Send`, `Calendars.Read`, `offline_access`) and persist tokens on `ExternalIntegration`. |
 
 ---
 
@@ -190,6 +227,9 @@ Ambiguous attribution remains `opportunityId = null` until resolved—no silent 
 - [ ] Sentiment grades appear in workspace without mutating influence stance automatically
 - [ ] Full body content is absent from the database; only `bodyPreview` is stored
 - [ ] Prisma Client regenerates with `emailMessageRecord` delegate after migration
+- [ ] Tombstoned messages show `[Deleted in Outlook]` and support Purge from SmartCRM
+- [ ] OAuth login/callback routes persist `ExternalIntegration` for `m365_graph`
+- [ ] Graph category helper can PATCH `SmartCRM` (+ opportunity subcategory) onto messages
 
 ---
 

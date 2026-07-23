@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
+import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
@@ -70,6 +71,21 @@ function formatDueDate(value: string | null): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function commitmentDraftHtml(commitment: {
+  description: string;
+  ownerEmail: string;
+  dueDate: string | null;
+}): string {
+  return [
+    `<p>Hi,</p>`,
+    `<p>Following up on our confirmed action:</p>`,
+    `<p><strong>${commitment.description}</strong></p>`,
+    `<p>Owner: ${commitment.ownerEmail}<br/>Due: ${formatDueDate(commitment.dueDate)}</p>`,
+    `<p>Please reply with status or next steps.</p>`,
+    `<p>Thanks</p>`,
+  ].join("");
 }
 
 function labelize(value: string): string {
@@ -355,15 +371,30 @@ export function MeetingIntelligence({
                             : ""}
                         </p>
                       </div>
-                      {participant.resolved ? (
-                        <span className="shrink-0 border border-emerald-600/30 bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-emerald-700">
-                          Resolved Contact
-                        </span>
-                      ) : (
-                        <span className="shrink-0 border border-amber-500/35 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-700">
-                          Unresolved External
-                        </span>
-                      )}
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                        {participant.isExternal ? (
+                          <span className="border border-carbon-blue/15 bg-carbon-blue/[0.04] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/55">
+                            External
+                          </span>
+                        ) : (
+                          <span className="border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/50">
+                            Internal
+                          </span>
+                        )}
+                        {participant.resolved ? (
+                          <span className="border border-emerald-600/30 bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-emerald-700">
+                            Resolved Contact
+                          </span>
+                        ) : participant.isExternal ? (
+                          <span className="border border-amber-500/35 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-700">
+                            Unresolved External
+                          </span>
+                        ) : (
+                          <span className="border border-carbon-blue/20 bg-carbon-blue/[0.03] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/55">
+                            Internal — Unlinked
+                          </span>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -422,6 +453,18 @@ export function MeetingIntelligence({
                               >
                                 Dismiss
                               </button>
+                            </div>
+                          ) : null}
+                          {commitment.status === "confirmed" && !readOnly ? (
+                            <div className="mt-2.5">
+                              <DraftInOutlookButton
+                                toEmail={commitment.ownerEmail}
+                                subject={`Action follow-up: ${commitment.description.slice(0, 80)}`}
+                                bodyHtml={commitmentDraftHtml(commitment)}
+                                opportunityId={opportunityId}
+                                role={role}
+                                disabled={busy}
+                              />
                             </div>
                           ) : null}
                           {!isProposed && !readOnly && commitment.status === "dismissed" ? (

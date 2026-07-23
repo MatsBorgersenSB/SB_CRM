@@ -257,6 +257,9 @@ model Opportunity {
   // FS-009 Email & Interaction Intelligence
   emailMessages EmailMessageRecord[]
 
+  // FS-009 / SmartDocs — M365 email attachments
+  documents DocumentRecord[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -482,14 +485,45 @@ model EmailMessageRecord {
   sentAt            DateTime
   sentiment         SentimentGrade @default(neutral)
   isOutbound        Boolean        @default(false)
+  m365CategoryName  String?
+  isDeletedInSource Boolean        @default(false)
+  deletedAtInSource DateTime?
   createdAt         DateTime       @default(now())
+
+  documents DocumentRecord[]
 
   @@index([conversationId])
   @@index([opportunityId])
   @@index([contactId])
   @@index([sentAt])
   @@index([senderEmail])
+  @@index([isDeletedInSource])
   @@map("email_message_records")
+}
+
+/// SmartDocs / commercial file ingested from M365 email (Gap 4).
+model DocumentRecord {
+  id                   String   @id @default(uuid())
+  name                 String
+  mimeType             String?
+  sizeBytes            Int?
+  source               String   @default("m365_email") // m365_email | upload | manual
+  externalAttachmentId String?
+  contentBase64        String?  // Optional preview/download payload (seed / small files)
+
+  opportunityId  String?
+  opportunity    Opportunity?       @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  emailMessageId String?
+  emailMessage   EmailMessageRecord? @relation(fields: [emailMessageId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([emailMessageId, externalAttachmentId])
+  @@index([opportunityId])
+  @@index([emailMessageId])
+  @@index([source])
+  @@map("document_records")
 }
 
 // ==========================================
@@ -508,18 +542,37 @@ model ExternalIntegration {
   provider         IntegrationProvider @default(m365_graph)
   tenantId         String?             // Microsoft Entra ID (Azure AD) Tenant ID
   userObjectId     String?             // M365 User Object ID
-  accessToken      String?             // Encrypted OAuth Access Token
-  refreshToken     String?             // Encrypted OAuth Refresh Token
+  accessToken      String?             // Encrypted OAuth Access Token (AES-256-GCM)
+  refreshToken     String?             // Encrypted OAuth Refresh Token (AES-256-GCM)
   tokenExpiresAt   DateTime?
   deltaSyncToken   String?             // M365 Graph Delta Sync Token for incremental sync
-  
+
   status           String              @default("active") // active | revoked | error
   lastSyncedAt     DateTime?
+
+  webhookSubscriptions WebhookSubscription[]
 
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
   @@map("external_integrations")
+}
+
+/// Graph change-notification subscriptions (mail / calendar) — renewed by cron (Gap 1).
+model WebhookSubscription {
+  id                     String              @id @default(uuid())
+  integrationId          String
+  integration            ExternalIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  externalSubscriptionId String              @unique
+  resource               String // e.g. "/me/mailFolders('Inbox')/messages", "/me/events"
+  expiresAt              DateTime
+  clientState            String
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  @@index([integrationId])
+  @@index([expiresAt])
+  @@map("webhook_subscriptions")
 }
 
 // Add these optional M365 mapping fields to your existing Contact model:

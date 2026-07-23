@@ -95,4 +95,6 @@ export {
 export {
   readEmailsForOpportunity,
   buildEmailThreadSummary,
+  markEmailDeletedInSource,
+  purgeEmailFromSmartCrm,
 } from "@/lib/email-intelligence-data";
