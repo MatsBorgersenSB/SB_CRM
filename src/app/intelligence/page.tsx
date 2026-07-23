@@ -1,18 +1,20 @@
 import { IntelligenceCenterShell } from "@/components/layout/intelligence-center-shell";
-import { readActivities, readCompanies, readPipelines } from "@/lib/pipeline-db";
+import { readGrowthIntelligenceWorkspace } from "@/lib/fs010-growth-intelligence-data";
+import { readLiveActivities, readLivePortfolio } from "@/lib/prisma-data";
 
 export default async function IntelligenceCenterPage() {
-  const [companies, pipelines, activities] = await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
+  const [portfolio, activities, growthIntelligence] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
+    readGrowthIntelligenceWorkspace(),
   ]);
 
   return (
     <IntelligenceCenterShell
-      companies={companies}
-      pipelines={pipelines}
+      companies={portfolio.companies}
+      pipelines={portfolio.pipelines}
       activities={activities}
+      growthIntelligence={growthIntelligence}
     />
   );
 }

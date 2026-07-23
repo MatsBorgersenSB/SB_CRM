@@ -8,6 +8,8 @@ import {
   type AuthorityClass,
   type VerificationState,
   type SentimentGrade,
+  type SignalType,
+  type SignalStatus,
 } from "@src/generated/prisma";
 
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
@@ -24,6 +26,20 @@ async function main() {
   console.log("Seeding SmartCRM core data…");
 
   // Idempotent cleanup of previous seed markers
+  await prisma.expansionSignal.deleteMany({
+    where: {
+      OR: [
+        { title: { startsWith: "CAPEX Expansion" } },
+        { title: { startsWith: "SmartDocs Maintenance" } },
+        { title: { startsWith: "Delayed Contract Renewal" } },
+      ],
+    },
+  });
+  await prisma.accountHealthRecord.deleteMany({
+    where: {
+      company: { name: { in: ["Acme Renewables", "Standard Bio", "Global TechCorp"] } },
+    },
+  });
   await prisma.emailMessageRecord.deleteMany({
     where: { externalMessageId: { startsWith: "seed-email-" } },
   });
@@ -48,7 +64,7 @@ async function main() {
     where: { m365GraphId: { startsWith: "seed-m365-" } },
   });
   await prisma.company.deleteMany({
-    where: { name: { in: ["Acme Renewables", "Global TechCorp"] } },
+    where: { name: { in: ["Acme Renewables", "Global TechCorp", "Standard Bio"] } },
   });
 
   const acme = await prisma.company.create({
@@ -80,6 +96,22 @@ async function main() {
       ownerId: SEED_OWNER_ID,
       emails: [{ address: "hello@global-techcorp.example", type: "work", isPrimary: true }],
       phoneNumbers: [{ number: "+46 8 00 00 02", type: "office", isPrimary: true }],
+    },
+  });
+
+  const standardBio = await prisma.company.create({
+    data: {
+      name: "Standard Bio",
+      industry: "Cleantech Equipment & Services",
+      size: "medium",
+      types: ["internal"] satisfies CompanyType[],
+      status: "active",
+      website: "https://standardbio.com",
+      city: "Oslo",
+      country: "Norway",
+      ownerId: SEED_OWNER_ID,
+      emails: [{ address: "hello@standardbio.com", type: "work", isPrimary: true }],
+      phoneNumbers: [{ number: "+47 21 00 00 00", type: "office", isPrimary: true }],
     },
   });
 
@@ -504,8 +536,74 @@ startxref
     seedAttachmentCount = 1;
   }
 
+  // ==========================================
+  // FS-010 Growth & Expansion Intelligence
+  // ==========================================
+
+  const acmeHealth = await prisma.accountHealthRecord.create({
+    data: {
+      companyId: acme.id,
+      healthScore: 88,
+      engagementScore: 92,
+      sentimentScore: 84,
+    },
+  });
+
+  const expansionSignals = await Promise.all([
+    prisma.expansionSignal.create({
+      data: {
+        companyId: acme.id,
+        opportunityId: circularFiberOpportunityId,
+        type: "upsell" satisfies SignalType,
+        status: "detected" satisfies SignalStatus,
+        title: "CAPEX Expansion to Secondary Processing Line",
+        observation:
+          "Acme Renewables confirmed CAPEX appetite on the Circular Fiber Reactor thread and asked about secondary-line capacity within 18 months.",
+        reasoning:
+          "High Account Health Index (88) plus positive CAPEX sentiment indicates readiness to expand footprint beyond the primary reactor scope.",
+        recommendation:
+          "Propose a scoped secondary processing line option and book a technical discovery with Anna Berg and Bjorn Haugen.",
+        expectedOutcome:
+          "Opens a €0.8–1.2M upsell path without delaying the primary Circular Fiber commitment.",
+      },
+    }),
+    prisma.expansionSignal.create({
+      data: {
+        companyId: acme.id,
+        opportunityId: circularFiberOpportunityId,
+        type: "cross_sell" satisfies SignalType,
+        status: "reviewing" satisfies SignalStatus,
+        title: "SmartDocs Maintenance & Telemetry Module",
+        observation:
+          "Whitespace Matrix shows Services (maintenance & telemetry) un-pitched on Acme while Systems are in active pursuit.",
+        reasoning:
+          "Installed-base telemetry locks in recurring revenue and improves renewal defensibility once the reactor is commissioned.",
+        recommendation:
+          "Present the SmartDocs Maintenance & Telemetry Module as a packaged add-on during the next CAPEX review.",
+        expectedOutcome:
+          "Converts an un-pitched service category into a paid support contract attached to the reactor deal.",
+      },
+    }),
+    prisma.expansionSignal.create({
+      data: {
+        companyId: acme.id,
+        type: "renewal_risk" satisfies SignalType,
+        status: "detected" satisfies SignalStatus,
+        title: "Delayed Contract Renewal on Site B",
+        observation:
+          "Site B renewal milestone slipped two cycles with no confirmed owner response in the last 45 days.",
+        reasoning:
+          "Renewal delay on an adjacent site can spill into primary-site confidence and free budget for competitors.",
+        recommendation:
+          "Assign an owner, schedule a renewal checkpoint, and surface Site B risk in the next account review.",
+        expectedOutcome:
+          "Stabilizes renewal timeline and protects Account Health Index from slipping into at-risk band.",
+      },
+    }),
+  ]);
+
   console.log("Seed complete:", {
-    companies: [acme.name, techcorp.name],
+    companies: [acme.name, techcorp.name, standardBio.name],
     contacts: [anna.fullName, bjorn.fullName, clara.fullName, david.fullName],
     opportunities: [
       { name: circularFiber.name, id: circularFiberOpportunityId },
@@ -528,6 +626,18 @@ startxref
     emailMessages: circularEmails.count,
     emailConversationId: circularCapexConversationId,
     emailAttachments: seedAttachmentCount,
+    accountHealth: {
+      company: acme.name,
+      healthScore: acmeHealth.healthScore,
+      engagementScore: acmeHealth.engagementScore,
+      sentimentScore: acmeHealth.sentimentScore,
+    },
+    expansionSignals: expansionSignals.map((signal) => ({
+      title: signal.title,
+      type: signal.type,
+      status: signal.status,
+      companyId: signal.companyId,
+    })),
   });
 }
 

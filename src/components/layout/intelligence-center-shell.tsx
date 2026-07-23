@@ -34,11 +34,14 @@ import {
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import type { GrowthIntelligenceWorkspaceData } from "@/types/fs010-growth-intelligence";
+import { GrowthIntelligenceWorkspace } from "@/components/growth/growth-intelligence-workspace";
 
 type IntelligenceCenterShellProps = {
   companies: Company[];
   pipelines: PipelineRow[];
   activities: Activity[];
+  growthIntelligence?: GrowthIntelligenceWorkspaceData | null;
 };
 
 function StalledDealRow({
@@ -66,6 +69,7 @@ export function IntelligenceCenterShell({
   companies,
   pipelines,
   activities,
+  growthIntelligence = null,
 }: IntelligenceCenterShellProps) {
   const { user } = useAuth();
 
@@ -137,6 +141,16 @@ export function IntelligenceCenterShell({
             />
             <IntelligenceCenterNeedsAttention briefing={briefing} />
             <IntelligenceCenterPriorityActions actions={briefing.priorityActions} />
+
+            {growthIntelligence ? (
+              <CollapsibleSection
+                title="Growth & Expansion (FS-010)"
+                description="Account Health Index, expansion signals, and whitespace matrix"
+                tier="nice-to-have"
+              >
+                <GrowthIntelligenceWorkspace data={growthIntelligence} />
+              </CollapsibleSection>
+            ) : null}
 
             <CollapsibleSection
               title="Pipeline intelligence"
