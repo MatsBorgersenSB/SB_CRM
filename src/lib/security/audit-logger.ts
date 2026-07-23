@@ -6,8 +6,11 @@ import type { UserRole } from "@/types/auth";
 export type AuditAction =
   | "DEAL_UPDATED"
   | "STAGE_CHANGED"
+  | "DEAL_CREATED"
   | "DEAL_DELETED"
+  | "COMPANY_CREATED"
   | "COMPANY_DELETED"
+  | "CONTACT_CREATED"
   | "CONTACT_DELETED"
   | "EXPORT_DATA"
   | "WORKFLOW_APPROVED"
@@ -19,6 +22,8 @@ export type AuditAction =
   | "ANALYTICS_REPORT_EXPORTED"
   | "NOTIFICATION_CREATED"
   | "WEBHOOK_DISPATCHED"
+  | "USER_CREATED"
+  | "USER_UPDATED"
   | (string & {});
 
 export type LogAuditEventInput = {

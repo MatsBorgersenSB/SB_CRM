@@ -12,6 +12,7 @@ import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
+import { withAuthRoleHeaders } from "@/lib/api-auth";
 import { canManageUsers } from "@/lib/permissions";
 import { ASSISTED_EVERYTHING, USER_LIFECYCLE_MANAGEMENT, USERS_ACCESS_MANAGEMENT } from "@/lib/smart-assist-config";
 import type { StandardBioUserRecord, UsersAccessAudit } from "@/types/user-access";
@@ -31,12 +32,14 @@ export function UsersAccessShell({
   const [wizardOpen, setWizardOpen] = useState(false);
 
   const refreshAudit = useCallback(async () => {
-    const response = await fetch("/api/administration/users-access-audit");
+    const response = await fetch("/api/administration/users-access-audit", {
+      headers: withAuthRoleHeaders(user.role),
+    });
     if (response.ok) {
       const nextAudit = (await response.json()) as UsersAccessAudit;
       setAudit(nextAudit);
     }
-  }, []);
+  }, [user.role]);
 
   const handleCreated = (user: StandardBioUserRecord) => {
     setUsers((current) => [...current, user].sort((a, b) => a.displayName.localeCompare(b.displayName)));
@@ -53,7 +56,9 @@ export function UsersAccessShell({
 
   const handleLifecycleCompleted = () => {
     void refreshAudit();
-    void fetch("/api/administration/users")
+    void fetch("/api/administration/users", {
+      headers: withAuthRoleHeaders(user.role),
+    })
       .then(async (response) => {
         if (!response.ok) return;
         const body = (await response.json()) as { users: StandardBioUserRecord[] };

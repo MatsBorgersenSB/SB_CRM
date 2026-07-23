@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/context/auth-context";
+import { withAuthRoleHeaders } from "@/lib/api-auth";
 import type {
   OwnershipTransferPreview,
   StandardBioUserRecord,
@@ -32,6 +34,7 @@ export function UserLifecycleWizard({
   onClose,
   onCompleted,
 }: UserLifecycleWizardProps) {
+  const { user: authUser } = useAuth();
   const [preview, setPreview] = useState<OwnershipTransferPreview | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,7 +51,9 @@ export function UserLifecycleWizard({
     setError(null);
     void fetch(`/api/administration/users/${user.id}/transfer-ownership`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: withAuthRoleHeaders(authUser.role, {
+        "Content-Type": "application/json",
+      }),
       body: JSON.stringify({ preview: true }),
     })
       .then(async (response) => {
@@ -61,13 +66,15 @@ export function UserLifecycleWizard({
         setError(err instanceof Error ? err.message : "Failed to load preview");
       })
       .finally(() => setLoading(false));
-  }, [open, user.id]);
+  }, [open, user.id, authUser.role]);
 
   useEffect(() => {
     if (!open || !selectedUserId) return;
     void fetch(`/api/administration/users/${user.id}/transfer-ownership`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: withAuthRoleHeaders(authUser.role, {
+        "Content-Type": "application/json",
+      }),
       body: JSON.stringify({ preview: true, toUserId: selectedUserId }),
     })
       .then(async (response) => {
@@ -76,7 +83,7 @@ export function UserLifecycleWizard({
         setPreview(body.preview);
       })
       .catch(() => undefined);
-  }, [open, selectedUserId, user.id]);
+  }, [open, selectedUserId, user.id, authUser.role]);
 
   if (!open) return null;
 
@@ -93,7 +100,9 @@ export function UserLifecycleWizard({
       if (mode === "replace") {
         const response = await fetch(`/api/administration/users/${user.id}/replace`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: withAuthRoleHeaders(authUser.role, {
+            "Content-Type": "application/json",
+          }),
           body: JSON.stringify({ toUserId: selectedUserId, archiveDeparting: true }),
         });
         if (!response.ok) {
@@ -103,7 +112,9 @@ export function UserLifecycleWizard({
       } else {
         const response = await fetch(`/api/administration/users/${user.id}/transfer-ownership`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: withAuthRoleHeaders(authUser.role, {
+            "Content-Type": "application/json",
+          }),
           body: JSON.stringify({ toUserId: selectedUserId }),
         });
         if (!response.ok) {

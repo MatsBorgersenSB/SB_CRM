@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/context/auth-context";
+import { withAuthRoleHeaders } from "@/lib/api-auth";
 import { ASSISTED_EVERYTHING } from "@/lib/smart-assist-config";
 import { recommendAccessForFunction } from "@/lib/users-access-recommendations";
 import { USER_ROLE_LABELS } from "@/types/auth";
@@ -23,6 +25,7 @@ type UserCreateWizardProps = {
 };
 
 export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardProps) {
+  const { user: authUser } = useAuth();
   const [step, setStep] = useState<WizardStep>("function");
   const [businessFunction, setBusinessFunction] = useState<BusinessFunction | null>(null);
   const [recommendation, setRecommendation] = useState<AccessRecommendation | null>(null);
@@ -78,7 +81,9 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
     try {
       const response = await fetch("/api/administration/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: withAuthRoleHeaders(authUser.role, {
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify(payload),
       });
 

@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
+import { getRequestRole } from "@/lib/api-auth";
+import { canCreateCompany } from "@/lib/permissions";
+import {
+  clientIpFromRequest,
+  logAuditEvent,
+  resolveAuditActor,
+} from "@/lib/security/audit-logger";
+import type { NewCompanyInput } from "@/lib/entity-id";
 import {
   parsePageRequest,
   sharePointErrorResponse,
 } from "@/services/sharepoint/server/api-utils";
+import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
-import type { NewCompanyInput } from "@/lib/entity-id";
 
 export async function GET(request: Request) {
   try {
@@ -23,11 +31,29 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const role = getRequestRole(request);
+  if (!canCreateCompany(role)) {
+    return sharePointErrorResponse(
+      SharePointServiceError.forbidden("Insufficient role to create companies"),
+    );
+  }
+
   const body = (await request.json()) as NewCompanyInput;
 
   try {
     const { companies } = getServerSharePointServices();
     const company = await companies.create(body);
+
+    const actor = resolveAuditActor(request, role);
+    await logAuditEvent({
+      ...actor,
+      action: "COMPANY_CREATED",
+      entityType: "Company",
+      entityId: company.CompanyID,
+      ipAddress: clientIpFromRequest(request),
+      metadata: { title: company.Title },
+    });
+
     return NextResponse.json(company, { status: 201 });
   } catch (error) {
     return sharePointErrorResponse(error);

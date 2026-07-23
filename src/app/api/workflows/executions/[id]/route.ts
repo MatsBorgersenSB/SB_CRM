@@ -4,6 +4,11 @@ import {
   dismissWorkflowExecution,
   executeApprovedWorkflow,
 } from "@/lib/workflow-engine";
+import {
+  clientIpFromRequest,
+  logAuditEvent,
+  resolveAuditActor,
+} from "@/lib/security/audit-logger";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -27,14 +32,38 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const body = (await request.json()) as { action?: string };
     const action = body.action?.trim();
+    const actor = resolveAuditActor(request, role);
 
     if (action === "dismiss") {
       const execution = await dismissWorkflowExecution(id);
+      await logAuditEvent({
+        ...actor,
+        action: "WORKFLOW_DISMISSED",
+        entityType: "WorkflowExecution",
+        entityId: id,
+        ipAddress: clientIpFromRequest(request),
+        metadata: {
+          status: execution.status,
+          actionType: execution.actionType,
+        },
+      });
       return NextResponse.json({ success: true, execution });
     }
 
     if (action === "approve") {
       const result = await executeApprovedWorkflow(id);
+      await logAuditEvent({
+        ...actor,
+        action: "WORKFLOW_APPROVED",
+        entityType: "WorkflowExecution",
+        entityId: id,
+        ipAddress: clientIpFromRequest(request),
+        metadata: {
+          status: result.execution.status,
+          actionType: result.execution.actionType,
+          sideEffect: result.sideEffect ?? null,
+        },
+      });
       return NextResponse.json({
         success: true,
         execution: result.execution,

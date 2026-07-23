@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { UserLifecycleWizard } from "@/components/administration/user-lifecycle-wizard";
 import { UserOwnershipPanel } from "@/components/administration/user-ownership-panel";
+import { useAuth } from "@/context/auth-context";
+import { withAuthRoleHeaders } from "@/lib/api-auth";
 import { USER_ROLE_LABELS } from "@/types/auth";
 import { isUserRole } from "@/types/auth";
 import {
@@ -32,6 +34,7 @@ export function UserEditPanel({
   onClose,
   onLifecycleCompleted,
 }: UserEditPanelProps) {
+  const { user: authUser } = useAuth();
   const [displayName, setDisplayName] = useState(user.displayName);
   const [email, setEmail] = useState(user.email);
   const [role, setRole] = useState(user.role ?? "");
@@ -55,14 +58,16 @@ export function UserEditPanel({
 
   useEffect(() => {
     setAnalysisLoading(true);
-    void fetch(`/api/administration/users/${user.id}/ownership`)
+    void fetch(`/api/administration/users/${user.id}/ownership`, {
+      headers: withAuthRoleHeaders(authUser.role),
+    })
       .then(async (response) => {
         if (!response.ok) return;
         const body = (await response.json()) as { analysis: UserOwnershipAnalysis };
         setAnalysis(body.analysis);
       })
       .finally(() => setAnalysisLoading(false));
-  }, [user.id]);
+  }, [user.id, authUser.role]);
 
   async function patchUser(patch: UpdateUserInput & { action?: string }) {
     setSubmitting(true);
@@ -70,7 +75,9 @@ export function UserEditPanel({
     try {
       const response = await fetch(`/api/administration/users/${user.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: withAuthRoleHeaders(authUser.role, {
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify(patch),
       });
       if (!response.ok) {
@@ -114,6 +121,7 @@ export function UserEditPanel({
     try {
       const response = await fetch(`/api/administration/users/${user.id}`, {
         method: "DELETE",
+        headers: withAuthRoleHeaders(authUser.role),
       });
       if (response.status === 409) {
         const body = (await response.json()) as {

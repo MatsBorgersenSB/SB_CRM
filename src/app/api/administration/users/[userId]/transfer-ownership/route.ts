@@ -5,10 +5,14 @@ import {
   loadLifecycleContext,
 } from "@/lib/user-lifecycle-engine";
 import { readUserById } from "@/lib/users-access-db";
+import { requireAdminRole } from "@/lib/security/require-admin";
 
 type RouteContext = { params: Promise<{ userId: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
+  const gate = requireAdminRole(request);
+  if ("error" in gate) return gate.error;
+
   const { userId } = await context.params;
   const fromId = Number.parseInt(userId, 10);
   if (Number.isNaN(fromId)) {
