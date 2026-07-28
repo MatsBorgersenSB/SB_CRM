@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DiscoveredContact, WebsiteDiscoveryResult } from "@/lib/discovery/types";
 import {
@@ -70,12 +71,14 @@ export function WebsiteDiscoveryPanel({
   initialUrl = "",
   companies = [],
 }: WebsiteDiscoveryPanelProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const defaultOwner = authUserToAccountOwner(user);
   const [open, setOpen] = useState(embedded);
   const [url, setUrl] = useState(initialUrl);
   const [phase, setPhase] = useState<PanelPhase>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [discovery, setDiscovery] = useState<WebsiteDiscoveryResult | null>(null);
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [discoveryStepIndex, setDiscoveryStepIndex] = useState(0);
@@ -91,8 +94,7 @@ export function WebsiteDiscoveryPanel({
   const [insights, setInsights] = useState<WebsiteDiscoveryInsights | null>(null);
   const [accountOwnerId, setAccountOwnerId] = useState(defaultOwner.Id);
   const discoveryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  if (!canCreateCompany(role)) return null;
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearDiscoveryTimer = () => {
     if (discoveryTimerRef.current) {
@@ -101,7 +103,16 @@ export function WebsiteDiscoveryPanel({
     }
   };
 
-  const reset = () => {
+  const showToast = useCallback((message: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast(message);
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 4000);
+  }, []);
+
+  const reset = useCallback(() => {
     clearDiscoveryTimer();
     setPhase("idle");
     setError(null);
@@ -113,13 +124,21 @@ export function WebsiteDiscoveryPanel({
     setCompletion(null);
     setInsights(null);
     setAccountOwnerId(defaultOwner.Id);
-  };
+    setUrl("");
+  }, [defaultOwner.Id]);
 
   useEffect(() => {
     if (initialUrl) setUrl(initialUrl);
   }, [initialUrl]);
 
-  useEffect(() => () => clearDiscoveryTimer(), []);
+  useEffect(() => {
+    return () => {
+      clearDiscoveryTimer();
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  if (!canCreateCompany(role)) return null;
 
   const handleDiscover = useCallback(async () => {
     if (!url.trim()) return;
@@ -184,6 +203,7 @@ export function WebsiteDiscoveryPanel({
   const handleImport = async () => {
     if (!discovery) return;
 
+    // Company-only is valid — contacts are optional
     const selected = discovery.contacts.filter((c) => selectedContactIds.has(c.id));
     const startedAt = Date.now();
 
@@ -300,8 +320,16 @@ export function WebsiteDiscoveryPanel({
         currentContact: null,
         processed: selected.length,
       }));
+
       onImported(company);
-      setPhase("complete");
+      router.refresh();
+
+      const toastMessage =
+        selected.length === 0
+          ? `Imported company ${company.Title}`
+          : `Imported company ${company.Title} and ${selected.length} contact${selected.length === 1 ? "" : "s"}`;
+      showToast(toastMessage);
+      reset();
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : "Import failed");
       setPhase("preview");
@@ -412,6 +440,15 @@ export function WebsiteDiscoveryPanel({
               onStartOver={reset}
             />
           ) : null}
+
+          {toast ? (
+            <div
+              role="status"
+              className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 border border-emerald-600/30 bg-emerald-700 px-4 py-2.5 text-[12px] font-semibold text-white shadow-lg"
+            >
+              {toast}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>
@@ -423,11 +460,11 @@ function WorkflowHero({ phase, error }: { phase: PanelPhase; error: string | nul
     phase === "discovering"
       ? "What is happening? Analyzing the website and building contact candidates."
       : phase === "importing"
-        ? "What is happening? Importing company and contacts — one at a time."
+        ? "What is happening? Importing the company — contacts only if you selected them."
         : phase === "complete"
           ? "What matters? Import finished — review results and open the company."
           : phase === "preview"
-            ? "What should you do next? Select contacts to import, then confirm."
+            ? "What should you do next? Import the company alone, or select contacts to include."
             : "What should you do next? Paste a company website URL to discover.";
 
   return (
@@ -508,6 +545,7 @@ function DiscoveryStepRow({
 }
 
 function ImportProgressView({ progress }: { progress: ImportProgressState }) {
+  const companyOnly = progress.total === 0;
   const percent =
     progress.total > 0
       ? Math.round((progress.processed / progress.total) * 100)
@@ -518,7 +556,7 @@ function ImportProgressView({ progress }: { progress: ImportProgressState }) {
   return (
     <div className="space-y-3 border border-upcycle-orange/20 bg-upcycle-orange/[0.03] p-3">
       <p className="text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
-        Importing Contacts
+        {companyOnly ? "Importing Company" : "Importing Company & Contacts"}
       </p>
 
       {progress.companyDone ? (
@@ -529,21 +567,23 @@ function ImportProgressView({ progress }: { progress: ImportProgressState }) {
         <p className="text-[11px] text-carbon-blue/60">Updating company record…</p>
       )}
 
-      <div>
-        <div className="mb-1 flex justify-between text-[10px] text-carbon-blue/55">
-          <span>Contacts Imported</span>
-          <span>
-            {progress.processed} / {progress.total}
-          </span>
+      {!companyOnly ? (
+        <div>
+          <div className="mb-1 flex justify-between text-[10px] text-carbon-blue/55">
+            <span>Contacts Imported</span>
+            <span>
+              {progress.processed} / {progress.total}
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-carbon-blue/10">
+            <div
+              className="h-full rounded-full bg-upcycle-orange transition-all duration-300"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+          <p className="mt-1 text-[10px] tabular-nums text-carbon-blue/45">{percent}%</p>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-carbon-blue/10">
-          <div
-            className="h-full rounded-full bg-upcycle-orange transition-all duration-300"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-        <p className="mt-1 text-[10px] tabular-nums text-carbon-blue/45">{percent}%</p>
-      </div>
+      ) : null}
 
       {progress.currentContact ? (
         <div className="rounded-md border border-carbon-blue/10 bg-white px-2.5 py-2">
@@ -676,7 +716,7 @@ function PreviewPanel({
 
       <div>
         <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-          Contacts Found — select to import
+          Contacts Found — optional; leave unchecked to import company only
         </p>
         {discovery.contacts.length > 0 ? (
           <ul className="mt-2 space-y-2">
@@ -703,7 +743,9 @@ function PreviewPanel({
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-[11px] text-carbon-blue/50">No named contacts found on the website.</p>
+          <p className="mt-2 text-[11px] text-carbon-blue/50">
+            No named contacts found — you can still import the company.
+          </p>
         )}
       </div>
 
@@ -712,7 +754,9 @@ function PreviewPanel({
         onClick={onImport}
         className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white"
       >
-        Import Selected
+        {selectedContactIds.size === 0
+          ? "Import Company Only"
+          : `Import Company & ${selectedContactIds.size} Contact${selectedContactIds.size === 1 ? "" : "s"}`}
       </button>
     </div>
   );

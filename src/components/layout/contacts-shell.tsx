@@ -231,8 +231,9 @@ export function ContactsShell({
   const handleImported = useCallback(
     (company: Company) => {
       upsertCompany(company);
+      router.refresh();
     },
-    [upsertCompany],
+    [router, upsertCompany],
   );
 
   return (

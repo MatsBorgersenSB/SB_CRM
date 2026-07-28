@@ -214,8 +214,9 @@ export function CompaniesOperationsShell({
   const handleImported = useCallback(
     (company: Company) => {
       upsertCompany(company);
+      router.refresh();
     },
-    [upsertCompany],
+    [router, upsertCompany],
   );
 
   return (

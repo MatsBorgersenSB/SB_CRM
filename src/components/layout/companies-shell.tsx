@@ -74,8 +74,9 @@ export function CompaniesShell({
         }
         return [...current, company];
       });
+      router.refresh();
     },
-    [],
+    [router],
   );
 
   return (
