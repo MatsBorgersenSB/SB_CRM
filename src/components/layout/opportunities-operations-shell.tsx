@@ -5,9 +5,15 @@ import Link from "next/link";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { OpportunitiesOperationsTable } from "@/components/opportunity/opportunities-operations-table";
 import { OpportunityCreateModal } from "@/components/opportunity/opportunity-create-modal";
+import { OpportunityImportDealsPanel } from "@/components/opportunity/opportunity-import-deals-panel";
+import {
+  OpportunitiesWorkspaceHeader,
+  type OpportunitiesWorkspaceTool,
+} from "@/components/opportunity/opportunities-workspace-header";
+import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
-import { WorkspaceMain } from "@/components/ui/workspace-main";
+import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
@@ -23,7 +29,6 @@ import {
   type OpportunityOperationsFilter,
 } from "@/lib/opportunity-operations-data";
 import {
-  canCreateOpportunity,
   filterCompaniesForUser,
   filterPipelinesForUser,
 } from "@/lib/permissions";
@@ -82,10 +87,9 @@ export function OpportunitiesOperationsShell({
   const [toolbarFilters, setToolbarFilters] = useState<WorkspaceFilterValues>(DEFAULT_FILTERS);
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("all");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [activeTool, setActiveTool] = useState<OpportunitiesWorkspaceTool>(null);
   const [createdPipelines, setCreatedPipelines] = useState<PipelineRow[]>([]);
   const [createdCompanies, setCreatedCompanies] = useState<Company[]>([]);
-  const canCreate = canCreateOpportunity(user.role);
 
   const applyBridge = useCallback(
     (patch: { filters?: WorkspaceFilterValues; search?: string; owner?: string }) => {
@@ -228,6 +232,7 @@ export function OpportunitiesOperationsShell({
     setCreatedPipelines((current) =>
       current.some((row) => row.id === deal.id) ? current : [...current, deal],
     );
+    setActiveTool(null);
   }, []);
 
   const handleCompanyCreated = useCallback((company: Company) => {
@@ -238,27 +243,26 @@ export function OpportunitiesOperationsShell({
     );
   }, []);
 
+  const handleQuickImported = useCallback((company: Company) => {
+    setCreatedCompanies((current) =>
+      current.some((row) => row.CompanyID === company.CompanyID)
+        ? current
+        : [...current, company],
+    );
+  }, []);
+
+  const handleToolChange = useCallback((tool: OpportunitiesWorkspaceTool) => {
+    setActiveTool(tool);
+  }, []);
+
   return (
     <WorkspaceChrome>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
         <div className="flex min-w-0 items-center gap-2 text-[11px] text-carbon-blue/55">
           <SmartCRMIcon name="opportunity" size="xs" />
           <span className="font-semibold text-carbon-blue">Opportunities</span>
-          <span className="hidden text-carbon-blue/40 sm:inline">
-            Opportunity understanding & decision matrix
-          </span>
         </div>
         <div className="flex items-center gap-3">
-          {canCreate ? (
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-1 text-[10px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
-            >
-              <SmartCRMIcon name="add" size="xs" />
-              New Opportunity
-            </button>
-          ) : null}
           <Link
             href="/intelligence"
             className="text-[10px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
@@ -270,45 +274,74 @@ export function OpportunitiesOperationsShell({
       </header>
 
       <WorkspaceMain>
-        <div className={EDITORIAL_GAP_BLOCK}>
-          <div>
-            <p className="text-[11px] font-medium text-carbon-blue/45">Attention management</p>
-            <h2 className="mt-1 text-lg font-semibold leading-snug tracking-tight text-carbon-blue">
-              {workspace.understanding.headline}
-            </h2>
-            <p className="mt-1 text-[13px] text-carbon-blue/55">{workspace.understanding.subline}</p>
-          </div>
-
-          <div>
-            <FilterToolbar
-              filters={filterDefinitions}
-              values={toolbarFilters}
-              onChange={handleFilterChange}
-              search={search}
-              onSearchChange={setSearch}
-              searchPlaceholder="Search objectives, unknowns, opportunities…"
-              owners={ownerOptions}
-              ownerValue={owner}
-              onOwnerChange={setOwner}
-              entityLabel="Opportunities"
-              totalCount={workspace.rows.length}
-              filteredCount={filteredRows.length}
-              defaultValues={DEFAULT_FILTERS}
-              onClearAll={handleClearAllFilters}
+        <WorkspaceStack>
+          <section className="dashboard-card flex min-h-0 flex-col overflow-hidden p-4 sm:p-6">
+            <OpportunitiesWorkspaceHeader
+              role={user.role}
+              activeTool={activeTool}
+              onToolChange={handleToolChange}
             />
-            <div className="mt-4">
-              <OpportunitiesOperationsTable
-                rows={filteredRows}
-                primaryFocusDealId={primaryFocusDealId}
-              />
+
+            {activeTool === "quick-import" ? (
+              <div className="mt-4">
+                <QuickImportPanel
+                  embedded
+                  role={user.role}
+                  companies={scopedCompanies}
+                  onImported={handleQuickImported}
+                />
+              </div>
+            ) : null}
+
+            {activeTool === "import-deals" ? (
+              <div className="mt-4">
+                <OpportunityImportDealsPanel onClose={() => setActiveTool(null)} />
+              </div>
+            ) : null}
+
+            <div className={`mt-6 ${EDITORIAL_GAP_BLOCK}`}>
+              <div>
+                <p className="text-[11px] font-medium text-carbon-blue/45">Attention management</p>
+                <h2 className="mt-1 text-lg font-semibold leading-snug tracking-tight text-carbon-blue">
+                  {workspace.understanding.headline}
+                </h2>
+                <p className="mt-1 text-[13px] text-carbon-blue/55">
+                  {workspace.understanding.subline}
+                </p>
+              </div>
+
+              <div>
+                <FilterToolbar
+                  filters={filterDefinitions}
+                  values={toolbarFilters}
+                  onChange={handleFilterChange}
+                  search={search}
+                  onSearchChange={setSearch}
+                  searchPlaceholder="Search objectives, unknowns, opportunities…"
+                  owners={ownerOptions}
+                  ownerValue={owner}
+                  onOwnerChange={setOwner}
+                  entityLabel="Opportunities"
+                  totalCount={workspace.rows.length}
+                  filteredCount={filteredRows.length}
+                  defaultValues={DEFAULT_FILTERS}
+                  onClearAll={handleClearAllFilters}
+                />
+                <div className="mt-4">
+                  <OpportunitiesOperationsTable
+                    rows={filteredRows}
+                    primaryFocusDealId={primaryFocusDealId}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </section>
+        </WorkspaceStack>
       </WorkspaceMain>
 
       <OpportunityCreateModal
-        open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        open={activeTool === "new-opportunity"}
+        onClose={() => setActiveTool(null)}
         onCreated={handleOpportunityCreated}
         onCompanyCreated={handleCompanyCreated}
         companies={scopedCompanies}
