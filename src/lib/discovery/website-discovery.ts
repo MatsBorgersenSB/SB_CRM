@@ -252,6 +252,29 @@ export function resolveDiscoveryCompanyName(name: string, domain: string): strin
   return companyNameFromDomain(domain || name);
 }
 
+/** Sanitize discovery payload before persistence (name, domain, phone). Client-safe. */
+export function prepareDiscoveryForImport(
+  discovery: WebsiteDiscoveryResult,
+): WebsiteDiscoveryResult {
+  const domain =
+    normalizeCompanyDomain(discovery.company.domain) ||
+    normalizeCompanyDomain(discovery.company.website) ||
+    normalizeCompanyDomain(discovery.sourceUrl);
+  const name = resolveDiscoveryCompanyName(discovery.company.name, domain);
+  const phone = normalizePhoneNumber(discovery.company.phone);
+
+  return {
+    ...discovery,
+    company: {
+      ...discovery.company,
+      name,
+      domain,
+      website: domain || discovery.company.website,
+      phone,
+    },
+  };
+}
+
 function extractImageBoxContacts(html: string): DiscoveredContact[] {
   const contacts: DiscoveredContact[] = [];
   const pattern =

@@ -14,8 +14,10 @@ import {
   type ImportCompletionSummary,
   type WebsiteDiscoveryInsights,
 } from "@/lib/discovery/website-discovery-workflow";
-import { prepareDiscoveryForImport } from "@/lib/discovery/website-import";
-import { resolveDiscoveryCompanyName } from "@/lib/discovery/website-discovery";
+import {
+  prepareDiscoveryForImport,
+  resolveDiscoveryCompanyName,
+} from "@/lib/discovery/website-discovery";
 import type { Company } from "@/types/company";
 import { company360Href } from "@/types/company-360";
 import { authUserToAccountOwner, resolveOwnerById } from "@/lib/company-owner";

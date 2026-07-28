@@ -1,6 +1,9 @@
+import "server-only";
+
 import { companyHeroQuickEditToPatch, parseCompanyAddressInput } from "@/lib/company-identity";
 import {
   discoveryToCompanyCity,
+  prepareDiscoveryForImport,
   resolveDiscoveryCompanyName,
 } from "@/lib/discovery/website-discovery";
 import type { DiscoveredContact, WebsiteDiscoveryResult } from "@/lib/discovery/types";
@@ -16,6 +19,8 @@ import {
 import { resolveAccountOwner } from "@/lib/company-owner";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { ContactListRole } from "@/types/contact";
+
+export { prepareDiscoveryForImport } from "@/lib/discovery/website-discovery";
 
 export type WebsiteDiscoveryImportInput = {
   discovery: WebsiteDiscoveryResult;
@@ -66,29 +71,6 @@ function buildCompanyPatch(discovery: WebsiteDiscoveryResult) {
     Email: discovery.company.email.trim(),
     ...address,
     City: city === "—" ? "" : city,
-  };
-}
-
-/** Sanitize discovery payload before persistence (name, domain, phone). */
-export function prepareDiscoveryForImport(
-  discovery: WebsiteDiscoveryResult,
-): WebsiteDiscoveryResult {
-  const domain =
-    normalizeCompanyDomain(discovery.company.domain) ||
-    normalizeCompanyDomain(discovery.company.website) ||
-    normalizeCompanyDomain(discovery.sourceUrl);
-  const name = resolveDiscoveryCompanyName(discovery.company.name, domain);
-  const phone = normalizePhoneNumber(discovery.company.phone);
-
-  return {
-    ...discovery,
-    company: {
-      ...discovery.company,
-      name,
-      domain,
-      website: domain || discovery.company.website,
-      phone,
-    },
   };
 }
 
