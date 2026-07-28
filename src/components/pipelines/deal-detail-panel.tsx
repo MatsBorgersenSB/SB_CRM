@@ -15,6 +15,10 @@ import { DealTeamSection } from "@/components/pipelines/deal-team-section";
 import { OpportunityIntelligencePanel } from "@/components/opportunity/opportunity-intelligence-panel";
 import type { DealCommercialBaselineView } from "@/lib/commercial-baseline-engine";
 import { getActivitiesForDeal } from "@/lib/activity-utils";
+import {
+  OpenSharePointFolderControl,
+  useOpportunitySharePointFolder,
+} from "@/components/opportunity/open-sharepoint-folder-control";
 
 type DealDetailPanelProps = {
   pipeline: PipelineRow;
@@ -55,6 +59,14 @@ export function DealDetailPanel({
     [activities, pipeline.id],
   );
 
+  const sharePointFolder = useOpportunitySharePointFolder(
+    pipeline.id,
+    pipeline.assetName,
+  );
+
+  const folderUrl =
+    pipeline.sharepointFolderUrl?.trim() || sharePointFolder.sharepointFolderUrl;
+
   const hasLinkedDocument = Boolean(pipeline.FileLeafRef?.trim());
 
   useEffect(() => {
@@ -79,6 +91,16 @@ export function DealDetailPanel({
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2 border border-carbon-blue/8 bg-carbon-blue/[0.02] px-3 py-2">
+        <p className="mr-auto text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          Documents
+        </p>
+        <OpenSharePointFolderControl
+          sharepointFolderUrl={folderUrl}
+          loading={!pipeline.sharepointFolderUrl && sharePointFolder.loading}
+        />
+      </div>
+
       {dealTeam && tab === "overview" ? (
         <DealTeamSection
           team={dealTeam.team}

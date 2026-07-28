@@ -29,6 +29,10 @@ import {
   ATTIO_SURFACE,
   ATTIO_SURFACE_HEADER,
 } from "@/lib/attio-workspace-surfaces";
+import {
+  OpenSharePointFolderControl,
+  useOpportunitySharePointFolder,
+} from "@/components/opportunity/open-sharepoint-folder-control";
 
 function formatTimelineDate(value: string | undefined): string {
   if (!value) return "—";
@@ -86,6 +90,12 @@ export function OpportunityWorkspaceHeader({
   };
 
   const offeringsLabel = formatOfferingLabels(pipeline.offeringIds);
+  const sharePointFolder = useOpportunitySharePointFolder(
+    pipeline.id,
+    pipeline.assetName,
+  );
+  const folderUrl =
+    pipeline.sharepointFolderUrl?.trim() || sharePointFolder.sharepointFolderUrl;
 
   return (
     <header aria-label="Opportunity context" className={`${ATTIO_SURFACE} overflow-hidden`}>
@@ -142,6 +152,10 @@ export function OpportunityWorkspaceHeader({
                   <span>—</span>
                 </span>
               )}
+              <OpenSharePointFolderControl
+                sharepointFolderUrl={folderUrl}
+                loading={!pipeline.sharepointFolderUrl && sharePointFolder.loading}
+              />
             </div>
           </div>
         </div>

@@ -111,6 +111,10 @@ export type PipelineRow = {
   Revision?: string;
   FileLeafRef?: string;
   team?: PipelineTeamMember[];
+  /** SharePoint Online opportunity document folder (from Prisma registry provision). */
+  sharepointFolderId?: string | null;
+  sharepointFolderUrl?: string | null;
+  sharepointFolderPath?: string | null;
 };
 
 export type EditablePipelineField =
