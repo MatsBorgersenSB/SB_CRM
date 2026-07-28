@@ -61,6 +61,27 @@ export function findGlobalContactRecord(
   );
 }
 
+function contactMatchesRouteKey(
+  contact: Contact,
+  routeKey: string,
+): boolean {
+  const key = routeKey.trim();
+  if (!key) return false;
+
+  if (contact.ContactID === key) return true;
+  if (String(contact.id) === key) return true;
+
+  const email = contact.Email?.trim().toLowerCase();
+  if (email && email === key.toLowerCase()) return true;
+
+  return false;
+}
+
+/**
+ * Resolve a contact from a route key: ContactID, numeric list id, or email.
+ * When `companyId` is set, prefer that company but fall back to a global match
+ * so email / external links still resolve.
+ */
 export function findContactByContactId(
   companies: Company[],
   pipelines: PipelineRow[],
@@ -68,10 +89,17 @@ export function findContactByContactId(
   companyId?: string,
 ): GlobalContactRecord | undefined {
   const records = getGlobalContactRecords(companies, pipelines);
+  const key = contactId.trim();
+  if (!key) return undefined;
 
   if (companyId) {
-    return findGlobalContactRecord(records, companyId, contactId);
+    const scoped = records.find(
+      (record) =>
+        record.companyId === companyId &&
+        contactMatchesRouteKey(record.contact, key),
+    );
+    if (scoped) return scoped;
   }
 
-  return records.find((record) => record.contact.ContactID === contactId);
+  return records.find((record) => contactMatchesRouteKey(record.contact, key));
 }
