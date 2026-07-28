@@ -12,8 +12,8 @@ import { OpportunitiesOverviewTable } from "@/components/opportunity/opportuniti
 import { DealLink } from "@/components/relationship/relationship-links";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import {
-  buildOpportunityStakeholderRoleOptions,
   formatSuggestedContactLabel,
+  normalizeStakeholderRole,
   suggestOpportunityRoleForContact,
 } from "@/lib/opportunity-stakeholder-utils";
 import { OpportunityOfferingsPicker } from "@/components/opportunity/opportunity-offerings-picker";
@@ -21,6 +21,7 @@ import { formatOfferingLabels } from "@/lib/standard-bio-offerings";
 import {
   buildOfferingIntelligence,
 } from "@/lib/offering-intelligence";
+import { StakeholderRoleSelect } from "@/components/opportunity/stakeholder-role-select";
 
 type CreateFormState = {
   assetName: string;
@@ -75,8 +76,7 @@ export function CompanyOpportunitiesSection({
   const [createdDeal, setCreatedDeal] = useState<PipelineRow | null>(null);
   const [stakeholderOpen, setStakeholderOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState("");
-  const [stakeholderRole, setStakeholderRole] = useState("Decision Maker");
-  const [customRole, setCustomRole] = useState("");
+  const [stakeholderRole, setStakeholderRole] = useState("Champion");
   const [savingStakeholder, setSavingStakeholder] = useState(false);
 
   useEffect(() => {
@@ -88,11 +88,14 @@ export function CompanyOpportunitiesSection({
     }
   }, [createRequestId, canCreate]);
 
-  const roleOptions = useMemo(() => {
+  const extraRoles = useMemo(() => {
     const fromOfferings = createdDeal
       ? buildOfferingIntelligence(createdDeal.offeringIds).suggestedStakeholderRoles
       : [];
-    return buildOpportunityStakeholderRoleOptions(fromOfferings);
+    return [
+      ...fromOfferings,
+      ...((createdDeal?.team ?? []).map((member) => member.projectRole).filter(Boolean)),
+    ];
   }, [createdDeal]);
 
   const suggestedContacts = useMemo(() => {
@@ -146,10 +149,9 @@ export function CompanyOpportunitiesSection({
       setForm(EMPTY_FORM);
       setStakeholderOpen(canManageStakeholders);
       const intelligence = buildOfferingIntelligence(created.offeringIds);
-      const preferredRole = intelligence.suggestedStakeholderRoles[0] ?? "Decision Maker";
+      const preferredRole = intelligence.suggestedStakeholderRoles[0] ?? "Champion";
       setSelectedContactId("");
       setStakeholderRole(preferredRole);
-      setCustomRole("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create opportunity");
     } finally {
@@ -160,11 +162,9 @@ export function CompanyOpportunitiesSection({
   const selectSuggestedContact = (contact: Contact) => {
     setSelectedContactId(contact.ContactID);
     setStakeholderRole(suggestOpportunityRoleForContact(contact));
-    setCustomRole("");
   };
 
-  const resolvedRole =
-    stakeholderRole === "__custom__" ? customRole.trim() : stakeholderRole;
+  const resolvedRole = normalizeStakeholderRole(stakeholderRole);
 
   const handleAddStakeholder = async () => {
     if (!createdDeal || !onAssignStakeholder || !selectedContactId || !resolvedRole) {
@@ -180,8 +180,7 @@ export function CompanyOpportunitiesSection({
       );
       setCreatedDeal(updated);
       setSelectedContactId("");
-      setStakeholderRole("Decision Maker");
-      setCustomRole("");
+      setStakeholderRole("Champion");
       setStakeholderOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add stakeholder");
@@ -426,46 +425,14 @@ export function CompanyOpportunitiesSection({
                   </label>
                 ) : null}
 
-                <label className="mt-3 block">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
-                    Stakeholder role
-                  </span>
-                  <select
-                    value={
-                      roleOptions.includes(stakeholderRole) ? stakeholderRole : "__custom__"
-                    }
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      if (value === "__custom__") {
-                        setStakeholderRole("__custom__");
-                      } else {
-                        setStakeholderRole(value);
-                        setCustomRole("");
-                      }
-                    }}
-                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                  >
-                    {roleOptions.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                    <option value="__custom__">Custom role…</option>
-                  </select>
-                </label>
-                {stakeholderRole === "__custom__" ||
-                (!roleOptions.includes(stakeholderRole) && stakeholderRole) ? (
-                  <input
-                    type="text"
-                    value={customRole || stakeholderRole}
-                    onChange={(event) => {
-                      setStakeholderRole("__custom__");
-                      setCustomRole(event.target.value);
-                    }}
-                    placeholder="Custom role"
-                    className="mt-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                <div className="mt-3">
+                  <StakeholderRoleSelect
+                    value={stakeholderRole}
+                    extraRoles={extraRoles}
+                    onChange={setStakeholderRole}
+                    disabled={savingStakeholder}
                   />
-                ) : null}
+                </div>
 
                 {selectedContact ? (
                   <p className="mt-2 text-[11px] text-carbon-blue/55">

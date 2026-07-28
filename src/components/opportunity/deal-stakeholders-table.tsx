@@ -11,11 +11,15 @@ import { formatRelativeTime } from "@/lib/relative-time";
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
 import { resolvePipelineTeam } from "@/lib/team-utils";
 import {
-  buildOpportunityStakeholderRoleOptions,
   formatSuggestedContactLabel,
+  normalizeStakeholderRole,
   suggestOpportunityRoleForContact,
 } from "@/lib/opportunity-stakeholder-utils";
 import { buildOfferingIntelligence } from "@/lib/offering-intelligence";
+import {
+  StakeholderRoleBadge,
+  StakeholderRoleSelect,
+} from "@/components/opportunity/stakeholder-role-select";
 import { ContactLink } from "@/components/relationship/relationship-links";
 import {
   WorkspaceTable,
@@ -33,8 +37,6 @@ type ContactOption = {
   companyId: string;
   companyName: string;
 };
-
-const CUSTOM_ROLE = "__custom__";
 
 function influenceLabel(level: RelationshipLevel): string {
   switch (level) {
@@ -123,17 +125,15 @@ export function DealStakeholdersTable({
     () => buildOfferingIntelligence(offeringIds, team),
     [offeringIds, team],
   );
-  const defaultRole = offeringIntel.suggestedStakeholderRoles[0] ?? "Decision Maker";
+  const defaultRole = offeringIntel.suggestedStakeholderRoles[0] ?? "Champion";
 
   const [assignOpen, setAssignOpen] = useState(defaultOpenAssign);
   const [selectedContactId, setSelectedContactId] = useState("");
   const [dealRole, setDealRole] = useState(defaultRole);
-  const [customRole, setCustomRole] = useState("");
   const [saving, setSaving] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState("");
-  const [editCustomRole, setEditCustomRole] = useState("");
 
   const resolvedTeam = useMemo(() => resolvePipelineTeam(team, companies), [team, companies]);
   const dealActivities = useMemo(() => getActivitiesForDeal(activities, dealId), [activities, dealId]);
@@ -152,12 +152,11 @@ export function DealStakeholdersTable({
     [availableContacts, company],
   );
 
-  const roleOptions = useMemo(
-    () =>
-      buildOpportunityStakeholderRoleOptions([
-        ...team.map((member) => member.projectRole).filter(Boolean),
-        ...offeringIntel.suggestedStakeholderRoles,
-      ]),
+  const extraRoles = useMemo(
+    () => [
+      ...team.map((member) => member.projectRole).filter(Boolean),
+      ...offeringIntel.suggestedStakeholderRoles,
+    ],
     [team, offeringIntel.suggestedStakeholderRoles],
   );
 
@@ -170,11 +169,13 @@ export function DealStakeholdersTable({
       );
       const lastActivity = contactActivities[0] ?? getActivitiesForContact(activities, member.contactId)[0];
       const days = lastActivity ? daysSince(lastActivity.ActivityDate) : null;
+      const projectRole = normalizeStakeholderRole(member.projectRole);
 
       return {
         member,
         companyId: company?.CompanyID ?? "",
-        role: member.projectRole || member.contact.JobTitle || member.contact.Role || "—",
+        role: projectRole || member.contact.JobTitle || member.contact.Role || "—",
+        projectRole,
         influence: influenceLabel(member.contact.RelationshipLevel),
         engagement: engagementLabel(days),
         lastContact: lastActivity
@@ -184,8 +185,8 @@ export function DealStakeholdersTable({
     });
   }, [resolvedTeam, activities, dealId, dealActivities, company?.CompanyID]);
 
-  const resolvedAssignRole = dealRole === CUSTOM_ROLE ? customRole.trim() : dealRole;
-  const resolvedEditRole = editRole === CUSTOM_ROLE ? editCustomRole.trim() : editRole;
+  const resolvedAssignRole = normalizeStakeholderRole(dealRole);
+  const resolvedEditRole = normalizeStakeholderRole(editRole);
 
   const selectContact = (contactId: string) => {
     setSelectedContactId(contactId);
@@ -195,10 +196,11 @@ export function DealStakeholdersTable({
       const fromOffering =
         offeringIntel.missingStakeholderRoles[0] ??
         offeringIntel.suggestedStakeholderRoles[0];
-      setDealRole(fromOffering && /decision maker|technical lead|procurement/i.test(fromTitle)
-        ? fromTitle
-        : fromOffering ?? fromTitle);
-      setCustomRole("");
+      setDealRole(
+        fromOffering && /economic buyer|champion|technical evaluator|procurement/i.test(fromTitle)
+          ? fromTitle
+          : fromOffering ?? fromTitle,
+      );
     }
   };
 
@@ -208,8 +210,7 @@ export function DealStakeholdersTable({
     try {
       await onAssign(selectedContactId, resolvedAssignRole);
       setSelectedContactId("");
-      setDealRole("Decision Maker");
-      setCustomRole("");
+      setDealRole(defaultRole);
       setAssignOpen(false);
     } finally {
       setSaving(false);
@@ -228,13 +229,7 @@ export function DealStakeholdersTable({
 
   const startEdit = (contactId: string, currentRole: string) => {
     setEditingId(contactId);
-    if (roleOptions.includes(currentRole)) {
-      setEditRole(currentRole);
-      setEditCustomRole("");
-    } else {
-      setEditRole(CUSTOM_ROLE);
-      setEditCustomRole(currentRole);
-    }
+    setEditRole(normalizeStakeholderRole(currentRole));
   };
 
   const handleSaveRole = async (contactId: string) => {
@@ -305,31 +300,17 @@ export function DealStakeholdersTable({
                 </WorkspaceTableBodyCell>
                 <WorkspaceTableBodyCell className="text-carbon-blue/70">
                   {editingId === row.member.contactId ? (
-                    <div className="flex flex-col gap-1.5">
-                      <select
-                        value={editRole}
-                        onChange={(event) => setEditRole(event.target.value)}
-                        className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue"
-                      >
-                        {roleOptions.map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
-                        ))}
-                        <option value={CUSTOM_ROLE}>Custom role…</option>
-                      </select>
-                      {editRole === CUSTOM_ROLE ? (
-                        <input
-                          type="text"
-                          value={editCustomRole}
-                          onChange={(event) => setEditCustomRole(event.target.value)}
-                          className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue"
-                          placeholder="Custom role"
-                        />
-                      ) : null}
-                    </div>
+                    <StakeholderRoleSelect
+                      label=""
+                      value={editRole}
+                      extraRoles={extraRoles}
+                      onChange={setEditRole}
+                      disabled={saving}
+                    />
+                  ) : row.projectRole ? (
+                    <StakeholderRoleBadge role={row.projectRole} />
                   ) : (
-                    <span className="truncate">{row.role}</span>
+                    <span className="truncate text-carbon-blue/45">{row.role}</span>
                   )}
                 </WorkspaceTableBodyCell>
                 {!compact ? (
@@ -365,7 +346,9 @@ export function DealStakeholdersTable({
                           {onUpdateRole ? (
                             <button
                               type="button"
-                              onClick={() => startEdit(row.member.contactId, row.role)}
+                              onClick={() =>
+                                startEdit(row.member.contactId, row.projectRole || row.role)
+                              }
                               className="text-[11px] font-semibold text-carbon-blue/55 hover:text-upcycle-orange"
                             >
                               Edit role
@@ -457,32 +440,14 @@ export function DealStakeholdersTable({
                   ))}
                 </select>
               </label>
-              <label className="mt-3 block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
-                  Stakeholder role
-                </span>
-                <select
+              <div className="mt-3">
+                <StakeholderRoleSelect
                   value={dealRole}
-                  onChange={(event) => setDealRole(event.target.value)}
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                >
-                  {roleOptions.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                  <option value={CUSTOM_ROLE}>Custom role…</option>
-                </select>
-              </label>
-              {dealRole === CUSTOM_ROLE ? (
-                <input
-                  type="text"
-                  value={customRole}
-                  onChange={(event) => setCustomRole(event.target.value)}
-                  placeholder="Custom role"
-                  className="mt-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  extraRoles={extraRoles}
+                  onChange={setDealRole}
+                  disabled={saving}
                 />
-              ) : null}
+              </div>
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"

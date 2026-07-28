@@ -13,6 +13,11 @@ import {
   EmailActionMenu,
   PhoneActionMenu,
 } from "@/components/relationship/relationship-links";
+import {
+  StakeholderRoleBadge,
+  StakeholderRoleSelect,
+} from "@/components/opportunity/stakeholder-role-select";
+import { normalizeStakeholderRole } from "@/lib/opportunity-stakeholder-utils";
 
 type DealTeamSectionProps = {
   team: PipelineTeamMember[];
@@ -20,14 +25,6 @@ type DealTeamSectionProps = {
   onAssign: (contactId: string, projectRole: string) => Promise<void>;
   readOnly?: boolean;
 };
-
-function RoleBadge({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
-      {label}
-    </span>
-  );
-}
 
 export function DealTeamSection({
   team,
@@ -37,7 +34,7 @@ export function DealTeamSection({
 }: DealTeamSectionProps) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState("");
-  const [dealRole, setDealRole] = useState("");
+  const [dealRole, setDealRole] = useState("Champion");
   const [saving, setSaving] = useState(false);
 
   const resolvedTeam = useMemo(
@@ -52,15 +49,22 @@ export function DealTeamSection({
     );
   }, [companies, team]);
 
+  const extraRoles = useMemo(
+    () => team.map((member) => member.projectRole).filter(Boolean),
+    [team],
+  );
+
+  const resolvedRole = normalizeStakeholderRole(dealRole);
+
   const handleAssign = async () => {
-    if (!selectedContactId || !dealRole.trim()) return;
+    if (!selectedContactId || !resolvedRole) return;
 
     setSaving(true);
 
     try {
-      await onAssign(selectedContactId, dealRole.trim());
+      await onAssign(selectedContactId, resolvedRole);
       setSelectedContactId("");
-      setDealRole("");
+      setDealRole("Champion");
       setAssignOpen(false);
     } finally {
       setSaving(false);
@@ -102,7 +106,7 @@ export function DealTeamSection({
                 >
                   {getContactDisplayName(member.contact)}
                 </ContactLink>
-                <RoleBadge label={member.projectRole} />
+                <StakeholderRoleBadge role={member.projectRole} />
               </div>
               <div className="mt-1">
                 <EmailActionMenu
@@ -151,28 +155,19 @@ export function DealTeamSection({
                   </select>
                 </label>
 
-                <label className="mt-2 block">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                    Deal Role
-                  </span>
-                  <input
-                    type="text"
+                <div className="mt-2">
+                  <StakeholderRoleSelect
                     value={dealRole}
-                    onChange={(event) => setDealRole(event.target.value)}
-                    placeholder="e.g. Technical Lead"
-                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        void handleAssign();
-                      }
-                    }}
+                    extraRoles={extraRoles}
+                    onChange={setDealRole}
+                    disabled={saving}
+                    label="Deal Role"
                   />
-                </label>
+                </div>
 
                 <button
                   type="button"
-                  disabled={saving || !selectedContactId || !dealRole.trim()}
+                  disabled={saving || !selectedContactId || !resolvedRole}
                   onClick={() => void handleAssign()}
                   className="mt-2 w-full border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1.5 text-xs font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
                 >
