@@ -8,7 +8,7 @@ import { withPrismaRetry } from "@/lib/prisma";
 import { toCompanyTrackingId } from "@/lib/prisma-mappers";
 import { resolveEntity } from "@/lib/resolvers/entity-resolver";
 
-/** Match company in live/JSON portfolio by id, CO- code, name, domain, or email. */
+/** Match company in live/JSON portfolio — case-insensitive IDs and names. */
 export function findCompanyInPortfolio(
   companies: Company[],
   routeKey: string,
@@ -18,12 +18,8 @@ export function findCompanyInPortfolio(
   const lower = key.toLowerCase();
 
   return companies.find((company) => {
-    if (company.CompanyID === key || company.CompanyID?.toLowerCase() === lower) {
-      return true;
-    }
-    if (String(company.id) === key || String(company.id).toLowerCase() === lower) {
-      return true;
-    }
+    if (company.CompanyID?.trim().toLowerCase() === lower) return true;
+    if (String(company.id).toLowerCase() === lower) return true;
     if (company.Title?.trim().toLowerCase() === lower) return true;
     if (company.Domain?.trim().toLowerCase() === lower) return true;
     if (company.Email?.trim().toLowerCase() === lower) return true;
@@ -31,10 +27,7 @@ export function findCompanyInPortfolio(
   });
 }
 
-/**
- * Prisma lookup by id, name, org number, or CO- tracking code.
- * Never throws — returns null on miss / DB errors.
- */
+/** Prisma lookup — valid Company fields only. Never throws. */
 export async function findPrismaCompanyByRouteKey(routeKey: string) {
   const key = routeKey.trim();
   if (!key) return null;
@@ -56,9 +49,7 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
 
     if (key.includes("@")) {
       const withEmails = await withPrismaRetry((prisma) =>
-        prisma.company.findMany({
-          where: { status: "active" },
-        }),
+        prisma.company.findMany({ where: { status: "active" } }),
       );
       return (
         withEmails.find((row) => emailsIncludeAddress(row.emails, key)) ?? null
@@ -77,22 +68,26 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
     return null;
   } catch (error) {
     console.warn(
-      "[resolve-company-route] Prisma company lookup failed:",
+      "[resolve-company-route] DB company lookup bypassed:",
       error instanceof Error ? error.message : error,
     );
     return null;
   }
 }
 
-/**
- * Resolve company route via universal entity resolver (Prisma → portfolio/seed).
- */
+/** Resolve company: portfolio/seed first (CO-… links), then Prisma bridge. */
 export async function resolveCompanyRouteRecord(
   companies: Company[],
   routeKey: string,
 ): Promise<Company | undefined> {
+  const key = routeKey.trim();
+  if (!key) return undefined;
+
+  const direct = findCompanyInPortfolio(companies, key);
+  if (direct) return direct;
+
   const record = await resolveEntity(
-    routeKey,
+    key,
     async (searchKey) => {
       const prismaCompany = await findPrismaCompanyByRouteKey(searchKey);
       if (!prismaCompany) return null;
@@ -105,6 +100,7 @@ export async function resolveCompanyRouteRecord(
     },
     companies as Array<Company & Record<string, unknown>>,
     {
+      preferFallbackFirst: true,
       matchKeys: ["CompanyID", "Title", "Domain", "Email"],
       getMatchValues: (company) => [company.id, String(company.id)],
     },

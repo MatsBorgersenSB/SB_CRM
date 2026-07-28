@@ -50,12 +50,21 @@ export function Deal360PageShell({
     [pipelines, user, companies],
   );
 
-  const initialPipeline = scopedPipelines.find((row) => row.id === dealId);
+  const dealKey = dealId.trim().toLowerCase();
+  const matchDeal = (row: { id: string }) => row.id.toLowerCase() === dealKey;
+
+  const initialPipeline =
+    scopedPipelines.find(matchDeal) ??
+    // Non–client-lead: allow resolve from full portfolio if scope filter was empty
+    (user.role === "client_lead" ? undefined : pipelines.find(matchDeal));
   const [pipeline, setPipeline] = useState(initialPipeline);
 
   useEffect(() => {
-    setPipeline(scopedPipelines.find((row) => row.id === dealId));
-  }, [scopedPipelines, dealId]);
+    setPipeline(
+      scopedPipelines.find(matchDeal) ??
+        (user.role === "client_lead" ? undefined : pipelines.find(matchDeal)),
+    );
+  }, [scopedPipelines, pipelines, dealId, user.role]);
 
   const attentionItems = useMemo(() => {
     if (!pipeline) return [];

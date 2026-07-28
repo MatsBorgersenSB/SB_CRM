@@ -67,12 +67,21 @@ function contactMatchesRouteKey(
 ): boolean {
   const key = routeKey.trim();
   if (!key) return false;
+  const lower = key.toLowerCase();
 
-  if (contact.ContactID === key) return true;
-  if (String(contact.id) === key) return true;
+  if (contact.ContactID?.trim().toLowerCase() === lower) return true;
+  if (String(contact.id).toLowerCase() === lower) return true;
 
   const email = contact.Email?.trim().toLowerCase();
-  if (email && email === key.toLowerCase()) return true;
+  if (email && email === lower) return true;
+
+  const title = contact.Title?.trim().toLowerCase();
+  if (title && title === lower) return true;
+
+  const fullName = `${contact.FirstName ?? ""} ${contact.LastName ?? ""}`
+    .trim()
+    .toLowerCase();
+  if (fullName && fullName === lower) return true;
 
   return false;
 }

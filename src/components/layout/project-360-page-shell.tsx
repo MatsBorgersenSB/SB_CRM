@@ -135,7 +135,7 @@ export function Project360PageShell({
     [resolvedProject, user.role],
   );
 
-  if (!resolvedProject || resolvedProject.id !== projectId) {
+  if (!resolvedProject) {
     notFound();
   }
 

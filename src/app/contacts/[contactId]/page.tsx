@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Contact360PageShell } from "@/components/layout/contact-360-page-shell";
-import { isNextNotFound, pickEntityRouteParam } from "@/lib/entity-route-utils";
+import { pickEntityRouteParam } from "@/lib/entity-route-utils";
 import { readProjects } from "@/lib/project-db";
 import {
   readLiveActivities,
@@ -13,7 +13,7 @@ import { resolveContactRouteRecord } from "@/lib/resolve-contact-route";
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 
 type Contact360PageProps = {
-  params: Promise<EntityRouteParams & { contactId?: string }>;
+  params: Promise<EntityRouteParams>;
   searchParams?: Promise<{ company?: string | string[] }>;
 };
 
@@ -30,61 +30,52 @@ export default async function Contact360Page({
   searchParams,
 }: Contact360PageProps) {
   const resolvedParams = await params;
-  const contactId = pickEntityRouteParam(resolvedParams, ["contactId", "id"]);
+  const rawKey = pickEntityRouteParam(resolvedParams, ["contactId", "id"]);
 
-  if (!contactId) {
+  if (!rawKey) {
     notFound();
   }
 
-  try {
-    const resolvedSearch = searchParams ? await searchParams : undefined;
-    const companyHint = readCompanyHint(resolvedSearch);
+  const resolvedSearch = searchParams ? await searchParams : undefined;
+  const companyHint = readCompanyHint(resolvedSearch);
 
-    const [
-      { companies, pipelines },
-      activities,
-      commercialPackages,
-      outlookEvidence,
-      projects,
-    ] = await Promise.all([
-      readLivePortfolio(),
-      readLiveActivities(),
-      readLiveCommercialPackages(),
-      readLiveOutlookEvidence(),
-      readProjects(),
-    ]);
+  const [
+    { companies, pipelines },
+    activities,
+    commercialPackages,
+    outlookEvidence,
+    projects,
+  ] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
+    readLiveCommercialPackages(),
+    readLiveOutlookEvidence(),
+    readProjects(),
+  ]);
 
-    const record = await resolveContactRouteRecord(
-      companies,
-      pipelines,
-      contactId,
-      companyHint,
-    );
+  // Prisma (try/catch inside resolver) → portfolio/seed fallback
+  const record = await resolveContactRouteRecord(
+    companies,
+    pipelines,
+    rawKey,
+    companyHint,
+  );
 
-    // notFound only when Prisma AND portfolio/seed both miss
-    if (!record) {
-      notFound();
-    }
-
-    return (
-      <Suspense fallback={null}>
-        <Contact360PageShell
-          contactId={record.contact.ContactID}
-          companies={companies}
-          pipelines={pipelines}
-          activities={activities}
-          commercialPackages={commercialPackages}
-          outlookEvidence={outlookEvidence}
-          projects={projects}
-        />
-      </Suspense>
-    );
-  } catch (error) {
-    if (isNextNotFound(error)) throw error;
-    console.error(
-      "[Contact360Page] Contact detail failed:",
-      error instanceof Error ? error.message : error,
-    );
+  if (!record) {
     notFound();
   }
+
+  return (
+    <Suspense fallback={null}>
+      <Contact360PageShell
+        contactId={record.contact.ContactID}
+        companies={companies}
+        pipelines={pipelines}
+        activities={activities}
+        commercialPackages={commercialPackages}
+        outlookEvidence={outlookEvidence}
+        projects={projects}
+      />
+    </Suspense>
+  );
 }

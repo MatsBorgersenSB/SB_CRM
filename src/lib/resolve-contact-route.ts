@@ -15,8 +15,8 @@ import { resolveEntity } from "@/lib/resolvers/entity-resolver";
 import type { PipelineRow } from "@/types/pipeline";
 
 /**
- * Prisma lookup by primary id, M365 ids, CT- code, or email (emails Json[]).
- * Never throws — returns null on miss / DB errors.
+ * Prisma lookup — valid Contact fields only (no scalar `email` / `code`).
+ * Never throws.
  */
 export async function findPrismaContactByIdOrEmail(routeKey: string) {
   const key = routeKey.trim();
@@ -30,6 +30,7 @@ export async function findPrismaContactByIdOrEmail(routeKey: string) {
             { id: key },
             { m365GraphId: key },
             { m365ImmutableId: key },
+            { fullName: { equals: key, mode: "insensitive" } },
           ],
         },
         include: { company: true },
@@ -61,18 +62,10 @@ export async function findPrismaContactByIdOrEmail(routeKey: string) {
       );
     }
 
-    const byName = await withPrismaRetry((prisma) =>
-      prisma.contact.findFirst({
-        where: {
-          fullName: { equals: key, mode: "insensitive" },
-        },
-        include: { company: true },
-      }),
-    );
-    return byName;
+    return null;
   } catch (error) {
     console.warn(
-      "[resolve-contact-route] Prisma contact lookup failed:",
+      "[resolve-contact-route] DB contact lookup bypassed:",
       error instanceof Error ? error.message : error,
     );
     return null;
@@ -80,7 +73,7 @@ export async function findPrismaContactByIdOrEmail(routeKey: string) {
 }
 
 /**
- * Resolve contact route via universal entity resolver (Prisma → portfolio/seed).
+ * Resolve contact: portfolio/seed first (CT-… links), then Prisma bridge.
  */
 export async function resolveContactRouteRecord(
   companies: Company[],
@@ -88,10 +81,17 @@ export async function resolveContactRouteRecord(
   routeKey: string,
   companyHint?: string,
 ): Promise<GlobalContactRecord | undefined> {
+  const key = routeKey.trim();
+  if (!key) return undefined;
+
+  // Fast path — same roster the contacts list uses
+  const direct = findContactByContactId(companies, pipelines, key, companyHint);
+  if (direct) return direct;
+
   const fallback = getGlobalContactRecords(companies, pipelines);
 
   const record = await resolveEntity(
-    routeKey,
+    key,
     async (searchKey) => {
       const prismaContact = await findPrismaContactByIdOrEmail(searchKey);
       if (!prismaContact) return null;
@@ -104,6 +104,7 @@ export async function resolveContactRouteRecord(
     },
     fallback as Array<GlobalContactRecord & Record<string, unknown>>,
     {
+      preferFallbackFirst: true,
       matchKeys: ["companyId", "companyName"],
       getMatchValues: (row) => [
         row.contact.ContactID,
@@ -116,17 +117,5 @@ export async function resolveContactRouteRecord(
     },
   );
 
-  if (!record) return undefined;
-
-  if (companyHint && record.companyId !== companyHint) {
-    const scoped = findContactByContactId(
-      companies,
-      pipelines,
-      record.contact.ContactID,
-      companyHint,
-    );
-    return scoped ?? record;
-  }
-
-  return record;
+  return record ?? undefined;
 }

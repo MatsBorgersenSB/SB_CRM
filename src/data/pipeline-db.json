@@ -12,17 +12,17 @@
       "currency": "EUR",
       "probability": 85,
       "expectedCloseDate": "2026-08-30",
-      "team": [
-        {
-          "contactId": "CT-10011",
-          "projectRole": "Deal Sponsor"
-        }
-      ],
       "offeringIds": [
         "sys-complete-turnkey-pyrolysis",
         "prod-pyrolysis-reactor",
         "prod-sb-control",
         "svc-aftermarket"
+      ],
+      "team": [
+        {
+          "contactId": "CT-10011",
+          "projectRole": "Deal Sponsor"
+        }
       ]
     },
     {
@@ -42,12 +42,7 @@
         "prod-material-reception",
         "prod-dryer",
         "svc-product-validation"
-      ],
-      "ClientLookup": "PL-1038",
-      "DocCategory": "General",
-      "DocType": "Unclassified Document",
-      "Revision": "01",
-      "FileLeafRef": "PL-1038_General-Unclassified Document.01 536123 ZQU 001 A02 Appendix 1 Design Basis Verona.pdf"
+      ]
     },
     {
       "id": "PL-1031",
@@ -61,10 +56,6 @@
       "currency": "EUR",
       "probability": 68,
       "expectedCloseDate": "2026-06-20",
-      "opportunityOwner": {
-        "Id": 1,
-        "Title": "Mats Borgersen"
-      },
       "offeringIds": [
         "prod-pyrolysis-reactor",
         "prod-heat-recovery",
@@ -110,36 +101,6 @@
         "svc-aftermarket",
         "svc-sb-production-planner"
       ]
-    },
-    {
-      "id": "PL-1043",
-      "assetName": "Ottem Bio Carbon",
-      "companyRole": "Technology Buyer",
-      "targetFeedstock": "",
-      "reactorDesignCapacity": 0,
-      "currentMilestone": "Opportunity opened",
-      "status": "Prospecting",
-      "salesValue": 30000000,
-      "currency": "EUR",
-      "probability": 15,
-      "offeringIds": [
-        "sys-complete-turnkey-pyrolysis"
-      ],
-      "expectedCloseDate": "2028-12-31",
-      "team": [
-        {
-          "contactId": "CT-10059",
-          "projectRole": "Executive Sponsor"
-        }
-      ],
-      "understanding": {
-        "fields": {
-          "decision_maker": "Torstein Ottem is final decision maker!",
-          "economic_buyer": "Torstein Ottem",
-          "stakeholder_map": "Halvor Kittelsen"
-        },
-        "updatedAt": "2026-07-17T11:10:36.867Z"
-      }
     }
   ],
   "inventory": {
@@ -518,8 +479,8 @@
       "Industry": "Energy & Infrastructure",
       "Status": "Active",
       "AccountOwner": {
-        "Id": 1,
-        "Title": "Mats Borgersen"
+        "Id": 51,
+        "Title": "Amir Hassan"
       },
       "Phone": "+1 312 555 9000",
       "Email": "",
@@ -547,34 +508,14 @@
             "Id": 5,
             "Title": "Upcycle Alliance Group"
           },
-          "JobTitle": "Managing Director",
+          "JobTitle": "Executive Sponsor",
           "Role": "Executive Sponsor",
           "Email": "amir.hassan@upcyclealliance.com",
           "Phone": "+1 312 555 9044",
           "Mobile": "",
           "LinkedInURL": "",
           "Status": "Active",
-          "RelationshipLevel": "Strategic",
-          "CareerHistory": [
-            {
-              "id": "career-1784098714649-llbcz",
-              "companyId": "CO-1005",
-              "companyName": "Upcycle Alliance Group",
-              "role": "Executive Sponsor",
-              "jobTitle": "Executive Sponsor",
-              "startDate": "2026-07-15",
-              "endDate": "2026-07-15"
-            },
-            {
-              "id": "career-1784098714649-wad1u",
-              "companyId": "CO-1005",
-              "companyName": "Upcycle Alliance Group",
-              "role": "Executive Sponsor",
-              "jobTitle": "Managing Director",
-              "startDate": "2026-07-15",
-              "endDate": null
-            }
-          ]
+          "RelationshipLevel": "Strategic"
         },
         {
           "id": 502,
@@ -594,369 +535,6 @@
           "LinkedInURL": "",
           "Status": "Active",
           "RelationshipLevel": "Vendor"
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "Title": "smartGAS Mikrosensorik GmbH",
-      "CompanyID": "CO-1006",
-      "ParentCompany": null,
-      "Domain": "smartgas.eu",
-      "Industry": "Polymer Processing",
-      "CompanyTypes": [
-        "Prospect"
-      ],
-      "Status": "Prospecting",
-      "AccountOwner": {
-        "Id": 1,
-        "Title": "Mats Borgersen"
-      },
-      "Phone": "+49 7131 79755379",
-      "Email": "julian.tessarzik@smartgas.eu",
-      "AddressLine1": "",
-      "AddressLine2": "",
-      "PostalCode": "",
-      "City": "",
-      "Country": null,
-      "pipelineIds": [],
-      "contacts": [
-        {
-          "id": 503,
-          "ContactID": "CT-10053",
-          "Title": "Julian Tessarzi",
-          "FirstName": "Julian",
-          "LastName": "Tessarzi",
-          "Company": {
-            "Id": 6,
-            "Title": "smartGAS Mikrosensorik GmbH"
-          },
-          "JobTitle": "Managing director",
-          "Role": "Plant Manager",
-          "Email": "julian.tessarzik@smartgas.eu",
-          "Phone": "+49 7131 79755379",
-          "Mobile": "+49 7131 79755379",
-          "LinkedInURL": "",
-          "Status": "Active",
-          "RelationshipLevel": "Operational",
-          "EmploymentStatus": "Active",
-          "CareerHistory": [
-            {
-              "id": "career-1784042601204-0wxm6",
-              "companyId": "CO-1006",
-              "companyName": "smartGAS Mikrosensorik GmbH",
-              "role": "Plant Manager",
-              "jobTitle": "Managing director",
-              "startDate": "2026-07-14",
-              "endDate": null
-            }
-          ]
-        }
-      ],
-      "Tags": [],
-      "Notes": ""
-    },
-    {
-      "id": 7,
-      "Title": "Intility",
-      "CompanyID": "CO-1007",
-      "ParentCompany": null,
-      "Domain": "intility.no",
-      "Industry": "Polymer Processing",
-      "CompanyTypes": [
-        "Prospect"
-      ],
-      "Status": "Prospecting",
-      "AccountOwner": {
-        "Id": 1,
-        "Title": "Mats Borgersen"
-      },
-      "Phone": "+47 24 10 34 44",
-      "Email": "hedda.enger@intility.no",
-      "AddressLine1": "Schweigaards gate 39\n0191 Oslo\nNorge",
-      "AddressLine2": "",
-      "PostalCode": "",
-      "City": "",
-      "Country": null,
-      "pipelineIds": [],
-      "contacts": [
-        {
-          "id": 504,
-          "ContactID": "CT-10054",
-          "Title": "Hedda Kristin Enger",
-          "FirstName": "Hedda",
-          "LastName": "Kristin Enger",
-          "Company": {
-            "Id": 7,
-            "Title": "Intility"
-          },
-          "JobTitle": "",
-          "Role": "Plant Manager",
-          "Email": "hedda.enger@intility.no",
-          "Phone": "+47 24 10 34 44",
-          "Mobile": "",
-          "LinkedInURL": "",
-          "Status": "Prospecting",
-          "RelationshipLevel": "Operational",
-          "EmploymentStatus": "Active",
-          "CareerHistory": [
-            {
-              "id": "career-1784101859784-fmtab",
-              "companyId": "CO-1007",
-              "companyName": "New Company",
-              "role": "Plant Manager",
-              "jobTitle": "Plant Manager",
-              "startDate": "2026-07-15",
-              "endDate": null
-            }
-          ]
-        }
-      ],
-      "Tags": [],
-      "Notes": ""
-    },
-    {
-      "id": 8,
-      "Title": "Guard Automation AS",
-      "CompanyID": "CO-1008",
-      "ParentCompany": null,
-      "Domain": "guard.no",
-      "Industry": "Polymer Processing",
-      "CompanyTypes": [
-        "Prospect"
-      ],
-      "Status": "Prospecting",
-      "AccountOwner": {
-        "Id": 1,
-        "Title": "Mats Borgersen"
-      },
-      "Phone": "+47 971 90 550",
-      "Email": "",
-      "AddressLine1": "",
-      "AddressLine2": "",
-      "PostalCode": "",
-      "City": "",
-      "Country": null,
-      "pipelineIds": [],
-      "contacts": [
-        {
-          "id": 505,
-          "ContactID": "CT-10055",
-          "Title": "Sindre Gaustad Bjørtuft",
-          "FirstName": "Sindre",
-          "LastName": "Gaustad Bjørtuft",
-          "Company": {
-            "Id": 8,
-            "Title": "Guard Automation AS"
-          },
-          "JobTitle": "Project Engineer",
-          "Role": "Plant Manager",
-          "Email": "sindre.gaustad.bjortuft@guard.no",
-          "Phone": "",
-          "Mobile": "+47 971 90 550",
-          "LinkedInURL": "",
-          "Status": "Prospecting",
-          "RelationshipLevel": "Operational",
-          "EmploymentStatus": "Active",
-          "CareerHistory": [
-            {
-              "id": "career-1784110113946-7ms3o",
-              "companyId": "CO-1008",
-              "companyName": "Guard Automation AS",
-              "role": "Plant Manager",
-              "jobTitle": "Plant Manager",
-              "startDate": "2026-07-15",
-              "endDate": "2026-07-15"
-            },
-            {
-              "id": "career-1784112782039-l4dwz",
-              "companyId": "CO-1008",
-              "companyName": "Guard Automation AS",
-              "role": "Plant Manager",
-              "jobTitle": "Project Engineer",
-              "startDate": "2026-07-15",
-              "endDate": null
-            }
-          ],
-          "IsSuspicious": false
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "Title": "Carbón Emergente",
-      "CompanyID": "CO-1009",
-      "ParentCompany": null,
-      "Domain": "carbonemergente.com",
-      "Industry": "Polymer Processing",
-      "CompanyTypes": [
-        "Prospect"
-      ],
-      "Status": "Prospecting",
-      "AccountOwner": {
-        "Id": 1,
-        "Title": "Mats Borgersen"
-      },
-      "Phone": "+34%20608%2029%2057%2031",
-      "Email": "info@carbonemergente.com",
-      "AddressLine1": "",
-      "AddressLine2": "",
-      "PostalCode": "",
-      "City": "",
-      "Country": null,
-      "pipelineIds": [],
-      "contacts": [
-        {
-          "id": 506,
-          "ContactID": "CT-10056",
-          "Title": "Sebastian Shrady",
-          "FirstName": "Sebastian",
-          "LastName": "Shrady",
-          "Company": {
-            "Id": 9,
-            "Title": "Carbón Emergente"
-          },
-          "JobTitle": "CEO",
-          "Role": "Executive Sponsor",
-          "Email": "sebastian@carbonemegente.com",
-          "Phone": "",
-          "Mobile": "+34 608295731",
-          "LinkedInURL": "",
-          "Status": "Active",
-          "RelationshipLevel": "Operational",
-          "EmploymentStatus": "Active",
-          "CareerHistory": [
-            {
-              "id": "career-1784112989139-gr603",
-              "companyId": "CO-1009",
-              "companyName": "Carbón Emergente",
-              "role": "Executive Sponsor",
-              "jobTitle": "CEO",
-              "startDate": "2026-07-15",
-              "endDate": null
-            }
-          ]
-        },
-        {
-          "id": 507,
-          "ContactID": "CT-10057",
-          "Title": "Roberto Sanchez",
-          "FirstName": "Roberto",
-          "LastName": "Sanchez",
-          "Company": {
-            "Id": 9,
-            "Title": "Carbón Emergente"
-          },
-          "JobTitle": "Operations Manager",
-          "Role": "Plant Manager",
-          "Email": "operaciones@carbonemergente.com",
-          "Phone": "+34 691096734",
-          "Mobile": "+34 691096734",
-          "LinkedInURL": "",
-          "Status": "Active",
-          "RelationshipLevel": "Operational",
-          "EmploymentStatus": "Active",
-          "CareerHistory": [
-            {
-              "id": "career-1784113163677-l83ex",
-              "companyId": "CO-1009",
-              "companyName": "Carbón Emergente",
-              "role": "Plant Manager",
-              "jobTitle": "Operations Manager",
-              "startDate": "2026-07-15",
-              "endDate": null
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 10,
-      "Title": "Ottem",
-      "CompanyID": "CO-1010",
-      "ParentCompany": null,
-      "Domain": "tottem.no",
-      "Industry": "Polymer Processing",
-      "CompanyTypes": [
-        "Prospect"
-      ],
-      "Status": "Prospecting",
-      "AccountOwner": {
-        "Id": 1,
-        "Title": "Mats Borgersen"
-      },
-      "Phone": "+47 71 69 20 00",
-      "Email": "post@tottem.no",
-      "AddressLine1": "",
-      "AddressLine2": "",
-      "PostalCode": "",
-      "City": "",
-      "Country": null,
-      "pipelineIds": [
-        "PL-1043"
-      ],
-      "contacts": [
-        {
-          "id": 508,
-          "ContactID": "CT-10058",
-          "Title": "Thea",
-          "FirstName": "Thea",
-          "LastName": "",
-          "Company": {
-            "Id": 10,
-            "Title": "Ottem"
-          },
-          "JobTitle": "",
-          "Role": "Plant Manager",
-          "Email": "thea@tottem.no",
-          "Phone": "",
-          "Mobile": "",
-          "LinkedInURL": "",
-          "Status": "Prospecting",
-          "RelationshipLevel": "Operational",
-          "EmploymentStatus": "Active",
-          "CareerHistory": [
-            {
-              "id": "career-1784270353079-3ugdm",
-              "companyId": "CO-1010",
-              "companyName": "Ottem",
-              "role": "Plant Manager",
-              "jobTitle": "Plant Manager",
-              "startDate": "2026-07-17",
-              "endDate": null
-            }
-          ]
-        },
-        {
-          "id": 509,
-          "ContactID": "CT-10059",
-          "Title": "Torstein Ottem",
-          "FirstName": "Torstein",
-          "LastName": "Ottem",
-          "Company": {
-            "Id": 10,
-            "Title": "Ottem"
-          },
-          "JobTitle": "CEO",
-          "Role": "Plant Manager",
-          "Email": "torstein@tottem.no",
-          "Phone": "+4790696658",
-          "Mobile": "+4790696658",
-          "LinkedInURL": "",
-          "Status": "Active",
-          "RelationshipLevel": "Operational",
-          "EmploymentStatus": "Active",
-          "CareerHistory": [
-            {
-              "id": "career-1784285956777-gfs0s",
-              "companyId": "CO-1010",
-              "companyName": "Ottem",
-              "role": "Plant Manager",
-              "jobTitle": "CEO",
-              "startDate": "2026-07-17",
-              "endDate": null
-            }
-          ]
         }
       ]
     }
@@ -1434,147 +1012,6 @@
           "Title": "Sofia Marchetti"
         }
       ]
-    },
-    {
-      "id": 9,
-      "ActivityID": "ACT-9009",
-      "ActivityType": "Task",
-      "ActivityDate": "2026-07-13T09:00:00",
-      "Subject": "Schedule follow-up call",
-      "ActivityDescription": "test test test",
-      "Summary": "Last contact Infinity days ago — relationship is cooling (health 33/100).",
-      "KeyDecisions": [],
-      "AgreedActions": [],
-      "Risks": [],
-      "LinkedDocuments": [],
-      "LinkedDeals": [
-        {
-          "Id": 0,
-          "Title": "PL-1031"
-        }
-      ],
-      "LinkedContacts": [
-        {
-          "Id": 0,
-          "Title": "CT-10051"
-        }
-      ],
-      "Stakeholders": [],
-      "Company": {
-        "Id": 1,
-        "Title": "Nordic Polymers AB"
-      },
-      "Contact": {
-        "Id": 501,
-        "Title": "Amir Hassan"
-      },
-      "Deal": {
-        "Id": 0,
-        "Title": "PL-1031"
-      },
-      "ActivityOwner": {
-        "Id": 1,
-        "Title": "Mats Lindström"
-      },
-      "ActionRequired": true,
-      "NextAction": "Schedule Follow-Up Call",
-      "NextActionDate": "2026-07-17",
-      "ActionStatus": "Planned",
-      "ActionOutcome": "",
-      "DurationMinutes": 60,
-      "Priority": "Normal",
-      "M365Targets": {
-        "planner": true
-      }
-    },
-    {
-      "id": 10,
-      "ActivityID": "ACT-9010",
-      "ActivityType": "Email",
-      "ActivityDate": "2026-07-10T14:22:00",
-      "Subject": "Outlook: 6 emails reconciled",
-      "ActivityDescription": "Imported from connected Outlook.\n\nRecent subjects:\nRe: smartGAS facility qualification timeline; smartGAS facility qualification timeline; Introduction — polymer processing partnership\n…and 3 more",
-      "Summary": "6 Outlook emails imported into relationship history",
-      "KeyDecisions": [],
-      "AgreedActions": [],
-      "Risks": [],
-      "LinkedDocuments": [],
-      "LinkedDeals": [],
-      "LinkedContacts": [],
-      "Stakeholders": [],
-      "Company": {
-        "Id": 6,
-        "Title": "smartGAS Mikrosensorik GmbH"
-      },
-      "Contact": {
-        "Id": 503,
-        "Title": "Julian Tessarzi"
-      },
-      "Deal": null,
-      "ActivityOwner": null,
-      "ActionRequired": false,
-      "NextAction": "",
-      "NextActionDate": "",
-      "ActionStatus": "Completed",
-      "ActionOutcome": "Neutral",
-      "M365Targets": {
-        "outlook": true
-      },
-      "OutlookConversationId": "conv-jt-qual",
-      "ReconciledFromOutlook": true
-    },
-    {
-      "id": 11,
-      "ActivityID": "ACT-9011",
-      "ActivityType": "Teams Meeting",
-      "ActivityDate": "2026-07-24T09:00:00",
-      "Subject": "Complete overdue commitment",
-      "ActivityDescription": "Planned teams meeting.",
-      "Summary": "Commitment overdue by 14 days — trust and health score at risk.",
-      "KeyDecisions": [],
-      "AgreedActions": [],
-      "Risks": [],
-      "LinkedDocuments": [],
-      "LinkedDeals": [
-        {
-          "Id": 0,
-          "Title": "PL-1038"
-        }
-      ],
-      "LinkedContacts": [
-        {
-          "Id": 0,
-          "Title": "Maya Chen"
-        }
-      ],
-      "Stakeholders": [],
-      "Company": {
-        "Id": 2,
-        "Title": "Circular Textiles Co."
-      },
-      "Contact": {
-        "Id": 201,
-        "Title": "Maya Chen"
-      },
-      "Deal": {
-        "Id": 0,
-        "Title": "PL-1038"
-      },
-      "ActivityOwner": {
-        "Id": 1,
-        "Title": "Mats Borgersen"
-      },
-      "ActionRequired": true,
-      "NextAction": "Complete Overdue Commitment",
-      "NextActionDate": "2026-07-10",
-      "ActionStatus": "Planned",
-      "ActionOutcome": "",
-      "DurationMinutes": 60,
-      "Priority": "Normal",
-      "M365Targets": {
-        "outlook": true,
-        "teams": true
-      }
     }
   ],
   "commercialPackages": [
@@ -2035,24 +1472,8 @@
       "Revision": "01",
       "FileLeafRef": "PL-1031_Technical-Clarifications.01 Engineering Notes.pdf",
       "DocumentSetID": "EX-001"
-    },
-    {
-      "SmartDocID": "PL-1038-G-GEN-0001",
-      "DealId": "PL-1038",
-      "PlNumber": "PL-1038",
-      "ClientName": "Circular Textiles Co.",
-      "DealName": "Circular Fiber Reactor",
-      "CommercialStage": "Delivery · Commissioning Phase",
-      "CreatedAt": "2026-07-24T13:49:55.784Z",
-      "DocCategory": "General",
-      "DocType": "Unclassified Document",
-      "DocumentName": "Circular Fiber Reactor Quotation",
-      "Revision": "01",
-      "FileLeafRef": "PL-1038_General-Unclassified Document.01 536123 ZQU 001 A02 Appendix 1 Design Basis Verona.pdf",
-      "id": 13
     }
   ],
-  "researchReports": [],
   "outlookEvidence": [
     {
       "id": "oe-julian-tessarzik",
@@ -2115,8 +1536,7 @@
         }
       ],
       "calendarEvents": [],
-      "connectedAt": "2026-06-25T08:00:00",
-      "reconciledAt": "2026-07-14T15:49:22.476Z"
+      "connectedAt": "2026-06-25T08:00:00"
     },
     {
       "id": "oe-smartgas-company",
@@ -2179,5 +1599,6 @@
       "calendarEvents": [],
       "connectedAt": "2026-06-20T08:00:00"
     }
-  ]
+  ],
+  "researchReports": []
 }

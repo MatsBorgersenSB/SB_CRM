@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Project360PageShell } from "@/components/layout/project-360-page-shell";
-import { isNextNotFound, pickEntityRouteParam } from "@/lib/entity-route-utils";
+import { pickEntityRouteParam } from "@/lib/entity-route-utils";
 import { readProjects } from "@/lib/project-db";
 import { resolveProjectRouteRecord } from "@/lib/resolve-project-route";
 import { readAssignableStandardBioUsers } from "@/lib/standard-bio-users-server";
@@ -14,53 +14,44 @@ import {
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 
 type Project360PageProps = {
-  params: Promise<EntityRouteParams & { projectId?: string }>;
+  params: Promise<EntityRouteParams>;
 };
 
 export default async function Project360Page({ params }: Project360PageProps) {
   const resolvedParams = await params;
-  const projectId = pickEntityRouteParam(resolvedParams, ["projectId", "id"]);
+  const rawKey = pickEntityRouteParam(resolvedParams, ["projectId", "id"]);
 
-  if (!projectId) {
+  if (!rawKey) {
     notFound();
   }
 
-  try {
-    const [projects, companies, pipelines, activities, commercialPackages, standardBioUsers] =
-      await Promise.all([
-        readProjects(),
-        readCompanies(),
-        readPipelines(),
-        readActivities(),
-        readCommercialPackages(),
-        readAssignableStandardBioUsers(),
-      ]);
+  const [projects, companies, pipelines, activities, commercialPackages, standardBioUsers] =
+    await Promise.all([
+      readProjects(),
+      readCompanies(),
+      readPipelines(),
+      readActivities(),
+      readCommercialPackages(),
+      readAssignableStandardBioUsers(),
+    ]);
 
-    const project = await resolveProjectRouteRecord(projects, projectId);
+  const project = await resolveProjectRouteRecord(projects, rawKey);
 
-    if (!project) {
-      notFound();
-    }
-
-    return (
-      <Suspense fallback={null}>
-        <Project360PageShell
-          projectId={project.id}
-          project={project}
-          companies={companies}
-          pipelines={pipelines}
-          activities={activities}
-          commercialPackages={commercialPackages}
-          standardBioUsers={standardBioUsers}
-        />
-      </Suspense>
-    );
-  } catch (error) {
-    if (isNextNotFound(error)) throw error;
-    console.error(
-      "[Project360Page] Project detail failed:",
-      error instanceof Error ? error.message : error,
-    );
+  if (!project) {
     notFound();
   }
+
+  return (
+    <Suspense fallback={null}>
+      <Project360PageShell
+        projectId={project.id}
+        project={project}
+        companies={companies}
+        pipelines={pipelines}
+        activities={activities}
+        commercialPackages={commercialPackages}
+        standardBioUsers={standardBioUsers}
+      />
+    </Suspense>
+  );
 }

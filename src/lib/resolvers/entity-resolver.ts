@@ -1,6 +1,6 @@
 /**
- * Universal resolver to locate an entity by ID, code, slug, email, or name
- * across Neon PostgreSQL (Prisma) and static portfolio / seed datasets.
+ * Universal resolver: normalize URL param → Prisma (try/catch) → portfolio/seed fallback.
+ * Prefer matching the live portfolio first when provided — UI links use those IDs.
  */
 
 export type EntityRouteParams = {
@@ -14,16 +14,16 @@ export type EntityRouteParams = {
 };
 
 export type ResolveEntityOptions<T extends Record<string, unknown>> = {
-  /** Field names on seed rows to compare (case-insensitive). */
   matchKeys?: (keyof T)[];
-  /**
-   * Extra match values (nested emails, tracking codes, aliases).
-   * Compared case-insensitively alongside matchKeys.
-   */
   getMatchValues?: (item: T) => unknown[];
+  /**
+   * When true (default), match `fallbackArray` before calling Prisma.
+   * Detail pages share the same portfolio as list pages — those IDs must win.
+   */
+  preferFallbackFirst?: boolean;
 };
 
-/** Strip query string, decode URI, trim — keep original casing for DB ids. */
+/** Strip query string, decode URI, trim. */
 export function normalizeEntityParam(rawParam: string | undefined | null): string {
   if (rawParam == null) return "";
   const withoutQuery = String(rawParam).split("?")[0] ?? "";
@@ -34,15 +34,10 @@ export function normalizeEntityParam(rawParam: string | undefined | null): strin
   }
 }
 
-/** Lowercase form used for seed / dual-store string comparisons. */
 export function toEntitySearchKey(rawParam: string | undefined | null): string {
   return normalizeEntityParam(rawParam).toLowerCase();
 }
 
-/**
- * Prefer entity-specific keys, then generic `id`.
- * Example: pickEntityRouteParam(params, ["contactId", "id"])
- */
 export function pickEntityRouteParam(
   params: EntityRouteParams | Record<string, string | undefined>,
   preferredKeys: Array<keyof EntityRouteParams | string> = [
@@ -55,8 +50,7 @@ export function pickEntityRouteParam(
   ],
 ): string {
   for (const key of preferredKeys) {
-    const value = params[key as string];
-    const normalized = normalizeEntityParam(value);
+    const normalized = normalizeEntityParam(params[key as string]);
     if (normalized) return normalized;
   }
   return "";
@@ -98,13 +92,22 @@ function itemMatchesSeed<T extends Record<string, unknown>>(
   return false;
 }
 
+function findInFallback<T extends Record<string, unknown>>(
+  fallbackArray: T[],
+  cleanKey: string,
+  matchKeys: (keyof T)[],
+  getMatchValues?: (item: T) => unknown[],
+): T | null {
+  return (
+    fallbackArray.find((item) =>
+      itemMatchesSeed(item, cleanKey, matchKeys, getMatchValues),
+    ) ?? null
+  );
+}
+
 /**
- * Resolve an entity from a URL param:
- * 1. Normalize (decode URI, strip query params)
- * 2. Query Prisma via `dbQuery` with try/catch (case-insensitive OR handled inside dbQuery)
- * 3. Fall back to local portfolio / seed array if Prisma returns null or throws
- *
- * Callers should only invoke `notFound()` when this returns null.
+ * Resolve an entity from a URL param against Prisma and/or local portfolio data.
+ * Returns null only when both stores miss — callers should then `notFound()`.
  */
 export async function resolveEntity<T extends Record<string, unknown>>(
   rawParam: string | undefined,
@@ -124,29 +127,32 @@ export async function resolveEntity<T extends Record<string, unknown>>(
   const matchKeys =
     options.matchKeys ??
     (["id", "code", "slug", "email", "name"] as (keyof T)[]);
+  const preferFallbackFirst = options.preferFallbackFirst !== false;
 
-  // 2. Query Neon PostgreSQL via Prisma
+  // 1. Portfolio / seed first (same IDs the list pages render and link)
+  if (preferFallbackFirst && fallbackArray.length > 0) {
+    const local = findInFallback(
+      fallbackArray,
+      cleanKey,
+      matchKeys,
+      options.getMatchValues,
+    );
+    if (local) return local;
+  }
+
+  // 2. Prisma (never throws out of this helper)
   try {
     const dbRecord = await dbQuery(displayKey);
     if (dbRecord) return dbRecord;
   } catch (err) {
-    console.warn(`[EntityResolver] DB query fallback for "${cleanKey}":`, err);
+    console.warn(`[EntityResolver] DB query fallback for "${displayKey}":`, err);
   }
 
-  // Retry lowercased key for email / name style params
-  if (cleanKey !== displayKey) {
-    try {
-      const dbRecord = await dbQuery(cleanKey);
-      if (dbRecord) return dbRecord;
-    } catch (err) {
-      console.warn(`[EntityResolver] DB query fallback for "${cleanKey}":`, err);
-    }
-  }
-
-  // 3. Fallback to local portfolio / seed dataset
-  const seedRecord = fallbackArray.find((item) =>
-    itemMatchesSeed(item, cleanKey, matchKeys, options.getMatchValues),
+  // 3. Seed fallback if we skipped it earlier, or Prisma missed
+  return findInFallback(
+    fallbackArray,
+    cleanKey,
+    matchKeys,
+    options.getMatchValues,
   );
-
-  return seedRecord ?? null;
 }
