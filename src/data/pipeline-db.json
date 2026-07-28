@@ -42,7 +42,12 @@
         "prod-material-reception",
         "prod-dryer",
         "svc-product-validation"
-      ]
+      ],
+      "ClientLookup": "PL-1038",
+      "DocCategory": "General",
+      "DocType": "Unclassified Document",
+      "Revision": "01",
+      "FileLeafRef": "PL-1038_General-Unclassified Document.01 536123 ZQU 001 A02 Appendix 1 Design Basis Verona.pdf"
     },
     {
       "id": "PL-1031",
@@ -1517,6 +1522,59 @@
       },
       "OutlookConversationId": "conv-jt-qual",
       "ReconciledFromOutlook": true
+    },
+    {
+      "id": 11,
+      "ActivityID": "ACT-9011",
+      "ActivityType": "Teams Meeting",
+      "ActivityDate": "2026-07-24T09:00:00",
+      "Subject": "Complete overdue commitment",
+      "ActivityDescription": "Planned teams meeting.",
+      "Summary": "Commitment overdue by 14 days — trust and health score at risk.",
+      "KeyDecisions": [],
+      "AgreedActions": [],
+      "Risks": [],
+      "LinkedDocuments": [],
+      "LinkedDeals": [
+        {
+          "Id": 0,
+          "Title": "PL-1038"
+        }
+      ],
+      "LinkedContacts": [
+        {
+          "Id": 0,
+          "Title": "Maya Chen"
+        }
+      ],
+      "Stakeholders": [],
+      "Company": {
+        "Id": 2,
+        "Title": "Circular Textiles Co."
+      },
+      "Contact": {
+        "Id": 201,
+        "Title": "Maya Chen"
+      },
+      "Deal": {
+        "Id": 0,
+        "Title": "PL-1038"
+      },
+      "ActivityOwner": {
+        "Id": 1,
+        "Title": "Mats Borgersen"
+      },
+      "ActionRequired": true,
+      "NextAction": "Complete Overdue Commitment",
+      "NextActionDate": "2026-07-10",
+      "ActionStatus": "Planned",
+      "ActionOutcome": "",
+      "DurationMinutes": 60,
+      "Priority": "Normal",
+      "M365Targets": {
+        "outlook": true,
+        "teams": true
+      }
     }
   ],
   "commercialPackages": [
@@ -1977,6 +2035,21 @@
       "Revision": "01",
       "FileLeafRef": "PL-1031_Technical-Clarifications.01 Engineering Notes.pdf",
       "DocumentSetID": "EX-001"
+    },
+    {
+      "SmartDocID": "PL-1038-G-GEN-0001",
+      "DealId": "PL-1038",
+      "PlNumber": "PL-1038",
+      "ClientName": "Circular Textiles Co.",
+      "DealName": "Circular Fiber Reactor",
+      "CommercialStage": "Delivery · Commissioning Phase",
+      "CreatedAt": "2026-07-24T13:49:55.784Z",
+      "DocCategory": "General",
+      "DocType": "Unclassified Document",
+      "DocumentName": "Circular Fiber Reactor Quotation",
+      "Revision": "01",
+      "FileLeafRef": "PL-1038_General-Unclassified Document.01 536123 ZQU 001 A02 Appendix 1 Design Basis Verona.pdf",
+      "id": 13
     }
   ],
   "researchReports": [],

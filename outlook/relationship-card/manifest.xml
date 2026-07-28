@@ -7,16 +7,16 @@
   xsi:type="MailApp"
 >
   <Id>6f3c8b2a-9d4e-4a1c-b7e2-smartcrm-outlook-v1</Id>
-  <Version>1.1.0.0</Version>
+  <Version>1.1.1.0</Version>
   <ProviderName>SmartCRM</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="SmartCRM for Outlook" />
   <Description DefaultValue="Relationship intelligence and meeting briefings — prepare in under 30 seconds." />
-  <IconUrl DefaultValue="https://localhost:3000/favicon.ico" />
-  <HighResolutionIconUrl DefaultValue="https://localhost:3000/favicon.ico" />
-  <SupportUrl DefaultValue="https://localhost:3000" />
+  <IconUrl DefaultValue="https://sb-crm-seven.vercel.app/assets/icon-64.png" />
+  <HighResolutionIconUrl DefaultValue="https://sb-crm-seven.vercel.app/assets/icon-128.png" />
+  <SupportUrl DefaultValue="https://sb-crm-seven.vercel.app" />
   <AppDomains>
-    <AppDomain>https://localhost:3000</AppDomain>
+    <AppDomain>https://sb-crm-seven.vercel.app</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Mailbox" />
@@ -29,7 +29,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://localhost:3000/outlook/relationship-card" />
+        <SourceLocation DefaultValue="https://sb-crm-seven.vercel.app/outlook-addin" />
         <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -112,13 +112,13 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="SmartCRM.Icon16" DefaultValue="https://localhost:3000/favicon.ico" />
-        <bt:Image id="SmartCRM.Icon32" DefaultValue="https://localhost:3000/favicon.ico" />
-        <bt:Image id="SmartCRM.Icon80" DefaultValue="https://localhost:3000/favicon.ico" />
+        <bt:Image id="SmartCRM.Icon16" DefaultValue="https://sb-crm-seven.vercel.app/assets/icon-64.png" />
+        <bt:Image id="SmartCRM.Icon32" DefaultValue="https://sb-crm-seven.vercel.app/assets/icon-64.png" />
+        <bt:Image id="SmartCRM.Icon80" DefaultValue="https://sb-crm-seven.vercel.app/assets/icon-128.png" />
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="SmartCRM.RelationshipCard.Url" DefaultValue="https://localhost:3000/outlook/relationship-card" />
-        <bt:Url id="SmartCRM.MeetingBriefing.Url" DefaultValue="https://localhost:3000/outlook/meeting-briefing" />
+        <bt:Url id="SmartCRM.RelationshipCard.Url" DefaultValue="https://sb-crm-seven.vercel.app/outlook-addin" />
+        <bt:Url id="SmartCRM.MeetingBriefing.Url" DefaultValue="https://sb-crm-seven.vercel.app/outlook/meeting-briefing" />
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="SmartCRM.GroupLabel" DefaultValue="SmartCRM" />
