@@ -1,6 +1,7 @@
 import type { PipelineRow } from "@/types/pipeline";
 import { isPipelineTrackingCode } from "@/lib/entity-route-utils";
 import { withPrismaRetry } from "@/lib/prisma";
+import { resolveEntity } from "@/lib/resolvers/entity-resolver";
 
 /** Match opportunity/deal in live/JSON portfolio by id, PL- code, or name. */
 export function findOpportunityInPortfolio(
@@ -12,7 +13,7 @@ export function findOpportunityInPortfolio(
   const lower = key.toLowerCase();
 
   return pipelines.find((pipeline) => {
-    if (pipeline.id === key) return true;
+    if (pipeline.id === key || pipeline.id.toLowerCase() === lower) return true;
     if (pipeline.assetName?.trim().toLowerCase() === lower) return true;
     return false;
   });
@@ -52,29 +53,28 @@ export async function findPrismaOpportunityByRouteKey(routeKey: string) {
 }
 
 /**
- * Resolve deal/opportunity route: Prisma first (try/catch), then portfolio/JSON dual-store.
+ * Resolve deal/opportunity route via universal entity resolver (Prisma → portfolio/seed).
  */
 export async function resolveOpportunityRouteRecord(
   pipelines: PipelineRow[],
   routeKey: string,
 ): Promise<PipelineRow | undefined> {
-  const key = routeKey.trim();
-  if (!key) return undefined;
-
-  try {
-    const prismaOpportunity = await findPrismaOpportunityByRouteKey(key);
-    if (prismaOpportunity) {
-      const fromLive =
+  const record = await resolveEntity(
+    routeKey,
+    async (searchKey) => {
+      const prismaOpportunity = await findPrismaOpportunityByRouteKey(searchKey);
+      if (!prismaOpportunity) return null;
+      return (
         findOpportunityInPortfolio(pipelines, prismaOpportunity.id) ??
-        findOpportunityInPortfolio(pipelines, prismaOpportunity.name);
-      if (fromLive) return fromLive;
-    }
-  } catch (error) {
-    console.warn(
-      "[resolve-opportunity-route] Falling back to portfolio:",
-      error instanceof Error ? error.message : error,
-    );
-  }
+        findOpportunityInPortfolio(pipelines, prismaOpportunity.name) ??
+        null
+      );
+    },
+    pipelines as Array<PipelineRow & Record<string, unknown>>,
+    {
+      matchKeys: ["id", "assetName"],
+    },
+  );
 
-  return findOpportunityInPortfolio(pipelines, key);
+  return record ?? undefined;
 }

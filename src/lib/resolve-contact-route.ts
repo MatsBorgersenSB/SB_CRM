@@ -1,6 +1,7 @@
 import type { Company } from "@/lib/companies-data";
 import {
   findContactByContactId,
+  getGlobalContactRecords,
   type GlobalContactRecord,
 } from "@/lib/contact-utils";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/lib/entity-route-utils";
 import { withPrismaRetry } from "@/lib/prisma";
 import { toContactTrackingId } from "@/lib/prisma-mappers";
+import { resolveEntity } from "@/lib/resolvers/entity-resolver";
 import type { PipelineRow } from "@/types/pipeline";
 
 /**
@@ -59,13 +61,10 @@ export async function findPrismaContactByIdOrEmail(routeKey: string) {
       );
     }
 
-    // Full-name match (Reality First — exact, case-insensitive)
     const byName = await withPrismaRetry((prisma) =>
       prisma.contact.findFirst({
         where: {
-          OR: [
-            { fullName: { equals: key, mode: "insensitive" } },
-          ],
+          fullName: { equals: key, mode: "insensitive" },
         },
         include: { company: true },
       }),
@@ -81,7 +80,7 @@ export async function findPrismaContactByIdOrEmail(routeKey: string) {
 }
 
 /**
- * Resolve contact route: Prisma first (try/catch), then portfolio/JSON dual-store.
+ * Resolve contact route via universal entity resolver (Prisma → portfolio/seed).
  */
 export async function resolveContactRouteRecord(
   companies: Company[],
@@ -89,24 +88,45 @@ export async function resolveContactRouteRecord(
   routeKey: string,
   companyHint?: string,
 ): Promise<GlobalContactRecord | undefined> {
-  const key = routeKey.trim();
-  if (!key) return undefined;
+  const fallback = getGlobalContactRecords(companies, pipelines);
 
-  try {
-    const prismaContact = await findPrismaContactByIdOrEmail(key);
-    if (prismaContact) {
+  const record = await resolveEntity(
+    routeKey,
+    async (searchKey) => {
+      const prismaContact = await findPrismaContactByIdOrEmail(searchKey);
+      if (!prismaContact) return null;
       const trackingId = toContactTrackingId(prismaContact.id);
-      const fromLive =
+      return (
         findContactByContactId(companies, pipelines, trackingId, companyHint) ??
-        findContactByContactId(companies, pipelines, trackingId);
-      if (fromLive) return fromLive;
-    }
-  } catch (error) {
-    console.warn(
-      "[resolve-contact-route] Falling back to portfolio:",
-      error instanceof Error ? error.message : error,
+        findContactByContactId(companies, pipelines, trackingId) ??
+        null
+      );
+    },
+    fallback as Array<GlobalContactRecord & Record<string, unknown>>,
+    {
+      matchKeys: ["companyId", "companyName"],
+      getMatchValues: (row) => [
+        row.contact.ContactID,
+        row.contact.id,
+        String(row.contact.id),
+        row.contact.Email,
+        row.contact.Title,
+        `${row.contact.FirstName} ${row.contact.LastName}`.trim(),
+      ],
+    },
+  );
+
+  if (!record) return undefined;
+
+  if (companyHint && record.companyId !== companyHint) {
+    const scoped = findContactByContactId(
+      companies,
+      pipelines,
+      record.contact.ContactID,
+      companyHint,
     );
+    return scoped ?? record;
   }
 
-  return findContactByContactId(companies, pipelines, key, companyHint);
+  return record;
 }

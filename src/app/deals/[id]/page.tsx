@@ -1,16 +1,17 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Deal360PageShell } from "@/components/layout/deal-360-page-shell";
-import { isNextNotFound, normalizeRouteKey } from "@/lib/entity-route-utils";
+import { isNextNotFound, pickEntityRouteParam } from "@/lib/entity-route-utils";
 import {
   readLiveActivities,
   readLiveCommercialPackages,
   readLivePortfolio,
 } from "@/lib/prisma-data";
 import { resolveOpportunityRouteRecord } from "@/lib/resolve-opportunity-route";
+import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 
 type Deal360PageProps = {
-  params: Promise<{ id: string }>;
+  params: Promise<EntityRouteParams>;
 };
 
 /**
@@ -19,7 +20,11 @@ type Deal360PageProps = {
  */
 export default async function Deal360Page({ params }: Deal360PageProps) {
   const resolvedParams = await params;
-  const dealId = normalizeRouteKey(resolvedParams.id);
+  const dealId = pickEntityRouteParam(resolvedParams, [
+    "dealId",
+    "opportunityId",
+    "id",
+  ]);
 
   if (!dealId) {
     notFound();

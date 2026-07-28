@@ -6,6 +6,7 @@ import {
 } from "@/lib/entity-route-utils";
 import { withPrismaRetry } from "@/lib/prisma";
 import { toCompanyTrackingId } from "@/lib/prisma-mappers";
+import { resolveEntity } from "@/lib/resolvers/entity-resolver";
 
 /** Match company in live/JSON portfolio by id, CO- code, name, domain, or email. */
 export function findCompanyInPortfolio(
@@ -17,8 +18,12 @@ export function findCompanyInPortfolio(
   const lower = key.toLowerCase();
 
   return companies.find((company) => {
-    if (company.CompanyID === key) return true;
-    if (String(company.id) === key) return true;
+    if (company.CompanyID === key || company.CompanyID?.toLowerCase() === lower) {
+      return true;
+    }
+    if (String(company.id) === key || String(company.id).toLowerCase() === lower) {
+      return true;
+    }
     if (company.Title?.trim().toLowerCase() === lower) return true;
     if (company.Domain?.trim().toLowerCase() === lower) return true;
     if (company.Email?.trim().toLowerCase() === lower) return true;
@@ -80,30 +85,30 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
 }
 
 /**
- * Resolve company route: Prisma first (try/catch), then portfolio/JSON dual-store.
+ * Resolve company route via universal entity resolver (Prisma → portfolio/seed).
  */
 export async function resolveCompanyRouteRecord(
   companies: Company[],
   routeKey: string,
 ): Promise<Company | undefined> {
-  const key = routeKey.trim();
-  if (!key) return undefined;
-
-  try {
-    const prismaCompany = await findPrismaCompanyByRouteKey(key);
-    if (prismaCompany) {
-      const fromLive =
+  const record = await resolveEntity(
+    routeKey,
+    async (searchKey) => {
+      const prismaCompany = await findPrismaCompanyByRouteKey(searchKey);
+      if (!prismaCompany) return null;
+      return (
         findCompanyInPortfolio(companies, toCompanyTrackingId(prismaCompany.id)) ??
         findCompanyInPortfolio(companies, prismaCompany.id) ??
-        findCompanyInPortfolio(companies, prismaCompany.name);
-      if (fromLive) return fromLive;
-    }
-  } catch (error) {
-    console.warn(
-      "[resolve-company-route] Falling back to portfolio:",
-      error instanceof Error ? error.message : error,
-    );
-  }
+        findCompanyInPortfolio(companies, prismaCompany.name) ??
+        null
+      );
+    },
+    companies as Array<Company & Record<string, unknown>>,
+    {
+      matchKeys: ["CompanyID", "Title", "Domain", "Email"],
+      getMatchValues: (company) => [company.id, String(company.id)],
+    },
+  );
 
-  return findCompanyInPortfolio(companies, key);
+  return record ?? undefined;
 }

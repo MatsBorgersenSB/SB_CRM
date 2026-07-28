@@ -2,23 +2,24 @@ import {
   toCompanyTrackingId,
   toContactTrackingId,
 } from "@/lib/prisma-mappers";
+import {
+  normalizeEntityParam,
+  pickEntityRouteParam,
+  type EntityRouteParams,
+} from "@/lib/resolvers/entity-resolver";
+
+export { pickEntityRouteParam, type EntityRouteParams };
 
 /**
  * Normalize a dynamic route segment for entity lookup.
- * Accepts whichever param the page uses (id / contactId / companyId).
+ * Accepts whichever param the page uses (id / contactId / companyId / …).
  */
 export function normalizeRouteKey(
   ...candidates: Array<string | undefined | null>
 ): string {
   for (const candidate of candidates) {
-    if (candidate == null) continue;
-    const raw = String(candidate);
-    if (!raw.trim()) continue;
-    try {
-      return decodeURIComponent(raw).trim();
-    } catch {
-      return raw.trim();
-    }
+    const normalized = normalizeEntityParam(candidate);
+    if (normalized) return normalized;
   }
   return "";
 }

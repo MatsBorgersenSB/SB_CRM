@@ -1,16 +1,17 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Deal360PageShell } from "@/components/layout/deal-360-page-shell";
-import { isNextNotFound, normalizeRouteKey } from "@/lib/entity-route-utils";
+import { isNextNotFound, pickEntityRouteParam } from "@/lib/entity-route-utils";
 import {
   readLiveActivities,
   readLiveCommercialPackages,
   readLivePortfolio,
 } from "@/lib/prisma-data";
 import { resolveOpportunityRouteRecord } from "@/lib/resolve-opportunity-route";
+import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 
 type OpportunityDetailPageProps = {
-  params: Promise<{ id: string }>;
+  params: Promise<EntityRouteParams>;
 };
 
 /**
@@ -21,7 +22,11 @@ export default async function OpportunityDetailPage({
   params,
 }: OpportunityDetailPageProps) {
   const resolvedParams = await params;
-  const opportunityId = normalizeRouteKey(resolvedParams.id);
+  const opportunityId = pickEntityRouteParam(resolvedParams, [
+    "opportunityId",
+    "dealId",
+    "id",
+  ]);
 
   if (!opportunityId) {
     notFound();

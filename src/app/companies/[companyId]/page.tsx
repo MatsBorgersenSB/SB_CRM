@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Company360Shell } from "@/components/company-360/company-360-shell";
-import { isNextNotFound, normalizeRouteKey } from "@/lib/entity-route-utils";
+import { isNextNotFound, pickEntityRouteParam } from "@/lib/entity-route-utils";
 import { readProjects } from "@/lib/project-db";
 import { readInventory } from "@/lib/pipeline-db";
 import {
@@ -10,14 +10,15 @@ import {
   readLivePortfolio,
 } from "@/lib/prisma-data";
 import { resolveCompanyRouteRecord } from "@/lib/resolve-company-route";
+import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 
 type Company360PageProps = {
-  params: Promise<{ companyId: string }>;
+  params: Promise<EntityRouteParams & { companyId?: string }>;
 };
 
 export default async function Company360Page({ params }: Company360PageProps) {
   const resolvedParams = await params;
-  const companyId = normalizeRouteKey(resolvedParams.companyId);
+  const companyId = pickEntityRouteParam(resolvedParams, ["companyId", "id"]);
 
   if (!companyId) {
     notFound();

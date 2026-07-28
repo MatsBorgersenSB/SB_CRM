@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Contact360PageShell } from "@/components/layout/contact-360-page-shell";
-import { isNextNotFound, normalizeRouteKey } from "@/lib/entity-route-utils";
+import { isNextNotFound, pickEntityRouteParam } from "@/lib/entity-route-utils";
 import { readProjects } from "@/lib/project-db";
 import {
   readLiveActivities,
@@ -10,9 +10,10 @@ import {
   readLivePortfolio,
 } from "@/lib/prisma-data";
 import { resolveContactRouteRecord } from "@/lib/resolve-contact-route";
+import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 
 type Contact360PageProps = {
-  params: Promise<{ contactId: string }>;
+  params: Promise<EntityRouteParams & { contactId?: string }>;
   searchParams?: Promise<{ company?: string | string[] }>;
 };
 
@@ -29,7 +30,7 @@ export default async function Contact360Page({
   searchParams,
 }: Contact360PageProps) {
   const resolvedParams = await params;
-  const contactId = normalizeRouteKey(resolvedParams.contactId);
+  const contactId = pickEntityRouteParam(resolvedParams, ["contactId", "id"]);
 
   if (!contactId) {
     notFound();
@@ -60,6 +61,7 @@ export default async function Contact360Page({
       companyHint,
     );
 
+    // notFound only when Prisma AND portfolio/seed both miss
     if (!record) {
       notFound();
     }
