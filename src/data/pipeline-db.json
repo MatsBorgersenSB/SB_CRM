@@ -537,6 +537,31 @@
           "RelationshipLevel": "Vendor"
         }
       ]
+    },
+    {
+      "id": 6,
+      "Title": "Ottem Test Prisma",
+      "CompanyID": "CO-1006",
+      "ParentCompany": null,
+      "Domain": "tottem.no",
+      "Industry": "Polymer Processing",
+      "CompanyTypes": [
+        "Prospect"
+      ],
+      "Status": "Prospecting",
+      "AccountOwner": {
+        "Id": 1,
+        "Title": "Mats Borgersen"
+      },
+      "Phone": "+47 71 69 20 00",
+      "Email": "post@tottem.no",
+      "AddressLine1": "",
+      "AddressLine2": "",
+      "PostalCode": "",
+      "City": "",
+      "Country": null,
+      "pipelineIds": [],
+      "contacts": []
     }
   ],
   "analytics": {
