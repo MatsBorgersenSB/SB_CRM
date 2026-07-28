@@ -4,9 +4,10 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { OpportunitiesOperationsTable } from "@/components/opportunity/opportunities-operations-table";
+import { OpportunityCreateModal } from "@/components/opportunity/opportunity-create-modal";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
-import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
+import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
@@ -21,7 +22,11 @@ import {
   sortOpportunityOperationsRows,
   type OpportunityOperationsFilter,
 } from "@/lib/opportunity-operations-data";
-import { filterCompaniesForUser, filterPipelinesForUser } from "@/lib/permissions";
+import {
+  canCreateOpportunity,
+  filterCompaniesForUser,
+  filterPipelinesForUser,
+} from "@/lib/permissions";
 import { EDITORIAL_GAP_BLOCK } from "@/lib/editorial-design-system";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -77,6 +82,10 @@ export function OpportunitiesOperationsShell({
   const [toolbarFilters, setToolbarFilters] = useState<WorkspaceFilterValues>(DEFAULT_FILTERS);
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("all");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createdPipelines, setCreatedPipelines] = useState<PipelineRow[]>([]);
+  const [createdCompanies, setCreatedCompanies] = useState<Company[]>([]);
+  const canCreate = canCreateOpportunity(user.role);
 
   const applyBridge = useCallback(
     (patch: { filters?: WorkspaceFilterValues; search?: string; owner?: string }) => {
@@ -90,14 +99,25 @@ export function OpportunitiesOperationsShell({
   useWorkspaceFilterBridge("opportunities", [...OPPORTUNITY_FILTER_KEYS], applyBridge);
   useWorkspaceFilterBridge("cvm", [...OPPORTUNITY_FILTER_KEYS], applyBridge);
 
-  const scopedCompanies = useMemo(
-    () => filterCompaniesForUser(companies, user),
-    [companies, user],
-  );
+  const scopedCompanies = useMemo(() => {
+    const base = filterCompaniesForUser(companies, user);
+    const byId = new Map(base.map((company) => [company.CompanyID, company]));
+    for (const company of createdCompanies) {
+      byId.set(company.CompanyID, company);
+    }
+    return Array.from(byId.values());
+  }, [companies, createdCompanies, user]);
+
+  const livePipelines = useMemo(() => {
+    const byId = new Map<string, PipelineRow>();
+    for (const row of pipelines) byId.set(row.id, row);
+    for (const row of createdPipelines) byId.set(row.id, row);
+    return Array.from(byId.values());
+  }, [pipelines, createdPipelines]);
 
   const scopedPipelines = useMemo(
-    () => filterPipelinesForUser(pipelines, user, companies),
-    [pipelines, user, companies],
+    () => filterPipelinesForUser(livePipelines, user, companies),
+    [livePipelines, user, companies],
   );
 
   const workspace = useMemo(
@@ -204,15 +224,41 @@ export function OpportunitiesOperationsShell({
     setOwner("all");
   }, []);
 
+  const handleOpportunityCreated = useCallback((deal: PipelineRow) => {
+    setCreatedPipelines((current) =>
+      current.some((row) => row.id === deal.id) ? current : [...current, deal],
+    );
+  }, []);
+
+  const handleCompanyCreated = useCallback((company: Company) => {
+    setCreatedCompanies((current) =>
+      current.some((row) => row.CompanyID === company.CompanyID)
+        ? current
+        : [...current, company],
+    );
+  }, []);
+
   return (
     <WorkspaceChrome>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
         <div className="flex min-w-0 items-center gap-2 text-[11px] text-carbon-blue/55">
           <SmartCRMIcon name="opportunity" size="xs" />
           <span className="font-semibold text-carbon-blue">Opportunities</span>
-          <span className="hidden text-carbon-blue/40 sm:inline">Opportunity understanding</span>
+          <span className="hidden text-carbon-blue/40 sm:inline">
+            Opportunity understanding & decision matrix
+          </span>
         </div>
         <div className="flex items-center gap-3">
+          {canCreate ? (
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-1 text-[10px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+            >
+              <SmartCRMIcon name="add" size="xs" />
+              New Opportunity
+            </button>
+          ) : null}
           <Link
             href="/intelligence"
             className="text-[10px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
@@ -259,6 +305,15 @@ export function OpportunitiesOperationsShell({
           </div>
         </div>
       </WorkspaceMain>
+
+      <OpportunityCreateModal
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreated={handleOpportunityCreated}
+        onCompanyCreated={handleCompanyCreated}
+        companies={scopedCompanies}
+        role={user.role}
+      />
     </WorkspaceChrome>
   );
 }
