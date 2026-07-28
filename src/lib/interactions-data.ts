@@ -15,7 +15,7 @@ export const defaultInteractions: Interaction[] = [
     type: "Deal Assignment",
     timestamp: "2026-07-04 09:12",
     summary:
-      "Elena Lindström assigned as Deal Sponsor on Polymer Regrind Loop (PL-1042).",
+      "Mats Borgersen assigned as Deal Sponsor on Polymer Regrind Loop (PL-1042).",
   },
   {
     interactionId: "INT-9002",
@@ -33,7 +33,7 @@ export const defaultInteractions: Interaction[] = [
     type: "Deal Assignment",
     timestamp: "2026-07-05 14:02",
     summary:
-      "Role transition logged: Elena elevated to cross-site Technical Lead on Thermal Recovery Line.",
+      "Role transition logged: Mats Borgersen elevated to cross-site Technical Lead on Thermal Recovery Line.",
   },
   {
     interactionId: "INT-9004",

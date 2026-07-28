@@ -233,8 +233,8 @@
       "Industry": "Polymer Processing",
       "Status": "Active",
       "AccountOwner": {
-        "Id": 12,
-        "Title": "Elena Lindström"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "Phone": "+46 8 555 0100",
       "Email": "info@nordicpolymers.se",
@@ -300,8 +300,8 @@
       "Industry": "Textile Recovery",
       "Status": "Contracted",
       "AccountOwner": {
-        "Id": 24,
-        "Title": "Maya Chen"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "Phone": "+1 503 555 2200",
       "Email": "",
@@ -366,8 +366,8 @@
       "Industry": "Chemical Manufacturing",
       "Status": "Active",
       "AccountOwner": {
-        "Id": 31,
-        "Title": "Sofia Marchetti"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "Phone": "+39 02 555 8800",
       "Email": "",
@@ -413,8 +413,8 @@
       "Industry": "Waste Management",
       "Status": "Prospecting",
       "AccountOwner": {
-        "Id": 41,
-        "Title": "James Holloway"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "Phone": "+44 161 555 3300",
       "Email": "",
@@ -479,8 +479,8 @@
       "Industry": "Energy & Infrastructure",
       "Status": "Active",
       "AccountOwner": {
-        "Id": 51,
-        "Title": "Amir Hassan"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "Phone": "+1 312 555 9000",
       "Email": "",
@@ -585,8 +585,8 @@
         "Title": "PL-1042"
       },
       "ActivityOwner": {
-        "Id": 12,
-        "Title": "Elena Lindström"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "ActionRequired": true,
       "NextAction": "Request material sample",
@@ -652,8 +652,8 @@
         "Title": "PL-1042"
       },
       "ActivityOwner": {
-        "Id": 12,
-        "Title": "Elena Lindström"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "ActionRequired": false,
       "NextAction": "",
@@ -707,8 +707,8 @@
         "Title": "PL-1031"
       },
       "ActivityOwner": {
-        "Id": 24,
-        "Title": "Maya Chen"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "ActionRequired": true,
       "NextAction": "Update deal team assignments",
@@ -761,8 +761,8 @@
         "Title": "PL-1031"
       },
       "ActivityOwner": {
-        "Id": 12,
-        "Title": "Elena Lindström"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "ActionRequired": true,
       "NextAction": "Schedule site sampling visit",
@@ -824,8 +824,8 @@
         "Title": "PL-1042"
       },
       "ActivityOwner": {
-        "Id": 12,
-        "Title": "Elena Lindström"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "ActionRequired": false,
       "NextAction": "",
@@ -877,8 +877,8 @@
         "Title": "PL-1038"
       },
       "ActivityOwner": {
-        "Id": 24,
-        "Title": "Maya Chen"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "ActionRequired": true,
       "NextAction": "Send commissioning timeline draft",
@@ -931,8 +931,8 @@
         "Title": "PL-1019"
       },
       "ActivityOwner": {
-        "Id": 41,
-        "Title": "James Holloway"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "ActionRequired": true,
       "NextAction": "Prepare feasibility assessment",
@@ -989,8 +989,8 @@
         "Title": "PL-1027"
       },
       "ActivityOwner": {
-        "Id": 31,
-        "Title": "Sofia Marchetti"
+        "Id": 1,
+        "Title": "Mats Borgersen"
       },
       "ActionRequired": false,
       "NextAction": "",
@@ -1142,7 +1142,7 @@
       "status": "frozen",
       "title": "Transmission — Formal Quotation Rev 03",
       "CreatedAt": "2026-06-12T09:30:00+02:00",
-      "CreatedBy": "Elena Lindström",
+      "CreatedBy": "Mats Borgersen",
       "parentPackageId": "PKG-9003",
       "recipient": "Elena Lindström <e.lindstrom@carbonemergente.com>",
       "sentAt": "2026-06-12T09:30:00+02:00",

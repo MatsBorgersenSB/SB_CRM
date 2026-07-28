@@ -4,7 +4,7 @@
       "id": "PRJ-CARBON-EMERGENTE",
       "name": "Carbon Emergente",
       "kind": "customer",
-      "owner": "Elena Lindström",
+      "owner": "Mats Borgersen",
       "status": "Active",
       "stage": "Operational",
       "priority": "High",
@@ -33,14 +33,14 @@
         {
           "id": "ms-ce-3",
           "title": "Feedstock qualification run",
-          "owner": "Elena Lindström",
+          "owner": "Mats Borgersen",
           "status": "Complete",
           "targetDate": "2026-07-20"
         },
         {
           "id": "ms-ce-4",
           "title": "Commercial commissioning",
-          "owner": "Elena Lindström",
+          "owner": "Mats Borgersen",
           "status": "Complete",
           "targetDate": "2026-08-30"
         }
@@ -50,7 +50,7 @@
           "id": "dec-ce-1",
           "decision": "Project commissioned and moved to operational follow-up",
           "date": "2026-08-30",
-          "owner": "Elena Lindström"
+          "owner": "Mats Borgersen"
         }
       ],
       "risks": [],
@@ -125,7 +125,7 @@
       "id": "PRJ-SMARTCRM-PLATFORM",
       "name": "SmartCRM Platform",
       "kind": "strategic",
-      "owner": "Sofia Marchetti",
+      "owner": "Mats Borgersen",
       "status": "Active",
       "priority": "High",
       "health": "Healthy",
@@ -192,15 +192,15 @@
         {
           "id": "ps-sc-pm",
           "role": "Project Manager",
-          "name": "Sofia Marchetti",
-          "userId": 31,
+          "name": "Walter Aker",
+          "userId": 100,
           "organizationId": "org-internal-standard-bio"
         },
         {
           "id": "ps-sc-pe",
           "role": "Technical Lead",
-          "name": "Maya Chen",
-          "userId": 24,
+          "name": "Hugo Jansson",
+          "userId": 101,
           "organizationId": "org-internal-standard-bio"
         },
         {
@@ -213,7 +213,8 @@
         {
           "id": "ps-sc-es",
           "role": "Executive Sponsor",
-          "name": "Commercial Leadership",
+          "name": "Bjørn Molskred",
+          "userId": 103,
           "organizationId": "org-internal-standard-bio",
           "influence": "High"
         }

@@ -133,7 +133,7 @@ export const defaultCommercialPackages: CommercialPackage[] = [
     status: "frozen",
     title: "Transmission — Formal Quotation Rev 03",
     CreatedAt: "2026-06-12T09:30:00+02:00",
-    CreatedBy: "Elena Lindström",
+    CreatedBy: "Mats Borgersen",
     parentPackageId: "PKG-9003",
     recipient: "Elena Lindström <e.lindstrom@carbonemergente.com>",
     sentAt: "2026-06-12T09:30:00+02:00",

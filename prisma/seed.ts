@@ -458,7 +458,7 @@ async function main() {
 
   // FS-009 — Email & Interaction Intelligence
   // 3-message thread: Mats Borgersen ↔ Anna Berg on Circular Fiber Reactor
-  const MATS_EMAIL = "mats.borgersen@standardbio.com";
+  const MATS_EMAIL = "mats.borgersen@standard.bio";
   const ANNA_EMAIL = "anna.berg@acme-renewables.example";
   const circularCapexConversationId = "seed-conv-circular-fiber-capex-2026";
 

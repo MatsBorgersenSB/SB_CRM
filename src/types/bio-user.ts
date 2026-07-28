@@ -3,14 +3,11 @@ import type { SharePointPerson } from "@/types/company";
 /** Standard Bio internal user — CRM relationship owner. */
 export type BioUser = SharePointPerson;
 
-/** Canonical Standard Bio staff eligible as company owners. */
+/** Canonical Standard Bio staff eligible as company / opportunity owners. */
 export const STANDARD_BIO_USERS: BioUser[] = [
   { Id: 1, Title: "Mats Borgersen" },
-  { Id: 2, Title: "John Smith" },
-  { Id: 3, Title: "Maria Andersson" },
-  { Id: 12, Title: "Elena Lindström" },
-  { Id: 24, Title: "Maya Chen" },
-  { Id: 31, Title: "Sofia Marchetti" },
-  { Id: 41, Title: "James Holloway" },
-  { Id: 51, Title: "Amir Hassan" },
+  { Id: 100, Title: "Walter Aker" },
+  { Id: 101, Title: "Hugo Jansson" },
+  { Id: 102, Title: "Ola Kjelsoas Rogndokken" },
+  { Id: 103, Title: "Bjørn Molskred" },
 ];
