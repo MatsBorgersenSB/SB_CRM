@@ -5,6 +5,17 @@ export { buildM365MeetingBriefing } from "./meeting-briefing";
 export { buildM365DailyFocus } from "./daily-focus";
 export { buildM365AccountWorkspace } from "./account-workspace";
 export {
+  ensureOpportunitySharePointFolder,
+  sanitizeSharePointName,
+  sanitizeSharePointFolderName,
+} from "./graph-client";
+export type { OpportunitySharePointFolder } from "./graph-client";
+export { getGraphAccessToken } from "./get-graph-access-token";
+export {
+  scheduleOpportunitySharePointFolderProvision,
+  linkOpportunitySharePointFolder,
+} from "./provision-opportunity-folder";
+export {
   resolveOutlookCounterpartyEmail,
   resolveOutlookSenderDetails,
   resolveDevEmail,

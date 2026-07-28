@@ -273,6 +273,11 @@ model Opportunity {
   // FS-011 Autonomous Workflow Engine
   workflowExecutions WorkflowExecution[]
 
+  // SharePoint Online — opportunity document folder (single source of truth)
+  sharepointFolderId  String?
+  sharepointFolderUrl String?
+  sharepointFolderPath String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
