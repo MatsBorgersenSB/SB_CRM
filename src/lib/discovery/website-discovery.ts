@@ -219,10 +219,37 @@ function inferCompanyName(htmlPages: string[], domain: string): string {
     .replace(/\s*:\s*.+$/u, "")
     .trim();
 
-  if (cleaned) return cleaned;
+  if (cleaned && !isUnusableCompanyTitle(cleaned)) return cleaned;
 
-  const base = domain.split(".")[0] ?? domain;
+  return companyNameFromDomain(domain);
+}
+
+/** Reject Apache/directory listings and empty website titles. */
+export function isUnusableCompanyTitle(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  if (!normalized) return true;
+  if (/^index of\b/.test(normalized)) return true;
+  if (normalized === "/" || normalized === "home" || normalized === "untitled") return true;
+  if (/^(welcome to|just a moment|access denied|403|404)\b/.test(normalized)) return true;
+  return false;
+}
+
+/** ottem.no → Ottem */
+export function companyNameFromDomain(domain: string): string {
+  const host = normalizeCompanyDomain(domain);
+  const base = (host.split(".")[0] ?? host).trim();
+  if (!base) return "New Company";
   return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
+/**
+ * Prefer a real company name; if discovery returned a website title like "Index of /",
+ * fall back to a capitalized domain label (e.g. Ottem).
+ */
+export function resolveDiscoveryCompanyName(name: string, domain: string): string {
+  const trimmed = name.trim();
+  if (trimmed && !isUnusableCompanyTitle(trimmed)) return trimmed;
+  return companyNameFromDomain(domain || name);
 }
 
 function extractImageBoxContacts(html: string): DiscoveredContact[] {

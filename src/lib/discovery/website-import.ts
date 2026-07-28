@@ -1,5 +1,8 @@
 import { companyHeroQuickEditToPatch, parseCompanyAddressInput } from "@/lib/company-identity";
-import { discoveryToCompanyCity } from "@/lib/discovery/website-discovery";
+import {
+  discoveryToCompanyCity,
+  resolveDiscoveryCompanyName,
+} from "@/lib/discovery/website-discovery";
 import type { DiscoveredContact, WebsiteDiscoveryResult } from "@/lib/discovery/types";
 import { normalizeCompanyDomain } from "@/lib/company-domain";
 import { normalizePhoneNumber } from "@/lib/m365/phone-normalization";
@@ -51,10 +54,14 @@ function splitPersonName(fullName: string): { firstName: string; lastName: strin
 function buildCompanyPatch(discovery: WebsiteDiscoveryResult) {
   const address = parseCompanyAddressInput(discovery.company.address);
   const city = address.City.trim() || discoveryToCompanyCity(discovery);
+  const domain =
+    normalizeCompanyDomain(discovery.company.domain) ||
+    normalizeCompanyDomain(discovery.company.website);
+  const title = resolveDiscoveryCompanyName(discovery.company.name, domain);
 
   return {
-    Title: discovery.company.name.trim(),
-    Domain: normalizeCompanyDomain(discovery.company.website),
+    Title: title,
+    Domain: domain,
     Phone: normalizePhoneNumber(discovery.company.phone),
     Email: discovery.company.email.trim(),
     ...address,
@@ -62,24 +69,52 @@ function buildCompanyPatch(discovery: WebsiteDiscoveryResult) {
   };
 }
 
+/** Sanitize discovery payload before persistence (name, domain, phone). */
+export function prepareDiscoveryForImport(
+  discovery: WebsiteDiscoveryResult,
+): WebsiteDiscoveryResult {
+  const domain =
+    normalizeCompanyDomain(discovery.company.domain) ||
+    normalizeCompanyDomain(discovery.company.website) ||
+    normalizeCompanyDomain(discovery.sourceUrl);
+  const name = resolveDiscoveryCompanyName(discovery.company.name, domain);
+  const phone = normalizePhoneNumber(discovery.company.phone);
+
+  return {
+    ...discovery,
+    company: {
+      ...discovery.company,
+      name,
+      domain,
+      website: domain || discovery.company.website,
+      phone,
+    },
+  };
+}
+
 export async function upsertCompanyFromDiscovery(
   discovery: WebsiteDiscoveryResult,
   accountOwner?: SharePointPerson | null,
 ): Promise<CompanyUpsertFromDiscoveryResult> {
+  const prepared = prepareDiscoveryForImport(discovery);
   const companies = await readCompanies();
-  const domain = normalizeCompanyDomain(discovery.company.domain);
+  const domain = normalizeCompanyDomain(prepared.company.domain);
 
   let company =
-    companies.find((record) => record.CompanyID === discovery.matchedCompanyId) ??
+    companies.find((record) => record.CompanyID === prepared.matchedCompanyId) ??
     companies.find((record) => normalizeCompanyDomain(record.Domain) === domain) ??
     null;
 
   let created = false;
-  const patch = buildCompanyPatch(discovery);
+  const patch = buildCompanyPatch(prepared);
 
   if (company) {
-    const ownerPatch =
-      !company.AccountOwner && accountOwner ? { AccountOwner: accountOwner } : {};
+    // Always apply owner when provided so Mats (or selected owner) sticks on import
+    const ownerPatch = accountOwner?.Title
+      ? { AccountOwner: resolveAccountOwner(accountOwner) }
+      : !company.AccountOwner
+        ? { AccountOwner: resolveAccountOwner(null) }
+        : {};
     company = await updateCompany(company.CompanyID, { ...patch, ...ownerPatch });
   } else {
     created = true;
@@ -217,16 +252,17 @@ async function importDiscoveredContact(
 }
 
 export function discoveryCompanyPreviewPatch(discovery: WebsiteDiscoveryResult) {
+  const prepared = prepareDiscoveryForImport(discovery);
   return companyHeroQuickEditToPatch(
     {
-      Title: discovery.company.name,
+      Title: prepared.company.name,
       Industry: "Polymer Processing",
       parentCompanyId: "",
       accountOwnerId: 0,
-      Phone: discovery.company.phone,
-      Email: discovery.company.email,
-      Domain: discovery.company.website,
-      address: discovery.company.address,
+      Phone: prepared.company.phone,
+      Email: prepared.company.email,
+      Domain: prepared.company.website,
+      address: prepared.company.address,
       CompanyTypes: ["Prospect"],
       tagsInput: "",
       Notes: "",

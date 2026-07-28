@@ -14,6 +14,8 @@ import {
   type ImportCompletionSummary,
   type WebsiteDiscoveryInsights,
 } from "@/lib/discovery/website-discovery-workflow";
+import { prepareDiscoveryForImport } from "@/lib/discovery/website-import";
+import { resolveDiscoveryCompanyName } from "@/lib/discovery/website-discovery";
 import type { Company } from "@/types/company";
 import { company360Href } from "@/types/company-360";
 import { authUserToAccountOwner, resolveOwnerById } from "@/lib/company-owner";
@@ -203,7 +205,7 @@ export function WebsiteDiscoveryPanel({
   const handleImport = async () => {
     if (!discovery) return;
 
-    // Company-only is valid — contacts are optional
+    // Contacts are optional — never block company-only import
     const selected = discovery.contacts.filter((c) => selectedContactIds.has(c.id));
     const startedAt = Date.now();
 
@@ -216,10 +218,17 @@ export function WebsiteDiscoveryPanel({
 
     try {
       const accountOwner = resolveOwnerById(accountOwnerId, companies) ?? defaultOwner;
+      const preparedDiscovery = prepareDiscoveryForImport(discovery);
+
       const companyResponse = await fetch("/api/discovery/website/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ discovery, phase: "company", accountOwner }),
+        body: JSON.stringify({
+          discovery: preparedDiscovery,
+          phase: "company",
+          accountOwner,
+          selectedContactIds: selected.map((contact) => contact.id),
+        }),
       });
 
       const companyBody = (await companyResponse.json()) as
@@ -258,7 +267,7 @@ export function WebsiteDiscoveryPanel({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            discovery,
+            discovery: preparedDiscovery,
             phase: "contact",
             companyId: company.CompanyID,
             contactId: contact.id,
@@ -303,7 +312,7 @@ export function WebsiteDiscoveryPanel({
       }
 
       const durationMs = Date.now() - startedAt;
-      const summary: ImportCompletionSummary = {
+      setCompletion({
         company,
         companyCreated: created,
         newContacts,
@@ -312,9 +321,7 @@ export function WebsiteDiscoveryPanel({
         errors,
         durationMs,
         importedContactIds: importedIds,
-      };
-
-      setCompletion(summary);
+      });
       setImportProgress((prev) => ({
         ...prev,
         currentContact: null,
@@ -323,15 +330,14 @@ export function WebsiteDiscoveryPanel({
 
       onImported(company);
       router.refresh();
-
-      const toastMessage =
-        selected.length === 0
-          ? `Imported company ${company.Title}`
-          : `Imported company ${company.Title} and ${selected.length} contact${selected.length === 1 ? "" : "s"}`;
-      showToast(toastMessage);
+      showToast("Company imported successfully!");
       reset();
     } catch (importError) {
-      setError(importError instanceof Error ? importError.message : "Import failed");
+      console.error("[WebsiteDiscovery] Failed to import company:", importError);
+      showToast("Failed to import company");
+      setError(
+        importError instanceof Error ? importError.message : "Failed to import company",
+      );
       setPhase("preview");
     }
   };
@@ -695,7 +701,12 @@ function PreviewPanel({
         <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
           Company Found
         </p>
-        <p className="mt-1 text-sm font-semibold text-carbon-blue">{discovery.company.name}</p>
+        <p className="mt-1 text-sm font-semibold text-carbon-blue">
+          {resolveDiscoveryCompanyName(
+            discovery.company.name,
+            discovery.company.domain || discovery.company.website,
+          )}
+        </p>
         {discovery.matchedCompanyId ? (
           <p className="mt-1 text-[10px] text-carbon-blue/50">
             Matches {discovery.matchedCompanyId}
