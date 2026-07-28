@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Contact360PageShell } from "@/components/layout/contact-360-page-shell";
+import { isNextNotFound, normalizeRouteKey } from "@/lib/entity-route-utils";
 import { readProjects } from "@/lib/project-db";
 import {
   readLiveActivities,
@@ -23,25 +24,12 @@ function readCompanyHint(
   return typeof raw === "string" && raw.length > 0 ? raw : undefined;
 }
 
-function isNextNotFound(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "digest" in error &&
-    String((error as { digest?: unknown }).digest).includes("NEXT_HTTP_ERROR")
-  );
-}
-
-/**
- * Contact 360 — resolves by ContactID, Prisma id, email, or M365 external id.
- * Missing records call notFound() (404) instead of throwing a 500.
- */
 export default async function Contact360Page({
   params,
   searchParams,
 }: Contact360PageProps) {
-  const { contactId: rawContactId } = await params;
-  const contactId = decodeURIComponent(rawContactId ?? "").trim();
+  const resolvedParams = await params;
+  const contactId = normalizeRouteKey(resolvedParams.contactId);
 
   if (!contactId) {
     notFound();
@@ -65,7 +53,6 @@ export default async function Contact360Page({
       readProjects(),
     ]);
 
-    // prisma.contact.findFirst OR id / email (via helper) + portfolio CT-… match
     const record = await resolveContactRouteRecord(
       companies,
       pipelines,

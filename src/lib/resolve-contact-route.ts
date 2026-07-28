@@ -3,31 +3,24 @@ import {
   findContactByContactId,
   type GlobalContactRecord,
 } from "@/lib/contact-utils";
+import {
+  contactTrackingMatches,
+  emailsIncludeAddress,
+  isContactTrackingCode,
+} from "@/lib/entity-route-utils";
 import { withPrismaRetry } from "@/lib/prisma";
 import { toContactTrackingId } from "@/lib/prisma-mappers";
 import type { PipelineRow } from "@/types/pipeline";
 
-function emailsIncludeAddress(emails: unknown, needle: string): boolean {
-  if (!Array.isArray(emails)) return false;
-  const target = needle.trim().toLowerCase();
-  if (!target) return false;
-  return emails.some((entry) => {
-    if (!entry || typeof entry !== "object") return false;
-    const address = (entry as { address?: unknown }).address;
-    return typeof address === "string" && address.trim().toLowerCase() === target;
-  });
-}
-
 /**
- * Prisma lookup by primary id OR email (emails Json[] — no scalar `email` field).
- * Never throws: returns null on miss / DB errors so the page can call notFound().
+ * Prisma lookup by primary id, M365 ids, CT- code, or email (emails Json[]).
+ * Never throws — returns null on miss / DB errors.
  */
 export async function findPrismaContactByIdOrEmail(routeKey: string) {
   const key = routeKey.trim();
   if (!key) return null;
 
   try {
-    // 1) Primary id + external M365 ids (valid Contact fields only — never `email` / `opportunities`)
     const byId = await withPrismaRetry((prisma) =>
       prisma.contact.findFirst({
         where: {
@@ -42,20 +35,42 @@ export async function findPrismaContactByIdOrEmail(routeKey: string) {
     );
     if (byId) return byId;
 
-    // 2) Email match against Json[] `emails` ({ address, type, isPrimary })
-    //    Schema has no scalar `email` — querying `{ email: key }` causes a 500.
-    if (!key.includes("@")) return null;
+    if (key.includes("@")) {
+      const candidates = await withPrismaRetry((client) =>
+        client.contact.findMany({
+          where: { status: "active" },
+          include: { company: true },
+        }),
+      );
+      return (
+        candidates.find((row) => emailsIncludeAddress(row.emails, key)) ?? null
+      );
+    }
 
-    const candidates = await withPrismaRetry((client) =>
-      client.contact.findMany({
-        where: { status: "active" },
+    if (isContactTrackingCode(key)) {
+      const candidates = await withPrismaRetry((client) =>
+        client.contact.findMany({
+          where: { status: { in: ["active", "archived"] } },
+          include: { company: true },
+        }),
+      );
+      return (
+        candidates.find((row) => contactTrackingMatches(row.id, key)) ?? null
+      );
+    }
+
+    // Full-name match (Reality First — exact, case-insensitive)
+    const byName = await withPrismaRetry((prisma) =>
+      prisma.contact.findFirst({
+        where: {
+          OR: [
+            { fullName: { equals: key, mode: "insensitive" } },
+          ],
+        },
         include: { company: true },
       }),
     );
-
-    return (
-      candidates.find((row) => emailsIncludeAddress(row.emails, key)) ?? null
-    );
+    return byName;
   } catch (error) {
     console.warn(
       "[resolve-contact-route] Prisma contact lookup failed:",
@@ -66,8 +81,7 @@ export async function findPrismaContactByIdOrEmail(routeKey: string) {
 }
 
 /**
- * Resolve a Contact 360 route key to a portfolio record.
- * Accepts ContactID (CT-…), numeric id, email, Prisma UUID, or M365 external ids.
+ * Resolve contact route: Prisma first (try/catch), then portfolio/JSON dual-store.
  */
 export async function resolveContactRouteRecord(
   companies: Company[],
@@ -78,21 +92,21 @@ export async function resolveContactRouteRecord(
   const key = routeKey.trim();
   if (!key) return undefined;
 
-  const fromPortfolio = findContactByContactId(
-    companies,
-    pipelines,
-    key,
-    companyHint,
-  );
-  if (fromPortfolio) return fromPortfolio;
+  try {
+    const prismaContact = await findPrismaContactByIdOrEmail(key);
+    if (prismaContact) {
+      const trackingId = toContactTrackingId(prismaContact.id);
+      const fromLive =
+        findContactByContactId(companies, pipelines, trackingId, companyHint) ??
+        findContactByContactId(companies, pipelines, trackingId);
+      if (fromLive) return fromLive;
+    }
+  } catch (error) {
+    console.warn(
+      "[resolve-contact-route] Falling back to portfolio:",
+      error instanceof Error ? error.message : error,
+    );
+  }
 
-  const prismaContact = await findPrismaContactByIdOrEmail(key);
-  if (!prismaContact) return undefined;
-
-  return findContactByContactId(
-    companies,
-    pipelines,
-    toContactTrackingId(prismaContact.id),
-    companyHint,
-  );
+  return findContactByContactId(companies, pipelines, key, companyHint);
 }
