@@ -57,6 +57,8 @@ model Company {
   city         String?
   stateRegion  String?
   country      String?
+  countryCode  String?
+  continent    String?
 
   emails       Json[] @default([]) // Array of { address, type, isPrimary }
   phoneNumbers Json[] @default([]) // Array of { number, type, isPrimary }

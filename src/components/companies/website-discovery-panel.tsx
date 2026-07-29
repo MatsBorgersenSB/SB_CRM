@@ -724,7 +724,17 @@ function PreviewPanel({
         <PreviewField label="Main Phone" value={discovery.company.phone} />
         <PreviewField label="Main Email" value={discovery.company.email} />
         <PreviewField label="Website" value={discovery.company.website} />
-        <PreviewField label="Address" value={discovery.company.address} className="sm:col-span-2" />
+        <PreviewField
+          label="Street"
+          value={discovery.company.streetAddress || discovery.company.address}
+          className="sm:col-span-2"
+        />
+        <PreviewField label="Postal code" value={discovery.company.postalCode} />
+        <PreviewField label="City" value={discovery.company.city} />
+        <PreviewField label="State / region" value={discovery.company.stateRegion} />
+        <PreviewField label="Country" value={discovery.company.country} />
+        <PreviewField label="Country code" value={discovery.company.countryCode} />
+        <PreviewField label="Continent" value={discovery.company.continent} />
       </dl>
 
       <div>

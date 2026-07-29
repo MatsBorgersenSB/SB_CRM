@@ -2,6 +2,10 @@ import "server-only";
 
 import type { NewCompanyInput } from "@/lib/entity-id";
 import { normalizeCompanyDomain } from "@/lib/company-domain";
+import {
+  getContinentByCountryCode,
+  resolveCountry,
+} from "@/lib/geo/country-continent";
 import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import {
   mapPrismaCompanyToApp,
@@ -66,6 +70,25 @@ function countryTitle(
   return country.Title?.trim() || null;
 }
 
+function geoFromCountryTitle(country: string | null | undefined): {
+  country: string | null;
+  countryCode: string | null;
+  continent: string | null;
+} {
+  if (!country?.trim()) {
+    return { country: null, countryCode: null, continent: null };
+  }
+  const resolved = resolveCountry(country);
+  if (!resolved) {
+    return { country: country.trim(), countryCode: null, continent: null };
+  }
+  return {
+    country: resolved.name,
+    countryCode: resolved.code,
+    continent: getContinentByCountryCode(resolved.code) || null,
+  };
+}
+
 async function resolvePrismaParentId(
   parent: SharePointPerson | null | undefined,
 ): Promise<string | null | undefined> {
@@ -108,6 +131,7 @@ export async function createRegistryCompany(
 
   const domain = normalizeCompanyDomain(input.Domain);
   const ownerId = input.AccountOwner?.Id != null ? String(input.AccountOwner.Id) : null;
+  const countryGeo = geoFromCountryTitle(countryTitle(input.Country));
 
   const created = await withPrismaRetry((prisma) =>
     prisma.company.create({
@@ -119,7 +143,9 @@ export async function createRegistryCompany(
         status: "active",
         city: input.City || null,
         addressLine1: input.AddressLine1 || null,
-        country: countryTitle(input.Country),
+        country: countryGeo.country,
+        countryCode: countryGeo.countryCode,
+        continent: countryGeo.continent,
         ownerId,
         emails: input.Email
           ? [{ address: input.Email, type: "work", isPrimary: true }]
@@ -153,6 +179,9 @@ export async function updateRegistryCompany(
 
     const domain = normalizeCompanyDomain(patch.Domain ?? jsonCompany.Domain);
     const owner = patch.AccountOwner ?? jsonCompany.AccountOwner;
+    const countryGeo = geoFromCountryTitle(
+      countryTitle(patch.Country ?? jsonCompany.Country),
+    );
     const created = await withPrismaRetry((prisma) =>
       prisma.company.create({
         data: {
@@ -166,7 +195,9 @@ export async function updateRegistryCompany(
           addressLine1: patch.AddressLine1 ?? jsonCompany.AddressLine1 ?? null,
           addressLine2: patch.AddressLine2 ?? jsonCompany.AddressLine2 ?? null,
           postalCode: patch.PostalCode ?? jsonCompany.PostalCode ?? null,
-          country: countryTitle(patch.Country ?? jsonCompany.Country),
+          country: countryGeo.country,
+          countryCode: countryGeo.countryCode,
+          continent: countryGeo.continent,
           ownerId: owner?.Id != null ? String(owner.Id) : null,
           emails: (patch.Email ?? jsonCompany.Email)
             ? [
@@ -218,7 +249,12 @@ export async function updateRegistryCompany(
   if (patch.AddressLine1 !== undefined) data.addressLine1 = patch.AddressLine1 || null;
   if (patch.AddressLine2 !== undefined) data.addressLine2 = patch.AddressLine2 || null;
   if (patch.PostalCode !== undefined) data.postalCode = patch.PostalCode || null;
-  if (patch.Country !== undefined) data.country = countryTitle(patch.Country);
+  if (patch.Country !== undefined) {
+    const countryGeo = geoFromCountryTitle(countryTitle(patch.Country));
+    data.country = countryGeo.country;
+    data.countryCode = countryGeo.countryCode;
+    data.continent = countryGeo.continent;
+  }
   if (patch.AccountOwner !== undefined) {
     data.ownerId =
       patch.AccountOwner?.Id != null ? String(patch.AccountOwner.Id) : null;

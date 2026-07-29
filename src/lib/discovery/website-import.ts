@@ -65,8 +65,16 @@ function splitPersonName(fullName: string): { firstName: string; lastName: strin
 }
 
 function buildCompanyPatch(discovery: WebsiteDiscoveryResult) {
-  const address = parseCompanyAddressInput(discovery.company.address);
-  const city = address.City.trim() || discoveryToCompanyCity(discovery);
+  const legacy = parseCompanyAddressInput(discovery.company.address);
+  const streetAddress =
+    discovery.company.streetAddress.trim() || legacy.AddressLine1.trim();
+  const postalCode = discovery.company.postalCode.trim() || legacy.PostalCode.trim();
+  const city =
+    discovery.company.city.trim() ||
+    legacy.City.trim() ||
+    discoveryToCompanyCity(discovery);
+  const countryName =
+    discovery.company.country.trim() || legacy.Country?.Title?.trim() || "";
   const domain =
     normalizeCompanyDomain(discovery.company.domain) ||
     normalizeCompanyDomain(discovery.company.website);
@@ -77,8 +85,27 @@ function buildCompanyPatch(discovery: WebsiteDiscoveryResult) {
     Domain: domain,
     Phone: normalizePhoneNumber(discovery.company.phone),
     Email: discovery.company.email.trim(),
-    ...address,
+    AddressLine1: streetAddress,
+    AddressLine2: legacy.AddressLine2,
+    PostalCode: postalCode,
     City: city === "—" ? "" : city,
+    Country: countryName ? { Id: 0, Title: countryName } : legacy.Country,
+    stateRegion: discovery.company.stateRegion.trim(),
+    countryCode: discovery.company.countryCode.trim().toUpperCase(),
+    continent: discovery.company.continent.trim(),
+  };
+}
+
+function prismaGeoFromDiscovery(discovery: WebsiteDiscoveryResult, patch: ReturnType<typeof buildCompanyPatch>) {
+  return {
+    addressLine1: patch.AddressLine1 || null,
+    addressLine2: patch.AddressLine2 || null,
+    postalCode: patch.PostalCode || null,
+    city: patch.City || null,
+    stateRegion: patch.stateRegion || discovery.company.stateRegion.trim() || null,
+    country: countryTitle(patch.Country) || discovery.company.country.trim() || null,
+    countryCode: patch.countryCode || discovery.company.countryCode.trim().toUpperCase() || null,
+    continent: patch.continent || discovery.company.continent.trim() || null,
   };
 }
 
@@ -153,6 +180,7 @@ async function upsertCompanyFromDiscoveryPrisma(
   const phoneJson = patch.Phone
     ? [{ number: patch.Phone, type: "office", isPrimary: true }]
     : [];
+  const geo = prismaGeoFromDiscovery(prepared, patch);
 
   if (existing) {
     const updated = await withPrismaRetry((prisma) =>
@@ -162,11 +190,14 @@ async function upsertCompanyFromDiscoveryPrisma(
           name: patch.Title,
           website: domain ? `https://${domain}` : existing!.website,
           industry: existing!.industry ?? "Polymer Processing",
-          city: patch.City || existing!.city,
-          addressLine1: patch.AddressLine1 || existing!.addressLine1,
-          addressLine2: patch.AddressLine2 || existing!.addressLine2,
-          postalCode: patch.PostalCode || existing!.postalCode,
-          country: countryTitle(patch.Country) ?? existing!.country,
+          addressLine1: geo.addressLine1 || existing!.addressLine1,
+          addressLine2: geo.addressLine2 || existing!.addressLine2,
+          postalCode: geo.postalCode || existing!.postalCode,
+          city: geo.city || existing!.city,
+          stateRegion: geo.stateRegion || existing!.stateRegion,
+          country: geo.country || existing!.country,
+          countryCode: geo.countryCode || existing!.countryCode,
+          continent: geo.continent || existing!.continent,
           ownerId: accountOwner?.Title ? String(owner.Id) : existing!.ownerId ?? String(owner.Id),
           ...(emailJson.length > 0 ? { emails: emailJson } : {}),
           ...(phoneJson.length > 0 ? { phoneNumbers: phoneJson } : {}),
@@ -184,11 +215,14 @@ async function upsertCompanyFromDiscoveryPrisma(
         industry: "Polymer Processing",
         types: ["prospect"],
         status: "active",
-        city: patch.City || null,
-        addressLine1: patch.AddressLine1 || null,
-        addressLine2: patch.AddressLine2 || null,
-        postalCode: patch.PostalCode || null,
-        country: countryTitle(patch.Country),
+        addressLine1: geo.addressLine1,
+        addressLine2: geo.addressLine2,
+        postalCode: geo.postalCode,
+        city: geo.city,
+        stateRegion: geo.stateRegion,
+        country: geo.country,
+        countryCode: geo.countryCode,
+        continent: geo.continent,
         ownerId: String(owner.Id),
         emails: emailJson,
         phoneNumbers: phoneJson,

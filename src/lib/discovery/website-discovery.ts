@@ -1,6 +1,15 @@
 import { normalizeCompanyDomain } from "@/lib/company-domain";
 import { normalizePhoneNumber } from "@/lib/m365/phone-normalization";
 import { fetchWebsitePages, normalizeWebsiteUrl } from "@/lib/discovery/website-fetch";
+import {
+  emptyStructuredGeo,
+  enrichStructuredGeo,
+  formatStructuredGeoLine,
+  geoFromJsonLdPostalAddress,
+  hasStructuredGeo,
+  parseStructuredGeoAddress,
+  type StructuredGeoAddress,
+} from "@/lib/discovery/geo-address";
 import type {
   DiscoveredCompany,
   DiscoveredContact,
@@ -173,8 +182,86 @@ function pickCompanyEmail(emails: string[], domain: string, personalLocals: Set<
 }
 
 function pickCompanyPhone(phones: string[]): string {
-  const landline = phones.find((phone) => phone.startsWith("+47") && phone.replace(/\D/g, "").length <= 10);
+  const landline = phones.find(
+    (phone) => phone.startsWith("+47") && phone.replace(/\D/g, "").length <= 10,
+  );
   return landline ?? phones[0] ?? "";
+}
+
+function extractJsonLdPostalAddresses(
+  htmlPages: string[],
+  domain: string,
+): StructuredGeoAddress[] {
+  const results: StructuredGeoAddress[] = [];
+
+  for (const html of htmlPages) {
+    for (const block of extractJsonLd(html)) {
+      const nodes: Record<string, unknown>[] = [];
+      flattenJsonLd(block, nodes);
+      for (const node of nodes) {
+        const type = node["@type"];
+        const typeLabel = Array.isArray(type) ? type.join(" ") : String(type ?? "");
+        if (/PostalAddress/i.test(typeLabel)) {
+          const geo = geoFromJsonLdPostalAddress(node, domain);
+          if (hasStructuredGeo(geo)) results.push(geo);
+        }
+        const nested = node.address;
+        if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+          const geo = geoFromJsonLdPostalAddress(nested as Record<string, unknown>, domain);
+          if (hasStructuredGeo(geo)) results.push(geo);
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+function resolveDiscoveryGeo(
+  htmlPages: string[],
+  addressLines: string[],
+  domain: string,
+): StructuredGeoAddress {
+  const fromJsonLd = extractJsonLdPostalAddresses(htmlPages, domain);
+  if (fromJsonLd[0] && hasStructuredGeo(fromJsonLd[0])) {
+    return fromJsonLd[0];
+  }
+
+  for (const line of addressLines) {
+    const parsed = parseStructuredGeoAddress(line, domain);
+    if (hasStructuredGeo(parsed)) return parsed;
+  }
+
+  return emptyStructuredGeo();
+}
+
+function companyWithGeo(
+  base: Omit<
+    DiscoveredCompany,
+    | "streetAddress"
+    | "postalCode"
+    | "city"
+    | "stateRegion"
+    | "country"
+    | "countryCode"
+    | "continent"
+  >,
+  geo: StructuredGeoAddress,
+): DiscoveredCompany {
+  const address =
+    base.address.trim() || formatStructuredGeoLine(geo) || "";
+
+  return {
+    ...base,
+    address,
+    streetAddress: geo.streetAddress,
+    postalCode: geo.postalCode,
+    city: geo.city,
+    stateRegion: geo.stateRegion,
+    country: geo.country,
+    countryCode: geo.countryCode,
+    continent: geo.continent,
+  };
 }
 
 function extractAddressLines(html: string): string[] {
@@ -252,7 +339,7 @@ export function resolveDiscoveryCompanyName(name: string, domain: string): strin
   return companyNameFromDomain(domain || name);
 }
 
-/** Sanitize discovery payload before persistence (name, domain, phone). Client-safe. */
+/** Sanitize discovery payload before persistence (name, domain, phone, geo). Client-safe. */
 export function prepareDiscoveryForImport(
   discovery: WebsiteDiscoveryResult,
 ): WebsiteDiscoveryResult {
@@ -263,15 +350,46 @@ export function prepareDiscoveryForImport(
   const name = resolveDiscoveryCompanyName(discovery.company.name, domain);
   const phone = normalizePhoneNumber(discovery.company.phone);
 
+  const fromFields = enrichStructuredGeo(
+    {
+      streetAddress: discovery.company.streetAddress,
+      postalCode: discovery.company.postalCode,
+      city: discovery.company.city,
+      stateRegion: discovery.company.stateRegion,
+      country: discovery.company.country,
+      countryCode: discovery.company.countryCode,
+      continent: discovery.company.continent,
+    },
+    domain,
+  );
+
+  const fromAddress = parseStructuredGeoAddress(discovery.company.address, domain);
+  const geo = enrichStructuredGeo(
+    {
+      streetAddress: fromFields.streetAddress || fromAddress.streetAddress,
+      postalCode: fromFields.postalCode || fromAddress.postalCode,
+      city: fromFields.city || fromAddress.city,
+      stateRegion: fromFields.stateRegion || fromAddress.stateRegion,
+      country: fromFields.country || fromAddress.country,
+      countryCode: fromFields.countryCode || fromAddress.countryCode,
+      continent: fromFields.continent || fromAddress.continent,
+    },
+    domain,
+  );
+
   return {
     ...discovery,
-    company: {
-      ...discovery.company,
-      name,
-      domain,
-      website: domain || discovery.company.website,
-      phone,
-    },
+    company: companyWithGeo(
+      {
+        name,
+        phone,
+        email: discovery.company.email,
+        website: domain || discovery.company.website,
+        address: discovery.company.address || formatStructuredGeoLine(geo),
+        domain,
+      },
+      geo,
+    ),
   };
 }
 
@@ -403,6 +521,7 @@ export function analyzeWebsiteHtml(
   const phones = collectPhones(combinedHtml);
   const addresses = extractAddressLines(combinedHtml);
   const companyName = inferCompanyName(htmlPages, domain);
+  const geo = resolveDiscoveryGeo(htmlPages, addresses, domain);
 
   const imageBoxContacts = htmlPages.flatMap((html) => extractImageBoxContacts(html));
   const personalLocals = new Set(
@@ -415,14 +534,17 @@ export function analyzeWebsiteHtml(
       .filter((part) => part.length > 2),
   );
 
-  const company: DiscoveredCompany = {
-    name: companyName,
-    phone: pickCompanyPhone(phones),
-    email: pickCompanyEmail(emails, domain, personalLocals),
-    website: domain,
-    address: addresses[0] ?? "",
-    domain,
-  };
+  const company = companyWithGeo(
+    {
+      name: companyName,
+      phone: pickCompanyPhone(phones),
+      email: pickCompanyEmail(emails, domain, personalLocals),
+      website: domain,
+      address: addresses[0] ?? formatStructuredGeoLine(geo),
+      domain,
+    },
+    geo,
+  );
 
   const contacts = dedupeContacts(
     mergeContacts(imageBoxContacts, extractEmailNamedContacts(combinedHtml, domain)),
@@ -463,5 +585,9 @@ export async function discoverWebsite(
 }
 
 export function discoveryToCompanyCity(result: WebsiteDiscoveryResult): string {
-  return parseCityFromAddress(result.company.address) || "—";
+  return (
+    result.company.city.trim() ||
+    parseCityFromAddress(result.company.address) ||
+    "—"
+  );
 }
