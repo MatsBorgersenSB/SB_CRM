@@ -21,6 +21,11 @@ type ContactFields = {
   sentiment?: string;
   influenceLevel?: string;
   reportsToId?: string;
+  streetAddress?: string;
+  postalCode?: string;
+  stateRegion?: string;
+  countryCode?: string;
+  continent?: string;
   city?: string;
   country?: string;
   timezone?: string;
@@ -55,6 +60,11 @@ export const contactMapper: ListItemMapper<ContactFields, Contact> = {
       sentiment: fields.sentiment as Contact["sentiment"],
       influenceLevel: fields.influenceLevel as Contact["influenceLevel"],
       reportsToId: fields.reportsToId ?? "",
+      streetAddress: fields.streetAddress ?? "",
+      postalCode: fields.postalCode ?? "",
+      stateRegion: fields.stateRegion ?? "",
+      countryCode: fields.countryCode ?? "",
+      continent: fields.continent ?? "",
       city: fields.city ?? "",
       country: fields.country ?? "",
       timezone: fields.timezone ?? "",
@@ -93,6 +103,11 @@ export const contactMapper: ListItemMapper<ContactFields, Contact> = {
     if (input.sentiment !== undefined) fields.sentiment = input.sentiment;
     if (input.influenceLevel !== undefined) fields.influenceLevel = input.influenceLevel;
     if (input.reportsToId !== undefined) fields.reportsToId = input.reportsToId;
+    if (input.streetAddress !== undefined) fields.streetAddress = input.streetAddress;
+    if (input.postalCode !== undefined) fields.postalCode = input.postalCode;
+    if (input.stateRegion !== undefined) fields.stateRegion = input.stateRegion;
+    if (input.countryCode !== undefined) fields.countryCode = input.countryCode;
+    if (input.continent !== undefined) fields.continent = input.continent;
     if (input.city !== undefined) fields.city = input.city;
     if (input.country !== undefined) fields.country = input.country;
     if (input.timezone !== undefined) fields.timezone = input.timezone;

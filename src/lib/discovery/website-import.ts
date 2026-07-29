@@ -27,6 +27,7 @@ import {
 } from "@/lib/prisma-mappers";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { ContactListRole } from "@/types/contact";
+import { lookupAddressOSM } from "@/lib/geo/nominatim";
 
 export { prepareDiscoveryForImport } from "@/lib/discovery/website-discovery";
 
@@ -165,6 +166,7 @@ async function upsertCompanyFromDiscoveryPrisma(
   accountOwner?: SharePointPerson | null,
 ): Promise<CompanyUpsertFromDiscoveryResult> {
   const prepared = prepareDiscoveryForImport(discovery);
+  await enrichPreparedCompanyGeoWithOSM(prepared, discovery.company.address);
   const patch = buildCompanyPatch(prepared);
   const domain = normalizeCompanyDomain(prepared.company.domain);
   const owner = resolveAccountOwner(accountOwner);
@@ -309,11 +311,36 @@ async function importContactPrisma(
   };
 }
 
+async function enrichPreparedCompanyGeoWithOSM(
+  prepared: WebsiteDiscoveryResult,
+  rawAddress: string,
+): Promise<void> {
+  try {
+    const osm = await lookupAddressOSM(rawAddress || prepared.company.address);
+    const company = prepared.company;
+
+    if (!company.streetAddress.trim() && osm.streetAddress.trim()) company.streetAddress = osm.streetAddress;
+    if (!company.postalCode.trim() && osm.postalCode.trim()) company.postalCode = osm.postalCode;
+    if (!company.city.trim() && osm.city.trim()) company.city = osm.city;
+    if (!company.stateRegion.trim() && osm.stateRegion.trim()) company.stateRegion = osm.stateRegion;
+    if (!company.country.trim() && osm.country.trim()) company.country = osm.country;
+    if (!company.countryCode.trim() && osm.countryCode.trim()) company.countryCode = osm.countryCode;
+    if (!company.continent.trim() && osm.continent.trim()) company.continent = osm.continent;
+  } catch (error) {
+    // Phase 1: geo enrichment is best-effort; discovery should still import.
+    console.warn(
+      "[website-import] OSM geo enrichment failed:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
 async function upsertCompanyFromDiscoveryJson(
   discovery: WebsiteDiscoveryResult,
   accountOwner?: SharePointPerson | null,
 ): Promise<CompanyUpsertFromDiscoveryResult> {
   const prepared = prepareDiscoveryForImport(discovery);
+  await enrichPreparedCompanyGeoWithOSM(prepared, discovery.company.address);
   const companies = await readCompanies();
   const domain = normalizeCompanyDomain(prepared.company.domain);
 
@@ -506,7 +533,13 @@ export function discoveryCompanyPreviewPatch(discovery: WebsiteDiscoveryResult) 
       Phone: prepared.company.phone,
       Email: prepared.company.email,
       Domain: prepared.company.website,
-      address: prepared.company.address,
+      streetAddress: prepared.company.streetAddress,
+      postalCode: prepared.company.postalCode,
+      city: prepared.company.city,
+      stateRegion: prepared.company.stateRegion,
+      country: prepared.company.country,
+      countryCode: prepared.company.countryCode,
+      continent: prepared.company.continent,
       CompanyTypes: ["Prospect"],
       tagsInput: "",
       Notes: "",

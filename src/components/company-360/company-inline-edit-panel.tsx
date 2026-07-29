@@ -12,6 +12,7 @@ import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/types/company";
 import { COMPANY_INDUSTRIES } from "@/types/company";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
+import type { OsmLookupResult } from "@/lib/geo/nominatim";
 
 const EDIT_FIELD_CLASS =
   "mt-1 w-full rounded-md border-2 border-upcycle-orange/25 bg-white px-3 py-2 text-carbon-blue outline-none transition-colors focus:border-upcycle-orange focus:ring-2 focus:ring-upcycle-orange/20";
@@ -39,6 +40,7 @@ export function CompanyInlineEditPanel({
     buildCompanyHeroQuickEdit(company),
   );
   const [saving, setSaving] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,6 +88,46 @@ export function CompanyInlineEditPanel({
       setError(message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAutoFillLocation = async () => {
+    setAutofilling(true);
+    setError(null);
+    try {
+      const query = [
+        form.streetAddress.trim(),
+        form.postalCode.trim() ? `${form.postalCode.trim()} ${form.city.trim()}` : form.city.trim(),
+        form.country.trim(),
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      if (!query.trim()) {
+        throw new Error("Enter a street address, city, or country first.");
+      }
+
+      const res = await fetch(`/api/geo/lookup?q=${encodeURIComponent(query)}`);
+      if (!res.ok) {
+        throw new Error(`Geo lookup failed (${res.status})`);
+      }
+
+      const osm = (await res.json()) as OsmLookupResult;
+
+      setForm((current) => ({
+        ...current,
+        streetAddress: osm.streetAddress || current.streetAddress,
+        postalCode: osm.postalCode || current.postalCode,
+        city: osm.city || current.city,
+        stateRegion: osm.stateRegion || current.stateRegion,
+        country: osm.country || current.country,
+        countryCode: osm.countryCode || current.countryCode,
+        continent: osm.continent || current.continent,
+      }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to auto-fill location.");
+    } finally {
+      setAutofilling(false);
     }
   };
 
@@ -199,16 +241,84 @@ export function CompanyInlineEditPanel({
           </label>
         </div>
 
-        <label className="block">
-          <span className={EDIT_LABEL_CLASS}>Address</span>
-          <textarea
-            value={form.address}
-            onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
-            disabled={saving}
-            rows={3}
-            className={`${EDIT_FIELD_CLASS} resize-none text-[13px]`}
-          />
-        </label>
+        <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
+          <label className="block sm:col-span-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className={EDIT_LABEL_CLASS}>Street address</span>
+              <button
+                type="button"
+                disabled={saving || autofilling}
+                onClick={() => void handleAutoFillLocation()}
+                className="rounded-md border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {autofilling ? "Filling…" : "Auto-Fill Location"}
+              </button>
+            </div>
+            <textarea
+              value={form.streetAddress}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, streetAddress: event.target.value }))
+              }
+              disabled={saving || autofilling}
+              rows={3}
+              className={`${EDIT_FIELD_CLASS} resize-none text-[13px]`}
+            />
+          </label>
+
+          <label className="block">
+            <span className={EDIT_LABEL_CLASS}>Postal code</span>
+            <input
+              type="text"
+              value={form.postalCode}
+              onChange={(event) => setForm((current) => ({ ...current, postalCode: event.target.value }))}
+              disabled={saving || autofilling}
+              className={`${EDIT_FIELD_CLASS} text-[13px]`}
+            />
+          </label>
+
+          <label className="block">
+            <span className={EDIT_LABEL_CLASS}>City</span>
+            <input
+              type="text"
+              value={form.city}
+              onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
+              disabled={saving || autofilling}
+              className={`${EDIT_FIELD_CLASS} text-[13px]`}
+            />
+          </label>
+
+          <label className="block">
+            <span className={EDIT_LABEL_CLASS}>State / region</span>
+            <input
+              type="text"
+              value={form.stateRegion}
+              onChange={(event) => setForm((current) => ({ ...current, stateRegion: event.target.value }))}
+              disabled={saving || autofilling}
+              className={`${EDIT_FIELD_CLASS} text-[13px]`}
+            />
+          </label>
+
+          <label className="block">
+            <span className={EDIT_LABEL_CLASS}>Country</span>
+            <input
+              type="text"
+              value={form.country}
+              onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))}
+              disabled={saving || autofilling}
+              className={`${EDIT_FIELD_CLASS} text-[13px]`}
+            />
+          </label>
+
+          <label className="block">
+            <span className={EDIT_LABEL_CLASS}>Continent</span>
+            <input
+              type="text"
+              value={form.continent}
+              disabled
+              className={`${EDIT_FIELD_CLASS} bg-carbon-blue/[0.03] text-[13px]`}
+            />
+          </label>
+        </div>
 
         <CompanyTypeMultiSelect
           value={form.CompanyTypes}

@@ -555,6 +555,22 @@ export async function updateCompanyContact(
       | "IsSuspicious"
       | "EmploymentStatus"
       | "IsArchived"
+      | "streetAddress"
+      | "postalCode"
+      | "stateRegion"
+      | "countryCode"
+      | "continent"
+      | "city"
+      | "country"
+      | "timezone"
+      | "isTimezoneOverridden"
+      | "buyingRole"
+      | "sentiment"
+      | "influenceLevel"
+      | "reportsToId"
+      | "engagementCadence"
+      | "backgroundNotes"
+      | "preferredLanguage"
       | "CareerHistory"
       | "CompanyTransfers"
     >
@@ -645,6 +661,9 @@ export type UpdateCompanyPatch = Partial<
     | "PostalCode"
     | "City"
     | "Country"
+    | "stateRegion"
+    | "countryCode"
+    | "continent"
     | "Industry"
     | "Status"
     | "ParentCompany"
@@ -1073,6 +1092,11 @@ export async function createCompanyContact(
     sentiment: input.sentiment,
     influenceLevel: input.influenceLevel,
     reportsToId: input.reportsToId,
+    streetAddress: input.streetAddress,
+    postalCode: input.postalCode,
+    stateRegion: input.stateRegion,
+    countryCode: input.countryCode,
+    continent: input.continent,
     city: input.city,
     country: input.country,
     timezone: input.timezone,

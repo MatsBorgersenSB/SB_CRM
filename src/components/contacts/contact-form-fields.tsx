@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { CreateContactInput } from "@/types/contact";
 import {
   BUYING_ROLES,
@@ -32,6 +33,11 @@ export const emptyContactForm = (): CreateContactInput => ({
   country: "",
   timezone: "",
   isTimezoneOverridden: false,
+  streetAddress: "",
+  postalCode: "",
+  stateRegion: "",
+  countryCode: "",
+  continent: "",
   engagementCadence: "Monthly",
   backgroundNotes: "",
   preferredLanguage: "English",
@@ -107,6 +113,62 @@ export function ContactFormFields({
       timezone,
       isTimezoneOverridden: false,
     });
+  };
+
+  const [geoFilling, setGeoFilling] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  const handleAutoFillLocation = async () => {
+    setGeoFilling(true);
+    setGeoError(null);
+    try {
+      const query = [
+        form.streetAddress?.trim() || "",
+        form.postalCode?.trim()
+          ? `${form.postalCode.trim()} ${form.city?.trim() || ""}`.trim()
+          : form.city?.trim() || "",
+        form.country?.trim() || "",
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      if (!query.trim()) {
+        setGeoError("Enter an address, city, or country first.");
+        return;
+      }
+
+      const res = await fetch(`/api/geo/lookup?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error(`Geo lookup failed (${res.status})`);
+
+      const osm = (await res.json()) as {
+        streetAddress: string;
+        postalCode: string;
+        city: string;
+        stateRegion: string;
+        country: string;
+        countryCode: string;
+        continent: string;
+      };
+
+      const countryForTz = osm.country?.trim() || form.country || "";
+
+      onChange({
+        ...form,
+        streetAddress: osm.streetAddress,
+        postalCode: osm.postalCode,
+        city: osm.city,
+        stateRegion: osm.stateRegion,
+        country: osm.country,
+        countryCode: osm.countryCode,
+        continent: osm.continent,
+        timezone: inferTimezoneFromCountry(countryForTz),
+        isTimezoneOverridden: true,
+      });
+    } catch (e) {
+      setGeoError(e instanceof Error ? e.message : "Unable to auto-fill location.");
+    } finally {
+      setGeoFilling(false);
+    }
   };
 
   return (
@@ -288,6 +350,26 @@ export function ContactFormFields({
         <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/45">
           Location & Timezone
         </p>
+        <label className="mb-3 block">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className={LABEL_CLASS}>Street Address</span>
+            <button
+              type="button"
+              disabled={geoFilling}
+              onClick={() => void handleAutoFillLocation()}
+              className="rounded-md border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {geoFilling ? "Filling…" : "Auto-Fill Location"}
+            </button>
+          </div>
+          <textarea
+            value={form.streetAddress ?? ""}
+            onChange={(event) => onChange({ ...form, streetAddress: event.target.value })}
+            rows={3}
+            className={`${FIELD_CLASS} min-h-[72px] resize-y`}
+          />
+        </label>
+
         <label className="mb-2 flex items-center gap-2 text-[11px] text-carbon-blue/70">
           <input
             type="checkbox"
@@ -316,6 +398,7 @@ export function ContactFormFields({
           />
           Inherit timezone from company
         </label>
+
         <div className="grid gap-2 md:grid-cols-3">
           <label className="block">
             <span className={LABEL_CLASS}>Country</span>
@@ -354,6 +437,57 @@ export function ContactFormFields({
             />
           </label>
         </div>
+
+        <div className="mt-2 grid gap-2 md:grid-cols-3">
+          <label className="block">
+            <span className={LABEL_CLASS}>Postal code</span>
+            <input
+              type="text"
+              value={form.postalCode ?? ""}
+              onChange={(event) => onChange({ ...form, postalCode: event.target.value })}
+              disabled={!form.isTimezoneOverridden}
+              className={FIELD_CLASS}
+            />
+          </label>
+          <label className="block">
+            <span className={LABEL_CLASS}>State / region</span>
+            <input
+              type="text"
+              value={form.stateRegion ?? ""}
+              onChange={(event) => onChange({ ...form, stateRegion: event.target.value })}
+              disabled={!form.isTimezoneOverridden}
+              className={FIELD_CLASS}
+            />
+          </label>
+          <label className="block">
+            <span className={LABEL_CLASS}>Country code</span>
+            <input
+              type="text"
+              value={form.countryCode ?? ""}
+              onChange={(event) => onChange({ ...form, countryCode: event.target.value })}
+              disabled
+              className={FIELD_CLASS + " bg-carbon-blue/[0.03]"}
+            />
+          </label>
+        </div>
+
+        <div className="mt-2">
+          <label className="block">
+            <span className={LABEL_CLASS}>Continent</span>
+            <input
+              type="text"
+              value={form.continent ?? ""}
+              disabled
+              className={FIELD_CLASS + " bg-carbon-blue/[0.03]"}
+            />
+          </label>
+        </div>
+
+        {geoError ? (
+          <p className="mt-2 text-[12px] font-medium text-red-700" role="alert">
+            {geoError}
+          </p>
+        ) : null}
       </section>
 
       <section className="border border-carbon-blue/10 bg-white p-3">

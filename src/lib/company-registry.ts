@@ -246,12 +246,15 @@ export async function updateRegistryCompany(
   if (patch.AddressLine1 !== undefined) data.addressLine1 = patch.AddressLine1 || null;
   if (patch.AddressLine2 !== undefined) data.addressLine2 = patch.AddressLine2 || null;
   if (patch.PostalCode !== undefined) data.postalCode = patch.PostalCode || null;
+  if (patch.stateRegion !== undefined) data.stateRegion = patch.stateRegion || null;
   if (patch.Country !== undefined) {
     const countryGeo = geoFromCountryTitle(countryTitle(patch.Country));
     data.country = countryGeo.country;
     data.countryCode = countryGeo.countryCode;
     data.continent = countryGeo.continent;
   }
+  if (patch.countryCode !== undefined) data.countryCode = patch.countryCode || null;
+  if (patch.continent !== undefined) data.continent = patch.continent || null;
   if (patch.AccountOwner !== undefined) {
     data.ownerId =
       patch.AccountOwner?.Id != null ? String(patch.AccountOwner.Id) : null;

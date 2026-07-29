@@ -112,6 +112,11 @@ model Contact {
   directReports          Contact[]     @relation("OrgHierarchy")
   city                   String?
   country                String?
+  streetAddress          String?
+  postalCode             String?
+  stateRegion            String?
+  countryCode            String?
+  continent              String?
   timezone               String?
   isTimezoneOverridden   Boolean       @default(false)
   engagementCadence      String?

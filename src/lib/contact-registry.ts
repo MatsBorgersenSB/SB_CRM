@@ -190,6 +190,11 @@ export async function createRegistryContact(
         sentiment: input.sentiment?.trim() || null,
         influenceLevel: input.influenceLevel?.trim() || null,
         reportsToId: await resolvePrismaReportsToId(input.reportsToId ?? undefined),
+        streetAddress: input.streetAddress?.trim() || null,
+        postalCode: input.postalCode?.trim() || null,
+        stateRegion: input.stateRegion?.trim() || null,
+        countryCode: input.countryCode?.trim().toUpperCase() || null,
+        continent: input.continent?.trim() || null,
         city: input.city?.trim() || null,
         country: input.country?.trim() || null,
         timezone: input.timezone?.trim() || null,
@@ -277,6 +282,11 @@ export async function updateRegistryContact(
           reportsToId:
             (await resolvePrismaReportsToId(patch.reportsToId ?? jsonContact!.reportsToId)) ||
             null,
+          streetAddress: patch.streetAddress?.trim() || jsonContact!.streetAddress || null,
+          postalCode: patch.postalCode?.trim() || jsonContact!.postalCode || null,
+          stateRegion: patch.stateRegion?.trim() || jsonContact!.stateRegion || null,
+          countryCode: patch.countryCode?.trim()?.toUpperCase() || jsonContact!.countryCode || null,
+          continent: patch.continent?.trim() || jsonContact!.continent || null,
           city: patch.city?.trim() || jsonContact!.city || null,
           country: patch.country?.trim() || jsonContact!.country || null,
           timezone: patch.timezone?.trim() || jsonContact!.timezone || null,
@@ -334,6 +344,21 @@ export async function updateRegistryContact(
   }
   if (patch.reportsToId !== undefined) {
     data.reportsToId = await resolvePrismaReportsToId(patch.reportsToId) || null;
+  }
+  if (patch.streetAddress !== undefined) {
+    data.streetAddress = patch.streetAddress.trim() || null;
+  }
+  if (patch.postalCode !== undefined) {
+    data.postalCode = patch.postalCode.trim() || null;
+  }
+  if (patch.stateRegion !== undefined) {
+    data.stateRegion = patch.stateRegion.trim() || null;
+  }
+  if (patch.countryCode !== undefined) {
+    data.countryCode = patch.countryCode.trim().toUpperCase() || null;
+  }
+  if (patch.continent !== undefined) {
+    data.continent = patch.continent.trim() || null;
   }
   if (patch.city !== undefined) data.city = patch.city.trim() || null;
   if (patch.country !== undefined) data.country = patch.country.trim() || null;

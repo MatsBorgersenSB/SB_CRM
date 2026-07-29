@@ -29,7 +29,13 @@ export type CompanyHeroQuickEdit = {
   Phone: string;
   Email: string;
   Domain: string;
-  address: string;
+  streetAddress: string;
+  postalCode: string;
+  city: string;
+  stateRegion: string;
+  country: string;
+  countryCode: string;
+  continent: string;
   CompanyTypes: CompanyType[];
   tagsInput: string;
   Notes: string;
@@ -123,7 +129,13 @@ export function buildCompanyHeroQuickEdit(company: Company): CompanyHeroQuickEdi
     Phone: company.Phone.trim(),
     Email: (company.Email ?? "").trim(),
     Domain: company.Domain.trim(),
-    address: formatCompanyAddress(company),
+    streetAddress: company.AddressLine1 ?? "",
+    postalCode: company.PostalCode ?? "",
+    city: company.City ?? "",
+    stateRegion: company.stateRegion ?? "",
+    country: company.Country?.Title?.trim() ?? "",
+    countryCode: company.countryCode ?? "",
+    continent: company.continent ?? "",
     CompanyTypes: normalizeCompanyTypes(company),
     tagsInput: formatTagsInput(company.Tags),
     Notes: (company.Notes ?? "").trim(),
@@ -160,7 +172,14 @@ export function companyHeroQuickEditToPatch(
     CompanyTypes: edit.CompanyTypes,
     Tags: parseTagsInput(edit.tagsInput),
     Notes: edit.Notes.trim(),
-    ...parseCompanyAddressInput(edit.address),
+    AddressLine1: edit.streetAddress.trim(),
+    AddressLine2: "",
+    PostalCode: edit.postalCode.trim(),
+    City: edit.city.trim(),
+    Country: edit.country.trim() ? { Id: 0, Title: edit.country.trim() } : null,
+    stateRegion: edit.stateRegion.trim() || undefined,
+    countryCode: edit.countryCode.trim() || undefined,
+    continent: edit.continent.trim() || undefined,
   };
 }
 

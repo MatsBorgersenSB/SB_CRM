@@ -67,6 +67,10 @@ export type Company = {
   PostalCode: string;
   City: string;
   Country: SharePointLookup | null;
+  /** Structured geo fields (Phase 1: OSM enrichment) */
+  stateRegion?: string | null;
+  countryCode?: string | null;
+  continent?: string | null;
   /** App-level relations — not SharePoint list columns */
   pipelineIds: string[];
   contacts: Contact[];

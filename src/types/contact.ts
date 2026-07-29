@@ -110,6 +110,11 @@ export type Contact = {
   influenceLevel?: InfluenceLevel;
   reportsToId?: string;
   reportsToName?: string;
+  streetAddress?: string;
+  postalCode?: string;
+  stateRegion?: string;
+  countryCode?: string;
+  continent?: string;
   city?: string;
   country?: string;
   timezone?: string;
@@ -155,6 +160,11 @@ export type CreateContactInput = Pick<
   | "sentiment"
   | "influenceLevel"
   | "reportsToId"
+  | "streetAddress"
+  | "postalCode"
+  | "stateRegion"
+  | "countryCode"
+  | "continent"
   | "city"
   | "country"
   | "timezone"
@@ -189,6 +199,11 @@ export type UpdateContactInput = Partial<
     | "sentiment"
     | "influenceLevel"
     | "reportsToId"
+    | "streetAddress"
+    | "postalCode"
+    | "stateRegion"
+    | "countryCode"
+    | "continent"
     | "city"
     | "country"
     | "timezone"
