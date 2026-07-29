@@ -65,8 +65,11 @@ async function writeDb(database: ProjectsDatabase): Promise<void> {
 
 async function ensureDb(): Promise<ProjectsDatabase> {
   const existing = await readDbFile();
-  if (existing?.projects?.length) {
-    return existing;
+  // File present (even with zero projects) means an intentional empty/clean state.
+  if (existing) {
+    return {
+      projects: (existing.projects ?? []).map(normalizeProject),
+    };
   }
 
   const database: ProjectsDatabase = { projects: PROJECTS.map(normalizeProject) };
