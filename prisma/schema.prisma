@@ -816,6 +816,7 @@ model Project {
   opportunity   Opportunity?          @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
   healthStatus  ProjectHealthStatus   @default(ON_TRACK)
   milestones    ProjectMilestone[]
+  qualityInspections QualityInspection[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
@@ -836,10 +837,47 @@ model ProjectMilestone {
   dueDate     DateTime?
   completedAt DateTime?
   sortOrder   Int       @default(0)
+  qualityInspections QualityInspection[]
 
   @@index([projectId])
   @@index([stage])
   @@map("execution_project_milestones")
+}
+
+enum QualityInspectionType {
+  FAT_FACTORY_TEST
+  SAT_SITE_TEST
+  ISO_QUALITY_AUDIT
+  SAFETY_CHECK
+}
+
+enum QualityInspectionStatus {
+  PASSED
+  FAILED_NCR
+  PENDING_REMEDIATION
+}
+
+/// FAT/SAT & ISO 9001 quality gate inspections for Stage-Gate projects.
+model QualityInspection {
+  id               String                   @id @default(cuid())
+  projectId        String
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestoneId      String?
+  milestone        ProjectMilestone?        @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  inspectionType   QualityInspectionType
+  status           QualityInspectionStatus
+  title            String
+  ncrDescription   String?
+  remediationPlan  String?
+  inspectorName    String?
+  signedOffAt      DateTime?
+  createdAt        DateTime                 @default(now())
+
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([inspectionType])
+  @@index([status])
+  @@map("quality_inspections")
 }
 
 // ==========================================

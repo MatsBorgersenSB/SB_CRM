@@ -22,6 +22,10 @@ export async function POST(_request: Request, context: RouteContext) {
     const message =
       error instanceof Error ? error.message : "Failed to advance stage gate";
     const status = message === "Project not found" ? 404 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const isBlocked = message.startsWith("Cannot advance:");
+    return NextResponse.json(
+      { error: message },
+      { status: isBlocked ? 409 : status },
+    );
   }
 }

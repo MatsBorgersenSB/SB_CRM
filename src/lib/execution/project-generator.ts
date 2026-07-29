@@ -6,6 +6,7 @@
 import { findPrismaCompanyByRouteKey } from "@/lib/data/companies";
 import { findPrismaOpportunityByRouteKey } from "@/lib/resolve-opportunity-route";
 import { withPrismaRetry } from "@/lib/prisma";
+import { verifyGateQualityPass } from "@/lib/execution/quality-guardian";
 import type {
   ExecutionProjectType,
   ProjectHealthStatus,
@@ -268,6 +269,19 @@ export async function advanceStageGate(
   const toComplete = milestones[incompleteIndex]!;
   const next = milestones[incompleteIndex + 1];
   const now = new Date();
+
+  const qualityGate = await verifyGateQualityPass(
+    projectId,
+    toComplete.stage,
+  );
+  if (!qualityGate.canAdvance) {
+    const ncrTitles = qualityGate.blockingNCRs
+      .map((ncr) => ncr.title)
+      .join("; ");
+    throw new Error(
+      `Cannot advance: open NCR(s) block stage "${toComplete.stage}"${ncrTitles ? ` — ${ncrTitles}` : ""}`,
+    );
+  }
 
   const gates = templateForType(project.projectType as ExecutionProjectType);
   const nextTrl =

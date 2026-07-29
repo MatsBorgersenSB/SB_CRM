@@ -8,6 +8,7 @@ import {
   type ExecutionProjectType,
   type StageGateProject,
 } from "@/lib/execution/project-generator-types";
+import { QualityGateGuardianPanel } from "@/components/execution/QualityGateGuardianPanel";
 
 type ProjectStageGateViewProps = {
   companyId: string;
@@ -321,6 +322,13 @@ export function ProjectStageGateView({
                   })}
                 </div>
               </div>
+
+              <QualityGateGuardianPanel
+                projectId={project.id}
+                currentStage={project.currentStage}
+                milestones={project.milestones}
+                onQualityChanged={() => void load()}
+              />
             </div>
           );
         })}
