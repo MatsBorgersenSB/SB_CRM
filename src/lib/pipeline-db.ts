@@ -1069,6 +1069,17 @@ export async function createCompanyContact(
     LinkedInURL: input.LinkedInURL,
     Status: input.Status,
     RelationshipLevel: input.RelationshipLevel,
+    buyingRole: input.buyingRole,
+    sentiment: input.sentiment,
+    influenceLevel: input.influenceLevel,
+    reportsToId: input.reportsToId,
+    city: input.city,
+    country: input.country,
+    timezone: input.timezone,
+    isTimezoneOverridden: input.isTimezoneOverridden ?? false,
+    engagementCadence: input.engagementCadence,
+    backgroundNotes: input.backgroundNotes,
+    preferredLanguage: input.preferredLanguage,
     EmploymentStatus: input.EmploymentStatus ?? "Active",
   };
 

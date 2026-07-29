@@ -104,6 +104,19 @@ model Contact {
   jobTitle               String?
   preferredContactMethod String?
   linkedInUrl            String?
+  buyingRole             String?
+  sentiment              String?
+  influenceLevel         String?
+  reportsToId            String?
+  reportsTo              Contact?      @relation("OrgHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
+  directReports          Contact[]     @relation("OrgHierarchy")
+  city                   String?
+  country                String?
+  timezone               String?
+  isTimezoneOverridden   Boolean       @default(false)
+  engagementCadence      String?
+  backgroundNotes        String?
+  preferredLanguage      String?
   status                 ContactStatus @default(active)
   personalNotes          String?
 
@@ -136,6 +149,7 @@ model Contact {
 
   @@index([fullName])
   @@index([companyId])
+  @@index([reportsToId])
   @@map("contact_registry")
 }
 

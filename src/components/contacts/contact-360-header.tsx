@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { Contact } from "@/types/contact";
 import { getContactDisplayName } from "@/types/contact";
 import { CompanyLink } from "@/components/relationship/relationship-links";
@@ -8,6 +9,41 @@ import { ActionableField, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { Contact360StatusPanel } from "@/components/contacts/contact-360-status-panel";
 import type { EmploymentStatus } from "@/types/contact-lifecycle";
 import type { RelationshipHealthStatus } from "@/lib/relationship-intelligence";
+
+function sentimentIcon(sentiment: string | undefined): string {
+  if (!sentiment) return "🟡";
+  if (sentiment.toLowerCase().includes("champion")) return "🟢";
+  if (sentiment.toLowerCase().includes("detractor")) return "🔴";
+  return "🟡";
+}
+
+function cadenceHealth(cadence: string | undefined, lastInteractionDate?: string): "Warm" | "Cooling Off" | "Cold / At Risk" {
+  if (!lastInteractionDate) return "Cold / At Risk";
+  const last = new Date(lastInteractionDate).getTime();
+  if (!Number.isFinite(last)) return "Cold / At Risk";
+  const days = Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24));
+  const cadenceDays =
+    cadence === "Weekly" ? 7 : cadence === "Bi-weekly" ? 14 : cadence === "Quarterly" ? 90 : 30;
+  if (days <= cadenceDays) return "Warm";
+  if (days <= cadenceDays * 2) return "Cooling Off";
+  return "Cold / At Risk";
+}
+
+function localTimeString(timezone: string | undefined, now: Date): string {
+  if (!timezone?.trim()) return "Unknown timezone";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      timeZone: timezone,
+    }).format(now);
+  } catch {
+    return "Invalid timezone";
+  }
+}
 
 /**
  * Contact 360 hero — identity and reachability on the left, status on the upper-right (Phase 1.28B).
@@ -34,6 +70,17 @@ export function Contact360Header({
   const displayName = getContactDisplayName(contact);
   const position = contact.JobTitle || contact.Role || "—";
   const phone = contact.Mobile || contact.Phone;
+  const [clockNow, setClockNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setClockNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const cadence = useMemo(
+    () => cadenceHealth(contact.engagementCadence, lastInteractionDate),
+    [contact.engagementCadence, lastInteractionDate],
+  );
 
   return (
     <div className="flex flex-col gap-4 border border-carbon-blue/10 bg-white p-4 lg:flex-row lg:items-start lg:justify-between">
@@ -71,6 +118,18 @@ export function Contact360Header({
           ) : (
             <p className="text-carbon-blue/45">No phone on file</p>
           )}
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[11px] font-medium text-carbon-blue/70">
+            🕒 Local Time: {localTimeString(contact.timezone, clockNow)}
+          </span>
+          <span className="border border-upcycle-orange/20 bg-upcycle-orange/[0.08] px-2.5 py-1 text-[11px] font-medium text-upcycle-orange">
+            🎯 Buying Role: {contact.buyingRole ?? "Unassigned"} {sentimentIcon(contact.sentiment)}
+          </span>
+          <span className="border border-carbon-blue/12 bg-white px-2.5 py-1 text-[11px] font-medium text-carbon-blue/70">
+            💚 Cadence Health: {cadence}
+          </span>
         </div>
       </div>
 

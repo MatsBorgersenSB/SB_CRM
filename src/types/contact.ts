@@ -12,7 +12,28 @@ export type ContactListRole =
   | "Compliance Officer"
   | "Procurement";
 
-export type ContactStatus = "Active" | "Inactive" | "Prospecting";
+export type BuyingRole =
+  | "Economic Buyer"
+  | "Champion"
+  | "Technical Evaluator"
+  | "Blocker"
+  | "End User"
+  | "Legal/Procurement";
+
+export type ContactSentiment =
+  | "Champion / Promoter"
+  | "Neutral"
+  | "Detractor / Skeptic";
+
+export type InfluenceLevel = "High" | "Medium" | "Low";
+
+export type EngagementCadence =
+  | "Weekly"
+  | "Bi-weekly"
+  | "Monthly"
+  | "Quarterly";
+
+export type ContactStatus = "Active" | "Inactive" | "Prospecting" | "Archived";
 
 export type RelationshipLevel =
   | "Strategic"
@@ -27,10 +48,35 @@ export const CONTACT_LIST_ROLES: ContactListRole[] = [
   "Procurement",
 ];
 
+export const BUYING_ROLES: BuyingRole[] = [
+  "Economic Buyer",
+  "Champion",
+  "Technical Evaluator",
+  "Blocker",
+  "End User",
+  "Legal/Procurement",
+];
+
+export const CONTACT_SENTIMENTS: ContactSentiment[] = [
+  "Champion / Promoter",
+  "Neutral",
+  "Detractor / Skeptic",
+];
+
+export const INFLUENCE_LEVELS: InfluenceLevel[] = ["High", "Medium", "Low"];
+
+export const ENGAGEMENT_CADENCES: EngagementCadence[] = [
+  "Weekly",
+  "Bi-weekly",
+  "Monthly",
+  "Quarterly",
+];
+
 export const CONTACT_STATUSES: ContactStatus[] = [
   "Active",
   "Inactive",
   "Prospecting",
+  "Archived",
 ];
 
 export const RELATIONSHIP_LEVELS: RelationshipLevel[] = [
@@ -59,6 +105,18 @@ export type Contact = {
   LinkedInURL: string;
   Status: ContactStatus;
   RelationshipLevel: RelationshipLevel;
+  buyingRole?: BuyingRole;
+  sentiment?: ContactSentiment;
+  influenceLevel?: InfluenceLevel;
+  reportsToId?: string;
+  reportsToName?: string;
+  city?: string;
+  country?: string;
+  timezone?: string;
+  isTimezoneOverridden?: boolean;
+  engagementCadence?: EngagementCadence;
+  backgroundNotes?: string;
+  preferredLanguage?: string;
   /** Phase 1.25 — employment lifecycle status */
   EmploymentStatus?: EmploymentStatus;
   /** Archived contacts are hidden from default lists but history is preserved */
@@ -93,6 +151,17 @@ export type CreateContactInput = Pick<
   | "LinkedInURL"
   | "Status"
   | "RelationshipLevel"
+  | "buyingRole"
+  | "sentiment"
+  | "influenceLevel"
+  | "reportsToId"
+  | "city"
+  | "country"
+  | "timezone"
+  | "isTimezoneOverridden"
+  | "engagementCadence"
+  | "backgroundNotes"
+  | "preferredLanguage"
   | "EmploymentStatus"
   | "IsArchived"
 > & {
@@ -116,6 +185,17 @@ export type UpdateContactInput = Partial<
     | "LinkedInURL"
     | "Status"
     | "RelationshipLevel"
+    | "buyingRole"
+    | "sentiment"
+    | "influenceLevel"
+    | "reportsToId"
+    | "city"
+    | "country"
+    | "timezone"
+    | "isTimezoneOverridden"
+    | "engagementCadence"
+    | "backgroundNotes"
+    | "preferredLanguage"
     | "IsSuspicious"
     | "EmploymentStatus"
     | "IsArchived"

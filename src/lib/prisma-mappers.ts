@@ -1,7 +1,16 @@
 import type { Company, CompanyIndustry, CompanyStatus } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType } from "@/types/company-type";
-import type { Contact, ContactListRole, ContactStatus, RelationshipLevel } from "@/types/contact";
+import type {
+  BuyingRole,
+  Contact,
+  ContactListRole,
+  ContactSentiment,
+  ContactStatus,
+  EngagementCadence,
+  InfluenceLevel,
+  RelationshipLevel,
+} from "@/types/contact";
 import type {
   CompanyRole,
   PipelineCurrency,
@@ -132,6 +141,43 @@ function mapRelationshipLevel(jobTitle: string | null | undefined): Relationship
   return "Tactical";
 }
 
+function mapBuyingRole(value: string | null | undefined): BuyingRole | undefined {
+  if (!value) return undefined;
+  const allowed: BuyingRole[] = [
+    "Economic Buyer",
+    "Champion",
+    "Technical Evaluator",
+    "Blocker",
+    "End User",
+    "Legal/Procurement",
+  ];
+  return allowed.includes(value as BuyingRole) ? (value as BuyingRole) : undefined;
+}
+
+function mapSentiment(value: string | null | undefined): ContactSentiment | undefined {
+  if (!value) return undefined;
+  const allowed: ContactSentiment[] = [
+    "Champion / Promoter",
+    "Neutral",
+    "Detractor / Skeptic",
+  ];
+  return allowed.includes(value as ContactSentiment) ? (value as ContactSentiment) : undefined;
+}
+
+function mapInfluenceLevel(value: string | null | undefined): InfluenceLevel | undefined {
+  if (!value) return undefined;
+  const allowed: InfluenceLevel[] = ["High", "Medium", "Low"];
+  return allowed.includes(value as InfluenceLevel) ? (value as InfluenceLevel) : undefined;
+}
+
+function mapEngagementCadence(value: string | null | undefined): EngagementCadence | undefined {
+  if (!value) return undefined;
+  const allowed: EngagementCadence[] = ["Weekly", "Bi-weekly", "Monthly", "Quarterly"];
+  return allowed.includes(value as EngagementCadence)
+    ? (value as EngagementCadence)
+    : undefined;
+}
+
 /** Map Prisma owner ids onto SharePoint-shaped person fields. */
 function mapOwnerPerson(ownerId: string | null | undefined): {
   Id: number;
@@ -171,6 +217,17 @@ export function mapPrismaContactToApp(
     LinkedInURL: contact.linkedInUrl?.trim() || "",
     Status: mapContactStatus(contact.status),
     RelationshipLevel: mapRelationshipLevel(contact.jobTitle),
+    buyingRole: mapBuyingRole(contact.buyingRole),
+    sentiment: mapSentiment(contact.sentiment),
+    influenceLevel: mapInfluenceLevel(contact.influenceLevel),
+    reportsToId: contact.reportsToId ?? undefined,
+    city: contact.city ?? undefined,
+    country: contact.country ?? undefined,
+    timezone: contact.timezone ?? undefined,
+    isTimezoneOverridden: contact.isTimezoneOverridden ?? false,
+    engagementCadence: mapEngagementCadence(contact.engagementCadence),
+    backgroundNotes: contact.backgroundNotes ?? undefined,
+    preferredLanguage: contact.preferredLanguage ?? undefined,
     EmploymentStatus: "Active",
     IsArchived: contact.status === "archived",
   };

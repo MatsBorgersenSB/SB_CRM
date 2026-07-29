@@ -1,10 +1,34 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { Contact } from "@/types/contact";
 import { getContactDisplayName } from "@/types/contact";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { EmailActionMenu, PhoneActionMenu } from "@/components/relationship/relationship-links";
 import { ActionableField, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+
+function sentimentIcon(sentiment: string | undefined): string {
+  if (!sentiment) return "🟡";
+  if (sentiment.toLowerCase().includes("champion")) return "🟢";
+  if (sentiment.toLowerCase().includes("detractor")) return "🔴";
+  return "🟡";
+}
+
+function localTimeString(timezone: string | undefined, now: Date): string {
+  if (!timezone?.trim()) return "Unknown timezone";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      timeZone: timezone,
+    }).format(now);
+  } catch {
+    return "Invalid timezone";
+  }
+}
 
 /**
  * Full-width balanced contact header — identity left, reachability right.
@@ -18,6 +42,12 @@ export function ContactWorkspaceHeader({
 }) {
   const displayName = getContactDisplayName(contact);
   const phone = contact.Mobile || contact.Phone;
+  const [clockNow, setClockNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setClockNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -38,6 +68,12 @@ export function ContactWorkspaceHeader({
           </span>
           <span className="border border-carbon-blue/10 px-2.5 py-1 text-[12px] font-medium text-carbon-blue/55">
             {contact.Role}
+          </span>
+          <span className="border border-carbon-blue/10 px-2.5 py-1 text-[12px] font-medium text-carbon-blue/60">
+            🕒 {localTimeString(contact.timezone, clockNow)}
+          </span>
+          <span className="border border-upcycle-orange/20 bg-upcycle-orange/[0.08] px-2.5 py-1 text-[12px] font-medium text-upcycle-orange">
+            🎯 {contact.buyingRole ?? "Unassigned"} {sentimentIcon(contact.sentiment)}
           </span>
         </div>
       </div>

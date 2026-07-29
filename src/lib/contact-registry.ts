@@ -81,7 +81,7 @@ function toPrismaContactStatus(
   status: ContactStatus | undefined,
   archived?: boolean,
 ): "active" | "archived" {
-  if (archived || status === "Inactive") return "archived";
+  if (archived || status === "Inactive" || status === "Archived") return "archived";
   return "active";
 }
 
@@ -107,7 +107,10 @@ async function loadMappedContact(prismaId: string): Promise<Contact> {
   const row = await withPrismaRetry((prisma) =>
     prisma.contact.findUniqueOrThrow({
       where: { id: prismaId },
-      include: { company: { select: { id: true, name: true } } },
+      include: {
+        company: { select: { id: true, name: true } },
+        reportsTo: { select: { id: true, fullName: true, firstName: true, lastName: true } },
+      },
     }),
   );
 
@@ -125,6 +128,10 @@ async function loadMappedContact(prismaId: string): Promise<Contact> {
       (meta.relationshipLevel as RelationshipLevel) || mapped.RelationshipLevel,
     EmploymentStatus:
       (meta.employmentStatus as EmploymentStatus) || mapped.EmploymentStatus || "Active",
+    reportsToName:
+      row.reportsTo?.fullName ||
+      `${row.reportsTo?.firstName ?? ""} ${row.reportsTo?.lastName ?? ""}`.trim() ||
+      undefined,
     ContactID: toContactTrackingId(row.id),
   };
 }
@@ -132,6 +139,13 @@ async function loadMappedContact(prismaId: string): Promise<Contact> {
 async function resolvePrismaCompanyId(companyRef: string | number | undefined): Promise<string | null> {
   if (companyRef === undefined || companyRef === null || companyRef === "") return null;
   const found = await findPrismaCompanyByRouteKey(String(companyRef));
+  return found?.id ?? null;
+}
+
+async function resolvePrismaReportsToId(reportsToId: string | undefined): Promise<string | null> {
+  const key = reportsToId?.trim();
+  if (!key) return null;
+  const found = await findPrismaContactByIdOrEmail(key);
   return found?.id ?? null;
 }
 
@@ -164,7 +178,7 @@ export async function createRegistryContact(
   const jobTitle = input.JobTitle.trim() || input.Role;
   const personalNotes = serializeContactMeta(null, input);
 
-  const created = await withPrismaRetry((prisma) =>
+  const created = await withPrismaRetry(async (prisma) =>
     prisma.contact.create({
       data: {
         firstName,
@@ -172,6 +186,17 @@ export async function createRegistryContact(
         fullName,
         jobTitle: jobTitle || null,
         linkedInUrl: input.LinkedInURL.trim() || null,
+        buyingRole: input.buyingRole?.trim() || null,
+        sentiment: input.sentiment?.trim() || null,
+        influenceLevel: input.influenceLevel?.trim() || null,
+        reportsToId: await resolvePrismaReportsToId(input.reportsToId ?? undefined),
+        city: input.city?.trim() || null,
+        country: input.country?.trim() || null,
+        timezone: input.timezone?.trim() || null,
+        isTimezoneOverridden: Boolean(input.isTimezoneOverridden),
+        engagementCadence: input.engagementCadence?.trim() || null,
+        backgroundNotes: input.backgroundNotes?.trim() || null,
+        preferredLanguage: input.preferredLanguage?.trim() || null,
         status: toPrismaContactStatus(input.Status),
         companyId,
         personalNotes,
@@ -236,7 +261,7 @@ export async function updateRegistryContact(
       EmploymentStatus: patch.EmploymentStatus ?? jsonContact.EmploymentStatus,
     });
 
-    const created = await withPrismaRetry((prisma) =>
+    const created = await withPrismaRetry(async (prisma) =>
       prisma.contact.create({
         data: {
           id: jsonContact!.ContactID,
@@ -245,6 +270,24 @@ export async function updateRegistryContact(
           fullName: buildContactTitle(firstName, lastName),
           jobTitle: jobTitle || null,
           linkedInUrl: (patch.LinkedInURL ?? jsonContact!.LinkedInURL).trim() || null,
+          buyingRole: patch.buyingRole?.trim() || jsonContact!.buyingRole || null,
+          sentiment: patch.sentiment?.trim() || jsonContact!.sentiment || null,
+          influenceLevel:
+            patch.influenceLevel?.trim() || jsonContact!.influenceLevel || null,
+          reportsToId:
+            (await resolvePrismaReportsToId(patch.reportsToId ?? jsonContact!.reportsToId)) ||
+            null,
+          city: patch.city?.trim() || jsonContact!.city || null,
+          country: patch.country?.trim() || jsonContact!.country || null,
+          timezone: patch.timezone?.trim() || jsonContact!.timezone || null,
+          isTimezoneOverridden:
+            patch.isTimezoneOverridden ?? jsonContact!.isTimezoneOverridden ?? false,
+          engagementCadence:
+            patch.engagementCadence?.trim() || jsonContact!.engagementCadence || null,
+          backgroundNotes:
+            patch.backgroundNotes?.trim() || jsonContact!.backgroundNotes || null,
+          preferredLanguage:
+            patch.preferredLanguage?.trim() || jsonContact!.preferredLanguage || null,
           status: toPrismaContactStatus(
             patch.Status ?? jsonContact!.Status,
             patch.IsArchived ?? jsonContact!.IsArchived,
@@ -284,6 +327,29 @@ export async function updateRegistryContact(
   if (patch.LinkedInURL !== undefined) {
     data.linkedInUrl = patch.LinkedInURL.trim() || null;
   }
+  if (patch.buyingRole !== undefined) data.buyingRole = patch.buyingRole.trim() || null;
+  if (patch.sentiment !== undefined) data.sentiment = patch.sentiment.trim() || null;
+  if (patch.influenceLevel !== undefined) {
+    data.influenceLevel = patch.influenceLevel.trim() || null;
+  }
+  if (patch.reportsToId !== undefined) {
+    data.reportsToId = await resolvePrismaReportsToId(patch.reportsToId) || null;
+  }
+  if (patch.city !== undefined) data.city = patch.city.trim() || null;
+  if (patch.country !== undefined) data.country = patch.country.trim() || null;
+  if (patch.timezone !== undefined) data.timezone = patch.timezone.trim() || null;
+  if (patch.isTimezoneOverridden !== undefined) {
+    data.isTimezoneOverridden = patch.isTimezoneOverridden;
+  }
+  if (patch.engagementCadence !== undefined) {
+    data.engagementCadence = patch.engagementCadence.trim() || null;
+  }
+  if (patch.backgroundNotes !== undefined) {
+    data.backgroundNotes = patch.backgroundNotes.trim() || null;
+  }
+  if (patch.preferredLanguage !== undefined) {
+    data.preferredLanguage = patch.preferredLanguage.trim() || null;
+  }
 
   if (patch.Status !== undefined || patch.IsArchived !== undefined) {
     data.status = toPrismaContactStatus(patch.Status, patch.IsArchived);
@@ -317,7 +383,7 @@ export async function updateRegistryContact(
     if (companyId) data.companyId = companyId;
   }
 
-  const updated = await withPrismaRetry((prisma) =>
+  const updated = await withPrismaRetry(async (prisma) =>
     prisma.contact.update({
       where: { id: existing.id },
       data,

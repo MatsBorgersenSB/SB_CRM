@@ -37,6 +37,17 @@ function contactToForm(
     LinkedInURL: contact.LinkedInURL,
     Status: contact.Status,
     RelationshipLevel: contact.RelationshipLevel,
+    buyingRole: contact.buyingRole ?? "Champion",
+    sentiment: contact.sentiment ?? "Neutral",
+    influenceLevel: contact.influenceLevel ?? "Medium",
+    reportsToId: contact.reportsToId ?? "",
+    city: contact.city ?? "",
+    country: contact.country ?? "",
+    timezone: contact.timezone ?? "",
+    isTimezoneOverridden: contact.isTimezoneOverridden ?? false,
+    engagementCadence: contact.engagementCadence ?? "Monthly",
+    backgroundNotes: contact.backgroundNotes ?? "",
+    preferredLanguage: contact.preferredLanguage ?? "English",
     EmploymentStatus: contact.EmploymentStatus ?? "Active",
     Company: { Id: 0, Title: companyName },
   };
@@ -86,6 +97,17 @@ export function Contact360EditPanel({
         LinkedInURL: form.LinkedInURL.trim(),
         Status: form.Status,
         RelationshipLevel: form.RelationshipLevel,
+        buyingRole: form.buyingRole,
+        sentiment: form.sentiment,
+        influenceLevel: form.influenceLevel,
+        reportsToId: form.reportsToId?.trim() || undefined,
+        city: form.city?.trim() || undefined,
+        country: form.country?.trim() || undefined,
+        timezone: form.timezone?.trim() || undefined,
+        isTimezoneOverridden: Boolean(form.isTimezoneOverridden),
+        engagementCadence: form.engagementCadence,
+        backgroundNotes: form.backgroundNotes?.trim() || undefined,
+        preferredLanguage: form.preferredLanguage?.trim() || undefined,
         EmploymentStatus: form.EmploymentStatus,
         IsSuspicious: form.EmploymentStatus === "Suspicious",
       });
@@ -135,7 +157,7 @@ export function Contact360EditPanel({
         </div>
       </header>
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="space-y-3">
         <ContactFormFields
           form={form}
           onChange={setForm}
@@ -143,8 +165,15 @@ export function Contact360EditPanel({
           companies={companies.map((company) => ({
             CompanyID: company.CompanyID,
             Title: company.Title,
+            City: company.City,
+            Country: company.Country?.Title ?? "",
+            contacts: company.contacts.map((contact) => ({
+              ContactID: contact.ContactID,
+              Title: contact.Title,
+            })),
           }))}
           companyId={companyId}
+          currentContactId={record.contact.ContactID}
           onCompanyChange={setCompanyId}
           jobTitleLabel="Position"
         />

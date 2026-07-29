@@ -17,6 +17,17 @@ type ContactFields = {
   LinkedInURL: string;
   Status: string;
   RelationshipLevel: string;
+  buyingRole?: string;
+  sentiment?: string;
+  influenceLevel?: string;
+  reportsToId?: string;
+  city?: string;
+  country?: string;
+  timezone?: string;
+  isTimezoneOverridden?: boolean;
+  engagementCadence?: string;
+  backgroundNotes?: string;
+  preferredLanguage?: string;
 };
 
 export const contactMapper: ListItemMapper<ContactFields, Contact> = {
@@ -40,6 +51,17 @@ export const contactMapper: ListItemMapper<ContactFields, Contact> = {
       LinkedInURL: fields.LinkedInURL ?? "",
       Status: fields.Status as Contact["Status"],
       RelationshipLevel: fields.RelationshipLevel as Contact["RelationshipLevel"],
+      buyingRole: fields.buyingRole as Contact["buyingRole"],
+      sentiment: fields.sentiment as Contact["sentiment"],
+      influenceLevel: fields.influenceLevel as Contact["influenceLevel"],
+      reportsToId: fields.reportsToId ?? "",
+      city: fields.city ?? "",
+      country: fields.country ?? "",
+      timezone: fields.timezone ?? "",
+      isTimezoneOverridden: Boolean(fields.isTimezoneOverridden),
+      engagementCadence: fields.engagementCadence as Contact["engagementCadence"],
+      backgroundNotes: fields.backgroundNotes ?? "",
+      preferredLanguage: fields.preferredLanguage ?? "",
     };
   },
 
@@ -66,6 +88,25 @@ export const contactMapper: ListItemMapper<ContactFields, Contact> = {
     if (input.Status !== undefined) fields.Status = input.Status;
     if (input.RelationshipLevel !== undefined) {
       fields.RelationshipLevel = input.RelationshipLevel;
+    }
+    if (input.buyingRole !== undefined) fields.buyingRole = input.buyingRole;
+    if (input.sentiment !== undefined) fields.sentiment = input.sentiment;
+    if (input.influenceLevel !== undefined) fields.influenceLevel = input.influenceLevel;
+    if (input.reportsToId !== undefined) fields.reportsToId = input.reportsToId;
+    if (input.city !== undefined) fields.city = input.city;
+    if (input.country !== undefined) fields.country = input.country;
+    if (input.timezone !== undefined) fields.timezone = input.timezone;
+    if (input.isTimezoneOverridden !== undefined) {
+      fields.isTimezoneOverridden = input.isTimezoneOverridden;
+    }
+    if (input.engagementCadence !== undefined) {
+      fields.engagementCadence = input.engagementCadence;
+    }
+    if (input.backgroundNotes !== undefined) {
+      fields.backgroundNotes = input.backgroundNotes;
+    }
+    if (input.preferredLanguage !== undefined) {
+      fields.preferredLanguage = input.preferredLanguage;
     }
     if (input.Company) fields.CompanyLookupId = input.Company.Id;
 
