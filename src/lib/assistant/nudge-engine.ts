@@ -15,42 +15,53 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import { getContactDisplayName } from "@/types/contact";
 
-export type NudgeSeverity = "high" | "medium" | "low";
+export type NudgeSeverity = "HIGH" | "MEDIUM" | "LOW";
 
-export type NudgeActionKind =
-  | "draft_email"
-  | "add_economic_buyer"
-  | "navigate"
-  | "create_task";
+export type NudgeActionType =
+  | "DRAFT_OUTREACH_EMAIL"
+  | "ADD_ECONOMIC_BUYER"
+  | "OPEN_OPPORTUNITY"
+  | "CREATE_FOLLOW_UP_TASK"
+  | "OPEN_DECISION_JOURNAL"
+  | "NAVIGATE";
 
-export type NudgeAction = {
-  id: string;
-  label: string;
-  kind: NudgeActionKind;
+export type NudgeActionPayload = {
+  /** Primary 1-click destination (compose link, section anchor, deal route). */
   href?: string;
+  /** Button label for the primary action. */
+  label?: string;
+  companyId?: string;
+  companyName?: string;
+  opportunityId?: string;
+  opportunityName?: string;
+  decisionId?: string;
+  email?: string;
+  subject?: string;
+  body?: string;
+  /** Optional secondary actions (Open Opportunity, Log Activity, etc.). */
+  secondaryActions?: Array<{
+    label: string;
+    href: string;
+    actionType: NudgeActionType;
+  }>;
 };
 
 export type Nudge = {
   id: string;
-  companyId: string;
-  companyName: string;
-  opportunityId?: string;
-  opportunityName?: string;
   severity: NudgeSeverity;
   title: string;
-  message: string;
-  impact: string[];
-  actions: NudgeAction[];
-  ruleId: "stalled_deal" | "missing_decision_maker" | "decision_follow_up";
+  description: string;
+  actionType: NudgeActionType;
+  actionPayload: NudgeActionPayload;
 };
 
 const STALLED_DAYS = 14;
 const DECISION_FOLLOW_UP_DAYS = 7;
 
 const SEVERITY_RANK: Record<NudgeSeverity, number> = {
-  high: 0,
-  medium: 1,
-  low: 2,
+  HIGH: 0,
+  MEDIUM: 1,
+  LOW: 2,
 };
 
 type OpportunityTeamMember = {
@@ -140,10 +151,14 @@ function primaryContactName(company: Company): string | undefined {
   return contact ? getContactDisplayName(contact) : undefined;
 }
 
-function draftOutreachActions(
+function buildOutreachPayload(
   company: Company,
+  routeKey: string,
   opportunityName?: string,
-): NudgeAction[] {
+): Pick<
+  NudgeActionPayload,
+  "href" | "label" | "email" | "subject" | "body" | "secondaryActions"
+> {
   const email = primaryContactEmail(company);
   const contactName = primaryContactName(company);
   const subject = opportunityName
@@ -154,30 +169,33 @@ function draftOutreachActions(
     : `Hi,\n\nI wanted to reconnect on next steps.\n\nBest regards`;
 
   if (!email) {
-    return [
-      {
-        id: "open-contacts",
-        label: "Open Contacts",
-        kind: "navigate",
-        href: company360Href(company, "contacts"),
-      },
-    ];
+    return {
+      href: company360Href(company, "contacts"),
+      label: "Open Contacts",
+      secondaryActions: [
+        {
+          label: "Review Account",
+          href: company360Href(routeKey),
+          actionType: "NAVIGATE",
+        },
+      ],
+    };
   }
 
-  return [
-    {
-      id: "draft-outreach-m365",
-      label: "Draft Outreach Email",
-      kind: "draft_email",
-      href: m365ComposeHref(email, subject, body),
-    },
-    {
-      id: "draft-outreach-mailto",
-      label: "Open in Mail",
-      kind: "draft_email",
-      href: mailtoHref(email, subject, body),
-    },
-  ];
+  return {
+    href: m365ComposeHref(email, subject, body),
+    label: "Draft Outreach Email",
+    email,
+    subject,
+    body,
+    secondaryActions: [
+      {
+        label: "Open in Mail",
+        href: mailtoHref(email, subject, body),
+        actionType: "DRAFT_OUTREACH_EMAIL",
+      },
+    ],
+  };
 }
 
 function hasCompletedFollowUpAfterDecision(
@@ -248,40 +266,38 @@ export async function evaluateAccountNudges(
       const idleLabel = Number.isFinite(daysSince)
         ? `${daysSince} days`
         : "no recorded activity";
+      const outreach = buildOutreachPayload(company, routeKey, opportunity.name);
       nudges.push({
         id: `stalled_deal:${opportunity.id}`,
-        companyId: routeKey,
-        companyName: company.Title,
-        opportunityId: opportunity.id,
-        opportunityName: opportunity.name,
-        severity: "high",
+        severity: "HIGH",
         title: "Opportunity stalled — Re-engage primary contact",
-        message: `${opportunity.name} has had ${idleLabel} without logged activity.`,
-        impact: [
-          "Silent deals lose stakeholder attention and close probability drops.",
-          "A short re-engagement now protects pipeline momentum.",
-        ],
-        actions: [
-          ...draftOutreachActions(company, opportunity.name).slice(0, 1),
-          {
-            id: "open-opportunity",
-            label: "Open Opportunity",
-            kind: "navigate",
-            href: `/deals/${encodeURIComponent(opportunity.id)}`,
-          },
-          {
-            id: "log-activity",
-            label: "Log Activity",
-            kind: "navigate",
-            href: company360Href(company, "activities"),
-          },
-        ],
-        ruleId: "stalled_deal",
+        description: `${opportunity.name} has had ${idleLabel} without logged activity.`,
+        actionType: "DRAFT_OUTREACH_EMAIL",
+        actionPayload: {
+          ...outreach,
+          companyId: routeKey,
+          companyName: company.Title,
+          opportunityId: opportunity.id,
+          opportunityName: opportunity.name,
+          secondaryActions: [
+            ...(outreach.secondaryActions ?? []),
+            {
+              label: "Open Opportunity",
+              href: `/deals/${encodeURIComponent(opportunity.id)}`,
+              actionType: "OPEN_OPPORTUNITY",
+            },
+            {
+              label: "Log Activity",
+              href: company360Href(company, "activities"),
+              actionType: "NAVIGATE",
+            },
+          ],
+        },
       });
     }
   }
 
-  // 2) Missing Decision Maker — no Economic Buyer / Executive on account or open deals
+  // 2) Missing Decision Maker — no Economic Buyer / Executive tagged
   const contactHasBuyer = company.contacts.some((contact) =>
     contactIsDecisionMaker(contact),
   );
@@ -296,31 +312,24 @@ export async function evaluateAccountNudges(
   ) {
     nudges.push({
       id: `missing_decision_maker:${routeKey}`,
-      companyId: routeKey,
-      companyName: company.Title,
-      severity: "medium",
+      severity: "MEDIUM",
       title: "No Economic Buyer identified in Buying Center",
-      message:
+      description:
         "No contact is tagged as Economic Buyer or Executive on this account.",
-      impact: [
-        "Without an economic buyer, deals stall in evaluation and never reach funding.",
-        "Map the Buying Center before investing more discovery effort.",
-      ],
-      actions: [
-        {
-          id: "add-economic-buyer",
-          label: "Add Economic Buyer",
-          kind: "add_economic_buyer",
-          href: company360Href(company, "contacts"),
-        },
-        {
-          id: "open-contacts",
-          label: "Review Contacts",
-          kind: "navigate",
-          href: company360Href(company, "contacts"),
-        },
-      ],
-      ruleId: "missing_decision_maker",
+      actionType: "ADD_ECONOMIC_BUYER",
+      actionPayload: {
+        href: company360Href(company, "contacts"),
+        label: "Add Economic Buyer",
+        companyId: routeKey,
+        companyName: company.Title,
+        secondaryActions: [
+          {
+            label: "Review Contacts",
+            href: company360Href(company, "contacts"),
+            actionType: "NAVIGATE",
+          },
+        ],
+      },
     });
   }
 
@@ -335,34 +344,33 @@ export async function evaluateAccountNudges(
     if (hasCompletedFollowUpAfterDecision(companyActivities, createdAt)) continue;
 
     const dateLabel = formatDecisionDate(createdAt);
+    const outreach = buildOutreachPayload(company, routeKey);
     nudges.push({
       id: `decision_follow_up:${decision.id}`,
-      companyId: routeKey,
-      companyName: company.Title,
-      opportunityId: decision.opportunityId ?? undefined,
-      severity: "medium",
+      severity: "MEDIUM",
       title: `Follow up on decision made on ${dateLabel}`,
-      message: decision.decisionText.slice(0, 180),
-      impact: [
-        "Unclosed decisions create false progress — the customer may assume we moved on.",
-        "A completed follow-up converts the decision into commercial momentum.",
-      ],
-      actions: [
-        ...draftOutreachActions(company).slice(0, 1),
-        {
-          id: "open-decisions",
-          label: "Open Decision Journal",
-          kind: "navigate",
-          href: company360Href(company, "decisions"),
-        },
-        {
-          id: "create-follow-up",
-          label: "Create Follow-up Task",
-          kind: "create_task",
-          href: company360Href(company, "activities"),
-        },
-      ],
-      ruleId: "decision_follow_up",
+      description: decision.decisionText.slice(0, 180),
+      actionType: "DRAFT_OUTREACH_EMAIL",
+      actionPayload: {
+        ...outreach,
+        companyId: routeKey,
+        companyName: company.Title,
+        opportunityId: decision.opportunityId ?? undefined,
+        decisionId: decision.id,
+        secondaryActions: [
+          ...(outreach.secondaryActions ?? []),
+          {
+            label: "Open Decision Journal",
+            href: company360Href(company, "decisions"),
+            actionType: "OPEN_DECISION_JOURNAL",
+          },
+          {
+            label: "Create Follow-up Task",
+            href: company360Href(company, "activities"),
+            actionType: "CREATE_FOLLOW_UP_TASK",
+          },
+        ],
+      },
     });
   }
 
