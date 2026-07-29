@@ -80,6 +80,8 @@ function isClientCurrent(client: PrismaClient | undefined): client is PrismaClie
     "workflowExecution",
     "decisionJournal",
     "documentComplianceAudit",
+    "project",
+    "projectMilestone",
   ] as const;
   return required.every((key) => {
     const value = (client as unknown as Record<string, unknown>)[key];

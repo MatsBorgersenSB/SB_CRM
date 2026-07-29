@@ -39,6 +39,7 @@ import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
 import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
 import { MicroCampaignGenerator } from "@/components/marketing/MicroCampaignGenerator";
 import { NicheChannelRadarPanel } from "@/components/marketing/NicheChannelRadarPanel";
+import { ProjectStageGateView } from "@/components/execution/ProjectStageGateView";
 import type { CompanyHeroQuickEdit } from "@/lib/company-identity";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
@@ -299,6 +300,18 @@ export function Company360LivingWorkspace({
         collapseStorageKey={sectionKey("projects")}
       >
         <CompanyProjectsTable projects={linkedProjects} companyId={company.CompanyID} companies={companies} />
+      </WorkspacePanel>
+
+      <WorkspacePanel
+        title="Stage-Gate Execution"
+        id="stage-gate-execution"
+        collapsible
+        collapseStorageKey={sectionKey("stage-gate-execution")}
+      >
+        <ProjectStageGateView
+          companyId={companyRouteKey(company)}
+          companyName={company.Title}
+        />
       </WorkspacePanel>
 
       <WorkspacePanel

@@ -64,6 +64,7 @@ model Company {
   meetings      MeetingRecord[]
   decisions     DecisionJournal[]
   complianceAudits DocumentComplianceAudit[]
+  executionProjects Project[]
 
   // FS-010 Growth & Expansion Intelligence
   healthRecords    AccountHealthRecord[]
@@ -319,6 +320,9 @@ model Opportunity {
 
   // FS-011 Autonomous Workflow Engine
   workflowExecutions WorkflowExecution[]
+
+  // Execution Intelligence — Stage-Gate projects
+  executionProjects Project[]
 
   // SharePoint Online — opportunity document folder (single source of truth)
   sharepointFolderId  String?
@@ -781,6 +785,62 @@ model WorkflowExecution {
 }
 
 
+
+// ==========================================
+// Execution Intelligence — Multi-Track Stage-Gate Projects
+// ==========================================
+
+enum ExecutionProjectType {
+  TURNKEY_PLANT
+  SINGLE_MACHINERY
+  INTERNAL_RD
+}
+
+enum ProjectHealthStatus {
+  ON_TRACK
+  AT_RISK
+  DELAYED
+}
+
+/// Stage-Gate execution project — linked to Company and optional Opportunity.
+model Project {
+  id            String                @id @default(cuid())
+  title         String
+  projectType   ExecutionProjectType
+  currentStage  String
+  /// Technology Readiness Level 1–9 (INTERNAL_RD only)
+  trlLevel      Int?
+  companyId     String
+  company       Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  opportunityId String?
+  opportunity   Opportunity?          @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  healthStatus  ProjectHealthStatus   @default(ON_TRACK)
+  milestones    ProjectMilestone[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([companyId])
+  @@index([opportunityId])
+  @@index([projectType])
+  @@index([healthStatus])
+  @@map("execution_projects")
+}
+
+model ProjectMilestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  stage       String
+  isCompleted Boolean   @default(false)
+  dueDate     DateTime?
+  completedAt DateTime?
+  sortOrder   Int       @default(0)
+
+  @@index([projectId])
+  @@index([stage])
+  @@map("execution_project_milestones")
+}
 
 // ==========================================
 // FS-013: Enterprise Security, RBAC & Audit Logging

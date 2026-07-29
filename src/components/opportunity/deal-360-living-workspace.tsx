@@ -35,6 +35,7 @@ import { ContractAuditPanel } from "@/components/smartdocs/ContractAuditPanel";
 import { IntentRadarBanner } from "@/components/marketing/IntentRadarBanner";
 import { MicroCampaignGenerator } from "@/components/marketing/MicroCampaignGenerator";
 import { NicheChannelRadarPanel } from "@/components/marketing/NicheChannelRadarPanel";
+import { ProjectStageGateView } from "@/components/execution/ProjectStageGateView";
 import { OpportunityWorkspaceHeader } from "@/components/opportunity/opportunity-workspace-header";
 import { OpportunityMissionControl } from "@/components/opportunity/opportunity-mission-control";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
@@ -364,6 +365,16 @@ export function Deal360LivingWorkspace({
           <NicheChannelRadarPanel
             companyId={companyRouteKey(company)}
             companyName={company.Title}
+          />
+        </WorkspacePanel>
+      ) : null}
+
+      {company ? (
+        <WorkspacePanel title="Stage-Gate Execution" id="stage-gate-execution" collapsible>
+          <ProjectStageGateView
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+            opportunityId={pipeline.id}
           />
         </WorkspacePanel>
       ) : null}
