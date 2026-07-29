@@ -822,6 +822,8 @@ model Project {
   commissioningLogs CommissioningLog[]
   rdExperimentLogs RdExperimentLog[]
   eciInstrumentTags EciInstrumentTag[]
+  atexInterlocks AtexInterlock[]
+  plcReleases PlcRelease[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
@@ -1019,6 +1021,54 @@ model EciInstrumentTag {
   @@index([isCalibrated])
   @@index([loopChecked])
   @@map("eci_instrument_tags")
+}
+
+enum AtexZone {
+  ZONE_0
+  ZONE_1
+  ZONE_2
+  SAFE_AREA
+}
+
+/// ATEX / ESD cause-effect interlocks for hot-gas safety readiness.
+model AtexInterlock {
+  id                String   @id @default(cuid())
+  projectId         String
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  loopName          String
+  atexZone          AtexZone
+  causeDescription  String
+  effectDescription String
+  isDryTested       Boolean  @default(false)
+  isWetTested       Boolean  @default(false)
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([atexZone])
+  @@index([isDryTested])
+  @@map("atex_interlocks")
+}
+
+/// PLC / SCADA software release & loop verification progress.
+model PlcRelease {
+  id                 String   @id @default(cuid())
+  projectId          String
+  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  plcTargetName      String
+  codeVersion        String
+  backupChecksum     String?
+  notes              String?
+  totalLoopsCount    Int      @default(0)
+  verifiedLoopsCount Int      @default(0)
+  deployedBy         String?
+  createdAt          DateTime @default(now())
+
+  @@index([projectId])
+  @@index([createdAt])
+  @@map("plc_releases")
 }
 
 // ==========================================

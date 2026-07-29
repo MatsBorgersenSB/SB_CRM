@@ -14,6 +14,7 @@ import { ScopeChangeLoggerPanel } from "@/components/execution/ScopeChangeLogger
 import { SiteCommissioningCoPilotPanel } from "@/components/execution/SiteCommissioningCoPilotPanel";
 import { TrlTrackerPanel } from "@/components/execution/TrlTrackerPanel";
 import { EciTraceabilityPanel } from "@/components/execution/EciTraceabilityPanel";
+import { AtexPlcControlsPanel } from "@/components/execution/AtexPlcControlsPanel";
 
 type ProjectStageGateViewProps = {
   companyId: string;
@@ -353,6 +354,7 @@ export function ProjectStageGateView({
                 />
               ) : null}
               <EciTraceabilityPanel projectId={project.id} />
+              <AtexPlcControlsPanel projectId={project.id} />
             </div>
           );
         })}
