@@ -1,18 +1,30 @@
 import { notFound } from "next/navigation";
 import { CompanyMasterDataShell } from "@/components/administration/company-master-data-shell";
+import { getCompanyById } from "@/lib/data/companies";
 import { readCompanies } from "@/lib/pipeline-db";
 
 type CompanyMasterDataPageProps = {
-  params: Promise<{ companyId: string }>;
+  params: Promise<{ companyId: string; id?: string }>;
 };
 
-export default async function CompanyMasterDataPage({ params }: CompanyMasterDataPageProps) {
-  const { companyId } = await params;
-  const companies = await readCompanies();
+export default async function CompanyMasterDataPage({
+  params,
+}: CompanyMasterDataPageProps) {
+  const resolved = await params;
+  const rawId = resolved.companyId ?? resolved.id ?? "";
+  let cleanId = "";
+  try {
+    cleanId = decodeURIComponent(String(rawId).split("?")[0] ?? "").trim();
+  } catch {
+    cleanId = String(rawId).trim();
+  }
 
-  const company = companies.find(
-    (record) => record.CompanyID === companyId || String(record.id) === companyId,
-  );
+  if (!cleanId) {
+    notFound();
+  }
+
+  const companies = await readCompanies();
+  const company = await getCompanyById(cleanId, companies);
 
   if (!company) {
     notFound();
