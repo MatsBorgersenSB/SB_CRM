@@ -206,7 +206,7 @@ export function CompaniesOperationsShell({
     (company: Company) => {
       upsertCompany(company);
       setActiveTool(null);
-      router.push(company360Href(company.CompanyID));
+      router.push(company360Href(company));
     },
     [router, upsertCompany],
   );

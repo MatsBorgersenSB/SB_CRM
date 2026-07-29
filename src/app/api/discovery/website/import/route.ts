@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import {
   importDiscoveredContactForCompany,
   importWebsiteDiscovery,
@@ -6,6 +7,12 @@ import {
 } from "@/lib/discovery/website-import";
 import type { WebsiteDiscoveryResult } from "@/lib/discovery/types";
 import type { SharePointPerson } from "@/types/company";
+import { companyRouteKey } from "@/types/company-360";
+
+function revalidateCompanySurfaces() {
+  revalidatePath("/companies");
+  revalidatePath("/contacts");
+}
 
 export async function POST(request: Request) {
   let body: {
@@ -32,7 +39,13 @@ export async function POST(request: Request) {
   try {
     if (phase === "company") {
       const result = await upsertCompanyFromDiscovery(body.discovery, body.accountOwner);
-      return NextResponse.json(result);
+      revalidateCompanySurfaces();
+      const key = companyRouteKey(result.company);
+      return NextResponse.json({
+        ...result,
+        company: result.company,
+        href: `/companies/${encodeURIComponent(key)}`,
+      });
     }
 
     if (phase === "contact") {
@@ -49,6 +62,7 @@ export async function POST(request: Request) {
       }
 
       const result = await importDiscoveredContactForCompany(body.companyId, contact);
+      revalidateCompanySurfaces();
       return NextResponse.json(result);
     }
 
@@ -58,7 +72,12 @@ export async function POST(request: Request) {
       accountOwner: body.accountOwner,
     });
 
-    return NextResponse.json(result);
+    revalidateCompanySurfaces();
+    const key = companyRouteKey(result.company);
+    return NextResponse.json({
+      ...result,
+      href: `/companies/${encodeURIComponent(key)}`,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Import failed";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -26,6 +26,8 @@ enum CompanySize {
 
 model Company {
   id                 String        @id @default(uuid())
+  /// Public tracking code used in routes (e.g. CO-1007). Unique when set.
+  code               String?       @unique
   name               String
   alternativeNames   String[]      @default([])
   organizationNumber String?       @unique
@@ -72,6 +74,7 @@ model Company {
   updatedAt DateTime @updatedAt
 
   @@index([name])
+  @@index([code])
   @@index([organizationNumber])
   @@map("company_registry")
 }

@@ -19,6 +19,7 @@ import {
 import { resolveAccountOwner } from "@/lib/company-owner";
 import { emailsIncludeAddress } from "@/lib/entity-route-utils";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
+import { allocateNextCompanyCode, companyDetailInclude } from "@/lib/data/companies";
 import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import {
   mapPrismaCompanyToApp,
@@ -28,6 +29,7 @@ import {
 import type { Company, SharePointPerson } from "@/types/company";
 import type { ContactListRole } from "@/types/contact";
 import { lookupAddressOSM } from "@/lib/geo/nominatim";
+import { companyRouteKey } from "@/types/company-360";
 
 export { prepareDiscoveryForImport } from "@/lib/discovery/website-discovery";
 
@@ -137,19 +139,6 @@ async function prismaRegistryAvailable(): Promise<boolean> {
   }
 }
 
-async function loadMappedPrismaCompany(prismaId: string): Promise<Company> {
-  const row = await withPrismaRetry((prisma) =>
-    prisma.company.findUniqueOrThrow({
-      where: { id: prismaId },
-      include: {
-        contacts: { where: { status: "active" } },
-        opportunities: { select: { id: true } },
-      },
-    }),
-  );
-  return mapPrismaCompanyToApp(row);
-}
-
 async function findPrismaCompanyByDomain(domain: string) {
   if (!domain) return null;
   const companies = await withPrismaRetry((prisma) =>
@@ -167,10 +156,55 @@ async function findPrismaCompanyByDomain(domain: string) {
   );
 }
 
+function buildContactCreateData(discovered: DiscoveredContact) {
+  const { firstName, lastName } = splitPersonName(discovered.name);
+  const email = discovered.email.trim().toLowerCase();
+  const phone = normalizePhoneNumber(discovered.phone);
+  const name = discovered.name.trim() || `${firstName} ${lastName}`.trim();
+
+  return {
+    firstName,
+    lastName,
+    fullName: name,
+    jobTitle: discovered.jobTitle.trim() || null,
+    status: "active" as const,
+    emails: email ? [{ address: email, type: "work", isPrimary: true }] : [],
+    phoneNumbers: phone ? [{ number: phone, type: "mobile", isPrimary: true }] : [],
+  };
+}
+
+function contactAlreadyExists<T extends {
+  fullName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  emails?: unknown;
+  jobTitle?: string | null;
+  id: string;
+}>(contacts: T[], discovered: DiscoveredContact): T | undefined {
+  const email = discovered.email.trim().toLowerCase();
+  const name = discovered.name.trim().toLowerCase();
+  return contacts.find((contact) => {
+    const fullName = (contact.fullName ?? `${contact.firstName ?? ""} ${contact.lastName ?? ""}`)
+      .trim()
+      .toLowerCase();
+    return (
+      (email && emailsIncludeAddress(contact.emails, email)) ||
+      (name && fullName === name)
+    );
+  });
+}
+
 async function upsertCompanyFromDiscoveryPrisma(
   discovery: WebsiteDiscoveryResult,
   accountOwner?: SharePointPerson | null,
-): Promise<CompanyUpsertFromDiscoveryResult> {
+  selectedContacts: DiscoveredContact[] = [],
+): Promise<
+  CompanyUpsertFromDiscoveryResult & {
+    contactsImported: Contact[];
+    contactsSkipped: number;
+    contactsUpdated: number;
+  }
+> {
   const prepared = prepareDiscoveryForImport(discovery);
   await enrichPreparedCompanyGeoWithOSM(prepared, discovery.company.address);
   const patch = buildCompanyPatch(prepared);
@@ -182,6 +216,10 @@ async function upsertCompanyFromDiscoveryPrisma(
       ? await findPrismaCompanyByRouteKey(prepared.matchedCompanyId)
       : null) ?? (await findPrismaCompanyByDomain(domain));
 
+  if (!existing && patch.organizationNumber) {
+    existing = await findPrismaCompanyByRouteKey(patch.organizationNumber);
+  }
+
   const emailJson = patch.Email
     ? [{ address: patch.Email, type: "work", isPrimary: true }]
     : [];
@@ -190,55 +228,136 @@ async function upsertCompanyFromDiscoveryPrisma(
     : [];
   const geo = prismaGeoFromDiscovery(prepared, patch);
 
-  if (existing) {
-    const updated = await withPrismaRetry((prisma) =>
-      prisma.company.update({
-        where: { id: existing!.id },
-        data: {
-          name: patch.Title,
-          website: domain ? `https://${domain}` : existing!.website,
-          industry: existing!.industry ?? "Polymer Processing",
-          addressLine1: geo.addressLine1 || existing!.addressLine1,
-          addressLine2: geo.addressLine2 || existing!.addressLine2,
-          postalCode: geo.postalCode || existing!.postalCode,
-          city: geo.city || existing!.city,
-          stateRegion: geo.stateRegion || existing!.stateRegion,
-          country: geo.country || existing!.country,
-          countryCode: geo.countryCode || existing!.countryCode,
-          continent: geo.continent || existing!.continent,
-          ownerId: accountOwner?.Title ? String(owner.Id) : existing!.ownerId ?? String(owner.Id),
-          ...(emailJson.length > 0 ? { emails: emailJson } : {}),
-          ...(phoneJson.length > 0 ? { phoneNumbers: phoneJson } : {}),
-        },
-      }),
-    );
-    return { company: await loadMappedPrismaCompany(updated.id), created: false };
-  }
+  return withPrismaRetry(async (prisma) =>
+    prisma.$transaction(async (tx) => {
+      let created = false;
+      const contactsImported: Contact[] = [];
+      let contactsSkipped = 0;
+      let contactsUpdated = 0;
 
-  const created = await withPrismaRetry((prisma) =>
-    prisma.company.create({
-      data: {
-        name: patch.Title,
-        website: domain ? `https://${domain}` : null,
-        industry: "Polymer Processing",
-        types: ["Prospect"],
-        status: "active",
-        addressLine1: geo.addressLine1,
-        addressLine2: geo.addressLine2,
-        postalCode: geo.postalCode,
-        city: geo.city,
-        stateRegion: geo.stateRegion,
-        country: geo.country,
-        countryCode: geo.countryCode,
-        continent: geo.continent,
-        ownerId: String(owner.Id),
-        emails: emailJson,
-        phoneNumbers: phoneJson,
-      },
+      let companyRow: {
+        id: string;
+        name: string;
+        code?: string | null;
+      };
+
+      if (existing) {
+        const code = existing.code?.trim() || (await allocateNextCompanyCode(tx));
+        companyRow = await tx.company.update({
+          where: { id: existing.id },
+          data: {
+            code,
+            name: patch.Title,
+            website: domain ? `https://${domain}` : existing.website,
+            industry: existing.industry ?? "Polymer Processing",
+            addressLine1: geo.addressLine1 || existing.addressLine1,
+            addressLine2: geo.addressLine2 || existing.addressLine2,
+            postalCode: geo.postalCode || existing.postalCode,
+            city: geo.city || existing.city,
+            stateRegion: geo.stateRegion || existing.stateRegion,
+            country: geo.country || existing.country,
+            countryCode: geo.countryCode || existing.countryCode,
+            continent: geo.continent || existing.continent || "Europe",
+            organizationNumber:
+              patch.organizationNumber?.trim() || existing.organizationNumber,
+            vatNumber: patch.vatNumber?.trim() || existing.vatNumber,
+            ownerId: accountOwner?.Title
+              ? String(owner.Id)
+              : existing.ownerId ?? String(owner.Id),
+            ...(emailJson.length > 0 ? { emails: emailJson } : {}),
+            ...(phoneJson.length > 0 ? { phoneNumbers: phoneJson } : {}),
+          },
+          select: { id: true, name: true, code: true },
+        });
+
+        const existingContacts = await tx.contact.findMany({
+          where: { companyId: existing.id, status: "active" },
+        });
+        const lookup = {
+          Id: stableNumericId(companyRow.id),
+          Title: companyRow.name,
+        };
+
+        for (const discovered of selectedContacts) {
+          const prior = contactAlreadyExists(existingContacts, discovered);
+          if (prior) {
+            const jobTitle = discovered.jobTitle.trim();
+            if (jobTitle && prior.jobTitle !== jobTitle) {
+              await tx.contact.update({
+                where: { id: prior.id },
+                data: { jobTitle },
+              });
+              contactsUpdated += 1;
+            } else {
+              contactsSkipped += 1;
+            }
+            continue;
+          }
+          const createdContact = await tx.contact.create({
+            data: {
+              ...buildContactCreateData(discovered),
+              companyId: existing.id,
+            },
+          });
+          contactsImported.push(mapPrismaContactToApp(createdContact, lookup));
+        }
+      } else {
+        created = true;
+        const code = await allocateNextCompanyCode(tx);
+        const contactCreates = selectedContacts.map((discovered) =>
+          buildContactCreateData(discovered),
+        );
+        const createdCompany = await tx.company.create({
+          data: {
+            code,
+            name: patch.Title,
+            website: domain ? `https://${domain}` : null,
+            industry: "Polymer Processing",
+            types: ["Prospect"],
+            companyType: "Prospect",
+            status: "active",
+            addressLine1: geo.addressLine1,
+            addressLine2: geo.addressLine2,
+            postalCode: geo.postalCode,
+            city: geo.city,
+            stateRegion: geo.stateRegion,
+            country: geo.country,
+            countryCode: geo.countryCode,
+            continent: geo.continent || "Europe",
+            organizationNumber: patch.organizationNumber?.trim() || null,
+            vatNumber: patch.vatNumber?.trim() || null,
+            ownerId: String(owner.Id),
+            emails: emailJson,
+            phoneNumbers: phoneJson,
+            contacts:
+              contactCreates.length > 0 ? { create: contactCreates } : undefined,
+          },
+          include: companyDetailInclude,
+        });
+        companyRow = createdCompany;
+        const lookup = {
+          Id: stableNumericId(createdCompany.id),
+          Title: createdCompany.name,
+        };
+        for (const contact of createdCompany.contacts) {
+          contactsImported.push(mapPrismaContactToApp(contact, lookup));
+        }
+      }
+
+      const loaded = await tx.company.findUniqueOrThrow({
+        where: { id: companyRow.id },
+        include: companyDetailInclude,
+      });
+
+      return {
+        company: mapPrismaCompanyToApp(loaded),
+        created,
+        contactsImported,
+        contactsSkipped,
+        contactsUpdated,
+      };
     }),
   );
-
-  return { company: await loadMappedPrismaCompany(created.id), created: true };
 }
 
 async function importContactPrisma(
@@ -250,24 +369,13 @@ async function importContactPrisma(
     return { status: "skipped", reason: "Company not found" };
   }
 
-  const email = discovered.email.trim().toLowerCase();
-  const name = discovered.name.trim();
   const contacts = await withPrismaRetry((prisma) =>
     prisma.contact.findMany({
       where: { companyId: prismaCompany.id, status: "active" },
     }),
   );
 
-  const existing = contacts.find((contact) => {
-    const fullName = (contact.fullName ?? `${contact.firstName ?? ""} ${contact.lastName ?? ""}`)
-      .trim()
-      .toLowerCase();
-    return (
-      (email && emailsIncludeAddress(contact.emails, email)) ||
-      (name && fullName === name.toLowerCase())
-    );
-  });
-
+  const existing = contactAlreadyExists(contacts, discovered);
   const companyLookup = {
     Id: stableNumericId(prismaCompany.id),
     Title: prismaCompany.name,
@@ -294,19 +402,11 @@ async function importContactPrisma(
     };
   }
 
-  const { firstName, lastName } = splitPersonName(discovered.name);
-  const phone = normalizePhoneNumber(discovered.phone);
   const created = await withPrismaRetry((prisma) =>
     prisma.contact.create({
       data: {
-        firstName,
-        lastName,
-        fullName: name || `${firstName} ${lastName}`.trim(),
-        jobTitle: discovered.jobTitle.trim() || null,
+        ...buildContactCreateData(discovered),
         companyId: prismaCompany.id,
-        status: "active",
-        emails: email ? [{ address: email, type: "work", isPrimary: true }] : [],
-        phoneNumbers: phone ? [{ number: phone, type: "mobile", isPrimary: true }] : [],
       },
     }),
   );
@@ -475,7 +575,8 @@ export async function upsertCompanyFromDiscovery(
   accountOwner?: SharePointPerson | null,
 ): Promise<CompanyUpsertFromDiscoveryResult> {
   if (await prismaRegistryAvailable()) {
-    return upsertCompanyFromDiscoveryPrisma(discovery, accountOwner);
+    const result = await upsertCompanyFromDiscoveryPrisma(discovery, accountOwner, []);
+    return { company: result.company, created: result.created };
   }
   return upsertCompanyFromDiscoveryJson(discovery, accountOwner);
 }
@@ -498,7 +599,22 @@ export async function importWebsiteDiscovery(
     selectedIds.has(contact.id),
   );
 
-  const { company, created } = await upsertCompanyFromDiscovery(
+  if (await prismaRegistryAvailable()) {
+    const result = await upsertCompanyFromDiscoveryPrisma(
+      input.discovery,
+      input.accountOwner,
+      selectedContacts,
+    );
+    return {
+      company: result.company,
+      created: result.created,
+      contactsImported: result.contactsImported,
+      contactsSkipped: result.contactsSkipped,
+      contactsUpdated: result.contactsUpdated,
+    };
+  }
+
+  const { company, created } = await upsertCompanyFromDiscoveryJson(
     input.discovery,
     input.accountOwner,
   );
@@ -508,7 +624,7 @@ export async function importWebsiteDiscovery(
   let contactsUpdated = 0;
 
   for (const discovered of selectedContacts) {
-    const result = await importDiscoveredContactForCompany(company.CompanyID, discovered);
+    const result = await importContactJson(companyRouteKey(company), discovered);
     if (result.status === "imported" && result.contact) {
       contactsImported.push(result.contact);
     } else if (result.status === "updated" && result.contact) {
@@ -518,17 +634,10 @@ export async function importWebsiteDiscovery(
     }
   }
 
-  let refreshed = company;
-  if (await prismaRegistryAvailable()) {
-    const prismaCompany = await findPrismaCompanyByRouteKey(company.CompanyID);
-    if (prismaCompany) {
-      refreshed = await loadMappedPrismaCompany(prismaCompany.id);
-    }
-  } else {
-    refreshed =
-      (await readCompanies()).find((record) => record.CompanyID === company.CompanyID) ??
-      company;
-  }
+  const refreshed =
+    (await readCompanies()).find(
+      (record) => record.CompanyID === company.CompanyID || record.code === company.code,
+    ) ?? company;
 
   return {
     company: refreshed,

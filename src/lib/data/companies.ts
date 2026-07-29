@@ -13,9 +13,10 @@ import {
   stableNumericId,
 } from "@/lib/prisma-mappers";
 import { readCompanies } from "@/lib/pipeline-db";
+import { nextCompanyTrackingId } from "@/lib/entity-id";
 
 /**
- * Match company in live/JSON portfolio — id, CompanyID (code), name, domain, email.
+ * Match company in live/JSON portfolio — id, CompanyID/code, name, domain, email.
  */
 export function findCompanyInPortfolio(
   companies: Company[],
@@ -27,8 +28,9 @@ export function findCompanyInPortfolio(
   const upper = key.toUpperCase();
 
   return companies.find((company) => {
-    const code = company.CompanyID?.trim() ?? "";
+    const code = (company.code ?? company.CompanyID)?.trim() ?? "";
     if (code.toLowerCase() === lower || code.toUpperCase() === upper) return true;
+    if (company.CompanyID?.trim().toLowerCase() === lower) return true;
     if (String(company.id).toLowerCase() === lower) return true;
     if (company.organizationNumber?.trim().toLowerCase() === lower) return true;
     if (company.Title?.trim().toLowerCase() === lower) return true;
@@ -38,14 +40,48 @@ export function findCompanyInPortfolio(
   });
 }
 
-const companyInclude = {
+export const companyDetailInclude = {
   contacts: { where: { status: "active" as const } },
   opportunities: { select: { id: true } },
 } as const;
 
+type PrismaCodeClient = {
+  company: {
+    findMany: (args: {
+      where?: { code?: { not: null } };
+      select: { code: true };
+    }) => Promise<Array<{ code: string | null }>>;
+  };
+};
+
+/** Allocate next CO-#### code from existing Prisma codes + optional seed portfolio. */
+export async function allocateNextCompanyCode(
+  prismaLike: PrismaCodeClient,
+  seedCompanies: Company[] = [],
+): Promise<string> {
+  const rows = await prismaLike.company.findMany({
+    where: { code: { not: null } },
+    select: { code: true },
+  });
+
+  const synthetic: Company[] = [
+    ...seedCompanies,
+    ...rows
+      .map((row) => row.code?.trim())
+      .filter((code): code is string => Boolean(code))
+      .map(
+        (code) =>
+          ({
+            CompanyID: code,
+          }) as Company,
+      ),
+  ];
+
+  return nextCompanyTrackingId(synthetic);
+}
+
 /**
- * Prisma lookup by UUID id, organization number, name, or tracking code (CO-…).
- * There is no `code` column — CompanyID / orgnr act as the business code.
+ * Prisma lookup by UUID id OR public code (and orgnr / name fallbacks).
  * Never throws.
  */
 export async function findPrismaCompanyByRouteKey(routeKey: string) {
@@ -58,13 +94,15 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
         where: {
           OR: [
             { id: cleanId },
+            { code: cleanId },
+            { code: cleanId.toUpperCase() },
             { organizationNumber: cleanId },
             { organizationNumber: cleanId.toUpperCase() },
             { name: { equals: cleanId, mode: "insensitive" } },
             { alternativeNames: { has: cleanId } },
           ],
         },
-        include: companyInclude,
+        include: companyDetailInclude,
       }),
     );
     if (byFields) return byFields;
@@ -73,7 +111,7 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
       const withEmails = await withPrismaRetry((prisma) =>
         prisma.company.findMany({
           where: { status: { in: ["active", "archived"] } },
-          include: companyInclude,
+          include: companyDetailInclude,
         }),
       );
       return (
@@ -81,18 +119,22 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
       );
     }
 
-    // Tracking codes (CO-…) and stable numeric ids require a scan — no DB `code` column.
+    // Legacy rows without code — match derived CO-… from uuid, or stable numeric id.
     if (isCompanyTrackingCode(cleanId) || /^\d+$/.test(cleanId)) {
       const candidates = await withPrismaRetry((prisma) =>
         prisma.company.findMany({
           where: { status: { in: ["active", "archived"] } },
-          include: companyInclude,
+          include: companyDetailInclude,
         }),
       );
 
       if (isCompanyTrackingCode(cleanId)) {
         return (
-          candidates.find((row) => companyTrackingMatches(row.id, cleanId)) ?? null
+          candidates.find(
+            (row) =>
+              row.code?.toUpperCase() === cleanId.toUpperCase() ||
+              companyTrackingMatches(row.id, cleanId),
+          ) ?? null
         );
       }
 
@@ -112,9 +154,7 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
   }
 }
 
-async function mapPrismaOrNull(
-  routeKey: string,
-): Promise<Company | null> {
+async function mapPrismaOrNull(routeKey: string): Promise<Company | null> {
   const row = await findPrismaCompanyByRouteKey(routeKey);
   if (!row) return null;
   return mapPrismaCompanyToApp(row);
@@ -145,8 +185,8 @@ export async function getCompanyById(
 export const getCompany = getCompanyById;
 
 /**
- * Resolve company for a detail route: portfolio/seed first for list-link IDs,
- * then Prisma (mapped to app Company even when not already in the portfolio).
+ * Resolve company for a detail route: portfolio first for list-link IDs,
+ * then Prisma (mapped even when not already in the portfolio).
  */
 export async function resolveCompanyRouteRecord(
   companies: Company[],
@@ -160,14 +200,12 @@ export async function resolveCompanyRouteRecord(
 
   const fromPrisma = await mapPrismaOrNull(cleanId);
   if (fromPrisma) {
-    // Prefer the live portfolio row when the same tracking id already exists
-    // (keeps contact/pipeline wiring from the list load).
     const bridged =
+      findCompanyInPortfolio(companies, fromPrisma.code ?? fromPrisma.CompanyID) ??
       findCompanyInPortfolio(companies, fromPrisma.CompanyID) ??
       findCompanyInPortfolio(companies, String(fromPrisma.id));
     return bridged ?? fromPrisma;
   }
 
-  // Final seed pass (same id OR code matching) — covers empty Prisma / connection miss.
   return findCompanyInPortfolio(companies, cleanId);
 }

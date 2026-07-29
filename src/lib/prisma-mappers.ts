@@ -239,7 +239,8 @@ export function mapPrismaContactToApp(
 }
 
 export function mapPrismaCompanyToApp(company: PrismaCompanyWithRelations): Company {
-  const companyId = toCompanyTrackingId(company.id);
+  const persistedCode = company.code?.trim() || null;
+  const companyId = persistedCode || toCompanyTrackingId(company.id);
   const lookup = {
     Id: stableNumericId(company.id),
     Title: company.name,
@@ -249,6 +250,7 @@ export function mapPrismaCompanyToApp(company: PrismaCompanyWithRelations): Comp
     id: lookup.Id,
     Title: company.name,
     CompanyID: companyId,
+    code: persistedCode ?? companyId,
     ParentCompany: company.parentCompanyId
       ? { Id: stableNumericId(company.parentCompanyId), Title: "Parent" }
       : null,

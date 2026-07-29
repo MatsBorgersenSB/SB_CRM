@@ -67,8 +67,27 @@ export function resolveCompany360Tab(value: string | null | undefined): Company3
   return LEGACY_TAB_ALIASES[value] ?? "overview";
 }
 
-export function company360Href(companyId: string, section?: Company360Section): string {
-  const base = `/companies/${companyId}`;
+/** Prefer persisted code, then CompanyID, then numeric/list id. */
+export function companyRouteKey(
+  company: { code?: string | null; CompanyID?: string; id?: string | number },
+): string {
+  const code = company.code?.trim();
+  if (code) return code;
+  const tracking = company.CompanyID?.trim();
+  if (tracking) return tracking;
+  if (company.id != null && String(company.id).trim()) return String(company.id).trim();
+  return "";
+}
+
+export function company360Href(
+  companyOrId:
+    | string
+    | { code?: string | null; CompanyID?: string; id?: string | number },
+  section?: Company360Section,
+): string {
+  const raw =
+    typeof companyOrId === "string" ? companyOrId.trim() : companyRouteKey(companyOrId);
+  const base = `/companies/${encodeURIComponent(raw)}`;
   if (!section) return base;
   return `${base}#${section}`;
 }

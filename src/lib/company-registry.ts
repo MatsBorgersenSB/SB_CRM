@@ -12,6 +12,7 @@ import {
   mapPrismaCompanyToApp,
   stableNumericId,
 } from "@/lib/prisma-mappers";
+import { allocateNextCompanyCode } from "@/lib/data/companies";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import type { UpdateCompanyPatch } from "@/lib/pipeline-db";
 import { readCompanies } from "@/lib/pipeline-db";
@@ -122,9 +123,11 @@ export async function createRegistryCompany(
   const countryGeo = geoFromCountryTitle(countryTitle(input.Country));
   const storedTypes = toPrismaCompanyTypes(input.CompanyTypes);
 
-  const created = await withPrismaRetry((prisma) =>
-    prisma.company.create({
+  const created = await withPrismaRetry(async (prisma) => {
+    const code = await allocateNextCompanyCode(prisma);
+    return prisma.company.create({
       data: {
+        code,
         name: input.Title.trim(),
         website: domain ? `https://${domain}` : null,
         industry: input.Industry || "Polymer Processing",
@@ -147,8 +150,8 @@ export async function createRegistryCompany(
           ? [{ number: input.Phone, type: "office", isPrimary: true }]
           : [],
       },
-    }),
-  );
+    });
+  });
 
   if (input.Notes?.trim()) {
     await withPrismaRetry((prisma) =>
@@ -187,10 +190,14 @@ export async function updateRegistryCompany(
     const countryGeo = geoFromCountryTitle(
       countryTitle(patch.Country ?? jsonCompany.Country),
     );
-    const created = await withPrismaRetry((prisma) =>
-      prisma.company.create({
+    const created = await withPrismaRetry(async (prisma) => {
+      const code =
+        /^CO-[A-Z0-9]+$/i.test(jsonCompany.CompanyID.trim())
+          ? jsonCompany.CompanyID.trim().toUpperCase()
+          : await allocateNextCompanyCode(prisma, jsonCompanies);
+      return prisma.company.create({
         data: {
-          id: jsonCompany.CompanyID,
+          code,
           name: (patch.Title ?? jsonCompany.Title).trim(),
           website: domain ? `https://${domain}` : null,
           industry: patch.Industry ?? jsonCompany.Industry ?? "Polymer Processing",
@@ -206,6 +213,8 @@ export async function updateRegistryCompany(
           country: countryGeo.country,
           countryCode: countryGeo.countryCode,
           continent: countryGeo.continent,
+          organizationNumber: patch.organizationNumber ?? jsonCompany.organizationNumber ?? null,
+          vatNumber: patch.vatNumber ?? jsonCompany.vatNumber ?? null,
           ownerId: owner?.Id != null ? String(owner.Id) : null,
           emails: (patch.Email ?? jsonCompany.Email)
             ? [
@@ -226,8 +235,8 @@ export async function updateRegistryCompany(
               ]
             : [],
         },
-      }),
-    );
+      });
+    });
 
     if (patch.Notes?.trim()) {
       await withPrismaRetry((prisma) =>

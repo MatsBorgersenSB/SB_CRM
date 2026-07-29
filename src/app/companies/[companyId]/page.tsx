@@ -51,7 +51,7 @@ export default async function Company360Page({ params }: Company360PageProps) {
     readProjects(),
   ]);
 
-  // Prisma by id OR code (CompanyID / orgnr), then seed/portfolio with the same matchers.
+  // Prisma by id OR code, then seed/portfolio with the same matchers.
   const company = await getCompanyById(cleanId, companies);
 
   if (!company) {

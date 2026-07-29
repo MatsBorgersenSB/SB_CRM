@@ -49,8 +49,10 @@ export type Company = {
   id: number;
   /** Company display name (SharePoint Title) */
   Title: string;
-  /** Tracking identifier, e.g. CO-1001 */
+  /** Tracking identifier, e.g. CO-1001 (mirrors Prisma `code` when persisted). */
   CompanyID: string;
+  /** Explicit registry code when stored in Prisma (`code` column). */
+  code?: string | null;
   ParentCompany: SharePointLookup | null;
   Domain: string;
   Industry: CompanyIndustry;

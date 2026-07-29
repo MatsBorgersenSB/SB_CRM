@@ -699,13 +699,13 @@ function CompletionView({
 
       <div className="flex flex-wrap gap-2 pt-1">
         <Link
-          href={company360Href(completion.company.CompanyID)}
+          href={company360Href(completion.company)}
           className="inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white"
         >
           View Company
         </Link>
         <Link
-          href={company360Href(completion.company.CompanyID, "contacts")}
+          href={company360Href(completion.company, "contacts")}
           className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange/30"
         >
           View Imported Contacts

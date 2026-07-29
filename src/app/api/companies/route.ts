@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getRequestRole } from "@/lib/api-auth";
 import { canCreateCompany } from "@/lib/permissions";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/services/sharepoint/server/api-utils";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
+import { companyRouteKey } from "@/types/company-360";
 
 export async function GET(request: Request) {
   try {
@@ -44,17 +46,27 @@ export async function POST(request: Request) {
     const { companies } = getServerSharePointServices();
     const company = await companies.create(body);
 
+    const key = companyRouteKey(company);
     const actor = resolveAuditActor(request, role);
     await logAuditEvent({
       ...actor,
       action: "COMPANY_CREATED",
       entityType: "Company",
-      entityId: company.CompanyID,
+      entityId: key || company.CompanyID,
       ipAddress: clientIpFromRequest(request),
-      metadata: { title: company.Title },
+      metadata: { title: company.Title, code: company.code ?? company.CompanyID },
     });
 
-    return NextResponse.json(company, { status: 201 });
+    revalidatePath("/companies");
+    revalidatePath("/contacts");
+
+    return NextResponse.json(
+      {
+        ...company,
+        href: `/companies/${encodeURIComponent(key)}`,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     return sharePointErrorResponse(error);
   }

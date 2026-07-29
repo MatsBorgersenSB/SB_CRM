@@ -56,15 +56,18 @@ export function CompanyTable({
           {summaries.map((summary) => (
             <tr
               key={summary.company.CompanyID}
-              onClick={() => onSelect(summary.company.CompanyID)}
+              onClick={() => onSelect(summary.company.code || summary.company.CompanyID)}
               className="cursor-pointer border-b border-carbon-blue/6 last:border-b-0 hover:bg-carbon-blue/[0.02]"
             >
               <td className="px-3 py-2.5" onClick={(event) => event.stopPropagation()}>
-                <CompanyLink companyId={summary.company.CompanyID} className="text-xs font-semibold text-carbon-blue">
+                <CompanyLink
+                  companyId={summary.company.code || summary.company.CompanyID}
+                  className="text-xs font-semibold text-carbon-blue"
+                >
                   {summary.company.Title}
                 </CompanyLink>
                 <p className="mt-0.5 font-mono text-[9px] text-carbon-blue/35">
-                  {summary.company.CompanyID}
+                  {summary.company.code || summary.company.CompanyID}
                 </p>
               </td>
               <td className="px-3 py-2.5 text-[11px] text-carbon-blue/70">

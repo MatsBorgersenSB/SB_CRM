@@ -255,7 +255,7 @@ export function BulkImportPanel({
             <div className="flex flex-wrap gap-2">
               {results[0] ? (
                 <Link
-                  href={company360Href(results[0].company.CompanyID)}
+                  href={company360Href(results[0].company)}
                   className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white"
                 >
                   View Latest Company

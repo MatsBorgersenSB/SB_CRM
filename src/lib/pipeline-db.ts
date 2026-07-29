@@ -720,10 +720,12 @@ export async function createCompany(input: NewCompanyInput): Promise<Company> {
     throw new Error("Company owner is required");
   }
 
+  const trackingId = nextCompanyTrackingId(database.companies);
   const company: Company = {
     id: nextSharePointListId(database.companies),
     Title: input.Title,
-    CompanyID: nextCompanyTrackingId(database.companies),
+    CompanyID: trackingId,
+    code: trackingId,
     ParentCompany: input.ParentCompany ?? null,
     Domain: input.Domain,
     Industry: input.Industry,

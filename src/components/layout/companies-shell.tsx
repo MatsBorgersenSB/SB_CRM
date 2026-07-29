@@ -58,7 +58,7 @@ export function CompaniesShell({
         }
         return [...current, company];
       });
-      router.push(company360Href(company.CompanyID));
+      router.push(company360Href(company));
     },
     [router],
   );
