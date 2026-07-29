@@ -108,6 +108,7 @@ model DecisionJournal {
   confidenceScore Float    @default(0.5)
   sourceSnippet   String?
   createdAt       DateTime @default(now())
+  scopeChanges    ProjectScopeChange[]
 
   @@index([companyId])
   @@index([opportunityId])
@@ -817,6 +818,7 @@ model Project {
   healthStatus  ProjectHealthStatus   @default(ON_TRACK)
   milestones    ProjectMilestone[]
   qualityInspections QualityInspection[]
+  scopeChanges  ProjectScopeChange[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
@@ -885,6 +887,36 @@ model QualityInspection {
   @@index([inspectionType])
   @@index([status])
   @@map("quality_inspections")
+}
+
+enum ScopeChangeStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+}
+
+/// Engineering Change Orders (ECO) — Technical Design Freeze & Scope Change log.
+model ProjectScopeChange {
+  id                 String            @id @default(cuid())
+  projectId          String
+  project            Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  decisionJournalId  String?
+  decisionJournal    DecisionJournal?  @relation(fields: [decisionJournalId], references: [id], onDelete: SetNull)
+  changeTitle        String
+  /// CLIENT_REQUEST | INTERNAL_ENGINEERING | SITE_SAFETY | …
+  requestedBy        String
+  description        String
+  costImpactEur      Float
+  scheduleImpactDays Int
+  status             ScopeChangeStatus @default(PROPOSED)
+  approvedBy         String?
+  createdAt          DateTime          @default(now())
+
+  @@index([projectId])
+  @@index([decisionJournalId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("project_scope_changes")
 }
 
 // ==========================================

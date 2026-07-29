@@ -10,6 +10,7 @@ import {
 } from "@/lib/execution/project-generator-types";
 import { QualityGateGuardianPanel } from "@/components/execution/QualityGateGuardianPanel";
 import { CriticalPathPredictorPanel } from "@/components/execution/CriticalPathPredictorPanel";
+import { ScopeChangeLoggerPanel } from "@/components/execution/ScopeChangeLoggerPanel";
 
 type ProjectStageGateViewProps = {
   companyId: string;
@@ -333,6 +334,10 @@ export function ProjectStageGateView({
               <CriticalPathPredictorPanel
                 projectId={project.id}
                 projectTitle={project.title}
+              />
+              <ScopeChangeLoggerPanel
+                projectId={project.id}
+                onScopeChanged={() => void load()}
               />
             </div>
           );
