@@ -20,14 +20,31 @@ import type { Company } from "@/types/company";
 const EMAIL_PATTERN =
   /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 
+/** Prefer explicit international numbers (+47, +33, …) then local Nordic formats. */
+const INTL_PHONE_PATTERN =
+  /\+(?:47|46|45|358|354|33|49|44|1)\s*(?:\d[\s.-]*){6,12}\d/g;
+
 const PHONE_PATTERN =
   /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{2,4}[\s.-]?\d{2,4}(?:[\s.-]?\d{2,4})?/g;
+
+const TEL_LABEL_PHONE =
+  /(?:Tel\.?|Telefon|Tlf\.?|Phone|Mob\.?|Mobile)\s*[:.]?\s*(\+?\d[\d\s().-]{6,20}\d)/gi;
 
 const NORWEGIAN_POSTAL_LINE =
   /\b(\d{4})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]{2,})\b/;
 
 const STREET_LINE =
   /\b([A-ZÆØÅA-Za-zæøå0-9][A-Za-zæøå0-9\s.,'-]{2,}?\d+[A-Za-z]?)\s*,\s*(\d{4})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]+)/g;
+
+/** House-number-first Nordic street: "5 Industrivegen" / "14 Industrigatan" */
+const HOUSE_FIRST_STREET =
+  /\b(\d{1,4}[A-Za-z]?)\s+([A-ZÆØÅÁÉÍÓÚÄÖÜ][A-Za-zæøåäöüà-ÿ'’-]{2,}(?:\s+[A-Za-zæøåäöüà-ÿ'’-]+){0,3})\b/;
+
+const NORDIC_JOB_TITLE_HINT =
+  /\b(daglig\s+leder|ceo|cfo|cto|seniorrådgiver|senior\s*rådgiver|rådgiver|salgs-?\s*og\s*markedsføringssjef|salgssjef|markedsdirektør|direktør|manager|director|founder|gründer|partner|engineer|ingeniør|konsulent|consultant|advisor|rådgiver|head\s+of|vp|president)\b/i;
+
+const LANGUAGE_LINE =
+  /^(norsk|engelsk|tysk|fransk|svensk|dansk|finsk|english|norwegian|german|french|swedish|danish|finnish)(\s*\/\s*(norsk|engelsk|tysk|fransk|svensk|dansk|finsk|english|norwegian|german|french|swedish|danish|finnish))*$/i;
 
 const IGNORED_EMAIL_LOCAL = new Set([
   "noreply",
@@ -150,13 +167,33 @@ function collectPhones(html: string): string[] {
     if (match[1]) phones.push(decodeHtml(match[1]));
   }
 
+  for (const match of html.matchAll(TEL_LABEL_PHONE)) {
+    if (match[1]) phones.push(match[1].trim());
+  }
+
   const text = stripTags(html);
+  for (const match of text.matchAll(INTL_PHONE_PATTERN)) {
+    phones.push(match[0].trim());
+  }
+
   for (const match of text.matchAll(PHONE_PATTERN)) {
     const digits = match[0].replace(/\D/g, "");
     if (digits.length >= 8) phones.push(match[0].trim());
   }
 
   return uniqueStrings(phones.map((phone) => normalizePhoneNumber(phone)).filter(Boolean));
+}
+
+function pickBestPhone(phones: string[]): string {
+  const intl = phones.find((phone) => phone.trim().startsWith("+"));
+  return intl ?? phones[0] ?? "";
+}
+
+function joinContactPhones(phones: string[]): string {
+  const unique = uniqueStrings(phones.filter(Boolean));
+  if (unique.length === 0) return "";
+  // Keep up to two direct numbers (e.g. NO + FR for Alexandre).
+  return unique.slice(0, 2).join(" · ");
 }
 
 function scoreCompanyEmail(email: string): number {
@@ -182,10 +219,7 @@ function pickCompanyEmail(emails: string[], domain: string, personalLocals: Set<
 }
 
 function pickCompanyPhone(phones: string[]): string {
-  const landline = phones.find(
-    (phone) => phone.startsWith("+47") && phone.replace(/\D/g, "").length <= 10,
-  );
-  return landline ?? phones[0] ?? "";
+  return pickBestPhone(phones);
 }
 
 function extractJsonLdPostalAddresses(
@@ -275,10 +309,56 @@ function extractAddressLines(html: string): string[] {
     }
   }
 
+  // Multi-paragraph Nordic address blocks:
+  // <p>5 Industrivegen</p><p>6600 Sunndalsøra,</p><p>Norway</p>
+  const paragraphRuns = [
+    ...html.matchAll(
+      /<p[^>]*>\s*([^<]{3,80})\s*<\/p>\s*<p[^>]*>\s*([^<]{3,80})\s*<\/p>\s*<p[^>]*>\s*([^<]{3,40})\s*<\/p>/gi,
+    ),
+  ];
+  for (const match of paragraphRuns) {
+    const a = stripTags(match[1] ?? "").replace(/\s+/g, " ").trim();
+    const b = stripTags(match[2] ?? "").replace(/\s+/g, " ").trim();
+    const c = stripTags(match[3] ?? "").replace(/\s+/g, " ").trim();
+    const joined = `${a}, ${b.replace(/,$/, "")}, ${c}`;
+    if (
+      (HOUSE_FIRST_STREET.test(a) || /\d/.test(a)) &&
+      NORWEGIAN_POSTAL_LINE.test(b) &&
+      /norway|norge|sweden|denmark|finland|germany|france/i.test(c)
+    ) {
+      addresses.push(joined);
+    }
+  }
+
+  // Two-paragraph: street + "6600 City"
+  const twoParagraphRuns = [
+    ...html.matchAll(/<p[^>]*>\s*([^<]{3,80})\s*<\/p>\s*<p[^>]*>\s*([^<]{3,80})\s*<\/p>/gi),
+  ];
+  for (const match of twoParagraphRuns) {
+    const a = stripTags(match[1] ?? "").replace(/\s+/g, " ").trim();
+    const b = stripTags(match[2] ?? "").replace(/\s+/g, " ").trim().replace(/,$/, "");
+    if ((HOUSE_FIRST_STREET.test(a) || /[A-Za-zæøå].*\d|\d.*[A-Za-zæøå]/.test(a)) && NORWEGIAN_POSTAL_LINE.test(b)) {
+      addresses.push(`${a}, ${b}`);
+    }
+  }
+
   const text = stripTags(html);
   for (const match of text.matchAll(STREET_LINE)) {
     const line = `${match[1]?.trim()}, ${match[2]} ${match[3]?.trim()}`;
     if (line.length <= 80) addresses.push(line);
+  }
+
+  // House-number-first + postal/city elsewhere on same text blob
+  for (const match of text.matchAll(
+    new RegExp(
+      `${HOUSE_FIRST_STREET.source}[,\\s]+${NORWEGIAN_POSTAL_LINE.source}(?:,\\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\\s-]+))?`,
+      "gi",
+    ),
+  )) {
+    const street = `${match[1]} ${match[2]}`.trim();
+    const postalCity = `${match[3]} ${match[4]}`.trim();
+    const country = match[5]?.trim() ?? "";
+    addresses.push([street, postalCity, country].filter(Boolean).join(", "));
   }
 
   return uniqueStrings(addresses);
@@ -393,28 +473,145 @@ export function prepareDiscoveryForImport(
   };
 }
 
+function looksLikePersonName(name: string): boolean {
+  const trimmed = name.trim();
+  if (trimmed.length < 4 || trimmed.length > 80) return false;
+  if (!/[A-ZÆØÅÁÉÍÓÚÄÖÜ]/.test(trimmed)) return false;
+  if (/@|https?:|www\./i.test(trimmed)) return false;
+  if (LANGUAGE_LINE.test(trimmed)) return false;
+  if (/^(contact|kontakt|about|om\s+oss|team|home|menu|read more|les mer|follow us)/i.test(trimmed)) {
+    return false;
+  }
+  if (NORDIC_JOB_TITLE_HINT.test(trimmed) && !/\s/.test(trimmed)) return false;
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length < 2 || parts.length > 5) return false;
+  return parts.every((part) => /^[A-ZÆØÅÁÉÍÓÚÄÖÜ][A-Za-zæøåäöüà-ÿ'’-]+$/u.test(part));
+}
+
+function extractNearbyContactDetails(blockHtml: string, personName: string): {
+  email: string;
+  phone: string;
+  phones: string[];
+} {
+  const emails = collectEmails(blockHtml);
+  const phones = collectPhones(blockHtml);
+  const first = personName.split(/\s+/)[0]?.toLowerCase() ?? "";
+  const email =
+    emails.find((value) => {
+      const local = (value.split("@")[0] ?? "").toLowerCase();
+      return first.length > 2 && local.includes(first);
+    }) ??
+    emails.find((value) => !COMPANY_EMAIL_PRIORITY.includes((value.split("@")[0] ?? "").toLowerCase())) ??
+    emails[0] ??
+    "";
+
+  return {
+    email,
+    phone: joinContactPhones(phones) || pickBestPhone(phones),
+    phones,
+  };
+}
+
 function extractImageBoxContacts(html: string): DiscoveredContact[] {
   const contacts: DiscoveredContact[] = [];
   const pattern =
-    /elementor-image-box-title[^>]*>([^<]+)<\/h[1-6]>[\s\S]{0,400}?elementor-image-box-description[^>]*>([^<]+)<\/p>/gi;
+    /elementor-image-box-title[^>]*>([^<]+)<\/h[1-6]>[\s\S]{0,500}?elementor-image-box-description[^>]*>([^<]+)<\/p>/gi;
 
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(html)) !== null) {
     const name = stripTags(match[1] ?? "");
     const jobTitle = stripTags(match[2] ?? "");
-    if (!name || name.length < 4) continue;
-    if (!/[A-ZÆØÅ]/.test(name)) continue;
+    if (!looksLikePersonName(name)) continue;
 
-    const tail = html.slice(match.index, match.index + 900);
-    const emails = collectEmails(tail);
-    const phones = collectPhones(tail);
+    // Include following sibling widgets (phone / email often live just after the image box).
+    const tail = html.slice(match.index, match.index + 1_800);
+    const details = extractNearbyContactDetails(tail, name);
 
     contacts.push({
       id: `contact-${contacts.length + 1}`,
       name,
       jobTitle,
-      email: emails.find((email) => email.includes(name.split(/\s+/)[0]!.toLowerCase())) ?? emails[0] ?? "",
-      phone: phones[0] ?? "",
+      email: details.email,
+      phone: details.phone,
+    });
+  }
+
+  return contacts;
+}
+
+/**
+ * Nordic / Elementor team cards: heading name followed by job title + Tel./email paragraphs.
+ * Example: Halvor Kittelsen / Daglig Leder / Tel. +47 … / email
+ */
+function extractHeadingTeamContacts(html: string): DiscoveredContact[] {
+  const contacts: DiscoveredContact[] = [];
+  const headingPattern =
+    /<(h[2-6]|p)[^>]*>([^<]{4,80})<\/\1>[\s\S]{0,120}?(?:<(?:p|div|span)[^>]*>\s*)?([^<]{3,80})/gi;
+
+  let match: RegExpExecArray | null;
+  while ((match = headingPattern.exec(html)) !== null) {
+    const name = stripTags(match[2] ?? "").replace(/\s+/g, " ").trim();
+    const maybeTitle = stripTags(match[3] ?? "").replace(/\s+/g, " ").trim();
+    if (!looksLikePersonName(name)) continue;
+
+    const jobTitle =
+      NORDIC_JOB_TITLE_HINT.test(maybeTitle) || maybeTitle.length <= 60 ? maybeTitle : "";
+
+    const block = html.slice(match.index, match.index + 1_600);
+    const details = extractNearbyContactDetails(block, name);
+    if (!details.email && !details.phone && !jobTitle) continue;
+
+    contacts.push({
+      id: `heading-${contacts.length + 1}`,
+      name,
+      jobTitle: LANGUAGE_LINE.test(jobTitle) ? "" : jobTitle,
+      email: details.email,
+      phone: details.phone,
+    });
+  }
+
+  return contacts;
+}
+
+/** Parse consecutive <p> blocks that look like team member cards. */
+function extractParagraphTeamContacts(html: string): DiscoveredContact[] {
+  const contacts: DiscoveredContact[] = [];
+  const blocks = html.match(/<(?:div|article|li|section)[^>]{0,200}>[\s\S]{40,1200}?<\/(?:div|article|li|section)>/gi) ?? [];
+
+  for (const block of blocks) {
+    const text = stripTags(block);
+    const lines = text
+      .split(/\n+/)
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+
+    // Flatten HTML paragraphs into lines when stripTags collapsed them.
+    const paragraphLines =
+      [...block.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+        .map((entry) => stripTags(entry[1] ?? "").replace(/\s+/g, " ").trim())
+        .filter(Boolean) ?? [];
+
+    const candidates = paragraphLines.length >= 2 ? paragraphLines : lines;
+    if (candidates.length < 2) continue;
+
+    const nameIdx = candidates.findIndex((line) => looksLikePersonName(line));
+    if (nameIdx < 0) continue;
+
+    const name = candidates[nameIdx]!;
+    const after = candidates.slice(nameIdx + 1, nameIdx + 6);
+    const jobTitle =
+      after.find((line) => NORDIC_JOB_TITLE_HINT.test(line) && !line.includes("@") && !/\d{5,}/.test(line)) ??
+      "";
+
+    const details = extractNearbyContactDetails(block, name);
+    if (!details.email && !details.phone) continue;
+
+    contacts.push({
+      id: `block-${contacts.length + 1}`,
+      name,
+      jobTitle: LANGUAGE_LINE.test(jobTitle) ? "" : jobTitle,
+      email: details.email,
+      phone: details.phone,
     });
   }
 
@@ -423,21 +620,29 @@ function extractImageBoxContacts(html: string): DiscoveredContact[] {
 
 function extractEmailNamedContacts(html: string, domain: string): DiscoveredContact[] {
   const contacts: DiscoveredContact[] = [];
+  const bareDomain = domain.replace(/^www\./, "");
 
   for (const email of collectEmails(html)) {
-    if (!email.endsWith(`@${domain}`) && !email.endsWith(`@${domain.replace(/^www\./, "")}`)) continue;
+    if (!email.endsWith(`@${domain}`) && !email.endsWith(`@${bareDomain}`)) {
+      // Also accept sibling TLDs like fjordfilter.no when site is fjordfilter.com
+      const emailDomain = email.split("@")[1] ?? "";
+      const siteBase = bareDomain.split(".")[0] ?? "";
+      if (!emailDomain.startsWith(`${siteBase}.`)) continue;
+    }
 
     const local = email.split("@")[0] ?? "";
     if (COMPANY_EMAIL_PRIORITY.includes(local)) continue;
+    if (/^(info|kontakt|contact|post|hello|office|sales|support)$/i.test(local)) continue;
 
     const nameParts = local
       .split(/[._-]/)
       .filter((part) => part.length > 1)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase());
 
-    if (nameParts.length === 0) continue;
+    if (nameParts.length < 2) continue;
 
     const name = nameParts.join(" ");
+    if (!looksLikePersonName(name)) continue;
     if (contacts.some((contact) => contact.name.toLowerCase() === name.toLowerCase())) continue;
 
     contacts.push({
@@ -524,8 +729,14 @@ export function analyzeWebsiteHtml(
   const geo = resolveDiscoveryGeo(htmlPages, addresses, domain);
 
   const imageBoxContacts = htmlPages.flatMap((html) => extractImageBoxContacts(html));
+  const headingContacts = htmlPages.flatMap((html) => extractHeadingTeamContacts(html));
+  const paragraphContacts = htmlPages.flatMap((html) => extractParagraphTeamContacts(html));
+  const teamContacts = mergeContacts(
+    mergeContacts(imageBoxContacts, headingContacts),
+    paragraphContacts,
+  );
   const personalLocals = new Set(
-    imageBoxContacts
+    teamContacts
       .flatMap((contact) => {
         const parts = contact.name.toLowerCase().split(/\s+/);
         const emailLocal = contact.email.split("@")[0]?.toLowerCase() ?? "";
@@ -547,7 +758,7 @@ export function analyzeWebsiteHtml(
   );
 
   const contacts = dedupeContacts(
-    mergeContacts(imageBoxContacts, extractEmailNamedContacts(combinedHtml, domain)),
+    mergeContacts(teamContacts, extractEmailNamedContacts(combinedHtml, domain)),
   );
 
   return {

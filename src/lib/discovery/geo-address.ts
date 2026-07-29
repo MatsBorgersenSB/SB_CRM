@@ -156,10 +156,14 @@ export function parseStructuredGeoAddress(
       .replace(NORWEGIAN_POSTAL_CITY, "")
       .replace(GENERIC_POSTAL_CITY, "")
       .replace(US_STATE_ZIP, "")
-      .replace(/,?\s*(Norway|Norge|Sweden|Denmark|Finland)\s*$/i, "")
+      .replace(/,?\s*(Norway|Norge|Sweden|Denmark|Finland|France|Germany)\s*$/i, "")
       .replace(/,\s*$/, "")
       .trim();
   }
+
+  // Normalize house-number-first streets: "5 Industrivegen" stays as-is (already correct).
+  // Also accept "Industrivegen 5" unchanged.
+  streetAddress = streetAddress.replace(/^,+|,+$/g, "").trim();
 
   return finalizeGeo(
     { streetAddress, postalCode, city, stateRegion, country },

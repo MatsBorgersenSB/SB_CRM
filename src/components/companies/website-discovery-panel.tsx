@@ -204,6 +204,15 @@ export function WebsiteDiscoveryPanel({
     });
   };
 
+  const selectAllContacts = () => {
+    if (!discovery) return;
+    setSelectedContactIds(new Set(discovery.contacts.map((contact) => contact.id)));
+  };
+
+  const clearSelectedContacts = () => {
+    setSelectedContactIds(new Set());
+  };
+
   const handleImport = async () => {
     if (!discovery) return;
 
@@ -432,6 +441,8 @@ export function WebsiteDiscoveryPanel({
                 discovery={discovery}
                 selectedContactIds={selectedContactIds}
                 onToggleContact={toggleContact}
+                onSelectAll={selectAllContacts}
+                onClearSelection={clearSelectedContacts}
                 onImport={() => void handleImport()}
               />
             </>
@@ -690,11 +701,15 @@ function PreviewPanel({
   discovery,
   selectedContactIds,
   onToggleContact,
+  onSelectAll,
+  onClearSelection,
   onImport,
 }: {
   discovery: WebsiteDiscoveryResult;
   selectedContactIds: Set<string>;
   onToggleContact: (id: string) => void;
+  onSelectAll: () => void;
+  onClearSelection: () => void;
   onImport: () => void;
 }) {
   return (
@@ -738,32 +753,76 @@ function PreviewPanel({
       </dl>
 
       <div>
-        <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-          Contacts Found — optional; leave unchecked to import company only
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            Contacts Found — select who to import
+          </p>
+          {discovery.contacts.length > 0 ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onSelectAll}
+                className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                onClick={onClearSelection}
+                className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:underline"
+              >
+                Clear
+              </button>
+            </div>
+          ) : null}
+        </div>
         {discovery.contacts.length > 0 ? (
-          <ul className="mt-2 space-y-2">
-            {discovery.contacts.map((contact) => (
-              <li key={contact.id}>
-                <label className="flex items-start gap-2 text-xs text-carbon-blue">
-                  <input
-                    type="checkbox"
-                    checked={selectedContactIds.has(contact.id)}
-                    onChange={() => onToggleContact(contact.id)}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    <span className="font-semibold">{contact.name}</span>
-                    {contact.jobTitle ? (
-                      <span className="text-carbon-blue/55"> · {contact.jobTitle}</span>
-                    ) : null}
-                    {contact.email ? (
-                      <span className="block text-[10px] text-carbon-blue/45">{contact.email}</span>
-                    ) : null}
-                  </span>
-                </label>
-              </li>
-            ))}
+          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+            {discovery.contacts.map((contact) => {
+              const selected = selectedContactIds.has(contact.id);
+              return (
+                <li key={contact.id}>
+                  <label
+                    className={`flex cursor-pointer items-start gap-3 border p-3 transition-colors ${
+                      selected
+                        ? "border-upcycle-orange/40 bg-upcycle-orange/[0.06]"
+                        : "border-carbon-blue/10 bg-white hover:border-carbon-blue/25"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => onToggleContact(contact.id)}
+                      className="mt-1"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-carbon-blue">
+                        {contact.name}
+                      </span>
+                      {contact.jobTitle ? (
+                        <span className="mt-0.5 block text-[11px] text-carbon-blue/60">
+                          {contact.jobTitle}
+                        </span>
+                      ) : null}
+                      {contact.email ? (
+                        <span className="mt-1 block truncate font-mono text-[10px] text-carbon-blue/50">
+                          {contact.email}
+                        </span>
+                      ) : null}
+                      {contact.phone ? (
+                        <span className="mt-0.5 block font-mono text-[10px] text-carbon-blue/50">
+                          {contact.phone}
+                        </span>
+                      ) : (
+                        <span className="mt-0.5 block text-[10px] text-carbon-blue/35">
+                          No phone found
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="mt-2 text-[11px] text-carbon-blue/50">
