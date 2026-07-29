@@ -61,6 +61,7 @@ export function Contact360EditPanel({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setForm(contactToForm(record.contact, record.companyName));
@@ -71,6 +72,7 @@ export function Contact360EditPanel({
     if (!isContactFormValid(form)) return;
 
     setSaving(true);
+    setError(null);
     try {
       await onContactUpdate(record.contact.ContactID, {
         FirstName: form.FirstName.trim(),
@@ -93,6 +95,13 @@ export function Contact360EditPanel({
       }
 
       onCancel();
+    } catch (saveError) {
+      const message =
+        saveError instanceof Error && saveError.message.trim()
+          ? saveError.message
+          : "Unable to save contact details.";
+      setError(message);
+      console.error("[Contact360] Failed to save contact:", saveError);
     } finally {
       setSaving(false);
     }
@@ -159,6 +168,12 @@ export function Contact360EditPanel({
           Cancel
         </button>
       </div>
+
+      {error ? (
+        <p className="mt-3 text-[12px] font-medium text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       {canDelete && onContactDelete ? (
         <div className="mt-3">

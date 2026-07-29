@@ -4,10 +4,14 @@ import type { IListRepository } from "@/services/sharepoint/client/types";
 import type { Contact, CreateContactInput, UpdateContactInput } from "@/types/contact";
 import { contactFromStoredRecord } from "@/services/sharepoint/mappers/contact.mapper";
 import {
-  archiveCompanyContact,
+  createRegistryContact,
+  deleteRegistryContact,
+  getRegistryContactById,
+  updateRegistryContact,
+} from "@/lib/contact-registry";
+import {
   createCompanyContact,
   deleteCompanyContact,
-  mergeCompanyContacts,
   readCompanies,
   transferCompanyContactWithHistory,
   updateCompanyContact,
@@ -36,6 +40,9 @@ export class LocalContactsRepository
   }
 
   async getById(id: string | number): Promise<Contact> {
+    const fromRegistry = await getRegistryContactById(id);
+    if (fromRegistry) return fromRegistry;
+
     const contact = (await this.flattenContacts()).find(
       (row) => row.id === Number(id) || row.ContactID === String(id),
     );
@@ -44,6 +51,9 @@ export class LocalContactsRepository
   }
 
   async create(input: CreateContactInput): Promise<Contact> {
+    const created = await createRegistryContact(input);
+    if (created) return created;
+
     const companies = await readCompanies();
     const companyRef = input.Company;
     const companyId =
@@ -55,65 +65,75 @@ export class LocalContactsRepository
       throw SharePointServiceError.validation("Company reference is required");
     }
 
-    const created = await createCompanyContact(companyId, input);
+    const createdJson = await createCompanyContact(companyId, input);
     const company = companies.find((c) => c.CompanyID === companyId)!;
-    return contactFromStoredRecord(company, created);
+    return contactFromStoredRecord(company, createdJson);
   }
 
   async update(
     id: string | number,
     patch: UpdateContactInput,
   ): Promise<Contact> {
-    const existing = await this.getById(id);
-    const companies = await readCompanies();
-    const company = companies.find((c) => c.id === existing.Company.Id);
-    if (!company) throw SharePointServiceError.notFound("Company", existing.Company.Id);
+    const updated = await updateRegistryContact(id, patch);
+    if (updated) return updated;
 
-    const { Company: companyPatch, ...fieldPatch } = patch;
+    try {
+      const existing = await this.getById(id);
+      const companies = await readCompanies();
+      const company = companies.find((c) => c.id === existing.Company.Id);
+      if (!company) throw SharePointServiceError.notFound("Company", existing.Company.Id);
 
-    if (companyPatch) {
-      const targetCompanyId =
-        "CompanyID" in companyPatch
-          ? companyPatch.CompanyID
-          : companies.find((c) => c.id === companyPatch.Id)?.CompanyID ?? null;
+      const { Company: companyPatch, ...fieldPatch } = patch;
 
-      if (targetCompanyId && targetCompanyId !== company.CompanyID) {
-        const moved = await transferCompanyContactWithHistory(existing.ContactID, {
-          targetCompanyId,
-          newRole: fieldPatch.Role,
-          newJobTitle: fieldPatch.JobTitle,
-          employmentStatus: fieldPatch.EmploymentStatus,
-        });
-        const refreshedCompanies = await readCompanies();
-        const targetCompany = refreshedCompanies.find((c) => c.CompanyID === targetCompanyId);
-        if (!targetCompany) {
-          throw SharePointServiceError.notFound("Company", targetCompanyId);
-        }
+      if (companyPatch) {
+        const targetCompanyId =
+          "CompanyID" in companyPatch
+            ? companyPatch.CompanyID
+            : companies.find((c) => c.id === companyPatch.Id)?.CompanyID ?? null;
 
-        if (Object.keys(fieldPatch).length > 0) {
-          const rest: UpdateContactInput = { ...fieldPatch };
-          delete rest.Role;
-          delete rest.JobTitle;
-          delete rest.EmploymentStatus;
-          if (Object.keys(rest).length > 0) {
-            const updated = await updateCompanyContact(
-              targetCompanyId,
-              existing.ContactID,
-              rest,
-            );
-            return contactFromStoredRecord(targetCompany, updated);
+        if (targetCompanyId && targetCompanyId !== company.CompanyID) {
+          const moved = await transferCompanyContactWithHistory(existing.ContactID, {
+            targetCompanyId,
+            newRole: fieldPatch.Role,
+            newJobTitle: fieldPatch.JobTitle,
+            employmentStatus: fieldPatch.EmploymentStatus,
+          });
+          const refreshedCompanies = await readCompanies();
+          const targetCompany = refreshedCompanies.find((c) => c.CompanyID === targetCompanyId);
+          if (!targetCompany) {
+            throw SharePointServiceError.notFound("Company", targetCompanyId);
           }
+
+          if (Object.keys(fieldPatch).length > 0) {
+            const rest: UpdateContactInput = { ...fieldPatch };
+            delete rest.Role;
+            delete rest.JobTitle;
+            delete rest.EmploymentStatus;
+            if (Object.keys(rest).length > 0) {
+              const next = await updateCompanyContact(
+                targetCompanyId,
+                existing.ContactID,
+                rest,
+              );
+              return contactFromStoredRecord(targetCompany, next);
+            }
+          }
+
+          return contactFromStoredRecord(targetCompany, moved);
         }
-
-        return contactFromStoredRecord(targetCompany, moved);
       }
-    }
 
-    const updated = await updateCompanyContact(company.CompanyID, existing.ContactID, patch);
-    return contactFromStoredRecord(company, updated);
+      const next = await updateCompanyContact(company.CompanyID, existing.ContactID, patch);
+      return contactFromStoredRecord(company, next);
+    } catch (error) {
+      if (error instanceof SharePointServiceError) throw error;
+      throw SharePointServiceError.notFound("Contact", id);
+    }
   }
 
   async delete(id: string | number): Promise<void> {
+    if (await deleteRegistryContact(id)) return;
+
     const existing = await this.getById(id);
     const companies = await readCompanies();
     const company = companies.find((c) => c.id === existing.Company.Id);
