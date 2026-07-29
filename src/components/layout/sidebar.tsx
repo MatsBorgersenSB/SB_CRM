@@ -16,10 +16,12 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  WandSparkles,
 } from "lucide-react";
 import { useCallback } from "react";
 import { EnterpriseRoleBadge } from "@/components/auth/enterprise-role-badge";
 import { useAuth } from "@/context/auth-context";
+import { useSignalExtract } from "@/context/signal-extract-context";
 import { useUniversalSearch } from "@/context/universal-search-context";
 import { canAccessRoute } from "@/lib/permissions";
 
@@ -126,6 +128,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { openSearch } = useUniversalSearch();
+  const { openSignalExtract } = useSignalExtract();
 
   const visibleItems = navItems.filter((item) => canAccessRoute(user.role, item.href));
 
@@ -170,6 +173,14 @@ export function Sidebar() {
               ? "⌘K"
               : "Ctrl+K"}
           </kbd>
+        </button>
+        <button
+          type="button"
+          onClick={() => openSignalExtract()}
+          className="mt-2 flex w-full items-center gap-2 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-2 text-left text-[11px] text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+        >
+          <WandSparkles className="size-3.5 shrink-0" strokeWidth={2} />
+          <span className="flex-1">Paste & Extract</span>
         </button>
       </div>
 

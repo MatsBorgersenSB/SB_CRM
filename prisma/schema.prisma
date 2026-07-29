@@ -62,6 +62,7 @@ model Company {
   opportunities Opportunity[]
   notes         CompanyNote[]
   meetings      MeetingRecord[]
+  decisions     DecisionJournal[]
 
   // FS-010 Growth & Expansion Intelligence
   healthRecords    AccountHealthRecord[]
@@ -88,6 +89,29 @@ model CompanyNote {
   createdAt DateTime @default(now())
 
   @@map("company_notes")
+}
+
+/// Organizational Decision Journal — captured decisions from meetings, emails, notes.
+model DecisionJournal {
+  id              String   @id @default(uuid())
+  companyId       String?
+  company         Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  opportunityId   String?
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  decisionText    String
+  rationale       String?
+  stakeholderName String?
+  /// Technical | Commercial | Legal | Strategic | Other
+  category        String
+  confidenceScore Float    @default(0.5)
+  sourceSnippet   String?
+  createdAt       DateTime @default(now())
+
+  @@index([companyId])
+  @@index([opportunityId])
+  @@index([createdAt])
+  @@index([category])
+  @@map("decision_journal")
 }
 
 // ==========================================
@@ -270,6 +294,7 @@ model Opportunity {
   // FS-001 Stakeholder Roster stored as normalized relations or atomic JSON array
   team     Json[]               @default([]) // Array of { contactId: string, projectRole: string }
   insights OpportunityInsight[]
+  decisions DecisionJournal[]
 
   // FS-006 & FS-007 Intelligence Relations
   influenceProfiles    StakeholderInfluenceProfile[]

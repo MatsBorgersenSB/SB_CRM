@@ -34,6 +34,7 @@ import type { Project } from "@/types/project";
 import type { PipelineRow } from "@/types/pipeline";
 import { getProjectsForCompany } from "@/lib/project-team-utils";
 import { CompanyProjectsTable } from "@/components/project/company-projects-table";
+import { DecisionJournalPanel } from "@/components/assistant/DecisionJournalPanel";
 import type { CompanyHeroQuickEdit } from "@/lib/company-identity";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
@@ -41,9 +42,8 @@ import {
   canCreateOpportunity,
   canManageOpportunityStakeholders,
 } from "@/lib/permissions";
-/**
- * Unified company hub — Company Details → Contacts → Opportunities → Activities → Documents → Attention
- */
+import { useSignalExtract } from "@/context/signal-extract-context";
+import { companyRouteKey } from "@/types/company-360";
 export function Company360LivingWorkspace({
   snapshot,
   commercialPackages,
@@ -83,6 +83,7 @@ export function Company360LivingWorkspace({
 }) {
   const { company, header, pipelines: linkedPipelines } = snapshot;
   const identity = buildCompanyHeroIdentity(company);
+  const { openSignalExtract } = useSignalExtract();
   const [documentCount, setDocumentCount] = useState(0);
   const [activeTool, setActiveTool] = useState<Company360ActiveTool>(null);
   const [createRequestId, setCreateRequestId] = useState(0);
@@ -134,6 +135,12 @@ export function Company360LivingWorkspace({
           activeTool={activeTool}
           onToolChange={setActiveTool}
           onNewContact={handleNewContact}
+          onPasteExtract={() =>
+            openSignalExtract({
+              companyId: companyRouteKey(company),
+              companyName: company.Title,
+            })
+          }
         />
 
         {activeTool === "quick-import" ? (
@@ -174,6 +181,18 @@ export function Company360LivingWorkspace({
         ) : (
           <CompanyWorkspaceHeader header={header} identity={identity} company={company} />
         )}
+      </WorkspacePanel>
+
+      <WorkspacePanel
+        title="Decision Journal"
+        id="decisions"
+        collapsible
+        collapseStorageKey={sectionKey("decisions")}
+      >
+        <DecisionJournalPanel
+          companyId={companyRouteKey(company)}
+          companyName={company.Title}
+        />
       </WorkspacePanel>
 
       <WorkspacePanel

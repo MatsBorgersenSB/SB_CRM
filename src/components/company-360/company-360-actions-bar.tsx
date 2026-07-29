@@ -8,13 +8,15 @@ export type Company360ActiveTool =
   | null
   | "quick-import"
   | "website-discovery"
-  | "edit-company";
+  | "edit-company"
+  | "signal-extract";
 
 type Company360ActionsBarProps = {
   role: UserRole;
   activeTool: Company360ActiveTool;
   onToolChange: (tool: Company360ActiveTool) => void;
   onNewContact: () => void;
+  onPasteExtract: () => void;
 };
 
 export function Company360ActionsBar({
@@ -22,6 +24,7 @@ export function Company360ActionsBar({
   activeTool,
   onToolChange,
   onNewContact,
+  onPasteExtract,
 }: Company360ActionsBarProps) {
   const canManage = canCreateCompany(role);
 
@@ -37,6 +40,12 @@ export function Company360ActionsBar({
         Account Actions
       </p>
 
+      <ActionButton
+        label="Paste & Extract"
+        icon="extract"
+        active={false}
+        onClick={onPasteExtract}
+      />
       <ActionButton
         label="Quick Import"
         icon="document"
@@ -72,7 +81,7 @@ function ActionButton({
   onClick,
 }: {
   label: string;
-  icon: "document" | "website" | "add" | "edit";
+  icon: "document" | "website" | "add" | "edit" | "extract";
   active: boolean;
   onClick: () => void;
 }) {
@@ -86,7 +95,7 @@ function ActionButton({
           : "border-carbon-blue/12 text-carbon-blue/65 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
       }`}
     >
-      <SmartCRMIcon name={icon} size="xs" />
+      <SmartCRMIcon name={icon === "extract" ? "search" : icon} size="xs" />
       {label}
     </button>
   );
