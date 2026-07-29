@@ -5,6 +5,7 @@ import type { CompanyHeroIdentityView } from "@/lib/company-identity";
 import { hasCompanyOwner } from "@/lib/company-owner";
 import type { Company } from "@/types/company";
 import { CompanyTypeBadges } from "@/components/companies/company-type-badges";
+import { ICPScoreBadge } from "@/components/marketing/ICPScoreBadge";
 import { PhoneActionMenu } from "@/components/relationship/relationship-links";
 import {
   ActionableField,
@@ -50,6 +51,7 @@ export function CompanyWorkspaceHeader({
             <HealthStatusIcon status={header.healthStatus} />
             {header.healthStatus}
           </span>
+          <ICPScoreBadge company={company} />
           <span className="border border-carbon-blue/10 px-2.5 py-1 text-[12px] font-medium text-carbon-blue/70">
             {header.status}
           </span>

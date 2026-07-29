@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { CompanyOperationsRow } from "@/lib/company-operations-data";
 import { CompanyTypeBadges } from "@/components/companies/company-type-badges";
+import { ICPScoreBadge } from "@/components/marketing/ICPScoreBadge";
 import { RelationshipHealthBadge } from "@/components/relationship/relationship-health-display";
 import { SeverityIcon } from "@/components/ui/smartcrm-icon";
 import {
@@ -27,19 +28,21 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
   return (
     <WorkspaceTable>
       <colgroup>
-        <col className="w-[16%]" />
-        <col className="w-[14%]" />
-        <col className="w-[10%]" />
-        <col className="w-[10%]" />
-        <col className="w-[10%]" />
+        <col className="w-[15%]" />
+        <col className="w-[12%]" />
+        <col className="w-[12%]" />
         <col className="w-[9%]" />
-        <col className="w-[10%]" />
-        <col className="w-[10%]" />
-        <col className="w-[11%]" />
+        <col className="w-[9%]" />
+        <col className="w-[9%]" />
+        <col className="w-[8%]" />
+        <col className="w-[9%]" />
+        <col className="w-[8%]" />
+        <col className="w-[9%]" />
       </colgroup>
       <WorkspaceTableHead>
         <WorkspaceTableHeadRow>
           <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell>ICP / ABM</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>Company Type</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>Owner</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>Location</WorkspaceTableHeadCell>
@@ -62,6 +65,18 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
               </Link>
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
+              <ICPScoreBadge
+                size="sm"
+                result={{
+                  score: row.icpScore,
+                  tier: row.icpTier,
+                  matchingCriteria: row.icpMatchingCriteria,
+                  gaps: row.icpGaps,
+                  breakdown: row.icpBreakdown,
+                }}
+              />
+            </WorkspaceTableBodyCell>
+            <WorkspaceTableBodyCell>
               <CompanyTypeBadges types={row.companyTypes} size="sm" />
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
@@ -82,7 +97,9 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
             <WorkspaceTableBodyCell>
               <div className="flex flex-col gap-1">
                 <RelationshipHealthBadge status={row.healthStatus} />
-                <span className="text-[10px] tabular-nums text-carbon-blue/45">{row.healthScore}/100</span>
+                <span className="text-[10px] tabular-nums text-carbon-blue/45">
+                  {row.healthScore}/100
+                </span>
               </div>
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell className="text-right">
@@ -100,7 +117,9 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
             <WorkspaceTableBodyCell className="text-right font-semibold tabular-nums text-carbon-blue">
               {row.pipelineValueLabel}
             </WorkspaceTableBodyCell>
-            <WorkspaceTableBodyCell className="text-carbon-blue/70">{row.lastContactLabel}</WorkspaceTableBodyCell>
+            <WorkspaceTableBodyCell className="text-carbon-blue/70">
+              {row.lastContactLabel}
+            </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
               <span className="inline-flex min-w-0 items-center gap-1.5">
                 <SeverityIcon severity={row.attentionSeverity} size="sm" />
