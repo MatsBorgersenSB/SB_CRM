@@ -30,12 +30,11 @@ CREATE TABLE IF NOT EXISTS "eci_instrument_tags" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "eci_instrument_tags_projectId_tagNumber_key"
-  ON "eci_instrument_tags"("projectId", "tagNumber");
 CREATE INDEX IF NOT EXISTS "eci_instrument_tags_projectId_idx" ON "eci_instrument_tags"("projectId");
 CREATE INDEX IF NOT EXISTS "eci_instrument_tags_instrumentType_idx" ON "eci_instrument_tags"("instrumentType");
 CREATE INDEX IF NOT EXISTS "eci_instrument_tags_isCalibrated_idx" ON "eci_instrument_tags"("isCalibrated");
 CREATE INDEX IF NOT EXISTS "eci_instrument_tags_loopChecked_idx" ON "eci_instrument_tags"("loopChecked");
+CREATE UNIQUE INDEX IF NOT EXISTS "eci_instrument_tags_projectId_tagNumber_key" ON "eci_instrument_tags"("projectId", "tagNumber");
 
 -- AddForeignKey
 DO $$

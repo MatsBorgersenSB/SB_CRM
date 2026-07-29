@@ -997,21 +997,21 @@ enum EciIoType {
   PROFINET
 }
 
-/// P&ID instrument tags — EC&I IO list and calibration/loop-check traceability.
+/// P&ID / EC&I instrument tags for IO list & calibration traceability.
 model EciInstrumentTag {
-  id             String            @id @default(cuid())
-  projectId      String
-  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tagNumber      String
-  description    String
+  id            String            @id @default(cuid())
+  projectId     String
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tagNumber     String
+  description   String
   instrumentType EciInstrumentType
-  ioType         EciIoType
-  exRating       String?
-  isCalibrated   Boolean           @default(false)
-  loopChecked    Boolean           @default(false)
-  locationZone   String?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  ioType        EciIoType
+  exRating      String?
+  isCalibrated  Boolean           @default(false)
+  loopChecked   Boolean           @default(false)
+  locationZone  String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   @@unique([projectId, tagNumber])
   @@index([projectId])

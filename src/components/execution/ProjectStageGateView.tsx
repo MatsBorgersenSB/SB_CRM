@@ -13,6 +13,7 @@ import { CriticalPathPredictorPanel } from "@/components/execution/CriticalPathP
 import { ScopeChangeLoggerPanel } from "@/components/execution/ScopeChangeLoggerPanel";
 import { SiteCommissioningCoPilotPanel } from "@/components/execution/SiteCommissioningCoPilotPanel";
 import { TrlTrackerPanel } from "@/components/execution/TrlTrackerPanel";
+import { EciTraceabilityPanel } from "@/components/execution/EciTraceabilityPanel";
 
 type ProjectStageGateViewProps = {
   companyId: string;
@@ -351,6 +352,7 @@ export function ProjectStageGateView({
                   onTrlChanged={() => void load()}
                 />
               ) : null}
+              <EciTraceabilityPanel projectId={project.id} />
             </div>
           );
         })}
