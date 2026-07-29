@@ -6,6 +6,7 @@ import Link from "next/link";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { Company360LivingWorkspace } from "@/components/company-360/company-360-living-workspace";
 import { NudgeBanner } from "@/components/assistant/NudgeBanner";
+import { IntentRadarBanner } from "@/components/marketing/IntentRadarBanner";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
@@ -314,6 +315,11 @@ export function Company360Shell({
 
         <WorkspaceMain>
           <NudgeBanner
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+            className="mb-4"
+          />
+          <IntentRadarBanner
             companyId={companyRouteKey(company)}
             companyName={company.Title}
             className="mb-4"

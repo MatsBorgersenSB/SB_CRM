@@ -32,6 +32,7 @@ import { DealStakeholdersTable } from "@/components/opportunity/deal-stakeholder
 import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
 import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
 import { ContractAuditPanel } from "@/components/smartdocs/ContractAuditPanel";
+import { IntentRadarBanner } from "@/components/marketing/IntentRadarBanner";
 import { OpportunityWorkspaceHeader } from "@/components/opportunity/opportunity-workspace-header";
 import { OpportunityMissionControl } from "@/components/opportunity/opportunity-mission-control";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
@@ -311,6 +312,14 @@ export function Deal360LivingWorkspace({
       />
 
       <DealVelocityCard dealId={pipeline.id} />
+
+      {company ? (
+        <IntentRadarBanner
+          companyId={companyRouteKey(company)}
+          companyName={company.Title}
+          className="mb-1"
+        />
+      ) : null}
 
       {company ? (
         <WorkspacePanel title="Buying Center" id="buying-center" collapsible>

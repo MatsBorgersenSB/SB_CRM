@@ -69,9 +69,9 @@ async function clearPipelineJson() {
   const database = JSON.parse(raw) as Record<string, unknown>;
 
   const companies = (database.companies as unknown[]) ?? [];
-  const contactCount = companies.reduce((sum, company) => {
-    const row = company as { contacts?: unknown[] };
-    return sum + (row.contacts?.length ?? 0);
+  const contactCount = companies.reduce((sum: number, row) => {
+    const company = row as { contacts?: unknown[] };
+    return sum + (company.contacts?.length ?? 0);
   }, 0);
 
   console.log("pipeline-db before:", {
