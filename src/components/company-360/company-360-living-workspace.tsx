@@ -36,6 +36,7 @@ import { getProjectsForCompany } from "@/lib/project-team-utils";
 import { CompanyProjectsTable } from "@/components/project/company-projects-table";
 import { DecisionJournalPanel } from "@/components/assistant/DecisionJournalPanel";
 import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
+import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
 import type { CompanyHeroQuickEdit } from "@/lib/company-identity";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
@@ -205,6 +206,19 @@ export function Company360LivingWorkspace({
         <BuyingCenterGraph
           companyId={companyRouteKey(company)}
           companyName={company.Title}
+        />
+      </WorkspacePanel>
+
+      <WorkspacePanel
+        title="Executive Recon"
+        id="web-recon"
+        collapsible
+        collapseStorageKey={sectionKey("web-recon")}
+      >
+        <ReconBattlecardPanel
+          companyId={companyRouteKey(company)}
+          companyName={company.Title}
+          domain={company.Domain || undefined}
         />
       </WorkspacePanel>
 

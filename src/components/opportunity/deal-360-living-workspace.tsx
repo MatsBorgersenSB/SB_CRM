@@ -30,6 +30,7 @@ import { buildOpportunityUnderstanding } from "@/lib/opportunity-workspace-intel
 import { patchUnderstandingCapture } from "@/lib/opportunity-understanding-model";
 import { DealStakeholdersTable } from "@/components/opportunity/deal-stakeholders-table";
 import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
+import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
 import { OpportunityWorkspaceHeader } from "@/components/opportunity/opportunity-workspace-header";
 import { OpportunityMissionControl } from "@/components/opportunity/opportunity-mission-control";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
@@ -315,6 +316,16 @@ export function Deal360LivingWorkspace({
           <BuyingCenterGraph
             companyId={companyRouteKey(company)}
             companyName={company.Title}
+          />
+        </WorkspacePanel>
+      ) : null}
+
+      {company ? (
+        <WorkspacePanel title="Executive Recon" id="web-recon" collapsible>
+          <ReconBattlecardPanel
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+            domain={company.Domain || undefined}
           />
         </WorkspacePanel>
       ) : null}

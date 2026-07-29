@@ -100,4 +100,5 @@ export type Company360Section =
   | "documents"
   | "attention"
   | "decisions"
-  | "buying-center";
+  | "buying-center"
+  | "web-recon";
