@@ -12,6 +12,7 @@ import { QualityGateGuardianPanel } from "@/components/execution/QualityGateGuar
 import { CriticalPathPredictorPanel } from "@/components/execution/CriticalPathPredictorPanel";
 import { ScopeChangeLoggerPanel } from "@/components/execution/ScopeChangeLoggerPanel";
 import { SiteCommissioningCoPilotPanel } from "@/components/execution/SiteCommissioningCoPilotPanel";
+import { TrlTrackerPanel } from "@/components/execution/TrlTrackerPanel";
 
 type ProjectStageGateViewProps = {
   companyId: string;
@@ -344,6 +345,12 @@ export function ProjectStageGateView({
                 projectId={project.id}
                 onCommissioningChanged={() => void load()}
               />
+              {project.projectType === "INTERNAL_RD" ? (
+                <TrlTrackerPanel
+                  projectId={project.id}
+                  onTrlChanged={() => void load()}
+                />
+              ) : null}
             </div>
           );
         })}

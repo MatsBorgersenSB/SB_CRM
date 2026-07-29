@@ -820,6 +820,7 @@ model Project {
   qualityInspections QualityInspection[]
   scopeChanges  ProjectScopeChange[]
   commissioningLogs CommissioningLog[]
+  rdExperimentLogs RdExperimentLog[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
@@ -945,6 +946,35 @@ model CommissioningLog {
   @@index([phase])
   @@index([createdAt])
   @@map("commissioning_logs")
+}
+
+enum IpFilingStatus {
+  NONE
+  PROVISIONAL_FILED
+  PATENT_GRANTED
+  TRADE_SECRET
+}
+
+/// Internal R&D experiment runs — TRL progression & organizational memory.
+model RdExperimentLog {
+  id                   String         @id @default(cuid())
+  projectId            String
+  project              Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  experimentTitle      String
+  trlStage             Int
+  feedstockType        String?
+  reactorTempCelsius   Float?
+  residenceTimeMinutes Float?
+  yieldPercentage      Float?
+  ipFilingStatus       IpFilingStatus @default(NONE)
+  keyFindings          String
+  loggedBy             String?
+  createdAt            DateTime       @default(now())
+
+  @@index([projectId])
+  @@index([trlStage])
+  @@index([createdAt])
+  @@map("rd_experiment_logs")
 }
 
 // ==========================================
