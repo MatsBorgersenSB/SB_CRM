@@ -7,6 +7,7 @@ import { BulkImportPanel } from "@/components/companies/bulk-import-panel";
 import { CompaniesActionBar } from "@/components/companies/companies-action-bar";
 import { CompaniesInsightsPanel } from "@/components/companies/companies-insights-panel";
 import { CompaniesOperationsTable } from "@/components/companies/companies-operations-table";
+import { NudgeBanner } from "@/components/assistant/NudgeBanner";
 import {
   CompaniesWorkspaceHeader,
   type CompaniesWorkspaceTool,
@@ -282,6 +283,8 @@ export function CompaniesOperationsShell({
               </div>
             ) : null}
           </section>
+
+          <NudgeBanner maxItems={5} className="mb-4" />
 
           <WorkspacePanel title="Accounts" count={filteredRows.length}>
             <div className="-mx-6 -mt-5 mb-4">

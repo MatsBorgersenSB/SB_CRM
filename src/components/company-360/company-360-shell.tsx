@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { Company360LivingWorkspace } from "@/components/company-360/company-360-living-workspace";
+import { NudgeBanner } from "@/components/assistant/NudgeBanner";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
@@ -22,7 +23,7 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
 import type { CreateOpportunityInput } from "@/types/deal";
-import { company360Href } from "@/types/company-360";
+import { company360Href, companyRouteKey } from "@/types/company-360";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { InventoryDb } from "@/lib/inventory-data";
 import type { PipelineRow } from "@/types/pipeline";
@@ -312,6 +313,11 @@ export function Company360Shell({
         </header>
 
         <WorkspaceMain>
+          <NudgeBanner
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+            className="mb-4"
+          />
           <Company360LivingWorkspace
             snapshot={snapshot}
             commercialPackages={commercialPackages}
