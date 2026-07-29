@@ -821,6 +821,7 @@ model Project {
   scopeChanges  ProjectScopeChange[]
   commissioningLogs CommissioningLog[]
   rdExperimentLogs RdExperimentLog[]
+  eciInstrumentTags EciInstrumentTag[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
@@ -975,6 +976,49 @@ model RdExperimentLog {
   @@index([trlStage])
   @@index([createdAt])
   @@map("rd_experiment_logs")
+}
+
+enum EciInstrumentType {
+  TEMPERATURE
+  PRESSURE
+  GAS_ANALYZER
+  VALVE_ACTUATOR
+  LEVEL_SENSOR
+  FLOW_METER
+  SAFETY_SWITCH
+}
+
+enum EciIoType {
+  DIGITAL_INPUT
+  DIGITAL_OUTPUT
+  ANALOG_INPUT
+  ANALOG_OUTPUT
+  MODBUS_RS485
+  PROFINET
+}
+
+/// P&ID instrument tags — EC&I IO list and calibration/loop-check traceability.
+model EciInstrumentTag {
+  id             String            @id @default(cuid())
+  projectId      String
+  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tagNumber      String
+  description    String
+  instrumentType EciInstrumentType
+  ioType         EciIoType
+  exRating       String?
+  isCalibrated   Boolean           @default(false)
+  loopChecked    Boolean           @default(false)
+  locationZone   String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([projectId, tagNumber])
+  @@index([projectId])
+  @@index([instrumentType])
+  @@index([isCalibrated])
+  @@index([loopChecked])
+  @@map("eci_instrument_tags")
 }
 
 // ==========================================
