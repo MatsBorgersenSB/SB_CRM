@@ -47,7 +47,17 @@ export class SharePointServiceError extends Error {
                   : "GRAPH_ERROR";
 
     return new SharePointServiceError(
-      `SharePoint request failed (${status})`,
+      typeof details === "object" &&
+        details &&
+        "error" in details &&
+        typeof (details as { error?: unknown }).error === "string"
+        ? (details as { error: string }).error
+        : typeof details === "object" &&
+            details &&
+            "message" in details &&
+            typeof (details as { message?: unknown }).message === "string"
+          ? (details as { message: string }).message
+          : `SharePoint request failed (${status})`,
       code,
       { statusCode: status, details },
     );

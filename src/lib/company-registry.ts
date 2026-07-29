@@ -1,0 +1,281 @@
+import "server-only";
+
+import type { NewCompanyInput } from "@/lib/entity-id";
+import { normalizeCompanyDomain } from "@/lib/company-domain";
+import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
+import {
+  mapPrismaCompanyToApp,
+  stableNumericId,
+} from "@/lib/prisma-mappers";
+import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
+import type { UpdateCompanyPatch } from "@/lib/pipeline-db";
+import { readCompanies } from "@/lib/pipeline-db";
+import type { Company, SharePointPerson } from "@/types/company";
+import type { CompanyType } from "@/types/company-type";
+import type { CompanyType as PrismaCompanyType } from "@/generated/prisma";
+
+async function prismaRegistryAvailable(): Promise<boolean> {
+  try {
+    await withPrismaRetry((prisma) => prisma.company.findFirst({ select: { id: true } }));
+    return true;
+  } catch (error) {
+    if (!isPrismaConnectionError(error)) {
+      console.warn(
+        "[company-registry] Prisma unavailable:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+    return false;
+  }
+}
+
+export async function loadMappedPrismaCompany(prismaId: string): Promise<Company> {
+  const row = await withPrismaRetry((prisma) =>
+    prisma.company.findUniqueOrThrow({
+      where: { id: prismaId },
+      include: {
+        contacts: { where: { status: "active" } },
+        opportunities: { select: { id: true } },
+      },
+    }),
+  );
+  return mapPrismaCompanyToApp(row);
+}
+
+function toPrismaCompanyTypes(types: CompanyType[] | undefined): PrismaCompanyType[] {
+  if (!types?.length) return ["prospect"];
+  const map: Record<string, PrismaCompanyType> = {
+    Customer: "customer",
+    Prospect: "prospect",
+    Supplier: "supplier",
+    Partner: "partner",
+    Competitor: "competitor",
+    "Internal Company": "internal",
+  };
+  const mapped = types
+    .map((type) => map[type])
+    .filter((type): type is PrismaCompanyType => Boolean(type));
+  return mapped.length > 0 ? mapped : ["prospect"];
+}
+
+function countryTitle(
+  country: Company["Country"] | string | null | undefined,
+): string | null {
+  if (!country) return null;
+  if (typeof country === "string") return country.trim() || null;
+  return country.Title?.trim() || null;
+}
+
+async function resolvePrismaParentId(
+  parent: SharePointPerson | null | undefined,
+): Promise<string | null | undefined> {
+  if (parent === undefined) return undefined;
+  if (parent === null || !parent.Id) return null;
+
+  const companies = await withPrismaRetry((prisma) =>
+    prisma.company.findMany({ select: { id: true, name: true } }),
+  );
+  const byNumeric = companies.find((row) => stableNumericId(row.id) === parent.Id);
+  if (byNumeric) return byNumeric.id;
+
+  const byName = companies.find(
+    (row) => row.name.trim().toLowerCase() === parent.Title.trim().toLowerCase(),
+  );
+  return byName?.id ?? null;
+}
+
+function websiteFromDomain(domain: string | undefined, fallback: string | null): string | null {
+  if (domain === undefined) return fallback;
+  const normalized = normalizeCompanyDomain(domain);
+  return normalized ? `https://${normalized}` : null;
+}
+
+/** Prefer Prisma registry when available; otherwise return null so callers use JSON. */
+export async function getRegistryCompanyById(
+  id: string | number,
+): Promise<Company | null> {
+  if (!(await prismaRegistryAvailable())) return null;
+
+  const row = await findPrismaCompanyByRouteKey(String(id));
+  if (!row) return null;
+  return loadMappedPrismaCompany(row.id);
+}
+
+export async function createRegistryCompany(
+  input: NewCompanyInput,
+): Promise<Company | null> {
+  if (!(await prismaRegistryAvailable())) return null;
+
+  const domain = normalizeCompanyDomain(input.Domain);
+  const ownerId = input.AccountOwner?.Id != null ? String(input.AccountOwner.Id) : null;
+
+  const created = await withPrismaRetry((prisma) =>
+    prisma.company.create({
+      data: {
+        name: input.Title.trim(),
+        website: domain ? `https://${domain}` : null,
+        industry: input.Industry || "Polymer Processing",
+        types: toPrismaCompanyTypes(input.CompanyTypes),
+        status: "active",
+        city: input.City || null,
+        addressLine1: input.AddressLine1 || null,
+        country: countryTitle(input.Country),
+        ownerId,
+        emails: input.Email
+          ? [{ address: input.Email, type: "work", isPrimary: true }]
+          : [],
+        phoneNumbers: input.Phone
+          ? [{ number: input.Phone, type: "office", isPrimary: true }]
+          : [],
+      },
+    }),
+  );
+
+  return loadMappedPrismaCompany(created.id);
+}
+
+export async function updateRegistryCompany(
+  id: string | number,
+  patch: UpdateCompanyPatch,
+): Promise<Company | null> {
+  if (!(await prismaRegistryAvailable())) return null;
+
+  let existing = await findPrismaCompanyByRouteKey(String(id));
+
+  // Portfolio may still serve JSON-seeded CO-… records while Prisma is empty.
+  // Promote that row into the registry on first save so edits are durable on Vercel.
+  if (!existing) {
+    const jsonCompanies = await readCompanies();
+    const jsonCompany = jsonCompanies.find(
+      (row) => row.CompanyID === String(id) || String(row.id) === String(id),
+    );
+    if (!jsonCompany) return null;
+
+    const domain = normalizeCompanyDomain(patch.Domain ?? jsonCompany.Domain);
+    const owner = patch.AccountOwner ?? jsonCompany.AccountOwner;
+    const created = await withPrismaRetry((prisma) =>
+      prisma.company.create({
+        data: {
+          id: jsonCompany.CompanyID,
+          name: (patch.Title ?? jsonCompany.Title).trim(),
+          website: domain ? `https://${domain}` : null,
+          industry: patch.Industry ?? jsonCompany.Industry ?? "Polymer Processing",
+          types: toPrismaCompanyTypes(patch.CompanyTypes ?? jsonCompany.CompanyTypes),
+          status: "active",
+          city: patch.City ?? jsonCompany.City ?? null,
+          addressLine1: patch.AddressLine1 ?? jsonCompany.AddressLine1 ?? null,
+          addressLine2: patch.AddressLine2 ?? jsonCompany.AddressLine2 ?? null,
+          postalCode: patch.PostalCode ?? jsonCompany.PostalCode ?? null,
+          country: countryTitle(patch.Country ?? jsonCompany.Country),
+          ownerId: owner?.Id != null ? String(owner.Id) : null,
+          emails: (patch.Email ?? jsonCompany.Email)
+            ? [
+                {
+                  address: (patch.Email ?? jsonCompany.Email).trim().toLowerCase(),
+                  type: "work",
+                  isPrimary: true,
+                },
+              ]
+            : [],
+          phoneNumbers: (patch.Phone ?? jsonCompany.Phone)
+            ? [
+                {
+                  number: (patch.Phone ?? jsonCompany.Phone).trim(),
+                  type: "office",
+                  isPrimary: true,
+                },
+              ]
+            : [],
+        },
+      }),
+    );
+
+    if (patch.Notes?.trim()) {
+      await withPrismaRetry((prisma) =>
+        prisma.companyNote.create({
+          data: {
+            companyId: created.id,
+            authorId: String(owner?.Id ?? "system"),
+            content: patch.Notes!.trim(),
+          },
+        }),
+      ).catch(() => undefined);
+    }
+
+    return loadMappedPrismaCompany(created.id);
+  }
+
+  const parentCompanyId = await resolvePrismaParentId(patch.ParentCompany);
+  const domain =
+    patch.Domain !== undefined ? normalizeCompanyDomain(patch.Domain) : undefined;
+
+  const data: Record<string, unknown> = {};
+  if (patch.Title !== undefined) data.name = patch.Title.trim();
+  if (domain !== undefined) data.website = websiteFromDomain(domain, existing.website);
+  if (patch.Industry !== undefined) data.industry = patch.Industry;
+  if (patch.CompanyTypes !== undefined) data.types = toPrismaCompanyTypes(patch.CompanyTypes);
+  if (patch.City !== undefined) data.city = patch.City || null;
+  if (patch.AddressLine1 !== undefined) data.addressLine1 = patch.AddressLine1 || null;
+  if (patch.AddressLine2 !== undefined) data.addressLine2 = patch.AddressLine2 || null;
+  if (patch.PostalCode !== undefined) data.postalCode = patch.PostalCode || null;
+  if (patch.Country !== undefined) data.country = countryTitle(patch.Country);
+  if (patch.AccountOwner !== undefined) {
+    data.ownerId =
+      patch.AccountOwner?.Id != null ? String(patch.AccountOwner.Id) : null;
+  }
+  if (parentCompanyId !== undefined) data.parentCompanyId = parentCompanyId;
+  if (patch.Email !== undefined) {
+    data.emails = patch.Email.trim()
+      ? [{ address: patch.Email.trim().toLowerCase(), type: "work", isPrimary: true }]
+      : [];
+  }
+  if (patch.Phone !== undefined) {
+    data.phoneNumbers = patch.Phone.trim()
+      ? [{ number: patch.Phone.trim(), type: "office", isPrimary: true }]
+      : [];
+  }
+  if (patch.Status !== undefined) {
+    data.status = patch.Status === "Inactive" ? "archived" : "active";
+  }
+
+  const updated = await withPrismaRetry((prisma) =>
+    prisma.company.update({
+      where: { id: existing.id },
+      data,
+    }),
+  );
+
+  if (patch.Notes?.trim()) {
+    await withPrismaRetry((prisma) =>
+      prisma.companyNote.create({
+        data: {
+          companyId: updated.id,
+          authorId: String(patch.AccountOwner?.Id ?? existing.ownerId ?? "system"),
+          content: patch.Notes!.trim(),
+        },
+      }),
+    ).catch((error) => {
+      console.warn(
+        "[company-registry] Could not persist company note:",
+        error instanceof Error ? error.message : error,
+      );
+    });
+  }
+
+  return loadMappedPrismaCompany(updated.id);
+}
+
+export async function deleteRegistryCompany(id: string | number): Promise<boolean> {
+  if (!(await prismaRegistryAvailable())) return false;
+
+  const existing = await findPrismaCompanyByRouteKey(String(id));
+  if (!existing) return false;
+
+  await withPrismaRetry((prisma) =>
+    prisma.company.update({
+      where: { id: existing.id },
+      data: { status: "archived" },
+    }),
+  );
+  return true;
+}

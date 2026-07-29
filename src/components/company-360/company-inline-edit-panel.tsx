@@ -91,8 +91,12 @@ export function CompanyInlineEditPanel({
 
     try {
       await onSave(form);
-    } catch {
-      setError("Unable to save company details.");
+    } catch (saveError) {
+      const message =
+        saveError instanceof Error && saveError.message.trim()
+          ? saveError.message
+          : "Unable to save company details.";
+      setError(message);
     } finally {
       setSaving(false);
     }

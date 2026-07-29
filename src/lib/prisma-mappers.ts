@@ -36,11 +36,15 @@ export function stableNumericId(value: string): number {
 }
 
 export function toCompanyTrackingId(prismaId: string): string {
-  return `CO-${prismaId.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+  const trimmed = prismaId.trim();
+  if (/^CO-[A-Z0-9]+$/i.test(trimmed)) return trimmed.toUpperCase();
+  return `CO-${trimmed.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
 export function toContactTrackingId(prismaId: string): string {
-  return `CT-${prismaId.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+  const trimmed = prismaId.trim();
+  if (/^CT-[A-Z0-9]+$/i.test(trimmed)) return trimmed.toUpperCase();
+  return `CT-${trimmed.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
 function primaryEmail(emails: unknown): string {

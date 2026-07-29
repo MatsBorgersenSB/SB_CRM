@@ -46,7 +46,18 @@ import {
 import { defaultOutlookEvidence } from "@/data/outlook-evidence-data";
 import type { OutlookEvidenceRecord } from "@/types/outlook-reconciliation";
 
-const DB_PATH = path.join(process.cwd(), "src/data/pipeline-db.json");
+/** Bundled seed/source of truth checked into the repo. */
+const BUNDLED_DB_PATH = path.join(process.cwd(), "src/data/pipeline-db.json");
+
+/**
+ * On Vercel the deployment FS is read-only. Persist mutations under /tmp so
+ * local-transport writes do not fail with EROFS. Data is instance-local;
+ * Prisma remains the durable registry when available.
+ */
+const DB_PATH =
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    ? path.join("/tmp", "pipeline-db.json")
+    : BUNDLED_DB_PATH;
 
 const DEPARTURE_EMPLOYMENT_STATUSES = new Set([
   "Former Employee",
@@ -94,9 +105,21 @@ async function migrateLegacyArray(parsed: PipelineRow[]): Promise<PipelineDataba
   return database;
 }
 
+async function readDbFile(): Promise<string> {
+  try {
+    return await fs.readFile(DB_PATH, "utf-8");
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT" && DB_PATH !== BUNDLED_DB_PATH) {
+      return fs.readFile(BUNDLED_DB_PATH, "utf-8");
+    }
+    throw error;
+  }
+}
+
 async function ensureDb(): Promise<PipelineDatabase> {
   try {
-    const raw = await fs.readFile(DB_PATH, "utf-8");
+    const raw = await readDbFile();
     const parsed: unknown = JSON.parse(raw);
 
     if (Array.isArray(parsed)) {

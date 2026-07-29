@@ -10,12 +10,19 @@ import {
   isCompanyDeletable,
 } from "@/lib/company-deletion";
 import {
+  createRegistryCompany,
+  deleteRegistryCompany,
+  getRegistryCompanyById,
+  updateRegistryCompany,
+} from "@/lib/company-registry";
+import {
   createCompany,
   deleteCompany,
   readCompanies,
   readDatabase,
   updateCompany,
 } from "@/lib/pipeline-db";
+import { readLiveCompanies } from "@/lib/prisma-data";
 
 export type UpdateCompanyInput = Partial<
   Omit<Company, "id" | "CompanyID" | "pipelineIds" | "contacts">
@@ -25,11 +32,19 @@ export class LocalCompaniesRepository
   implements IListRepository<Company, NewCompanyInput, UpdateCompanyInput>
 {
   async list(page?: PageRequest): Promise<PageResult<Company>> {
-    const companies = await readCompanies();
-    return paginateArray(companies, page);
+    try {
+      const companies = await readLiveCompanies();
+      return paginateArray(companies, page);
+    } catch {
+      const companies = await readCompanies();
+      return paginateArray(companies, page);
+    }
   }
 
   async getById(id: string | number): Promise<Company> {
+    const fromRegistry = await getRegistryCompanyById(id);
+    if (fromRegistry) return fromRegistry;
+
     const companies = await readCompanies();
     const company = companies.find(
       (row) => row.id === Number(id) || row.CompanyID === String(id),
@@ -39,15 +54,29 @@ export class LocalCompaniesRepository
   }
 
   async create(input: NewCompanyInput): Promise<Company> {
+    const created = await createRegistryCompany(input);
+    if (created) return created;
     return createCompany(input);
   }
 
   async update(id: string | number, patch: UpdateCompanyInput): Promise<Company> {
-    const current = await this.getById(id);
-    return updateCompany(current.CompanyID, patch);
+    const updated = await updateRegistryCompany(id, patch);
+    if (updated) return updated;
+
+    // JSON fallback (local /tmp on Vercel). May 404 if the company only exists in Prisma
+    // and Prisma was temporarily unavailable above.
+    try {
+      const current = await this.getById(id);
+      return await updateCompany(current.CompanyID, patch);
+    } catch (error) {
+      if (error instanceof SharePointServiceError) throw error;
+      throw SharePointServiceError.notFound("Company", id);
+    }
   }
 
   async delete(id: string | number): Promise<void> {
+    if (await deleteRegistryCompany(id)) return;
+
     const current = await this.getById(id);
     const database = await readDatabase();
     const blockers = getCompanyDeletionBlockers(
