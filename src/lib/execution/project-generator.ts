@@ -38,24 +38,92 @@ type MilestoneTemplate = {
   stage: string;
   /** Starting TRL for INTERNAL_RD stages */
   trlLevel?: number;
+  estimatedLeadDays?: number;
+  isCriticalPath?: boolean;
+  vendorName?: string;
 };
 
 const TURNKEY_PLANT_GATES: MilestoneTemplate[] = [
-  { title: "Basic Engineering", stage: "1. Basic Engineering" },
-  { title: "Detail Engineering", stage: "2. Detail Engineering" },
-  { title: "Procurement", stage: "3. Procurement" },
-  { title: "Fabrication & Assembly", stage: "4. Fabrication & Assembly" },
-  { title: "FAT Testing", stage: "5. FAT Testing" },
-  { title: "Site Delivery & SAT", stage: "6. Site Delivery & SAT" },
-  { title: "Commissioning & Handover", stage: "7. Commissioning & Handover" },
+  {
+    title: "Basic Engineering",
+    stage: "1. Basic Engineering",
+    estimatedLeadDays: 30,
+    isCriticalPath: true,
+  },
+  {
+    title: "Detail Engineering",
+    stage: "2. Detail Engineering",
+    estimatedLeadDays: 45,
+    isCriticalPath: true,
+  },
+  {
+    title: "Procurement",
+    stage: "3. Procurement",
+    estimatedLeadDays: 60,
+    isCriticalPath: true,
+    vendorName: "Long-lead Equipment Vendors",
+  },
+  {
+    title: "Fabrication & Assembly",
+    stage: "4. Fabrication & Assembly",
+    estimatedLeadDays: 90,
+    isCriticalPath: true,
+    vendorName: "Reactor / Skid Fabricator",
+  },
+  {
+    title: "FAT Testing",
+    stage: "5. FAT Testing",
+    estimatedLeadDays: 14,
+    isCriticalPath: true,
+  },
+  {
+    title: "Site Delivery & SAT",
+    stage: "6. Site Delivery & SAT",
+    estimatedLeadDays: 21,
+    isCriticalPath: true,
+    vendorName: "Logistics Partner",
+  },
+  {
+    title: "Commissioning & Handover",
+    stage: "7. Commissioning & Handover",
+    estimatedLeadDays: 30,
+    isCriticalPath: true,
+  },
 ];
 
 const SINGLE_MACHINERY_GATES: MilestoneTemplate[] = [
-  { title: "Spec Freeze", stage: "1. Spec Freeze" },
-  { title: "Component Procurement", stage: "2. Component Procurement" },
-  { title: "Assembly & FAT", stage: "3. Assembly & FAT" },
-  { title: "Shipping & Logistics", stage: "4. Shipping & Logistics" },
-  { title: "Installation Support", stage: "5. Installation Support" },
+  {
+    title: "Spec Freeze",
+    stage: "1. Spec Freeze",
+    estimatedLeadDays: 14,
+    isCriticalPath: true,
+  },
+  {
+    title: "Component Procurement",
+    stage: "2. Component Procurement",
+    estimatedLeadDays: 45,
+    isCriticalPath: true,
+    vendorName: "Component Suppliers",
+  },
+  {
+    title: "Assembly & FAT",
+    stage: "3. Assembly & FAT",
+    estimatedLeadDays: 30,
+    isCriticalPath: true,
+  },
+  {
+    title: "Shipping & Logistics",
+    stage: "4. Shipping & Logistics",
+    estimatedLeadDays: 21,
+    isCriticalPath: true,
+    vendorName: "Freight / Logistics Partner",
+  },
+  {
+    title: "Installation Support",
+    stage: "5. Installation Support",
+    estimatedLeadDays: 14,
+    isCriticalPath: false,
+  },
 ];
 
 const INTERNAL_RD_GATES: MilestoneTemplate[] = [
@@ -63,21 +131,30 @@ const INTERNAL_RD_GATES: MilestoneTemplate[] = [
     title: "Concept & Feasibility",
     stage: "TRL 1–3 Concept & Feasibility",
     trlLevel: 1,
+    estimatedLeadDays: 60,
+    isCriticalPath: true,
   },
   {
     title: "Lab / Pilot Prototyping",
     stage: "TRL 4–6 Lab/Pilot Prototyping",
     trlLevel: 4,
+    estimatedLeadDays: 120,
+    isCriticalPath: true,
+    vendorName: "Pilot Rig Fabricator",
   },
   {
     title: "Field Testing",
     stage: "TRL 7–8 Field Testing",
     trlLevel: 7,
+    estimatedLeadDays: 90,
+    isCriticalPath: true,
   },
   {
     title: "Commercialization",
     stage: "TRL 9 Commercialization",
     trlLevel: 9,
+    estimatedLeadDays: 60,
+    isCriticalPath: true,
   },
 ];
 
@@ -113,6 +190,10 @@ type PrismaProjectRow = {
     dueDate: Date | null;
     completedAt: Date | null;
     sortOrder: number;
+    estimatedLeadDays: number | null;
+    isCriticalPath: boolean;
+    vendorName: string | null;
+    targetDeliveryDate: Date | null;
   }>;
 };
 
@@ -127,6 +208,10 @@ function mapProject(row: PrismaProjectRow): StageGateProject {
       dueDate: m.dueDate?.toISOString() ?? null,
       completedAt: m.completedAt?.toISOString() ?? null,
       sortOrder: m.sortOrder,
+      estimatedLeadDays: m.estimatedLeadDays ?? null,
+      isCriticalPath: m.isCriticalPath ?? false,
+      vendorName: m.vendorName ?? null,
+      targetDeliveryDate: m.targetDeliveryDate?.toISOString() ?? null,
     }));
 
   const completed = milestones.filter((m) => m.isCompleted).length;
@@ -196,6 +281,26 @@ export async function generateProjectFromTemplate(
   const initialTrl =
     input.projectType === "INTERNAL_RD" ? (gates[0]!.trlLevel ?? 1) : null;
 
+  const startDate = new Date();
+  let cumulativeDays = 0;
+  const milestoneCreates = gates.map((gate, index) => {
+    const lead = gate.estimatedLeadDays ?? 0;
+    cumulativeDays += lead;
+    const target = new Date(startDate);
+    target.setDate(target.getDate() + cumulativeDays);
+    return {
+      title: gate.title,
+      stage: gate.stage,
+      sortOrder: index,
+      isCompleted: false,
+      estimatedLeadDays: gate.estimatedLeadDays ?? null,
+      isCriticalPath: gate.isCriticalPath ?? false,
+      vendorName: gate.vendorName ?? null,
+      targetDeliveryDate: lead > 0 ? target : null,
+      dueDate: lead > 0 ? target : null,
+    };
+  });
+
   const created = await withPrismaRetry((prisma) =>
     prisma.project.create({
       data: {
@@ -207,12 +312,7 @@ export async function generateProjectFromTemplate(
         opportunityId: opportunityPrismaId,
         healthStatus: "ON_TRACK",
         milestones: {
-          create: gates.map((gate, index) => ({
-            title: gate.title,
-            stage: gate.stage,
-            sortOrder: index,
-            isCompleted: false,
-          })),
+          create: milestoneCreates,
         },
       },
       include: PROJECT_INCLUDE,

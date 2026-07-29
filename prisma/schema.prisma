@@ -837,10 +837,17 @@ model ProjectMilestone {
   dueDate     DateTime?
   completedAt DateTime?
   sortOrder   Int       @default(0)
+  /// Planned lead time for this stage (days)
+  estimatedLeadDays Int?
+  /// Whether this milestone sits on the critical path to COD
+  isCriticalPath Boolean @default(false)
+  vendorName  String?
+  targetDeliveryDate DateTime?
   qualityInspections QualityInspection[]
 
   @@index([projectId])
   @@index([stage])
+  @@index([isCriticalPath])
   @@map("execution_project_milestones")
 }
 

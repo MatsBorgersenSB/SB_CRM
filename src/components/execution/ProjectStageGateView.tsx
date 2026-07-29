@@ -9,6 +9,7 @@ import {
   type StageGateProject,
 } from "@/lib/execution/project-generator-types";
 import { QualityGateGuardianPanel } from "@/components/execution/QualityGateGuardianPanel";
+import { CriticalPathPredictorPanel } from "@/components/execution/CriticalPathPredictorPanel";
 
 type ProjectStageGateViewProps = {
   companyId: string;
@@ -328,6 +329,10 @@ export function ProjectStageGateView({
                 currentStage={project.currentStage}
                 milestones={project.milestones}
                 onQualityChanged={() => void load()}
+              />
+              <CriticalPathPredictorPanel
+                projectId={project.id}
+                projectTitle={project.title}
               />
             </div>
           );

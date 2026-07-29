@@ -15,6 +15,10 @@ export type StageGateMilestone = {
   dueDate: string | null;
   completedAt: string | null;
   sortOrder: number;
+  estimatedLeadDays: number | null;
+  isCriticalPath: boolean;
+  vendorName: string | null;
+  targetDeliveryDate: string | null;
 };
 
 export type StageGateProject = {
