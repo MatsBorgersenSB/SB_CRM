@@ -38,6 +38,7 @@ import { DecisionJournalPanel } from "@/components/assistant/DecisionJournalPane
 import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
 import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
 import { MicroCampaignGenerator } from "@/components/marketing/MicroCampaignGenerator";
+import { NicheChannelRadarPanel } from "@/components/marketing/NicheChannelRadarPanel";
 import type { CompanyHeroQuickEdit } from "@/lib/company-identity";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
@@ -230,6 +231,18 @@ export function Company360LivingWorkspace({
         collapseStorageKey={sectionKey("micro-campaigns")}
       >
         <MicroCampaignGenerator
+          companyId={companyRouteKey(company)}
+          companyName={company.Title}
+        />
+      </WorkspacePanel>
+
+      <WorkspacePanel
+        title="Niche Channel Radar"
+        id="niche-channels"
+        collapsible
+        collapseStorageKey={sectionKey("niche-channels")}
+      >
+        <NicheChannelRadarPanel
           companyId={companyRouteKey(company)}
           companyName={company.Title}
         />

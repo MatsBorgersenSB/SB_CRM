@@ -34,6 +34,7 @@ import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPane
 import { ContractAuditPanel } from "@/components/smartdocs/ContractAuditPanel";
 import { IntentRadarBanner } from "@/components/marketing/IntentRadarBanner";
 import { MicroCampaignGenerator } from "@/components/marketing/MicroCampaignGenerator";
+import { NicheChannelRadarPanel } from "@/components/marketing/NicheChannelRadarPanel";
 import { OpportunityWorkspaceHeader } from "@/components/opportunity/opportunity-workspace-header";
 import { OpportunityMissionControl } from "@/components/opportunity/opportunity-mission-control";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
@@ -352,6 +353,15 @@ export function Deal360LivingWorkspace({
       {company ? (
         <WorkspacePanel title="Micro-Campaigns" id="micro-campaigns" collapsible>
           <MicroCampaignGenerator
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+          />
+        </WorkspacePanel>
+      ) : null}
+
+      {company ? (
+        <WorkspacePanel title="Niche Channel Radar" id="niche-channels" collapsible>
+          <NicheChannelRadarPanel
             companyId={companyRouteKey(company)}
             companyName={company.Title}
           />
