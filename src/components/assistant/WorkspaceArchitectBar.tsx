@@ -6,7 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import {
   WORKSPACE_ARCHITECT_QUICK_ACTIONS,
   type WorkspaceArchitectExecuteResult,
-} from "@/lib/assistant/workspace-architect";
+} from "@/lib/assistant/workspace-architect-types";
 import { stashWorkspaceFilters } from "@/lib/workspace-filter-bridge";
 
 type WorkspaceArchitectBarProps = {

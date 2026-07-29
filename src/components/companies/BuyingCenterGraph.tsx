@@ -7,7 +7,7 @@ import {
   BUYING_CENTER_ROLE_LABELS,
   type BuyingCenterRoleCode,
   type CompanyBuyingCenter,
-} from "@/lib/assistant/buying-center";
+} from "@/lib/assistant/buying-center-types";
 import { mailtoHref, telHref } from "@/lib/compose-actions";
 import { contact360Href } from "@/types/relationship-navigation";
 
