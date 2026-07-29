@@ -1,7 +1,7 @@
 "use client";
 
 import type { CompanyType } from "@/types/company-type";
-import { COMPANY_TYPE_META } from "@/types/company-type";
+import { getCompanyTypeMeta } from "@/types/company-type";
 
 export function CompanyTypeBadges({
   types,
@@ -17,16 +17,19 @@ export function CompanyTypeBadges({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {types.map((type) => (
-        <span
-          key={type}
-          className={`inline-flex items-center gap-1 border border-carbon-blue/12 bg-carbon-blue/[0.03] ${padClass} ${textClass} font-medium text-carbon-blue`}
-          title={`Company Type: ${COMPANY_TYPE_META[type].label}`}
-        >
-          <span aria-hidden>{COMPANY_TYPE_META[type].emoji}</span>
-          {COMPANY_TYPE_META[type].label}
-        </span>
-      ))}
+      {types.map((type) => {
+        const meta = getCompanyTypeMeta(type);
+        return (
+          <span
+            key={type}
+            className={`inline-flex items-center gap-1 border border-carbon-blue/12 bg-carbon-blue/[0.03] ${padClass} ${textClass} font-medium text-carbon-blue`}
+            title={`Company Type: ${meta.label}`}
+          >
+            <span aria-hidden>{meta.emoji}</span>
+            {meta.label}
+          </span>
+        );
+      })}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { Company, CompanyIndustry, CompanyStatus } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
+import { canonicalizeCompanyType } from "@/types/company-type";
 import type { Contact, ContactListRole, ContactStatus, RelationshipLevel } from "@/types/contact";
 import type {
   CompanyRole,
@@ -12,7 +13,6 @@ import type {
   Company as PrismaCompany,
   Contact as PrismaContact,
   Opportunity as PrismaOpportunity,
-  CompanyType as PrismaCompanyType,
   OpportunityStage,
   OpportunityStatus as PrismaOpportunityStatus,
 } from "@/generated/prisma";
@@ -74,17 +74,10 @@ function primaryPhone(phones: unknown, preferMobile = false): string {
   return primary?.number ?? typed[0]?.number ?? "";
 }
 
-function mapCompanyTypes(types: PrismaCompanyType[]): CompanyType[] {
-  const map: Record<PrismaCompanyType, CompanyType> = {
-    customer: "Customer",
-    prospect: "Prospect",
-    supplier: "Supplier",
-    partner: "Partner",
-    competitor: "Competitor",
-    internal: "Internal Company",
-    other: "Prospect",
-  };
-  const mapped = types.map((type) => map[type] ?? "Prospect");
+function mapCompanyTypes(types: string[]): CompanyType[] {
+  const mapped = types
+    .map((type) => canonicalizeCompanyType(type))
+    .filter((type): type is CompanyType => Boolean(type));
   return mapped.length > 0 ? mapped : ["Prospect"];
 }
 
@@ -108,11 +101,12 @@ function mapIndustry(industry: string | null | undefined): CompanyIndustry {
 
 function mapCompanyStatus(
   status: PrismaCompany["status"],
-  types: PrismaCompanyType[],
+  types: string[],
 ): CompanyStatus {
   if (status === "archived") return "Inactive";
-  if (types.includes("customer")) return "Contracted";
-  if (types.includes("prospect")) return "Prospecting";
+  const canonical = types.map((type) => canonicalizeCompanyType(type));
+  if (canonical.includes("Customer")) return "Contracted";
+  if (canonical.includes("Prospect")) return "Prospecting";
   return "Active";
 }
 
@@ -198,7 +192,8 @@ export function mapPrismaCompanyToApp(company: PrismaCompanyWithRelations): Comp
       : null,
     Domain: company.website?.replace(/^https?:\/\//, "").split("/")[0] ?? "",
     Industry: mapIndustry(company.industry),
-    CompanyTypes: mapCompanyTypes(company.types),
+    CompanyTypes: mapCompanyTypes(company.types ?? []),
+    companyType: company.companyType ?? undefined,
     Status: mapCompanyStatus(company.status, company.types),
     AccountOwner: mapOwnerPerson(company.ownerId),
     Phone: primaryPhone(company.phoneNumbers),

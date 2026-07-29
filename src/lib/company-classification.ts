@@ -2,7 +2,10 @@ import type { Company } from "@/types/company";
 import type { CompanyType, CompanyTypeFilter } from "@/types/company-type";
 import {
   COMPANY_TYPE_META,
+  COMPANY_TYPE_SELECT_OPTIONS,
+  canonicalizeCompanyType,
   DEFAULT_COMPANY_TYPES,
+  getCompanyTypeMeta,
 } from "@/types/company-type";
 import type { RelationshipHealthStatus } from "@/lib/relationship-health-engine";
 
@@ -14,17 +17,38 @@ export type CompanyClassificationCount = {
 };
 
 export function normalizeCompanyTypes(
-  company: Pick<Company, "CompanyTypes" | "Status">,
+  company: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
 ): CompanyType[] {
-  if (company.CompanyTypes && company.CompanyTypes.length > 0) {
-    return company.CompanyTypes;
+  const raw = [
+    ...(company.CompanyTypes ?? []),
+    ...(company.companyType ? [company.companyType] : []),
+  ];
+
+  const canonical: CompanyType[] = [];
+  for (const value of raw) {
+    const next = canonicalizeCompanyType(String(value));
+    if (next && !canonical.includes(next)) canonical.push(next);
   }
+
+  if (canonical.length > 0) return canonical;
   if (company.Status === "Prospecting") return ["Prospect"];
   return ["Customer"];
 }
 
+/** Persistable labels for Prisma `types` String[]. */
+export function toStoredCompanyTypes(types: CompanyType[] | undefined): string[] {
+  const normalized = (types ?? [])
+    .map((type) => canonicalizeCompanyType(type))
+    .filter((type): type is CompanyType => Boolean(type));
+  const unique = [...new Set(normalized)];
+  return unique.length > 0 ? unique : ["Prospect"];
+}
+
 export function companyHasType(company: Company, type: CompanyType): boolean {
-  return normalizeCompanyTypes(company).includes(type);
+  const target = canonicalizeCompanyType(type) ?? type;
+  return normalizeCompanyTypes(company).some(
+    (entry) => entry === target || canonicalizeCompanyType(entry) === target,
+  );
 }
 
 export function formatCompanyTypesLabel(
@@ -33,20 +57,23 @@ export function formatCompanyTypesLabel(
 ): string {
   const max = options?.max ?? 3;
   const visible = types.slice(0, max);
-  const labels = visible.map((type) => COMPANY_TYPE_META[type].label);
+  const labels = visible.map((type) => getCompanyTypeMeta(type).label);
   const suffix = types.length > max ? ` +${types.length - max}` : "";
   return labels.join(" · ") + suffix;
 }
 
 export function formatCompanyTypesWithEmoji(types: CompanyType[]): string {
   return types
-    .map((type) => `${COMPANY_TYPE_META[type].emoji} ${COMPANY_TYPE_META[type].label}`)
+    .map((type) => {
+      const meta = getCompanyTypeMeta(type);
+      return `${meta.emoji} ${meta.label}`;
+    })
     .join(" · ");
 }
 
 export function companyTypeSearchKeywords(types: CompanyType[]): string[] {
   return types.flatMap((type) => {
-    const meta = COMPANY_TYPE_META[type];
+    const meta = getCompanyTypeMeta(type);
     return [type, meta.label, meta.plural, meta.label.toLowerCase(), meta.plural.toLowerCase()];
   });
 }
@@ -63,7 +90,7 @@ export function buildCompanyClassificationReport(
   companies: Company[],
 ): CompanyClassificationCount[] {
   const counts = new Map<CompanyType, number>();
-  for (const type of DEFAULT_COMPANY_TYPES) {
+  for (const type of COMPANY_TYPE_SELECT_OPTIONS) {
     counts.set(type, 0);
   }
 
@@ -73,7 +100,7 @@ export function buildCompanyClassificationReport(
     }
   }
 
-  return DEFAULT_COMPANY_TYPES.map((type) => ({
+  return COMPANY_TYPE_SELECT_OPTIONS.map((type) => ({
     type,
     count: counts.get(type) ?? 0,
     emoji: COMPANY_TYPE_META[type].emoji,
@@ -95,18 +122,18 @@ export function isStrategicCustomer(
 export function matchCompanyTypeQuery(query: string): CompanyType | null {
   const q = query.toLowerCase();
   if (/\bcompetitors?\b/.test(q)) return "Competitor";
-  if (/\bassociations?\b/.test(q)) return "Association";
+  if (/\b(ngos?|non[- ]?profits?|associations?)\b/.test(q)) return "NGO / Non-Profit";
   if (/\bofftakers?\b/.test(q)) return "Offtaker";
-  if (/\bresearch organizations?\b/.test(q)) return "Research Organization";
-  if (/\bgovernment agenc(y|ies)\b/.test(q)) return "Government Agency";
-  if (/\bsuppliers?\b/.test(q)) return "Supplier";
+  if (/\b(universit(y|ies)|research organizations?)\b/.test(q)) return "University / Research";
+  if (/\b(public|government agenc(y|ies)|government)\b/.test(q)) return "Public / Government";
+  if (/\b(granting authorit(y|ies)|authorit(y|ies))\b/.test(q)) return "Granting Authority";
+  if (/\b(suppliers?|vendors?)\b/.test(q)) return "Supplier / Vendor";
   if (/\bcustomers?\b/.test(q)) return "Customer";
   if (/\bpartners?\b/.test(q)) return "Partner";
   if (/\bprospects?\b/.test(q)) return "Prospect";
   if (/\bdistributors?\b/.test(q)) return "Distributor";
   if (/\binvestors?\b/.test(q)) return "Investor";
   if (/\bconsultants?\b/.test(q)) return "Consultant";
-  if (/\bauthorit(y|ies)\b/.test(q)) return "Authority";
   if (/\binternal companies?\b/.test(q)) return "Internal Company";
   if (/\bservice providers?\b/.test(q)) return "Service Provider";
   return null;
@@ -115,3 +142,10 @@ export function matchCompanyTypeQuery(query: string): CompanyType | null {
 export function isStrategicCustomersQuery(query: string): boolean {
   return /\bstrategic customers?\b/.test(query.toLowerCase());
 }
+
+export function listSelectableCompanyTypes(): CompanyType[] {
+  return [...COMPANY_TYPE_SELECT_OPTIONS];
+}
+
+/** @deprecated Prefer COMPANY_TYPE_SELECT_OPTIONS */
+export { DEFAULT_COMPANY_TYPES };

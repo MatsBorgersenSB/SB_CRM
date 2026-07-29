@@ -24,16 +24,6 @@ enum CompanySize {
   unknown
 }
 
-enum CompanyType {
-  customer
-  prospect
-  supplier
-  partner
-  competitor
-  internal
-  other
-}
-
 model Company {
   id                 String        @id @default(uuid())
   name               String
@@ -43,7 +33,10 @@ model Company {
   website            String?
   industry           String?
   size               CompanySize   @default(unknown)
-  types              CompanyType[] @default([prospect])
+  /// Multi-select company categories (display labels). Legacy enum values are normalized on read.
+  types              String[]      @default(["Prospect"])
+  /// Optional singular legacy field — prefer `types`. Kept for backward compatibility.
+  companyType        String?
   status             CompanyStatus @default(active)
 
   ownerId         String?

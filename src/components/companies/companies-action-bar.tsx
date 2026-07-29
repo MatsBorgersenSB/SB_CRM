@@ -12,7 +12,7 @@ import { canCreateCompany } from "@/lib/permissions";
 import type { CompanyIndustry, CompanyStatus } from "@/types/company";
 import { COMPANY_INDUSTRIES, COMPANY_STATUSES } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
-import { COMPANY_TYPE_QUICK_FILTERS } from "@/types/company-type";
+import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
 import type { UserRole } from "@/types/auth";
 
 export function CompaniesActionBar({
@@ -62,13 +62,11 @@ export function CompaniesActionBar({
     setCreateOpen(true);
   }, [setCreateOpen]);
 
-  const toggleCompanyType = (type: CompanyType) => {
-    setForm((current) => {
-      const selected = current.CompanyTypes.includes(type)
-        ? current.CompanyTypes.filter((value) => value !== type)
-        : [...current.CompanyTypes, type];
-      return { ...current, CompanyTypes: selected.length > 0 ? selected : [type] };
-    });
+  const toggleCompanyType = (types: CompanyType[]) => {
+    setForm((current) => ({
+      ...current,
+      CompanyTypes: types.length > 0 ? types : current.CompanyTypes,
+    }));
   };
 
   const handleCreate = async () => {
@@ -181,25 +179,12 @@ export function CompaniesActionBar({
             </select>
           </label>
           <div className="block sm:col-span-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-              Company Type
-            </span>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {COMPANY_TYPE_QUICK_FILTERS.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => toggleCompanyType(type)}
-                  className={`border px-2 py-1 text-[10px] font-semibold ${
-                    form.CompanyTypes.includes(type)
-                      ? "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange"
-                      : "border-carbon-blue/12 text-carbon-blue/55"
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
+            <CompanyTypeMultiSelect
+              value={form.CompanyTypes}
+              onChange={toggleCompanyType}
+              density="compact"
+              required
+            />
           </div>
           <label className="block">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">

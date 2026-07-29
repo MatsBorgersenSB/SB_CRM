@@ -2,6 +2,7 @@ import "server-only";
 
 import type { NewCompanyInput } from "@/lib/entity-id";
 import { normalizeCompanyDomain } from "@/lib/company-domain";
+import { toStoredCompanyTypes } from "@/lib/company-classification";
 import {
   getContinentByCountryCode,
   resolveCountry,
@@ -16,7 +17,6 @@ import type { UpdateCompanyPatch } from "@/lib/pipeline-db";
 import { readCompanies } from "@/lib/pipeline-db";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
-import type { CompanyType as PrismaCompanyType } from "@/generated/prisma";
 
 async function prismaRegistryAvailable(): Promise<boolean> {
   try {
@@ -46,20 +46,8 @@ export async function loadMappedPrismaCompany(prismaId: string): Promise<Company
   return mapPrismaCompanyToApp(row);
 }
 
-function toPrismaCompanyTypes(types: CompanyType[] | undefined): PrismaCompanyType[] {
-  if (!types?.length) return ["prospect"];
-  const map: Record<string, PrismaCompanyType> = {
-    Customer: "customer",
-    Prospect: "prospect",
-    Supplier: "supplier",
-    Partner: "partner",
-    Competitor: "competitor",
-    "Internal Company": "internal",
-  };
-  const mapped = types
-    .map((type) => map[type])
-    .filter((type): type is PrismaCompanyType => Boolean(type));
-  return mapped.length > 0 ? mapped : ["prospect"];
+function toPrismaCompanyTypes(types: CompanyType[] | undefined): string[] {
+  return toStoredCompanyTypes(types);
 }
 
 function countryTitle(
@@ -132,6 +120,7 @@ export async function createRegistryCompany(
   const domain = normalizeCompanyDomain(input.Domain);
   const ownerId = input.AccountOwner?.Id != null ? String(input.AccountOwner.Id) : null;
   const countryGeo = geoFromCountryTitle(countryTitle(input.Country));
+  const storedTypes = toPrismaCompanyTypes(input.CompanyTypes);
 
   const created = await withPrismaRetry((prisma) =>
     prisma.company.create({
@@ -139,7 +128,8 @@ export async function createRegistryCompany(
         name: input.Title.trim(),
         website: domain ? `https://${domain}` : null,
         industry: input.Industry || "Polymer Processing",
-        types: toPrismaCompanyTypes(input.CompanyTypes),
+        types: storedTypes,
+        companyType: storedTypes[0] ?? "Prospect",
         status: "active",
         city: input.City || null,
         addressLine1: input.AddressLine1 || null,
@@ -190,6 +180,9 @@ export async function updateRegistryCompany(
           website: domain ? `https://${domain}` : null,
           industry: patch.Industry ?? jsonCompany.Industry ?? "Polymer Processing",
           types: toPrismaCompanyTypes(patch.CompanyTypes ?? jsonCompany.CompanyTypes),
+          companyType:
+            toPrismaCompanyTypes(patch.CompanyTypes ?? jsonCompany.CompanyTypes)[0] ??
+            "Prospect",
           status: "active",
           city: patch.City ?? jsonCompany.City ?? null,
           addressLine1: patch.AddressLine1 ?? jsonCompany.AddressLine1 ?? null,
@@ -244,7 +237,11 @@ export async function updateRegistryCompany(
   if (patch.Title !== undefined) data.name = patch.Title.trim();
   if (domain !== undefined) data.website = websiteFromDomain(domain, existing.website);
   if (patch.Industry !== undefined) data.industry = patch.Industry;
-  if (patch.CompanyTypes !== undefined) data.types = toPrismaCompanyTypes(patch.CompanyTypes);
+  if (patch.CompanyTypes !== undefined) {
+    const storedTypes = toPrismaCompanyTypes(patch.CompanyTypes);
+    data.types = storedTypes;
+    data.companyType = storedTypes[0] ?? "Prospect";
+  }
   if (patch.City !== undefined) data.city = patch.City || null;
   if (patch.AddressLine1 !== undefined) data.addressLine1 = patch.AddressLine1 || null;
   if (patch.AddressLine2 !== undefined) data.addressLine2 = patch.AddressLine2 || null;

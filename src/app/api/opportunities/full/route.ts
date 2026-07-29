@@ -279,7 +279,7 @@ export async function POST(request: Request) {
             name: companyName,
             website: body.newCompany?.domain?.trim() || null,
             status: "active",
-            types: ["prospect"],
+            types: ["Prospect"],
             city: "TBD",
             ownerId: String(actor.userId),
           },

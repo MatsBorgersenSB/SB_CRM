@@ -36,7 +36,9 @@ const PARTNER_TYPES: CompanyType[] = [
   "Partner",
   "Offtaker",
   "Investor",
+  "University / Research",
   "Research Organization",
+  "NGO / Non-Profit",
   "Association",
 ];
 
@@ -65,9 +67,9 @@ function buildPartnerEcosystem(companies: Company[]) {
             ? "Connects customer projects to offtake pathways"
             : primary === "Investor"
               ? "Project finance introductions for machinery CAPEX"
-              : primary === "Research Organization"
+              : primary === "University / Research" || primary === "Research Organization"
                 ? "Technical credibility and joint feasibility studies"
-                : primary === "Association"
+                : primary === "NGO / Non-Profit" || primary === "Association"
                   ? "Industry influence and ecosystem access"
                   : "Implementation and referral partnerships",
         href: company360Href(company.CompanyID),

@@ -213,7 +213,7 @@ async function upsertCompanyFromDiscoveryPrisma(
         name: patch.Title,
         website: domain ? `https://${domain}` : null,
         industry: "Polymer Processing",
-        types: ["prospect"],
+        types: ["Prospect"],
         status: "active",
         addressLine1: geo.addressLine1,
         addressLine2: geo.addressLine2,

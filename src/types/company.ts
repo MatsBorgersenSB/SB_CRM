@@ -56,6 +56,8 @@ export type Company = {
   Industry: CompanyIndustry;
   /** Ecosystem roles — multiple classifications supported (Phase 6H) */
   CompanyTypes?: CompanyType[];
+  /** @deprecated Prefer CompanyTypes[]. Kept for backward compatibility on read. */
+  companyType?: CompanyType | string;
   Status: CompanyStatus;
   AccountOwner: SharePointPerson | null;
   Phone: string;
@@ -95,6 +97,7 @@ export {
 export type { CompanyType } from "@/types/company-type";
 export {
   COMPANY_TYPE_META,
+  COMPANY_TYPE_SELECT_OPTIONS,
   DEFAULT_COMPANY_TYPES,
   COMPANY_TYPE_QUICK_FILTERS,
 } from "@/types/company-type";

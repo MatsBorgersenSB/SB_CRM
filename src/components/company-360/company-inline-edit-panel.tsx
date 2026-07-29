@@ -11,8 +11,7 @@ import { CompanyOwnerSelect } from "@/components/companies/company-owner-select"
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/types/company";
 import { COMPANY_INDUSTRIES } from "@/types/company";
-import type { CompanyType } from "@/types/company-type";
-import { COMPANY_TYPE_QUICK_FILTERS } from "@/types/company-type";
+import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
 
 const EDIT_FIELD_CLASS =
   "mt-1 w-full rounded-md border-2 border-upcycle-orange/25 bg-white px-3 py-2 text-carbon-blue outline-none transition-colors focus:border-upcycle-orange focus:ring-2 focus:ring-upcycle-orange/20";
@@ -58,18 +57,6 @@ export function CompanyInlineEditPanel({
   }, [autoFocus]);
 
   const parentOptions = companies.filter((record) => record.CompanyID !== company.CompanyID);
-
-  const toggleCompanyType = (type: CompanyType) => {
-    setForm((current) => {
-      const selected = current.CompanyTypes.includes(type)
-        ? current.CompanyTypes.filter((value) => value !== type)
-        : [...current.CompanyTypes, type];
-      return {
-        ...current,
-        CompanyTypes: selected.length > 0 ? selected : [type],
-      };
-    });
-  };
 
   const selectedOwner =
     resolveOwnerById(form.accountOwnerId, companies, company.AccountOwner) ??
@@ -223,29 +210,18 @@ export function CompanyInlineEditPanel({
           />
         </label>
 
-        <div>
-          <span className={EDIT_LABEL_CLASS}>Company type</span>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {COMPANY_TYPE_QUICK_FILTERS.map((type) => {
-              const selected = form.CompanyTypes.includes(type);
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  disabled={saving}
-                  onClick={() => toggleCompanyType(type)}
-                  className={`border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                    selected
-                      ? "border-upcycle-orange bg-upcycle-orange/15 text-upcycle-orange"
-                      : "border-carbon-blue/15 bg-white text-carbon-blue/55 hover:border-upcycle-orange/30"
-                  }`}
-                >
-                  {type}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <CompanyTypeMultiSelect
+          value={form.CompanyTypes}
+          onChange={(types) =>
+            setForm((current) => ({
+              ...current,
+              CompanyTypes: types.length > 0 ? types : current.CompanyTypes,
+            }))
+          }
+          disabled={saving}
+          required
+          density="comfortable"
+        />
 
         <label className="block">
           <span className={EDIT_LABEL_CLASS}>Tags</span>
