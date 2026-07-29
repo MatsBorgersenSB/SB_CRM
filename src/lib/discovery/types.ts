@@ -32,6 +32,11 @@ export type DiscoveredCompany = {
   country: string;
   countryCode: string;
   continent: string;
+  /** Official registration number from European registry lookup (optional). */
+  registrationNumber?: string;
+  vatNumber?: string;
+  industryCode?: string;
+  industryDescription?: string;
 };
 
 export type WebsiteDiscoveryResult = {

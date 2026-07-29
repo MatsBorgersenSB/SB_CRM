@@ -76,8 +76,14 @@ export type NewCompanyInput = Pick<
   "Title" | "Industry" | "Status" | "City" | "Domain" | "Phone"
 > & {
   AddressLine1?: string;
+  PostalCode?: string;
   Email?: string;
   Country?: Company["Country"];
+  countryCode?: string | null;
+  continent?: string | null;
+  organizationNumber?: string | null;
+  vatNumber?: string | null;
+  Notes?: string;
   ParentCompany?: Company["ParentCompany"];
   CompanyTypes?: CompanyType[];
   AccountOwner?: SharePointPerson;

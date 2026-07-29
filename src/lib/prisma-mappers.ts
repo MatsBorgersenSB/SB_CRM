@@ -265,6 +265,8 @@ export function mapPrismaCompanyToApp(company: PrismaCompanyWithRelations): Comp
     PostalCode: company.postalCode ?? "",
     City: company.city ?? "",
     Country: company.country ? { Id: stableNumericId(company.country), Title: company.country } : null,
+    organizationNumber: company.organizationNumber ?? null,
+    vatNumber: company.vatNumber ?? null,
     stateRegion: company.stateRegion ?? null,
     countryCode: company.countryCode ?? null,
     continent: company.continent ?? null,

@@ -67,6 +67,10 @@ export type Company = {
   PostalCode: string;
   City: string;
   Country: SharePointLookup | null;
+  /** National registration number (orgnr, SIREN, CVR, …) */
+  organizationNumber?: string | null;
+  /** VAT / MVA number when known */
+  vatNumber?: string | null;
   /** Structured geo fields (Phase 1: OSM enrichment) */
   stateRegion?: string | null;
   countryCode?: string | null;

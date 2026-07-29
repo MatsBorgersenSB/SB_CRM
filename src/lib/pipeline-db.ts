@@ -664,6 +664,8 @@ export type UpdateCompanyPatch = Partial<
     | "stateRegion"
     | "countryCode"
     | "continent"
+    | "organizationNumber"
+    | "vatNumber"
     | "Industry"
     | "Status"
     | "ParentCompany"
@@ -732,9 +734,14 @@ export async function createCompany(input: NewCompanyInput): Promise<Company> {
     Email: input.Email ?? "",
     AddressLine1: input.AddressLine1 ?? "",
     AddressLine2: "",
-    PostalCode: "",
+    PostalCode: input.PostalCode ?? "",
     City: input.City,
     Country: input.Country ?? null,
+    countryCode: input.countryCode ?? null,
+    continent: input.continent ?? null,
+    organizationNumber: input.organizationNumber ?? null,
+    vatNumber: input.vatNumber ?? null,
+    Notes: input.Notes,
     pipelineIds: [],
     contacts: [],
   };

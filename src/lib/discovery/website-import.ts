@@ -93,7 +93,13 @@ function buildCompanyPatch(discovery: WebsiteDiscoveryResult) {
     Country: countryName ? { Id: 0, Title: countryName } : legacy.Country,
     stateRegion: discovery.company.stateRegion.trim(),
     countryCode: discovery.company.countryCode.trim().toUpperCase(),
-    continent: discovery.company.continent.trim(),
+    continent: discovery.company.continent.trim() || "Europe",
+    organizationNumber: discovery.company.registrationNumber?.trim() || undefined,
+    vatNumber: discovery.company.vatNumber?.trim() || undefined,
+    Notes: discovery.company.industryDescription?.trim()
+      || (discovery.company.industryCode
+        ? `Industry code: ${discovery.company.industryCode}`
+        : undefined),
   };
 }
 
@@ -370,16 +376,27 @@ async function upsertCompanyFromDiscoveryJson(
       Phone: patch.Phone,
       Email: patch.Email,
       AddressLine1: patch.AddressLine1,
+      PostalCode: patch.PostalCode,
       Country: patch.Country,
+      countryCode: patch.countryCode || null,
+      continent: patch.continent || null,
+      organizationNumber: patch.organizationNumber ?? null,
+      vatNumber: patch.vatNumber ?? null,
+      Notes: patch.Notes,
       AccountOwner: resolveAccountOwner(accountOwner),
     });
 
-    if (patch.PostalCode || patch.City || patch.AddressLine2) {
+    if (patch.PostalCode || patch.City || patch.AddressLine2 || patch.stateRegion) {
       company = await updateCompany(company.CompanyID, {
         PostalCode: patch.PostalCode,
         City: patch.City === "—" ? "" : patch.City,
         AddressLine2: patch.AddressLine2,
         Country: patch.Country,
+        stateRegion: patch.stateRegion,
+        countryCode: patch.countryCode,
+        continent: patch.continent,
+        organizationNumber: patch.organizationNumber,
+        vatNumber: patch.vatNumber,
       });
     }
   }

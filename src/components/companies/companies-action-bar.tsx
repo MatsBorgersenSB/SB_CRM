@@ -13,6 +13,8 @@ import type { CompanyIndustry, CompanyStatus } from "@/types/company";
 import { COMPANY_INDUSTRIES, COMPANY_STATUSES } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
+import { EuropeanRegistrySearch } from "@/components/companies/european-registry-search";
+import type { UnifiedEuropeanCompany } from "@/lib/integrations/company-registers/types";
 import type { UserRole } from "@/types/auth";
 
 export function CompaniesActionBar({
@@ -46,7 +48,33 @@ export function CompaniesActionBar({
     City: "",
     Domain: "",
     Phone: "",
+    AddressLine1: "",
+    PostalCode: "",
+    Country: "",
+    countryCode: "",
+    continent: "",
+    organizationNumber: "",
+    vatNumber: "",
+    industryNote: "",
   });
+
+  const applyRegistryResult = (company: UnifiedEuropeanCompany) => {
+    setForm((current) => ({
+      ...current,
+      Title: company.legalName || current.Title,
+      organizationNumber: company.registrationNumber || current.organizationNumber,
+      vatNumber: company.vatNumber || current.vatNumber,
+      AddressLine1: company.streetAddress || current.AddressLine1,
+      PostalCode: company.postalCode || current.PostalCode,
+      City: company.city || current.City,
+      Country: company.country || current.Country,
+      countryCode: company.countryCode || current.countryCode,
+      continent: company.continent || "Europe",
+      industryNote:
+        company.industryDescription ||
+        (company.industryCode ? `Industry code: ${company.industryCode}` : current.industryNote),
+    }));
+  };
 
   useEffect(() => {
     const prefill = consumeEventCompanyPrefill();
@@ -87,6 +115,16 @@ export function CompaniesActionBar({
         City: form.City.trim(),
         Domain: form.Domain.trim(),
         Phone: form.Phone.trim(),
+        AddressLine1: form.AddressLine1.trim() || undefined,
+        PostalCode: form.PostalCode.trim() || undefined,
+        Country: form.Country.trim()
+          ? { Id: 0, Title: form.Country.trim() }
+          : undefined,
+        countryCode: form.countryCode.trim() || null,
+        continent: form.continent.trim() || null,
+        organizationNumber: form.organizationNumber.trim() || null,
+        vatNumber: form.vatNumber.trim() || null,
+        Notes: form.industryNote.trim() || undefined,
         ParentCompany: resolveParentCompanyLookup(form.parentCompanyId, companies),
         AccountOwner: accountOwner,
       });
@@ -101,6 +139,14 @@ export function CompaniesActionBar({
         City: "",
         Domain: "",
         Phone: "",
+        AddressLine1: "",
+        PostalCode: "",
+        Country: "",
+        countryCode: "",
+        continent: "",
+        organizationNumber: "",
+        vatNumber: "",
+        industryNote: "",
       });
       setCreateOpen(false);
     } finally {
@@ -130,6 +176,12 @@ export function CompaniesActionBar({
       )}
       {createOpen ? (
         <div className={`grid gap-2 sm:grid-cols-2 ${embedded ? "" : "p-3"}`}>
+          <div className="sm:col-span-2">
+            <EuropeanRegistrySearch
+              domainHint={form.Domain}
+              onSelect={applyRegistryResult}
+            />
+          </div>
           <label className="block sm:col-span-2">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
               Company Name (Title)
@@ -141,6 +193,38 @@ export function CompaniesActionBar({
                 setForm((current) => ({
                   ...current,
                   Title: event.target.value,
+                }))
+              }
+              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              Registration number
+            </span>
+            <input
+              type="text"
+              value={form.organizationNumber}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  organizationNumber: event.target.value,
+                }))
+              }
+              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              VAT number
+            </span>
+            <input
+              type="text"
+              value={form.vatNumber}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  vatNumber: event.target.value,
                 }))
               }
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
@@ -229,6 +313,38 @@ export function CompaniesActionBar({
               ))}
             </select>
           </label>
+          <label className="block sm:col-span-2">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              Street
+            </span>
+            <input
+              type="text"
+              value={form.AddressLine1}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  AddressLine1: event.target.value,
+                }))
+              }
+              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              Postal code
+            </span>
+            <input
+              type="text"
+              value={form.PostalCode}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  PostalCode: event.target.value,
+                }))
+              }
+              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+            />
+          </label>
           <label className="block">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
               City
@@ -240,6 +356,38 @@ export function CompaniesActionBar({
                 setForm((current) => ({
                   ...current,
                   City: event.target.value,
+                }))
+              }
+              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              Country
+            </span>
+            <input
+              type="text"
+              value={form.Country}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  Country: event.target.value,
+                }))
+              }
+              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              Continent
+            </span>
+            <input
+              type="text"
+              value={form.continent}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  continent: event.target.value,
                 }))
               }
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"

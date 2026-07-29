@@ -22,6 +22,8 @@ import type { Company } from "@/types/company";
 import { company360Href } from "@/types/company-360";
 import { authUserToAccountOwner, resolveOwnerById } from "@/lib/company-owner";
 import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
+import { EuropeanRegistrySearch } from "@/components/companies/european-registry-search";
+import type { UnifiedEuropeanCompany } from "@/lib/integrations/company-registers/types";
 import { useAuth } from "@/context/auth-context";
 import { canCreateCompany } from "@/lib/permissions";
 import type { UserRole } from "@/types/auth";
@@ -444,6 +446,29 @@ export function WebsiteDiscoveryPanel({
                 onSelectAll={selectAllContacts}
                 onClearSelection={clearSelectedContacts}
                 onImport={() => void handleImport()}
+                onRegistrySelect={(company) => {
+                  setDiscovery((current) => {
+                    if (!current) return current;
+                    return {
+                      ...current,
+                      company: {
+                        ...current.company,
+                        name: company.legalName || current.company.name,
+                        streetAddress:
+                          company.streetAddress || current.company.streetAddress,
+                        postalCode: company.postalCode || current.company.postalCode,
+                        city: company.city || current.company.city,
+                        country: company.country || current.company.country,
+                        countryCode: company.countryCode || current.company.countryCode,
+                        continent: company.continent || "Europe",
+                        registrationNumber: company.registrationNumber,
+                        vatNumber: company.vatNumber,
+                        industryCode: company.industryCode,
+                        industryDescription: company.industryDescription,
+                      },
+                    };
+                  });
+                }}
               />
             </>
           ) : null}
@@ -704,6 +729,7 @@ function PreviewPanel({
   onSelectAll,
   onClearSelection,
   onImport,
+  onRegistrySelect,
 }: {
   discovery: WebsiteDiscoveryResult;
   selectedContactIds: Set<string>;
@@ -711,6 +737,7 @@ function PreviewPanel({
   onSelectAll: () => void;
   onClearSelection: () => void;
   onImport: () => void;
+  onRegistrySelect: (company: UnifiedEuropeanCompany) => void;
 }) {
   return (
     <div className="space-y-3 border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3">
@@ -735,10 +762,21 @@ function PreviewPanel({
         )}
       </div>
 
+      <EuropeanRegistrySearch
+        domainHint={discovery.company.domain || discovery.company.website || discovery.sourceUrl}
+        countryHint={discovery.company.countryCode || undefined}
+        onSelect={onRegistrySelect}
+      />
+
       <dl className="grid gap-2 sm:grid-cols-2">
         <PreviewField label="Main Phone" value={discovery.company.phone} />
         <PreviewField label="Main Email" value={discovery.company.email} />
         <PreviewField label="Website" value={discovery.company.website} />
+        <PreviewField
+          label="Registration number"
+          value={discovery.company.registrationNumber ?? ""}
+        />
+        <PreviewField label="VAT number" value={discovery.company.vatNumber ?? ""} />
         <PreviewField
           label="Street"
           value={discovery.company.streetAddress || discovery.company.address}
@@ -750,6 +788,12 @@ function PreviewPanel({
         <PreviewField label="Country" value={discovery.company.country} />
         <PreviewField label="Country code" value={discovery.company.countryCode} />
         <PreviewField label="Continent" value={discovery.company.continent} />
+        <PreviewField label="Industry code" value={discovery.company.industryCode ?? ""} />
+        <PreviewField
+          label="Industry"
+          value={discovery.company.industryDescription ?? ""}
+          className="sm:col-span-2"
+        />
       </dl>
 
       <div>

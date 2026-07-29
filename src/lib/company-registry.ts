@@ -133,9 +133,12 @@ export async function createRegistryCompany(
         status: "active",
         city: input.City || null,
         addressLine1: input.AddressLine1 || null,
+        postalCode: input.PostalCode || null,
         country: countryGeo.country,
-        countryCode: countryGeo.countryCode,
-        continent: countryGeo.continent,
+        countryCode: input.countryCode?.trim().toUpperCase() || countryGeo.countryCode,
+        continent: input.continent?.trim() || countryGeo.continent,
+        organizationNumber: input.organizationNumber?.trim() || null,
+        vatNumber: input.vatNumber?.trim() || null,
         ownerId,
         emails: input.Email
           ? [{ address: input.Email, type: "work", isPrimary: true }]
@@ -146,6 +149,18 @@ export async function createRegistryCompany(
       },
     }),
   );
+
+  if (input.Notes?.trim()) {
+    await withPrismaRetry((prisma) =>
+      prisma.companyNote.create({
+        data: {
+          companyId: created.id,
+          authorId: ownerId ?? "system",
+          content: input.Notes!.trim(),
+        },
+      }),
+    ).catch(() => undefined);
+  }
 
   return loadMappedPrismaCompany(created.id);
 }
@@ -255,6 +270,12 @@ export async function updateRegistryCompany(
   }
   if (patch.countryCode !== undefined) data.countryCode = patch.countryCode || null;
   if (patch.continent !== undefined) data.continent = patch.continent || null;
+  if (patch.organizationNumber !== undefined) {
+    data.organizationNumber = patch.organizationNumber?.trim() || null;
+  }
+  if (patch.vatNumber !== undefined) {
+    data.vatNumber = patch.vatNumber?.trim() || null;
+  }
   if (patch.AccountOwner !== undefined) {
     data.ownerId =
       patch.AccountOwner?.Id != null ? String(patch.AccountOwner.Id) : null;
