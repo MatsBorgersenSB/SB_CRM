@@ -31,6 +31,7 @@ import { patchUnderstandingCapture } from "@/lib/opportunity-understanding-model
 import { DealStakeholdersTable } from "@/components/opportunity/deal-stakeholders-table";
 import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
 import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
+import { ContractAuditPanel } from "@/components/smartdocs/ContractAuditPanel";
 import { OpportunityWorkspaceHeader } from "@/components/opportunity/opportunity-workspace-header";
 import { OpportunityMissionControl } from "@/components/opportunity/opportunity-mission-control";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
@@ -329,6 +330,14 @@ export function Deal360LivingWorkspace({
           />
         </WorkspacePanel>
       ) : null}
+
+      <WorkspacePanel title="Contract Audit" id="contract-audit" collapsible>
+        <ContractAuditPanel
+          opportunityId={pipeline.id}
+          companyId={company ? companyRouteKey(company) : undefined}
+          documentType="MSA / Contract"
+        />
+      </WorkspacePanel>
 
       <OpportunityMissionControl
         view={missionView}

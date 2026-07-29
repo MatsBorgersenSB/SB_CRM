@@ -63,6 +63,7 @@ model Company {
   notes         CompanyNote[]
   meetings      MeetingRecord[]
   decisions     DecisionJournal[]
+  complianceAudits DocumentComplianceAudit[]
 
   // FS-010 Growth & Expansion Intelligence
   healthRecords    AccountHealthRecord[]
@@ -311,6 +312,7 @@ model Opportunity {
 
   // FS-009 / SmartDocs — M365 email attachments
   documents DocumentRecord[]
+  complianceAudits DocumentComplianceAudit[]
 
   // FS-010 Growth & Expansion Intelligence
   expansionSignals ExpansionSignal[]
@@ -578,6 +580,7 @@ model DocumentRecord {
   opportunity    Opportunity?       @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
   emailMessageId String?
   emailMessage   EmailMessageRecord? @relation(fields: [emailMessageId], references: [id], onDelete: Cascade)
+  complianceAudits DocumentComplianceAudit[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -587,6 +590,33 @@ model DocumentRecord {
   @@index([emailMessageId])
   @@index([source])
   @@map("document_records")
+}
+
+/// SmartDocs Contract & Compliance Audit log (clause-level review).
+model DocumentComplianceAudit {
+  id               String   @id @default(uuid())
+  smartDocId       String?
+  documentRecordId String?
+  documentRecord   DocumentRecord? @relation(fields: [documentRecordId], references: [id], onDelete: SetNull)
+  opportunityId    String?
+  opportunity      Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  companyId        String?
+  company          Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  documentType     String?
+  overallRiskScore String
+  /// Full audit payload: checklist, redFlags, remediations, summary
+  findings         Json
+  rawTextHash      String?
+  sourceSnippet    String?
+  createdAt        DateTime @default(now())
+
+  @@index([smartDocId])
+  @@index([documentRecordId])
+  @@index([opportunityId])
+  @@index([companyId])
+  @@index([overallRiskScore])
+  @@index([createdAt])
+  @@map("document_compliance_audits")
 }
 
 // ==========================================

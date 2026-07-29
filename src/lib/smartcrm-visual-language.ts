@@ -123,6 +123,7 @@ export const HUB_SECTION_ICONS: Record<string, SmartCRMIconName> = {
   "Decision Journal": "edit",
   "Buying Center": "contact",
   "Executive Recon": "search",
+  "Contract Audit": "document",
   Risks: "needsAttention",
   Projects: "project",
   "Relationship Memory": "meeting",

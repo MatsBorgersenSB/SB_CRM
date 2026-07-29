@@ -5,6 +5,7 @@ import type { Document360Snapshot } from "@/lib/document-360-data";
 import { Document360LinkedTab } from "@/components/smartdocs/tabs/document-360-linked-tab";
 import { DocumentWorkspaceHeader } from "@/components/smartdocs/document-workspace-header";
 import { AttentionQueueTable } from "@/components/attention/attention-queue-table";
+import { ContractAuditPanel } from "@/components/smartdocs/ContractAuditPanel";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import type { AttentionItem } from "@/types/attention-item";
@@ -16,12 +17,19 @@ export function Document360LivingWorkspace({
   snapshot: Document360Snapshot;
   attentionItems?: AttentionItem[];
 }) {
-  const { businessContext } = snapshot;
+  const { businessContext, header } = snapshot;
 
   return (
     <WorkspaceStack>
       <WorkspacePanel title="Document">
         <DocumentWorkspaceHeader snapshot={snapshot} />
+      </WorkspacePanel>
+
+      <WorkspacePanel title="Contract Audit" id="contract-audit" collapsible>
+        <ContractAuditPanel
+          documentId={header.documentId}
+          documentType={header.docType || header.docCategory}
+        />
       </WorkspacePanel>
 
       <WorkspacePanel title="Business Context">
