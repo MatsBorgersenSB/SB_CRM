@@ -29,10 +29,13 @@ import { computeCommercialViability } from "@/lib/commercial-viability-engine";
 import { buildOpportunityUnderstanding } from "@/lib/opportunity-workspace-intelligence";
 import { patchUnderstandingCapture } from "@/lib/opportunity-understanding-model";
 import { DealStakeholdersTable } from "@/components/opportunity/deal-stakeholders-table";
+import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
 import { OpportunityWorkspaceHeader } from "@/components/opportunity/opportunity-workspace-header";
 import { OpportunityMissionControl } from "@/components/opportunity/opportunity-mission-control";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
+import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
+import { companyRouteKey } from "@/types/company-360";
 
 const LEGACY_HASH_TO_ACTION: Record<string, OpportunityActionTab> = {
   activities: "activities",
@@ -306,6 +309,15 @@ export function Deal360LivingWorkspace({
       />
 
       <DealVelocityCard dealId={pipeline.id} />
+
+      {company ? (
+        <WorkspacePanel title="Buying Center" id="buying-center" collapsible>
+          <BuyingCenterGraph
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+          />
+        </WorkspacePanel>
+      ) : null}
 
       <OpportunityMissionControl
         view={missionView}

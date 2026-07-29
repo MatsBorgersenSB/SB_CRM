@@ -143,6 +143,17 @@ function mapRelationshipLevel(jobTitle: string | null | undefined): Relationship
 
 function mapBuyingRole(value: string | null | undefined): BuyingRole | undefined {
   if (!value) return undefined;
+  const normalized = value.trim();
+  const codeMap: Record<string, BuyingRole> = {
+    ECONOMIC_BUYER: "Economic Buyer",
+    CHAMPION: "Champion",
+    TECHNICAL_EVALUATOR: "Technical Evaluator",
+    BLOCKER: "Blocker",
+    END_USER: "End User",
+  };
+  const fromCode = codeMap[normalized.toUpperCase().replace(/[\s-]+/g, "_")];
+  if (fromCode) return fromCode;
+
   const allowed: BuyingRole[] = [
     "Economic Buyer",
     "Champion",
@@ -151,7 +162,9 @@ function mapBuyingRole(value: string | null | undefined): BuyingRole | undefined
     "End User",
     "Legal/Procurement",
   ];
-  return allowed.includes(value as BuyingRole) ? (value as BuyingRole) : undefined;
+  return allowed.includes(normalized as BuyingRole)
+    ? (normalized as BuyingRole)
+    : undefined;
 }
 
 function mapSentiment(value: string | null | undefined): ContactSentiment | undefined {
@@ -220,6 +233,10 @@ export function mapPrismaContactToApp(
     buyingRole: mapBuyingRole(contact.buyingRole),
     sentiment: mapSentiment(contact.sentiment),
     influenceLevel: mapInfluenceLevel(contact.influenceLevel),
+    relationshipScore:
+      typeof contact.relationshipScore === "number"
+        ? Math.max(1, Math.min(100, contact.relationshipScore))
+        : undefined,
     reportsToId: contact.reportsToId ?? undefined,
     streetAddress: contact.streetAddress ?? undefined,
     postalCode: contact.postalCode ?? undefined,

@@ -131,9 +131,11 @@ model Contact {
   jobTitle               String?
   preferredContactMethod String?
   linkedInUrl            String?
-  buyingRole             String?
+  buyingRole             String? // ECONOMIC_BUYER | CHAMPION | … or display labels
   sentiment              String?
   influenceLevel         String?
+  /// Buying-center relationship strength (1–100). Optional.
+  relationshipScore      Int?
   reportsToId            String?
   reportsTo              Contact?      @relation("OrgHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
   directReports          Contact[]     @relation("OrgHierarchy")
@@ -182,6 +184,7 @@ model Contact {
   @@index([fullName])
   @@index([companyId])
   @@index([reportsToId])
+  @@index([buyingRole])
   @@map("contact_registry")
 }
 

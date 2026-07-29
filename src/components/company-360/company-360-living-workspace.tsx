@@ -35,6 +35,7 @@ import type { PipelineRow } from "@/types/pipeline";
 import { getProjectsForCompany } from "@/lib/project-team-utils";
 import { CompanyProjectsTable } from "@/components/project/company-projects-table";
 import { DecisionJournalPanel } from "@/components/assistant/DecisionJournalPanel";
+import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
 import type { CompanyHeroQuickEdit } from "@/lib/company-identity";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
@@ -190,6 +191,18 @@ export function Company360LivingWorkspace({
         collapseStorageKey={sectionKey("decisions")}
       >
         <DecisionJournalPanel
+          companyId={companyRouteKey(company)}
+          companyName={company.Title}
+        />
+      </WorkspacePanel>
+
+      <WorkspacePanel
+        title="Buying Center"
+        id="buying-center"
+        collapsible
+        collapseStorageKey={sectionKey("buying-center")}
+      >
+        <BuyingCenterGraph
           companyId={companyRouteKey(company)}
           companyName={company.Title}
         />

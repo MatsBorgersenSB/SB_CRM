@@ -108,6 +108,8 @@ export type Contact = {
   buyingRole?: BuyingRole;
   sentiment?: ContactSentiment;
   influenceLevel?: InfluenceLevel;
+  /** Buying-center relationship strength (1–100). */
+  relationshipScore?: number;
   reportsToId?: string;
   reportsToName?: string;
   streetAddress?: string;
@@ -198,6 +200,7 @@ export type UpdateContactInput = Partial<
     | "buyingRole"
     | "sentiment"
     | "influenceLevel"
+    | "relationshipScore"
     | "reportsToId"
     | "streetAddress"
     | "postalCode"

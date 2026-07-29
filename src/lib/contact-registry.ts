@@ -342,6 +342,12 @@ export async function updateRegistryContact(
   if (patch.influenceLevel !== undefined) {
     data.influenceLevel = patch.influenceLevel.trim() || null;
   }
+  if (patch.relationshipScore !== undefined) {
+    data.relationshipScore =
+      patch.relationshipScore == null
+        ? null
+        : Math.max(1, Math.min(100, Math.round(Number(patch.relationshipScore))));
+  }
   if (patch.reportsToId !== undefined) {
     data.reportsToId = await resolvePrismaReportsToId(patch.reportsToId) || null;
   }

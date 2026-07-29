@@ -99,4 +99,5 @@ export type Company360Section =
   | "activities"
   | "documents"
   | "attention"
-  | "decisions";
+  | "decisions"
+  | "buying-center";
