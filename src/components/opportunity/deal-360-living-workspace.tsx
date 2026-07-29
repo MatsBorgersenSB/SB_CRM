@@ -33,6 +33,7 @@ import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
 import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
 import { ContractAuditPanel } from "@/components/smartdocs/ContractAuditPanel";
 import { IntentRadarBanner } from "@/components/marketing/IntentRadarBanner";
+import { MicroCampaignGenerator } from "@/components/marketing/MicroCampaignGenerator";
 import { OpportunityWorkspaceHeader } from "@/components/opportunity/opportunity-workspace-header";
 import { OpportunityMissionControl } from "@/components/opportunity/opportunity-mission-control";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
@@ -347,6 +348,15 @@ export function Deal360LivingWorkspace({
           documentType="MSA / Contract"
         />
       </WorkspacePanel>
+
+      {company ? (
+        <WorkspacePanel title="Micro-Campaigns" id="micro-campaigns" collapsible>
+          <MicroCampaignGenerator
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+          />
+        </WorkspacePanel>
+      ) : null}
 
       <OpportunityMissionControl
         view={missionView}

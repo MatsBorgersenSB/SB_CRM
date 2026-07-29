@@ -37,6 +37,7 @@ import { CompanyProjectsTable } from "@/components/project/company-projects-tabl
 import { DecisionJournalPanel } from "@/components/assistant/DecisionJournalPanel";
 import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
 import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
+import { MicroCampaignGenerator } from "@/components/marketing/MicroCampaignGenerator";
 import type { CompanyHeroQuickEdit } from "@/lib/company-identity";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
@@ -219,6 +220,18 @@ export function Company360LivingWorkspace({
           companyId={companyRouteKey(company)}
           companyName={company.Title}
           domain={company.Domain || undefined}
+        />
+      </WorkspacePanel>
+
+      <WorkspacePanel
+        title="Micro-Campaigns"
+        id="micro-campaigns"
+        collapsible
+        collapseStorageKey={sectionKey("micro-campaigns")}
+      >
+        <MicroCampaignGenerator
+          companyId={companyRouteKey(company)}
+          companyName={company.Title}
         />
       </WorkspacePanel>
 
