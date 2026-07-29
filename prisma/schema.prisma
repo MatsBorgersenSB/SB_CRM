@@ -819,6 +819,7 @@ model Project {
   milestones    ProjectMilestone[]
   qualityInspections QualityInspection[]
   scopeChanges  ProjectScopeChange[]
+  commissioningLogs CommissioningLog[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
@@ -917,6 +918,33 @@ model ProjectScopeChange {
   @@index([status])
   @@index([createdAt])
   @@map("project_scope_changes")
+}
+
+enum CommissioningPhase {
+  COLD_COMMISSIONING
+  HOT_COMMISSIONING
+  SYNGAS_TESTING
+  PERFORMANCE_RUN
+}
+
+/// Site commissioning & safety check-in logs for field execution.
+model CommissioningLog {
+  id                 String              @id @default(cuid())
+  projectId          String
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase              CommissioningPhase
+  safetyCheckPassed  Boolean             @default(false)
+  atexZoningVerified Boolean             @default(false)
+  logTitle           String
+  operationalNotes   String?
+  issuesEncountered  String?
+  loggedBy           String?
+  createdAt          DateTime            @default(now())
+
+  @@index([projectId])
+  @@index([phase])
+  @@index([createdAt])
+  @@map("commissioning_logs")
 }
 
 // ==========================================

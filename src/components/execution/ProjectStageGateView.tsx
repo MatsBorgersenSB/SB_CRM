@@ -11,6 +11,7 @@ import {
 import { QualityGateGuardianPanel } from "@/components/execution/QualityGateGuardianPanel";
 import { CriticalPathPredictorPanel } from "@/components/execution/CriticalPathPredictorPanel";
 import { ScopeChangeLoggerPanel } from "@/components/execution/ScopeChangeLoggerPanel";
+import { SiteCommissioningCoPilotPanel } from "@/components/execution/SiteCommissioningCoPilotPanel";
 
 type ProjectStageGateViewProps = {
   companyId: string;
@@ -338,6 +339,10 @@ export function ProjectStageGateView({
               <ScopeChangeLoggerPanel
                 projectId={project.id}
                 onScopeChanged={() => void load()}
+              />
+              <SiteCommissioningCoPilotPanel
+                projectId={project.id}
+                onCommissioningChanged={() => void load()}
               />
             </div>
           );
