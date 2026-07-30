@@ -1071,6 +1071,20 @@ model PlcRelease {
   @@map("plc_releases")
 }
 
+/// Project Workspace Light — durable store for discovery/workspace projects (not Stage-Gate execution).
+model WorkspaceProject {
+  id        String   @id
+  name      String
+  /// Full Project Workspace Light payload (team, milestones, discovery, etc.)
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([updatedAt])
+  @@map("workspace_projects")
+}
+
 // ==========================================
 // FS-013: Enterprise Security, RBAC & Audit Logging
 // ==========================================

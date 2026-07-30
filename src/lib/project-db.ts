@@ -1,6 +1,15 @@
+/**
+ * Project Workspace Light persistence.
+ * Prefer Prisma (Neon) so create/update works on Vercel’s read-only filesystem.
+ * Fall back to JSON file (/tmp on serverless) when Prisma is unavailable.
+ */
+
+import path from "path";
+import type { Prisma } from "@/generated/prisma";
 import { PROJECTS } from "@/data/projects-data";
 import { normalizeProjectRelationships } from "@/lib/project-relationship-utils";
 import { normalizeProjectTeam } from "@/lib/project-team-utils";
+import { withPrismaRetry, isPrismaConnectionError } from "@/lib/prisma";
 import type { Project } from "@/types/project";
 import type {
   ProjectRelatedOrganization,
@@ -23,7 +32,11 @@ export type ProjectPatch = Partial<
   >
 >;
 
-const DB_PATH = `${process.cwd()}/src/data/projects-db.json`;
+const BUNDLED_DB_PATH = path.join(process.cwd(), "src/data/projects-db.json");
+const FILE_DB_PATH =
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    ? path.join("/tmp", "projects-db.json")
+    : BUNDLED_DB_PATH;
 
 function normalizeProject(project: Project): Project {
   const seed = PROJECTS.find((entry) => entry.id === project.id);
@@ -45,53 +58,132 @@ function normalizeProject(project: Project): Project {
   return normalizeProjectRelationships(normalizeProjectTeam(withSeed));
 }
 
-async function readDbFile(): Promise<ProjectsDatabase | null> {
+function asProject(payload: unknown): Project | null {
+  if (!payload || typeof payload !== "object") return null;
+  const row = payload as Project;
+  if (!row.id || !row.name) return null;
+  return normalizeProject(row);
+}
+
+async function prismaAvailable(): Promise<boolean> {
+  try {
+    await withPrismaRetry((prisma) => prisma.workspaceProject.findFirst({ take: 1 }));
+    return true;
+  } catch (error) {
+    if (isPrismaConnectionError(error)) return false;
+    // Missing table / client lag — treat as unavailable and fall back to file
+    const message = error instanceof Error ? error.message : String(error);
+    if (/workspaceProject|workspace_projects|does not exist|Unknown arg/i.test(message)) {
+      return false;
+    }
+    return false;
+  }
+}
+
+async function readProjectsFromPrisma(): Promise<Project[]> {
+  const rows = await withPrismaRetry((prisma) =>
+    prisma.workspaceProject.findMany({ orderBy: { updatedAt: "desc" } }),
+  );
+  return rows
+    .map((row) => asProject(row.payload))
+    .filter((project): project is Project => project != null);
+}
+
+async function writeProjectToPrisma(project: Project): Promise<Project> {
+  const normalized = normalizeProject(project);
+  await withPrismaRetry((prisma) =>
+    prisma.workspaceProject.upsert({
+      where: { id: normalized.id },
+      create: {
+        id: normalized.id,
+        name: normalized.name,
+        payload: normalized as unknown as Prisma.InputJsonValue,
+      },
+      update: {
+        name: normalized.name,
+        payload: normalized as unknown as Prisma.InputJsonValue,
+      },
+    }),
+  );
+  return normalized;
+}
+
+async function readFileDb(): Promise<ProjectsDatabase | null> {
   try {
     const { promises: fs } = await import("fs");
-    const raw = await fs.readFile(DB_PATH, "utf-8");
+    let raw: string;
+    try {
+      raw = await fs.readFile(FILE_DB_PATH, "utf-8");
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException)?.code;
+      if (code === "ENOENT" && FILE_DB_PATH !== BUNDLED_DB_PATH) {
+        raw = await fs.readFile(BUNDLED_DB_PATH, "utf-8");
+      } else {
+        throw error;
+      }
+    }
     const parsed = JSON.parse(raw) as ProjectsDatabase;
     return {
-      projects: parsed.projects.map(normalizeProject),
+      projects: (parsed.projects ?? []).map(normalizeProject),
     };
   } catch {
     return null;
   }
 }
 
-async function writeDb(database: ProjectsDatabase): Promise<void> {
+async function writeFileDb(database: ProjectsDatabase): Promise<void> {
   const { promises: fs } = await import("fs");
-  await fs.writeFile(DB_PATH, JSON.stringify(database, null, 2), "utf-8");
+  await fs.writeFile(FILE_DB_PATH, JSON.stringify(database, null, 2), "utf-8");
 }
 
-async function ensureDb(): Promise<ProjectsDatabase> {
-  const existing = await readDbFile();
-  // File present (even with zero projects) means an intentional empty/clean state.
+async function ensureFileDb(): Promise<ProjectsDatabase> {
+  const existing = await readFileDb();
   if (existing) {
-    return {
-      projects: (existing.projects ?? []).map(normalizeProject),
-    };
+    return { projects: (existing.projects ?? []).map(normalizeProject) };
   }
-
-  const database: ProjectsDatabase = { projects: PROJECTS.map(normalizeProject) };
-  await writeDb(database);
+  const database: ProjectsDatabase = { projects: [] };
+  try {
+    await writeFileDb(database);
+  } catch {
+    // Read-only FS — return empty in-memory view
+  }
   return database;
 }
 
 export async function readProjects(): Promise<Project[]> {
-  const database = await ensureDb();
+  if (await prismaAvailable()) {
+    return readProjectsFromPrisma();
+  }
+  const database = await ensureFileDb();
   return [...database.projects];
 }
 
 export async function readProjectById(projectId: string): Promise<Project | null> {
-  const database = await ensureDb();
+  if (await prismaAvailable()) {
+    const row = await withPrismaRetry((prisma) =>
+      prisma.workspaceProject.findUnique({ where: { id: projectId } }),
+    );
+    return row ? asProject(row.payload) : null;
+  }
+  const database = await ensureFileDb();
   const project = database.projects.find((entry) => entry.id === projectId);
   return project ? normalizeProject(project) : null;
 }
 
 export async function updateProject(projectId: string, patch: ProjectPatch): Promise<Project> {
-  const database = await ensureDb();
-  const index = database.projects.findIndex((project) => project.id === projectId);
+  if (await prismaAvailable()) {
+    const existing = await readProjectById(projectId);
+    if (!existing) throw new Error(`Project not found: ${projectId}`);
+    const updated = normalizeProject({
+      ...existing,
+      ...patch,
+      id: existing.id,
+    });
+    return writeProjectToPrisma(updated);
+  }
 
+  const database = await ensureFileDb();
+  const index = database.projects.findIndex((project) => project.id === projectId);
   if (index === -1) {
     throw new Error(`Project not found: ${projectId}`);
   }
@@ -103,7 +195,7 @@ export async function updateProject(projectId: string, patch: ProjectPatch): Pro
   });
 
   database.projects[index] = updated;
-  await writeDb(database);
+  await writeFileDb(database);
   return updated;
 }
 
@@ -161,8 +253,11 @@ function createProjectId(name: string, existingIds: Set<string>): string {
 }
 
 export async function createProject(input: CreateProjectInput): Promise<Project> {
-  const database = await ensureDb();
-  const existingIds = new Set(database.projects.map((project) => project.id));
+  const usePrisma = await prismaAvailable();
+  const existing = usePrisma
+    ? await readProjectsFromPrisma()
+    : (await ensureFileDb()).projects;
+  const existingIds = new Set(existing.map((project) => project.id));
   const id = createProjectId(input.name, existingIds);
 
   const relatedOrganizations = input.linkedCompanyId
@@ -201,7 +296,22 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
     risks: [],
   });
 
+  if (usePrisma) {
+    return writeProjectToPrisma(project);
+  }
+
+  const database = await ensureFileDb();
   database.projects.push(project);
-  await writeDb(database);
+  try {
+    await writeFileDb(database);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === "EROFS" || code === "EACCES") {
+      throw new Error(
+        "Cannot create project: database unavailable and filesystem is read-only. Apply workspace_projects migration and ensure DATABASE_URL is set.",
+      );
+    }
+    throw error;
+  }
   return project;
 }
