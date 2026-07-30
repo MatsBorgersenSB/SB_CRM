@@ -8,14 +8,8 @@ import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project } from "@/types/project";
 import {
-  DEFAULT_PROJECT_ACTION_TAB,
-  isProjectActionTab,
-  legacyProjectTabToActionTab,
-  type ProjectActionTab,
-} from "@/types/project-actions";
-import {
   DEFAULT_PROJECT_MISSION_CONTROL_VIEW,
-  isProjectMissionControlView,
+  resolveProjectMissionControlView,
   type ProjectMissionControlView,
 } from "@/types/project-mission-control";
 import type {
@@ -23,57 +17,57 @@ import type {
   ProjectStakeholderRecord,
 } from "@/types/project-relationships";
 import type { UserRole } from "@/types/auth";
+import { companyRouteKey } from "@/types/company-360";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
 import { ProjectActivitiesPanel } from "@/components/project/project-activities-panel";
 import { ProjectDecisionsPanel } from "@/components/project/project-decisions-panel";
 import { ProjectMilestonesPanel } from "@/components/project/project-milestones-panel";
-import { ProjectDiscoveryQuestionsPanel } from "@/components/project/project-discovery-questions-panel";
 import { ProjectMissionControl } from "@/components/project/project-mission-control";
 import { ProjectRelatedOrganizationsPanel } from "@/components/project/project-related-organizations-panel";
 import { ProjectStakeholderIntelligencePanel } from "@/components/project/project-stakeholder-intelligence-panel";
 import { ProjectStakeholdersRosterPanel } from "@/components/project/project-stakeholders-roster-panel";
 import { ProjectWorkspaceHeader } from "@/components/project/project-workspace-header";
+import { ProjectCommandUrgentBanner } from "@/components/project/project-command-urgent-banner";
+import { DecisionJournalPanel } from "@/components/assistant/DecisionJournalPanel";
+import { ProjectStageGateView } from "@/components/execution/ProjectStageGateView";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { getActivitiesForDeal } from "@/lib/activity-utils";
 import {
   getProjectRelatedOrganizations,
   getProjectStakeholders,
 } from "@/lib/project-relationship-utils";
+import { getProjectAccountCompanyId } from "@/lib/project-stakeholder-contacts";
 import {
   buildProjectIntelligence,
   partitionProjectActivities,
 } from "@/lib/project-workspace-intelligence";
 import { workspaceDocumentsContextFromProject } from "@/lib/workspace-documents-data";
+import {
+  EDITORIAL_BODY_MUTED,
+  EDITORIAL_LABEL,
+} from "@/lib/editorial-design-system";
 
-const LEGACY_HASH_TO_ACTION: Record<string, ProjectActionTab> = {
-  questions: "questions",
-  activities: "activities",
-  documents: "documents",
+const LEGACY_HASH_TO_VIEW: Record<string, ProjectMissionControlView> = {
+  questions: "command",
+  activities: "docs",
+  documents: "docs",
   organizations: "organizations",
-  stakeholders: "stakeholders",
-  team: "stakeholders",
-  milestones: "milestones",
-  decisions: "decisions",
-  validations: "questions",
-  conversations: "questions",
-  objective: "milestones",
-  intelligence: "activities",
-  risks: "decisions",
+  stakeholders: "organizations",
+  team: "organizations",
+  milestones: "stage-gates",
+  decisions: "docs",
+  validations: "command",
+  conversations: "command",
+  objective: "command",
+  intelligence: "command",
+  risks: "command",
 };
 
-function buildProjectUrl(
-  projectId: string,
-  view: ProjectMissionControlView,
-  actionTab: ProjectActionTab | null,
-): string {
+function buildProjectUrl(projectId: string, view: ProjectMissionControlView): string {
   const params = new URLSearchParams();
   if (view !== DEFAULT_PROJECT_MISSION_CONTROL_VIEW) {
     params.set("view", view);
-  }
-  if (view === "actions") {
-    const tab = actionTab ?? DEFAULT_PROJECT_ACTION_TAB;
-    params.set("action", tab);
   }
   const query = params.toString();
   return `/projects/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}`;
@@ -113,35 +107,16 @@ export function Project360LivingWorkspace({
   const [documentCount, setDocumentCount] = useState(0);
   const organizations = useMemo(() => getProjectRelatedOrganizations(project), [project]);
   const stakeholders = useMemo(() => getProjectStakeholders(project), [project]);
+  const accountCompanyId = useMemo(() => getProjectAccountCompanyId(project), [project]);
 
-  const actionTab = useMemo(() => {
-    if (actionParam === "team") return "stakeholders";
-    if (isProjectActionTab(actionParam)) return actionParam;
-    const fromLegacy = legacyProjectTabToActionTab(legacyTabParam);
-    if (fromLegacy) return fromLegacy;
-    return DEFAULT_PROJECT_ACTION_TAB;
-  }, [actionParam, legacyTabParam]);
-
-  const missionView = useMemo(() => {
-    if (isProjectMissionControlView(viewParam)) return viewParam;
-    if (legacyTabParam && LEGACY_HASH_TO_ACTION[legacyTabParam]) {
-      return "actions";
-    }
-    return DEFAULT_PROJECT_MISSION_CONTROL_VIEW;
-  }, [viewParam, legacyTabParam]);
+  const missionView = useMemo(
+    () => resolveProjectMissionControlView(viewParam, actionParam, legacyTabParam),
+    [viewParam, actionParam, legacyTabParam],
+  );
 
   const setMissionView = useCallback(
     (view: ProjectMissionControlView) => {
-      const nextAction =
-        view === "actions" ? actionTab ?? DEFAULT_PROJECT_ACTION_TAB : null;
-      router.replace(buildProjectUrl(project.id, view, nextAction), { scroll: false });
-    },
-    [project.id, router, actionTab],
-  );
-
-  const setActionTab = useCallback(
-    (tab: ProjectActionTab) => {
-      router.replace(buildProjectUrl(project.id, "actions", tab), { scroll: false });
+      router.replace(buildProjectUrl(project.id, view), { scroll: false });
     },
     [project.id, router],
   );
@@ -149,9 +124,9 @@ export function Project360LivingWorkspace({
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, "");
     if (!hash) return;
-    const mapped = LEGACY_HASH_TO_ACTION[hash];
+    const mapped = LEGACY_HASH_TO_VIEW[hash];
     if (mapped) {
-      router.replace(buildProjectUrl(project.id, "actions", mapped), { scroll: false });
+      router.replace(buildProjectUrl(project.id, mapped), { scroll: false });
     }
   }, [project.id, router]);
 
@@ -178,128 +153,122 @@ export function Project360LivingWorkspace({
     [project, projectActivities, companies, linkedPipeline],
   );
 
-  const linkedCompany = companies.find((row) => row.CompanyID === project.linkedCompanyId);
-  const documentsContext = workspaceDocumentsContextFromProject(project, linkedPipeline, linkedCompany);
-
-  const actionCounts = useMemo(
-    () => ({
-      questions: intelligence.discovery?.suggestedQuestions.length ?? 0,
-      activities: projectActivities.length,
-      organizations: organizations.length,
-      stakeholders: stakeholders.length,
-      documents: documentCount,
-      milestones: project.milestones.length,
-      decisions: project.decisions.length,
-    }),
-    [
-      intelligence.discovery?.suggestedQuestions.length,
-      projectActivities.length,
-      organizations.length,
-      stakeholders.length,
-      documentCount,
-      project.milestones.length,
-      project.decisions.length,
-    ],
+  const linkedCompany = companies.find((row) => row.CompanyID === accountCompanyId);
+  const documentsContext = workspaceDocumentsContextFromProject(
+    project,
+    linkedPipeline,
+    linkedCompany,
   );
 
-  const organizationsOverview = useMemo(
-    () => (
-      <ProjectRelatedOrganizationsPanel
-        organizations={organizations}
-        companies={companies}
-        readOnly={relationshipsReadOnly}
-        onChange={onOrganizationsChange}
-      />
-    ),
-    [organizations, companies, relationshipsReadOnly, onOrganizationsChange],
+  const showUrgentBanner =
+    project.health === "Needs Attention" ||
+    project.health === "At Risk" ||
+    !accountCompanyId;
+
+  const urgentBanner = showUrgentBanner ? (
+    <ProjectCommandUrgentBanner
+      project={project}
+      hasAccount={Boolean(accountCompanyId)}
+      onLinkAccount={() => setMissionView("organizations")}
+      onReviewRisks={() => setMissionView("command")}
+      onOpenStageGates={() => setMissionView("stage-gates")}
+    />
+  ) : null;
+
+  const stageGatesContent = (
+    <div className="flex flex-col gap-10">
+      <div>
+        <p className={EDITORIAL_LABEL}>Workspace milestones</p>
+        <p className={`${EDITORIAL_BODY_MUTED} mb-4 mt-1 text-[13px]`}>
+          Delivery checkpoints for this project workspace.
+        </p>
+        {project.milestones.length > 0 ? (
+          <ProjectMilestonesPanel milestones={project.milestones} />
+        ) : (
+          <p className={EDITORIAL_BODY_MUTED}>No milestones recorded yet.</p>
+        )}
+      </div>
+
+      {linkedCompany ? (
+        <div>
+          <p className={EDITORIAL_LABEL}>Stage-Gate execution &amp; QA</p>
+          <p className={`${EDITORIAL_BODY_MUTED} mb-4 mt-1 text-[13px]`}>
+            FAT/SAT quality gates, EC&amp;I traceability, and ATEX/PLC interlocks for{" "}
+            {linkedCompany.Title}.
+          </p>
+          <ProjectStageGateView
+            companyId={companyRouteKey(linkedCompany)}
+            companyName={linkedCompany.Title}
+            opportunityId={project.linkedDealId}
+          />
+        </div>
+      ) : (
+        <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-4 py-3">
+          <p className="text-[14px] font-semibold text-carbon-blue">
+            Link an account to unlock Stage-Gate &amp; QA
+          </p>
+          <p className={`mt-1 ${EDITORIAL_BODY_MUTED}`}>
+            Quality inspections, EC&amp;I tags, and ATEX interlocks are scoped to the linked
+            customer organization.
+          </p>
+          <button
+            type="button"
+            onClick={() => setMissionView("organizations")}
+            className="mt-3 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white"
+          >
+            Link account
+          </button>
+        </div>
+      )}
+    </div>
   );
 
-  const stakeholdersOverview = useMemo(
-    () => (
-      <ProjectStakeholdersRosterPanel
-        project={project}
-        stakeholders={stakeholders}
-        organizations={organizations}
-        companies={companies}
-        standardBioUsers={standardBioUsers}
-        readOnly={relationshipsReadOnly}
-        compact
-        onChange={onStakeholdersChange}
-      />
-    ),
-    [
-      project,
-      stakeholders,
-      organizations,
-      companies,
-      standardBioUsers,
-      relationshipsReadOnly,
-      onStakeholdersChange,
-    ],
-  );
+  const organizationsContent = (
+    <div className="flex flex-col gap-10">
+      <div>
+        <p className={EDITORIAL_LABEL}>Organizations</p>
+        <p className={`${EDITORIAL_BODY_MUTED} mb-4 mt-1 text-[13px]`}>
+          Customer, EPC, supplier, and other companies involved in delivery.
+        </p>
+        <ProjectRelatedOrganizationsPanel
+          organizations={organizations}
+          companies={companies}
+          readOnly={relationshipsReadOnly}
+          onChange={onOrganizationsChange}
+        />
+      </div>
 
-  const stakeholderIntelligenceOverview = useMemo(
-    () =>
-      intelligence.stakeholderIntelligence ? (
+      {intelligence.stakeholderIntelligence ? (
         <ProjectStakeholderIntelligencePanel
           intelligence={intelligence.stakeholderIntelligence}
-          compact
         />
-      ) : null,
-    [intelligence.stakeholderIntelligence],
+      ) : null}
+
+      <div>
+        <p className={EDITORIAL_LABEL}>Stakeholders</p>
+        <p className={`${EDITORIAL_BODY_MUTED} mb-4 mt-1 text-[13px]`}>
+          Contacts and internal delivery owners for this project.
+        </p>
+        <ProjectStakeholdersRosterPanel
+          project={project}
+          stakeholders={stakeholders}
+          organizations={organizations}
+          companies={companies}
+          standardBioUsers={standardBioUsers}
+          readOnly={relationshipsReadOnly}
+          onChange={onStakeholdersChange}
+        />
+      </div>
+    </div>
   );
 
-  const actionContent = useMemo(() => {
-    switch (actionTab) {
-      case "questions":
-        return intelligence.discovery ? (
-          <ProjectDiscoveryQuestionsPanel
-            questions={intelligence.discovery.suggestedQuestions}
-            validations={intelligence.discovery.suggestedValidations}
-            conversations={intelligence.discovery.recommendedConversations}
-          />
-        ) : null;
-      case "activities":
-        return (
-          <div className="flex flex-col gap-4">
-            <ProjectActivitiesPanel {...activityBuckets} />
-            <SmartActivityWorkspace
-              activities={projectActivities}
-              companies={companies}
-              pipelines={pipelines}
-              context={{
-                dealId: project.linkedDealId,
-                companyId: project.linkedCompanyId,
-                companyName: linkedCompany?.Title,
-              }}
-              attentionItems={attentionItems}
-              variant="embedded"
-            />
-          </div>
-        );
-      case "organizations":
-        return organizationsOverview;
-      case "stakeholders":
-        return (
-          <div className="flex flex-col gap-8">
-            {intelligence.stakeholderIntelligence ? (
-              <ProjectStakeholderIntelligencePanel
-                intelligence={intelligence.stakeholderIntelligence}
-              />
-            ) : null}
-            <ProjectStakeholdersRosterPanel
-              project={project}
-              stakeholders={stakeholders}
-              organizations={organizations}
-              companies={companies}
-              standardBioUsers={standardBioUsers}
-              readOnly={relationshipsReadOnly}
-              onChange={onStakeholdersChange}
-            />
-          </div>
-        );
-      case "documents":
-        return (
+  const docsContent = (
+    <div className="flex flex-col gap-10">
+      <div>
+        <p className={EDITORIAL_LABEL}>
+          Documents{documentCount > 0 ? ` (${documentCount})` : ""}
+        </p>
+        <div className="mt-4">
           <WorkspaceDocumentsPanel
             context={documentsContext}
             companies={companies}
@@ -307,35 +276,53 @@ export function Project360LivingWorkspace({
             activities={activities}
             onDocumentCountChange={setDocumentCount}
           />
-        );
-      case "milestones":
-        return <ProjectMilestonesPanel milestones={project.milestones} />;
-      case "decisions":
-        return <ProjectDecisionsPanel decisions={project.decisions} />;
-      default:
-        return null;
-    }
-  }, [
-    actionTab,
-    activityBuckets,
-    projectActivities,
-    companies,
-    pipelines,
-    project,
-    linkedCompany,
-    attentionItems,
-    organizationsOverview,
-    stakeholders,
-    organizations,
-    standardBioUsers,
-    relationshipsReadOnly,
-    onStakeholdersChange,
-    intelligence.discovery,
-    documentsContext,
-    activities,
-    project.milestones,
-    project.decisions,
-  ]);
+        </div>
+      </div>
+
+      <div>
+        <p className={EDITORIAL_LABEL}>Activity timeline</p>
+        <div className="mt-4 flex flex-col gap-4">
+          <ProjectActivitiesPanel {...activityBuckets} />
+          <SmartActivityWorkspace
+            activities={projectActivities}
+            companies={companies}
+            pipelines={pipelines}
+            context={{
+              dealId: project.linkedDealId,
+              companyId: accountCompanyId,
+              companyName: linkedCompany?.Title,
+            }}
+            attentionItems={attentionItems}
+            variant="embedded"
+          />
+        </div>
+      </div>
+
+      <div>
+        <p className={EDITORIAL_LABEL}>Project decisions</p>
+        <div className="mt-4">
+          {project.decisions.length > 0 ? (
+            <ProjectDecisionsPanel decisions={project.decisions} />
+          ) : (
+            <p className={EDITORIAL_BODY_MUTED}>No project decisions recorded yet.</p>
+          )}
+        </div>
+      </div>
+
+      {linkedCompany ? (
+        <div>
+          <p className={EDITORIAL_LABEL}>Decision Journal</p>
+          <p className={`${EDITORIAL_BODY_MUTED} mb-4 mt-1 text-[13px]`}>
+            Organizational decisions captured for {linkedCompany.Title}.
+          </p>
+          <DecisionJournalPanel
+            companyId={companyRouteKey(linkedCompany)}
+            companyName={linkedCompany.Title}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
 
   return (
     <WorkspaceStack className="gap-10 xl:gap-12">
@@ -349,23 +336,18 @@ export function Project360LivingWorkspace({
         relationshipValidation={intelligence.stakeholderIntelligence?.relationshipValidation}
         onOwnerChange={onOwnerChange}
         onOrganizationsChange={relationshipsReadOnly ? undefined : onOrganizationsChange}
-        onAddOrganization={() => {
-          router.replace(buildProjectUrl(project.id, "actions", "organizations"), { scroll: false });
-        }}
+        onAddOrganization={() => setMissionView("organizations")}
       />
 
       <ProjectMissionControl
         view={missionView}
         onViewChange={setMissionView}
-        actionTab={actionTab}
-        onActionTabChange={setActionTab}
-        actionCounts={actionCounts}
-        actionContent={actionContent}
         project={project}
         intelligence={intelligence}
-        organizationsOverview={organizationsOverview}
-        stakeholderIntelligenceOverview={stakeholderIntelligenceOverview}
-        stakeholdersOverview={stakeholdersOverview}
+        urgentBanner={urgentBanner}
+        stageGatesContent={stageGatesContent}
+        organizationsContent={organizationsContent}
+        docsContent={docsContent}
       />
     </WorkspaceStack>
   );

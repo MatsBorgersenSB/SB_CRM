@@ -205,6 +205,7 @@ export function WorkspacePanel({
   className = "",
   collapsible = false,
   defaultCollapsed = false,
+  forceExpanded = false,
   count,
   collapseStorageKey,
 }: {
@@ -215,6 +216,8 @@ export function WorkspacePanel({
   className?: string;
   collapsible?: boolean;
   defaultCollapsed?: boolean;
+  /** When true, panel stays expanded (e.g. active attention queue). */
+  forceExpanded?: boolean;
   count?: number;
   collapseStorageKey?: string;
 }) {
@@ -227,9 +230,18 @@ export function WorkspacePanel({
       setHydrated(true);
       return;
     }
+    if (forceExpanded) {
+      setCollapsed(false);
+      setHydrated(true);
+      return;
+    }
     setCollapsed(readSectionCollapsed(collapseStorageKey, defaultCollapsed));
     setHydrated(true);
-  }, [collapsible, collapseStorageKey, defaultCollapsed]);
+  }, [collapsible, collapseStorageKey, defaultCollapsed, forceExpanded]);
+
+  useEffect(() => {
+    if (forceExpanded) setCollapsed(false);
+  }, [forceExpanded]);
 
   useEffect(() => {
     if (!collapsible || !id) return;
@@ -247,14 +259,15 @@ export function WorkspacePanel({
   }, [collapsible, id, collapseStorageKey]);
 
   const toggle = useCallback(() => {
+    if (forceExpanded) return;
     setCollapsed((prev) => {
       const next = !prev;
       if (collapseStorageKey) writeSectionCollapsed(collapseStorageKey, next);
       return next;
     });
-  }, [collapseStorageKey]);
+  }, [collapseStorageKey, forceExpanded]);
 
-  const expanded = !collapsed;
+  const expanded = forceExpanded || !collapsed;
   const titleLabel = count !== undefined ? `${title} (${count})` : title;
 
   const headerContent = (

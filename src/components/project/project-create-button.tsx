@@ -38,7 +38,7 @@ export function ProjectCreateButton() {
         throw new Error(payload.error ?? "Failed to create project");
       }
       const project = (await response.json()) as { id: string };
-      router.push(`${project360Href(project.id)}?view=actions&action=questions`);
+      router.push(`${project360Href(project.id)}?view=command`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");
     } finally {

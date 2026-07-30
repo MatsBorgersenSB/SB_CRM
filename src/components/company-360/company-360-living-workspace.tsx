@@ -34,11 +34,8 @@ import type { Project } from "@/types/project";
 import type { PipelineRow } from "@/types/pipeline";
 import { getProjectsForCompany } from "@/lib/project-team-utils";
 import { CompanyProjectsTable } from "@/components/project/company-projects-table";
-import { DecisionJournalPanel } from "@/components/assistant/DecisionJournalPanel";
 import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
-import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
-import { MicroCampaignGenerator } from "@/components/marketing/MicroCampaignGenerator";
-import { NicheChannelRadarPanel } from "@/components/marketing/NicheChannelRadarPanel";
+import { GrowthMarketingIntelligencePanel } from "@/components/company-360/growth-marketing-intelligence-panel";
 import { ProjectStageGateView } from "@/components/execution/ProjectStageGateView";
 import type { CompanyHeroQuickEdit } from "@/lib/company-identity";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
@@ -49,6 +46,7 @@ import {
 } from "@/lib/permissions";
 import { useSignalExtract } from "@/context/signal-extract-context";
 import { companyRouteKey } from "@/types/company-360";
+
 export function Company360LivingWorkspace({
   snapshot,
   commercialPackages,
@@ -106,6 +104,7 @@ export function Company360LivingWorkspace({
     [company.CompanyID, projects],
   );
 
+  const hasAttention = attentionItems.length > 0;
   const sectionKey = (section: string) =>
     workspaceSectionStorageKey("company", company.CompanyID, section);
 
@@ -134,6 +133,20 @@ export function Company360LivingWorkspace({
 
   return (
     <WorkspaceStack>
+      {/* 1 — Attention & Next Best Actions */}
+      <WorkspacePanel
+        title="Attention & Next Best Actions"
+        id="attention"
+        collapsible
+        count={attentionItems.length}
+        defaultCollapsed={!hasAttention}
+        forceExpanded={hasAttention}
+        collapseStorageKey={hasAttention ? undefined : sectionKey("attention")}
+      >
+        <AttentionQueueTable items={attentionItems} />
+      </WorkspacePanel>
+
+      {/* 2 — Company Health Header & ICP */}
       <WorkspacePanel title="Company Details">
         <Company360ActionsBar
           role={role}
@@ -188,90 +201,7 @@ export function Company360LivingWorkspace({
         )}
       </WorkspacePanel>
 
-      <WorkspacePanel
-        title="Decision Journal"
-        id="decisions"
-        collapsible
-        collapseStorageKey={sectionKey("decisions")}
-      >
-        <DecisionJournalPanel
-          companyId={companyRouteKey(company)}
-          companyName={company.Title}
-        />
-      </WorkspacePanel>
-
-      <WorkspacePanel
-        title="Buying Center"
-        id="buying-center"
-        collapsible
-        collapseStorageKey={sectionKey("buying-center")}
-      >
-        <BuyingCenterGraph
-          companyId={companyRouteKey(company)}
-          companyName={company.Title}
-        />
-      </WorkspacePanel>
-
-      <WorkspacePanel
-        title="Executive Recon"
-        id="web-recon"
-        collapsible
-        collapseStorageKey={sectionKey("web-recon")}
-      >
-        <ReconBattlecardPanel
-          companyId={companyRouteKey(company)}
-          companyName={company.Title}
-          domain={company.Domain || undefined}
-        />
-      </WorkspacePanel>
-
-      <WorkspacePanel
-        title="Micro-Campaigns"
-        id="micro-campaigns"
-        collapsible
-        collapseStorageKey={sectionKey("micro-campaigns")}
-      >
-        <MicroCampaignGenerator
-          companyId={companyRouteKey(company)}
-          companyName={company.Title}
-        />
-      </WorkspacePanel>
-
-      <WorkspacePanel
-        title="Niche Channel Radar"
-        id="niche-channels"
-        collapsible
-        collapseStorageKey={sectionKey("niche-channels")}
-      >
-        <NicheChannelRadarPanel
-          companyId={companyRouteKey(company)}
-          companyName={company.Title}
-        />
-      </WorkspacePanel>
-
-      <WorkspacePanel
-        title="Contacts"
-        id="contacts"
-        collapsible
-        count={company.contacts.length}
-        collapseStorageKey={sectionKey("contacts")}
-      >
-        <CompanyContactsTable
-          contacts={company.contacts}
-          companyId={company.CompanyID}
-          companies={companies}
-          role={role}
-          activities={scopedActivities}
-          projects={projects}
-          onCreateContact={onCreateContact}
-          onContactUpdate={onContactUpdate}
-          onContactDelete={onContactDelete}
-          onContactReassign={onContactReassign}
-          onContactArchive={onContactArchive}
-          createRequestId={createRequestId}
-        />
-      </WorkspacePanel>
-
+      {/* 3 — Opportunities, Projects, Stage-Gate Execution */}
       <WorkspacePanel
         title="Opportunities"
         id="opportunities"
@@ -299,7 +229,11 @@ export function Company360LivingWorkspace({
         count={linkedProjects.length}
         collapseStorageKey={sectionKey("projects")}
       >
-        <CompanyProjectsTable projects={linkedProjects} companyId={company.CompanyID} companies={companies} />
+        <CompanyProjectsTable
+          projects={linkedProjects}
+          companyId={company.CompanyID}
+          companies={companies}
+        />
       </WorkspacePanel>
 
       <WorkspacePanel
@@ -314,51 +248,88 @@ export function Company360LivingWorkspace({
         />
       </WorkspacePanel>
 
+      {/* 4 — Contacts & Stakeholder Graph */}
       <WorkspacePanel
-        title="Activities"
+        title="Contacts & Stakeholders"
+        id="contacts"
+        collapsible
+        count={company.contacts.length}
+        collapseStorageKey={sectionKey("contacts")}
+      >
+        <div className="flex flex-col gap-8">
+          <CompanyContactsTable
+            contacts={company.contacts}
+            companyId={company.CompanyID}
+            companies={companies}
+            role={role}
+            activities={scopedActivities}
+            projects={projects}
+            onCreateContact={onCreateContact}
+            onContactUpdate={onContactUpdate}
+            onContactDelete={onContactDelete}
+            onContactReassign={onContactReassign}
+            onContactArchive={onContactArchive}
+            createRequestId={createRequestId}
+          />
+          <div>
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40">
+              Buying Center
+            </p>
+            <BuyingCenterGraph
+              companyId={companyRouteKey(company)}
+              companyName={company.Title}
+            />
+          </div>
+        </div>
+      </WorkspacePanel>
+
+      {/* 5 — Activities & Documents */}
+      <WorkspacePanel
+        title="Activities & Documents"
         id="activities"
         collapsible
-        count={companyActivities.length}
-        collapseStorageKey={sectionKey("activities")}
+        count={companyActivities.length + documentCount}
+        collapseStorageKey={sectionKey("activities-documents")}
       >
-        <SmartActivityWorkspace
-          activities={companyActivities}
-          companies={companies}
-          pipelines={linkedPipelines}
-          attentionItems={attentionItems}
-          context={{
-            companyId: company.CompanyID,
-            companyName: company.Title,
-          }}
-        />
+        <div className="flex flex-col gap-8">
+          <SmartActivityWorkspace
+            activities={companyActivities}
+            companies={companies}
+            pipelines={linkedPipelines}
+            attentionItems={attentionItems}
+            context={{
+              companyId: company.CompanyID,
+              companyName: company.Title,
+            }}
+          />
+          <div>
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40">
+              Documents{documentCount > 0 ? ` (${documentCount})` : ""}
+            </p>
+            <WorkspaceDocumentsPanel
+              context={workspaceDocumentsContextFromCompany(company)}
+              pipelines={linkedPipelines}
+              companies={companies}
+              activities={scopedActivities}
+              onDocumentCountChange={setDocumentCount}
+            />
+          </div>
+        </div>
       </WorkspacePanel>
 
+      {/* 6 — Growth & Marketing Intelligence */}
       <WorkspacePanel
-        title="Documents"
-        id="documents"
+        title="Growth & Marketing Intelligence"
+        id="growth-marketing"
         collapsible
         defaultCollapsed
-        count={documentCount}
-        collapseStorageKey={sectionKey("documents")}
+        collapseStorageKey={sectionKey("growth-marketing")}
       >
-        <WorkspaceDocumentsPanel
-          context={workspaceDocumentsContextFromCompany(company)}
-          pipelines={linkedPipelines}
-          companies={companies}
-          activities={scopedActivities}
-          onDocumentCountChange={setDocumentCount}
+        <GrowthMarketingIntelligencePanel
+          companyId={companyRouteKey(company)}
+          companyName={company.Title}
+          domain={company.Domain || undefined}
         />
-      </WorkspacePanel>
-
-      <WorkspacePanel
-        title="Attention"
-        id="attention"
-        collapsible
-        count={attentionItems.length}
-        defaultCollapsed={attentionItems.length === 0}
-        collapseStorageKey={sectionKey("attention")}
-      >
-        <AttentionQueueTable items={attentionItems} />
       </WorkspacePanel>
     </WorkspaceStack>
   );
