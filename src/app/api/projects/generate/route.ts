@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   generateProjectFromTemplate,
+  isDuplicateProjectTitleError,
   listStageGateProjectsForCompany,
   type ExecutionProjectType,
   type ProjectHealthStatus,
@@ -96,6 +97,9 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ project }, { status: 201 });
   } catch (error) {
+    if (isDuplicateProjectTitleError(error)) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     const message =
       error instanceof Error ? error.message : "Failed to generate project";
     const status =

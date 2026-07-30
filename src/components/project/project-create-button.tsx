@@ -15,15 +15,18 @@ export function ProjectCreateButton() {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [duplicateTitle, setDuplicateTitle] = useState<string | null>(null);
 
   if (!canCreateProject(user.role)) {
     return null;
   }
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
     setSaving(true);
     setError(null);
+    setDuplicateTitle(null);
     try {
       const response = await fetch("/api/projects", {
         method: "POST",
@@ -31,14 +34,17 @@ export function ProjectCreateButton() {
           "Content-Type": "application/json",
           [AUTH_ROLE_HEADER]: user.role,
         },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: trimmed }),
       });
-      if (!response.ok) {
-        const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as { id?: string; error?: string };
+      if (response.status === 409) {
+        setDuplicateTitle(trimmed);
+        return;
+      }
+      if (!response.ok || !payload.id) {
         throw new Error(payload.error ?? "Failed to create project");
       }
-      const project = (await response.json()) as { id: string };
-      router.push(`${project360Href(project.id)}?view=command`);
+      router.push(`${project360Href(payload.id)}?view=command`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");
     } finally {
@@ -61,11 +67,24 @@ export function ProjectCreateButton() {
             </span>
             <input
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value);
+                if (duplicateTitle) setDuplicateTitle(null);
+                if (error) setError(null);
+              }}
               placeholder="e.g. Site expansion phase 2"
               className="mt-1 w-full max-w-md border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
             />
           </label>
+          {duplicateTitle ? (
+            <div
+              className="mt-2 border border-thermal-red/30 bg-thermal-red/5 px-3 py-2 text-[12px] font-medium text-thermal-red"
+              role="alert"
+            >
+              ⚠️ A project named &apos;{duplicateTitle}&apos; already exists. Please enter a unique
+              name.
+            </div>
+          ) : null}
           {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
           <div className="mt-3 flex gap-2">
             <button
@@ -83,6 +102,7 @@ export function ProjectCreateButton() {
                 setOpen(false);
                 setName("");
                 setError(null);
+                setDuplicateTitle(null);
               }}
               className="px-3 py-1.5 text-xs font-semibold text-carbon-blue/55"
             >

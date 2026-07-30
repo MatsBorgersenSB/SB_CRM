@@ -42,6 +42,7 @@ export function ProjectStageGateView({
   const [projects, setProjects] = useState<StageGateProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [duplicateTitle, setDuplicateTitle] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [advancingId, setAdvancingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -63,6 +64,8 @@ export function ProjectStageGateView({
     setImportOngoing(false);
     setStartStageIndex(0);
     setInitialHealth("ON_TRACK");
+    setDuplicateTitle(null);
+    setError(null);
     setShowCreate(false);
   };
 
@@ -103,10 +106,12 @@ export function ProjectStageGateView({
     const trimmed = title.trim();
     if (!trimmed) {
       setError("Enter a project title");
+      setDuplicateTitle(null);
       return;
     }
     setCreating(true);
     setError(null);
+    setDuplicateTitle(null);
     try {
       const response = await fetch("/api/projects/generate", {
         method: "POST",
@@ -128,6 +133,11 @@ export function ProjectStageGateView({
         project?: StageGateProject;
         error?: string;
       };
+      if (response.status === 409) {
+        setDuplicateTitle(trimmed);
+        setError(null);
+        return;
+      }
       if (!response.ok || !body.project) {
         setError(body.error ?? "Failed to generate project");
         return;
@@ -213,11 +223,25 @@ export function ProjectStageGateView({
             </span>
             <input
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (duplicateTitle) setDuplicateTitle(null);
+                if (error) setError(null);
+              }}
               placeholder="e.g. Oslo Pyrolysis Plant — EPC"
               className="mt-1 w-full border border-carbon-blue/15 bg-[var(--dashboard-surface)] px-2.5 py-1.5 text-[12px] text-carbon-blue outline-none focus:border-carbon-blue/40"
             />
           </label>
+
+          {duplicateTitle ? (
+            <div
+              className="border border-thermal-red/30 bg-thermal-red/5 px-3 py-2 text-[12px] font-medium text-thermal-red"
+              role="alert"
+            >
+              ⚠️ A project named &apos;{duplicateTitle}&apos; already exists. Please enter a unique
+              name.
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-1.5">
             {PROJECT_TYPE_OPTIONS.map((opt) => (
               <button

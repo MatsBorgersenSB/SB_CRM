@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getRequestRole } from "@/lib/api-auth";
-import { createProject, type CreateProjectInput } from "@/lib/project-db";
+import {
+  createProject,
+  isDuplicateWorkspaceProjectNameError,
+  type CreateProjectInput,
+} from "@/lib/project-db";
 import { canCreateProject } from "@/lib/permissions";
 
 export async function POST(request: Request) {
@@ -23,6 +27,9 @@ export async function POST(request: Request) {
     const project = await createProject(body);
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
+    if (isDuplicateWorkspaceProjectNameError(error)) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     const message = error instanceof Error ? error.message : "Create failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }

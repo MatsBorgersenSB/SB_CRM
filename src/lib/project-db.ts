@@ -252,13 +252,56 @@ function createProjectId(name: string, existingIds: Set<string>): string {
   return candidate;
 }
 
+export class DuplicateWorkspaceProjectNameError extends Error {
+  readonly statusCode = 409 as const;
+  readonly title: string;
+
+  constructor(title: string) {
+    super(
+      `A project with the name "${title}" already exists. Please use a unique project title.`,
+    );
+    this.name = "DuplicateWorkspaceProjectNameError";
+    this.title = title;
+  }
+}
+
+export function isDuplicateWorkspaceProjectNameError(
+  error: unknown,
+): error is DuplicateWorkspaceProjectNameError {
+  return error instanceof DuplicateWorkspaceProjectNameError;
+}
+
 export async function createProject(input: CreateProjectInput): Promise<Project> {
+  const name = input.name.trim() || "Untitled Project";
   const usePrisma = await prismaAvailable();
+
+  if (usePrisma) {
+    const duplicate = await withPrismaRetry((prisma) =>
+      prisma.workspaceProject.findFirst({
+        where: { name: { equals: name, mode: "insensitive" } },
+        select: { id: true },
+      }),
+    );
+    if (duplicate) {
+      throw new DuplicateWorkspaceProjectNameError(name);
+    }
+  }
+
   const existing = usePrisma
     ? await readProjectsFromPrisma()
     : (await ensureFileDb()).projects;
+
+  if (!usePrisma) {
+    const duplicateName = existing.some(
+      (project) => project.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicateName) {
+      throw new DuplicateWorkspaceProjectNameError(name);
+    }
+  }
+
   const existingIds = new Set(existing.map((project) => project.id));
-  const id = createProjectId(input.name, existingIds);
+  const id = createProjectId(name, existingIds);
 
   const relatedOrganizations = input.linkedCompanyId
     ? [
@@ -274,7 +317,7 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
 
   const project: Project = normalizeProject({
     id,
-    name: input.name.trim() || "Untitled Project",
+    name,
     kind: input.kind ?? "customer",
     owner: input.owner?.trim() ?? "",
     status: "Planning",

@@ -248,6 +248,25 @@ const PROJECT_INCLUDE = {
   milestones: { orderBy: { sortOrder: "asc" as const } },
 };
 
+export class DuplicateProjectTitleError extends Error {
+  readonly statusCode = 409 as const;
+  readonly title: string;
+
+  constructor(title: string) {
+    super(
+      `A project with the name "${title}" already exists. Please use a unique project title.`,
+    );
+    this.name = "DuplicateProjectTitleError";
+    this.title = title;
+  }
+}
+
+export function isDuplicateProjectTitleError(
+  error: unknown,
+): error is DuplicateProjectTitleError {
+  return error instanceof DuplicateProjectTitleError;
+}
+
 /**
  * Generate a Stage-Gate project from a fixed execution template.
  */
@@ -266,6 +285,16 @@ export async function generateProjectFromTemplate(
     throw new Error(
       "projectType must be TURNKEY_PLANT | SINGLE_MACHINERY | INTERNAL_RD",
     );
+  }
+
+  const duplicate = await withPrismaRetry((prisma) =>
+    prisma.project.findFirst({
+      where: { title: { equals: title, mode: "insensitive" } },
+      select: { id: true, title: true },
+    }),
+  );
+  if (duplicate) {
+    throw new DuplicateProjectTitleError(title);
   }
 
   const company = await findPrismaCompanyByRouteKey(input.companyId);
