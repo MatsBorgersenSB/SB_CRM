@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   HEALTH_STATUS_LABELS,
+  HEALTH_STATUS_OPTIONS,
   PROJECT_TYPE_LABELS,
   PROJECT_TYPE_OPTIONS,
+  STAGE_GATE_TEMPLATE_OPTIONS,
   type ExecutionProjectType,
+  type ProjectHealthStatus,
   type StageGateProject,
 } from "@/lib/execution/project-generator-types";
 import { QualityGateGuardianPanel } from "@/components/execution/QualityGateGuardianPanel";
@@ -27,6 +30,7 @@ const HEALTH_STYLES: Record<string, string> = {
   ON_TRACK: "border-emerald-600/30 bg-emerald-50 text-emerald-800",
   AT_RISK: "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange",
   DELAYED: "border-thermal-red/30 bg-thermal-red/5 text-thermal-red",
+  IN_DISPUTE: "border-violet-600/30 bg-violet-50 text-violet-800",
 };
 
 export function ProjectStageGateView({
@@ -44,6 +48,23 @@ export function ProjectStageGateView({
   const [projectType, setProjectType] =
     useState<ExecutionProjectType>("TURNKEY_PLANT");
   const [showCreate, setShowCreate] = useState(false);
+  const [importOngoing, setImportOngoing] = useState(false);
+  const [startStageIndex, setStartStageIndex] = useState(0);
+  const [initialHealth, setInitialHealth] =
+    useState<ProjectHealthStatus>("ON_TRACK");
+
+  const stageOptions = useMemo(
+    () => STAGE_GATE_TEMPLATE_OPTIONS[projectType],
+    [projectType],
+  );
+
+  const resetCreateForm = () => {
+    setTitle("");
+    setImportOngoing(false);
+    setStartStageIndex(0);
+    setInitialHealth("ON_TRACK");
+    setShowCreate(false);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +95,10 @@ export function ProjectStageGateView({
     void load();
   }, [load]);
 
+  useEffect(() => {
+    setStartStageIndex(0);
+  }, [projectType]);
+
   const createProject = async () => {
     const trimmed = title.trim();
     if (!trimmed) {
@@ -91,6 +116,12 @@ export function ProjectStageGateView({
           projectType,
           companyId,
           opportunityId: opportunityId ?? null,
+          ...(importOngoing
+            ? {
+                startStageIndex,
+                initialHealth,
+              }
+            : {}),
         }),
       });
       const body = (await response.json()) as {
@@ -102,8 +133,7 @@ export function ProjectStageGateView({
         return;
       }
       setProjects((prev) => [body.project!, ...prev]);
-      setTitle("");
-      setShowCreate(false);
+      resetCreateForm();
     } catch {
       setError("Failed to generate project");
     } finally {
@@ -157,11 +187,18 @@ export function ProjectStageGateView({
           </p>
           <p className="mt-0.5 text-[11px] text-carbon-blue/50">
             Multi-track templates for turnkey plants, machinery, and internal R&D.
+            Import mid-flight projects when delivery is already underway.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => setShowCreate((v) => !v)}
+          onClick={() => {
+            if (showCreate) {
+              resetCreateForm();
+            } else {
+              setShowCreate(true);
+            }
+          }}
           className="shrink-0 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-1.5 text-[11px] font-semibold text-upcycle-orange hover:bg-upcycle-orange/15"
         >
           {showCreate ? "Cancel" : "New Project"}
@@ -200,13 +237,78 @@ export function ProjectStageGateView({
               </button>
             ))}
           </div>
+
+          <label className="flex items-start gap-2 text-[12px] text-carbon-blue/75">
+            <input
+              type="checkbox"
+              checked={importOngoing}
+              onChange={(event) => setImportOngoing(event.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-semibold text-carbon-blue">
+                Import Ongoing / Mid-Flight Project
+              </span>
+              <span className="mt-0.5 block text-[11px] text-carbon-blue/50">
+                Start at the current stage with prior gates marked complete.
+              </span>
+            </span>
+          </label>
+
+          {importOngoing ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  Current Stage
+                </span>
+                <select
+                  value={startStageIndex}
+                  onChange={(event) =>
+                    setStartStageIndex(Number(event.target.value))
+                  }
+                  className="mt-1 w-full border border-carbon-blue/15 bg-[var(--dashboard-surface)] px-2.5 py-1.5 text-[12px] text-carbon-blue outline-none focus:border-carbon-blue/40"
+                >
+                  {stageOptions.map((stage) => (
+                    <option key={stage.index} value={stage.index}>
+                      {projectType === "INTERNAL_RD" && stage.trlLevel != null
+                        ? `TRL ${stage.trlLevel}+ — ${stage.title}`
+                        : `Stage ${stage.index + 1} — ${stage.title}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  Initial Project Health
+                </span>
+                <select
+                  value={initialHealth}
+                  onChange={(event) =>
+                    setInitialHealth(event.target.value as ProjectHealthStatus)
+                  }
+                  className="mt-1 w-full border border-carbon-blue/15 bg-[var(--dashboard-surface)] px-2.5 py-1.5 text-[12px] text-carbon-blue outline-none focus:border-carbon-blue/40"
+                >
+                  {HEALTH_STATUS_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
+
           <button
             type="button"
             onClick={() => void createProject()}
             disabled={creating}
             className="border border-carbon-blue bg-carbon-blue px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-carbon-blue/90 disabled:opacity-50"
           >
-            {creating ? "Generating…" : "Generate Stage-Gates"}
+            {creating
+              ? "Generating…"
+              : importOngoing
+                ? "Import Mid-Flight Project"
+                : "Generate Stage-Gates"}
           </button>
         </div>
       ) : null}
@@ -266,7 +368,6 @@ export function ProjectStageGateView({
                 </button>
               </div>
 
-              {/* Progress bar */}
               <div className="px-3 pt-3">
                 <div className="mb-1 flex items-center justify-between text-[10px] text-carbon-blue/50">
                   <span>Progress</span>
@@ -280,16 +381,12 @@ export function ProjectStageGateView({
                 </div>
               </div>
 
-              {/* Horizontal milestone track */}
               <div className="overflow-x-auto px-3 py-3">
                 <div className="flex min-w-max items-start gap-0">
                   {project.milestones.map((milestone, index) => {
                     const isCurrent = milestone.stage === project.currentStage;
                     return (
-                      <div
-                        key={milestone.id}
-                        className="flex items-start"
-                      >
+                      <div key={milestone.id} className="flex items-start">
                         <div className="flex w-[7.5rem] flex-col items-center text-center">
                           <div
                             className={`flex h-6 w-6 items-center justify-center border text-[10px] font-bold ${

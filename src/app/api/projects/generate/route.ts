@@ -3,6 +3,7 @@ import {
   generateProjectFromTemplate,
   listStageGateProjectsForCompany,
   type ExecutionProjectType,
+  type ProjectHealthStatus,
 } from "@/lib/execution/project-generator";
 
 type GenerateBody = {
@@ -10,6 +11,9 @@ type GenerateBody = {
   projectType?: ExecutionProjectType;
   companyId?: string;
   opportunityId?: string | null;
+  startStageIndex?: number;
+  initialHealth?: ProjectHealthStatus;
+  notes?: string;
 };
 
 const ALLOWED_TYPES = new Set<ExecutionProjectType>([
@@ -18,9 +22,16 @@ const ALLOWED_TYPES = new Set<ExecutionProjectType>([
   "INTERNAL_RD",
 ]);
 
+const ALLOWED_HEALTH = new Set<ProjectHealthStatus>([
+  "ON_TRACK",
+  "AT_RISK",
+  "DELAYED",
+  "IN_DISPUTE",
+]);
+
 /**
  * POST /api/projects/generate
- * Body: { title, projectType, companyId, opportunityId? }
+ * Body: { title, projectType, companyId, opportunityId?, startStageIndex?, initialHealth?, notes? }
  */
 export async function POST(request: Request) {
   let body: GenerateBody;
@@ -50,12 +61,38 @@ export async function POST(request: Request) {
     );
   }
 
+  if (
+    body.initialHealth !== undefined &&
+    !ALLOWED_HEALTH.has(body.initialHealth)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "initialHealth must be ON_TRACK | AT_RISK | DELAYED | IN_DISPUTE",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    body.startStageIndex !== undefined &&
+    (!Number.isFinite(body.startStageIndex) || body.startStageIndex < 0)
+  ) {
+    return NextResponse.json(
+      { error: "startStageIndex must be a non-negative number" },
+      { status: 400 },
+    );
+  }
+
   try {
     const project = await generateProjectFromTemplate({
       title,
       projectType,
       companyId,
       opportunityId: body.opportunityId ?? null,
+      startStageIndex: body.startStageIndex,
+      initialHealth: body.initialHealth,
+      notes: body.notes?.trim() || undefined,
     });
     return NextResponse.json({ project }, { status: 201 });
   } catch (error) {

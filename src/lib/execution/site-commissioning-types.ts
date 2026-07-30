@@ -1,12 +1,14 @@
 /** Site Commissioning Co-Pilot types — safe for client components. */
 
+import type { ProjectHealthStatus } from "@/lib/execution/project-generator-types";
+
+export type { ProjectHealthStatus } from "@/lib/execution/project-generator-types";
+
 export type CommissioningPhase =
   | "COLD_COMMISSIONING"
   | "HOT_COMMISSIONING"
   | "SYNGAS_TESTING"
   | "PERFORMANCE_RUN";
-
-export type ProjectHealthStatus = "ON_TRACK" | "AT_RISK" | "DELAYED";
 
 export type CommissioningLogRecord = {
   id: string;

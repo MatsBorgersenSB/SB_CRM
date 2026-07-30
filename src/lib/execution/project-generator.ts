@@ -22,8 +22,10 @@ export type {
 } from "@/lib/execution/project-generator-types";
 export {
   HEALTH_STATUS_LABELS,
+  HEALTH_STATUS_OPTIONS,
   PROJECT_TYPE_LABELS,
   PROJECT_TYPE_OPTIONS,
+  STAGE_GATE_TEMPLATE_OPTIONS,
 } from "@/lib/execution/project-generator-types";
 
 export type GenerateProjectInput = {
@@ -31,6 +33,12 @@ export type GenerateProjectInput = {
   projectType: ExecutionProjectType;
   companyId: string;
   opportunityId?: string | null;
+  /** 0-based index of the current in-flight stage (prior stages marked complete). */
+  startStageIndex?: number;
+  /** Initial health when importing an ongoing project. */
+  initialHealth?: ProjectHealthStatus;
+  /** Optional mid-flight context notes (not persisted as a column yet). */
+  notes?: string;
 };
 
 type MilestoneTemplate = {
@@ -277,22 +285,45 @@ export async function generateProjectFromTemplate(
   }
 
   const gates = templateForType(input.projectType);
-  const firstStage = gates[0]!.stage;
-  const initialTrl =
-    input.projectType === "INTERNAL_RD" ? (gates[0]!.trlLevel ?? 1) : null;
+  const maxIndex = Math.max(0, gates.length - 1);
+  const startStageIndex = Math.min(
+    Math.max(0, Math.floor(input.startStageIndex ?? 0)),
+    maxIndex,
+  );
+  const currentGate = gates[startStageIndex]!;
+  const healthStatus: ProjectHealthStatus = input.initialHealth ?? "ON_TRACK";
+  const allowedHealth: ProjectHealthStatus[] = [
+    "ON_TRACK",
+    "AT_RISK",
+    "DELAYED",
+    "IN_DISPUTE",
+  ];
+  if (!allowedHealth.includes(healthStatus)) {
+    throw new Error(
+      "initialHealth must be ON_TRACK | AT_RISK | DELAYED | IN_DISPUTE",
+    );
+  }
 
-  const startDate = new Date();
+  const initialTrl =
+    input.projectType === "INTERNAL_RD"
+      ? (currentGate.trlLevel ?? gates[0]!.trlLevel ?? 1)
+      : null;
+
+  const now = new Date();
+  const startDate = now;
   let cumulativeDays = 0;
   const milestoneCreates = gates.map((gate, index) => {
     const lead = gate.estimatedLeadDays ?? 0;
     cumulativeDays += lead;
     const target = new Date(startDate);
     target.setDate(target.getDate() + cumulativeDays);
+    const isPrior = index < startStageIndex;
     return {
       title: gate.title,
       stage: gate.stage,
       sortOrder: index,
-      isCompleted: false,
+      isCompleted: isPrior,
+      completedAt: isPrior ? now : null,
       estimatedLeadDays: gate.estimatedLeadDays ?? null,
       isCriticalPath: gate.isCriticalPath ?? false,
       vendorName: gate.vendorName ?? null,
@@ -301,16 +332,19 @@ export async function generateProjectFromTemplate(
     };
   });
 
+  // notes is accepted for API compatibility; no dedicated column yet.
+  void input.notes;
+
   const created = await withPrismaRetry((prisma) =>
     prisma.project.create({
       data: {
         title,
         projectType: input.projectType,
-        currentStage: firstStage,
+        currentStage: currentGate.stage,
         trlLevel: initialTrl,
         companyId: company.id,
         opportunityId: opportunityPrismaId,
-        healthStatus: "ON_TRACK",
+        healthStatus,
         milestones: {
           create: milestoneCreates,
         },

@@ -801,6 +801,7 @@ enum ProjectHealthStatus {
   ON_TRACK
   AT_RISK
   DELAYED
+  IN_DISPUTE
 }
 
 /// Stage-Gate execution project — linked to Company and optional Opportunity.
