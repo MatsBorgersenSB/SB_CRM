@@ -15,6 +15,12 @@ import { scheduleOpportunitySharePointFolderProvision } from "@/lib/m365/provisi
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
+import {
+  checkCompanyDuplicate,
+  checkContactDuplicate,
+  checkOpportunityDuplicate,
+} from "@/lib/validation/deduplication";
+import { findPrismaCompanyByRouteKey } from "@/lib/data/companies";
 import type { ContactListRole, CreateContactInput } from "@/types/contact";
 import { CONTACT_LIST_ROLES } from "@/types/contact";
 import type { CreateOpportunityInput } from "@/types/deal";
@@ -49,6 +55,8 @@ export type FullOpportunityCreateBody = {
   newCompany?: FullOpportunityNewCompany | null;
   /** Optional primary contact for the new company. */
   newContact?: FullOpportunityNewContact | null;
+  /** Bypass soft name match after user confirms Create as Distinct Person. */
+  forceCreateDistinct?: boolean;
 };
 
 const OPPORTUNITY_STAGES = new Set<string>([
@@ -165,6 +173,72 @@ export async function POST(request: Request) {
     let createdContact = null as Awaited<ReturnType<typeof contacts.create>> | null;
 
     if (creatingCompany) {
+      const companyDedupe = await checkCompanyDuplicate({ name: newCompanyName });
+      if (companyDedupe.status === "DUPLICATE_EXISTS") {
+        return NextResponse.json(
+          {
+            error: `A company named "${companyDedupe.existingCompany.name}" already exists.`,
+            status: companyDedupe.status,
+            existingCompany: companyDedupe.existingCompany,
+          },
+          { status: 409 },
+        );
+      }
+
+      const contactName = body.newContact?.contactName?.trim() ?? "";
+      const contactEmail = body.newContact?.contactEmail?.trim() ?? "";
+      const hasContactPayload = Boolean(contactName || contactEmail);
+      let pendingContact: {
+        firstName: string;
+        lastName: string;
+        listRole: ContactListRole;
+        jobTitle: string;
+        email: string;
+      } | null = null;
+
+      if (hasContactPayload) {
+        const { firstName, lastName } = splitContactName(
+          contactName || contactEmail.split("@")[0] || "Contact",
+        );
+        const { listRole, jobTitle } = resolveContactListRole(body.newContact?.role);
+        pendingContact = {
+          firstName: firstName || "Unknown",
+          lastName: lastName || "Contact",
+          listRole,
+          jobTitle,
+          email: contactEmail,
+        };
+
+        const contactDedupe = await checkContactDuplicate({
+          firstName: pendingContact.firstName,
+          lastName: pendingContact.lastName,
+          email: pendingContact.email,
+        });
+        if (contactDedupe.status === "EXACT_EMAIL_EXISTS") {
+          return NextResponse.json(
+            {
+              error: `A contact with email "${contactEmail}" already exists.`,
+              status: contactDedupe.status,
+              existingContact: contactDedupe.existingContact,
+            },
+            { status: 409 },
+          );
+        }
+        if (
+          contactDedupe.status === "NAME_SIMILARITY_MATCH" &&
+          !body.forceCreateDistinct
+        ) {
+          return NextResponse.json(
+            {
+              error: "Potential duplicate contact found. Confirm how to proceed.",
+              status: contactDedupe.status,
+              existingContacts: contactDedupe.existingContacts,
+            },
+            { status: 409 },
+          );
+        }
+      }
+
       createdCompany = await companies.create({
         Title: newCompanyName,
         Industry: "Polymer Processing",
@@ -187,19 +261,13 @@ export async function POST(request: Request) {
         metadata: { title: createdCompany.Title },
       });
 
-      const contactName = body.newContact?.contactName?.trim() ?? "";
-      const contactEmail = body.newContact?.contactEmail?.trim() ?? "";
-      if (contactName || contactEmail) {
-        const { firstName, lastName } = splitContactName(
-          contactName || contactEmail.split("@")[0] || "Contact",
-        );
-        const { listRole, jobTitle } = resolveContactListRole(body.newContact?.role);
+      if (pendingContact) {
         const contactInput: CreateContactInput = {
-          FirstName: firstName || "Unknown",
-          LastName: lastName || "Contact",
-          JobTitle: jobTitle,
-          Role: listRole,
-          Email: contactEmail,
+          FirstName: pendingContact.firstName,
+          LastName: pendingContact.lastName,
+          JobTitle: pendingContact.jobTitle,
+          Role: pendingContact.listRole,
+          Email: pendingContact.email,
           Phone: "",
           Mobile: "",
           LinkedInURL: "",
@@ -217,10 +285,27 @@ export async function POST(request: Request) {
           metadata: {
             companyId,
             email: createdContact.Email || null,
+            forceCreateDistinct: Boolean(body.forceCreateDistinct),
           },
         });
       }
     } else {
+      const prismaCompany = await findPrismaCompanyByRouteKey(companyId);
+      const oppDedupe = await checkOpportunityDuplicate({
+        title,
+        companyId: prismaCompany?.id ?? companyId,
+      });
+      if (oppDedupe.status === "DUPLICATE_EXISTS") {
+        return NextResponse.json(
+          {
+            error: `An opportunity named "${oppDedupe.existingOpportunity.name}" already exists for this company.`,
+            status: oppDedupe.status,
+            existingOpportunity: oppDedupe.existingOpportunity,
+          },
+          { status: 409 },
+        );
+      }
+
       const existing = await companies.getById(companyId);
       companyName = existing.Title;
     }

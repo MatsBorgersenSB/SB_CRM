@@ -1,18 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { CompanyCombobox } from "@/components/companies/company-combobox";
 import { OpportunityOfferingsPicker } from "@/components/opportunity/opportunity-offerings-picker";
+import {
+  ContactDuplicateModal,
+  type ContactDuplicateChoice,
+} from "@/components/contacts/ContactDuplicateModal";
+import { AsyncSubmitButton } from "@/components/ui/async-submit-button";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { useFormSubmitLock } from "@/hooks/use-form-submit-lock";
 import { withAuthRoleHeaders } from "@/lib/api-auth";
 import { canCreateCompany } from "@/lib/permissions";
+import { syncCompanyContact } from "@/lib/sync-company";
+import type { DedupContactSummary } from "@/lib/validation/deduplication-types";
 import type { Company } from "@/types/company";
 import type { ContactListRole } from "@/types/contact";
 import { CONTACT_LIST_ROLES } from "@/types/contact";
 import type { UserRole } from "@/types/auth";
 import type { CompanyRole, PipelineRow } from "@/types/pipeline";
 import { COMPANY_ROLES } from "@/types/pipeline";
+import { contact360Href } from "@/types/relationship-navigation";
 
 type FormState = {
   companyId: string;
@@ -63,6 +73,11 @@ type FullCreateResponse = {
   company?: Company | null;
   error?: string;
   detail?: string;
+  status?: string;
+  existingContact?: DedupContactSummary;
+  existingContacts?: DedupContactSummary[];
+  existingCompany?: { name?: string };
+  existingOpportunity?: { name?: string };
 };
 
 export function OpportunityCreateModal({
@@ -80,13 +95,16 @@ export function OpportunityCreateModal({
   companies: Company[];
   role: UserRole;
 }) {
+  const router = useRouter();
+  const { isSubmitting, runLocked } = useFormSubmitLock();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [localCompanies, setLocalCompanies] = useState<Company[]>(companies);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [newCompanyData, setNewCompanyData] = useState<NewCompanyData>(EMPTY_NEW_COMPANY);
   const [newContactData, setNewContactData] = useState<NewContactData>(EMPTY_NEW_CONTACT);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [softMatches, setSoftMatches] = useState<DedupContactSummary[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const allowCreateCompany = canCreateCompany(role);
 
   useEffect(() => {
@@ -97,6 +115,8 @@ export function OpportunityCreateModal({
       setNewCompanyData(EMPTY_NEW_COMPANY);
       setNewContactData(EMPTY_NEW_CONTACT);
       setError(null);
+      setSoftMatches([]);
+      setShowDuplicateModal(false);
     }
   }, [open, companies]);
 
@@ -131,10 +151,12 @@ export function OpportunityCreateModal({
   };
 
   const handleClose = () => {
-    if (saving) return;
+    if (isSubmitting) return;
     setForm(EMPTY_FORM);
     resetCompanyCreate();
     setError(null);
+    setSoftMatches([]);
+    setShowDuplicateModal(false);
     onClose();
   };
 
@@ -146,69 +168,151 @@ export function OpportunityCreateModal({
     setNewContactData(EMPTY_NEW_CONTACT);
   };
 
-  const handleCreate = async () => {
+  const buildPayload = (forceCreateDistinct = false) => {
+    const salesValue = parseOptionalValue(form.salesValue);
+    return {
+      title: form.assetName.trim(),
+      assetName: form.assetName.trim(),
+      companyRole: form.companyRole,
+      offeringIds: form.offeringIds,
+      forceCreateDistinct,
+      ...(salesValue !== undefined ? { salesValue, value: salesValue } : {}),
+      ...(form.expectedCloseDate.trim()
+        ? { expectedCloseDate: form.expectedCloseDate.trim() }
+        : {}),
+      ...(isCreatingCompany
+        ? {
+            newCompany: {
+              name: newCompanyData.name.trim(),
+              domain: newCompanyData.domain.trim() || undefined,
+            },
+            newContact:
+              newContactData.contactName.trim() || newContactData.contactEmail.trim()
+                ? {
+                    contactName: newContactData.contactName.trim() || undefined,
+                    contactEmail: newContactData.contactEmail.trim() || undefined,
+                    role: newContactData.role,
+                  }
+                : null,
+          }
+        : { companyId: form.companyId }),
+    };
+  };
+
+  const createWithOptions = async (forceCreateDistinct = false) => {
     if (!isValid) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const salesValue = parseOptionalValue(form.salesValue);
-      const payload = {
-        title: form.assetName.trim(),
-        assetName: form.assetName.trim(),
-        companyRole: form.companyRole,
-        offeringIds: form.offeringIds,
-        ...(salesValue !== undefined ? { salesValue, value: salesValue } : {}),
-        ...(form.expectedCloseDate.trim()
-          ? { expectedCloseDate: form.expectedCloseDate.trim() }
-          : {}),
-        ...(isCreatingCompany
-          ? {
-              newCompany: {
-                name: newCompanyData.name.trim(),
-                domain: newCompanyData.domain.trim() || undefined,
-              },
-              newContact:
-                newContactData.contactName.trim() ||
-                newContactData.contactEmail.trim()
-                  ? {
-                      contactName: newContactData.contactName.trim() || undefined,
-                      contactEmail: newContactData.contactEmail.trim() || undefined,
-                      role: newContactData.role,
-                    }
-                  : null,
-            }
-          : { companyId: form.companyId }),
-      };
 
-      const response = await fetch("/api/opportunities/full", {
-        method: "POST",
-        headers: withAuthRoleHeaders(role, { "Content-Type": "application/json" }),
-        body: JSON.stringify(payload),
+    await runLocked(async () => {
+      setError(null);
+      try {
+        const response = await fetch("/api/opportunities/full", {
+          method: "POST",
+          headers: withAuthRoleHeaders(role, { "Content-Type": "application/json" }),
+          body: JSON.stringify(buildPayload(forceCreateDistinct)),
+        });
+        const body = (await response.json().catch(() => ({}))) as FullCreateResponse;
+
+        if (response.status === 409) {
+          if (body.status === "EXACT_EMAIL_EXISTS" && body.existingContact) {
+            setError(
+              `A contact with this email already exists (${body.existingContact.fullName}).`,
+            );
+            return;
+          }
+          if (
+            body.status === "NAME_SIMILARITY_MATCH" &&
+            body.existingContacts?.length
+          ) {
+            setSoftMatches(body.existingContacts);
+            setShowDuplicateModal(true);
+            return;
+          }
+          setError(body.detail || body.error || "Duplicate record detected.");
+          return;
+        }
+
+        if (!response.ok || !body.deal) {
+          throw new Error(
+            body.detail || body.error || `Create failed (${response.status})`,
+          );
+        }
+
+        if (body.company) {
+          setLocalCompanies((current) =>
+            current.some((row) => row.CompanyID === body.company!.CompanyID)
+              ? current
+              : [...current, body.company!],
+          );
+          onCompanyCreated?.(body.company);
+        }
+
+        setForm(EMPTY_FORM);
+        resetCompanyCreate();
+        setSoftMatches([]);
+        setShowDuplicateModal(false);
+        onCreated(body.deal);
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not create opportunity");
+      }
+    });
+  };
+
+  const handleDuplicateChoice = async (choice: ContactDuplicateChoice) => {
+    if (choice.action === "cancel") {
+      setShowDuplicateModal(false);
+      return;
+    }
+
+    if (choice.action === "create_distinct") {
+      setShowDuplicateModal(false);
+      await createWithOptions(true);
+      return;
+    }
+
+    if (choice.action === "use_existing") {
+      setShowDuplicateModal(false);
+      setError(
+        "Using the existing contact — create the opportunity against that company, or open the contact to continue.",
+      );
+      router.push(
+        choice.contact.companyId
+          ? contact360Href(choice.contact.contactId, choice.contact.companyId)
+          : contact360Href(choice.contact.contactId),
+      );
+      return;
+    }
+
+    if (choice.action === "update_existing") {
+      setShowDuplicateModal(false);
+      await runLocked(async () => {
+        try {
+          const nameParts = newContactData.contactName.trim().split(/\s+/).filter(Boolean);
+          await syncCompanyContact(
+            choice.contact.companyId ?? form.companyId,
+            choice.contact.contactId,
+            {
+              FirstName: nameParts[0] || choice.contact.firstName,
+              LastName: nameParts.slice(1).join(" ") || choice.contact.lastName,
+              Email: newContactData.contactEmail.trim() || choice.contact.email,
+            },
+          );
+          setError(
+            "Existing contact updated. Choose that company and create the opportunity without inventing a new person.",
+          );
+          router.push(
+            choice.contact.companyId
+              ? contact360Href(choice.contact.contactId, choice.contact.companyId)
+              : contact360Href(choice.contact.contactId),
+          );
+        } catch (updateError) {
+          setError(
+            updateError instanceof Error
+              ? updateError.message
+              : "Failed to update existing contact",
+          );
+        }
       });
-      const body = (await response.json().catch(() => ({}))) as FullCreateResponse;
-      if (!response.ok || !body.deal) {
-        throw new Error(
-          body.detail || body.error || `Create failed (${response.status})`,
-        );
-      }
-
-      if (body.company) {
-        setLocalCompanies((current) =>
-          current.some((row) => row.CompanyID === body.company!.CompanyID)
-            ? current
-            : [...current, body.company!],
-        );
-        onCompanyCreated?.(body.company);
-      }
-
-      setForm(EMPTY_FORM);
-      resetCompanyCreate();
-      onCreated(body.deal);
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create opportunity");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -242,7 +346,7 @@ export function OpportunityCreateModal({
           <button
             type="button"
             onClick={handleClose}
-            disabled={saving}
+            disabled={isSubmitting}
             className="rounded p-1 text-carbon-blue/40 transition-colors hover:bg-carbon-blue/5 hover:text-carbon-blue"
             aria-label="Close"
           >
@@ -264,7 +368,7 @@ export function OpportunityCreateModal({
             }}
             onCreateNewCompany={handleCreateNewCompanyIntent}
             allowCreate={allowCreateCompany}
-            disabled={saving}
+            disabled={isSubmitting}
           />
 
           {isCreatingCompany ? (
@@ -276,7 +380,7 @@ export function OpportunityCreateModal({
                 <button
                   type="button"
                   onClick={resetCompanyCreate}
-                  disabled={saving}
+                  disabled={isSubmitting}
                   className="text-[10px] font-semibold text-carbon-blue/45 hover:text-carbon-blue"
                 >
                   Cancel new company
@@ -468,22 +572,33 @@ export function OpportunityCreateModal({
           <button
             type="button"
             onClick={handleClose}
-            disabled={saving}
+            disabled={isSubmitting}
             className="px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/55 transition-colors hover:text-carbon-blue"
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={() => void handleCreate()}
-            disabled={!isValid || saving}
-            className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <SmartCRMIcon name="add" size="xs" />
-            {saving ? "Creating…" : "Create Opportunity"}
-          </button>
+          <AsyncSubmitButton
+            isSubmitting={isSubmitting}
+            disabled={!isValid}
+            onClick={() => void createWithOptions(false)}
+            idleLabel={
+              <>
+                <SmartCRMIcon name="add" size="xs" />
+                Create Opportunity
+              </>
+            }
+            submittingLabel="Creating…"
+            className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+          />
         </div>
       </div>
+
+      <ContactDuplicateModal
+        open={showDuplicateModal}
+        matches={softMatches}
+        pendingName={newContactData.contactName.trim() || "this contact"}
+        onChoose={(choice) => void handleDuplicateChoice(choice)}
+      />
     </div>
   );
 }

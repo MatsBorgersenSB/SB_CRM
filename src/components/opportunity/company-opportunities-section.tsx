@@ -22,6 +22,8 @@ import {
   buildOfferingIntelligence,
 } from "@/lib/offering-intelligence";
 import { StakeholderRoleSelect } from "@/components/opportunity/stakeholder-role-select";
+import { AsyncSubmitButton } from "@/components/ui/async-submit-button";
+import { useFormSubmitLock } from "@/hooks/use-form-submit-lock";
 
 type CreateFormState = {
   assetName: string;
@@ -71,7 +73,7 @@ export function CompanyOpportunitiesSection({
 }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<CreateFormState>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
+  const { isSubmitting: saving, runLocked } = useFormSubmitLock();
   const [error, setError] = useState<string | null>(null);
   const [createdDeal, setCreatedDeal] = useState<PipelineRow | null>(null);
   const [stakeholderOpen, setStakeholderOpen] = useState(false);
@@ -130,33 +132,32 @@ export function CompanyOpportunitiesSection({
 
   const handleCreate = async () => {
     if (!onCreateOpportunity || !isValid) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const salesValue = parseOptionalValue(form.salesValue);
-      const created = await onCreateOpportunity({
-        companyId: company.CompanyID,
-        assetName: form.assetName.trim(),
-        companyRole: form.companyRole,
-        offeringIds: form.offeringIds,
-        ...(salesValue !== undefined ? { salesValue } : {}),
-        ...(form.expectedCloseDate.trim()
-          ? { expectedCloseDate: form.expectedCloseDate.trim() }
-          : {}),
-      });
-      setCreatedDeal(created);
-      setCreateOpen(false);
-      setForm(EMPTY_FORM);
-      setStakeholderOpen(canManageStakeholders);
-      const intelligence = buildOfferingIntelligence(created.offeringIds);
-      const preferredRole = intelligence.suggestedStakeholderRoles[0] ?? "Champion";
-      setSelectedContactId("");
-      setStakeholderRole(preferredRole);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create opportunity");
-    } finally {
-      setSaving(false);
-    }
+    await runLocked(async () => {
+      setError(null);
+      try {
+        const salesValue = parseOptionalValue(form.salesValue);
+        const created = await onCreateOpportunity({
+          companyId: company.CompanyID,
+          assetName: form.assetName.trim(),
+          companyRole: form.companyRole,
+          offeringIds: form.offeringIds,
+          ...(salesValue !== undefined ? { salesValue } : {}),
+          ...(form.expectedCloseDate.trim()
+            ? { expectedCloseDate: form.expectedCloseDate.trim() }
+            : {}),
+        });
+        setCreatedDeal(created);
+        setCreateOpen(false);
+        setForm(EMPTY_FORM);
+        setStakeholderOpen(canManageStakeholders);
+        const intelligence = buildOfferingIntelligence(created.offeringIds);
+        const preferredRole = intelligence.suggestedStakeholderRoles[0] ?? "Champion";
+        setSelectedContactId("");
+        setStakeholderRole(preferredRole);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not create opportunity");
+      }
+    });
   };
 
   const selectSuggestedContact = (contact: Contact) => {
@@ -316,14 +317,14 @@ export function CompanyOpportunitiesSection({
           </div>
           {error ? <p className="mt-3 text-[12px] text-thermal-red">{error}</p> : null}
           <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              disabled={saving || !isValid}
+            <AsyncSubmitButton
+              isSubmitting={saving}
+              disabled={!isValid}
               onClick={() => void handleCreate()}
-              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-            >
-              {saving ? "Creating…" : "Create Opportunity"}
-            </button>
+              idleLabel="Create Opportunity"
+              submittingLabel="Creating…"
+              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white"
+            />
             <button
               type="button"
               onClick={() => {

@@ -14,6 +14,8 @@ import { COMPANY_INDUSTRIES, COMPANY_STATUSES } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
 import { EuropeanRegistrySearch } from "@/components/companies/european-registry-search";
+import { AsyncSubmitButton } from "@/components/ui/async-submit-button";
+import { useFormSubmitLock } from "@/hooks/use-form-submit-lock";
 import type { UnifiedEuropeanCompany } from "@/lib/integrations/company-registers/types";
 import type { UserRole } from "@/types/auth";
 
@@ -36,7 +38,8 @@ export function CompaniesActionBar({
   const [internalOpen, setInternalOpen] = useState(false);
   const createOpen = controlledOpen ?? internalOpen;
   const setCreateOpen = onOpenChange ?? setInternalOpen;
-  const [saving, setSaving] = useState(false);
+  const { isSubmitting, runLocked } = useFormSubmitLock();
+  const [createError, setCreateError] = useState<string | null>(null);
   const defaultOwner = authUserToAccountOwner(user);
   const [form, setForm] = useState({
     Title: "",
@@ -104,54 +107,57 @@ export function CompaniesActionBar({
 
     const accountOwner = resolveOwnerById(form.accountOwnerId, companies) ?? defaultOwner;
 
-    setSaving(true);
-
-    try {
-      const company = await createCompanyRecord({
-        Title: form.Title.trim(),
-        Industry: form.Industry,
-        Status: form.Status,
-        CompanyTypes: form.CompanyTypes,
-        City: form.City.trim(),
-        Domain: form.Domain.trim(),
-        Phone: form.Phone.trim(),
-        AddressLine1: form.AddressLine1.trim() || undefined,
-        PostalCode: form.PostalCode.trim() || undefined,
-        Country: form.Country.trim()
-          ? { Id: 0, Title: form.Country.trim() }
-          : undefined,
-        countryCode: form.countryCode.trim() || null,
-        continent: form.continent.trim() || null,
-        organizationNumber: form.organizationNumber.trim() || null,
-        vatNumber: form.vatNumber.trim() || null,
-        Notes: form.industryNote.trim() || undefined,
-        ParentCompany: resolveParentCompanyLookup(form.parentCompanyId, companies),
-        AccountOwner: accountOwner,
-      });
-      onCreated(company);
-      setForm({
-        Title: "",
-        Industry: "Polymer Processing",
-        Status: "Prospecting",
-        CompanyTypes: ["Prospect"],
-        parentCompanyId: "",
-        accountOwnerId: defaultOwner.Id,
-        City: "",
-        Domain: "",
-        Phone: "",
-        AddressLine1: "",
-        PostalCode: "",
-        Country: "",
-        countryCode: "",
-        continent: "",
-        organizationNumber: "",
-        vatNumber: "",
-        industryNote: "",
-      });
-      setCreateOpen(false);
-    } finally {
-      setSaving(false);
-    }
+    await runLocked(async () => {
+      setCreateError(null);
+      try {
+        const company = await createCompanyRecord({
+          Title: form.Title.trim(),
+          Industry: form.Industry,
+          Status: form.Status,
+          CompanyTypes: form.CompanyTypes,
+          City: form.City.trim(),
+          Domain: form.Domain.trim(),
+          Phone: form.Phone.trim(),
+          AddressLine1: form.AddressLine1.trim() || undefined,
+          PostalCode: form.PostalCode.trim() || undefined,
+          Country: form.Country.trim()
+            ? { Id: 0, Title: form.Country.trim() }
+            : undefined,
+          countryCode: form.countryCode.trim() || null,
+          continent: form.continent.trim() || null,
+          organizationNumber: form.organizationNumber.trim() || null,
+          vatNumber: form.vatNumber.trim() || null,
+          Notes: form.industryNote.trim() || undefined,
+          ParentCompany: resolveParentCompanyLookup(form.parentCompanyId, companies),
+          AccountOwner: accountOwner,
+        });
+        onCreated(company);
+        setForm({
+          Title: "",
+          Industry: "Polymer Processing",
+          Status: "Prospecting",
+          CompanyTypes: ["Prospect"],
+          parentCompanyId: "",
+          accountOwnerId: defaultOwner.Id,
+          City: "",
+          Domain: "",
+          Phone: "",
+          AddressLine1: "",
+          PostalCode: "",
+          Country: "",
+          countryCode: "",
+          continent: "",
+          organizationNumber: "",
+          vatNumber: "",
+          industryNote: "",
+        });
+        setCreateOpen(false);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to create company";
+        setCreateError(/already exists/i.test(message) ? `⚠️ ${message}` : message);
+      }
+    });
   };
 
   if (!canCreateCompany(role)) {
@@ -425,14 +431,22 @@ export function CompaniesActionBar({
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             />
           </label>
-          <button
-            type="button"
-            disabled={saving || !form.Title.trim() || !form.City.trim() || !form.accountOwnerId}
+          {createError ? (
+            <div
+              className="border border-thermal-red/30 bg-thermal-red/5 px-3 py-2 text-[12px] font-medium text-thermal-red sm:col-span-2"
+              role="alert"
+            >
+              {createError}
+            </div>
+          ) : null}
+          <AsyncSubmitButton
+            isSubmitting={isSubmitting}
+            disabled={!form.Title.trim() || !form.City.trim() || !form.accountOwnerId}
             onClick={() => void handleCreate()}
-            className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1.5 text-xs font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
-          >
-            {saving ? "Saving…" : "Create Company"}
-          </button>
+            idleLabel="Create Company"
+            submittingLabel="Saving…"
+            className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1.5 text-xs font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 sm:col-span-2"
+          />
         </div>
       ) : null}
     </section>

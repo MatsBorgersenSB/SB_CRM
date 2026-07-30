@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import { AsyncSubmitButton } from "@/components/ui/async-submit-button";
+import { useFormSubmitLock } from "@/hooks/use-form-submit-lock";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import { canCreateProject } from "@/lib/permissions";
 import { project360Href } from "@/types/relationship-navigation";
@@ -11,9 +13,9 @@ import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 export function ProjectCreateButton() {
   const { user } = useAuth();
   const router = useRouter();
+  const { isSubmitting, runLocked } = useFormSubmitLock();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [duplicateTitle, setDuplicateTitle] = useState<string | null>(null);
 
@@ -24,32 +26,31 @@ export function ProjectCreateButton() {
   const handleCreate = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    setSaving(true);
-    setError(null);
-    setDuplicateTitle(null);
-    try {
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          [AUTH_ROLE_HEADER]: user.role,
-        },
-        body: JSON.stringify({ name: trimmed }),
-      });
-      const payload = (await response.json()) as { id?: string; error?: string };
-      if (response.status === 409) {
-        setDuplicateTitle(trimmed);
-        return;
+    await runLocked(async () => {
+      setError(null);
+      setDuplicateTitle(null);
+      try {
+        const response = await fetch("/api/projects", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            [AUTH_ROLE_HEADER]: user.role,
+          },
+          body: JSON.stringify({ name: trimmed }),
+        });
+        const payload = (await response.json()) as { id?: string; error?: string };
+        if (response.status === 409) {
+          setDuplicateTitle(trimmed);
+          return;
+        }
+        if (!response.ok || !payload.id) {
+          throw new Error(payload.error ?? "Failed to create project");
+        }
+        router.push(`${project360Href(payload.id)}?view=command`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to create project");
       }
-      if (!response.ok || !payload.id) {
-        throw new Error(payload.error ?? "Failed to create project");
-      }
-      router.push(`${project360Href(payload.id)}?view=command`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create project");
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (
@@ -87,15 +88,19 @@ export function ProjectCreateButton() {
           ) : null}
           {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
           <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              disabled={saving || !name.trim()}
+            <AsyncSubmitButton
+              isSubmitting={isSubmitting}
+              disabled={!name.trim()}
               onClick={() => void handleCreate()}
-              className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-            >
-              <SmartCRMIcon name="add" size="xs" />
-              {saving ? "Creating…" : "Create & discover"}
-            </button>
+              idleLabel={
+                <>
+                  <SmartCRMIcon name="add" size="xs" />
+                  Create & discover
+                </>
+              }
+              submittingLabel="Creating…"
+              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white"
+            />
             <button
               type="button"
               onClick={() => {

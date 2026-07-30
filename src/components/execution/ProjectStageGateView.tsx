@@ -18,6 +18,8 @@ import { SiteCommissioningCoPilotPanel } from "@/components/execution/SiteCommis
 import { TrlTrackerPanel } from "@/components/execution/TrlTrackerPanel";
 import { EciTraceabilityPanel } from "@/components/execution/EciTraceabilityPanel";
 import { AtexPlcControlsPanel } from "@/components/execution/AtexPlcControlsPanel";
+import { AsyncSubmitButton } from "@/components/ui/async-submit-button";
+import { useFormSubmitLock } from "@/hooks/use-form-submit-lock";
 
 type ProjectStageGateViewProps = {
   companyId: string;
@@ -43,7 +45,7 @@ export function ProjectStageGateView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [duplicateTitle, setDuplicateTitle] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const { isSubmitting: creating, runLocked } = useFormSubmitLock();
   const [advancingId, setAdvancingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [projectType, setProjectType] =
@@ -109,46 +111,45 @@ export function ProjectStageGateView({
       setDuplicateTitle(null);
       return;
     }
-    setCreating(true);
-    setError(null);
-    setDuplicateTitle(null);
-    try {
-      const response = await fetch("/api/projects/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: trimmed,
-          projectType,
-          companyId,
-          opportunityId: opportunityId ?? null,
-          ...(importOngoing
-            ? {
-                startStageIndex,
-                initialHealth,
-              }
-            : {}),
-        }),
-      });
-      const body = (await response.json()) as {
-        project?: StageGateProject;
-        error?: string;
-      };
-      if (response.status === 409) {
-        setDuplicateTitle(trimmed);
-        setError(null);
-        return;
+    await runLocked(async () => {
+      setError(null);
+      setDuplicateTitle(null);
+      try {
+        const response = await fetch("/api/projects/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: trimmed,
+            projectType,
+            companyId,
+            opportunityId: opportunityId ?? null,
+            ...(importOngoing
+              ? {
+                  startStageIndex,
+                  initialHealth,
+                }
+              : {}),
+          }),
+        });
+        const body = (await response.json()) as {
+          project?: StageGateProject;
+          error?: string;
+        };
+        if (response.status === 409) {
+          setDuplicateTitle(trimmed);
+          setError(null);
+          return;
+        }
+        if (!response.ok || !body.project) {
+          setError(body.error ?? "Failed to generate project");
+          return;
+        }
+        setProjects((prev) => [body.project!, ...prev]);
+        resetCreateForm();
+      } catch {
+        setError("Failed to generate project");
       }
-      if (!response.ok || !body.project) {
-        setError(body.error ?? "Failed to generate project");
-        return;
-      }
-      setProjects((prev) => [body.project!, ...prev]);
-      resetCreateForm();
-    } catch {
-      setError("Failed to generate project");
-    } finally {
-      setCreating(false);
-    }
+    });
   };
 
   const advance = async (projectId: string) => {
@@ -322,18 +323,15 @@ export function ProjectStageGateView({
             </div>
           ) : null}
 
-          <button
-            type="button"
+          <AsyncSubmitButton
+            isSubmitting={creating}
             onClick={() => void createProject()}
-            disabled={creating}
-            className="border border-carbon-blue bg-carbon-blue px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-carbon-blue/90 disabled:opacity-50"
-          >
-            {creating
-              ? "Generating…"
-              : importOngoing
-                ? "Import Mid-Flight Project"
-                : "Generate Stage-Gates"}
-          </button>
+            idleLabel={
+              importOngoing ? "Import Mid-Flight Project" : "Generate Stage-Gates"
+            }
+            submittingLabel="Generating…"
+            className="border border-carbon-blue bg-carbon-blue px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-carbon-blue/90"
+          />
         </div>
       ) : null}
 

@@ -7,6 +7,7 @@ import { findPrismaCompanyByRouteKey } from "@/lib/data/companies";
 import { findPrismaOpportunityByRouteKey } from "@/lib/resolve-opportunity-route";
 import { withPrismaRetry } from "@/lib/prisma";
 import { verifyGateQualityPass } from "@/lib/execution/quality-guardian";
+import { checkProjectDuplicate } from "@/lib/validation/deduplication";
 import type {
   ExecutionProjectType,
   ProjectHealthStatus,
@@ -287,13 +288,8 @@ export async function generateProjectFromTemplate(
     );
   }
 
-  const duplicate = await withPrismaRetry((prisma) =>
-    prisma.project.findFirst({
-      where: { title: { equals: title, mode: "insensitive" } },
-      select: { id: true, title: true },
-    }),
-  );
-  if (duplicate) {
+  const duplicateCheck = await checkProjectDuplicate({ title });
+  if (duplicateCheck.status === "DUPLICATE_TITLE") {
     throw new DuplicateProjectTitleError(title);
   }
 

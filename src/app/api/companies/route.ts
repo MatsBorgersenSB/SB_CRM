@@ -15,6 +15,7 @@ import {
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
 import { companyRouteKey } from "@/types/company-360";
+import { checkCompanyDuplicate } from "@/lib/validation/deduplication";
 
 export async function GET(request: Request) {
   try {
@@ -43,6 +44,22 @@ export async function POST(request: Request) {
   const body = (await request.json()) as NewCompanyInput;
 
   try {
+    const dedupe = await checkCompanyDuplicate({
+      name: body.Title,
+      orgNumber: body.organizationNumber ?? undefined,
+    });
+
+    if (dedupe.status === "DUPLICATE_EXISTS") {
+      return NextResponse.json(
+        {
+          error: `A company named "${dedupe.existingCompany.name}" already exists.`,
+          status: dedupe.status,
+          existingCompany: dedupe.existingCompany,
+        },
+        { status: 409 },
+      );
+    }
+
     const { companies } = getServerSharePointServices();
     const company = await companies.create(body);
 

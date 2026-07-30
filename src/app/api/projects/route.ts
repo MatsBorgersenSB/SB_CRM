@@ -28,7 +28,14 @@ export async function POST(request: Request) {
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
     if (isDuplicateWorkspaceProjectNameError(error)) {
-      return NextResponse.json({ error: error.message }, { status: 409 });
+      return NextResponse.json(
+        {
+          error: error.message,
+          status: "DUPLICATE_TITLE",
+          existingProject: { title: body.name.trim() },
+        },
+        { status: 409 },
+      );
     }
     const message = error instanceof Error ? error.message : "Create failed";
     return NextResponse.json({ error: message }, { status: 500 });

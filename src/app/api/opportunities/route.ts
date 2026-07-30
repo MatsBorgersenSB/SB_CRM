@@ -10,6 +10,7 @@ import {
 import { scheduleOpportunitySharePointFolderProvision } from "@/lib/m365/provision-opportunity-folder";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
+import { checkOpportunityDuplicate } from "@/lib/validation/deduplication";
 import type { OpportunityStage } from "@/generated/prisma";
 
 const OPPORTUNITY_STAGES = new Set<string>([
@@ -86,6 +87,21 @@ export async function POST(request: Request) {
 
     const companyName =
       (body.companyName ?? "").trim() || company.name || "General Clients";
+
+    const dedupe = await checkOpportunityDuplicate({
+      title,
+      companyId: company.id,
+    });
+    if (dedupe.status === "DUPLICATE_EXISTS") {
+      return NextResponse.json(
+        {
+          error: `An opportunity named "${dedupe.existingOpportunity.name}" already exists for this company.`,
+          status: dedupe.status,
+          existingOpportunity: dedupe.existingOpportunity,
+        },
+        { status: 409 },
+      );
+    }
 
     // 1. Create Opportunity in PostgreSQL first (fast path)
     const opportunity = await prisma.opportunity.create({
