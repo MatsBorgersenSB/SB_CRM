@@ -608,6 +608,21 @@ export function ContactFormFields({
   );
 }
 
+function safeTrim(value: string | undefined | null): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 export function isContactFormValid(form: CreateContactInput): boolean {
-  return Boolean(form.FirstName.trim() && form.LastName.trim() && form.Email.trim());
+  return Boolean(
+    safeTrim(form.FirstName) && safeTrim(form.LastName) && safeTrim(form.Email),
+  );
+}
+
+export function contactFormValidationMessage(
+  form: CreateContactInput,
+): string | null {
+  if (!safeTrim(form.FirstName)) return "First name is required to save.";
+  if (!safeTrim(form.LastName)) return "Last name is required to save.";
+  if (!safeTrim(form.Email)) return "Email is required to save.";
+  return null;
 }

@@ -11,6 +11,12 @@ import type {
   InfluenceLevel,
   RelationshipLevel,
 } from "@/types/contact";
+import {
+  CONTACT_LIST_ROLES,
+  RELATIONSHIP_LEVELS,
+} from "@/types/contact";
+import type { EmploymentStatus } from "@/types/contact-lifecycle";
+import { EMPLOYMENT_STATUSES } from "@/types/contact-lifecycle";
 import type {
   CompanyRole,
   PipelineCurrency,
@@ -130,6 +136,51 @@ function mapContactRole(jobTitle: string | null | undefined): ContactListRole {
   return "Plant Manager";
 }
 
+type ContactPersonalMeta = {
+  role?: string;
+  relationshipLevel?: string;
+  employmentStatus?: string;
+};
+
+function parseContactPersonalMeta(
+  personalNotes: string | null | undefined,
+): ContactPersonalMeta {
+  if (!personalNotes?.trim()?.startsWith("{")) return {};
+  try {
+    const parsed = JSON.parse(personalNotes) as ContactPersonalMeta;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function mapStoredContactRole(
+  stored: string | undefined,
+  jobTitle: string | null | undefined,
+): ContactListRole {
+  if (stored && (CONTACT_LIST_ROLES as string[]).includes(stored)) {
+    return stored as ContactListRole;
+  }
+  return mapContactRole(jobTitle);
+}
+
+function mapStoredRelationshipLevel(
+  stored: string | undefined,
+  jobTitle: string | null | undefined,
+): RelationshipLevel {
+  if (stored && (RELATIONSHIP_LEVELS as string[]).includes(stored)) {
+    return stored as RelationshipLevel;
+  }
+  return mapRelationshipLevel(jobTitle);
+}
+
+function mapStoredEmploymentStatus(stored: string | undefined): EmploymentStatus {
+  if (stored && (EMPLOYMENT_STATUSES as string[]).includes(stored)) {
+    return stored as EmploymentStatus;
+  }
+  return "Active";
+}
+
 function mapContactStatus(status: PrismaContact["status"]): ContactStatus {
   return status === "archived" ? "Inactive" : "Active";
 }
@@ -214,6 +265,7 @@ export function mapPrismaContactToApp(
     `${firstName} ${lastName}`.trim() ||
     primaryEmail(contact.emails) ||
     "Unknown contact";
+  const meta = parseContactPersonalMeta(contact.personalNotes);
 
   return {
     id: stableNumericId(contact.id),
@@ -223,13 +275,13 @@ export function mapPrismaContactToApp(
     LastName: lastName || title.split(" ").slice(1).join(" ") || "",
     Company: companyLookup,
     JobTitle: contact.jobTitle?.trim() || "",
-    Role: mapContactRole(contact.jobTitle),
+    Role: mapStoredContactRole(meta.role, contact.jobTitle),
     Email: primaryEmail(contact.emails),
     Phone: primaryPhone(contact.phoneNumbers, false),
     Mobile: primaryPhone(contact.phoneNumbers, true),
     LinkedInURL: contact.linkedInUrl?.trim() || "",
     Status: mapContactStatus(contact.status),
-    RelationshipLevel: mapRelationshipLevel(contact.jobTitle),
+    RelationshipLevel: mapStoredRelationshipLevel(meta.relationshipLevel, contact.jobTitle),
     buyingRole: mapBuyingRole(contact.buyingRole),
     sentiment: mapSentiment(contact.sentiment),
     influenceLevel: mapInfluenceLevel(contact.influenceLevel),
@@ -237,7 +289,9 @@ export function mapPrismaContactToApp(
       typeof contact.relationshipScore === "number"
         ? Math.max(1, Math.min(100, contact.relationshipScore))
         : undefined,
-    reportsToId: contact.reportsToId ?? undefined,
+    reportsToId: contact.reportsToId
+      ? toContactTrackingId(contact.reportsToId)
+      : undefined,
     streetAddress: contact.streetAddress ?? undefined,
     postalCode: contact.postalCode ?? undefined,
     stateRegion: contact.stateRegion ?? undefined,
@@ -250,7 +304,7 @@ export function mapPrismaContactToApp(
     engagementCadence: mapEngagementCadence(contact.engagementCadence),
     backgroundNotes: contact.backgroundNotes ?? undefined,
     preferredLanguage: contact.preferredLanguage ?? undefined,
-    EmploymentStatus: "Active",
+    EmploymentStatus: mapStoredEmploymentStatus(meta.employmentStatus),
     IsArchived: contact.status === "archived",
   };
 }
