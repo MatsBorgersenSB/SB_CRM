@@ -2,21 +2,21 @@ import type { Company, Contact } from "@/lib/companies-data";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
 import type { UpdateCompanyInput } from "@/services/sharepoint/repositories/local/local-companies.repository";
 import type { UserRole } from "@/types/auth";
-import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
+import { AUTH_ROLE_HEADER, withAuthRoleHeaders } from "@/lib/api-auth";
 import { toSharePointServiceError } from "@/services/sharepoint/client/errors";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { readResponseBody } from "@/services/sharepoint/client/response-body";
-import {
-  companiesService,
-  contactsService,
-} from "@/services/sharepoint/browser";
+import { createBrowserSharePointServices } from "@/services/sharepoint/browser";
+import type { NewCompanyInput } from "@/lib/entity-id";
 
 export async function syncCompanyRecord(
   companyId: string,
   patch: UpdateCompanyInput,
+  role: UserRole = "superuser",
 ): Promise<Company> {
   try {
-    return await companiesService.update(companyId, patch);
+    const services = createBrowserSharePointServices(role);
+    return await services.companies.update(companyId, patch);
   } catch (error) {
     throw toSharePointServiceError(error);
   }
@@ -26,19 +26,31 @@ export async function syncCompanyContact(
   companyId: string,
   contactId: string,
   patch: UpdateContactInput,
+  role: UserRole = "superuser",
 ): Promise<Contact> {
   try {
-    return await contactsService.update(contactId, patch);
+    const services = createBrowserSharePointServices(role);
+    return await services.contacts.update(contactId, patch);
   } catch (error) {
     throw toSharePointServiceError(error);
   }
 }
 
 export async function createCompanyRecord(
-  input: Parameters<typeof companiesService.create>[0],
+  input: NewCompanyInput,
+  role: UserRole = "superuser",
 ): Promise<Company> {
   try {
-    return await companiesService.create(input);
+    const response = await fetch("/api/companies", {
+      method: "POST",
+      headers: withAuthRoleHeaders(role, { "Content-Type": "application/json" }),
+      body: JSON.stringify(input),
+    });
+    const body = await readResponseBody(response);
+    if (!response.ok) {
+      throw SharePointServiceError.fromResponse(response, body);
+    }
+    return body as Company;
   } catch (error) {
     throw toSharePointServiceError(error);
   }
@@ -47,9 +59,11 @@ export async function createCompanyRecord(
 export async function createContactRecord(
   companyId: string,
   input: CreateContactInput,
+  role: UserRole = "superuser",
 ): Promise<Contact> {
   try {
-    return await contactsService.createForCompany(companyId, {
+    const services = createBrowserSharePointServices(role);
+    return await services.contacts.createForCompany(companyId, {
       ...input,
       Company: { CompanyID: companyId },
     });

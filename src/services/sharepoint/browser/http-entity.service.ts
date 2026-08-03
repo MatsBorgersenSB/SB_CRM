@@ -6,6 +6,8 @@ import {
 import { readResponseBody } from "@/services/sharepoint/client/response-body";
 import type { SearchQuery, SearchResult } from "@/services/sharepoint/client/types";
 import type { ISharePointEntityService } from "@/services/sharepoint/interfaces/common.interface";
+import type { UserRole } from "@/types/auth";
+import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 
 function buildQuery(page?: PageRequest): string {
   if (!page) return "";
@@ -21,7 +23,10 @@ function buildQuery(page?: PageRequest): string {
 export class HttpSharePointEntityService<T, TCreate, TUpdate>
   implements ISharePointEntityService<T, TCreate, TUpdate>
 {
-  constructor(private readonly basePath: string) {}
+  constructor(
+    private readonly basePath: string,
+    protected readonly role: UserRole = "superuser",
+  ) {}
 
   private async request<TResult>(
     path: string,
@@ -29,8 +34,12 @@ export class HttpSharePointEntityService<T, TCreate, TUpdate>
   ): Promise<TResult> {
     try {
       const response = await fetch(path, {
-        headers: { "Content-Type": "application/json", ...init?.headers },
         ...init,
+        headers: {
+          "Content-Type": "application/json",
+          [AUTH_ROLE_HEADER]: this.role,
+          ...init?.headers,
+        },
       });
 
       const body = await readResponseBody(response);
