@@ -10,7 +10,8 @@ import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/lib/companies-data";
 import { canCreateCompany } from "@/lib/permissions";
 import type { CompanyIndustry, CompanyStatus } from "@/types/company";
-import { COMPANY_INDUSTRIES, COMPANY_STATUSES } from "@/types/company";
+import { COMPANY_STATUSES } from "@/types/company";
+import { CompanyIndustryOptions } from "@/components/companies/company-industry-options";
 import type { CompanyType } from "@/types/company-type";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
 import { EuropeanRegistrySearch } from "@/components/companies/european-registry-search";
@@ -264,11 +265,7 @@ export function CompaniesActionBar({
               }
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             >
-              {COMPANY_INDUSTRIES.map((industry) => (
-                <option key={industry} value={industry}>
-                  {industry}
-                </option>
-              ))}
+              <CompanyIndustryOptions />
             </select>
           </label>
           <div className="block sm:col-span-2">

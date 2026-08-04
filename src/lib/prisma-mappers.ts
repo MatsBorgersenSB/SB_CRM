@@ -1,4 +1,5 @@
 import type { Company, CompanyIndustry, CompanyStatus } from "@/types/company";
+import { resolveCompanyIndustry } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType } from "@/types/company-type";
 import type {
@@ -97,21 +98,7 @@ function mapCompanyTypes(types: string[]): CompanyType[] {
 }
 
 function mapIndustry(industry: string | null | undefined): CompanyIndustry {
-  const allowed: CompanyIndustry[] = [
-    "Polymer Processing",
-    "Textile Recovery",
-    "Chemical Manufacturing",
-    "Waste Management",
-    "Energy & Infrastructure",
-  ];
-  if (industry && (allowed as string[]).includes(industry)) {
-    return industry as CompanyIndustry;
-  }
-  if (industry && /renew|energy|infra/i.test(industry)) return "Energy & Infrastructure";
-  if (industry && /waste|circular/i.test(industry)) return "Waste Management";
-  if (industry && /chem/i.test(industry)) return "Chemical Manufacturing";
-  if (industry && /textile|fiber/i.test(industry)) return "Textile Recovery";
-  return "Polymer Processing";
+  return resolveCompanyIndustry(industry);
 }
 
 function mapCompanyStatus(

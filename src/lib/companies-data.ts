@@ -3,7 +3,7 @@ import type { ContactListRole } from "@/types/contact";
 import { buildContactTitle } from "@/types/contact";
 
 export type { Company, Contact, CompanyIndustry, CompanyStatus } from "@/types/company";
-export { COMPANY_INDUSTRIES, COMPANY_STATUSES, formatCompanyLocation } from "@/types/company";
+export { COMPANY_INDUSTRIES, COMPANY_INDUSTRY_GROUPS, COMPANY_STATUSES, formatCompanyLocation, resolveCompanyIndustry } from "@/types/company";
 
 function contact(
   id: number,

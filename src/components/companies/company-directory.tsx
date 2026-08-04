@@ -9,7 +9,8 @@ import type { RelationshipHealthStatus } from "@/lib/relationship-health-engine"
 import {
   HEALTH_STATUS_STYLES,
 } from "@/components/relationship/relationship-health-display";
-import { COMPANY_INDUSTRIES, formatCompanyLocation, type CompanyIndustry } from "@/types/company";
+import { formatCompanyLocation, type CompanyIndustry } from "@/types/company";
+import { CompanyIndustryOptions } from "@/components/companies/company-industry-options";
 
 type SortKey = "score" | "name" | "contact";
 type ViewMode = "grid" | "table";
@@ -213,11 +214,7 @@ export function CompanyDirectory({
             className="border border-carbon-blue/10 bg-white px-2 py-1.5 text-xs text-carbon-blue"
           >
             <option value="all">All industries</option>
-            {COMPANY_INDUSTRIES.map((industry) => (
-              <option key={industry} value={industry}>
-                {industry}
-              </option>
-            ))}
+            <CompanyIndustryOptions />
           </select>
           {filtersActive ? (
             <button
