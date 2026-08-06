@@ -16,6 +16,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/azure-start") ||
     pathname.startsWith("/auth/signin")
   ) {
     return NextResponse.next();
@@ -44,6 +45,6 @@ export const config = {
      * - _next/static, _next/image, favicon.ico (Static assets)
      * - common image extensions
      */
-    "/((?!api/auth|auth/signin|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/auth|api/azure-start|auth/signin|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
