@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { handlers } from "@/lib/auth";
 import { authTrace } from "@/lib/auth-debug";
 
