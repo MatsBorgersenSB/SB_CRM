@@ -47,11 +47,7 @@ export function UserSessionMenu() {
         disabled={signingIn}
         onClick={() => {
           setSigningIn(true);
-          void startAzureAdSignIn("/").catch((err) => {
-            console.error("[SmartCRM AuthTrace:client] header.signIn failed", err);
-            setSigningIn(false);
-            window.location.href = "/auth/signin";
-          });
+          startAzureAdSignIn("/");
         }}
         className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:opacity-60"
       >
