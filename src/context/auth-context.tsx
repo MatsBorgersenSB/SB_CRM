@@ -4,12 +4,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 import type { AuthUser, UserRole } from "@/types/auth";
-import { DEFAULT_AUTH_USER } from "@/types/auth";
+import { DEFAULT_AUTH_USER, isUserRole } from "@/types/auth";
 
 type AuthContextValue = {
   user: AuthUser;
@@ -30,9 +32,38 @@ export function AuthProvider({
   children: ReactNode;
   initialUser?: AuthUser;
 }) {
+  const { data: session } = useSession();
   const [user, setUser] = useState<AuthUser>(initialUser);
+  const [roleOverride, setRoleOverride] = useState(false);
+
+  useEffect(() => {
+    if (!session?.user) return;
+
+    setUser((current) => {
+      const sessionRole = session.user.role;
+      const nextRole =
+        !roleOverride && sessionRole && isUserRole(sessionRole)
+          ? sessionRole
+          : current.role;
+
+      return {
+        ...current,
+        displayName: session.user.name?.trim() || current.displayName,
+        email: session.user.email?.trim() || current.email,
+        image: session.user.image ?? current.image,
+        role: nextRole,
+        companyId:
+          nextRole === "client_lead"
+            ? (current.companyId ?? ROLE_COMPANY_DEFAULTS.client_lead)
+            : nextRole === current.role
+              ? current.companyId
+              : undefined,
+      };
+    });
+  }, [session, roleOverride]);
 
   const setRole = useCallback((role: UserRole) => {
+    setRoleOverride(true);
     setUser((current) => ({
       ...current,
       role,

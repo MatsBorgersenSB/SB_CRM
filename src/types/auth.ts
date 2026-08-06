@@ -13,6 +13,10 @@ export type AuthUser = {
   id: number;
   displayName: string;
   role: UserRole;
+  /** Azure AD / Microsoft 365 email when signed in */
+  email?: string;
+  /** Profile photo URL from Microsoft Graph / Entra */
+  image?: string | null;
   /** Required for client_lead — maps to Company.CompanyID */
   companyId?: string;
 };

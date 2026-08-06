@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { SessionProvider } from "next-auth/react";
 import { AuthProvider } from "@/context/auth-context";
 import { SmartAssistProvider } from "@/context/smart-assist-context";
 import { SignalExtractProvider } from "@/context/signal-extract-context";
@@ -9,14 +10,16 @@ import { UniversalSearchProvider } from "@/components/search/universal-search-pr
 
 export function RootProviders({ children }: { children: ReactNode }) {
   return (
-    <AuthProvider>
-      <SmartAssistProvider>
-        <SignalExtractProvider>
-          <WorkspaceArchitectProvider>
-            <UniversalSearchProvider>{children}</UniversalSearchProvider>
-          </WorkspaceArchitectProvider>
-        </SignalExtractProvider>
-      </SmartAssistProvider>
-    </AuthProvider>
+    <SessionProvider>
+      <AuthProvider>
+        <SmartAssistProvider>
+          <SignalExtractProvider>
+            <WorkspaceArchitectProvider>
+              <UniversalSearchProvider>{children}</UniversalSearchProvider>
+            </WorkspaceArchitectProvider>
+          </SignalExtractProvider>
+        </SmartAssistProvider>
+      </AuthProvider>
+    </SessionProvider>
   );
 }
