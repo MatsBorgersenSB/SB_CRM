@@ -1,8 +1,14 @@
-import NextAuth from "next-auth";
+import NextAuth, { customFetch } from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 import AzureAD from "next-auth/providers/azure-ad";
 import type { UserRole } from "@/types/auth";
 import { isUserRole } from "@/types/auth";
+import {
+  getAzureAdClientId,
+  getAzureAdClientSecret,
+  getAzureAdTenantId,
+  resolveAuthSecret,
+} from "@/lib/auth-env";
 
 /** Domains that receive elevated SmartCRM access (not a sign-in allowlist). */
 const STANDARD_BIO_DOMAINS = [
@@ -64,9 +70,54 @@ function resolveAccessRole(email: string | null | undefined): UserRole {
   return "commercial";
 }
 
-const azureClientId = process.env.AZURE_AD_CLIENT_ID || "";
-const azureClientSecret = process.env.AZURE_AD_CLIENT_SECRET || "";
-const azureTenantId = process.env.AZURE_AD_TENANT_ID || "common";
+/**
+ * Auth.js azure-ad callback rewrites the issuer with regex
+ * `/microsoftonline\.com\/(\w+)\/v2\.0/` then swaps that segment for the
+ * id_token `tid`. Only `common` | `organizations` | `consumers` match `\w+`
+ * safely — GUIDs (hyphens) and domains (dots) produce a broken issuer and
+ * OAuthCallbackError after Microsoft approval.
+ */
+function resolveAzureIssuer(): string {
+  const explicit =
+    process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER?.trim() ||
+    process.env.AZURE_AD_ISSUER?.trim();
+  if (explicit) {
+    try {
+      const url = new URL(explicit);
+      const segment = url.pathname.split("/").filter(Boolean)[0] ?? "";
+      if (segment === "common" || segment === "organizations" || segment === "consumers") {
+        return `${url.origin}/${segment}/v2.0`;
+      }
+      console.warn(
+        `[NextAuth] Issuer tenant segment "${segment}" is unsafe for Auth.js azure-ad rewrite — using organizations.`,
+      );
+    } catch {
+      console.warn("[NextAuth] Invalid AUTH_MICROSOFT_ENTRA_ID_ISSUER — using organizations.");
+    }
+  }
+
+  const tenant = (
+    process.env.AZURE_AD_TENANT_ID ||
+    getAzureAdTenantId() ||
+    "organizations"
+  ).trim();
+
+  if (tenant === "common" || tenant === "organizations" || tenant === "consumers") {
+    return `https://login.microsoftonline.com/${tenant}/v2.0`;
+  }
+
+  // Domain or GUID — do not put into issuer path (breaks Auth.js \w+ rewrite).
+  console.warn(
+    `[NextAuth] AZURE_AD_TENANT_ID="${tenant}" is not safe in issuer path; using organizations. Prefer setting AUTH_MICROSOFT_ENTRA_ID_ISSUER=https://login.microsoftonline.com/organizations/v2.0`,
+  );
+  return "https://login.microsoftonline.com/organizations/v2.0";
+}
+
+const azureClientId = getAzureAdClientId() || process.env.AZURE_AD_CLIENT_ID || "";
+const azureClientSecret =
+  getAzureAdClientSecret() || process.env.AZURE_AD_CLIENT_SECRET || "";
+const azureTenantId = process.env.AZURE_AD_TENANT_ID || getAzureAdTenantId() || "organizations";
+const azureIssuer = resolveAzureIssuer();
 
 if (!process.env.NEXTAUTH_SECRET?.trim() && !process.env.AUTH_SECRET?.trim()) {
   console.warn(
@@ -80,13 +131,12 @@ if (!azureClientId || !azureClientSecret) {
   );
 }
 
+console.log("[NextAuth] Azure issuer configured:", azureIssuer);
+
 /**
  * Auth.js v5 Azure/Entra provider defaults to id `microsoft-entra-id`.
  * Force `azure-ad` so signIn("azure-ad") and redirect URI
  * `/api/auth/callback/azure-ad` match Azure app registration.
- *
- * Custom profile mapper skips Graph photo fetch (base64 blows JWT cookies)
- * and maps Entra email fallbacks (preferred_username / upn).
  */
 function mapAzureAdProfile(profile: {
   sub?: string;
@@ -96,38 +146,61 @@ function mapAzureAdProfile(profile: {
   upn?: string | null;
 }) {
   return {
-    id: profile.sub,
+    id: profile.sub || "unknown",
     name: profile.name || profile.preferred_username || "Standard Bio User",
     email: (profile.email || profile.preferred_username || profile.upn || "").toLowerCase(),
     image: null,
   };
 }
 
+/**
+ * Auth.js Entra provider replaces `{tenantid}` in discovery using config.issuer
+ * with a `\w+` regex — that breaks after Microsoft returns a real tenant GUID.
+ * Use the tenant segment from the discovery URL being requested instead.
+ */
+async function azureDiscoveryFetch(
+  ...args: Parameters<typeof fetch>
+): Promise<Response> {
+  const input = args[0];
+  const url = new URL(input instanceof Request ? input.url : String(input));
+  if (url.pathname.endsWith(".well-known/openid-configuration")) {
+    const response = await fetch(...args);
+    const json = (await response.clone().json()) as { issuer?: string };
+    const tenantId =
+      url.pathname.match(/\/([^/]+)\/v2\.0\//)?.[1] ??
+      url.href.match(/microsoftonline\.com\/([^/]+)\/v2\.0/)?.[1] ??
+      "organizations";
+    const issuer = String(json.issuer ?? "").replace("{tenantid}", tenantId);
+    console.log("[NextAuth] Entra discovery issuer rewrite:", { tenantId, issuer });
+    return Response.json({ ...json, issuer });
+  }
+  return fetch(...args);
+}
+
 function buildAzureAdProvider() {
   const shared = {
     id: "azure-ad" as const,
     name: "Azure AD",
-    // Bypass state/PKCE cookie checks — Vercel loses Auth.js cookies across the
-    // login.microsoftonline.com redirect (InvalidCheck / OAuthCallbackError).
-    // Confidential client + client secret still authenticates the token exchange.
+    // Bypass state/PKCE cookies — Vercel often loses them across Microsoft redirect.
     checks: ["none"] as Array<"pkce" | "state" | "none">,
+    // Microsoft Entra prefers POST body client auth; Basic often → invalid_client.
+    client: { token_endpoint_auth_method: "client_secret_post" as const },
     authorization: {
       params: {
         scope: "openid profile email User.Read",
       },
     },
     profile: mapAzureAdProfile,
+    // Override broken Auth.js discovery tenant substitution (root OAuthCallbackError).
+    [customFetch]: azureDiscoveryFetch,
   };
 
   try {
     return AzureAD({
       ...shared,
-      clientId: process.env.AZURE_AD_CLIENT_ID || "",
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET || "",
-      // Auth.js v5 uses issuer (v4 tenantId). Always fall back to "common".
-      issuer: `https://login.microsoftonline.com/${
-        process.env.AZURE_AD_TENANT_ID || "common"
-      }/v2.0`,
+      clientId: azureClientId || "",
+      clientSecret: azureClientSecret || "",
+      issuer: azureIssuer,
     } as Parameters<typeof AzureAD>[0]);
   } catch (error) {
     console.error(
@@ -138,28 +211,22 @@ function buildAzureAdProvider() {
       ...shared,
       clientId: "",
       clientSecret: "",
-      issuer: "https://login.microsoftonline.com/common/v2.0",
+      issuer: "https://login.microsoftonline.com/organizations/v2.0",
     } as Parameters<typeof AzureAD>[0]);
   }
 }
 
 /**
  * Shared Auth.js config — JWT only, no Prisma/database adapter.
- * Import this from the App Router route handler.
  */
 export const authOptions: NextAuthConfig = {
   trustHost: true,
-  secret:
-    process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET ||
-    "smartcrm-production-jwt-secret-key-2026",
-  // Always-on debug until OAuth callback is stable on Vercel (also logs in production).
-  debug: process.env.NODE_ENV === "development" || true,
+  secret: resolveAuthSecret(),
+  debug: true,
   session: {
     strategy: "jwt",
+    maxAge: 60 * 60 * 8,
   },
-  // Auth.js v5 cookie names (`authjs.*`). Session cookie options for HTTPS on Vercel.
-  // State/PKCE cookies are unused while checks: ["none"] (Microsoft redirect cookie loss).
   cookies: {
     sessionToken: {
       name:
@@ -179,10 +246,20 @@ export const authOptions: NextAuthConfig = {
     signIn: "/auth/signin",
     error: "/auth/signin",
   },
+  logger: {
+    error(error) {
+      console.error("[NextAuth ERROR]", error);
+    },
+    warn(code) {
+      console.warn("[NextAuth WARN]", code);
+    },
+    debug(code, metadata) {
+      console.log("[NextAuth DEBUG]", code, metadata);
+    },
+  },
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
-        // Log for debugging in Vercel — never block or await DB work here.
         console.log(
           "[NextAuth Callback] Successfully received OAuth payload for:",
           user?.email ||
@@ -193,22 +270,18 @@ export const authOptions: NextAuthConfig = {
         return true;
       } catch (error) {
         console.error("[NextAuth Callback Error]", error);
-        return true; // Never block sign-in on profile parse errors
+        return true;
       }
     },
 
     async jwt({ token, account, profile, user }) {
       try {
-        console.log("[NextAuth DEBUG]", {
-          event: "jwt",
-          provider: account?.provider ?? null,
-          hasAccessToken: Boolean(account?.access_token),
-          userEmail: user?.email ?? null,
-        });
-
-        if (account?.access_token) token.azureAccessToken = account.access_token;
-        if (account?.id_token) token.azureIdToken = account.id_token;
-        if (account?.expires_at) token.azureAccessTokenExpiresAt = account.expires_at;
+        if (account) {
+          // Do NOT store access_token / id_token in the JWT cookie — Entra tokens
+          // blow past 4KB and Vercel drops the Set-Cookie → silent logout.
+          token.azureAccessTokenExpiresAt = account.expires_at;
+          token.azureTenantId = azureTenantId;
+        }
 
         const email = resolveAzureCallbackEmail(
           user,
@@ -226,11 +299,10 @@ export const authOptions: NextAuthConfig = {
         }
 
         if (user?.name && !token.name) token.name = user.name;
-        // Keep JWT small — Entra profile photos are base64 and blow cookie size.
         if (typeof token.picture === "string" && token.picture.startsWith("data:")) {
           delete token.picture;
         }
-        token.azureTenantId = azureTenantId;
+        if (!token.azureTenantId) token.azureTenantId = azureTenantId;
         return token;
       } catch (error) {
         console.error(
@@ -243,26 +315,16 @@ export const authOptions: NextAuthConfig = {
 
     async session({ session, token }) {
       try {
-        console.log("[NextAuth DEBUG]", {
-          event: "session",
-          user: session.user,
-          account: null,
-          profile: null,
-        });
-
         if (session.user) {
           session.user.email =
             (token.email as string | undefined) ?? session.user.email ?? null;
           session.user.name =
             session.user.name ?? (token.name as string | undefined) ?? null;
-          session.user.image =
-            session.user.image ?? (token.picture as string | undefined) ?? null;
+          session.user.image = null;
           const role = token.accessRole;
           session.user.role =
             typeof role === "string" && isUserRole(role) ? role : "commercial";
         }
-        session.azureAccessToken =
-          typeof token.azureAccessToken === "string" ? token.azureAccessToken : undefined;
         session.azureTenantId =
           typeof token.azureTenantId === "string" ? token.azureTenantId : azureTenantId;
         return session;
@@ -279,6 +341,5 @@ export const authOptions: NextAuthConfig = {
 
 const nextAuth = NextAuth(authOptions);
 
-/** Auth.js v5 App Router handlers — re-export as GET/POST from the route. */
 export const { handlers, auth, signIn, signOut } = nextAuth;
 export const { GET, POST } = handlers;

@@ -57,7 +57,11 @@ function SignInContent() {
               className="mt-5 border border-thermal-red/40 bg-thermal-red/10 px-3 py-2 text-[12px] text-thermal-red"
               role="alert"
             >
-              Sign-in failed ({error}). Contact IT if this continues.
+              {error === "OAuthCallbackError"
+                ? "Microsoft signed you in, but SmartCRM could not complete the session (OAuth callback failed). Retry once. If it persists, IT should verify AUTH_URL, Azure Web redirect URI (/api/auth/callback/azure-ad), and client secret in Vercel."
+                : error === "Configuration"
+                  ? "Sign-in is misconfigured (missing Azure AD credentials or AUTH_SECRET). Contact IT."
+                  : `Sign-in failed (${error}). Contact IT if this continues.`}
             </p>
           ) : null}
 
