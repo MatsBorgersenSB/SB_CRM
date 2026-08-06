@@ -36,6 +36,6 @@ export function resolveAuthSecret(): string {
   return (
     process.env.NEXTAUTH_SECRET?.trim() ||
     process.env.AUTH_SECRET?.trim() ||
-    "fallback-secret-2026"
+    "smartcrm-production-jwt-secret-key-2026"
   );
 }
