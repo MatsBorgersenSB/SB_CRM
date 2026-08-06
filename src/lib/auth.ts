@@ -6,6 +6,7 @@ import {
   getAzureAdClientId,
   getAzureAdClientSecret,
   getAzureAdTenantId,
+  resolveAuthSecret,
 } from "@/lib/auth-env";
 
 const AZURE_SCOPES = [
@@ -69,14 +70,9 @@ function resolveAccessRole(email: string | null | undefined): UserRole {
   if (domain && privilegedDomains().some((d) => domain === d || domain.endsWith(`.${d}`))) {
     return "superuser";
   }
-  // Authenticated Azure AD users outside Standard Bio domains still get access.
   return "commercial";
 }
 
-/**
- * JWT-only sessions — no Prisma/Auth adapter.
- * Keep user “lookup/creation” best-effort and never throw (avoids OAuth callback loops).
- */
 async function ensureSessionUserRecord(input: {
   email?: string | null;
   name?: string | null;
@@ -94,21 +90,39 @@ async function ensureSessionUserRecord(input: {
   }
 }
 
-const tenantId = getAzureAdTenantId() || "common";
-const issuer = `https://login.microsoftonline.com/${tenantId}/v2.0`;
+const azureClientId = process.env.AZURE_AD_CLIENT_ID || getAzureAdClientId() || "";
+const azureClientSecret =
+  process.env.AZURE_AD_CLIENT_SECRET || getAzureAdClientSecret() || "";
+const azureTenantId = process.env.AZURE_AD_TENANT_ID || getAzureAdTenantId() || "";
+const tenantId = azureTenantId || "common";
+
+if (!process.env.NEXTAUTH_SECRET?.trim() && !process.env.AUTH_SECRET?.trim()) {
+  console.warn(
+    "[NextAuth] NEXTAUTH_SECRET/AUTH_SECRET missing — using fallback JWT secret. Set a real secret in Vercel.",
+  );
+}
+
+if (!azureClientId || !azureClientSecret) {
+  console.warn(
+    "[NextAuth] AZURE_AD_CLIENT_ID / AZURE_AD_CLIENT_SECRET missing or empty — OAuth will fail until configured.",
+  );
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  secret: resolveAuthSecret(),
   debug: process.env.AUTH_DEBUG === "1" || process.env.NODE_ENV !== "production",
   session: {
     strategy: "jwt",
   },
   providers: [
     AzureAD({
-      clientId: getAzureAdClientId(),
-      clientSecret: getAzureAdClientSecret(),
-      issuer,
+      clientId: process.env.AZURE_AD_CLIENT_ID || azureClientId || "",
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET || azureClientSecret || "",
+      // Auth.js v5 uses issuer; map AZURE_AD_TENANT_ID into the Entra issuer URL.
+      issuer: `https://login.microsoftonline.com/${
+        process.env.AZURE_AD_TENANT_ID || azureTenantId || "common"
+      }/v2.0`,
       authorization: {
         params: {
           scope: AZURE_SCOPES,
@@ -120,10 +134,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/auth/signin",
   },
   callbacks: {
-    /**
-     * Do not block Azure AD users by email domain.
-     * Standard Bio domains get elevated role later; any valid Azure AD token may sign in.
-     */
     async signIn({ user, account, profile }) {
       console.log("[NextAuth DEBUG]", { event: "signIn", user, account, profile });
 
@@ -143,18 +153,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: user?.name,
             providerAccountId: account.providerAccountId,
           });
-          console.log("[NextAuth DEBUG] signIn allowed for Azure AD user", {
-            email: email ?? user?.email ?? null,
-            provider: account.provider,
-          });
           return true;
         }
 
-        // Non-Azure providers (none configured today) — still allow rather than loop.
-        console.log("[NextAuth DEBUG] signIn allowed for provider", account?.provider ?? "unknown");
         return true;
       } catch (error) {
-        console.error("[NextAuth DEBUG] signIn callback error — allowing sign-in to avoid loop", {
+        console.error("[NextAuth DEBUG] signIn callback error — allowing sign-in", {
           error,
           user,
           account,
@@ -177,19 +181,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           : null,
         profile,
-        tokenEmail: token.email ?? null,
       });
 
       try {
-        if (account?.access_token) {
-          token.azureAccessToken = account.access_token;
-        }
-        if (account?.id_token) {
-          token.azureIdToken = account.id_token;
-        }
-        if (account?.expires_at) {
-          token.azureAccessTokenExpiresAt = account.expires_at;
-        }
+        if (account?.access_token) token.azureAccessToken = account.access_token;
+        if (account?.id_token) token.azureIdToken = account.id_token;
+        if (account?.expires_at) token.azureAccessTokenExpiresAt = account.expires_at;
 
         const email =
           resolveEmailFromIdentity({
@@ -211,14 +208,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.accessRole = resolveAccessRole(email);
           }
         } else if (!token.accessRole) {
-          // Valid Azure token without email claim — still grant access.
           token.accessRole = "commercial";
         }
 
-        if (user?.name && !token.name) {
-          token.name = user.name;
-        }
-
+        if (user?.name && !token.name) token.name = user.name;
         token.azureTenantId = tenantId;
         return token;
       } catch (error) {
@@ -233,8 +226,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         user: session.user,
         account: null,
         profile: null,
-        tokenEmail: token.email ?? null,
-        accessRole: token.accessRole ?? null,
       });
 
       try {
