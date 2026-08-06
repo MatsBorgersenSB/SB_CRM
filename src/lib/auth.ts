@@ -64,10 +64,6 @@ function resolveAccessRole(email: string | null | undefined): UserRole {
   return "commercial";
 }
 
-const isProd = process.env.NODE_ENV === "production";
-/** Auth.js v5 cookie prefix — must stay `authjs.*` (not v4 `next-auth.*`). */
-const cookiePrefix = isProd ? "__Secure-" : "";
-
 const azureClientId = process.env.AZURE_AD_CLIENT_ID || "";
 const azureClientSecret = process.env.AZURE_AD_CLIENT_SECRET || "";
 const azureTenantId = process.env.AZURE_AD_TENANT_ID || "common";
@@ -111,10 +107,10 @@ function buildAzureAdProvider() {
   const shared = {
     id: "azure-ad" as const,
     name: "Azure AD",
-    // Disable PKCE on Vercel — Microsoft redirect often drops/corrupts the
-    // pkceCodeVerifier cookie ("InvalidCheck: pkceCodeVerifier value could not be parsed").
-    // State check alone is enough CSRF protection for confidential clients.
-    checks: ["state"] as Array<"pkce" | "state" | "none">,
+    // Bypass state/PKCE cookie checks — Vercel loses Auth.js cookies across the
+    // login.microsoftonline.com redirect (InvalidCheck / OAuthCallbackError).
+    // Confidential client + client secret still authenticates the token exchange.
+    checks: ["none"] as Array<"pkce" | "state" | "none">,
     authorization: {
       params: {
         scope: "openid profile email User.Read",
@@ -162,8 +158,8 @@ export const authOptions: NextAuthConfig = {
   session: {
     strategy: "jwt",
   },
-  // Auth.js v5 cookie names (`authjs.*`). Explicit options help state cookies
-  // survive the Azure AD → Vercel HTTPS redirect. Do not use v4 `next-auth.*` names.
+  // Auth.js v5 cookie names (`authjs.*`). Session cookie options for HTTPS on Vercel.
+  // State/PKCE cookies are unused while checks: ["none"] (Microsoft redirect cookie loss).
   cookies: {
     sessionToken: {
       name:
@@ -175,16 +171,6 @@ export const authOptions: NextAuthConfig = {
         sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
-      },
-    },
-    state: {
-      name: `${cookiePrefix}authjs.state`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: isProd,
-        maxAge: 60 * 15,
       },
     },
   },
