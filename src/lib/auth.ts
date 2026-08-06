@@ -8,6 +8,7 @@ import {
   getAzureAdClientSecret,
   getAzureAdTenantId,
   logAuthEnvPresence,
+  resolveAuthSecret,
 } from "@/lib/auth-env";
 
 /** Domains that receive elevated SmartCRM access (not a sign-in allowlist). */
@@ -240,29 +241,14 @@ function buildAzureAdProvider() {
  */
 export const authOptions: NextAuthConfig = {
   trustHost: true,
-  secret:
-    process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET ||
-    "smartcrm-production-fallback-secret-2026",
+  // Must match middleware getToken({ secret }) exactly (including trim).
+  secret: resolveAuthSecret(),
   debug: true,
   session: {
     strategy: "jwt",
     maxAge: 60 * 60 * 8,
   },
-  cookies: {
-    sessionToken: {
-      name:
-        process.env.NODE_ENV === "production"
-          ? "__Secure-authjs.session-token"
-          : "authjs.session-token",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      },
-    },
-  },
+  // Use Auth.js default cookie names so getToken(secureCookie:true) finds the session.
   providers: [buildAzureAdProvider()],
   pages: {
     signIn: "/auth/signin",

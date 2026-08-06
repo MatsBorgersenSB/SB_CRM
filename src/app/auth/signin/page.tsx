@@ -1,6 +1,9 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Sign in · SmartCRM",
+};
 
 type SignInPageProps = {
   searchParams: Promise<{ callbackUrl?: string; error?: string }>;
@@ -99,9 +102,9 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
           <p className="mt-2 text-center text-[10px] text-white/25">
             If the button does nothing, open{" "}
-            <Link href={startHref} className="underline">
+            <a href={startHref} className="underline">
               this Microsoft start link
-            </Link>{" "}
+            </a>{" "}
             directly.
           </p>
         </div>
