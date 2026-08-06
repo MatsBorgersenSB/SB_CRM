@@ -9,32 +9,19 @@ test.describe("FS-016 · Health & auth smoke", () => {
     expect(body.status).toBe("ok");
   });
 
-  test("root page loads with SmartCRM navigation", async ({ page }) => {
+  test("unauthenticated root redirects to Microsoft sign-in", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("SmartCRM", { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: "Focus" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Opportunities" })).toBeVisible();
+    await expect(page).toHaveURL(/\/auth\/signin/);
+    await expect(
+      page.getByRole("button", { name: /Sign in with Microsoft 365/i }),
+    ).toBeVisible();
   });
 
-  test("Role Switcher toggles enterprise badge ADMIN → MANAGER → REP", async ({
-    page,
-  }) => {
-    await page.goto("/");
-
-    const accessTier = page.locator("label").filter({ hasText: "Access Tier" }).locator("select");
-    await expect(accessTier).toBeVisible();
-
-    const enterpriseBadge = page
-      .locator("span[title^='Enterprise role:']")
-      .first();
-
-    await accessTier.selectOption("superuser");
-    await expect(enterpriseBadge).toHaveText("ADMIN");
-
-    await accessTier.selectOption("commercial");
-    await expect(enterpriseBadge).toHaveText("MANAGER");
-
-    await accessTier.selectOption("engineer");
-    await expect(enterpriseBadge).toHaveText("REP");
+  test("sign-in page shows Standard Bio branding", async ({ page }) => {
+    await page.goto("/auth/signin");
+    await expect(page.getByText("SmartCRM")).toBeVisible();
+    await expect(page.getByText(/Industrial Pyrolysis/i)).toBeVisible();
+    await expect(page.getByText("Access Tier")).toHaveCount(0);
+    await expect(page.getByText("IT Admin (Superuser)")).toHaveCount(0);
   });
 });
