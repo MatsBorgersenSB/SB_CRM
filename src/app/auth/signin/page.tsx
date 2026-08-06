@@ -1,38 +1,35 @@
-"use client";
+import Link from "next/link";
 
-import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+export const dynamic = "force-dynamic";
 
-type DebugSnapshot = {
-  ok?: boolean;
-  snapshot?: Record<string, unknown>;
-  error?: string;
+type SignInPageProps = {
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 };
 
-function SignInContent() {
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
-  const error = searchParams.get("error");
-  const showDebug = searchParams.get("debug") === "1";
-  const [debugInfo, setDebugInfo] = useState<DebugSnapshot | null>(null);
+function errorMessage(error: string | undefined): string | null {
+  if (!error) return null;
+  if (error === "OAuthCallbackError") {
+    return "Microsoft signed you in, but SmartCRM could not complete the session. Check Vercel logs for [SmartCRM AuthTrace].";
+  }
+  if (error === "OAuthSignin") {
+    return "Could not start Microsoft sign-in. Retry, or contact IT if this continues.";
+  }
+  if (error === "Configuration") {
+    return "Sign-in is misconfigured (missing Azure AD credentials or AUTH_SECRET). Contact IT.";
+  }
+  return `Sign-in failed (${error}). Contact IT if this continues.`;
+}
 
-  const startHref = useMemo(() => {
-    const params = new URLSearchParams({ callbackUrl });
-    return `/api/azure-start?${params.toString()}`;
-  }, [callbackUrl]);
-
-  useEffect(() => {
-    console.log("[SmartCRM AuthTrace:client]", "signin.page.mounted", { callbackUrl, startHref });
-  }, [callbackUrl, startHref]);
-
-  useEffect(() => {
-    if (!showDebug) return;
-    void fetch("/api/auth/debug")
-      .then(async (res) => setDebugInfo((await res.json()) as DebugSnapshot))
-      .catch((err: unknown) =>
-        setDebugInfo({ error: err instanceof Error ? err.message : String(err) }),
-      );
-  }, [showDebug]);
+/**
+ * Server-rendered sign-in — plain <a href> to /api/azure-start.
+ * No client fetch/JSON, so SessionProvider SyntaxErrors cannot block Microsoft redirect.
+ */
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const params = await searchParams;
+  const callbackUrl = params.callbackUrl?.trim() || "/";
+  const error = params.error;
+  const startHref = `/api/azure-start?${new URLSearchParams({ callbackUrl }).toString()}`;
+  const message = errorMessage(error);
 
   return (
     <div className="relative flex min-h-screen flex-col bg-carbon-blue text-white">
@@ -67,63 +64,40 @@ function SignInContent() {
             intelligence, opportunities, and project execution.
           </p>
 
-          {error ? (
+          {message ? (
             <p
               className="mt-5 border border-thermal-red/40 bg-thermal-red/10 px-3 py-2 text-[12px] text-thermal-red"
               role="alert"
             >
-              {error === "OAuthCallbackError"
-                ? "Microsoft signed you in, but SmartCRM could not complete the session. Check Vercel logs for [SmartCRM AuthTrace]."
-                : error === "OAuthSignin"
-                  ? "Could not start Microsoft sign-in. Retry, or contact IT if this continues."
-                  : error === "Configuration"
-                    ? "Sign-in is misconfigured (missing Azure AD credentials or AUTH_SECRET). Contact IT."
-                    : `Sign-in failed (${error}). Contact IT if this continues.`}
+              {message}
             </p>
           ) : null}
 
-          {/* Plain navigation — no client fetch/JSON. Server issues Microsoft redirect. */}
           <a
             href={startHref}
+            data-testid="azure-signin-link"
             className="mt-8 inline-flex w-full items-center justify-center gap-2 border border-upcycle-orange bg-upcycle-orange px-4 py-3 text-center text-[13px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
-            onClick={() =>
-              console.log("[SmartCRM AuthTrace:client]", "signin.link.click", startHref)
-            }
           >
-            🔑 Sign in with Microsoft 365 (Standard Bio Account)
+            Sign in with Microsoft 365 (Standard Bio Account)
           </a>
 
           <p className="mt-3 text-center text-[11px] text-white/40">
             You will be redirected to Microsoft to authenticate.
           </p>
 
-          {showDebug ? (
-            <div className="mt-6 space-y-3 border border-white/15 bg-black/30 p-3 text-[11px] text-white/80">
-              <p className="font-semibold text-upcycle-orange">Auth debug</p>
-              <p>
-                Start URL: <code className="break-all">{startHref}</code>
-              </p>
-              <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all text-[10px] text-white/70">
-                {debugInfo ? JSON.stringify(debugInfo, null, 2) : "Loading…"}
-              </pre>
-            </div>
-          ) : null}
+          <p className="mt-6 break-all text-center text-[10px] text-white/30">
+            Start URL: {startHref}
+          </p>
+
+          <p className="mt-2 text-center text-[10px] text-white/25">
+            If the button does nothing, open{" "}
+            <Link href={startHref} className="underline">
+              this Microsoft start link
+            </Link>{" "}
+            directly.
+          </p>
         </div>
       </main>
     </div>
-  );
-}
-
-export default function SignInPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-carbon-blue text-white/60">
-          Loading sign-in…
-        </div>
-      }
-    >
-      <SignInContent />
-    </Suspense>
   );
 }

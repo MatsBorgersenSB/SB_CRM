@@ -11,6 +11,9 @@ import { resolveAuthSecret } from "@/lib/auth-env";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
   // Defense-in-depth for machine/public API routes that may still match.
   if (
     pathname.startsWith("/api/cron") ||
@@ -19,7 +22,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/azure-start") ||
     pathname.startsWith("/auth/signin")
   ) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   const token = await getToken({
@@ -33,17 +38,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  return NextResponse.next();
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for:
-     * - api/auth (NextAuth API routes / OAuth callback)
-     * - auth/signin (Login page)
-     * - _next/static, _next/image, favicon.ico (Static assets)
-     * - common image extensions
+     * - api/auth / api/azure-start / auth/signin
+     * - static assets
+     *
+     * NOTE: auth/signin is excluded from matcher, so x-pathname is not set there.
+     * Root layout detects /auth via the URL fallback below is not available —
+     * use a dedicated auth layout without SessionProvider instead.
      */
     "/((?!api/auth|api/azure-start|auth/signin|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
