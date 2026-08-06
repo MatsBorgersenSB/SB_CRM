@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { isAzureAdAuthConfigured } from "@/lib/auth-env";
 
 function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/auth/signin")) return true;
   if (pathname.startsWith("/api/auth")) return true;
+  // Machine auth for scheduled jobs (Bearer / x-cron-secret) — not a user-session bypass.
   if (pathname.startsWith("/api/cron")) return true;
-  if (pathname.startsWith("/outlook")) return true;
-  if (pathname.startsWith("/outlook-addin")) return true;
   return false;
 }
 
+/**
+ * Strict auth guard: unauthenticated users are always redirected to sign-in.
+ * No environment-variable bypass.
+ */
 export async function middleware(request: NextRequest) {
-  // Until Azure AD + AUTH_SECRET are configured, do not lock the app.
-  if (!isAzureAdAuthConfigured()) {
-    return NextResponse.next();
-  }
-
   const { pathname } = request.nextUrl;
   if (isPublicPath(pathname)) {
     return NextResponse.next();

@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useSession } from "next-auth/react";
 import type { AuthUser, UserRole } from "@/types/auth";
-import { DEFAULT_AUTH_USER, isUserRole } from "@/types/auth";
+import { isUserRole } from "@/types/auth";
 
 type AuthContextValue = {
   user: AuthUser;
@@ -25,45 +25,53 @@ const ROLE_COMPANY_DEFAULTS: Partial<Record<UserRole, string>> = {
   client_lead: "CO-1001",
 };
 
+const GUEST_USER: AuthUser = {
+  id: 0,
+  displayName: "Guest",
+  role: "commercial",
+};
+
+/**
+ * App auth context — identity and role come from NextAuth Azure AD session.
+ * No mock "Mats / IT Admin" defaults once a session is present.
+ */
 export function AuthProvider({
   children,
-  initialUser = DEFAULT_AUTH_USER,
+  initialUser = GUEST_USER,
 }: {
   children: ReactNode;
   initialUser?: AuthUser;
 }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<AuthUser>(initialUser);
-  const [roleOverride, setRoleOverride] = useState(false);
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (status === "loading") return;
 
-    setUser((current) => {
-      const sessionRole = session.user.role;
-      const nextRole =
-        !roleOverride && sessionRole && isUserRole(sessionRole)
-          ? sessionRole
-          : current.role;
+    if (!session?.user) {
+      setUser(GUEST_USER);
+      return;
+    }
 
-      return {
-        ...current,
-        displayName: session.user.name?.trim() || current.displayName,
-        email: session.user.email?.trim() || current.email,
-        image: session.user.image ?? current.image,
-        role: nextRole,
-        companyId:
-          nextRole === "client_lead"
-            ? (current.companyId ?? ROLE_COMPANY_DEFAULTS.client_lead)
-            : nextRole === current.role
-              ? current.companyId
-              : undefined,
-      };
-    });
-  }, [session, roleOverride]);
+    const sessionRole = session.user.role;
+    const nextRole =
+      sessionRole && isUserRole(sessionRole) ? sessionRole : ("commercial" as UserRole);
+
+    setUser((current) => ({
+      id: current.id || 1,
+      displayName: session.user.name?.trim() || session.user.email?.trim() || "Microsoft 365 user",
+      email: session.user.email?.trim() || undefined,
+      image: session.user.image ?? null,
+      role: nextRole,
+      companyId:
+        nextRole === "client_lead"
+          ? (current.companyId ?? ROLE_COMPANY_DEFAULTS.client_lead)
+          : undefined,
+    }));
+  }, [session, status]);
 
   const setRole = useCallback((role: UserRole) => {
-    setRoleOverride(true);
+    // Kept for API compatibility; UI no longer exposes a mock tier switcher.
     setUser((current) => ({
       ...current,
       role,

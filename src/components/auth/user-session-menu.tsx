@@ -1,18 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { ChevronDown, LogOut } from "lucide-react";
 import { EnterpriseRoleBadge } from "@/components/auth/enterprise-role-badge";
-import { useAuth } from "@/context/auth-context";
-import { USER_ROLE_LABELS } from "@/types/auth";
+import { USER_ROLE_LABELS, type UserRole } from "@/types/auth";
+import { isUserRole } from "@/types/auth";
 
 /**
- * Top-right user profile dropdown — real Azure AD identity + Log Out.
+ * Top-right auth control — NextAuth session only (no mock access tier).
  */
 export function UserSessionMenu() {
   const { data: session, status } = useSession();
-  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -34,22 +33,38 @@ export function UserSessionMenu() {
     };
   }, [open]);
 
-  const name = session?.user?.name?.trim() || user.displayName;
-  const email = session?.user?.email?.trim() || "—";
-  const image = session?.user?.image ?? null;
-  const tenant = session?.azureTenantId || "—";
+  if (status === "loading") {
+    return (
+      <div className="h-8 w-36 animate-pulse border border-carbon-blue/10 bg-carbon-blue/[0.04]" />
+    );
+  }
+
+  if (status !== "authenticated" || !session?.user) {
+    return (
+      <button
+        type="button"
+        onClick={() => void signIn("azure-ad", { callbackUrl: "/" })}
+        className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
+      >
+        🔑 Sign In with Microsoft
+      </button>
+    );
+  }
+
+  const name = session.user.name?.trim() || "Microsoft 365 user";
+  const email = session.user.email?.trim() || "—";
+  const image = session.user.image ?? null;
+  const tenant = session.azureTenantId || "—";
+  const role: UserRole =
+    session.user.role && isUserRole(session.user.role)
+      ? session.user.role
+      : "commercial";
   const initials = name
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
-
-  if (status === "loading") {
-    return (
-      <div className="h-8 w-28 animate-pulse border border-carbon-blue/10 bg-carbon-blue/[0.04]" />
-    );
-  }
 
   return (
     <div ref={ref} className="relative">
@@ -58,7 +73,7 @@ export function UserSessionMenu() {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex max-w-[220px] items-center gap-2 border border-carbon-blue/12 bg-white px-2 py-1 text-left transition-colors hover:border-upcycle-orange/30"
+        className="inline-flex max-w-[240px] items-center gap-2 border border-carbon-blue/12 bg-white px-2 py-1 text-left transition-colors hover:border-upcycle-orange/30"
       >
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -77,11 +92,9 @@ export function UserSessionMenu() {
           <span className="block truncate text-[11px] font-semibold text-carbon-blue">
             {name}
           </span>
-          <span className="block truncate text-[9px] text-carbon-blue/45">
-            {USER_ROLE_LABELS[user.role]}
-          </span>
+          <span className="block truncate text-[9px] text-carbon-blue/45">{email}</span>
         </span>
-        <EnterpriseRoleBadge accessRole={user.role} compact tone="light" />
+        <EnterpriseRoleBadge accessRole={role} compact tone="light" />
         <ChevronDown className="size-3.5 shrink-0 text-carbon-blue/40" strokeWidth={2} />
       </button>
 
@@ -101,7 +114,7 @@ export function UserSessionMenu() {
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-carbon-blue/40">Role</dt>
-              <dd className="font-medium text-carbon-blue">{USER_ROLE_LABELS[user.role]}</dd>
+              <dd className="font-medium text-carbon-blue">{USER_ROLE_LABELS[role]}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-carbon-blue/40">Azure Tenant</dt>
@@ -118,7 +131,7 @@ export function UserSessionMenu() {
               className="inline-flex w-full items-center gap-2 px-2 py-2 text-left text-[12px] font-semibold text-thermal-red transition-colors hover:bg-thermal-red/5"
             >
               <LogOut className="size-3.5" strokeWidth={2} />
-              Log Out
+              🚪 Log Out
             </button>
           </div>
         </div>

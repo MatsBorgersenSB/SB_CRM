@@ -51,9 +51,9 @@ export const USER_ROLE_DESCRIPTIONS: Record<UserRole, string> = {
 };
 
 export const DEFAULT_AUTH_USER: AuthUser = {
-  id: 1,
-  displayName: "Mats Borgersen",
-  role: "superuser",
+  id: 0,
+  displayName: "Guest",
+  role: "commercial",
 };
 
 export function isUserRole(value: string): value is UserRole {
