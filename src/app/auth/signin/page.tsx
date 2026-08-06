@@ -2,18 +2,62 @@
 
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+
+type DebugSnapshot = {
+  ok?: boolean;
+  snapshot?: {
+    urls?: Record<string, unknown>;
+    secrets?: Record<string, unknown>;
+    azure?: Record<string, unknown>;
+    expectedCallbackUrl?: string;
+    notes?: string[];
+  };
+  error?: string;
+};
 
 function SignInContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const error = searchParams.get("error");
+  const showDebug = searchParams.get("debug") === "1";
   const [pending, setPending] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<DebugSnapshot | null>(null);
+  const [clientLog, setClientLog] = useState<string[]>([]);
+
+  const pushLog = (line: string) => {
+    const entry = `${new Date().toISOString()} ${line}`;
+    console.log("[SmartCRM AuthTrace:client]", entry);
+    setClientLog((prev) => [...prev.slice(-40), entry]);
+  };
+
+  useEffect(() => {
+    if (!showDebug) return;
+    pushLog("signin.page.mounted");
+    void fetch("/api/auth/debug")
+      .then(async (res) => {
+        pushLog(`debug.fetch status=${res.status}`);
+        const json = (await res.json()) as DebugSnapshot;
+        setDebugInfo(json);
+      })
+      .catch((err: unknown) => {
+        pushLog(`debug.fetch failed: ${err instanceof Error ? err.message : String(err)}`);
+        setDebugInfo({ error: err instanceof Error ? err.message : String(err) });
+      });
+  }, [showDebug]);
+
+  useEffect(() => {
+    if (error) pushLog(`signin.error.param=${error}`);
+  }, [error]);
 
   const handleSignIn = async () => {
     setPending(true);
+    pushLog(`signin.click provider=azure-ad callbackUrl=${callbackUrl}`);
     try {
-      await signIn("azure-ad", { callbackUrl });
+      const result = await signIn("azure-ad", { callbackUrl, redirect: true });
+      pushLog(`signin.returned ${JSON.stringify(result ?? null)}`);
+    } catch (err) {
+      pushLog(`signin.throw ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setPending(false);
     }
@@ -71,8 +115,33 @@ function SignInContent() {
             disabled={pending}
             className="mt-8 inline-flex w-full items-center justify-center gap-2 border border-upcycle-orange bg-upcycle-orange px-4 py-3 text-[13px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {pending ? "Redirecting to Microsoft…" : "🔑 Sign in with Microsoft 365 (Standard Bio Account)"}
+            {pending
+              ? "Redirecting to Microsoft…"
+              : "🔑 Sign in with Microsoft 365 (Standard Bio Account)"}
           </button>
+
+          {showDebug ? (
+            <div className="mt-6 space-y-3 border border-white/15 bg-black/30 p-3 text-[11px] text-white/80">
+              <p className="font-semibold text-upcycle-orange">Auth debug (no secrets)</p>
+              <p>
+                Server snapshot:{" "}
+                <a className="underline" href="/api/auth/debug" target="_blank" rel="noreferrer">
+                  /api/auth/debug
+                </a>
+              </p>
+              <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all text-[10px] text-white/70">
+                {debugInfo ? JSON.stringify(debugInfo, null, 2) : "Loading…"}
+              </pre>
+              <p className="font-semibold text-white/90">Client log</p>
+              <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all text-[10px] text-white/70">
+                {clientLog.join("\n") || "(empty)"}
+              </pre>
+              <p className="text-white/50">
+                After sign-in, open Vercel → Deployment → Logs and filter{" "}
+                <code>[SmartCRM AuthTrace]</code>
+              </p>
+            </div>
+          ) : null}
         </div>
       </main>
     </div>

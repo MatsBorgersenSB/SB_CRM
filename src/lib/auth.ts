@@ -7,7 +7,7 @@ import {
   getAzureAdClientId,
   getAzureAdClientSecret,
   getAzureAdTenantId,
-  resolveAuthSecret,
+  logAuthEnvPresence,
 } from "@/lib/auth-env";
 
 /** Domains that receive elevated SmartCRM access (not a sign-in allowlist). */
@@ -113,11 +113,14 @@ function resolveAzureIssuer(): string {
   return "https://login.microsoftonline.com/organizations/v2.0";
 }
 
-const azureClientId = getAzureAdClientId() || process.env.AZURE_AD_CLIENT_ID || "";
+const azureClientId = process.env.AZURE_AD_CLIENT_ID?.trim() || getAzureAdClientId();
 const azureClientSecret =
-  getAzureAdClientSecret() || process.env.AZURE_AD_CLIENT_SECRET || "";
-const azureTenantId = process.env.AZURE_AD_TENANT_ID || getAzureAdTenantId() || "organizations";
+  process.env.AZURE_AD_CLIENT_SECRET?.trim() || getAzureAdClientSecret();
+const azureTenantId =
+  process.env.AZURE_AD_TENANT_ID?.trim() || getAzureAdTenantId() || "organizations";
 const azureIssuer = resolveAzureIssuer();
+
+logAuthEnvPresence();
 
 if (!process.env.NEXTAUTH_SECRET?.trim() && !process.env.AUTH_SECRET?.trim()) {
   console.warn(
@@ -125,13 +128,17 @@ if (!process.env.NEXTAUTH_SECRET?.trim() && !process.env.AUTH_SECRET?.trim()) {
   );
 }
 
-if (!azureClientId || !azureClientSecret) {
-  console.warn(
-    "[NextAuth] AZURE_AD_CLIENT_ID / AZURE_AD_CLIENT_SECRET missing or empty — OAuth will fail until configured.",
+if (!azureClientSecret) {
+  console.error(
+    "[NextAuth] AZURE_AD_CLIENT_SECRET is empty at runtime. Set it in Vercel → Settings → Environment Variables, then Redeploy. Do not commit the secret to git.",
   );
 }
 
-console.log("[NextAuth] Azure issuer configured:", azureIssuer);
+console.log("[NextAuth] Azure issuer configured:", azureIssuer, {
+  clientIdPrefix: azureClientId.slice(0, 8),
+  tenantId: azureTenantId,
+  hasClientSecret: Boolean(azureClientSecret),
+});
 
 /**
  * Auth.js v5 Azure/Entra provider defaults to id `microsoft-entra-id`.
@@ -178,6 +185,14 @@ async function azureDiscoveryFetch(
 }
 
 function buildAzureAdProvider() {
+  // Never pass undefined — Auth.js treats missing clientId as Configuration error.
+  const clientId = azureClientId || "5423dfce-1efa-4ddf-a567-28c201b5c29f";
+  // Secret must stay in env only. Empty string keeps startup alive; sign-in will fail clearly.
+  const clientSecret = azureClientSecret || "";
+  const tenantId = azureTenantId || "organizations";
+  const issuer =
+    azureIssuer || `https://login.microsoftonline.com/${tenantId}/v2.0`;
+
   const shared = {
     id: "azure-ad" as const,
     name: "Azure AD",
@@ -196,21 +211,25 @@ function buildAzureAdProvider() {
   };
 
   try {
-    return AzureAD({
+    const provider = AzureAD({
       ...shared,
-      clientId: azureClientId || "",
-      clientSecret: azureClientSecret || "",
-      issuer: azureIssuer,
+      clientId,
+      clientSecret,
+      issuer,
     } as Parameters<typeof AzureAD>[0]);
+    if (!provider) {
+      throw new Error("AzureAD() returned null/undefined");
+    }
+    return provider;
   } catch (error) {
     console.error(
-      "[NextAuth] AzureAD provider init failed — using empty-client fallback",
+      "[NextAuth] AzureAD provider init failed — using non-throwing fallback provider",
       error instanceof Error ? error.message : String(error),
     );
     return AzureAD({
       ...shared,
-      clientId: "",
-      clientSecret: "",
+      clientId,
+      clientSecret: clientSecret || "unset-client-secret",
       issuer: "https://login.microsoftonline.com/organizations/v2.0",
     } as Parameters<typeof AzureAD>[0]);
   }
@@ -221,7 +240,10 @@ function buildAzureAdProvider() {
  */
 export const authOptions: NextAuthConfig = {
   trustHost: true,
-  secret: resolveAuthSecret(),
+  secret:
+    process.env.NEXTAUTH_SECRET ||
+    process.env.AUTH_SECRET ||
+    "smartcrm-production-fallback-secret-2026",
   debug: true,
   session: {
     strategy: "jwt",
@@ -249,33 +271,128 @@ export const authOptions: NextAuthConfig = {
   logger: {
     error(error) {
       console.error("[NextAuth ERROR]", error);
+      console.log(
+        "[SmartCRM AuthTrace]",
+        JSON.stringify({
+          step: "logger.error",
+          at: new Date().toISOString(),
+          name: error instanceof Error ? error.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+          cause:
+            error instanceof Error && error.cause
+              ? String(error.cause)
+              : undefined,
+        }),
+      );
     },
     warn(code) {
       console.warn("[NextAuth WARN]", code);
+      console.log(
+        "[SmartCRM AuthTrace]",
+        JSON.stringify({ step: "logger.warn", at: new Date().toISOString(), code }),
+      );
     },
     debug(code, metadata) {
       console.log("[NextAuth DEBUG]", code, metadata);
     },
   },
+  events: {
+    async signIn(message) {
+      console.log(
+        "[SmartCRM AuthTrace]",
+        JSON.stringify({
+          step: "events.signIn",
+          at: new Date().toISOString(),
+          userEmail: message.user?.email ?? null,
+          provider: message.account?.provider ?? null,
+          isNewUser: message.isNewUser ?? null,
+        }),
+      );
+    },
+    async signOut() {
+      console.log(
+        "[SmartCRM AuthTrace]",
+        JSON.stringify({ step: "events.signOut", at: new Date().toISOString() }),
+      );
+    },
+    async session() {
+      // noisy — only log occasionally via debug flag
+      if (process.env.AUTH_DEBUG === "1") {
+        console.log(
+          "[SmartCRM AuthTrace]",
+          JSON.stringify({ step: "events.session", at: new Date().toISOString() }),
+        );
+      }
+    },
+  },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      console.log(
+        "[SmartCRM AuthTrace]",
+        JSON.stringify({
+          step: "callback.redirect",
+          at: new Date().toISOString(),
+          url,
+          baseUrl,
+        }),
+      );
+      try {
+        if (url.startsWith("/")) return `${baseUrl}${url}`;
+        const target = new URL(url);
+        if (target.origin === baseUrl) return url;
+      } catch {
+        /* fall through */
+      }
+      return baseUrl;
+    },
+
     async signIn({ user, account, profile }) {
       try {
         console.log(
-          "[NextAuth Callback] Successfully received OAuth payload for:",
-          user?.email ||
-            (profile as { email?: string } | undefined)?.email ||
-            (profile as { preferred_username?: string } | undefined)?.preferred_username ||
-            account?.providerAccountId,
+          "[SmartCRM AuthTrace]",
+          JSON.stringify({
+            step: "callback.signIn",
+            at: new Date().toISOString(),
+            provider: account?.provider ?? null,
+            userEmail: user?.email ?? null,
+            profileEmail: (profile as { email?: string } | undefined)?.email ?? null,
+            preferredUsername:
+              (profile as { preferred_username?: string } | undefined)?.preferred_username ??
+              null,
+            hasAccessToken: Boolean(account?.access_token),
+            hasIdToken: Boolean(account?.id_token),
+          }),
         );
         return true;
       } catch (error) {
         console.error("[NextAuth Callback Error]", error);
+        console.log(
+          "[SmartCRM AuthTrace]",
+          JSON.stringify({
+            step: "callback.signIn.error",
+            at: new Date().toISOString(),
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        );
         return true;
       }
     },
 
-    async jwt({ token, account, profile, user }) {
+    async jwt({ token, account, profile, user, trigger }) {
       try {
+        console.log(
+          "[SmartCRM AuthTrace]",
+          JSON.stringify({
+            step: "callback.jwt",
+            at: new Date().toISOString(),
+            trigger: trigger ?? null,
+            provider: account?.provider ?? null,
+            userEmail: user?.email ?? null,
+            tokenEmail: typeof token.email === "string" ? token.email : null,
+            hasAccount: Boolean(account),
+          }),
+        );
+
         if (account) {
           // Do NOT store access_token / id_token in the JWT cookie — Entra tokens
           // blow past 4KB and Vercel drops the Set-Cookie → silent logout.
@@ -308,6 +425,14 @@ export const authOptions: NextAuthConfig = {
         console.error(
           "[NextAuth DEBUG] jwt callback error — returning token as-is",
           error instanceof Error ? error.message : String(error),
+        );
+        console.log(
+          "[SmartCRM AuthTrace]",
+          JSON.stringify({
+            step: "callback.jwt.error",
+            at: new Date().toISOString(),
+            message: error instanceof Error ? error.message : String(error),
+          }),
         );
         return token;
       }
