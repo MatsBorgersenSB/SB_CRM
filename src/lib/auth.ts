@@ -64,22 +64,9 @@ function resolveAccessRole(email: string | null | undefined): UserRole {
   return "commercial";
 }
 
-async function ensureSessionUserRecord(input: {
-  email?: string | null;
-  name?: string | null;
-  providerAccountId?: string | null;
-}): Promise<void> {
-  try {
-    console.log("[NextAuth DEBUG] ensureSessionUserRecord", {
-      email: input.email ?? null,
-      name: input.name ?? null,
-      providerAccountId: input.providerAccountId ?? null,
-      note: "JWT strategy — no database adapter; identity lives in the session token.",
-    });
-  } catch (error) {
-    console.error("[NextAuth DEBUG] ensureSessionUserRecord failed (non-fatal)", error);
-  }
-}
+const isProd = process.env.NODE_ENV === "production";
+/** Auth.js v5 cookie prefix — must stay `authjs.*` (not v4 `next-auth.*`). */
+const cookiePrefix = isProd ? "__Secure-" : "";
 
 const azureClientId = process.env.AZURE_AD_CLIENT_ID || "";
 const azureClientSecret = process.env.AZURE_AD_CLIENT_SECRET || "";
@@ -128,6 +115,8 @@ function buildAzureAdProvider() {
   const shared = {
     id: "azure-ad" as const,
     name: "Azure AD",
+    // Explicit PKCE + state so Vercel HTTPS round-trips resolve cookies reliably.
+    checks: ["pkce", "state"] as Array<"pkce" | "state">,
     authorization: {
       params: {
         scope: "openid profile email User.Read",
@@ -141,11 +130,11 @@ function buildAzureAdProvider() {
       ...shared,
       clientId: process.env.AZURE_AD_CLIENT_ID || "",
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET || "",
-      // v5 uses issuer (not v4 tenantId) — derived from tenant with safe fallback.
+      // Auth.js v5 uses issuer (v4 tenantId). Always fall back to "common".
       issuer: `https://login.microsoftonline.com/${
         process.env.AZURE_AD_TENANT_ID || "common"
       }/v2.0`,
-    });
+    } as Parameters<typeof AzureAD>[0]);
   } catch (error) {
     console.error(
       "[NextAuth] AzureAD provider init failed — using empty-client fallback",
@@ -156,7 +145,7 @@ function buildAzureAdProvider() {
       clientId: "",
       clientSecret: "",
       issuer: "https://login.microsoftonline.com/common/v2.0",
-    });
+    } as Parameters<typeof AzureAD>[0]);
   }
 }
 
@@ -170,9 +159,46 @@ export const authOptions: NextAuthConfig = {
     process.env.NEXTAUTH_SECRET ||
     process.env.AUTH_SECRET ||
     "smartcrm-production-jwt-secret-key-2026",
-  debug: process.env.AUTH_DEBUG === "1" || process.env.NODE_ENV !== "production",
+  // Always-on debug until OAuth callback is stable on Vercel (also logs in production).
+  debug: process.env.NODE_ENV === "development" || true,
   session: {
     strategy: "jwt",
+  },
+  // Auth.js v5 cookie names (`authjs.*`). Explicit options help PKCE/state survive
+  // the Azure AD → Vercel HTTPS redirect. Do not use v4 `next-auth.*` names here.
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-authjs.session-token"
+          : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    pkceCodeVerifier: {
+      name: `${cookiePrefix}authjs.pkce.code_verifier`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProd,
+        maxAge: 60 * 15,
+      },
+    },
+    state: {
+      name: `${cookiePrefix}authjs.state`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProd,
+        maxAge: 60 * 15,
+      },
+    },
   },
   providers: [buildAzureAdProvider()],
   pages: {
@@ -182,36 +208,18 @@ export const authOptions: NextAuthConfig = {
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
-        console.log("[NextAuth DEBUG]", {
-          event: "signIn",
-          provider: account?.provider ?? null,
-          userEmail: user?.email ?? null,
-        });
-
-        const email = String(
+        // Log for debugging in Vercel — never block or await DB work here.
+        console.log(
+          "[NextAuth Callback] Successfully received OAuth payload for:",
           user?.email ||
             (profile as { email?: string } | undefined)?.email ||
             (profile as { preferred_username?: string } | undefined)?.preferred_username ||
-            (profile as { upn?: string } | undefined)?.upn ||
-            "",
-        ).toLowerCase();
-
-        if (account?.provider === "azure-ad" || account?.provider === "microsoft-entra-id") {
-          await ensureSessionUserRecord({
-            email: email || user?.email || null,
-            name: user?.name,
-            providerAccountId: account.providerAccountId,
-          });
-        }
-
+            account?.providerAccountId,
+        );
         return true;
       } catch (error) {
-        console.error("[NextAuth DEBUG] signIn callback error — allowing sign-in", {
-          error: error instanceof Error ? error.message : String(error),
-          userEmail: user?.email ?? null,
-          provider: account?.provider ?? null,
-        });
-        return true;
+        console.error("[NextAuth Callback Error]", error);
+        return true; // Never block sign-in on profile parse errors
       }
     },
 
