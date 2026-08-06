@@ -73,6 +73,14 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             </p>
           ) : null}
 
+          <p className="mt-5 border border-white/15 bg-white/[0.03] px-3 py-2 text-[11px] text-white/55">
+            Use this page only: <code className="text-white/80">/auth/signin</code>
+            <br />
+            Not <code className="text-white/40">/api/auth/signin</code> (that path causes CORS
+            errors).
+          </p>
+
+          {/* Plain <a> — full browser navigation, never fetch/XHR */}
           <a
             href={startHref}
             data-testid="azure-signin-link"
