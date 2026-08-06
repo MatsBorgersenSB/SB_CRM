@@ -3,20 +3,21 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { resolveAuthSecret } from "@/lib/auth-env";
 
-function isPublicPath(pathname: string): boolean {
-  if (pathname.startsWith("/auth/signin")) return true;
-  if (pathname.startsWith("/api/auth")) return true;
-  if (pathname.startsWith("/api/cron")) return true;
-  if (pathname.startsWith("/api/health")) return true;
-  return false;
-}
-
 /**
- * Strict auth guard: unauthenticated users always redirect to sign-in.
+ * Strict auth guard for application pages.
+ * NextAuth (`/api/auth/*`) and the sign-in page are excluded via `matcher`
+ * so middleware never redirects/intercepts the OAuth callback.
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (isPublicPath(pathname)) {
+
+  // Defense-in-depth for machine/public API routes that may still match.
+  if (
+    pathname.startsWith("/api/cron") ||
+    pathname.startsWith("/api/health") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/auth/signin")
+  ) {
     return NextResponse.next();
   }
 
@@ -36,6 +37,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    /*
+     * Match all request paths except for:
+     * - api/auth (NextAuth API routes / OAuth callback)
+     * - auth/signin (Login page)
+     * - _next/static, _next/image, favicon.ico (Static assets)
+     * - common image extensions
+     */
+    "/((?!api/auth|auth/signin|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
