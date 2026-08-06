@@ -1,4 +1,5 @@
 const DEFAULT_INTERNAL_DOMAINS = [
+  "standard.bio",
   "standardbio.com",
   "standardbio.no",
   "example.com",
