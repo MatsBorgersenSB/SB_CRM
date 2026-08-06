@@ -3,22 +3,6 @@ import type { NextAuthConfig } from "next-auth";
 import AzureAD from "next-auth/providers/azure-ad";
 import type { UserRole } from "@/types/auth";
 import { isUserRole } from "@/types/auth";
-import {
-  getAzureAdClientId,
-  getAzureAdClientSecret,
-  getAzureAdTenantId,
-  resolveAuthSecret,
-} from "@/lib/auth-env";
-
-const AZURE_SCOPES = [
-  "openid",
-  "profile",
-  "email",
-  "offline_access",
-  "User.Read",
-  "Sites.ReadWrite.All",
-  "Mail.Send",
-].join(" ");
 
 /** Domains that receive elevated SmartCRM access (not a sign-in allowlist). */
 const STANDARD_BIO_DOMAINS = [
@@ -91,11 +75,9 @@ async function ensureSessionUserRecord(input: {
   }
 }
 
-const azureClientId = process.env.AZURE_AD_CLIENT_ID || getAzureAdClientId() || "";
-const azureClientSecret =
-  process.env.AZURE_AD_CLIENT_SECRET || getAzureAdClientSecret() || "";
-const azureTenantId = process.env.AZURE_AD_TENANT_ID || getAzureAdTenantId() || "";
-const tenantId = azureTenantId || "common";
+const azureClientId = process.env.AZURE_AD_CLIENT_ID || "";
+const azureClientSecret = process.env.AZURE_AD_CLIENT_SECRET || "";
+const azureTenantId = process.env.AZURE_AD_TENANT_ID || "common";
 
 if (!process.env.NEXTAUTH_SECRET?.trim() && !process.env.AUTH_SECRET?.trim()) {
   console.warn(
@@ -110,32 +92,62 @@ if (!azureClientId || !azureClientSecret) {
 }
 
 /**
+ * Auth.js v5 Azure/Entra provider defaults to id `microsoft-entra-id`.
+ * Force `azure-ad` so signIn("azure-ad") and redirect URI
+ * `/api/auth/callback/azure-ad` match Azure app registration.
+ */
+function buildAzureAdProvider() {
+  try {
+    return AzureAD({
+      id: "azure-ad",
+      name: "Azure AD",
+      clientId: process.env.AZURE_AD_CLIENT_ID || "",
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET || "",
+      // v5 uses issuer (not v4 tenantId) — derived from tenant with safe fallback.
+      issuer: `https://login.microsoftonline.com/${
+        process.env.AZURE_AD_TENANT_ID || "common"
+      }/v2.0`,
+      authorization: {
+        params: {
+          scope: "openid profile email User.Read",
+        },
+      },
+    });
+  } catch (error) {
+    console.error(
+      "[NextAuth] AzureAD provider init failed — using empty-client fallback",
+      error instanceof Error ? error.message : String(error),
+    );
+    return AzureAD({
+      id: "azure-ad",
+      name: "Azure AD",
+      clientId: "",
+      clientSecret: "",
+      issuer: "https://login.microsoftonline.com/common/v2.0",
+      authorization: {
+        params: {
+          scope: "openid profile email User.Read",
+        },
+      },
+    });
+  }
+}
+
+/**
  * Shared Auth.js config — JWT only, no Prisma/database adapter.
  * Import this from the App Router route handler.
  */
 export const authOptions: NextAuthConfig = {
   trustHost: true,
-  secret: resolveAuthSecret(),
+  secret:
+    process.env.NEXTAUTH_SECRET ||
+    process.env.AUTH_SECRET ||
+    "smartcrm-production-jwt-secret-key-2026",
   debug: process.env.AUTH_DEBUG === "1" || process.env.NODE_ENV !== "production",
-  // Explicit JWT sessions — never attach a DB adapter (avoids OAuth callback DB crashes).
   session: {
     strategy: "jwt",
   },
-  // adapter: undefined — intentionally omitted
-  providers: [
-    AzureAD({
-      clientId: process.env.AZURE_AD_CLIENT_ID || azureClientId || "",
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET || azureClientSecret || "",
-      issuer: `https://login.microsoftonline.com/${
-        process.env.AZURE_AD_TENANT_ID || azureTenantId || "common"
-      }/v2.0`,
-      authorization: {
-        params: {
-          scope: AZURE_SCOPES,
-        },
-      },
-    }),
-  ],
+  providers: [buildAzureAdProvider()],
   pages: {
     signIn: "/auth/signin",
     error: "/auth/signin",
@@ -217,7 +229,7 @@ export const authOptions: NextAuthConfig = {
         }
 
         if (user?.name && !token.name) token.name = user.name;
-        token.azureTenantId = tenantId;
+        token.azureTenantId = azureTenantId;
         return token;
       } catch (error) {
         console.error(
@@ -251,7 +263,7 @@ export const authOptions: NextAuthConfig = {
         session.azureAccessToken =
           typeof token.azureAccessToken === "string" ? token.azureAccessToken : undefined;
         session.azureTenantId =
-          typeof token.azureTenantId === "string" ? token.azureTenantId : tenantId;
+          typeof token.azureTenantId === "string" ? token.azureTenantId : azureTenantId;
         return session;
       } catch (error) {
         console.error(
@@ -266,4 +278,6 @@ export const authOptions: NextAuthConfig = {
 
 const nextAuth = NextAuth(authOptions);
 
+/** Auth.js v5 App Router handlers — re-export as GET/POST from the route. */
 export const { handlers, auth, signIn, signOut } = nextAuth;
+export const { GET, POST } = handlers;
