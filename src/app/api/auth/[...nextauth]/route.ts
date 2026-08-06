@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { handlers } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  *
  * Note: Auth.js v5 exports `{ GET, POST }` handlers (not a single v4-style handler).
  */
-async function safeAuthHandler(method: "GET" | "POST", req: Request) {
+async function safeAuthHandler(method: "GET" | "POST", req: NextRequest) {
   try {
     return await handlers[method](req);
   } catch (error) {
@@ -26,10 +26,10 @@ async function safeAuthHandler(method: "GET" | "POST", req: Request) {
   }
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   return safeAuthHandler("GET", req);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   return safeAuthHandler("POST", req);
 }
