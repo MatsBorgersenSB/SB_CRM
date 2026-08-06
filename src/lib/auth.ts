@@ -99,14 +99,10 @@ function mapAzureAdProfile(profile: {
   preferred_username?: string | null;
   upn?: string | null;
 }) {
-  const email = String(
-    profile.email || profile.preferred_username || profile.upn || "",
-  ).toLowerCase();
-
   return {
-    id: profile.sub || email || "unknown",
+    id: profile.sub,
     name: profile.name || profile.preferred_username || "Standard Bio User",
-    email,
+    email: (profile.email || profile.preferred_username || profile.upn || "").toLowerCase(),
     image: null,
   };
 }
@@ -115,8 +111,10 @@ function buildAzureAdProvider() {
   const shared = {
     id: "azure-ad" as const,
     name: "Azure AD",
-    // Explicit PKCE + state so Vercel HTTPS round-trips resolve cookies reliably.
-    checks: ["pkce", "state"] as Array<"pkce" | "state">,
+    // Disable PKCE on Vercel — Microsoft redirect often drops/corrupts the
+    // pkceCodeVerifier cookie ("InvalidCheck: pkceCodeVerifier value could not be parsed").
+    // State check alone is enough CSRF protection for confidential clients.
+    checks: ["state"] as Array<"pkce" | "state" | "none">,
     authorization: {
       params: {
         scope: "openid profile email User.Read",
@@ -164,8 +162,8 @@ export const authOptions: NextAuthConfig = {
   session: {
     strategy: "jwt",
   },
-  // Auth.js v5 cookie names (`authjs.*`). Explicit options help PKCE/state survive
-  // the Azure AD → Vercel HTTPS redirect. Do not use v4 `next-auth.*` names here.
+  // Auth.js v5 cookie names (`authjs.*`). Explicit options help state cookies
+  // survive the Azure AD → Vercel HTTPS redirect. Do not use v4 `next-auth.*` names.
   cookies: {
     sessionToken: {
       name:
@@ -177,16 +175,6 @@ export const authOptions: NextAuthConfig = {
         sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
-      },
-    },
-    pkceCodeVerifier: {
-      name: `${cookiePrefix}authjs.pkce.code_verifier`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: isProd,
-        maxAge: 60 * 15,
       },
     },
     state: {
