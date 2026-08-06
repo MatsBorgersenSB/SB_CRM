@@ -31,23 +31,29 @@ function extractEmailDomain(email: string): string {
   return trimmed.slice(at + 1).replace(/\.+$/, "");
 }
 
-function resolveEmailFromIdentity(input: {
-  email?: string | null;
-  preferred_username?: unknown;
-  upn?: unknown;
-  unique_name?: unknown;
-}): string | undefined {
-  const candidates = [
-    input.email,
-    typeof input.preferred_username === "string" ? input.preferred_username : null,
-    typeof input.upn === "string" ? input.upn : null,
-    typeof input.unique_name === "string" ? input.unique_name : null,
-  ];
-  for (const value of candidates) {
-    const trimmed = value?.trim();
-    if (trimmed && trimmed.includes("@")) return trimmed.toLowerCase();
+/**
+ * Azure AD / Entra often omits `user.email` on first callback.
+ * Fall back to profile claims; never throw on missing/odd types.
+ */
+function resolveAzureCallbackEmail(
+  user?: { email?: string | null } | null,
+  profile?: Record<string, unknown> | null,
+  fallback?: string | null,
+): string {
+  try {
+    const email = (
+      user?.email ||
+      (typeof profile?.email === "string" ? profile.email : "") ||
+      (profile as { preferred_username?: string } | null | undefined)?.preferred_username ||
+      (profile as { upn?: string } | null | undefined)?.upn ||
+      (profile as { unique_name?: string } | null | undefined)?.unique_name ||
+      fallback ||
+      ""
+    );
+    return String(email).toLowerCase().trim();
+  } catch {
+    return "";
   }
-  return undefined;
 }
 
 function resolveAccessRole(email: string | null | undefined): UserRole {
@@ -95,23 +101,50 @@ if (!azureClientId || !azureClientSecret) {
  * Auth.js v5 Azure/Entra provider defaults to id `microsoft-entra-id`.
  * Force `azure-ad` so signIn("azure-ad") and redirect URI
  * `/api/auth/callback/azure-ad` match Azure app registration.
+ *
+ * Custom profile mapper skips Graph photo fetch (base64 blows JWT cookies)
+ * and maps Entra email fallbacks (preferred_username / upn).
  */
+function mapAzureAdProfile(profile: {
+  sub?: string;
+  name?: string | null;
+  email?: string | null;
+  preferred_username?: string | null;
+  upn?: string | null;
+}) {
+  const email = String(
+    profile.email || profile.preferred_username || profile.upn || "",
+  ).toLowerCase();
+
+  return {
+    id: profile.sub || email || "unknown",
+    name: profile.name || profile.preferred_username || "Standard Bio User",
+    email,
+    image: null,
+  };
+}
+
 function buildAzureAdProvider() {
+  const shared = {
+    id: "azure-ad" as const,
+    name: "Azure AD",
+    authorization: {
+      params: {
+        scope: "openid profile email User.Read",
+      },
+    },
+    profile: mapAzureAdProfile,
+  };
+
   try {
     return AzureAD({
-      id: "azure-ad",
-      name: "Azure AD",
+      ...shared,
       clientId: process.env.AZURE_AD_CLIENT_ID || "",
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET || "",
       // v5 uses issuer (not v4 tenantId) — derived from tenant with safe fallback.
       issuer: `https://login.microsoftonline.com/${
         process.env.AZURE_AD_TENANT_ID || "common"
       }/v2.0`,
-      authorization: {
-        params: {
-          scope: "openid profile email User.Read",
-        },
-      },
     });
   } catch (error) {
     console.error(
@@ -119,16 +152,10 @@ function buildAzureAdProvider() {
       error instanceof Error ? error.message : String(error),
     );
     return AzureAD({
-      id: "azure-ad",
-      name: "Azure AD",
+      ...shared,
       clientId: "",
       clientSecret: "",
       issuer: "https://login.microsoftonline.com/common/v2.0",
-      authorization: {
-        params: {
-          scope: "openid profile email User.Read",
-        },
-      },
     });
   }
 }
@@ -155,20 +182,23 @@ export const authOptions: NextAuthConfig = {
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
-        console.log("[NextAuth DEBUG]", { event: "signIn", user, account, profile });
-
-        const email = resolveEmailFromIdentity({
-          email: user?.email,
-          preferred_username:
-            profile && "preferred_username" in profile
-              ? (profile as { preferred_username?: string }).preferred_username
-              : undefined,
-          upn: profile && "upn" in profile ? (profile as { upn?: string }).upn : undefined,
+        console.log("[NextAuth DEBUG]", {
+          event: "signIn",
+          provider: account?.provider ?? null,
+          userEmail: user?.email ?? null,
         });
+
+        const email = String(
+          user?.email ||
+            (profile as { email?: string } | undefined)?.email ||
+            (profile as { preferred_username?: string } | undefined)?.preferred_username ||
+            (profile as { upn?: string } | undefined)?.upn ||
+            "",
+        ).toLowerCase();
 
         if (account?.provider === "azure-ad" || account?.provider === "microsoft-entra-id") {
           await ensureSessionUserRecord({
-            email: email ?? user?.email,
+            email: email || user?.email || null,
             name: user?.name,
             providerAccountId: account.providerAccountId,
           });
@@ -189,35 +219,20 @@ export const authOptions: NextAuthConfig = {
       try {
         console.log("[NextAuth DEBUG]", {
           event: "jwt",
-          user,
-          account: account
-            ? {
-                provider: account.provider,
-                type: account.type,
-                providerAccountId: account.providerAccountId,
-                hasAccessToken: Boolean(account.access_token),
-              }
-            : null,
-          profile,
+          provider: account?.provider ?? null,
+          hasAccessToken: Boolean(account?.access_token),
+          userEmail: user?.email ?? null,
         });
 
         if (account?.access_token) token.azureAccessToken = account.access_token;
         if (account?.id_token) token.azureIdToken = account.id_token;
         if (account?.expires_at) token.azureAccessTokenExpiresAt = account.expires_at;
 
-        const email =
-          resolveEmailFromIdentity({
-            email: (typeof token.email === "string" ? token.email : null) ?? user?.email,
-            preferred_username:
-              profile && "preferred_username" in profile
-                ? (profile as { preferred_username?: string }).preferred_username
-                : undefined,
-            upn: profile && "upn" in profile ? (profile as { upn?: string }).upn : undefined,
-            unique_name:
-              profile && "unique_name" in profile
-                ? (profile as { unique_name?: string }).unique_name
-                : undefined,
-          }) ?? (typeof token.email === "string" ? token.email : undefined);
+        const email = resolveAzureCallbackEmail(
+          user,
+          profile as Record<string, unknown> | null | undefined,
+          typeof token.email === "string" ? token.email : null,
+        );
 
         if (email) {
           token.email = email;
@@ -229,6 +244,10 @@ export const authOptions: NextAuthConfig = {
         }
 
         if (user?.name && !token.name) token.name = user.name;
+        // Keep JWT small — Entra profile photos are base64 and blow cookie size.
+        if (typeof token.picture === "string" && token.picture.startsWith("data:")) {
+          delete token.picture;
+        }
         token.azureTenantId = azureTenantId;
         return token;
       } catch (error) {
