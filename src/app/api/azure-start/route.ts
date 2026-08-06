@@ -6,22 +6,20 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Server-side Azure AD sign-in start.
- * Browser navigates here with a normal GET — we redirect to Microsoft.
- * Avoids client CSRF/JSON issues that leave users stuck on /api/auth/signin.
+ * Server-side Azure AD sign-in start (outside /api/auth catch-all).
+ * Browser navigates here — we redirect to Microsoft Entra.
  *
- * Usage: /api/auth/azure-start?callbackUrl=/
+ * Usage: /api/azure-start?callbackUrl=/
  */
 export async function GET(req: NextRequest) {
   const callbackUrl = req.nextUrl.searchParams.get("callbackUrl") || "/";
   authTrace("azure-start.get", {
     callbackUrl,
     host: req.headers.get("host"),
+    path: req.nextUrl.pathname,
   });
 
   try {
-    // redirect:false returns the Microsoft authorize URL (string) — do not use
-    // redirect:true here (next/navigation redirect throws and is easy to swallow).
     const url = await signIn("azure-ad", {
       redirectTo: callbackUrl,
       redirect: false,

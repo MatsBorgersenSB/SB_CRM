@@ -4,5 +4,5 @@
  */
 export function startAzureAdSignIn(callbackUrl = "/"): void {
   const params = new URLSearchParams({ callbackUrl });
-  window.location.assign(`/api/auth/azure-start?${params.toString()}`);
+  window.location.assign(`/api/azure-start?${params.toString()}`);
 }

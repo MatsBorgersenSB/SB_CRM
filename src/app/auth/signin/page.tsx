@@ -18,7 +18,7 @@ function SignInContent() {
 
   const startHref = useMemo(() => {
     const params = new URLSearchParams({ callbackUrl });
-    return `/api/auth/azure-start?${params.toString()}`;
+    return `/api/azure-start?${params.toString()}`;
   }, [callbackUrl]);
 
   useEffect(() => {
