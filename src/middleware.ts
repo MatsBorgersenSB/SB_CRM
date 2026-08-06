@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { resolveAuthSecret } from "@/lib/auth-env";
 
 function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/auth/signin")) return true;
   if (pathname.startsWith("/api/auth")) return true;
-  // Machine auth for scheduled jobs (Bearer / x-cron-secret).
   if (pathname.startsWith("/api/cron")) return true;
   if (pathname.startsWith("/api/health")) return true;
   return false;
@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
 
   const token = await getToken({
     req: request,
-    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    secret: resolveAuthSecret(),
   });
 
   if (!token) {

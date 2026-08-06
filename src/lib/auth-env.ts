@@ -27,3 +27,15 @@ export function getAzureAdTenantId(): string {
     "AUTH_MICROSOFT_ENTRA_ID_TENANT_ID",
   );
 }
+
+/**
+ * Prefer NEXTAUTH_SECRET, then AUTH_SECRET.
+ * Always return a string so Auth.js never throws MissingSecret / Configuration.
+ */
+export function resolveAuthSecret(): string {
+  return (
+    process.env.NEXTAUTH_SECRET?.trim() ||
+    process.env.AUTH_SECRET?.trim() ||
+    "fallback-secret-key-for-jwt"
+  );
+}
