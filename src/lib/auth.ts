@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import type { NextAuthConfig } from "next-auth";
 import AzureAD from "next-auth/providers/azure-ad";
 import type { UserRole } from "@/types/auth";
 import { isUserRole } from "@/types/auth";
@@ -108,18 +109,23 @@ if (!azureClientId || !azureClientSecret) {
   );
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+/**
+ * Shared Auth.js config — JWT only, no Prisma/database adapter.
+ * Import this from the App Router route handler.
+ */
+export const authOptions: NextAuthConfig = {
   trustHost: true,
   secret: resolveAuthSecret(),
   debug: process.env.AUTH_DEBUG === "1" || process.env.NODE_ENV !== "production",
+  // Explicit JWT sessions — never attach a DB adapter (avoids OAuth callback DB crashes).
   session: {
     strategy: "jwt",
   },
+  // adapter: undefined — intentionally omitted
   providers: [
     AzureAD({
       clientId: process.env.AZURE_AD_CLIENT_ID || azureClientId || "",
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET || azureClientSecret || "",
-      // Auth.js v5 uses issuer; map AZURE_AD_TENANT_ID into the Entra issuer URL.
       issuer: `https://login.microsoftonline.com/${
         process.env.AZURE_AD_TENANT_ID || azureTenantId || "common"
       }/v2.0`,
@@ -132,12 +138,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   pages: {
     signIn: "/auth/signin",
+    error: "/auth/signin",
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log("[NextAuth DEBUG]", { event: "signIn", user, account, profile });
-
       try {
+        console.log("[NextAuth DEBUG]", { event: "signIn", user, account, profile });
+
         const email = resolveEmailFromIdentity({
           email: user?.email,
           preferred_username:
@@ -153,37 +160,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: user?.name,
             providerAccountId: account.providerAccountId,
           });
-          return true;
         }
 
         return true;
       } catch (error) {
         console.error("[NextAuth DEBUG] signIn callback error — allowing sign-in", {
-          error,
-          user,
-          account,
-          profile,
+          error: error instanceof Error ? error.message : String(error),
+          userEmail: user?.email ?? null,
+          provider: account?.provider ?? null,
         });
         return true;
       }
     },
 
     async jwt({ token, account, profile, user }) {
-      console.log("[NextAuth DEBUG]", {
-        event: "jwt",
-        user,
-        account: account
-          ? {
-              provider: account.provider,
-              type: account.type,
-              providerAccountId: account.providerAccountId,
-              hasAccessToken: Boolean(account.access_token),
-            }
-          : null,
-        profile,
-      });
-
       try {
+        console.log("[NextAuth DEBUG]", {
+          event: "jwt",
+          user,
+          account: account
+            ? {
+                provider: account.provider,
+                type: account.type,
+                providerAccountId: account.providerAccountId,
+                hasAccessToken: Boolean(account.access_token),
+              }
+            : null,
+          profile,
+        });
+
         if (account?.access_token) token.azureAccessToken = account.access_token;
         if (account?.id_token) token.azureIdToken = account.id_token;
         if (account?.expires_at) token.azureAccessTokenExpiresAt = account.expires_at;
@@ -215,20 +220,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.azureTenantId = tenantId;
         return token;
       } catch (error) {
-        console.error("[NextAuth DEBUG] jwt callback error — returning token as-is", error);
+        console.error(
+          "[NextAuth DEBUG] jwt callback error — returning token as-is",
+          error instanceof Error ? error.message : String(error),
+        );
         return token;
       }
     },
 
     async session({ session, token }) {
-      console.log("[NextAuth DEBUG]", {
-        event: "session",
-        user: session.user,
-        account: null,
-        profile: null,
-      });
-
       try {
+        console.log("[NextAuth DEBUG]", {
+          event: "session",
+          user: session.user,
+          account: null,
+          profile: null,
+        });
+
         if (session.user) {
           session.user.email =
             (token.email as string | undefined) ?? session.user.email ?? null;
@@ -246,9 +254,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           typeof token.azureTenantId === "string" ? token.azureTenantId : tenantId;
         return session;
       } catch (error) {
-        console.error("[NextAuth DEBUG] session callback error — returning session as-is", error);
+        console.error(
+          "[NextAuth DEBUG] session callback error — returning session as-is",
+          error instanceof Error ? error.message : String(error),
+        );
         return session;
       }
     },
   },
-});
+};
+
+const nextAuth = NextAuth(authOptions);
+
+export const { handlers, auth, signIn, signOut } = nextAuth;

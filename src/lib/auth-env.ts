@@ -36,6 +36,6 @@ export function resolveAuthSecret(): string {
   return (
     process.env.NEXTAUTH_SECRET?.trim() ||
     process.env.AUTH_SECRET?.trim() ||
-    "fallback-secret-key-for-jwt"
+    "fallback-secret-2026"
   );
 }
