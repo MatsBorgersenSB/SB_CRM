@@ -1,4 +1,5 @@
 import type { Company, CompanyIndustry, CompanyStatus } from "@/types/company";
+import { resolveCompanyIndustry } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType } from "@/types/company-type";
 import type {
@@ -11,6 +12,12 @@ import type {
   InfluenceLevel,
   RelationshipLevel,
 } from "@/types/contact";
+import {
+  CONTACT_LIST_ROLES,
+  RELATIONSHIP_LEVELS,
+} from "@/types/contact";
+import type { EmploymentStatus } from "@/types/contact-lifecycle";
+import { EMPLOYMENT_STATUSES } from "@/types/contact-lifecycle";
 import type {
   CompanyRole,
   PipelineCurrency,
@@ -91,21 +98,7 @@ function mapCompanyTypes(types: string[]): CompanyType[] {
 }
 
 function mapIndustry(industry: string | null | undefined): CompanyIndustry {
-  const allowed: CompanyIndustry[] = [
-    "Polymer Processing",
-    "Textile Recovery",
-    "Chemical Manufacturing",
-    "Waste Management",
-    "Energy & Infrastructure",
-  ];
-  if (industry && (allowed as string[]).includes(industry)) {
-    return industry as CompanyIndustry;
-  }
-  if (industry && /renew|energy|infra/i.test(industry)) return "Energy & Infrastructure";
-  if (industry && /waste|circular/i.test(industry)) return "Waste Management";
-  if (industry && /chem/i.test(industry)) return "Chemical Manufacturing";
-  if (industry && /textile|fiber/i.test(industry)) return "Textile Recovery";
-  return "Polymer Processing";
+  return resolveCompanyIndustry(industry);
 }
 
 function mapCompanyStatus(
@@ -130,6 +123,51 @@ function mapContactRole(jobTitle: string | null | undefined): ContactListRole {
   return "Plant Manager";
 }
 
+type ContactPersonalMeta = {
+  role?: string;
+  relationshipLevel?: string;
+  employmentStatus?: string;
+};
+
+function parseContactPersonalMeta(
+  personalNotes: string | null | undefined,
+): ContactPersonalMeta {
+  if (!personalNotes?.trim()?.startsWith("{")) return {};
+  try {
+    const parsed = JSON.parse(personalNotes) as ContactPersonalMeta;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function mapStoredContactRole(
+  stored: string | undefined,
+  jobTitle: string | null | undefined,
+): ContactListRole {
+  if (stored && (CONTACT_LIST_ROLES as string[]).includes(stored)) {
+    return stored as ContactListRole;
+  }
+  return mapContactRole(jobTitle);
+}
+
+function mapStoredRelationshipLevel(
+  stored: string | undefined,
+  jobTitle: string | null | undefined,
+): RelationshipLevel {
+  if (stored && (RELATIONSHIP_LEVELS as string[]).includes(stored)) {
+    return stored as RelationshipLevel;
+  }
+  return mapRelationshipLevel(jobTitle);
+}
+
+function mapStoredEmploymentStatus(stored: string | undefined): EmploymentStatus {
+  if (stored && (EMPLOYMENT_STATUSES as string[]).includes(stored)) {
+    return stored as EmploymentStatus;
+  }
+  return "Active";
+}
+
 function mapContactStatus(status: PrismaContact["status"]): ContactStatus {
   return status === "archived" ? "Inactive" : "Active";
 }
@@ -143,6 +181,17 @@ function mapRelationshipLevel(jobTitle: string | null | undefined): Relationship
 
 function mapBuyingRole(value: string | null | undefined): BuyingRole | undefined {
   if (!value) return undefined;
+  const normalized = value.trim();
+  const codeMap: Record<string, BuyingRole> = {
+    ECONOMIC_BUYER: "Economic Buyer",
+    CHAMPION: "Champion",
+    TECHNICAL_EVALUATOR: "Technical Evaluator",
+    BLOCKER: "Blocker",
+    END_USER: "End User",
+  };
+  const fromCode = codeMap[normalized.toUpperCase().replace(/[\s-]+/g, "_")];
+  if (fromCode) return fromCode;
+
   const allowed: BuyingRole[] = [
     "Economic Buyer",
     "Champion",
@@ -151,7 +200,9 @@ function mapBuyingRole(value: string | null | undefined): BuyingRole | undefined
     "End User",
     "Legal/Procurement",
   ];
-  return allowed.includes(value as BuyingRole) ? (value as BuyingRole) : undefined;
+  return allowed.includes(normalized as BuyingRole)
+    ? (normalized as BuyingRole)
+    : undefined;
 }
 
 function mapSentiment(value: string | null | undefined): ContactSentiment | undefined {
@@ -201,6 +252,7 @@ export function mapPrismaContactToApp(
     `${firstName} ${lastName}`.trim() ||
     primaryEmail(contact.emails) ||
     "Unknown contact";
+  const meta = parseContactPersonalMeta(contact.personalNotes);
 
   return {
     id: stableNumericId(contact.id),
@@ -210,17 +262,23 @@ export function mapPrismaContactToApp(
     LastName: lastName || title.split(" ").slice(1).join(" ") || "",
     Company: companyLookup,
     JobTitle: contact.jobTitle?.trim() || "",
-    Role: mapContactRole(contact.jobTitle),
+    Role: mapStoredContactRole(meta.role, contact.jobTitle),
     Email: primaryEmail(contact.emails),
     Phone: primaryPhone(contact.phoneNumbers, false),
     Mobile: primaryPhone(contact.phoneNumbers, true),
     LinkedInURL: contact.linkedInUrl?.trim() || "",
     Status: mapContactStatus(contact.status),
-    RelationshipLevel: mapRelationshipLevel(contact.jobTitle),
+    RelationshipLevel: mapStoredRelationshipLevel(meta.relationshipLevel, contact.jobTitle),
     buyingRole: mapBuyingRole(contact.buyingRole),
     sentiment: mapSentiment(contact.sentiment),
     influenceLevel: mapInfluenceLevel(contact.influenceLevel),
-    reportsToId: contact.reportsToId ?? undefined,
+    relationshipScore:
+      typeof contact.relationshipScore === "number"
+        ? Math.max(1, Math.min(100, contact.relationshipScore))
+        : undefined,
+    reportsToId: contact.reportsToId
+      ? toContactTrackingId(contact.reportsToId)
+      : undefined,
     streetAddress: contact.streetAddress ?? undefined,
     postalCode: contact.postalCode ?? undefined,
     stateRegion: contact.stateRegion ?? undefined,
@@ -233,7 +291,7 @@ export function mapPrismaContactToApp(
     engagementCadence: mapEngagementCadence(contact.engagementCadence),
     backgroundNotes: contact.backgroundNotes ?? undefined,
     preferredLanguage: contact.preferredLanguage ?? undefined,
-    EmploymentStatus: "Active",
+    EmploymentStatus: mapStoredEmploymentStatus(meta.employmentStatus),
     IsArchived: contact.status === "archived",
   };
 }

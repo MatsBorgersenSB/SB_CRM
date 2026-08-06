@@ -28,24 +28,8 @@ class BrowserDealsService
   >
   implements IDealsService
 {
-  constructor(private readonly role: UserRole = "superuser") {
-    super("/api/deals");
-  }
-
-  override async update(id: string | number, patch: UpdateDealInput): Promise<Deal> {
-    const response = await fetch(`/api/deals/${encodeURIComponent(String(id))}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        [AUTH_ROLE_HEADER]: this.role,
-      },
-      body: JSON.stringify(patch),
-    });
-    const body = await readResponseBody(response);
-    if (!response.ok) {
-      throw SharePointServiceError.fromResponse(response, body);
-    }
-    return body as Deal;
+  constructor(role: UserRole = "superuser") {
+    super("/api/deals", role);
   }
 }
 
@@ -76,8 +60,8 @@ class BrowserContactsService
   >
   implements IContactsService
 {
-  constructor(private readonly companyScoped = false) {
-    super("/api/contacts");
+  constructor(role: UserRole = "superuser") {
+    super("/api/contacts", role);
   }
 
   async createForCompany(
@@ -88,11 +72,17 @@ class BrowserContactsService
       `/api/companies/${encodeURIComponent(companyId)}/contacts`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          [AUTH_ROLE_HEADER]: this.role,
+        },
         body: JSON.stringify(input),
       },
     );
-    if (!response.ok) throw new Error("Contact creation failed");
+    if (!response.ok) {
+      const body = await readResponseBody(response);
+      throw SharePointServiceError.fromResponse(response, body);
+    }
     return response.json();
   }
 }
@@ -117,15 +107,15 @@ export function createBrowserSharePointServices(
       Company,
       NewCompanyInput,
       UpdateCompanyInput
-    >("/api/companies"),
-    contacts: new BrowserContactsService(),
+    >("/api/companies", role),
+    contacts: new BrowserContactsService(role),
     deals: new BrowserDealsService(role),
     rawMaterials: new BrowserRawMaterialsService(),
     activities: new HttpSharePointEntityService<
       Activity,
       CreateActivityInput,
       UpdateActivityInput
-    >("/api/activities"),
+    >("/api/activities", role),
   };
 }
 

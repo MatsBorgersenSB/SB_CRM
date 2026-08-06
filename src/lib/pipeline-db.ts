@@ -297,7 +297,7 @@ async function ensureDb(): Promise<PipelineDatabase> {
       migrated = true;
     }
 
-    if (!database.outlookEvidence?.length) {
+    if (database.outlookEvidence === undefined || database.outlookEvidence === null) {
       database.outlookEvidence = defaultOutlookEvidence;
       migrated = true;
     }

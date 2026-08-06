@@ -62,6 +62,9 @@ model Company {
   opportunities Opportunity[]
   notes         CompanyNote[]
   meetings      MeetingRecord[]
+  decisions     DecisionJournal[]
+  complianceAudits DocumentComplianceAudit[]
+  executionProjects Project[]
 
   // FS-010 Growth & Expansion Intelligence
   healthRecords    AccountHealthRecord[]
@@ -90,6 +93,30 @@ model CompanyNote {
   @@map("company_notes")
 }
 
+/// Organizational Decision Journal — captured decisions from meetings, emails, notes.
+model DecisionJournal {
+  id              String   @id @default(uuid())
+  companyId       String?
+  company         Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  opportunityId   String?
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  decisionText    String
+  rationale       String?
+  stakeholderName String?
+  /// Technical | Commercial | Legal | Strategic | Other
+  category        String
+  confidenceScore Float    @default(0.5)
+  sourceSnippet   String?
+  createdAt       DateTime @default(now())
+  scopeChanges    ProjectScopeChange[]
+
+  @@index([companyId])
+  @@index([opportunityId])
+  @@index([createdAt])
+  @@index([category])
+  @@map("decision_journal")
+}
+
 // ==========================================
 // FS-002: Contact Management (Contact Registry)
 // ==========================================
@@ -107,9 +134,11 @@ model Contact {
   jobTitle               String?
   preferredContactMethod String?
   linkedInUrl            String?
-  buyingRole             String?
+  buyingRole             String? // ECONOMIC_BUYER | CHAMPION | … or display labels
   sentiment              String?
   influenceLevel         String?
+  /// Buying-center relationship strength (1–100). Optional.
+  relationshipScore      Int?
   reportsToId            String?
   reportsTo              Contact?      @relation("OrgHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
   directReports          Contact[]     @relation("OrgHierarchy")
@@ -158,6 +187,7 @@ model Contact {
   @@index([fullName])
   @@index([companyId])
   @@index([reportsToId])
+  @@index([buyingRole])
   @@map("contact_registry")
 }
 
@@ -270,6 +300,7 @@ model Opportunity {
   // FS-001 Stakeholder Roster stored as normalized relations or atomic JSON array
   team     Json[]               @default([]) // Array of { contactId: string, projectRole: string }
   insights OpportunityInsight[]
+  decisions DecisionJournal[]
 
   // FS-006 & FS-007 Intelligence Relations
   influenceProfiles    StakeholderInfluenceProfile[]
@@ -283,12 +314,16 @@ model Opportunity {
 
   // FS-009 / SmartDocs — M365 email attachments
   documents DocumentRecord[]
+  complianceAudits DocumentComplianceAudit[]
 
   // FS-010 Growth & Expansion Intelligence
   expansionSignals ExpansionSignal[]
 
   // FS-011 Autonomous Workflow Engine
   workflowExecutions WorkflowExecution[]
+
+  // Execution Intelligence — Stage-Gate projects
+  executionProjects Project[]
 
   // SharePoint Online — opportunity document folder (single source of truth)
   sharepointFolderId  String?
@@ -550,6 +585,7 @@ model DocumentRecord {
   opportunity    Opportunity?       @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
   emailMessageId String?
   emailMessage   EmailMessageRecord? @relation(fields: [emailMessageId], references: [id], onDelete: Cascade)
+  complianceAudits DocumentComplianceAudit[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -559,6 +595,33 @@ model DocumentRecord {
   @@index([emailMessageId])
   @@index([source])
   @@map("document_records")
+}
+
+/// SmartDocs Contract & Compliance Audit log (clause-level review).
+model DocumentComplianceAudit {
+  id               String   @id @default(uuid())
+  smartDocId       String?
+  documentRecordId String?
+  documentRecord   DocumentRecord? @relation(fields: [documentRecordId], references: [id], onDelete: SetNull)
+  opportunityId    String?
+  opportunity      Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  companyId        String?
+  company          Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  documentType     String?
+  overallRiskScore String
+  /// Full audit payload: checklist, redFlags, remediations, summary
+  findings         Json
+  rawTextHash      String?
+  sourceSnippet    String?
+  createdAt        DateTime @default(now())
+
+  @@index([smartDocId])
+  @@index([documentRecordId])
+  @@index([opportunityId])
+  @@index([companyId])
+  @@index([overallRiskScore])
+  @@index([createdAt])
+  @@map("document_compliance_audits")
 }
 
 // ==========================================
@@ -723,6 +786,305 @@ model WorkflowExecution {
 }
 
 
+
+// ==========================================
+// Execution Intelligence — Multi-Track Stage-Gate Projects
+// ==========================================
+
+enum ExecutionProjectType {
+  TURNKEY_PLANT
+  SINGLE_MACHINERY
+  INTERNAL_RD
+}
+
+enum ProjectHealthStatus {
+  ON_TRACK
+  AT_RISK
+  DELAYED
+  IN_DISPUTE
+}
+
+/// Stage-Gate execution project — linked to Company and optional Opportunity.
+model Project {
+  id            String                @id @default(cuid())
+  title         String
+  projectType   ExecutionProjectType
+  currentStage  String
+  /// Technology Readiness Level 1–9 (INTERNAL_RD only)
+  trlLevel      Int?
+  companyId     String
+  company       Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  opportunityId String?
+  opportunity   Opportunity?          @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  healthStatus  ProjectHealthStatus   @default(ON_TRACK)
+  milestones    ProjectMilestone[]
+  qualityInspections QualityInspection[]
+  scopeChanges  ProjectScopeChange[]
+  commissioningLogs CommissioningLog[]
+  rdExperimentLogs RdExperimentLog[]
+  eciInstrumentTags EciInstrumentTag[]
+  atexInterlocks AtexInterlock[]
+  plcReleases PlcRelease[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([companyId])
+  @@index([opportunityId])
+  @@index([projectType])
+  @@index([healthStatus])
+  @@map("execution_projects")
+}
+
+model ProjectMilestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  stage       String
+  isCompleted Boolean   @default(false)
+  dueDate     DateTime?
+  completedAt DateTime?
+  sortOrder   Int       @default(0)
+  /// Planned lead time for this stage (days)
+  estimatedLeadDays Int?
+  /// Whether this milestone sits on the critical path to COD
+  isCriticalPath Boolean @default(false)
+  vendorName  String?
+  targetDeliveryDate DateTime?
+  qualityInspections QualityInspection[]
+
+  @@index([projectId])
+  @@index([stage])
+  @@index([isCriticalPath])
+  @@map("execution_project_milestones")
+}
+
+enum QualityInspectionType {
+  FAT_FACTORY_TEST
+  SAT_SITE_TEST
+  ISO_QUALITY_AUDIT
+  SAFETY_CHECK
+}
+
+enum QualityInspectionStatus {
+  PASSED
+  FAILED_NCR
+  PENDING_REMEDIATION
+}
+
+/// FAT/SAT & ISO 9001 quality gate inspections for Stage-Gate projects.
+model QualityInspection {
+  id               String                   @id @default(cuid())
+  projectId        String
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestoneId      String?
+  milestone        ProjectMilestone?        @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  inspectionType   QualityInspectionType
+  status           QualityInspectionStatus
+  title            String
+  ncrDescription   String?
+  remediationPlan  String?
+  inspectorName    String?
+  signedOffAt      DateTime?
+  createdAt        DateTime                 @default(now())
+
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([inspectionType])
+  @@index([status])
+  @@map("quality_inspections")
+}
+
+enum ScopeChangeStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+}
+
+/// Engineering Change Orders (ECO) — Technical Design Freeze & Scope Change log.
+model ProjectScopeChange {
+  id                 String            @id @default(cuid())
+  projectId          String
+  project            Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  decisionJournalId  String?
+  decisionJournal    DecisionJournal?  @relation(fields: [decisionJournalId], references: [id], onDelete: SetNull)
+  changeTitle        String
+  /// CLIENT_REQUEST | INTERNAL_ENGINEERING | SITE_SAFETY | …
+  requestedBy        String
+  description        String
+  costImpactEur      Float
+  scheduleImpactDays Int
+  status             ScopeChangeStatus @default(PROPOSED)
+  approvedBy         String?
+  createdAt          DateTime          @default(now())
+
+  @@index([projectId])
+  @@index([decisionJournalId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("project_scope_changes")
+}
+
+enum CommissioningPhase {
+  COLD_COMMISSIONING
+  HOT_COMMISSIONING
+  SYNGAS_TESTING
+  PERFORMANCE_RUN
+}
+
+/// Site commissioning & safety check-in logs for field execution.
+model CommissioningLog {
+  id                 String              @id @default(cuid())
+  projectId          String
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase              CommissioningPhase
+  safetyCheckPassed  Boolean             @default(false)
+  atexZoningVerified Boolean             @default(false)
+  logTitle           String
+  operationalNotes   String?
+  issuesEncountered  String?
+  loggedBy           String?
+  createdAt          DateTime            @default(now())
+
+  @@index([projectId])
+  @@index([phase])
+  @@index([createdAt])
+  @@map("commissioning_logs")
+}
+
+enum IpFilingStatus {
+  NONE
+  PROVISIONAL_FILED
+  PATENT_GRANTED
+  TRADE_SECRET
+}
+
+/// Internal R&D experiment runs — TRL progression & organizational memory.
+model RdExperimentLog {
+  id                   String         @id @default(cuid())
+  projectId            String
+  project              Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  experimentTitle      String
+  trlStage             Int
+  feedstockType        String?
+  reactorTempCelsius   Float?
+  residenceTimeMinutes Float?
+  yieldPercentage      Float?
+  ipFilingStatus       IpFilingStatus @default(NONE)
+  keyFindings          String
+  loggedBy             String?
+  createdAt            DateTime       @default(now())
+
+  @@index([projectId])
+  @@index([trlStage])
+  @@index([createdAt])
+  @@map("rd_experiment_logs")
+}
+
+enum EciInstrumentType {
+  TEMPERATURE
+  PRESSURE
+  GAS_ANALYZER
+  VALVE_ACTUATOR
+  LEVEL_SENSOR
+  FLOW_METER
+  SAFETY_SWITCH
+}
+
+enum EciIoType {
+  DIGITAL_INPUT
+  DIGITAL_OUTPUT
+  ANALOG_INPUT
+  ANALOG_OUTPUT
+  MODBUS_RS485
+  PROFINET
+}
+
+/// P&ID / EC&I instrument tags for IO list & calibration traceability.
+model EciInstrumentTag {
+  id            String            @id @default(cuid())
+  projectId     String
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tagNumber     String
+  description   String
+  instrumentType EciInstrumentType
+  ioType        EciIoType
+  exRating      String?
+  isCalibrated  Boolean           @default(false)
+  loopChecked   Boolean           @default(false)
+  locationZone  String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([projectId, tagNumber])
+  @@index([projectId])
+  @@index([instrumentType])
+  @@index([isCalibrated])
+  @@index([loopChecked])
+  @@map("eci_instrument_tags")
+}
+
+enum AtexZone {
+  ZONE_0
+  ZONE_1
+  ZONE_2
+  SAFE_AREA
+}
+
+/// ATEX / ESD cause-effect interlocks for hot-gas safety readiness.
+model AtexInterlock {
+  id                String   @id @default(cuid())
+  projectId         String
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  loopName          String
+  atexZone          AtexZone
+  causeDescription  String
+  effectDescription String
+  isDryTested       Boolean  @default(false)
+  isWetTested       Boolean  @default(false)
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([atexZone])
+  @@index([isDryTested])
+  @@map("atex_interlocks")
+}
+
+/// PLC / SCADA software release & loop verification progress.
+model PlcRelease {
+  id                 String   @id @default(cuid())
+  projectId          String
+  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  plcTargetName      String
+  codeVersion        String
+  backupChecksum     String?
+  notes              String?
+  totalLoopsCount    Int      @default(0)
+  verifiedLoopsCount Int      @default(0)
+  deployedBy         String?
+  createdAt          DateTime @default(now())
+
+  @@index([projectId])
+  @@index([createdAt])
+  @@map("plc_releases")
+}
+
+/// Project Workspace Light — durable store for discovery/workspace projects (not Stage-Gate execution).
+model WorkspaceProject {
+  id        String   @id
+  name      String
+  /// Full Project Workspace Light payload (team, milestones, discovery, etc.)
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([updatedAt])
+  @@map("workspace_projects")
+}
 
 // ==========================================
 // FS-013: Enterprise Security, RBAC & Audit Logging

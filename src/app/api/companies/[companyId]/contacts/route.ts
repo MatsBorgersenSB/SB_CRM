@@ -8,7 +8,12 @@ import {
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
+import { checkContactDuplicate } from "@/lib/validation/deduplication";
 import type { CreateContactInput } from "@/types/contact";
+
+type CreateContactBody = CreateContactInput & {
+  forceCreateDistinct?: boolean;
+};
 
 export async function POST(
   request: Request,
@@ -22,12 +27,51 @@ export async function POST(
   }
 
   const { companyId } = await params;
-  const body = (await request.json()) as CreateContactInput;
+  let body: CreateContactBody;
+  try {
+    body = (await request.json()) as CreateContactBody;
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const firstName = body.FirstName?.trim() ?? "";
+  const lastName = body.LastName?.trim() ?? "";
+  const email = body.Email?.trim() ?? "";
 
   try {
+    const dedupe = await checkContactDuplicate({
+      firstName,
+      lastName,
+      email,
+      companyId,
+    });
+
+    if (dedupe.status === "EXACT_EMAIL_EXISTS") {
+      return NextResponse.json(
+        {
+          error: `A contact with email "${email}" already exists.`,
+          status: dedupe.status,
+          existingContact: dedupe.existingContact,
+        },
+        { status: 409 },
+      );
+    }
+
+    if (dedupe.status === "NAME_SIMILARITY_MATCH" && !body.forceCreateDistinct) {
+      return NextResponse.json(
+        {
+          error: "Potential duplicate contact found. Confirm how to proceed.",
+          status: dedupe.status,
+          existingContacts: dedupe.existingContacts,
+        },
+        { status: 409 },
+      );
+    }
+
+    const { forceCreateDistinct: _force, ...input } = body;
     const { contacts } = getServerSharePointServices();
     const contact = await contacts.create({
-      ...body,
+      ...input,
       Company: { CompanyID: companyId },
     });
 
@@ -41,6 +85,7 @@ export async function POST(
       metadata: {
         companyId,
         title: contact.Title,
+        forceCreateDistinct: Boolean(body.forceCreateDistinct),
       },
     });
 

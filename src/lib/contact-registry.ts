@@ -335,12 +335,22 @@ export async function updateRegistryContact(
   }
 
   if (patch.LinkedInURL !== undefined) {
-    data.linkedInUrl = patch.LinkedInURL.trim() || null;
+    data.linkedInUrl = (patch.LinkedInURL ?? "").trim() || null;
   }
-  if (patch.buyingRole !== undefined) data.buyingRole = patch.buyingRole.trim() || null;
-  if (patch.sentiment !== undefined) data.sentiment = patch.sentiment.trim() || null;
+  if (patch.buyingRole !== undefined) {
+    data.buyingRole = (patch.buyingRole ?? "").trim() || null;
+  }
+  if (patch.sentiment !== undefined) {
+    data.sentiment = (patch.sentiment ?? "").trim() || null;
+  }
   if (patch.influenceLevel !== undefined) {
-    data.influenceLevel = patch.influenceLevel.trim() || null;
+    data.influenceLevel = (patch.influenceLevel ?? "").trim() || null;
+  }
+  if (patch.relationshipScore !== undefined) {
+    data.relationshipScore =
+      patch.relationshipScore == null
+        ? null
+        : Math.max(1, Math.min(100, Math.round(Number(patch.relationshipScore))));
   }
   if (patch.reportsToId !== undefined) {
     data.reportsToId = await resolvePrismaReportsToId(patch.reportsToId) || null;
@@ -367,13 +377,13 @@ export async function updateRegistryContact(
     data.isTimezoneOverridden = patch.isTimezoneOverridden;
   }
   if (patch.engagementCadence !== undefined) {
-    data.engagementCadence = patch.engagementCadence.trim() || null;
+    data.engagementCadence = (patch.engagementCadence ?? "").trim() || null;
   }
   if (patch.backgroundNotes !== undefined) {
-    data.backgroundNotes = patch.backgroundNotes.trim() || null;
+    data.backgroundNotes = (patch.backgroundNotes ?? "").trim() || null;
   }
   if (patch.preferredLanguage !== undefined) {
-    data.preferredLanguage = patch.preferredLanguage.trim() || null;
+    data.preferredLanguage = (patch.preferredLanguage ?? "").trim() || null;
   }
 
   if (patch.Status !== undefined || patch.IsArchived !== undefined) {
@@ -408,14 +418,18 @@ export async function updateRegistryContact(
     if (companyId) data.companyId = companyId;
   }
 
-  const updated = await withPrismaRetry(async (prisma) =>
-    prisma.contact.update({
-      where: { id: existing.id },
-      data,
-    }),
-  );
-
-  return loadMappedContact(updated.id);
+  try {
+    const updated = await withPrismaRetry(async (prisma) =>
+      prisma.contact.update({
+        where: { id: existing.id },
+        data,
+      }),
+    );
+    return loadMappedContact(updated.id);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Unable to update contact: ${message}`);
+  }
 }
 
 export async function deleteRegistryContact(id: string | number): Promise<boolean> {

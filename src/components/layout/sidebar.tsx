@@ -13,13 +13,17 @@ import {
   Search,
   Settings,
   Sparkles,
+  Terminal,
   TrendingUp,
   Users,
   Wallet,
+  WandSparkles,
 } from "lucide-react";
 import { useCallback } from "react";
 import { EnterpriseRoleBadge } from "@/components/auth/enterprise-role-badge";
 import { useAuth } from "@/context/auth-context";
+import { useSignalExtract } from "@/context/signal-extract-context";
+import { useWorkspaceArchitect } from "@/context/workspace-architect-context";
 import { useUniversalSearch } from "@/context/universal-search-context";
 import { canAccessRoute } from "@/lib/permissions";
 
@@ -126,6 +130,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { openSearch } = useUniversalSearch();
+  const { openSignalExtract } = useSignalExtract();
+  const { openArchitect } = useWorkspaceArchitect();
 
   const visibleItems = navItems.filter((item) => canAccessRoute(user.role, item.href));
 
@@ -169,6 +175,28 @@ export function Sidebar() {
             {typeof navigator !== "undefined" && navigator.platform.toLowerCase().includes("mac")
               ? "⌘K"
               : "Ctrl+K"}
+          </kbd>
+        </button>
+        <button
+          type="button"
+          onClick={() => openSignalExtract()}
+          className="mt-2 flex w-full items-center gap-2 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-2 text-left text-[11px] text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+        >
+          <WandSparkles className="size-3.5 shrink-0" strokeWidth={2} />
+          <span className="flex-1">Paste & Extract</span>
+        </button>
+        <button
+          type="button"
+          onClick={openArchitect}
+          className="mt-2 flex w-full items-center gap-2 border border-white/10 bg-white/5 px-2.5 py-2 text-left text-[11px] text-light-grey/70 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white"
+        >
+          <Terminal className="size-3.5 shrink-0" strokeWidth={2} />
+          <span className="flex-1">Workspace Architect</span>
+          <kbd className="font-mono text-[9px] text-light-grey/35">
+            {typeof navigator !== "undefined" &&
+            navigator.platform.toLowerCase().includes("mac")
+              ? "⌘⇧K"
+              : "Ctrl+Shift+K"}
           </kbd>
         </button>
       </div>

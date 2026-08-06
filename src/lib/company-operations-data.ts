@@ -21,6 +21,11 @@ import { company360Href } from "@/types/company-360";
 import type { PipelineRow } from "@/types/pipeline";
 import { formatDealValue } from "@/types/pipeline";
 import type { RelationshipHealthStatus } from "@/lib/relationship-health-engine";
+import {
+  calculateICPScore,
+  companyToICPInput,
+  type ICPTier,
+} from "@/lib/marketing/icp-matcher";
 
 const COLD_CONTACT_DAYS = 45;
 const HEALTHY_STATUSES = new Set<RelationshipHealthStatus>(["Strategic", "Strong", "Healthy"]);
@@ -113,6 +118,11 @@ export type CompanyOperationsRow = {
   hasOverdueCommitments: boolean;
   matchesNoContactAttention: boolean;
   matchesWeakHealthAttention: boolean;
+  icpScore: number;
+  icpTier: ICPTier;
+  icpMatchingCriteria: string[];
+  icpGaps: string[];
+  icpBreakdown: { geography: number; sectors: number; companyFit: number };
 };
 
 export type CompanyOperationsSummary = {
@@ -283,6 +293,16 @@ export function buildCompanyOperationsWorkspace(
       hasOverdueCommitments,
       matchesNoContactAttention,
       matchesWeakHealthAttention,
+      ...(() => {
+        const icp = calculateICPScore(companyToICPInput(company));
+        return {
+          icpScore: icp.score,
+          icpTier: icp.tier,
+          icpMatchingCriteria: icp.matchingCriteria,
+          icpGaps: icp.gaps,
+          icpBreakdown: icp.breakdown,
+        };
+      })(),
     };
   });
 

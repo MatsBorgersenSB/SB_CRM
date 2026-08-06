@@ -3,15 +3,14 @@
 import type { ReactNode } from "react";
 import type { Project, ProjectIntelligence } from "@/types/project";
 import { PROJECT_STAGE_LABELS } from "@/types/project";
-import type { ProjectActionTab } from "@/types/project-actions";
 import type { ProjectMissionControlView } from "@/types/project-mission-control";
 import { OpportunityKnowledgeView } from "@/components/opportunity/opportunity-knowledge-view";
-import { ProjectActionsTabBar } from "@/components/project/project-actions-tab-bar";
-import { ProjectInsightCatalogPanel } from "@/components/project/project-insight-catalog-panel";
 import { ProjectMissionControlTabBar } from "@/components/project/project-mission-control-tab-bar";
-import { ProjectObjectivePanel } from "@/components/project/project-objective-panel";
+import { ProjectInsightCatalogPanel } from "@/components/project/project-insight-catalog-panel";
 import { ProjectOpenWorkPanel } from "@/components/project/project-open-work-panel";
 import { ProjectRisksPanel } from "@/components/project/project-risks-panel";
+import { ProjectDiscoveryQuestionsPanel } from "@/components/project/project-discovery-questions-panel";
+import { ProjectMilestonesPanel } from "@/components/project/project-milestones-panel";
 import {
   SmartAssistCategoryBadge,
   SmartAssistConfidenceLabel,
@@ -26,31 +25,59 @@ import {
   EDITORIAL_INSIGHT_STANDARD,
   EDITORIAL_LABEL,
 } from "@/lib/editorial-design-system";
+import { getProjectAccountCompanyId } from "@/lib/project-stakeholder-contacts";
 
 export function ProjectMissionControl({
   view,
   onViewChange,
-  actionTab,
-  onActionTabChange,
-  actionCounts,
-  actionContent,
   project,
   intelligence,
-  organizationsOverview,
-  stakeholderIntelligenceOverview,
-  stakeholdersOverview,
+  urgentBanner,
+  stageGatesContent,
+  organizationsContent,
+  docsContent,
 }: {
   view: ProjectMissionControlView;
   onViewChange: (view: ProjectMissionControlView) => void;
-  actionTab: ProjectActionTab;
-  onActionTabChange: (tab: ProjectActionTab) => void;
-  actionCounts?: Partial<Record<ProjectActionTab, number>>;
-  actionContent: ReactNode;
   project: Project;
   intelligence: ProjectIntelligence;
-  organizationsOverview?: ReactNode;
-  stakeholderIntelligenceOverview?: ReactNode;
-  stakeholdersOverview?: ReactNode;
+  urgentBanner?: ReactNode;
+  stageGatesContent: ReactNode;
+  organizationsContent: ReactNode;
+  docsContent: ReactNode;
+}) {
+  return (
+    <section aria-label="Project mission control" className="flex flex-col">
+      <ProjectMissionControlTabBar active={view} onChange={onViewChange} />
+
+      <div className="mt-10">
+        {view === "command" ? (
+          <CommandCenterPanel
+            project={project}
+            intelligence={intelligence}
+            urgentBanner={urgentBanner}
+            onLinkAccount={() => onViewChange("organizations")}
+          />
+        ) : null}
+
+        {view === "stage-gates" ? stageGatesContent : null}
+        {view === "organizations" ? organizationsContent : null}
+        {view === "docs" ? docsContent : null}
+      </div>
+    </section>
+  );
+}
+
+function CommandCenterPanel({
+  project,
+  intelligence,
+  urgentBanner,
+  onLinkAccount,
+}: {
+  project: Project;
+  intelligence: ProjectIntelligence;
+  urgentBanner?: ReactNode;
+  onLinkAccount: () => void;
 }) {
   const discovery = intelligence.discovery;
   const discoveryReady = intelligence.discoveryReady ?? false;
@@ -80,257 +107,153 @@ export function ProjectMissionControl({
         : `Working view (assumed): ${project.objective}`;
 
   const stageLabel = project.stage ? PROJECT_STAGE_LABELS[project.stage] : "Planning";
+  const accountCompanyId = getProjectAccountCompanyId(project);
+  const hasAccount = Boolean(accountCompanyId);
 
   return (
-    <section aria-label="Project mission control" className="flex flex-col">
-      <ProjectMissionControlTabBar active={view} onChange={onViewChange} />
+    <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
+      {urgentBanner}
 
-      {view === "actions" ? (
-        <div className="mt-4">
-          <ProjectActionsTabBar
-            active={actionTab}
-            onChange={onActionTabChange}
-            counts={actionCounts}
-          />
+      {/* Status overview */}
+      {realityFirst ? (
+        <div className={EDITORIAL_CONTENT}>
+          <p className={EDITORIAL_LABEL}>Project stage</p>
+          <p className={`mt-2.5 ${EDITORIAL_INSIGHT_PROMINENT}`}>{stageLabel}</p>
+          {project.objective.trim() ? (
+            <p className={`mt-2.5 ${EDITORIAL_BODY_MUTED}`}>{project.objective}</p>
+          ) : null}
+          <p className={`mt-2 text-[12px] text-carbon-blue/55`}>
+            Health: {project.health} · Priority: {project.priority}
+          </p>
         </div>
-      ) : null}
-
-      <div className="mt-10">
-        {view === "overview" ? (
-          realityFirst ? (
-            <OperationalOverviewPanel
-              stageLabel={stageLabel}
-              purpose={project.objective.trim() || null}
-              openWork={intelligence.openWork}
-              organizationsOverview={organizationsOverview}
-              stakeholdersOverview={stakeholdersOverview}
-            />
-          ) : (
-            <OverviewPanel
-              objective={objectiveLabel}
-              objectiveCategory={objectiveCategory}
-              objectiveDetail={
-                discoveryReady
-                  ? project.problem || undefined
-                  : discovery?.discoveryLabel ??
-                    "Discovery in progress — evidence required before recommendations."
-              }
-              blocker={intelligence.requiresAttention}
-              blockerDetail={discoveryReady ? intelligence.biggestRisk : topGap?.recommendedAction}
-              hasCriticalContext={hasCriticalContext}
-              nextAction={intelligence.recommendedNext}
-              nextActionWhy={discovery?.nextBestAction.why ?? intelligence.whatChanged}
-              insightCatalogOverview={
-                intelligence.insightCatalog ? (
-                  <ProjectInsightCatalogPanel catalog={intelligence.insightCatalog} compact />
-                ) : null
-              }
-              stakeholderIntelligenceOverview={stakeholderIntelligenceOverview}
-              organizationsOverview={organizationsOverview}
-              stakeholdersOverview={stakeholdersOverview}
-            />
-          )
-        ) : null}
-
-        {view === "gaps" && discovery && !realityFirst ? (
-          <OpportunityKnowledgeView
-            variant="gaps"
-            criticalGaps={discovery.knowledgeModel.criticalGaps}
-            confirmedUnderstanding={[]}
+      ) : (
+        <>
+          <MissionInsight
+            label="Why this project exists"
+            answer={objectiveLabel}
+            detail={
+              discoveryReady
+                ? project.problem || undefined
+                : discovery?.discoveryLabel ??
+                  "Discovery in progress — evidence required before recommendations."
+            }
+            category={objectiveCategory}
+            confidence={
+              objectiveCategory === "known"
+                ? "high"
+                : objectiveCategory === "assumed"
+                  ? "medium"
+                  : "low"
+            }
           />
-        ) : null}
+          {intelligence.requiresAttention ? (
+            <MissionInsight
+              label="What is blocking progress"
+              answer={intelligence.requiresAttention}
+              detail={
+                discoveryReady
+                  ? intelligence.biggestRisk ?? undefined
+                  : topGap?.recommendedAction
+              }
+              category={hasCriticalContext ? "missing_critical" : "known"}
+              confidence={hasCriticalContext ? "high" : "medium"}
+            />
+          ) : null}
+          {intelligence.recommendedNext ? (
+            <MissionInsight
+              label="What should happen next"
+              answer={intelligence.recommendedNext}
+              detail={discovery?.nextBestAction.why ?? intelligence.whatChanged}
+              prominent
+              category={hasCriticalContext ? "missing_critical" : "known"}
+              confidence="medium"
+            />
+          ) : null}
+        </>
+      )}
 
-        {view === "gaps" && realityFirst ? (
-          <p className={`${EDITORIAL_CONTENT} ${EDITORIAL_BODY_MUTED}`}>
-            No critical discovery gaps for this operational project. Capture new issues only when
-            evidence appears.
+      {/* Primary account link prompt */}
+      <section className="border-t border-carbon-blue/10 pt-8">
+        <p className={EDITORIAL_LABEL}>Primary account</p>
+        {hasAccount ? (
+          <p className={`mt-2 ${EDITORIAL_BODY_MUTED}`}>
+            Account linked. Manage organizations and stakeholders in the Organizations &amp;
+            Stakeholders tab.
           </p>
-        ) : null}
-
-        {view === "understanding" ? (
-          <div className={`${EDITORIAL_CONTENT} flex flex-col gap-10`}>
-            {discovery ? (
-              <OpportunityKnowledgeView
-                variant="understanding"
-                criticalGaps={[]}
-                confirmedUnderstanding={discovery.knowledgeModel.confirmedUnderstanding}
-              />
-            ) : null}
-            {intelligence.insightCatalog && !realityFirst ? (
-              <ProjectInsightCatalogPanel catalog={intelligence.insightCatalog} />
-            ) : null}
-            {!realityFirst ? (
-              <ProjectObjectivePanel project={project} discovery={discovery} />
-            ) : project.objective.trim() ? (
-              <div>
-                <p className={EDITORIAL_LABEL}>Purpose</p>
-                <p className="mt-2 text-[14px] leading-relaxed text-carbon-blue">{project.objective}</p>
-              </div>
-            ) : null}
+        ) : (
+          <div className="mt-3 border border-upcycle-orange/25 bg-upcycle-orange/5 px-4 py-3">
+            <p className="text-[14px] font-semibold text-carbon-blue">
+              No customer account linked
+            </p>
+            <p className={`mt-1 ${EDITORIAL_BODY_MUTED}`}>
+              Link the primary customer organization so contacts, stage-gates, and decisions
+              resolve against the right company.
+            </p>
+            <button
+              type="button"
+              onClick={onLinkAccount}
+              className="mt-3 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white hover:bg-upcycle-orange/90"
+            >
+              Link account
+            </button>
           </div>
-        ) : null}
+        )}
+      </section>
 
-        {view === "risks" ? (
-          <div className={EDITORIAL_CONTENT}>
-            {project.risks.length === 0 ? (
-              <p className={EDITORIAL_BODY_MUTED}>No open risks.</p>
-            ) : (
+      {/* Unified Risks / Actions / Questions feed */}
+      <section className="border-t border-carbon-blue/10 pt-8">
+        <p className={`${EDITORIAL_LABEL} mb-1`}>Risks, actions &amp; questions</p>
+        <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
+          What deserves attention now — risks, open work, and discovery questions in one feed.
+        </p>
+
+        <div className="flex flex-col gap-8">
+          {intelligence.openWork ? (
+            <ProjectOpenWorkPanel openWork={intelligence.openWork} />
+          ) : null}
+
+          {project.risks.length > 0 ? (
+            <div>
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40">
+                Open risks ({project.risks.length})
+              </p>
               <ProjectRisksPanel risks={project.risks} />
-            )}
-          </div>
-        ) : null}
+            </div>
+          ) : (
+            <p className={EDITORIAL_BODY_MUTED}>No open risks.</p>
+          )}
 
-        {view === "actions" ? <div className="pt-1">{actionContent}</div> : null}
-      </div>
-    </section>
-  );
-}
+          {discovery && !realityFirst ? (
+            <div>
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40">
+                Discovery questions
+              </p>
+              <ProjectDiscoveryQuestionsPanel
+                questions={discovery.suggestedQuestions}
+                validations={discovery.suggestedValidations}
+                conversations={discovery.recommendedConversations}
+              />
+            </div>
+          ) : null}
 
-function OperationalOverviewPanel({
-  stageLabel,
-  purpose,
-  openWork,
-  organizationsOverview,
-  stakeholdersOverview,
-}: {
-  stageLabel: string;
-  purpose: string | null;
-  openWork?: ProjectIntelligence["openWork"];
-  organizationsOverview?: ReactNode;
-  stakeholdersOverview?: ReactNode;
-}) {
-  return (
-    <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
-      <div className={EDITORIAL_CONTENT}>
-        <p className={EDITORIAL_LABEL}>Project stage</p>
-        <p className={`mt-2.5 ${EDITORIAL_INSIGHT_PROMINENT}`}>{stageLabel}</p>
-        {purpose ? <p className={`mt-2.5 ${EDITORIAL_BODY_MUTED}`}>{purpose}</p> : null}
-      </div>
+          {discovery && !realityFirst && discovery.knowledgeModel.criticalGaps.length > 0 ? (
+            <OpportunityKnowledgeView
+              variant="gaps"
+              criticalGaps={discovery.knowledgeModel.criticalGaps}
+              confirmedUnderstanding={[]}
+            />
+          ) : null}
 
-      {openWork ? (
+          {intelligence.insightCatalog && !realityFirst ? (
+            <ProjectInsightCatalogPanel catalog={intelligence.insightCatalog} compact />
+          ) : null}
+        </div>
+      </section>
+
+      {project.milestones.length > 0 ? (
         <section className="border-t border-carbon-blue/10 pt-8">
-          <ProjectOpenWorkPanel openWork={openWork} />
-        </section>
-      ) : null}
-
-      {organizationsOverview ? (
-        <section className="border-t border-carbon-blue/10 pt-8">
-          <p className={`${EDITORIAL_LABEL} mb-1`}>Related organizations</p>
-          <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
-            Customer, partner, supplier, and other companies involved.
-          </p>
-          {organizationsOverview}
-        </section>
-      ) : null}
-
-      {stakeholdersOverview ? (
-        <section className="border-t border-carbon-blue/10 pt-8">
-          <p className={`${EDITORIAL_LABEL} mb-1`}>Stakeholders</p>
-          <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
-            User-controlled. Add, edit, or remove — removed stakeholders stay removed.
-          </p>
-          {stakeholdersOverview}
-        </section>
-      ) : null}
-    </div>
-  );
-}
-
-function OverviewPanel({
-  objective,
-  objectiveCategory,
-  objectiveDetail,
-  blocker,
-  blockerDetail,
-  hasCriticalContext,
-  nextAction,
-  nextActionWhy,
-  insightCatalogOverview,
-  organizationsOverview,
-  stakeholderIntelligenceOverview,
-  stakeholdersOverview,
-}: {
-  objective: string;
-  objectiveCategory: InsightCategory;
-  objectiveDetail?: string;
-  blocker: string | null;
-  blockerDetail?: string | null;
-  hasCriticalContext: boolean;
-  nextAction: string | null;
-  nextActionWhy?: string;
-  insightCatalogOverview?: ReactNode;
-  organizationsOverview?: ReactNode;
-  stakeholderIntelligenceOverview?: ReactNode;
-  stakeholdersOverview?: ReactNode;
-}) {
-  return (
-    <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
-      <MissionInsight
-        label="Why this project exists"
-        answer={objective}
-        detail={objectiveDetail}
-        category={objectiveCategory}
-        confidence={
-          objectiveCategory === "known" ? "high" : objectiveCategory === "assumed" ? "medium" : "low"
-        }
-      />
-      {blocker ? (
-        <MissionInsight
-          label="What is blocking progress"
-          answer={blocker}
-          detail={blockerDetail ?? undefined}
-          category={hasCriticalContext ? "missing_critical" : "known"}
-          confidence={hasCriticalContext ? "high" : "medium"}
-        />
-      ) : null}
-      {nextAction ? (
-        <MissionInsight
-          label="What should happen next"
-          answer={nextAction}
-          detail={nextActionWhy}
-          prominent
-          category={hasCriticalContext ? "missing_critical" : "known"}
-          confidence="medium"
-        />
-      ) : null}
-
-      {insightCatalogOverview ? (
-        <section className="border-t border-carbon-blue/10 pt-8">
-          <p className={`${EDITORIAL_LABEL} mb-1`}>What SmartAssist knows</p>
-          <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
-            Known, assumed, unknown, and missing critical information — always visible.
-          </p>
-          {insightCatalogOverview}
-        </section>
-      ) : null}
-
-      {stakeholderIntelligenceOverview ? (
-        <section className="border-t border-carbon-blue/10 pt-8">
-          <p className={`${EDITORIAL_LABEL} mb-1`}>Stakeholder intelligence</p>
-          <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
-            SmartAssist evaluates coverage, relationship health, execution ownership, and missing roles.
-          </p>
-          {stakeholderIntelligenceOverview}
-        </section>
-      ) : null}
-
-      {organizationsOverview ? (
-        <section className="border-t border-carbon-blue/10 pt-8">
-          <p className={`${EDITORIAL_LABEL} mb-1`}>Related organizations</p>
-          <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
-            Customer, partner, supplier, and other companies involved in delivery.
-          </p>
-          {organizationsOverview}
-        </section>
-      ) : null}
-
-      {stakeholdersOverview ? (
-        <section className="border-t border-carbon-blue/10 pt-8">
-          <p className={`${EDITORIAL_LABEL} mb-1`}>Stakeholders</p>
-          <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
-            Who plays which role, from which organization, and with what responsibility.
-          </p>
-          {stakeholdersOverview}
+          <p className={`${EDITORIAL_LABEL} mb-3`}>Milestone snapshot</p>
+          <ProjectMilestonesPanel milestones={project.milestones} />
         </section>
       ) : null}
     </div>

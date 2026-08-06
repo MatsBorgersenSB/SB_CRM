@@ -29,10 +29,19 @@ import { computeCommercialViability } from "@/lib/commercial-viability-engine";
 import { buildOpportunityUnderstanding } from "@/lib/opportunity-workspace-intelligence";
 import { patchUnderstandingCapture } from "@/lib/opportunity-understanding-model";
 import { DealStakeholdersTable } from "@/components/opportunity/deal-stakeholders-table";
+import { BuyingCenterGraph } from "@/components/companies/BuyingCenterGraph";
+import { ReconBattlecardPanel } from "@/components/assistant/ReconBattlecardPanel";
+import { ContractAuditPanel } from "@/components/smartdocs/ContractAuditPanel";
+import { IntentRadarBanner } from "@/components/marketing/IntentRadarBanner";
+import { MicroCampaignGenerator } from "@/components/marketing/MicroCampaignGenerator";
+import { NicheChannelRadarPanel } from "@/components/marketing/NicheChannelRadarPanel";
+import { ProjectStageGateView } from "@/components/execution/ProjectStageGateView";
 import { OpportunityWorkspaceHeader } from "@/components/opportunity/opportunity-workspace-header";
 import { OpportunityMissionControl } from "@/components/opportunity/opportunity-mission-control";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
+import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
+import { companyRouteKey } from "@/types/company-360";
 
 const LEGACY_HASH_TO_ACTION: Record<string, OpportunityActionTab> = {
   activities: "activities",
@@ -306,6 +315,69 @@ export function Deal360LivingWorkspace({
       />
 
       <DealVelocityCard dealId={pipeline.id} />
+
+      {company ? (
+        <IntentRadarBanner
+          companyId={companyRouteKey(company)}
+          companyName={company.Title}
+          className="mb-1"
+        />
+      ) : null}
+
+      {company ? (
+        <WorkspacePanel title="Buying Center" id="buying-center" collapsible>
+          <BuyingCenterGraph
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+          />
+        </WorkspacePanel>
+      ) : null}
+
+      {company ? (
+        <WorkspacePanel title="Executive Recon" id="web-recon" collapsible>
+          <ReconBattlecardPanel
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+            domain={company.Domain || undefined}
+          />
+        </WorkspacePanel>
+      ) : null}
+
+      <WorkspacePanel title="Contract Audit" id="contract-audit" collapsible>
+        <ContractAuditPanel
+          opportunityId={pipeline.id}
+          companyId={company ? companyRouteKey(company) : undefined}
+          documentType="MSA / Contract"
+        />
+      </WorkspacePanel>
+
+      {company ? (
+        <WorkspacePanel title="Micro-Campaigns" id="micro-campaigns" collapsible>
+          <MicroCampaignGenerator
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+          />
+        </WorkspacePanel>
+      ) : null}
+
+      {company ? (
+        <WorkspacePanel title="Niche Channel Radar" id="niche-channels" collapsible>
+          <NicheChannelRadarPanel
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+          />
+        </WorkspacePanel>
+      ) : null}
+
+      {company ? (
+        <WorkspacePanel title="Stage-Gate Execution" id="stage-gate-execution" collapsible>
+          <ProjectStageGateView
+            companyId={companyRouteKey(company)}
+            companyName={company.Title}
+            opportunityId={pipeline.id}
+          />
+        </WorkspacePanel>
+      ) : null}
 
       <OpportunityMissionControl
         view={missionView}

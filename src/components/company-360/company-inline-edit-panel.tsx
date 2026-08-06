@@ -10,7 +10,7 @@ import { authUserToAccountOwner, resolveOwnerById } from "@/lib/company-owner";
 import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/types/company";
-import { COMPANY_INDUSTRIES } from "@/types/company";
+import { CompanyIndustryOptions } from "@/components/companies/company-industry-options";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
 import type { OsmLookupResult } from "@/lib/geo/nominatim";
 
@@ -232,11 +232,7 @@ export function CompanyInlineEditPanel({
               disabled={saving}
               className={`${EDIT_FIELD_CLASS} text-[13px]`}
             >
-              {COMPANY_INDUSTRIES.map((industry) => (
-                <option key={industry} value={industry}>
-                  {industry}
-                </option>
-              ))}
+              <CompanyIndustryOptions />
             </select>
           </label>
         </div>

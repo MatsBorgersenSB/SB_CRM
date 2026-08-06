@@ -74,9 +74,18 @@ export class LocalContactsRepository
     id: string | number,
     patch: UpdateContactInput,
   ): Promise<Contact> {
-    const updated = await updateRegistryContact(id, patch);
-    if (updated) return updated;
+    try {
+      const updated = await updateRegistryContact(id, patch);
+      if (updated) return updated;
+    } catch (error) {
+      if (error instanceof SharePointServiceError) throw error;
+      // Prisma registry failed with a real error — do not fall back to JSON on Vercel.
+      throw error instanceof Error
+        ? error
+        : SharePointServiceError.validation("Unable to update contact");
+    }
 
+    // Registry unavailable or contact not in Prisma — try JSON seed store (local only).
     try {
       const existing = await this.getById(id);
       const companies = await readCompanies();
@@ -127,6 +136,12 @@ export class LocalContactsRepository
       return contactFromStoredRecord(company, next);
     } catch (error) {
       if (error instanceof SharePointServiceError) throw error;
+      const code = (error as NodeJS.ErrnoException)?.code;
+      if (code === "EROFS" || code === "EACCES") {
+        throw new Error(
+          "Cannot save contact: database registry unavailable and filesystem is read-only.",
+        );
+      }
       throw SharePointServiceError.notFound("Contact", id);
     }
   }

@@ -44,11 +44,8 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
     );
 
     if (companies.length === 0 && opportunities.length === 0) {
-      const [jsonCompanies, jsonPipelines] = await Promise.all([
-        readJsonCompanies(),
-        readJsonPipelines(),
-      ]);
-      return { companies: jsonCompanies, pipelines: jsonPipelines, source: "json" };
+      // Empty Prisma registry is a valid clean state — do not revive seed JSON.
+      return { companies: [], pipelines: [], source: "prisma" };
     }
 
     return {

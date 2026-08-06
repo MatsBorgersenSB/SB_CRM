@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 import {
   ContactFormFields,
+  contactFormValidationMessage,
   isContactFormValid,
 } from "@/components/contacts/contact-form-fields";
 import type { GlobalContactRecord } from "@/lib/contact-utils";
@@ -27,16 +28,16 @@ function contactToForm(
   companyName: string,
 ): CreateContactInput {
   return {
-    FirstName: contact.FirstName,
-    LastName: contact.LastName,
-    JobTitle: contact.JobTitle,
-    Role: contact.Role,
-    Email: contact.Email,
-    Phone: contact.Phone,
-    Mobile: contact.Mobile,
-    LinkedInURL: contact.LinkedInURL,
-    Status: contact.Status,
-    RelationshipLevel: contact.RelationshipLevel,
+    FirstName: contact.FirstName ?? "",
+    LastName: contact.LastName ?? "",
+    JobTitle: contact.JobTitle ?? "",
+    Role: contact.Role ?? "Plant Manager",
+    Email: contact.Email ?? "",
+    Phone: contact.Phone ?? "",
+    Mobile: contact.Mobile ?? "",
+    LinkedInURL: contact.LinkedInURL ?? "",
+    Status: contact.Status ?? "Active",
+    RelationshipLevel: contact.RelationshipLevel ?? "Operational",
     buyingRole: contact.buyingRole ?? "Champion",
     sentiment: contact.sentiment ?? "Neutral",
     influenceLevel: contact.influenceLevel ?? "Medium",
@@ -85,7 +86,11 @@ export function Contact360EditPanel({
   }, [record]);
 
   const handleSave = async () => {
-    if (!isContactFormValid(form)) return;
+    const validationMessage = contactFormValidationMessage(form);
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -120,11 +125,10 @@ export function Contact360EditPanel({
         preferredLanguage: form.preferredLanguage?.trim() || undefined,
         EmploymentStatus: form.EmploymentStatus,
         IsSuspicious: form.EmploymentStatus === "Suspicious",
+        ...(companyId !== record.companyId
+          ? { Company: { CompanyID: companyId } }
+          : {}),
       });
-
-      if (companyId !== record.companyId && onCompanyChange) {
-        onCompanyChange(record.contact.ContactID, companyId);
-      }
 
       onCancel();
     } catch (saveError) {
@@ -207,6 +211,12 @@ export function Contact360EditPanel({
           Cancel
         </button>
       </div>
+
+      {!isContactFormValid(form) ? (
+        <p className="mt-2 text-[12px] font-medium text-carbon-blue/55" role="status">
+          {contactFormValidationMessage(form)}
+        </p>
+      ) : null}
 
       {error ? (
         <p className="mt-3 text-[12px] font-medium text-red-700" role="alert">
