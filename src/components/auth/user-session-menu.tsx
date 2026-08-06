@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { ChevronDown, LogOut } from "lucide-react";
 import { EnterpriseRoleBadge } from "@/components/auth/enterprise-role-badge";
 import { USER_ROLE_LABELS, isUserRole, type UserRole } from "@/types/auth";
+import { startAzureAdSignIn } from "@/lib/auth-client";
 
 /**
  * Header auth control — NextAuth session only (no mock Access Tier).
@@ -12,6 +13,7 @@ import { USER_ROLE_LABELS, isUserRole, type UserRole } from "@/types/auth";
 export function UserSessionMenu() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,10 +44,18 @@ export function UserSessionMenu() {
     return (
       <button
         type="button"
-        onClick={() => void signIn("azure-ad", { callbackUrl: "/" })}
-        className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
+        disabled={signingIn}
+        onClick={() => {
+          setSigningIn(true);
+          void startAzureAdSignIn("/").catch((err) => {
+            console.error("[SmartCRM AuthTrace:client] header.signIn failed", err);
+            setSigningIn(false);
+            window.location.href = "/auth/signin";
+          });
+        }}
+        className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:opacity-60"
       >
-        🔑 Sign In with Microsoft 365
+        {signingIn ? "Redirecting…" : "🔑 Sign In with Microsoft 365"}
       </button>
     );
   }

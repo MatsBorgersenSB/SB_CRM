@@ -1,27 +1,25 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 type DebugSnapshot = {
   ok?: boolean;
-  snapshot?: {
-    urls?: Record<string, unknown>;
-    secrets?: Record<string, unknown>;
-    azure?: Record<string, unknown>;
-    expectedCallbackUrl?: string;
-    notes?: string[];
-  };
+  snapshot?: Record<string, unknown>;
   error?: string;
 };
 
+/**
+ * Native form POST to NextAuth — avoids next-auth/react signIn()'s res.json()
+ * which throws SyntaxError when the response is an HTML redirect/error page.
+ */
 function SignInContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const error = searchParams.get("error");
   const showDebug = searchParams.get("debug") === "1";
-  const [pending, setPending] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
+  const [csrfError, setCsrfError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<DebugSnapshot | null>(null);
   const [clientLog, setClientLog] = useState<string[]>([]);
 
@@ -32,13 +30,32 @@ function SignInContent() {
   };
 
   useEffect(() => {
-    if (!showDebug) return;
     pushLog("signin.page.mounted");
+    void fetch("/api/auth/csrf")
+      .then(async (res) => {
+        const text = await res.text();
+        pushLog(`csrf.status=${res.status} contentType=${res.headers.get("content-type")}`);
+        if (!res.ok || text.trimStart().startsWith("<")) {
+          throw new Error(`CSRF endpoint returned non-JSON (status ${res.status})`);
+        }
+        const json = JSON.parse(text) as { csrfToken?: string };
+        if (!json.csrfToken) throw new Error("CSRF token missing in response");
+        setCsrfToken(json.csrfToken);
+        pushLog("csrf.ok");
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        setCsrfError(message);
+        pushLog(`csrf.failed ${message}`);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!showDebug) return;
     void fetch("/api/auth/debug")
       .then(async (res) => {
         pushLog(`debug.fetch status=${res.status}`);
-        const json = (await res.json()) as DebugSnapshot;
-        setDebugInfo(json);
+        setDebugInfo((await res.json()) as DebugSnapshot);
       })
       .catch((err: unknown) => {
         pushLog(`debug.fetch failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -49,19 +66,6 @@ function SignInContent() {
   useEffect(() => {
     if (error) pushLog(`signin.error.param=${error}`);
   }, [error]);
-
-  const handleSignIn = async () => {
-    setPending(true);
-    pushLog(`signin.click provider=azure-ad callbackUrl=${callbackUrl}`);
-    try {
-      const result = await signIn("azure-ad", { callbackUrl, redirect: true });
-      pushLog(`signin.returned ${JSON.stringify(result ?? null)}`);
-    } catch (err) {
-      pushLog(`signin.throw ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setPending(false);
-    }
-  };
 
   return (
     <div className="relative flex min-h-screen flex-col bg-carbon-blue text-white">
@@ -102,23 +106,40 @@ function SignInContent() {
               role="alert"
             >
               {error === "OAuthCallbackError"
-                ? "Microsoft signed you in, but SmartCRM could not complete the session (OAuth callback failed). Retry once. If it persists, IT should verify AUTH_URL, Azure Web redirect URI (/api/auth/callback/azure-ad), and client secret in Vercel."
+                ? "Microsoft signed you in, but SmartCRM could not complete the session (OAuth callback failed). Retry once. If it persists, check Vercel logs for [SmartCRM AuthTrace]."
                 : error === "Configuration"
                   ? "Sign-in is misconfigured (missing Azure AD credentials or AUTH_SECRET). Contact IT."
                   : `Sign-in failed (${error}). Contact IT if this continues.`}
             </p>
           ) : null}
 
-          <button
-            type="button"
-            onClick={() => void handleSignIn()}
-            disabled={pending}
-            className="mt-8 inline-flex w-full items-center justify-center gap-2 border border-upcycle-orange bg-upcycle-orange px-4 py-3 text-[13px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:cursor-not-allowed disabled:opacity-60"
+          {csrfError ? (
+            <p
+              className="mt-5 border border-thermal-red/40 bg-thermal-red/10 px-3 py-2 text-[12px] text-thermal-red"
+              role="alert"
+            >
+              Could not start sign-in ({csrfError}). Open /api/auth/csrf — it must return JSON.
+            </p>
+          ) : null}
+
+          <form
+            method="post"
+            action="/api/auth/signin/azure-ad"
+            className="mt-8"
+            onSubmit={() => pushLog(`signin.form.submit callbackUrl=${callbackUrl}`)}
           >
-            {pending
-              ? "Redirecting to Microsoft…"
-              : "🔑 Sign in with Microsoft 365 (Standard Bio Account)"}
-          </button>
+            <input type="hidden" name="csrfToken" value={csrfToken} />
+            <input type="hidden" name="callbackUrl" value={callbackUrl} />
+            <button
+              type="submit"
+              disabled={!csrfToken}
+              className="inline-flex w-full items-center justify-center gap-2 border border-upcycle-orange bg-upcycle-orange px-4 py-3 text-[13px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {!csrfToken
+                ? "Preparing secure sign-in…"
+                : "🔑 Sign in with Microsoft 365 (Standard Bio Account)"}
+            </button>
+          </form>
 
           {showDebug ? (
             <div className="mt-6 space-y-3 border border-white/15 bg-black/30 p-3 text-[11px] text-white/80">
@@ -136,10 +157,6 @@ function SignInContent() {
               <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all text-[10px] text-white/70">
                 {clientLog.join("\n") || "(empty)"}
               </pre>
-              <p className="text-white/50">
-                After sign-in, open Vercel → Deployment → Logs and filter{" "}
-                <code>[SmartCRM AuthTrace]</code>
-              </p>
             </div>
           ) : null}
         </div>

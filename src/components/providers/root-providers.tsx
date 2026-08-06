@@ -8,7 +8,7 @@ import { UniversalSearchProvider } from "@/components/search/universal-search-pr
 
 export function RootProviders({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider basePath="/api/auth" refetchOnWindowFocus={false}>
       <AuthProvider>
         <SmartAssistProvider>
           <UniversalSearchProvider>{children}</UniversalSearchProvider>
