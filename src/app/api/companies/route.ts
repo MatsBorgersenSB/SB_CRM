@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { getRequestRole, resolveRequestRole } from "@/lib/api-auth";
+import { resolveRequestRole } from "@/lib/api-auth";
 import { canCreateCompany } from "@/lib/permissions";
 import {
   clientIpFromRequest,
