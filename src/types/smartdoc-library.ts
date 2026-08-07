@@ -40,6 +40,7 @@ export const SMARTDOC_TYPES_BY_CATEGORY: Record<SmartDocCategory, string[]> = {
     "Budget Quotation",
     "Price Indication",
     "Sales Proposal",
+    "Order Confirmation",
     "Terms Schedule",
     "Payment Milestones",
   ],

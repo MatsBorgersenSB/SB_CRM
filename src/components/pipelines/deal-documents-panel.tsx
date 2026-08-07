@@ -20,7 +20,7 @@ import {
 import { DealDocumentSetsPanel } from "@/components/pipelines/deal-document-sets-panel";
 import type { DocumentSet } from "@/types/document-set";
 import { documentSet360Href } from "@/types/document-set";
-import { classifyByFileName } from "@/lib/mock-ai-parser";
+import { classifyByFileName, suggestImportDocumentName } from "@/lib/mock-ai-parser";
 import type {
   DealDocumentContext,
   SmartDocCategory,
@@ -350,6 +350,7 @@ export function DealDocumentsPanel({
     if (!file) return;
 
     setOriginalFileName(file.name);
+    setNameManuallyEdited(false);
 
     const hint = classifyByFileName(file.name);
     if (SMARTDOC_CATEGORIES.includes(hint.DocCategory as SmartDocCategory)) {
@@ -358,6 +359,14 @@ export function DealDocumentsPanel({
       if (types.includes(hint.DocType)) {
         setDocType(hint.DocType);
       }
+      setDocumentName(
+        suggestImportDocumentName({
+          dealName: context?.dealName ?? "",
+          docType: types.includes(hint.DocType) ? hint.DocType : types[0]!,
+          originalFileName: file.name,
+          referenceNumber: hint.referenceNumber,
+        }),
+      );
     }
   };
 
