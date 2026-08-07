@@ -67,6 +67,11 @@ export function DealDetailPanel({
   const folderUrl =
     pipeline.sharepointFolderUrl?.trim() || sharePointFolder.sharepointFolderUrl;
 
+  const accountName = useMemo(
+    () => companies.find((company) => company.pipelineIds.includes(pipeline.id))?.Title,
+    [companies, pipeline.id],
+  );
+
   const hasLinkedDocument = Boolean(pipeline.FileLeafRef?.trim());
 
   useEffect(() => {
@@ -98,6 +103,10 @@ export function DealDetailPanel({
         <OpenSharePointFolderControl
           sharepointFolderUrl={folderUrl}
           loading={!pipeline.sharepointFolderUrl && sharePointFolder.loading}
+          dealId={pipeline.id}
+          companyName={accountName}
+          opportunityTitle={pipeline.assetName}
+          onProvisioned={() => sharePointFolder.refresh()}
         />
       </div>
 

@@ -155,6 +155,10 @@ export function OpportunityWorkspaceHeader({
               <OpenSharePointFolderControl
                 sharepointFolderUrl={folderUrl}
                 loading={!pipeline.sharepointFolderUrl && sharePointFolder.loading}
+                dealId={pipeline.id}
+                companyName={company?.Title}
+                opportunityTitle={pipeline.assetName}
+                onProvisioned={() => sharePointFolder.refresh()}
               />
             </div>
           </div>

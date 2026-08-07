@@ -13,6 +13,7 @@ export type { OpportunitySharePointFolder } from "./graph-client";
 export { getGraphAccessToken } from "./get-graph-access-token";
 export {
   scheduleOpportunitySharePointFolderProvision,
+  provisionOpportunitySharePointFolder,
   linkOpportunitySharePointFolder,
 } from "./provision-opportunity-folder";
 export {
