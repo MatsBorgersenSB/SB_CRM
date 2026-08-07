@@ -47,7 +47,8 @@ export function canViewExecutiveKpis(role: UserRole): boolean {
 }
 
 export function canCreateCompany(role: UserRole): boolean {
-  return role === "superuser";
+  // Enterprise ADMIN/MANAGER (superuser, admin, commercial) may create accounts.
+  return role === "superuser" || role === "admin" || role === "commercial";
 }
 
 /** FS-013: high-privilege deletes — enterprise ADMIN only. */

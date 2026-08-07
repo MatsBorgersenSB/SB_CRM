@@ -9,6 +9,7 @@ import { readResponseBody } from "@/services/sharepoint/client/response-body";
 import {
   companiesService,
   contactsService,
+  getCompaniesService,
 } from "@/services/sharepoint/browser";
 
 export async function syncCompanyRecord(
@@ -36,9 +37,10 @@ export async function syncCompanyContact(
 
 export async function createCompanyRecord(
   input: Parameters<typeof companiesService.create>[0],
+  role: UserRole = "superuser",
 ): Promise<Company> {
   try {
-    return await companiesService.create(input);
+    return await getCompaniesService(role).create(input);
   } catch (error) {
     throw toSharePointServiceError(error);
   }

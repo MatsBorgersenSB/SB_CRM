@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { getRequestRole } from "@/lib/api-auth";
+import { getRequestRole, resolveRequestRole } from "@/lib/api-auth";
 import { canCreateCompany } from "@/lib/permissions";
 import {
   clientIpFromRequest,
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const role = getRequestRole(request);
+  const role = await resolveRequestRole(request);
   if (!canCreateCompany(role)) {
     return sharePointErrorResponse(
       SharePointServiceError.forbidden("Insufficient role to create companies"),
