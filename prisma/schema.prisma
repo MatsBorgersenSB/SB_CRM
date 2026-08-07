@@ -254,6 +254,8 @@ enum OpportunityStage {
 
 model Opportunity {
   id                String            @id @default(uuid())
+  /** Public tracking code, e.g. PL-1007 — used in UI and SmartDoc IDs. */
+  code              String?           @unique
   name              String
   companyId         String
   company           Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)

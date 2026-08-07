@@ -4,7 +4,7 @@ import { QUOTATION_KIND_LABELS } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { DealDocumentContext } from "@/types/smartdoc-library";
-import { getLifecycleStage } from "@/types/pipeline";
+import { getLifecycleStage, opportunityPublicCode } from "@/types/pipeline";
 
 function latestQuotationKind(
   packages: CommercialPackage[],
@@ -40,9 +40,11 @@ export function buildDealDocumentContext(
 ): DealDocumentContext {
   const company = findCompanyForDeal(pipeline.id, companies);
 
+  const plNumber = opportunityPublicCode(pipeline);
+
   return {
-    plNumber: pipeline.id,
-    clientName: company?.Title ?? pipeline.ClientLookup ?? pipeline.id,
+    plNumber,
+    clientName: company?.Title ?? pipeline.ClientLookup ?? plNumber,
     dealId: pipeline.id,
     dealName: pipeline.assetName,
     commercialStage: inferCommercialStage(pipeline, packages),

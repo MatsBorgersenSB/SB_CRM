@@ -4,6 +4,7 @@ import type { CreateOpportunityInput } from "@/types/deal";
 import type { PipelineRow, CompanyRole } from "@/types/pipeline";
 import { COMPANY_ROLES } from "@/types/pipeline";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
+import { allocateNextOpportunityCode } from "@/lib/data/opportunities";
 import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import { mapPrismaOpportunityToPipelineRow } from "@/lib/prisma-mappers";
 import { scheduleOpportunitySharePointFolderProvision } from "@/lib/m365/provision-opportunity-folder";
@@ -74,10 +75,12 @@ export async function createRegistryOpportunity(
       : 0;
   const expectedCloseDate = parseCloseDate(input.expectedCloseDate);
   const currency = (input.currency?.trim().toUpperCase() || "EUR").slice(0, 8);
+  const code = await allocateNextOpportunityCode();
 
   const created = await withPrismaRetry((prisma) =>
     prisma.opportunity.create({
       data: {
+        code,
         name: assetName,
         companyId: company.id,
         ownerId: String(ownerId || "system"),

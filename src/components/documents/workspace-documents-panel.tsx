@@ -13,6 +13,7 @@ import {
 } from "@/lib/smartdoc-identity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import { opportunityPublicCode } from "@/types/pipeline";
 import type { Activity } from "@/types/activity";
 import type {
   CreateSmartDocInput,
@@ -403,7 +404,7 @@ export function WorkspaceDocumentsPanel({
               >
                 {dealOptions.map((deal) => (
                   <option key={deal.id} value={deal.id}>
-                    {deal.id} · {deal.assetName}
+                    {opportunityPublicCode(deal)} · {deal.assetName}
                   </option>
                 ))}
               </select>
