@@ -94,16 +94,29 @@ async function createChildFolder(
     body: JSON.stringify({
       name: folderName,
       folder: {},
-      "@microsoft.graph.conflictBehavior": "select",
+      // Graph only accepts fail | replace | rename (not "select").
+      "@microsoft.graph.conflictBehavior": "fail",
     }),
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Graph API error (${res.status}): ${err}`);
+  if (res.ok) {
+    return (await res.json()) as DriveItem;
   }
 
-  return (await res.json()) as DriveItem;
+  const err = await res.text();
+  const alreadyExists =
+    res.status === 409 ||
+    /nameAlreadyExists|already exists|conflict/i.test(err);
+
+  if (alreadyExists) {
+    const existing = await getDriveItemByPath(accessToken, siteId, [
+      ...parentSegments,
+      folderName,
+    ]);
+    if (existing?.id) return existing;
+  }
+
+  throw new Error(`Graph API error (${res.status}): ${err}`);
 }
 
 /**
