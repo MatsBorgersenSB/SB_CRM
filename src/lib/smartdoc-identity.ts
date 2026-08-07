@@ -23,6 +23,7 @@ export const SMARTDOC_IDENTITY_TYPE_CODES: Record<string, string> = {
   "Budget Quotation": "QUO",
   "Price Indication": "QUO",
   "Sales Proposal": "PRO",
+  "Order Confirmation": "ORC",
   "Terms Schedule": "TRM",
   "Payment Milestones": "PAY",
   "NDA Contract": "NDA",
