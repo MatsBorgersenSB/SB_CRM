@@ -1,5 +1,10 @@
 import { getPrisma } from "@/lib/prisma";
 import { decryptToken, encryptToken } from "@/lib/encryption";
+import {
+  getAzureAdClientId,
+  getAzureAdClientSecret,
+  getAzureAdTenantId,
+} from "@/lib/auth-env";
 
 const GRAPH_BASE =
   process.env.MICROSOFT_GRAPH_BASE_URL?.replace(/\/$/, "") ||
@@ -8,14 +13,20 @@ const GRAPH_BASE =
 /** Microsoft Graph mail/calendar subscription max lifetime ≈ 4230 minutes (≈ 3 days). */
 export const M365_SUBSCRIPTION_RENEWAL_MINUTES = 4230;
 
+/**
+ * Delegated Graph scopes for Outlook + SharePoint document backend.
+ * Override with M365_OAUTH_SCOPES (space/comma separated) when needed.
+ */
 const DEFAULT_SCOPES = [
   "openid",
   "profile",
   "offline_access",
+  "User.Read",
   "Mail.Read",
   "Mail.Send",
   "Calendars.Read",
-  "User.Read",
+  "Files.ReadWrite.All",
+  "Sites.ReadWrite.All",
 ];
 
 export const SMARTCRM_MASTER_CATEGORY = "SmartCRM";
@@ -63,18 +74,18 @@ export function m365OAuthScopes(): string[] {
 }
 
 function tenantId(): string {
-  return process.env.AZURE_TENANT_ID?.trim() || "common";
+  return getAzureAdTenantId() || "organizations";
 }
 
 function clientId(): string {
-  const id = process.env.AZURE_CLIENT_ID?.trim();
-  if (!id) throw new Error("AZURE_CLIENT_ID is not configured");
+  const id = getAzureAdClientId();
+  if (!id) throw new Error("AZURE_AD_CLIENT_ID is not configured");
   return id;
 }
 
 function clientSecret(): string {
-  const secret = process.env.AZURE_CLIENT_SECRET?.trim();
-  if (!secret) throw new Error("AZURE_CLIENT_SECRET is not configured");
+  const secret = getAzureAdClientSecret();
+  if (!secret) throw new Error("AZURE_AD_CLIENT_SECRET is not configured");
   return secret;
 }
 

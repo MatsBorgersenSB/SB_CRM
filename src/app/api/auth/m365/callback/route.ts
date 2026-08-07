@@ -4,6 +4,7 @@ import {
   fetchGraphMe,
   upsertM365ExternalIntegration,
 } from "@/lib/m365-client";
+import { getAzureAdTenantId } from "@/lib/auth-env";
 
 const STATE_COOKIE = "smartcrm_m365_oauth_state";
 
@@ -12,7 +13,7 @@ function appBaseUrl(): string {
 }
 
 function postAuthRedirect(query: string): string {
-  return `${appBaseUrl()}/deals?${query}`;
+  return `${appBaseUrl()}/m365-preview?${query}`;
 }
 
 /**
@@ -66,7 +67,7 @@ export async function GET(request: Request) {
     const integration = await upsertM365ExternalIntegration({
       tokens,
       userObjectId: me.id,
-      tenantId: process.env.AZURE_TENANT_ID ?? null,
+      tenantId: getAzureAdTenantId() || null,
     });
 
     const redirect = NextResponse.redirect(

@@ -141,6 +141,68 @@ async function ensureFolderPath(
   return last;
 }
 
+export type SharePointUploadedFile = {
+  itemId: string;
+  webUrl: string;
+  name: string;
+};
+
+/**
+ * Upload (or replace) a file into an existing drive folder by folder item id.
+ * SharePoint Online remains the document source of truth.
+ */
+export async function uploadFileToSharePointFolder(input: {
+  accessToken: string;
+  siteId: string;
+  folderId: string;
+  fileName: string;
+  contentType?: string;
+  bytes: ArrayBuffer | Uint8Array | Buffer;
+}): Promise<SharePointUploadedFile> {
+  const { accessToken, siteId, folderId } = input;
+  if (!accessToken?.trim()) throw new Error("Graph access token is required");
+  if (!siteId?.trim()) throw new Error("SHAREPOINT_SITE_ID is required");
+  if (!folderId?.trim()) throw new Error("SharePoint folder id is required");
+
+  const safeName = sanitizeSharePointName(input.fileName).replace(/\s+/g, " ");
+  const path = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/items/${encodeURIComponent(folderId)}:/${encodeURIComponent(safeName)}:/content`;
+
+  const body =
+    input.bytes instanceof Buffer
+      ? input.bytes
+      : Buffer.from(
+          input.bytes instanceof ArrayBuffer
+            ? new Uint8Array(input.bytes)
+            : input.bytes,
+        );
+
+  const res = await fetch(path, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": input.contentType || "application/octet-stream",
+      Accept: "application/json",
+    },
+    body,
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Graph upload failed (${res.status}): ${err}`);
+  }
+
+  const item = (await res.json()) as DriveItem & { id?: string; webUrl?: string };
+  if (!item.id || !item.webUrl) {
+    throw new Error("Graph upload returned an incomplete drive item");
+  }
+
+  return {
+    itemId: item.id,
+    webUrl: item.webUrl,
+    name: item.name ?? safeName,
+  };
+}
+
 /**
  * Ensures hierarchical SharePoint folder:
  * /Opportunities/{CompanyName}/{OpportunityTitle}

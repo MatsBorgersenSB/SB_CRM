@@ -544,7 +544,9 @@ model DocumentRecord {
   sizeBytes            Int?
   source               String   @default("m365_email") // m365_email | upload | manual
   externalAttachmentId String?
-  contentBase64        String?  // Optional preview/download payload (seed / small files)
+  contentBase64        String?  // Optional local cache for small files; SharePoint is SoT
+  sharepointItemId     String?  // Graph drive item id when filed in opportunity folder
+  sharepointWebUrl     String?  // Browser URL in SharePoint Online
 
   opportunityId  String?
   opportunity    Opportunity?       @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
@@ -558,6 +560,7 @@ model DocumentRecord {
   @@index([opportunityId])
   @@index([emailMessageId])
   @@index([source])
+  @@index([sharepointItemId])
   @@map("document_records")
 }
 

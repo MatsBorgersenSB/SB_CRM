@@ -11,6 +11,11 @@ declare namespace Office {
     Html = "html",
   }
 
+  enum EventType {
+    DialogMessageReceived = "dialogMessageReceived",
+    DialogEventReceived = "dialogEventReceived",
+  }
+
   interface AsyncResult<T> {
     status: AsyncResultStatus;
     value: T;
@@ -49,14 +54,38 @@ declare namespace Office {
     };
   }
 
+  interface Dialog {
+    close(): void;
+    addEventHandler(
+      eventType: EventType | string,
+      handler: (arg: { message?: string; error?: number } | string) => void,
+    ): void;
+  }
+
+  interface UI {
+    displayDialogAsync(
+      url: string,
+      options: {
+        height?: number;
+        width?: number;
+        displayInIframe?: boolean;
+        promptBeforeOpen?: boolean;
+      },
+      callback: (result: AsyncResult<Dialog>) => void,
+    ): void;
+    messageParent?(message: string): void;
+  }
+
   interface Context {
     mailbox?: Mailbox;
+    ui?: UI;
   }
 
   function onReady(callback: (info: { host: unknown; platform: unknown }) => void): void;
 
   const context: Context;
   const CoercionType: typeof CoercionType;
+  const EventType: typeof EventType;
 }
 
 declare const Office:
@@ -65,5 +94,6 @@ declare const Office:
       context: Office.Context;
       AsyncResultStatus: typeof Office.AsyncResultStatus;
       CoercionType: typeof Office.CoercionType;
+      EventType: typeof Office.EventType;
     }
   | undefined;

@@ -384,11 +384,21 @@ export const authOptions: NextAuthConfig = {
           // blow past 4KB and Vercel drops the Set-Cookie → silent logout.
           token.azureAccessTokenExpiresAt = account.expires_at;
           token.azureTenantId = azureTenantId;
+          if (account.providerAccountId) {
+            token.azureOid = account.providerAccountId;
+          }
         }
+
+        const profileRecord = profile as Record<string, unknown> | null | undefined;
+        const profileOid =
+          (typeof profileRecord?.oid === "string" && profileRecord.oid) ||
+          (typeof profileRecord?.sub === "string" && profileRecord.sub) ||
+          null;
+        if (profileOid) token.azureOid = profileOid;
 
         const email = resolveAzureCallbackEmail(
           user,
-          profile as Record<string, unknown> | null | undefined,
+          profileRecord,
           typeof token.email === "string" ? token.email : null,
         );
 
@@ -438,6 +448,8 @@ export const authOptions: NextAuthConfig = {
         }
         session.azureTenantId =
           typeof token.azureTenantId === "string" ? token.azureTenantId : azureTenantId;
+        session.azureOid =
+          typeof token.azureOid === "string" ? token.azureOid : undefined;
         return session;
       } catch (error) {
         console.error(

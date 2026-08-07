@@ -7,6 +7,10 @@ import { resolveAuthSecret } from "@/lib/auth-env";
  * Strict auth guard for application pages.
  * NextAuth (`/api/auth/*`) and the sign-in page are excluded via `matcher`
  * so middleware never redirects/intercepts the OAuth callback.
+ *
+ * Outlook task panes load without a session so they can render a Sign-in CTA
+ * (Office Dialog SSO). Unauthenticated `/api/*` returns JSON 401 — never an
+ * HTML redirect — so fetch() in the add-in can detect auth state cleanly.
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -19,7 +23,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/azure-start") ||
-    pathname.startsWith("/auth/signin")
+    pathname.startsWith("/auth/signin") ||
+    pathname.startsWith("/outlook-addin") ||
+    pathname.startsWith("/outlook/")
   ) {
     return NextResponse.next({
       request: { headers: requestHeaders },
@@ -53,6 +59,14 @@ export async function middleware(request: NextRequest) {
           .filter((n) => /auth|session/i.test(n)),
       }),
     );
+
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Unauthorized", code: "AUTH_REQUIRED" },
+        { status: 401 },
+      );
+    }
+
     const signInUrl = new URL("/auth/signin", request.nextUrl.origin);
     signInUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(signInUrl);

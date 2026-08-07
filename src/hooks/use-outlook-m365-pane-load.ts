@@ -10,6 +10,7 @@ export type OutlookPaneLoadState<T> =
   | { status: "ready"; payload: T }
   | { status: "not-found" }
   | { status: "empty"; message: string }
+  | { status: "auth-required"; message: string }
   | { status: "error"; message: string };
 
 type UseOutlookM365PaneLoadOptions<T> = {
@@ -91,9 +92,19 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
       }
 
       try {
-        const response = await fetch(`${apiPath}?email=${encodeURIComponent(email)}`);
+        const response = await fetch(`${apiPath}?email=${encodeURIComponent(email)}`, {
+          credentials: "include",
+        });
 
         if (requestId !== requestIdRef.current || !mountedRef.current) return;
+
+        if (response.status === 401) {
+          safeSetState({
+            status: "auth-required",
+            message: "Sign in to SmartCRM to load relationship intelligence.",
+          });
+          return;
+        }
 
         if (response.status === 404) {
           safeSetState({ status: "not-found" });
@@ -101,7 +112,17 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
         }
 
         if (!response.ok) {
-          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          const body = (await response.json().catch(() => null)) as {
+            error?: string;
+            code?: string;
+          } | null;
+          if (body?.code === "AUTH_REQUIRED") {
+            safeSetState({
+              status: "auth-required",
+              message: body.error ?? "Sign in to SmartCRM to continue.",
+            });
+            return;
+          }
           safeSetState({
             status: "error",
             message: body?.error ?? errorMessage,

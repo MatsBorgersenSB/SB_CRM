@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { OutlookAuthGate } from "@/components/m365/outlook-auth-gate";
 import { OutlookRelationshipCardPane } from "@/components/m365/outlook-relationship-card-pane";
 
 /**
@@ -7,14 +8,16 @@ import { OutlookRelationshipCardPane } from "@/components/m365/outlook-relations
  */
 export default function OutlookAddinPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-[100dvh] items-center justify-center bg-white px-6">
-          <p className="text-[12px] text-carbon-blue/50">Loading relationship intelligence…</p>
-        </div>
-      }
-    >
-      <OutlookRelationshipCardPane />
-    </Suspense>
+    <OutlookAuthGate>
+      <Suspense
+        fallback={
+          <div className="flex h-[100dvh] items-center justify-center bg-white px-6">
+            <p className="text-[12px] text-carbon-blue/50">Loading relationship intelligence…</p>
+          </div>
+        }
+      >
+        <OutlookRelationshipCardPane />
+      </Suspense>
+    </OutlookAuthGate>
   );
 }
