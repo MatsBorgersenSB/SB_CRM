@@ -105,7 +105,7 @@ export function CompanyTypeMultiSelect({
     <div ref={rootRef} className="relative w-full">
       <p className={labelClass}>
         {label}
-        {required ? " *" : null}
+        {required ? <span className="text-thermal-red"> *</span> : null}
       </p>
 
       <button

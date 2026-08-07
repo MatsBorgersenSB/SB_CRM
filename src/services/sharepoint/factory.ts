@@ -2,7 +2,6 @@ import { NoOpCacheProvider } from "@/services/sharepoint/client/cache-provider";
 import { GraphHttpClient } from "@/services/sharepoint/client/graph-http-client";
 import { SharePointListClient } from "@/services/sharepoint/client/sharepoint-list-client";
 import { EnvTokenProvider } from "@/services/sharepoint/client/token-provider";
-import { isGraphTransport } from "@/services/sharepoint/config/environment";
 import { companyMapper } from "@/services/sharepoint/mappers/company.mapper";
 import { contactMapper } from "@/services/sharepoint/mappers/contact.mapper";
 import { dealMapper } from "@/services/sharepoint/mappers/deal.mapper";
@@ -40,10 +39,20 @@ export type SharePointServices = {
 
 let serverServices: SharePointServices | null = null;
 
+/**
+ * CRM entity registry (companies, contacts, deals, …) stays on Prisma/local.
+ * `SHAREPOINT_TRANSPORT=graph` enables document folder provision only — it must
+ * not switch entity CRUD to SharePoint lists until those schemas are certified.
+ * Opt-in list Graph with SHAREPOINT_LISTS_TRANSPORT=graph.
+ */
+function useGraphLists(): boolean {
+  return process.env.SHAREPOINT_LISTS_TRANSPORT?.trim().toLowerCase() === "graph";
+}
+
 export function createServerSharePointServices(): SharePointServices {
   const cache = new NoOpCacheProvider();
 
-  if (isGraphTransport()) {
+  if (useGraphLists()) {
     const graphClient = new GraphHttpClient(new EnvTokenProvider());
     const listClient = new SharePointListClient(graphClient, cache);
 
