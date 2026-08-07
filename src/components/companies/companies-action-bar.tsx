@@ -13,9 +13,11 @@ import type { CompanyIndustry, CompanyStatus } from "@/types/company";
 import { COMPANY_INDUSTRIES, COMPANY_STATUSES } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
+import { CountryContinentFields } from "@/components/companies/country-continent-fields";
 import { EuropeanRegistrySearch } from "@/components/companies/european-registry-search";
 import type { UnifiedEuropeanCompany } from "@/lib/integrations/company-registers/types";
 import type { UserRole } from "@/types/auth";
+import { findCountryEntry } from "@/lib/geo/country-continent";
 
 export function CompaniesActionBar({
   onCreated,
@@ -75,6 +77,8 @@ export function CompaniesActionBar({
     form.accountOwnerId > 0;
 
   const applyRegistryResult = (company: UnifiedEuropeanCompany) => {
+    const geo =
+      findCountryEntry(company.countryCode || company.country || "") ?? null;
     setForm((current) => ({
       ...current,
       Title: company.legalName || current.Title,
@@ -83,9 +87,9 @@ export function CompaniesActionBar({
       AddressLine1: company.streetAddress || current.AddressLine1,
       PostalCode: company.postalCode || current.PostalCode,
       City: company.city || current.City,
-      Country: company.country || current.Country,
-      countryCode: company.countryCode || current.countryCode,
-      continent: company.continent || "Europe",
+      Country: geo?.name || company.country || current.Country,
+      countryCode: geo?.code || company.countryCode || current.countryCode,
+      continent: geo?.continent || company.continent || current.continent,
       industryNote:
         company.industryDescription ||
         (company.industryCode ? `Industry code: ${company.industryCode}` : current.industryNote),
@@ -377,38 +381,21 @@ export function CompaniesActionBar({
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             />
           </label>
-          <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-              Country
-            </span>
-            <input
-              type="text"
-              value={form.Country}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  Country: event.target.value,
-                }))
-              }
-              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-              Continent
-            </span>
-            <input
-              type="text"
-              value={form.continent}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  continent: event.target.value,
-                }))
-              }
-              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
-            />
-          </label>
+          <CountryContinentFields
+            country={form.Country}
+            countryCode={form.countryCode}
+            continent={form.continent}
+            density="compact"
+            sideBySide
+            onChange={(next) =>
+              setForm((current) => ({
+                ...current,
+                Country: next.country,
+                countryCode: next.countryCode,
+                continent: next.continent,
+              }))
+            }
+          />
           <label className="block">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
               Website

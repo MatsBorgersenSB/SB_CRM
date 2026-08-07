@@ -139,3 +139,25 @@ export function inferCountryCodeFromDomain(domainOrUrl: string): string {
 export function countryNameFromCode(countryCode: string): string {
   return byCode.get(countryCode.trim().toUpperCase())?.name ?? "";
 }
+
+export type CountryOption = {
+  name: string;
+  code: string;
+  continent: Exclude<Continent, "">;
+};
+
+/** Sorted catalog for country dropdowns. */
+export function listCountries(): CountryOption[] {
+  return [...COUNTRIES]
+    .map(({ name, code, continent }) => ({ name, code, continent }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Resolve a catalog entry from ISO code or free-text country label. */
+export function findCountryEntry(input: string): CountryOption | null {
+  const resolved = resolveCountry(input);
+  if (!resolved) return null;
+  const entry = byCode.get(resolved.code);
+  if (!entry) return null;
+  return { name: entry.name, code: entry.code, continent: entry.continent };
+}

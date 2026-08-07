@@ -12,6 +12,8 @@ import {
   RELATIONSHIP_LEVELS,
 } from "@/types/contact";
 import { EMPLOYMENT_STATUSES } from "@/types/contact-lifecycle";
+import { CountryContinentFields } from "@/components/companies/country-continent-fields";
+import { findCountryEntry } from "@/lib/geo/country-continent";
 
 export const emptyContactForm = (): CreateContactInput => ({
   FirstName: "",
@@ -387,11 +389,14 @@ export function ContactFormFields({
                 form.country ||
                 "";
               const city = selectedCompany?.City?.trim() || form.city || "";
+              const geo = findCountryEntry(country);
               onChange({
                 ...form,
                 city,
-                country,
-                timezone: inferTimezoneFromCountry(country),
+                country: geo?.name || country,
+                countryCode: geo?.code || form.countryCode || "",
+                continent: geo?.continent || form.continent || "",
+                timezone: inferTimezoneFromCountry(geo?.name || country),
                 isTimezoneOverridden: false,
               });
             }}
@@ -399,17 +404,30 @@ export function ContactFormFields({
           Inherit timezone from company
         </label>
 
-        <div className="grid gap-2 md:grid-cols-3">
-          <label className="block">
-            <span className={LABEL_CLASS}>Country</span>
-            <input
-              type="text"
-              value={form.country ?? ""}
-              onChange={(event) => onChange({ ...form, country: event.target.value })}
-              disabled={!form.isTimezoneOverridden}
-              className={FIELD_CLASS}
-            />
-          </label>
+        <div className="grid gap-2 md:grid-cols-2">
+          <CountryContinentFields
+            country={form.country ?? ""}
+            countryCode={form.countryCode ?? ""}
+            continent={form.continent ?? ""}
+            density="compact"
+            sideBySide
+            disabled={!form.isTimezoneOverridden}
+            onChange={(next) =>
+              onChange({
+                ...form,
+                country: next.country,
+                countryCode: next.countryCode,
+                continent: next.continent,
+                timezone: next.country
+                  ? inferTimezoneFromCountry(next.country)
+                  : form.timezone,
+                isTimezoneOverridden: true,
+              })
+            }
+          />
+        </div>
+
+        <div className="mt-2 grid gap-2 md:grid-cols-3">
           <label className="block">
             <span className={LABEL_CLASS}>City</span>
             <input
@@ -436,9 +454,6 @@ export function ContactFormFields({
               className={FIELD_CLASS}
             />
           </label>
-        </div>
-
-        <div className="mt-2 grid gap-2 md:grid-cols-3">
           <label className="block">
             <span className={LABEL_CLASS}>Postal code</span>
             <input
@@ -449,6 +464,9 @@ export function ContactFormFields({
               className={FIELD_CLASS}
             />
           </label>
+        </div>
+
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
           <label className="block">
             <span className={LABEL_CLASS}>State / region</span>
             <input
@@ -457,28 +475,6 @@ export function ContactFormFields({
               onChange={(event) => onChange({ ...form, stateRegion: event.target.value })}
               disabled={!form.isTimezoneOverridden}
               className={FIELD_CLASS}
-            />
-          </label>
-          <label className="block">
-            <span className={LABEL_CLASS}>Country code</span>
-            <input
-              type="text"
-              value={form.countryCode ?? ""}
-              onChange={(event) => onChange({ ...form, countryCode: event.target.value })}
-              disabled
-              className={FIELD_CLASS + " bg-carbon-blue/[0.03]"}
-            />
-          </label>
-        </div>
-
-        <div className="mt-2">
-          <label className="block">
-            <span className={LABEL_CLASS}>Continent</span>
-            <input
-              type="text"
-              value={form.continent ?? ""}
-              disabled
-              className={FIELD_CLASS + " bg-carbon-blue/[0.03]"}
             />
           </label>
         </div>
