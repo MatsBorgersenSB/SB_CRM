@@ -44,13 +44,41 @@ import { WorkspaceModeNav } from "@/components/ui/workspace-mode-nav";
 
 type DocumentsMode = "browse" | "create" | "import";
 
-type ImportSuggestion = {
+type ImportQueueItem = {
+  id: string;
+  file: File;
   originalFileName: string;
   DocCategory: SmartDocCategory;
   DocType: string;
   DocumentName: string;
   reason: string;
+  status: "ready" | "importing" | "done" | "error";
+  error?: string;
+  result?: SmartDocLibraryRecord;
 };
+
+function newImportItemId(): string {
+  return `imp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function classifyFileToQueueItem(file: File, dealName: string): ImportQueueItem {
+  const classified = classifyByFileName(file.name);
+  return {
+    id: newImportItemId(),
+    file,
+    originalFileName: file.name,
+    DocCategory: classified.DocCategory,
+    DocType: classified.DocType,
+    DocumentName: suggestImportDocumentName({
+      dealName,
+      docType: classified.DocType,
+      originalFileName: file.name,
+      referenceNumber: classified.referenceNumber,
+    }),
+    reason: classified.reason,
+    status: "ready",
+  };
+}
 
 type WorkspaceDocumentsPanelProps = {
   context: WorkspaceDocumentsContext;
@@ -77,11 +105,10 @@ export function WorkspaceDocumentsPanel({
   const [targetDealId, setTargetDealId] = useState<string>("");
   const [presetIndex, setPresetIndex] = useState(0);
   const [documentName, setDocumentName] = useState("");
-  const [createdDocument, setCreatedDocument] = useState<SmartDocLibraryRecord | null>(null);
+  const [createdDocuments, setCreatedDocuments] = useState<SmartDocLibraryRecord[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [tableQuery, setTableQuery] = useState(defaultDocumentTableQuery);
-  const [importSuggestion, setImportSuggestion] = useState<ImportSuggestion | null>(null);
-  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
+  const [importQueue, setImportQueue] = useState<ImportQueueItem[]>([]);
   const [classifying, setClassifying] = useState(false);
 
   const preset = WORKSPACE_CREATE_DOCUMENT_PRESETS[presetIndex] ?? WORKSPACE_CREATE_DOCUMENT_PRESETS[0]!;
@@ -110,14 +137,6 @@ export function WorkspaceDocumentsPanel({
     [rows, tableQuery],
   );
 
-  const importTypes = useMemo(
-    () =>
-      importSuggestion
-        ? SMARTDOC_TYPES_BY_CATEGORY[importSuggestion.DocCategory]
-        : [],
-    [importSuggestion],
-  );
-
   useEffect(() => {
     setTableQuery(defaultDocumentTableQuery());
   }, [context.scope, context.companyId, context.contactId, context.dealId]);
@@ -129,15 +148,6 @@ export function WorkspaceDocumentsPanel({
   const identityPreview = useMemo(() => {
     if (!targetPipeline) return null;
     const plNumber = opportunityPublicCode(targetPipeline);
-    if (importSuggestion) {
-      return buildSmartDocIdentityPreview(
-        plNumber,
-        targetPipeline.assetName,
-        importSuggestion.DocCategory,
-        importSuggestion.DocType,
-        library.map((record) => record.SmartDocID),
-      );
-    }
     return buildSmartDocIdentityPreview(
       plNumber,
       targetPipeline.assetName,
@@ -145,7 +155,36 @@ export function WorkspaceDocumentsPanel({
       preset.type,
       library.map((record) => record.SmartDocID),
     );
-  }, [targetPipeline, preset, library, importSuggestion]);
+  }, [targetPipeline, preset, library]);
+
+  const importIdentityIds = useMemo(() => {
+    const ids = library.map((record) => record.SmartDocID);
+    if (!targetPipeline) return importQueue.map(() => null);
+
+    const plNumber = opportunityPublicCode(targetPipeline);
+    const provisional: Array<string | null> = [];
+    const known = [...ids];
+
+    for (const item of importQueue) {
+      if (item.status === "done" && item.result?.SmartDocID) {
+        provisional.push(item.result.SmartDocID);
+        if (!known.includes(item.result.SmartDocID)) {
+          known.push(item.result.SmartDocID);
+        }
+        continue;
+      }
+      const preview = buildSmartDocIdentityPreview(
+        plNumber,
+        targetPipeline.assetName,
+        item.DocCategory,
+        item.DocType,
+        known,
+      );
+      provisional.push(preview.documentId);
+      known.push(preview.documentId);
+    }
+    return provisional;
+  }, [importQueue, library, targetPipeline]);
 
   const nameSuggestions = useMemo(() => {
     if (!targetPipeline) return null;
@@ -188,60 +227,57 @@ export function WorkspaceDocumentsPanel({
     }
   }, [nameSuggestions, documentName, mode]);
 
-  const handleCreate = async (input?: Partial<CreateSmartDocInput>) => {
+  const postSmartDoc = async (
+    payload: CreateSmartDocInput,
+    file?: File | null,
+  ): Promise<SmartDocLibraryRecord> => {
+    let response: Response;
+    if (file) {
+      const form = new FormData();
+      form.append("DocCategory", payload.DocCategory);
+      form.append("DocType", payload.DocType);
+      form.append("DocumentName", payload.DocumentName);
+      if (payload.originalFileName) {
+        form.append("originalFileName", payload.originalFileName);
+      }
+      if (payload.DocumentSetID) {
+        form.append("DocumentSetID", payload.DocumentSetID);
+      }
+      form.append("file", file, file.name);
+      response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
+        method: "POST",
+        body: form,
+      });
+    } else {
+      response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error ?? "Failed to create document");
+    return body.document as SmartDocLibraryRecord;
+  };
+
+  const handleCreate = async () => {
     if (!resolvedDealId || readOnly) return;
 
     setSaving(true);
     setError(null);
 
     const payload: CreateSmartDocInput = {
-      DocCategory: input?.DocCategory ?? importSuggestion?.DocCategory ?? preset.category,
-      DocType: input?.DocType ?? importSuggestion?.DocType ?? preset.type,
-      DocumentName:
-        input?.DocumentName ??
-        (importSuggestion?.DocumentName.trim() ||
-          documentName.trim() ||
-          nameSuggestions?.primary ||
-          preset.label),
-      originalFileName:
-        input?.originalFileName ?? importSuggestion?.originalFileName,
+      DocCategory: preset.category,
+      DocType: preset.type,
+      DocumentName: documentName.trim() || nameSuggestions?.primary || preset.label,
     };
 
     try {
-      let response: Response;
-      if (pendingImportFile) {
-        const form = new FormData();
-        form.append("DocCategory", payload.DocCategory);
-        form.append("DocType", payload.DocType);
-        form.append("DocumentName", payload.DocumentName);
-        if (payload.originalFileName) {
-          form.append("originalFileName", payload.originalFileName);
-        }
-        if (payload.DocumentSetID) {
-          form.append("DocumentSetID", payload.DocumentSetID);
-        }
-        form.append("file", pendingImportFile, pendingImportFile.name);
-        response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
-          method: "POST",
-          body: form,
-        });
-      } else {
-        response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Failed to create document");
-
-      const record = body.document as SmartDocLibraryRecord;
-      setCreatedDocument(record);
+      const record = await postSmartDoc(payload);
+      setCreatedDocuments([record]);
       setLibrary((current) => [...current, record]);
       setMode("browse");
       setDocumentName("");
-      setImportSuggestion(null);
-      setPendingImportFile(null);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Failed to create document");
     } finally {
@@ -249,40 +285,121 @@ export function WorkspaceDocumentsPanel({
     }
   };
 
-  const applyFileClassification = useCallback(
-    (file: File) => {
+  const handleImportAll = async () => {
+    if (!resolvedDealId || readOnly) return;
+    const pending = importQueue.filter(
+      (item) => item.status === "ready" || item.status === "error",
+    );
+    if (pending.length === 0) return;
+
+    setSaving(true);
+    setError(null);
+    const imported: SmartDocLibraryRecord[] = [];
+    let failureCount = 0;
+
+    for (const item of pending) {
+      if (!item.DocumentName.trim()) {
+        failureCount += 1;
+        setImportQueue((current) =>
+          current.map((row) =>
+            row.id === item.id
+              ? { ...row, status: "error", error: "File name is required" }
+              : row,
+          ),
+        );
+        continue;
+      }
+
+      setImportQueue((current) =>
+        current.map((row) =>
+          row.id === item.id ? { ...row, status: "importing", error: undefined } : row,
+        ),
+      );
+
+      try {
+        const record = await postSmartDoc(
+          {
+            DocCategory: item.DocCategory,
+            DocType: item.DocType,
+            DocumentName: item.DocumentName.trim(),
+            originalFileName: item.originalFileName,
+          },
+          item.file,
+        );
+        imported.push(record);
+        setLibrary((current) => [...current, record]);
+        setImportQueue((current) =>
+          current.map((row) =>
+            row.id === item.id ? { ...row, status: "done", result: record } : row,
+          ),
+        );
+      } catch (importError) {
+        failureCount += 1;
+        const message =
+          importError instanceof Error ? importError.message : "Failed to import document";
+        setImportQueue((current) =>
+          current.map((row) =>
+            row.id === item.id ? { ...row, status: "error", error: message } : row,
+          ),
+        );
+      }
+    }
+
+    if (imported.length > 0) {
+      setCreatedDocuments(imported);
+    }
+
+    setImportQueue((current) => current.filter((row) => row.status !== "done"));
+    if (imported.length > 0 && failureCount === 0) {
+      setImportQueue([]);
+      setMode("browse");
+    }
+
+    setSaving(false);
+  };
+
+  const enqueueFiles = useCallback(
+    (files: FileList | File[] | null) => {
+      const list = files ? Array.from(files) : [];
+      if (list.length === 0) return;
+
       setClassifying(true);
       setError(null);
       setMode("import");
-      setPendingImportFile(file);
+      const dealName = targetPipeline?.assetName ?? "Opportunity";
 
       window.setTimeout(() => {
-        const classified = classifyByFileName(file.name);
-        const dealName = targetPipeline?.assetName ?? "Opportunity";
-        const suggestedName = suggestImportDocumentName({
-          dealName,
-          docType: classified.DocType,
-          originalFileName: file.name,
-          referenceNumber: classified.referenceNumber,
-        });
-
-        setImportSuggestion({
-          originalFileName: file.name,
-          DocCategory: classified.DocCategory,
-          DocType: classified.DocType,
-          DocumentName: suggestedName,
-          reason: classified.reason,
+        setImportQueue((current) => {
+          const existingNames = new Set(
+            current.map((item) => `${item.originalFileName}:${item.file.size}`),
+          );
+          const next = list
+            .filter((file) => !existingNames.has(`${file.name}:${file.size}`))
+            .map((file) => classifyFileToQueueItem(file, dealName));
+          return [...current, ...next];
         });
         setClassifying(false);
-      }, 250);
+      }, 200);
     },
     [targetPipeline?.assetName],
   );
 
+  const updateQueueItem = (id: string, patch: Partial<ImportQueueItem>) => {
+    setImportQueue((current) =>
+      current.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    );
+  };
+
+  const removeQueueItem = (id: string) => {
+    setImportQueue((current) => current.filter((item) => item.id !== id));
+  };
+
+  const clearImportQueue = () => {
+    setImportQueue([]);
+  };
+
   const handleFilePick = (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
-    applyFileClassification(file);
+    enqueueFiles(files);
   };
 
   const onDropZone = {
@@ -314,6 +431,11 @@ export function WorkspaceDocumentsPanel({
     dragActive ? "border-upcycle-orange bg-upcycle-orange/[0.04]" : "border-carbon-blue/20"
   }`;
 
+  const readyImportCount = importQueue.filter(
+    (item) =>
+      (item.status === "ready" || item.status === "error") && item.DocumentName.trim(),
+  ).length;
+
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[12px] text-carbon-blue/60">{workspaceDocumentsLinkSummary(context)}</p>
@@ -325,24 +447,43 @@ export function WorkspaceDocumentsPanel({
         onChange={(id) => {
           setMode(id as DocumentsMode);
           if (id !== "import") {
-            setImportSuggestion(null);
-            setPendingImportFile(null);
+            clearImportQueue();
           }
         }}
       />
 
       {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
 
-      {createdDocument ? (
+      {createdDocuments.length > 0 ? (
         <div className="border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-3 text-[12px] text-carbon-blue">
-          Created{" "}
-          <Link
-            href={`/documents/${encodeURIComponent(createdDocument.SmartDocID)}`}
-            className="font-semibold text-upcycle-orange hover:underline"
-          >
-            {createdDocument.DocumentName}
-          </Link>
-          . SmartDoc ID <span className="font-mono">{createdDocument.SmartDocID}</span>
+          {createdDocuments.length === 1 ? (
+            <>
+              Created{" "}
+              <Link
+                href={`/documents/${encodeURIComponent(createdDocuments[0]!.SmartDocID)}`}
+                className="font-semibold text-upcycle-orange hover:underline"
+              >
+                {createdDocuments[0]!.DocumentName}
+              </Link>
+              . SmartDoc ID{" "}
+              <span className="font-mono">{createdDocuments[0]!.SmartDocID}</span>
+            </>
+          ) : (
+            <>
+              Imported {createdDocuments.length} SmartDocs:{" "}
+              {createdDocuments.map((doc, index) => (
+                <span key={doc.SmartDocID}>
+                  {index > 0 ? ", " : null}
+                  <Link
+                    href={`/documents/${encodeURIComponent(doc.SmartDocID)}`}
+                    className="font-semibold text-upcycle-orange hover:underline"
+                  >
+                    {doc.DocumentName}
+                  </Link>
+                </span>
+              ))}
+            </>
+          )}
         </div>
       ) : null}
 
@@ -350,32 +491,43 @@ export function WorkspaceDocumentsPanel({
         loading ? (
           <p className="text-sm text-carbon-blue/45">Loading documents…</p>
         ) : rows.length === 0 ? (
-          <div
-            {...onDropZone}
-            className={`${dropZoneClass} px-6 py-10`}
-          >
+          <div {...onDropZone} className={`${dropZoneClass} px-6 py-10`}>
             <p className="text-sm text-carbon-blue/45">
-              No documents in this workspace yet. Create or import a SmartDoc to get started.
+              No documents in this workspace yet. Create or import SmartDocs to get started.
             </p>
             {!readOnly ? (
               <>
                 <p className="mt-3 text-[12px] font-medium text-carbon-blue">
-                  Drag & drop a file here
+                  Drag & drop files here
                 </p>
                 <p className="mt-1 text-[11px] text-carbon-blue/50">
-                  SmartAssist will suggest category, type, and file name — you confirm.
+                  Drop one or many — SmartAssist classifies each; you confirm.
                 </p>
                 <input
                   type="file"
+                  multiple
                   className="mt-3 text-[11px] text-carbon-blue/70"
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
-                  onChange={(event) => handleFilePick(event.target.files)}
+                  onChange={(event) => {
+                    handleFilePick(event.target.files);
+                    event.target.value = "";
+                  }}
                 />
               </>
             ) : null}
           </div>
         ) : (
           <div className={`${WORKSPACE_PANEL_SURFACE} overflow-hidden p-0`}>
+            {!readOnly ? (
+              <div {...onDropZone} className={`${dropZoneClass} m-4 mb-0 py-5`}>
+                <p className="text-[12px] font-medium text-carbon-blue">
+                  Drop more files to import
+                </p>
+                <p className="mt-1 text-[11px] text-carbon-blue/50">
+                  Multiple documents welcome — review each suggestion, then confirm.
+                </p>
+              </div>
+            ) : null}
             <div className="border-b border-carbon-blue/8 px-4 py-3 sm:px-5">
               <FilterToolbar
                 filters={filterDefinitions}
@@ -493,150 +645,191 @@ export function WorkspaceDocumentsPanel({
       {mode === "import" && !readOnly ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
           <div {...onDropZone} className={dropZoneClass}>
-            <p className="text-sm font-medium text-carbon-blue">Drag & drop a file here</p>
+            <p className="text-sm font-medium text-carbon-blue">
+              Drag & drop files here
+            </p>
             <p className="mt-1 text-[11px] text-carbon-blue/50">
-              SmartAssist suggests category, type, and name — you decide.
+              Drop several at once — SmartAssist classifies each; you confirm.
             </p>
             <input
               type="file"
+              multiple
               className="mt-3 text-[11px] text-carbon-blue/70"
               accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
-              onChange={(event) => handleFilePick(event.target.files)}
+              onChange={(event) => {
+                handleFilePick(event.target.files);
+                event.target.value = "";
+              }}
             />
           </div>
 
           {classifying ? (
             <p className="mt-4 text-[12px] text-carbon-blue/55">
-              SmartAssist is classifying the document…
+              SmartAssist is classifying documents…
             </p>
           ) : null}
 
-          {importSuggestion && !classifying ? (
-            <div className="mt-4 space-y-3 border border-upcycle-orange/20 bg-upcycle-orange/[0.04] p-3">
-              <div className="flex items-start gap-2">
-                <Sparkles className="mt-0.5 size-3.5 shrink-0 text-upcycle-orange" />
-                <div>
+          {importQueue.length > 0 && !classifying ? (
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="size-3.5 text-upcycle-orange" />
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
-                    SmartAssist suggestion
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-carbon-blue/60">
-                    {importSuggestion.reason}. File name keeps the original source name for search —
-                    change category, type, or name if needed.
-                  </p>
-                  <p className="mt-1 font-mono text-[10px] text-carbon-blue/45">
-                    Source: {importSuggestion.originalFileName}
+                    SmartAssist · {importQueue.length} document
+                    {importQueue.length === 1 ? "" : "s"}
                   </p>
                 </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
-                    Category
-                  </span>
-                  <select
-                    value={importSuggestion.DocCategory}
-                    onChange={(event) => {
-                      const nextCategory = event.target.value as SmartDocCategory;
-                      const nextTypes = SMARTDOC_TYPES_BY_CATEGORY[nextCategory];
-                      const nextType = nextTypes.includes(importSuggestion.DocType)
-                        ? importSuggestion.DocType
-                        : nextTypes[0]!;
-                      setImportSuggestion({
-                        ...importSuggestion,
-                        DocCategory: nextCategory,
-                        DocType: nextType,
-                      });
-                    }}
-                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                  >
-                    {SMARTDOC_CATEGORIES.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
-                    Document type
-                  </span>
-                  <select
-                    value={importSuggestion.DocType}
-                    onChange={(event) => {
-                      const nextType = event.target.value;
-                      setImportSuggestion({
-                        ...importSuggestion,
-                        DocType: nextType,
-                      });
-                    }}
-                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                  >
-                    {importTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
-                  File name
-                </span>
-                <input
-                  type="text"
-                  value={importSuggestion.DocumentName}
-                  onChange={(event) =>
-                    setImportSuggestion({
-                      ...importSuggestion,
-                      DocumentName: event.target.value,
-                    })
-                  }
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                />
-              </label>
-
-              {identityPreview ? (
-                <p className="text-[11px] text-carbon-blue/55">
-                  SmartDoc ID{" "}
-                  <span className="font-mono font-semibold text-carbon-blue">
-                    {identityPreview.documentId}
-                  </span>
+                <p className="text-[11px] text-carbon-blue/50">
+                  Review each row, then import all.
                 </p>
-              ) : null}
+              </div>
+
+              {importQueue.map((item, index) => {
+                const types = SMARTDOC_TYPES_BY_CATEGORY[item.DocCategory];
+                const previewId = importIdentityIds[index];
+                return (
+                  <div
+                    key={item.id}
+                    className="space-y-3 border border-upcycle-orange/20 bg-upcycle-orange/[0.04] p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-mono text-[10px] text-carbon-blue/45">
+                          {item.originalFileName}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-carbon-blue/60">{item.reason}</p>
+                        {item.status === "importing" ? (
+                          <p className="mt-1 text-[11px] font-medium text-upcycle-orange">
+                            Importing…
+                          </p>
+                        ) : null}
+                        {item.status === "error" && item.error ? (
+                          <p className="mt-1 text-[11px] text-red-600">{item.error}</p>
+                        ) : null}
+                        {item.status === "done" && item.result ? (
+                          <p className="mt-1 text-[11px] text-emerald-700">
+                            Imported as{" "}
+                            <span className="font-mono">{item.result.SmartDocID}</span>
+                          </p>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={saving || item.status === "importing"}
+                        onClick={() => removeQueueItem(item.id)}
+                        className="shrink-0 text-[11px] font-semibold text-carbon-blue/45 hover:text-carbon-blue disabled:opacity-40"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                          Category
+                        </span>
+                        <select
+                          value={item.DocCategory}
+                          disabled={item.status === "importing" || item.status === "done"}
+                          onChange={(event) => {
+                            const nextCategory = event.target.value as SmartDocCategory;
+                            const nextTypes = SMARTDOC_TYPES_BY_CATEGORY[nextCategory];
+                            const nextType = nextTypes.includes(item.DocType)
+                              ? item.DocType
+                              : nextTypes[0]!;
+                            updateQueueItem(item.id, {
+                              DocCategory: nextCategory,
+                              DocType: nextType,
+                              status: item.status === "error" ? "ready" : item.status,
+                              error: undefined,
+                            });
+                          }}
+                          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                        >
+                          {SMARTDOC_CATEGORIES.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="block">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                          Document type
+                        </span>
+                        <select
+                          value={item.DocType}
+                          disabled={item.status === "importing" || item.status === "done"}
+                          onChange={(event) =>
+                            updateQueueItem(item.id, {
+                              DocType: event.target.value,
+                              status: item.status === "error" ? "ready" : item.status,
+                              error: undefined,
+                            })
+                          }
+                          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                        >
+                          {types.map((type) => (
+                            <option key={type} value={type}>
+                              {type}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <label className="block">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                        File name
+                      </span>
+                      <input
+                        type="text"
+                        value={item.DocumentName}
+                        disabled={item.status === "importing" || item.status === "done"}
+                        onChange={(event) =>
+                          updateQueueItem(item.id, {
+                            DocumentName: event.target.value,
+                            status: item.status === "error" ? "ready" : item.status,
+                            error: undefined,
+                          })
+                        }
+                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                      />
+                    </label>
+
+                    {previewId ? (
+                      <p className="text-[11px] text-carbon-blue/55">
+                        SmartDoc ID{" "}
+                        <span className="font-mono font-semibold text-carbon-blue">
+                          {previewId}
+                        </span>
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
 
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={
-                    saving ||
-                    !resolvedDealId ||
-                    !importSuggestion.DocumentName.trim()
-                  }
-                  onClick={() =>
-                    void handleCreate({
-                      DocCategory: importSuggestion.DocCategory,
-                      DocType: importSuggestion.DocType,
-                      DocumentName: importSuggestion.DocumentName.trim(),
-                      originalFileName: importSuggestion.originalFileName,
-                    })
-                  }
+                  disabled={saving || !resolvedDealId || readyImportCount === 0}
+                  onClick={() => void handleImportAll()}
                   className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold text-white disabled:opacity-50"
                 >
-                  {saving ? "Importing…" : "Confirm & Import"}
+                  {saving
+                    ? "Importing…"
+                    : readyImportCount === 1
+                      ? "Confirm & Import"
+                      : `Confirm & Import ${readyImportCount}`}
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setImportSuggestion(null);
-                    setPendingImportFile(null);
-                  }}
-                  className="px-3 py-2 text-[11px] font-semibold text-carbon-blue/55 hover:text-carbon-blue"
+                  disabled={saving}
+                  onClick={clearImportQueue}
+                  className="px-3 py-2 text-[11px] font-semibold text-carbon-blue/55 hover:text-carbon-blue disabled:opacity-40"
                 >
-                  Clear
+                  Clear all
                 </button>
               </div>
             </div>

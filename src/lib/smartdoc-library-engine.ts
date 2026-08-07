@@ -1,5 +1,6 @@
 import { buildDealDocumentContext } from "@/lib/deal-document-context";
 import { buildDocumentIdentity } from "@/lib/smartdoc-identity";
+import { buildIdentitySmartDocsFileLeafRef } from "@/lib/smartdocs-filename";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
@@ -8,14 +9,9 @@ import type {
   SmartDocLibraryRecord,
 } from "@/types/smartdoc-library";
 
-function extractExtension(fileName: string): string {
-  const lastDot = fileName.lastIndexOf(".");
-  return lastDot >= 0 ? fileName.slice(lastDot + 1).toLowerCase() : "pdf";
-}
-
 /**
- * SharePoint file name = SmartDoc identity + extension
- * e.g. PL-1001-S-ORC-0001.pdf
+ * SharePoint file name = SmartDoc identity + display name + extension
+ * e.g. PL-1001-S-ORC-0001 Order Confirmation.pdf
  */
 export function buildSmartDocLibraryRecord(
   pipeline: PipelineRow,
@@ -35,8 +31,11 @@ export function buildSmartDocLibraryRecord(
     existingIds,
   );
 
-  const extension = extractExtension(originalFileName);
-  const fileLeafRef = `${identity.documentId}.${extension}`;
+  const fileLeafRef = buildIdentitySmartDocsFileLeafRef({
+    documentId: identity.documentId,
+    documentName: input.DocumentName,
+    originalFileName,
+  });
 
   return {
     SmartDocID: identity.documentId,
