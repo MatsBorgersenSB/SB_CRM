@@ -7,6 +7,43 @@ import {
 import { getGraphAccessToken } from "@/lib/m365/get-graph-access-token";
 import { isGraphTransport } from "@/services/sharepoint/config/environment";
 
+export type ProvisionOpportunityFolderResult = {
+  folder: OpportunitySharePointFolder;
+  opportunityId: string;
+};
+
+/**
+ * Synchronously create/link the SharePoint folder for an opportunity.
+ * Used by on-demand "Create SharePoint folder" and by background schedule.
+ */
+export async function provisionOpportunitySharePointFolder(input: {
+  opportunityId: string;
+  companyName: string;
+  opportunityTitle: string;
+}): Promise<ProvisionOpportunityFolderResult> {
+  if (!isGraphTransport()) {
+    throw new Error(
+      "SharePoint Graph transport is off. Set SHAREPOINT_TRANSPORT=graph on the server.",
+    );
+  }
+
+  const siteId = process.env.SHAREPOINT_SITE_ID?.trim();
+  if (!siteId) {
+    throw new Error("SHAREPOINT_SITE_ID is not configured");
+  }
+
+  const accessToken = await getGraphAccessToken();
+  const folder = await ensureOpportunitySharePointFolder(
+    accessToken,
+    siteId,
+    input.companyName,
+    input.opportunityTitle,
+  );
+  await linkOpportunitySharePointFolder(input.opportunityId, folder);
+
+  return { folder, opportunityId: input.opportunityId };
+}
+
 /**
  * Fire-and-forget SharePoint folder provision after Prisma opportunity create.
  * Uses Next.js `after()` so work can finish on Vercel after the response is sent.
@@ -29,14 +66,7 @@ export function scheduleOpportunitySharePointFolderProvision(input: {
 
   after(async () => {
     try {
-      const accessToken = await getGraphAccessToken();
-      const folder = await ensureOpportunitySharePointFolder(
-        accessToken,
-        siteId,
-        input.companyName,
-        input.opportunityTitle,
-      );
-      await linkOpportunitySharePointFolder(input.opportunityId, folder);
+      await provisionOpportunitySharePointFolder(input);
       console.log(`[SharePoint] Linked folder for deal: ${input.opportunityId}`);
     } catch (err) {
       console.warn(`[SharePoint Sync Skipped]: ${err}`);
