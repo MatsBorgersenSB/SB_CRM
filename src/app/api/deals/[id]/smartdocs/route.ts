@@ -4,17 +4,90 @@ import { buildDealDocumentContext } from "@/lib/deal-document-context";
 import { buildSmartDocIdentityPreview } from "@/lib/smartdoc-identity";
 import { canUploadSmartDocs } from "@/lib/permissions";
 import {
-  createSmartDocLibraryRecord,
   readCommercialPackages,
   readCompanies,
-  readPipelines,
   readSmartDocsLibrary,
   readSmartDocsForDeal,
+  resolvePipelineForSmartDocs,
 } from "@/lib/pipeline-db";
+import { importOpportunitySmartDoc } from "@/lib/smartdoc-import";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import type { CreateSmartDocInput, SmartDocCategory } from "@/types/smartdoc-library";
 import { SMARTDOC_CATEGORIES } from "@/types/smartdoc-library";
+
+async function parseCreateSmartDocRequest(request: Request): Promise<{
+  metadata: CreateSmartDocInput;
+  file?: { bytes: Buffer; mimeType: string | null; originalFileName: string };
+}> {
+  const contentType = request.headers.get("content-type") ?? "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const DocCategory = String(form.get("DocCategory") ?? "");
+    const DocType = String(form.get("DocType") ?? "").trim();
+    const DocumentName = String(form.get("DocumentName") ?? "").trim();
+    const originalFileName =
+      String(form.get("originalFileName") ?? "").trim() || undefined;
+    const DocumentSetID =
+      String(form.get("DocumentSetID") ?? "").trim() || undefined;
+    const upload = form.get("file");
+
+    let file:
+      | { bytes: Buffer; mimeType: string | null; originalFileName: string }
+      | undefined;
+
+    if (upload instanceof File && upload.size > 0) {
+      const bytes = Buffer.from(await upload.arrayBuffer());
+      file = {
+        bytes,
+        mimeType: upload.type || null,
+        originalFileName: upload.name || originalFileName || DocumentName,
+      };
+    }
+
+    return {
+      metadata: {
+        DocCategory: DocCategory as SmartDocCategory,
+        DocType,
+        DocumentName,
+        originalFileName: originalFileName ?? file?.originalFileName,
+        DocumentSetID,
+      },
+      file,
+    };
+  }
+
+  const body = (await request.json()) as CreateSmartDocInput & {
+    fileBase64?: string;
+    mimeType?: string;
+  };
+
+  let file:
+    | { bytes: Buffer; mimeType: string | null; originalFileName: string }
+    | undefined;
+
+  if (body.fileBase64?.trim()) {
+    file = {
+      bytes: Buffer.from(body.fileBase64, "base64"),
+      mimeType: body.mimeType ?? null,
+      originalFileName:
+        body.originalFileName?.trim() ||
+        `${body.DocumentName?.trim() || "document"}.pdf`,
+    };
+  }
+
+  return {
+    metadata: {
+      DocCategory: body.DocCategory,
+      DocType: body.DocType,
+      DocumentName: body.DocumentName,
+      originalFileName: body.originalFileName,
+      DocumentSetID: body.DocumentSetID,
+    },
+    file,
+  };
+}
 
 export async function GET(
   request: Request,
@@ -26,15 +99,14 @@ export async function GET(
   const previewType = searchParams.get("type");
 
   try {
-    const [pipelines, companies, packages, documents, library] = await Promise.all([
-      readPipelines(),
+    const [pipeline, companies, packages, documents, library] = await Promise.all([
+      resolvePipelineForSmartDocs(id),
       readCompanies(),
       readCommercialPackages(),
       readSmartDocsForDeal(id),
       readSmartDocsLibrary(),
     ]);
 
-    const pipeline = pipelines.find((row) => row.id === id);
     if (!pipeline) {
       return NextResponse.json({ error: "Deal not found" }, { status: 404 });
     }
@@ -81,13 +153,13 @@ export async function POST(
   }
 
   try {
-    const body = (await request.json()) as CreateSmartDocInput;
+    const { metadata, file } = await parseCreateSmartDocRequest(request);
 
     if (
-      !body.DocCategory ||
-      !SMARTDOC_CATEGORIES.includes(body.DocCategory as SmartDocCategory) ||
-      !body.DocType?.trim() ||
-      !body.DocumentName?.trim()
+      !metadata.DocCategory ||
+      !SMARTDOC_CATEGORIES.includes(metadata.DocCategory as SmartDocCategory) ||
+      !metadata.DocType?.trim() ||
+      !metadata.DocumentName?.trim()
     ) {
       return NextResponse.json(
         { error: "DocCategory, DocType, and DocumentName are required" },
@@ -95,22 +167,25 @@ export async function POST(
       );
     }
 
-    const record = await createSmartDocLibraryRecord(id, {
-      DocCategory: body.DocCategory,
-      DocType: body.DocType.trim(),
-      DocumentName: body.DocumentName.trim(),
-      originalFileName: body.originalFileName,
-      DocumentSetID: body.DocumentSetID,
+    const imported = await importOpportunitySmartDoc({
+      dealId: id,
+      metadata: {
+        DocCategory: metadata.DocCategory,
+        DocType: metadata.DocType.trim(),
+        DocumentName: metadata.DocumentName.trim(),
+        originalFileName: metadata.originalFileName,
+        DocumentSetID: metadata.DocumentSetID,
+      },
+      file,
     });
 
-    const [pipelines, companies, packages, documents] = await Promise.all([
-      readPipelines(),
+    const [pipeline, companies, packages, documents] = await Promise.all([
+      resolvePipelineForSmartDocs(id),
       readCompanies(),
       readCommercialPackages(),
       readSmartDocsForDeal(id),
     ]);
 
-    const pipeline = pipelines.find((row) => row.id === id);
     if (!pipeline) {
       return NextResponse.json({ error: "Deal not found" }, { status: 404 });
     }
@@ -119,8 +194,10 @@ export async function POST(
 
     return NextResponse.json({
       context,
-      document: record,
+      document: imported.libraryRecord,
       documents,
+      documentRecordId: imported.documentRecordId,
+      sharepointWebUrl: imported.sharepointWebUrl,
       existingIdentityIds: (await readSmartDocsLibrary()).map((row) => row.SmartDocID),
     });
   } catch (error) {

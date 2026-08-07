@@ -1197,7 +1197,46 @@ export async function readSmartDocsLibrary(): Promise<SmartDocLibraryRecord[]> {
 
 export async function readSmartDocsForDeal(dealId: string): Promise<SmartDocLibraryRecord[]> {
   const library = await readSmartDocsLibrary();
-  return library.filter((record) => record.DealId === dealId);
+  const key = dealId.trim().toLowerCase();
+  return library.filter((record) => {
+    if (record.DealId.toLowerCase() === key) return true;
+    if (record.PlNumber?.toLowerCase() === key) return true;
+    return false;
+  });
+}
+
+/** Resolve deal from JSON seed or Prisma opportunity registry. */
+export async function resolvePipelineForSmartDocs(
+  dealId: string,
+): Promise<PipelineRow | undefined> {
+  const key = dealId.trim();
+  if (!key) return undefined;
+
+  const database = await ensureDb();
+  const fromJson = database.pipelines.find(
+    (row) =>
+      row.id === key ||
+      row.code?.trim().toLowerCase() === key.toLowerCase(),
+  );
+  if (fromJson) return fromJson;
+
+  try {
+    const { findPrismaOpportunityByRouteKey } = await import(
+      "@/lib/resolve-opportunity-route"
+    );
+    const { mapPrismaOpportunityToPipelineRow } = await import(
+      "@/lib/prisma-mappers"
+    );
+    const prismaOpportunity = await findPrismaOpportunityByRouteKey(key);
+    if (!prismaOpportunity) return undefined;
+    return mapPrismaOpportunityToPipelineRow(prismaOpportunity);
+  } catch (error) {
+    console.warn(
+      "[smartdocs] Prisma opportunity lookup failed:",
+      error instanceof Error ? error.message : error,
+    );
+    return undefined;
+  }
 }
 
 export async function createSmartDocLibraryRecord(
@@ -1205,13 +1244,23 @@ export async function createSmartDocLibraryRecord(
   input: CreateSmartDocInput,
 ): Promise<SmartDocLibraryRecord> {
   const database = await ensureDb();
-  const pipelineIndex = database.pipelines.findIndex((row) => row.id === dealId);
+  const pipelineIndex = database.pipelines.findIndex(
+    (row) =>
+      row.id === dealId ||
+      row.code?.trim().toLowerCase() === dealId.trim().toLowerCase(),
+  );
 
-  if (pipelineIndex === -1) {
+  let pipeline =
+    pipelineIndex >= 0 ? database.pipelines[pipelineIndex] : undefined;
+
+  if (!pipeline) {
+    pipeline = await resolvePipelineForSmartDocs(dealId);
+  }
+
+  if (!pipeline) {
     throw new Error(`Pipeline not found: ${dealId}`);
   }
 
-  const pipeline = database.pipelines[pipelineIndex];
   const nextId =
     database.smartDocsLibrary.reduce((max, record) => Math.max(max, record.id), 0) + 1;
 
@@ -1227,7 +1276,7 @@ export async function createSmartDocLibraryRecord(
     ? database.commercialPackages.find((pkg) => pkg.DocumentSetID === input.DocumentSetID)
     : findDocumentSetForFile(
         draft.FileLeafRef,
-        dealId,
+        pipeline.id,
         database.commercialPackages,
         null,
       );
@@ -1275,14 +1324,17 @@ export async function createSmartDocLibraryRecord(
     }
   }
 
-  database.pipelines[pipelineIndex] = {
-    ...pipeline,
-    ClientLookup: record.PlNumber,
-    DocCategory: record.DocCategory,
-    DocType: record.DocType,
-    Revision: record.Revision,
-    FileLeafRef: record.FileLeafRef,
-  };
+  // Only mutate JSON seed pipelines — Prisma opportunities stay in Neon.
+  if (pipelineIndex >= 0) {
+    database.pipelines[pipelineIndex] = {
+      ...pipeline,
+      ClientLookup: record.PlNumber,
+      DocCategory: record.DocCategory,
+      DocType: record.DocType,
+      Revision: record.Revision,
+      FileLeafRef: record.FileLeafRef,
+    };
+  }
 
   await writeDb(database);
   return record;
