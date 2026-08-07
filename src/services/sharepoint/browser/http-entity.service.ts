@@ -25,7 +25,7 @@ export class HttpSharePointEntityService<T, TCreate, TUpdate>
 {
   constructor(
     private readonly basePath: string,
-    private readonly role: UserRole = "superuser",
+    protected readonly role: UserRole = "superuser",
   ) {}
 
   private async request<TResult>(

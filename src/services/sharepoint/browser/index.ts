@@ -28,8 +28,8 @@ class BrowserDealsService
   >
   implements IDealsService
 {
-  constructor(private readonly role: UserRole = "superuser") {
-    super("/api/deals");
+  constructor(role: UserRole = "superuser") {
+    super("/api/deals", role);
   }
 
   override async update(id: string | number, patch: UpdateDealInput): Promise<Deal> {
