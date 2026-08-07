@@ -334,6 +334,7 @@ export function mapPrismaOpportunityToPipelineRow(
 
   return {
     id: opportunity.id,
+    code: opportunity.code?.trim() || null,
     assetName: opportunity.name,
     companyRole,
     targetFeedstock: "",

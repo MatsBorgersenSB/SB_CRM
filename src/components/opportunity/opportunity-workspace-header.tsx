@@ -5,7 +5,11 @@ import Link from "next/link";
 import type { SharePointPerson } from "@/types/company";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
-import { formatDealValue, parseSalesValueInput } from "@/types/pipeline";
+import {
+  formatDealValue,
+  opportunityPublicCode,
+  parseSalesValueInput,
+} from "@/types/pipeline";
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
 import {
   buildAssignableOwnerOptions,
@@ -125,6 +129,9 @@ export function OpportunityWorkspaceHeader({
             <h1 className="truncate text-[22px] font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-[24px]">
               {pipeline.assetName}
             </h1>
+            <p className="mt-1 font-mono text-[12px] text-slate-500 dark:text-slate-400">
+              {opportunityPublicCode(pipeline)}
+            </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className={ATTIO_PILL_STATIC}>
                 <span className={ATTIO_STATUS_DOT} aria-hidden />

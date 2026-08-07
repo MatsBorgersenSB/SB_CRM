@@ -85,6 +85,11 @@ export type PipelineTeamMember = {
  */
 export type PipelineRow = {
   id: string;
+  /**
+   * Public opportunity code (e.g. PL-1007).
+   * Used in UI and SmartDoc IDs; may equal `id` for legacy JSON seed rows.
+   */
+  code?: string | null;
   assetName: string;
   companyRole: CompanyRole;
   targetFeedstock: string;
@@ -180,6 +185,14 @@ export const formatProjectValue = formatDealValue;
 
 export function formatProbability(probability: number): string {
   return `${probability}%`;
+}
+
+/** Prefer public PL-#### code for display and SmartDoc identity. */
+export function opportunityPublicCode(pipeline: Pick<PipelineRow, "id" | "code">): string {
+  const code = pipeline.code?.trim();
+  if (code && /^PL-[A-Z0-9]+$/i.test(code)) return code.toUpperCase();
+  if (/^PL-[A-Z0-9]+$/i.test(pipeline.id.trim())) return pipeline.id.trim().toUpperCase();
+  return pipeline.id;
 }
 
 export function parseReactorCapacityInput(value: string): number {

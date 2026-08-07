@@ -4,6 +4,7 @@ import type { PipelineRow } from "@/types/pipeline";
 import {
   formatDealValue,
   formatProbability,
+  opportunityPublicCode,
   PIPELINE_STATUSES,
 } from "@/types/pipeline";
 
@@ -119,7 +120,10 @@ export function sortOpportunities(
       case "probability":
         return factor * (a.probability - b.probability);
       case "id":
-        return factor * a.id.localeCompare(b.id);
+        return (
+          factor *
+          opportunityPublicCode(a).localeCompare(opportunityPublicCode(b))
+        );
       default:
         return 0;
     }

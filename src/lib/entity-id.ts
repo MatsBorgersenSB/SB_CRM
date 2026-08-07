@@ -60,10 +60,16 @@ export function nextActivitySharePointId(activities: Activity[]): number {
   return activities.reduce((max, activity) => Math.max(max, activity.id), 0) + 1;
 }
 
-export function nextPipelineId(pipelines: { id: string }[]): string {
+export function nextPipelineId(
+  pipelines: Array<{ id: string; code?: string | null }>,
+): string {
   const max = pipelines.reduce((current, pipeline) => {
-    const numeric = Number(pipeline.id.replace("PL-", ""));
-    return Number.isFinite(numeric) ? Math.max(current, numeric) : current;
+    for (const candidate of [pipeline.code, pipeline.id]) {
+      if (!candidate) continue;
+      const numeric = Number(candidate.replace(/^PL-/i, ""));
+      if (Number.isFinite(numeric)) return Math.max(current, numeric);
+    }
+    return current;
   }, 1000);
 
   return `PL-${max + 1}`;

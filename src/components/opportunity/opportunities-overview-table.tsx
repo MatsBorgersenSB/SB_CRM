@@ -3,7 +3,11 @@
 import { useMemo, useState } from "react";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { PipelineRow } from "@/types/pipeline";
-import { formatDealValue, formatProbability } from "@/types/pipeline";
+import {
+  formatDealValue,
+  formatProbability,
+  opportunityPublicCode,
+} from "@/types/pipeline";
 import { DealLink } from "@/components/relationship/relationship-links";
 import { IconLabel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import {
@@ -222,7 +226,7 @@ export function OpportunitiesOverviewTable({
                   showIcon={false}
                   className="block truncate font-mono text-[11px] text-carbon-blue/55 hover:text-upcycle-orange"
                 >
-                  {deal.id}
+                  {opportunityPublicCode(deal)}
                 </DealLink>
               </td>
             </tr>

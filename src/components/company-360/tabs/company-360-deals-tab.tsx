@@ -7,6 +7,7 @@ import type { PipelineRow } from "@/types/pipeline";
 import {
   formatDealValue,
   getLifecycleStage,
+  opportunityPublicCode,
   PIPELINE_STATUSES,
   type PipelineLifecycleStage,
   type PipelineStatus,
@@ -116,7 +117,9 @@ function Company360DealsCards({ deals }: { deals: PipelineRow[] }) {
           <header className="border-b border-carbon-blue/8 px-5 py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-mono text-[10px] text-carbon-blue/40">{deal.id}</p>
+                <p className="font-mono text-[10px] text-carbon-blue/40">
+                  {opportunityPublicCode(deal)}
+                </p>
                 <h3 className="mt-1 text-base font-semibold text-carbon-blue">
                   <DealLink dealId={deal.id}>{deal.assetName}</DealLink>
                 </h3>
@@ -207,7 +210,9 @@ function Company360DealsTable({ deals }: { deals: PipelineRow[] }) {
                   <p className="text-xs font-semibold text-carbon-blue group-hover:text-upcycle-orange">
                     {deal.assetName}
                   </p>
-                  <p className="mt-0.5 font-mono text-[9px] text-carbon-blue/35">{deal.id}</p>
+                  <p className="mt-0.5 font-mono text-[9px] text-carbon-blue/35">
+                    {opportunityPublicCode(deal)}
+                  </p>
                 </DealLink>
               </td>
               <td className="px-3 py-2.5">
