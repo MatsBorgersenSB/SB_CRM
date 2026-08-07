@@ -15,6 +15,28 @@ export type SmartDocLibraryRecord = {
   FileLeafRef: string;
   /** Assigned Document Set (e.g. FQ-001). */
   DocumentSetID?: string;
+  /**
+   * Who produced the document.
+   * Missing/legacy rows are treated as unknown in UI.
+   */
+  Origin?: SmartDocOrigin;
+  /** External producer name (supplier / customer / partner) when Origin = external. */
+  Counterparty?: string;
+};
+
+/** Document authorship — independent of category/type. */
+export type SmartDocOrigin = "standard_bio" | "external" | "unknown";
+
+export const SMARTDOC_ORIGINS: SmartDocOrigin[] = [
+  "standard_bio",
+  "external",
+  "unknown",
+];
+
+export const SMARTDOC_ORIGIN_LABELS: Record<SmartDocOrigin, string> = {
+  standard_bio: "Standard Bio",
+  external: "External",
+  unknown: "Unknown",
 };
 
 export type SmartDocCategory =
@@ -40,6 +62,8 @@ export const SMARTDOC_TYPES_BY_CATEGORY: Record<SmartDocCategory, string[]> = {
     "Budget Quotation",
     "Price Indication",
     "Sales Proposal",
+    "Supplier Quotation",
+    "Customer Purchase Order",
     "Order Confirmation",
     "Terms Schedule",
     "Payment Milestones",
@@ -50,11 +74,38 @@ export const SMARTDOC_TYPES_BY_CATEGORY: Record<SmartDocCategory, string[]> = {
     "Process Summary",
     "Heat Balance",
     "Clarifications",
+    "Third-party Report",
   ],
-  Financial: ["Invoice", "Budget Report", "Payment Schedule"],
+  Financial: ["Invoice", "Supplier Invoice", "Budget Report", "Payment Schedule"],
   Operational: ["Business Report", "Meeting Notes", "Project Plan"],
   General: ["Unclassified Document", "Attachment", "Correspondence"],
 };
+
+/** Types that are typically produced outside Standard Bio. */
+export const SMARTDOC_EXTERNAL_TYPES = new Set<string>([
+  "Supplier Quotation",
+  "Customer Purchase Order",
+  "Order Confirmation",
+  "Supplier Invoice",
+  "Third-party Report",
+  "Vendor Agreement",
+]);
+
+/** Types that are typically produced by Standard Bio. */
+export const SMARTDOC_STANDARD_BIO_TYPES = new Set<string>([
+  "Formal Quotation",
+  "Budget Quotation",
+  "Price Indication",
+  "Sales Proposal",
+  "Terms Schedule",
+  "Payment Milestones",
+  "Technical Datasheet",
+  "Process Summary",
+  "Heat Balance",
+  "Clarifications",
+  "Meeting Notes",
+  "Project Plan",
+]);
 
 export type DealDocumentContext = {
   plNumber: string;
@@ -84,4 +135,22 @@ export type CreateSmartDocInput = {
   DocumentName: string;
   originalFileName?: string;
   DocumentSetID?: string;
+  Origin?: SmartDocOrigin;
+  Counterparty?: string;
 };
+
+export function normalizeSmartDocOrigin(
+  value: string | null | undefined,
+): SmartDocOrigin {
+  const cleaned = value?.trim().toLowerCase();
+  if (cleaned === "standard_bio" || cleaned === "external" || cleaned === "unknown") {
+    return cleaned;
+  }
+  return "unknown";
+}
+
+export function suggestOriginForDocType(docType: string): SmartDocOrigin {
+  if (SMARTDOC_EXTERNAL_TYPES.has(docType)) return "external";
+  if (SMARTDOC_STANDARD_BIO_TYPES.has(docType)) return "standard_bio";
+  return "unknown";
+}

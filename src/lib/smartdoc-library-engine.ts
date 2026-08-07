@@ -37,6 +37,10 @@ export function buildSmartDocLibraryRecord(
     originalFileName,
   });
 
+  const origin = input.Origin ?? "unknown";
+  const counterparty =
+    origin === "external" ? input.Counterparty?.trim() || undefined : undefined;
+
   return {
     SmartDocID: identity.documentId,
     DealId: pipeline.id,
@@ -50,5 +54,7 @@ export function buildSmartDocLibraryRecord(
     DocumentName: input.DocumentName.trim(),
     Revision: "01",
     FileLeafRef: fileLeafRef,
+    Origin: origin,
+    Counterparty: counterparty,
   };
 }
