@@ -16,6 +16,7 @@ import { ActivitySuggestedPanel } from "@/components/activities/activity-suggest
 import { ActivityTimeline } from "@/components/activities/activity-timeline";
 import { ActivityIntelligencePanel } from "@/components/activities/activity-intelligence";
 import { useSmartAssistActionHost } from "@/components/smartassist/smartassist-action-host";
+import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
 import {
@@ -371,6 +372,9 @@ export function SmartActivityWorkspace({
 
   return (
     <div className={`flex flex-col ${isPage ? "gap-6" : "gap-4"}`}>
+      {isPage || context?.companyName ? (
+        <SmartAssistCopilotHost companyName={context?.companyName} />
+      ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <FilterToolbar

@@ -24,6 +24,7 @@ import type { CommercialPackage } from "@/types/commercial-package";
 import type { PipelineRow } from "@/types/pipeline";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { company360Href } from "@/types/company-360";
+import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 
 type DashboardShellProps = {
   companies: Company[];
@@ -129,6 +130,8 @@ function DashboardShellContent({
               title={topAttentionHeadline(attentionQueue)}
               summary={dailyBriefing.headline}
             />
+
+            <SmartAssistCopilotHost />
 
             <WorkspacePanel title="Attention">
               <MyAttentionPanel queue={attentionQueue} ownerFilter={ownerFilter} />

@@ -7,6 +7,7 @@ import type { AttentionItem } from "@/types/attention-item";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import { AttentionQueueTable } from "@/components/attention/attention-queue-table";
+import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 import { buildRelationshipMemory } from "@/lib/relationship-memory";
 import { buildSmartDocsIntelligence } from "@/lib/smartdocs-intelligence-data";
 import {
@@ -57,8 +58,14 @@ export function OpportunityKnowledgePanel({
     [activities, dealId],
   );
 
+  const companyName = useMemo(
+    () => companies.find((company) => company.pipelineIds.includes(dealId))?.Title,
+    [companies, dealId],
+  );
+
   return (
     <div className="flex flex-col gap-4">
+      <SmartAssistCopilotHost companyName={companyName} />
       <section className="dashboard-card p-4 sm:p-5">
         <header className="mb-3">
           <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
