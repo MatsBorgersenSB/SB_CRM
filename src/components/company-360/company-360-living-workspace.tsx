@@ -18,6 +18,7 @@ import { CompanyInlineEditPanel } from "@/components/company-360/company-inline-
 import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WebsiteDiscoveryPanel } from "@/components/companies/website-discovery-panel";
 import { AttentionQueueTable } from "@/components/attention/attention-queue-table";
+import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 import { CompanyOpportunitiesSection } from "@/components/opportunity/company-opportunities-section";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
@@ -264,6 +265,8 @@ export function Company360LivingWorkspace({
           onDocumentCountChange={setDocumentCount}
         />
       </WorkspacePanel>
+
+      <SmartAssistCopilotHost companyName={company.Title} />
 
       <WorkspacePanel
         title="Attention"
