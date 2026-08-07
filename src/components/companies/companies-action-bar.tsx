@@ -148,27 +148,30 @@ export function CompaniesActionBar({
     setCreateError(null);
 
     try {
-      const company = await createCompanyRecord({
-        Title: form.Title.trim(),
-        Industry: form.Industry,
-        Status: form.Status,
-        CompanyTypes: form.CompanyTypes,
-        City: form.City.trim(),
-        Domain: form.Domain.trim(),
-        Phone: form.Phone.trim(),
-        AddressLine1: form.AddressLine1.trim() || undefined,
-        PostalCode: form.PostalCode.trim() || undefined,
-        Country: form.Country.trim()
-          ? { Id: 0, Title: form.Country.trim() }
-          : undefined,
-        countryCode: form.countryCode.trim() || null,
-        continent: form.continent.trim() || null,
-        organizationNumber: form.organizationNumber.trim() || null,
-        vatNumber: form.vatNumber.trim() || null,
-        Notes: form.industryNote.trim() || undefined,
-        ParentCompany: resolveParentCompanyLookup(form.parentCompanyId, companies),
-        AccountOwner: accountOwner,
-      });
+      const company = await createCompanyRecord(
+        {
+          Title: form.Title.trim(),
+          Industry: form.Industry,
+          Status: form.Status,
+          CompanyTypes: form.CompanyTypes,
+          City: form.City.trim(),
+          Domain: form.Domain.trim(),
+          Phone: form.Phone.trim(),
+          AddressLine1: form.AddressLine1.trim() || undefined,
+          PostalCode: form.PostalCode.trim() || undefined,
+          Country: form.Country.trim()
+            ? { Id: 0, Title: form.Country.trim() }
+            : undefined,
+          countryCode: form.countryCode.trim() || null,
+          continent: form.continent.trim() || null,
+          organizationNumber: form.organizationNumber.trim() || null,
+          vatNumber: form.vatNumber.trim() || null,
+          Notes: form.industryNote.trim() || undefined,
+          ParentCompany: resolveParentCompanyLookup(form.parentCompanyId, companies),
+          AccountOwner: accountOwner,
+        },
+        role,
+      );
       onCreated(company);
       setForm({
         Title: "",

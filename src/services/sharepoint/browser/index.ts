@@ -117,7 +117,7 @@ export function createBrowserSharePointServices(
       Company,
       NewCompanyInput,
       UpdateCompanyInput
-    >("/api/companies"),
+    >("/api/companies", role),
     contacts: new BrowserContactsService(),
     deals: new BrowserDealsService(role),
     rawMaterials: new BrowserRawMaterialsService(),
@@ -125,7 +125,7 @@ export function createBrowserSharePointServices(
       Activity,
       CreateActivityInput,
       UpdateActivityInput
-    >("/api/activities"),
+    >("/api/activities", role),
   };
 }
 
@@ -136,3 +136,7 @@ export const contactsService = sharePointServices.contacts;
 export const dealsService = sharePointServices.deals;
 export const rawMaterialsService = sharePointServices.rawMaterials;
 export const activitiesService = sharePointServices.activities;
+
+export function getCompaniesService(role: UserRole = "superuser") {
+  return createBrowserSharePointServices(role).companies;
+}
