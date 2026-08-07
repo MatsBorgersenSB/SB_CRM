@@ -4,14 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { CompanyCombobox } from "@/components/companies/company-combobox";
 import { OpportunityOfferingsPicker } from "@/components/opportunity/opportunity-offerings-picker";
+import { OpportunityValueFields } from "@/components/opportunity/opportunity-value-fields";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { withAuthRoleHeaders } from "@/lib/api-auth";
+import {
+  DEFAULT_OPPORTUNITY_CURRENCY,
+  parseMoneyInput,
+} from "@/lib/geo/currencies";
 import { canCreateCompany } from "@/lib/permissions";
 import type { Company } from "@/types/company";
 import type { ContactListRole } from "@/types/contact";
 import { CONTACT_LIST_ROLES } from "@/types/contact";
 import type { UserRole } from "@/types/auth";
-import type { CompanyRole, PipelineRow } from "@/types/pipeline";
+import type { CompanyRole, PipelineCurrency, PipelineRow } from "@/types/pipeline";
 import { COMPANY_ROLES } from "@/types/pipeline";
 
 type FormState = {
@@ -19,6 +24,7 @@ type FormState = {
   assetName: string;
   companyRole: CompanyRole;
   salesValue: string;
+  currency: PipelineCurrency;
   expectedCloseDate: string;
   offeringIds: string[];
 };
@@ -39,6 +45,7 @@ const EMPTY_FORM: FormState = {
   assetName: "",
   companyRole: "Technology Buyer",
   salesValue: "",
+  currency: DEFAULT_OPPORTUNITY_CURRENCY,
   expectedCloseDate: "",
   offeringIds: [],
 };
@@ -49,13 +56,6 @@ const EMPTY_NEW_CONTACT: NewContactData = {
   contactEmail: "",
   role: "Decision Maker",
 };
-
-function parseOptionalValue(raw: string): number | undefined {
-  const trimmed = raw.trim().replace(/[^\d.]/g, "");
-  if (!trimmed) return undefined;
-  const value = Number(trimmed);
-  return Number.isFinite(value) ? value : undefined;
-}
 
 type FullCreateResponse = {
   success?: boolean;
@@ -151,12 +151,13 @@ export function OpportunityCreateModal({
     setSaving(true);
     setError(null);
     try {
-      const salesValue = parseOptionalValue(form.salesValue);
+      const salesValue = parseMoneyInput(form.salesValue);
       const payload = {
         title: form.assetName.trim(),
         assetName: form.assetName.trim(),
         companyRole: form.companyRole,
         offeringIds: form.offeringIds,
+        currency: form.currency || DEFAULT_OPPORTUNITY_CURRENCY,
         ...(salesValue !== undefined ? { salesValue, value: salesValue } : {}),
         ...(form.expectedCloseDate.trim()
           ? { expectedCloseDate: form.expectedCloseDate.trim() }
@@ -423,22 +424,19 @@ export function OpportunityCreateModal({
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
-                Value (optional)
-              </span>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={form.salesValue}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, salesValue: event.target.value }))
-                }
-                placeholder="e.g. 850000"
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
-              />
-            </label>
+          <div className="grid gap-3">
+            <OpportunityValueFields
+              salesValue={form.salesValue}
+              currency={form.currency}
+              disabled={saving}
+              valueLabel="Value"
+              onSalesValueChange={(salesValue) =>
+                setForm((current) => ({ ...current, salesValue }))
+              }
+              onCurrencyChange={(currency) =>
+                setForm((current) => ({ ...current, currency }))
+              }
+            />
             <label className="block">
               <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
                 Expected close (optional)
