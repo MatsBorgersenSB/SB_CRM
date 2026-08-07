@@ -493,7 +493,8 @@ export function WorkspaceDocumentsPanel({
                     SmartAssist suggestion
                   </p>
                   <p className="mt-0.5 text-[11px] text-carbon-blue/60">
-                    {importSuggestion.reason}. Review and change anything before importing.
+                    {importSuggestion.reason}. File name keeps the original source name for search —
+                    change category, type, or name if needed.
                   </p>
                   <p className="mt-1 font-mono text-[10px] text-carbon-blue/45">
                     Source: {importSuggestion.originalFileName}
@@ -518,14 +519,6 @@ export function WorkspaceDocumentsPanel({
                         ...importSuggestion,
                         DocCategory: nextCategory,
                         DocType: nextType,
-                        DocumentName: suggestImportDocumentName({
-                          dealName: targetPipeline?.assetName ?? "Opportunity",
-                          docType: nextType,
-                          originalFileName: importSuggestion.originalFileName,
-                          referenceNumber: classifyByFileName(
-                            importSuggestion.originalFileName,
-                          ).referenceNumber,
-                        }),
                       });
                     }}
                     className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
@@ -549,14 +542,6 @@ export function WorkspaceDocumentsPanel({
                       setImportSuggestion({
                         ...importSuggestion,
                         DocType: nextType,
-                        DocumentName: suggestImportDocumentName({
-                          dealName: targetPipeline?.assetName ?? "Opportunity",
-                          docType: nextType,
-                          originalFileName: importSuggestion.originalFileName,
-                          referenceNumber: classifyByFileName(
-                            importSuggestion.originalFileName,
-                          ).referenceNumber,
-                        }),
                       });
                     }}
                     className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"

@@ -123,24 +123,21 @@ export function classifyByFileName(fileName: string): DocIntelligenceResult {
   };
 }
 
-/** Build a SmartAssist-suggested document title the user can edit. */
+/** Prefer original supplier/source filename so documents stay searchable. */
 export function suggestImportDocumentName(input: {
   dealName: string;
   docType: string;
   originalFileName: string;
   referenceNumber?: string;
 }): string {
+  const original = input.originalFileName.trim();
+  if (original) return original;
+
   const deal = input.dealName.trim() || "Opportunity";
   const type = input.docType.trim() || "Document";
   if (input.referenceNumber) {
     return `${deal} ${type} ${input.referenceNumber}`;
   }
-
-  const stem = input.originalFileName.replace(/\.[^.]+$/, "").trim();
-  if (stem && !/ordrebekreftelse|order.?confirm/i.test(stem)) {
-    return `${deal} — ${stem}`;
-  }
-
   return `${deal} ${type}`;
 }
 
