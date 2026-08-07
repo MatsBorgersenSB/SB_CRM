@@ -12,7 +12,9 @@ import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/types/company";
 import { COMPANY_INDUSTRIES } from "@/types/company";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
+import { CountryContinentFields } from "@/components/companies/country-continent-fields";
 import type { OsmLookupResult } from "@/lib/geo/nominatim";
+import { findCountryEntry } from "@/lib/geo/country-continent";
 
 const EDIT_FIELD_CLASS =
   "mt-1 w-full rounded-md border-2 border-upcycle-orange/25 bg-white px-3 py-2 text-carbon-blue outline-none transition-colors focus:border-upcycle-orange focus:ring-2 focus:ring-upcycle-orange/20";
@@ -113,6 +115,8 @@ export function CompanyInlineEditPanel({
       }
 
       const osm = (await res.json()) as OsmLookupResult;
+      const geo =
+        findCountryEntry(osm.countryCode || osm.country || "") ?? null;
 
       setForm((current) => ({
         ...current,
@@ -120,9 +124,9 @@ export function CompanyInlineEditPanel({
         postalCode: osm.postalCode || current.postalCode,
         city: osm.city || current.city,
         stateRegion: osm.stateRegion || current.stateRegion,
-        country: osm.country || current.country,
-        countryCode: osm.countryCode || current.countryCode,
-        continent: osm.continent || current.continent,
+        country: geo?.name || osm.country || current.country,
+        countryCode: geo?.code || osm.countryCode || current.countryCode,
+        continent: geo?.continent || osm.continent || current.continent,
       }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to auto-fill location.");
@@ -298,26 +302,22 @@ export function CompanyInlineEditPanel({
             />
           </label>
 
-          <label className="block">
-            <span className={EDIT_LABEL_CLASS}>Country</span>
-            <input
-              type="text"
-              value={form.country}
-              onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))}
-              disabled={saving || autofilling}
-              className={`${EDIT_FIELD_CLASS} text-[13px]`}
-            />
-          </label>
-
-          <label className="block">
-            <span className={EDIT_LABEL_CLASS}>Continent</span>
-            <input
-              type="text"
-              value={form.continent}
-              disabled
-              className={`${EDIT_FIELD_CLASS} bg-carbon-blue/[0.03] text-[13px]`}
-            />
-          </label>
+          <CountryContinentFields
+            country={form.country}
+            countryCode={form.countryCode}
+            continent={form.continent}
+            density="comfortable"
+            sideBySide
+            disabled={saving || autofilling}
+            onChange={(next) =>
+              setForm((current) => ({
+                ...current,
+                country: next.country,
+                countryCode: next.countryCode,
+                continent: next.continent,
+              }))
+            }
+          />
         </div>
 
         <CompanyTypeMultiSelect
