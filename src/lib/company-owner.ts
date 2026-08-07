@@ -5,12 +5,32 @@ import type { PipelineRow } from "@/types/pipeline";
 import { STANDARD_BIO_USERS } from "@/types/bio-user";
 
 export function authUserToAccountOwner(user: AuthUser): SharePointPerson {
-  const canonical = STANDARD_BIO_USERS.find(
-    (bioUser) =>
-      bioUser.Id === user.id ||
-      bioUser.Title.toLowerCase() === user.displayName.toLowerCase(),
-  );
-  return canonical ?? { Id: user.id, Title: user.displayName };
+  const display = user.displayName?.trim().toLowerCase() ?? "";
+  const email = user.email?.trim().toLowerCase() ?? "";
+
+  const canonical = STANDARD_BIO_USERS.find((bioUser) => {
+    if (user.id > 0 && bioUser.Id === user.id) return true;
+    if (display && bioUser.Title.toLowerCase() === display) return true;
+    // Match "mats.borgersen@…" style emails to "Mats Borgersen"
+    if (email) {
+      const local = email.split("@")[0] ?? "";
+      const compactTitle = bioUser.Title.toLowerCase().replace(/[^a-z]/g, "");
+      const compactLocal = local.replace(/[^a-z]/g, "");
+      if (compactLocal && compactTitle && compactLocal.includes(compactTitle.slice(0, 4))) {
+        return compactTitle === compactLocal || compactLocal.startsWith(compactTitle.slice(0, 4));
+      }
+    }
+    return false;
+  });
+
+  if (canonical) return canonical;
+
+  // Signed-in users must never get Guest id 0 — fall back to primary Standard Bio owner.
+  if (user.id <= 0 || display === "guest" || !display) {
+    return STANDARD_BIO_USERS[0]!;
+  }
+
+  return { Id: user.id > 0 ? user.id : STANDARD_BIO_USERS[0]!.Id, Title: user.displayName };
 }
 
 export function isCompanyOwnedByUser(company: Company, user: AuthUser): boolean {

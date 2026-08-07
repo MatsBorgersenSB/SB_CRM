@@ -18,6 +18,20 @@ import { EuropeanRegistrySearch } from "@/components/companies/european-registry
 import type { UnifiedEuropeanCompany } from "@/lib/integrations/company-registers/types";
 import type { UserRole } from "@/types/auth";
 import { findCountryEntry } from "@/lib/geo/country-continent";
+import { STANDARD_BIO_USERS } from "@/types/bio-user";
+
+/** Minimum to create an account — everything else is optional enrichment. */
+function missingCreateFields(form: {
+  Title: string;
+  accountOwnerId: number;
+  CompanyTypes: CompanyType[];
+}): string[] {
+  const missing: string[] = [];
+  if (!form.Title.trim()) missing.push("Company Name");
+  if (!(form.accountOwnerId > 0)) missing.push("Account Owner");
+  if (form.CompanyTypes.length === 0) missing.push("Company Type");
+  return missing;
+}
 
 export function CompaniesActionBar({
   onCreated,
@@ -39,14 +53,18 @@ export function CompaniesActionBar({
   const createOpen = controlledOpen ?? internalOpen;
   const setCreateOpen = onOpenChange ?? setInternalOpen;
   const [saving, setSaving] = useState(false);
-  const defaultOwner = authUserToAccountOwner(user);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const defaultOwner =
+    authUserToAccountOwner(user).Id > 0
+      ? authUserToAccountOwner(user)
+      : STANDARD_BIO_USERS[0]!;
   const [form, setForm] = useState({
     Title: "",
     Industry: "Polymer Processing" as CompanyIndustry,
     Status: "Prospecting" as CompanyStatus,
     CompanyTypes: ["Prospect"] as CompanyType[],
     parentCompanyId: "",
-    accountOwnerId: defaultOwner.Id > 0 ? defaultOwner.Id : 0,
+    accountOwnerId: defaultOwner.Id,
     City: "",
     Domain: "",
     Phone: "",
@@ -60,21 +78,21 @@ export function CompaniesActionBar({
     industryNote: "",
   });
 
-  // Auth starts as Guest (id 0); once session resolves, sync a real owner id.
-  // Without this the UI shows Mats via fallback but Create stays disabled (!0).
+  // Keep Account Owner aligned once SSO/session resolves (never leave Guest id 0).
   useEffect(() => {
-    if (defaultOwner.Id <= 0) return;
+    const owner =
+      authUserToAccountOwner(user).Id > 0
+        ? authUserToAccountOwner(user)
+        : STANDARD_BIO_USERS[0]!;
     setForm((current) =>
       current.accountOwnerId > 0
         ? current
-        : { ...current, accountOwnerId: defaultOwner.Id },
+        : { ...current, accountOwnerId: owner.Id },
     );
-  }, [defaultOwner.Id]);
+  }, [user]);
 
-  const canCreate =
-    Boolean(form.Title.trim()) &&
-    Boolean(form.City.trim()) &&
-    form.accountOwnerId > 0;
+  const missingRequired = missingCreateFields(form);
+  const canCreate = missingRequired.length === 0;
 
   const applyRegistryResult = (company: UnifiedEuropeanCompany) => {
     const geo =
@@ -119,12 +137,15 @@ export function CompaniesActionBar({
 
   const handleCreate = async () => {
     if (!canCreate) {
+      setCreateError(`Required: ${missingRequired.join(", ")}`);
       return;
     }
 
-    const accountOwner = resolveOwnerById(form.accountOwnerId, companies) ?? defaultOwner;
+    const accountOwner =
+      resolveOwnerById(form.accountOwnerId, companies) ?? defaultOwner;
 
     setSaving(true);
+    setCreateError(null);
 
     try {
       const company = await createCompanyRecord({
@@ -155,7 +176,7 @@ export function CompaniesActionBar({
         Status: "Prospecting",
         CompanyTypes: ["Prospect"],
         parentCompanyId: "",
-        accountOwnerId: defaultOwner.Id > 0 ? defaultOwner.Id : 0,
+        accountOwnerId: defaultOwner.Id,
         City: "",
         Domain: "",
         Phone: "",
@@ -169,6 +190,12 @@ export function CompaniesActionBar({
         industryNote: "",
       });
       setCreateOpen(false);
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message.trim()
+          ? error.message
+          : "Unable to create company. Please try again.";
+      setCreateError(message);
     } finally {
       setSaving(false);
     }
@@ -196,6 +223,9 @@ export function CompaniesActionBar({
       )}
       {createOpen ? (
         <div className={`grid gap-2 sm:grid-cols-2 ${embedded ? "" : "p-3"}`}>
+          <p className="sm:col-span-2 text-[11px] text-carbon-blue/50">
+            Required: Company Name, Account Owner, Company Type. Everything else is optional.
+          </p>
           <div className="sm:col-span-2">
             <EuropeanRegistrySearch
               domainHint={form.Domain}
@@ -204,11 +234,12 @@ export function CompaniesActionBar({
           </div>
           <label className="block sm:col-span-2">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-              Company Name (Title)
+              Company Name (Title) <span className="text-thermal-red">*</span>
             </span>
             <input
               type="text"
               value={form.Title}
+              required
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
@@ -221,7 +252,9 @@ export function CompaniesActionBar({
           <div className="sm:col-span-2">
             <CompanyOwnerSelect
               companies={companies}
-              value={resolveOwnerById(form.accountOwnerId, companies) ?? defaultOwner}
+              value={
+                resolveOwnerById(form.accountOwnerId, companies) ?? defaultOwner
+              }
               onChange={(owner) =>
                 setForm((current) => ({ ...current, accountOwnerId: owner.Id }))
               }
@@ -436,6 +469,16 @@ export function CompaniesActionBar({
           >
             {saving ? "Saving…" : "Create Company"}
           </button>
+          {!canCreate ? (
+            <p className="sm:col-span-2 text-[11px] text-carbon-blue/50">
+              Fill required fields: {missingRequired.join(", ")}
+            </p>
+          ) : null}
+          {createError ? (
+            <p className="sm:col-span-2 text-[11px] font-medium text-thermal-red" role="alert">
+              {createError}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </section>

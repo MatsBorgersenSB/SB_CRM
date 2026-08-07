@@ -30,7 +30,10 @@ export function CompanyOwnerSelect({
 
   return (
     <label className={compact ? "block min-w-[200px]" : "block"}>
-      <span className={LABEL_CLASS}>{label}</span>
+      <span className={LABEL_CLASS}>
+        {label}
+        {required ? <span className="text-thermal-red"> *</span> : null}
+      </span>
       <select
         value={value?.Id ?? ""}
         disabled={disabled}
