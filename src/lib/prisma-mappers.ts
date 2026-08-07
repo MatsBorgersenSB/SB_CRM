@@ -18,6 +18,7 @@ import type {
   PipelineStatus,
   PipelineTeamMember,
 } from "@/types/pipeline";
+import { COMPANY_ROLES } from "@/types/pipeline";
 import type {
   Company as PrismaCompany,
   Contact as PrismaContact,
@@ -325,10 +326,16 @@ export function mapPrismaOpportunityToPipelineRow(
   opportunity: PrismaOpportunityWithCompany,
 ): PipelineRow {
   const currency = (opportunity.currency?.toUpperCase() || "EUR") as PipelineCurrency;
+  const storedRole = opportunity.companyRole?.trim() as CompanyRole | undefined;
+  const companyRole =
+    storedRole && COMPANY_ROLES.includes(storedRole)
+      ? storedRole
+      : inferCompanyRole(opportunity.name);
+
   return {
     id: opportunity.id,
     assetName: opportunity.name,
-    companyRole: inferCompanyRole(opportunity.name),
+    companyRole,
     targetFeedstock: "",
     reactorDesignCapacity: 0,
     currentMilestone: opportunity.nextStep?.trim() || opportunity.stage,
@@ -340,7 +347,12 @@ export function mapPrismaOpportunityToPipelineRow(
       ? opportunity.expectedCloseDate.toISOString().slice(0, 10)
       : undefined,
     opportunityOwner: mapOwnerPerson(opportunity.ownerId),
-    offeringIds: [],
+    offeringIds: Array.isArray(opportunity.offeringIds)
+      ? opportunity.offeringIds.filter(Boolean)
+      : [],
     team: mapTeam(opportunity.team),
+    sharepointFolderId: opportunity.sharepointFolderId,
+    sharepointFolderUrl: opportunity.sharepointFolderUrl,
+    sharepointFolderPath: opportunity.sharepointFolderPath,
   };
 }
