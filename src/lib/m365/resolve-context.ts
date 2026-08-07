@@ -1,12 +1,12 @@
 import type { Company, Contact } from "@/types/company";
 import type { Activity } from "@/types/activity";
 import type { PipelineRow } from "@/types/pipeline";
+import { readInventory } from "@/lib/pipeline-db";
 import {
-  readActivities,
-  readCompanies,
-  readInventory,
-  readPipelines,
-} from "@/lib/pipeline-db";
+  readLiveActivities,
+  readLiveCompanies,
+  readLivePipelines,
+} from "@/lib/prisma-data";
 import { getContactDisplayName } from "@/types/contact";
 import { resolveCompanyForEmail } from "@/lib/m365/company-resolution";
 
@@ -19,9 +19,9 @@ export type M365DataContext = {
 
 export async function loadM365DataContext(): Promise<M365DataContext> {
   const [companies, pipelines, activities, inventory] = await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
+    readLiveCompanies(),
+    readLivePipelines(),
+    readLiveActivities(),
     readInventory(),
   ]);
 
