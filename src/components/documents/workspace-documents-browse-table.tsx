@@ -61,7 +61,15 @@ export function WorkspaceDocumentsBrowseTable({
                 >
                   {row.name}
                 </Link>
-                <p className="mt-0.5 truncate text-[10px] text-carbon-blue/40">{row.docCategory}</p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                  <OriginBadge origin={row.origin} label={row.originLabel} />
+                  <p className="truncate text-[10px] text-carbon-blue/40">{row.docCategory}</p>
+                  {row.counterparty ? (
+                    <p className="truncate text-[10px] text-carbon-blue/40">
+                      · {row.counterparty}
+                    </p>
+                  ) : null}
+                </div>
               </WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell className="text-carbon-blue/70">{row.docType}</WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell className="tabular-nums text-carbon-blue/70">
@@ -120,6 +128,29 @@ function SortableHeadCell({
         {active ? <Icon className="size-3 shrink-0" strokeWidth={2} /> : null}
       </button>
     </WorkspaceTableHeadCell>
+  );
+}
+
+function OriginBadge({
+  origin,
+  label,
+}: {
+  origin: WorkspaceDocumentRow["origin"];
+  label: string;
+}) {
+  const styles = {
+    standard_bio: "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-700",
+    external: "border-sky-500/25 bg-sky-500/[0.06] text-sky-700",
+    unknown: "border-carbon-blue/12 bg-carbon-blue/[0.03] text-carbon-blue/55",
+  } as const;
+
+  return (
+    <span
+      className={`inline-flex shrink-0 border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${styles[origin]}`}
+      title={label}
+    >
+      {origin === "standard_bio" ? "Ours" : origin === "external" ? "External" : "Unknown"}
+    </span>
   );
 }
 

@@ -2,7 +2,11 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project } from "@/types/project";
-import type { SmartDocCategory, SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import type { SmartDocCategory, SmartDocLibraryRecord, SmartDocOrigin } from "@/types/smartdoc-library";
+import {
+  normalizeSmartDocOrigin,
+  SMARTDOC_ORIGIN_LABELS,
+} from "@/types/smartdoc-library";
 import { deal360Href, documentHref, contact360Href } from "@/types/relationship-navigation";
 import { formatRelativeTime } from "@/lib/relative-time";
 
@@ -24,6 +28,9 @@ export type WorkspaceDocumentRow = {
   name: string;
   docType: string;
   docCategory: string;
+  origin: SmartDocOrigin;
+  originLabel: string;
+  counterparty?: string;
   version: string;
   status: string;
   statusKind: "in_set" | "library" | "activity_link";
@@ -106,11 +113,15 @@ export function buildWorkspaceDocumentRows(
 
     const related = relatedObjectForDeal(record.DealId, pipelines, companies);
 
+    const origin = normalizeSmartDocOrigin(record.Origin);
     rows.push({
       id: record.SmartDocID,
       name: record.DocumentName || record.FileLeafRef,
       docType: record.DocType,
       docCategory: record.DocCategory,
+      origin,
+      originLabel: SMARTDOC_ORIGIN_LABELS[origin],
+      counterparty: record.Counterparty,
       version: record.Revision ? `Rev ${record.Revision}` : "—",
       status: record.DocumentSetID ? `In ${record.DocumentSetID}` : "Library",
       statusKind: record.DocumentSetID ? "in_set" : "library",
@@ -148,6 +159,8 @@ export function buildWorkspaceDocumentRows(
           name: linked.Title,
           docType: linked.DocCategory ?? "Linked",
           docCategory: linked.DocCategory ?? "General",
+          origin: "unknown",
+          originLabel: SMARTDOC_ORIGIN_LABELS.unknown,
           version: linked.Revision ? `Rev ${linked.Revision}` : "—",
           status: "Activity link",
           statusKind: "activity_link",

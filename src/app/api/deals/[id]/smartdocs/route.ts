@@ -14,7 +14,10 @@ import { importOpportunitySmartDoc } from "@/lib/smartdoc-import";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import type { CreateSmartDocInput, SmartDocCategory } from "@/types/smartdoc-library";
-import { SMARTDOC_CATEGORIES } from "@/types/smartdoc-library";
+import {
+  SMARTDOC_CATEGORIES,
+  normalizeSmartDocOrigin,
+} from "@/types/smartdoc-library";
 
 async function parseCreateSmartDocRequest(request: Request): Promise<{
   metadata: CreateSmartDocInput;
@@ -31,6 +34,8 @@ async function parseCreateSmartDocRequest(request: Request): Promise<{
       String(form.get("originalFileName") ?? "").trim() || undefined;
     const DocumentSetID =
       String(form.get("DocumentSetID") ?? "").trim() || undefined;
+    const Origin = normalizeSmartDocOrigin(String(form.get("Origin") ?? ""));
+    const Counterparty = String(form.get("Counterparty") ?? "").trim() || undefined;
     const upload = form.get("file");
 
     let file:
@@ -53,6 +58,8 @@ async function parseCreateSmartDocRequest(request: Request): Promise<{
         DocumentName,
         originalFileName: originalFileName ?? file?.originalFileName,
         DocumentSetID,
+        Origin,
+        Counterparty,
       },
       file,
     };
@@ -84,6 +91,8 @@ async function parseCreateSmartDocRequest(request: Request): Promise<{
       DocumentName: body.DocumentName,
       originalFileName: body.originalFileName,
       DocumentSetID: body.DocumentSetID,
+      Origin: normalizeSmartDocOrigin(body.Origin),
+      Counterparty: body.Counterparty?.trim() || undefined,
     },
     file,
   };
@@ -175,6 +184,8 @@ export async function POST(
         DocumentName: metadata.DocumentName.trim(),
         originalFileName: metadata.originalFileName,
         DocumentSetID: metadata.DocumentSetID,
+        Origin: metadata.Origin,
+        Counterparty: metadata.Counterparty,
       },
       file,
     });

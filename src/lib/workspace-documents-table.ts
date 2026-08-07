@@ -87,6 +87,7 @@ export function filterWorkspaceDocumentRows(
   const search = query.search.trim().toLowerCase();
   const typeFilter = new Set(normalizeMultiFilter(query.filters.type));
   const categoryFilter = normalizeSingleFilter(query.filters.category, "all");
+  const originFilter = normalizeSingleFilter(query.filters.origin, "all");
   const statusFilter = normalizeSingleFilter(query.filters.status, "all");
   const recencyFilter = normalizeSingleFilter(query.filters.recency, "all");
 
@@ -96,6 +97,8 @@ export function filterWorkspaceDocumentRows(
         row.name,
         row.docType,
         row.docCategory,
+        row.originLabel,
+        row.counterparty ?? "",
         row.status,
         row.relatedObjectLabel,
         row.version,
@@ -108,6 +111,8 @@ export function filterWorkspaceDocumentRows(
     if (typeFilter.size > 0 && !typeFilter.has(row.docType)) return false;
 
     if (categoryFilter !== "all" && row.docCategory !== categoryFilter) return false;
+
+    if (originFilter !== "all" && row.origin !== originFilter) return false;
 
     if (statusFilter !== "all" && row.statusKind !== statusFilter) return false;
 
@@ -155,6 +160,19 @@ export function buildWorkspaceDocumentFilterDefinitions(
   ];
 
   const filters: FilterDefinition[] = [];
+
+  filters.push({
+    id: "origin",
+    label: "Origin",
+    mode: "single",
+    emptyValue: "all",
+    options: [
+      { value: "all", label: "All origins" },
+      { value: "standard_bio", label: "Standard Bio" },
+      { value: "external", label: "External" },
+      { value: "unknown", label: "Unknown" },
+    ],
+  });
 
   if (categoryOptions.length > 2) {
     filters.push({

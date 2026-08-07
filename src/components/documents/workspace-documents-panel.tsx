@@ -19,10 +19,14 @@ import type {
   CreateSmartDocInput,
   SmartDocCategory,
   SmartDocLibraryRecord,
+  SmartDocOrigin,
 } from "@/types/smartdoc-library";
 import {
   SMARTDOC_CATEGORIES,
+  SMARTDOC_ORIGIN_LABELS,
+  SMARTDOC_ORIGINS,
   SMARTDOC_TYPES_BY_CATEGORY,
+  suggestOriginForDocType,
 } from "@/types/smartdoc-library";
 import {
   buildWorkspaceDocumentRows,
@@ -51,6 +55,8 @@ type ImportQueueItem = {
   DocCategory: SmartDocCategory;
   DocType: string;
   DocumentName: string;
+  Origin: SmartDocOrigin;
+  Counterparty: string;
   reason: string;
   status: "ready" | "importing" | "done" | "error";
   error?: string;
@@ -75,6 +81,8 @@ function classifyFileToQueueItem(file: File, dealName: string): ImportQueueItem 
       originalFileName: file.name,
       referenceNumber: classified.referenceNumber,
     }),
+    Origin: classified.Origin,
+    Counterparty: classified.Counterparty ?? "",
     reason: classified.reason,
     status: "ready",
   };
@@ -243,6 +251,12 @@ export function WorkspaceDocumentsPanel({
       if (payload.DocumentSetID) {
         form.append("DocumentSetID", payload.DocumentSetID);
       }
+      if (payload.Origin) {
+        form.append("Origin", payload.Origin);
+      }
+      if (payload.Counterparty) {
+        form.append("Counterparty", payload.Counterparty);
+      }
       form.append("file", file, file.name);
       response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
         method: "POST",
@@ -270,6 +284,7 @@ export function WorkspaceDocumentsPanel({
       DocCategory: preset.category,
       DocType: preset.type,
       DocumentName: documentName.trim() || nameSuggestions?.primary || preset.label,
+      Origin: "standard_bio",
     };
 
     try {
@@ -323,6 +338,9 @@ export function WorkspaceDocumentsPanel({
             DocType: item.DocType,
             DocumentName: item.DocumentName.trim(),
             originalFileName: item.originalFileName,
+            Origin: item.Origin,
+            Counterparty:
+              item.Origin === "external" ? item.Counterparty.trim() || undefined : undefined,
           },
           item.file,
         );
@@ -639,6 +657,9 @@ export function WorkspaceDocumentsPanel({
           >
             {saving ? "Creating…" : "Create SmartDoc"}
           </button>
+          <p className="mt-2 text-[11px] text-carbon-blue/45">
+            Created documents are marked as Standard Bio origin.
+          </p>
         </div>
       ) : null}
 
@@ -740,6 +761,7 @@ export function WorkspaceDocumentsPanel({
                             updateQueueItem(item.id, {
                               DocCategory: nextCategory,
                               DocType: nextType,
+                              Origin: suggestOriginForDocType(nextType),
                               status: item.status === "error" ? "ready" : item.status,
                               error: undefined,
                             });
@@ -761,13 +783,15 @@ export function WorkspaceDocumentsPanel({
                         <select
                           value={item.DocType}
                           disabled={item.status === "importing" || item.status === "done"}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            const nextType = event.target.value;
                             updateQueueItem(item.id, {
-                              DocType: event.target.value,
+                              DocType: nextType,
+                              Origin: suggestOriginForDocType(nextType),
                               status: item.status === "error" ? "ready" : item.status,
                               error: undefined,
-                            })
-                          }
+                            });
+                          }}
                           className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
                         >
                           {types.map((type) => (
@@ -777,6 +801,60 @@ export function WorkspaceDocumentsPanel({
                           ))}
                         </select>
                       </label>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                          Origin
+                        </span>
+                        <select
+                          value={item.Origin}
+                          disabled={item.status === "importing" || item.status === "done"}
+                          onChange={(event) =>
+                            updateQueueItem(item.id, {
+                              Origin: event.target.value as SmartDocOrigin,
+                              status: item.status === "error" ? "ready" : item.status,
+                              error: undefined,
+                            })
+                          }
+                          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                        >
+                          {SMARTDOC_ORIGINS.map((origin) => (
+                            <option key={origin} value={origin}>
+                              {SMARTDOC_ORIGIN_LABELS[origin]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      {item.Origin === "external" ? (
+                        <label className="block">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                            Counterparty
+                          </span>
+                          <input
+                            type="text"
+                            value={item.Counterparty}
+                            disabled={item.status === "importing" || item.status === "done"}
+                            placeholder="Supplier / customer name"
+                            onChange={(event) =>
+                              updateQueueItem(item.id, {
+                                Counterparty: event.target.value,
+                                status: item.status === "error" ? "ready" : item.status,
+                                error: undefined,
+                              })
+                            }
+                            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                          />
+                        </label>
+                      ) : (
+                        <div className="flex items-end">
+                          <p className="pb-2 text-[11px] text-carbon-blue/45">
+                            Produced by Standard Bio
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <label className="block">
