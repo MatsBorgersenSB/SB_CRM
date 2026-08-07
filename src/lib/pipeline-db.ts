@@ -717,7 +717,7 @@ export async function createCompany(input: NewCompanyInput): Promise<Company> {
   const accountOwner = resolveAccountOwner(input.AccountOwner);
 
   if (!accountOwner.Title.trim()) {
-    throw new Error("Company owner is required");
+    throw new Error("Account owner is required");
   }
 
   const trackingId = nextCompanyTrackingId(database.companies);

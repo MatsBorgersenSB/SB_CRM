@@ -71,7 +71,7 @@ export function CompanyInlineEditPanel({
     }
 
     if (!form.accountOwnerId) {
-      setError("Company owner is required.");
+      setError("Account owner is required.");
       return;
     }
 
@@ -181,7 +181,7 @@ export function CompanyInlineEditPanel({
           }
           disabled={saving}
           required
-          label="Company Owner"
+          label="Account Owner"
         />
 
         <div className="grid gap-4 sm:grid-cols-2">

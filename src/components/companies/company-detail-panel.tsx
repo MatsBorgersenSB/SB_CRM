@@ -46,7 +46,7 @@ export function CompanyDetailPanel({
     { label: "Company Name", value: company.Title },
     { label: "Industry", value: company.Industry },
     { label: "Status", value: company.Status },
-    { label: "Company Owner", value: company.AccountOwner?.Title ?? "—" },
+    { label: "Account Owner", value: company.AccountOwner?.Title ?? "—" },
     { label: "Website", value: formatCompanyWebsite(company.Domain) || "—" },
     { label: "Phone", value: company.Phone || "—" },
     { label: "Location", value: formatCompanyLocation(company) },

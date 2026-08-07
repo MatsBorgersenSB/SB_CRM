@@ -15,7 +15,7 @@ export function CompanyOwnerSelect({
   companies,
   disabled = false,
   required = false,
-  label = "Company Owner",
+  label = "Account Owner",
   compact = false,
 }: {
   value: SharePointPerson | null;
@@ -42,7 +42,7 @@ export function CompanyOwnerSelect({
         className={FIELD_CLASS}
         aria-label={label}
       >
-        {!value ? <option value="">Select company owner</option> : null}
+        {!value ? <option value="">Select account owner</option> : null}
         {options.map((owner) => (
           <option key={owner.Id} value={owner.Id}>
             {owner.Title}
