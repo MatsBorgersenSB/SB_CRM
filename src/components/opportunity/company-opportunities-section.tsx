@@ -6,7 +6,7 @@ import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
 import { getContactDisplayName } from "@/types/contact";
 import type { CreateOpportunityInput } from "@/types/deal";
-import type { PipelineRow, CompanyRole } from "@/types/pipeline";
+import type { PipelineRow, CompanyRole, PipelineCurrency } from "@/types/pipeline";
 import { COMPANY_ROLES, formatDealValue } from "@/types/pipeline";
 import { OpportunitiesOverviewTable } from "@/components/opportunity/opportunities-overview-table";
 import { DealLink } from "@/components/relationship/relationship-links";
@@ -22,11 +22,17 @@ import {
   buildOfferingIntelligence,
 } from "@/lib/offering-intelligence";
 import { StakeholderRoleSelect } from "@/components/opportunity/stakeholder-role-select";
+import { OpportunityValueFields } from "@/components/opportunity/opportunity-value-fields";
+import {
+  DEFAULT_OPPORTUNITY_CURRENCY,
+  parseMoneyInput,
+} from "@/lib/geo/currencies";
 
 type CreateFormState = {
   assetName: string;
   companyRole: CompanyRole;
   salesValue: string;
+  currency: PipelineCurrency;
   expectedCloseDate: string;
   offeringIds: string[];
 };
@@ -35,16 +41,10 @@ const EMPTY_FORM: CreateFormState = {
   assetName: "",
   companyRole: "Technology Buyer",
   salesValue: "",
+  currency: DEFAULT_OPPORTUNITY_CURRENCY,
   expectedCloseDate: "",
   offeringIds: [],
 };
-
-function parseOptionalValue(raw: string): number | undefined {
-  const trimmed = raw.trim().replace(/[^\d.]/g, "");
-  if (!trimmed) return undefined;
-  const value = Number(trimmed);
-  return Number.isFinite(value) ? value : undefined;
-}
 
 export function CompanyOpportunitiesSection({
   deals,
@@ -133,12 +133,13 @@ export function CompanyOpportunitiesSection({
     setSaving(true);
     setError(null);
     try {
-      const salesValue = parseOptionalValue(form.salesValue);
+      const salesValue = parseMoneyInput(form.salesValue);
       const created = await onCreateOpportunity({
         companyId: company.CompanyID,
         assetName: form.assetName.trim(),
         companyRole: form.companyRole,
         offeringIds: form.offeringIds,
+        currency: form.currency || DEFAULT_OPPORTUNITY_CURRENCY,
         ...(salesValue !== undefined ? { salesValue } : {}),
         ...(form.expectedCloseDate.trim()
           ? { expectedCloseDate: form.expectedCloseDate.trim() }
@@ -270,21 +271,6 @@ export function CompanyOpportunitiesSection({
             </label>
             <label className="block">
               <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
-                Estimated Value <span className="font-medium normal-case">(optional)</span>
-              </span>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={form.salesValue}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, salesValue: event.target.value }))
-                }
-                placeholder="e.g. 2500000"
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-              />
-            </label>
-            <label className="block sm:col-span-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
                 Expected Decision Date{" "}
                 <span className="font-medium normal-case">(optional)</span>
               </span>
@@ -300,6 +286,19 @@ export function CompanyOpportunitiesSection({
                 className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
               />
             </label>
+            <div className="sm:col-span-2">
+              <OpportunityValueFields
+                salesValue={form.salesValue}
+                currency={form.currency}
+                disabled={saving}
+                onSalesValueChange={(salesValue) =>
+                  setForm((current) => ({ ...current, salesValue }))
+                }
+                onCurrencyChange={(currency) =>
+                  setForm((current) => ({ ...current, currency }))
+                }
+              />
+            </div>
             <div className="sm:col-span-2">
               <OpportunityOfferingsPicker
                 selectedIds={form.offeringIds}
