@@ -81,6 +81,7 @@ export function WorkspaceDocumentsPanel({
   const [dragActive, setDragActive] = useState(false);
   const [tableQuery, setTableQuery] = useState(defaultDocumentTableQuery);
   const [importSuggestion, setImportSuggestion] = useState<ImportSuggestion | null>(null);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [classifying, setClassifying] = useState(false);
 
   const preset = WORKSPACE_CREATE_DOCUMENT_PRESETS[presetIndex] ?? WORKSPACE_CREATE_DOCUMENT_PRESETS[0]!;
@@ -127,9 +128,10 @@ export function WorkspaceDocumentsPanel({
 
   const identityPreview = useMemo(() => {
     if (!targetPipeline) return null;
+    const plNumber = opportunityPublicCode(targetPipeline);
     if (importSuggestion) {
       return buildSmartDocIdentityPreview(
-        targetPipeline.id,
+        plNumber,
         targetPipeline.assetName,
         importSuggestion.DocCategory,
         importSuggestion.DocType,
@@ -137,7 +139,7 @@ export function WorkspaceDocumentsPanel({
       );
     }
     return buildSmartDocIdentityPreview(
-      targetPipeline.id,
+      plNumber,
       targetPipeline.assetName,
       preset.category,
       preset.type,
@@ -149,7 +151,7 @@ export function WorkspaceDocumentsPanel({
     if (!targetPipeline) return null;
     const company = companies.find((row) => row.pipelineIds.includes(targetPipeline.id));
     return suggestDocumentNames(
-      targetPipeline.id,
+      opportunityPublicCode(targetPipeline),
       targetPipeline.assetName,
       company?.Title ?? targetPipeline.companyRole,
       preset.type,
@@ -206,11 +208,30 @@ export function WorkspaceDocumentsPanel({
     };
 
     try {
-      const response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      let response: Response;
+      if (pendingImportFile) {
+        const form = new FormData();
+        form.append("DocCategory", payload.DocCategory);
+        form.append("DocType", payload.DocType);
+        form.append("DocumentName", payload.DocumentName);
+        if (payload.originalFileName) {
+          form.append("originalFileName", payload.originalFileName);
+        }
+        if (payload.DocumentSetID) {
+          form.append("DocumentSetID", payload.DocumentSetID);
+        }
+        form.append("file", pendingImportFile, pendingImportFile.name);
+        response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
+          method: "POST",
+          body: form,
+        });
+      } else {
+        response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Failed to create document");
 
@@ -220,6 +241,7 @@ export function WorkspaceDocumentsPanel({
       setMode("browse");
       setDocumentName("");
       setImportSuggestion(null);
+      setPendingImportFile(null);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Failed to create document");
     } finally {
@@ -232,6 +254,7 @@ export function WorkspaceDocumentsPanel({
       setClassifying(true);
       setError(null);
       setMode("import");
+      setPendingImportFile(file);
 
       window.setTimeout(() => {
         const classified = classifyByFileName(file.name);
@@ -301,7 +324,10 @@ export function WorkspaceDocumentsPanel({
         active={mode}
         onChange={(id) => {
           setMode(id as DocumentsMode);
-          if (id !== "import") setImportSuggestion(null);
+          if (id !== "import") {
+            setImportSuggestion(null);
+            setPendingImportFile(null);
+          }
         }}
       />
 
@@ -604,7 +630,10 @@ export function WorkspaceDocumentsPanel({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setImportSuggestion(null)}
+                  onClick={() => {
+                    setImportSuggestion(null);
+                    setPendingImportFile(null);
+                  }}
                   className="px-3 py-2 text-[11px] font-semibold text-carbon-blue/55 hover:text-carbon-blue"
                 >
                   Clear

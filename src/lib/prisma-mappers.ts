@@ -355,5 +355,6 @@ export function mapPrismaOpportunityToPipelineRow(
     sharepointFolderId: opportunity.sharepointFolderId,
     sharepointFolderUrl: opportunity.sharepointFolderUrl,
     sharepointFolderPath: opportunity.sharepointFolderPath,
+    ClientLookup: opportunity.company?.name?.trim() || undefined,
   };
 }
