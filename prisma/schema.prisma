@@ -267,6 +267,10 @@ model Opportunity {
   description       String?
   nextStep          String?
 
+  // Opportunity commercial shape (PipelineRow / CreateOpportunityInput)
+  companyRole String?
+  offeringIds String[] @default([])
+
   // FS-001 Stakeholder Roster stored as normalized relations or atomic JSON array
   team     Json[]               @default([]) // Array of { contactId: string, projectRole: string }
   insights OpportunityInsight[]
