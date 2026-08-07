@@ -436,7 +436,7 @@ export function WebsiteDiscoveryPanel({
                 value={resolveOwnerById(accountOwnerId, companies) ?? defaultOwner}
                 onChange={(owner) => setAccountOwnerId(owner.Id)}
                 required
-                label="Company Owner"
+                label="Account Owner"
                 compact
               />
               <PreviewPanel

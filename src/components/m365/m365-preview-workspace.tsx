@@ -22,6 +22,7 @@ import type { Activity } from "@/types/activity";
 import type { OutlookEvidenceRecord } from "@/types/outlook-reconciliation";
 import type { PipelineRow } from "@/types/pipeline";
 import { OutlookReconciliationWorkspace } from "@/components/m365/outlook-reconciliation-workspace";
+import { M365ConnectPanel } from "@/components/m365/m365-connect-panel";
 
 type SurfaceId =
   | "relationship-card"
@@ -149,6 +150,10 @@ export function M365PreviewWorkspace({
             Preview intelligence surfaces exactly as Outlook and Teams will consume them.
             Validate hierarchy, clarity, scanability, and actionability before host development.
           </p>
+
+          <div className="mt-4">
+            <M365ConnectPanel />
+          </div>
 
           <div className="mt-4 flex flex-wrap items-end gap-4">
             <nav className="flex flex-wrap gap-1 border border-carbon-blue/10 bg-carbon-blue/[0.02] p-1">

@@ -26,9 +26,11 @@ Copy `.env.example` to `.env` (Compose loads `.env` from the project root automa
 | `CRON_SECRET` | Recommended | Protects `/api/cron/*` (Bearer or `x-cron-secret`). |
 | `NEXT_PUBLIC_APP_URL` | Yes | Public origin (OAuth redirects, Outlook deep links), e.g. `https://crm.example.com`. |
 | `INTERNAL_DOMAINS` | Recommended | Comma-separated host domains for FS-009 privacy classification. |
-| `SHAREPOINT_TRANSPORT` | Optional | `local` (default) or `graph`. |
-| `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` | If M365 | Entra app registration for Graph OAuth. |
-| `M365_OAUTH_SCOPES` | Optional | Defaults cover mail/calendar/profile. |
+| `SHAREPOINT_TRANSPORT` | For docs | `local` (default) or `graph` (SharePoint Online SoT for SmartDocs). |
+| `SHAREPOINT_SITE_ID` | If graph | Graph site id for opportunity folders / SmartDocs. |
+| `AZURE_AD_*` / `AZURE_*` | If M365 | Entra app for SSO + Graph OAuth (same app is fine). |
+| `M365_OAUTH_SCOPES` | Optional | Defaults: mail/calendar + Files.ReadWrite.All + Sites.ReadWrite.All. |
+| `MICROSOFT_GRAPH_ACCESS_TOKEN` | Optional | App/daemon token for SharePoint folder ops; else delegated Connect token. |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Compose | Postgres container bootstrap (defaults: `postgres` / `postgres` / `smartcrm`). |
 | `APP_PORT` | Optional | Host port mapped to container `3000` (default `3000`). |
 | `APP_VERSION` | Optional | Reported by `/api/health` (default `1.0.0`). |
@@ -189,7 +191,10 @@ Deploy pipelines should run `prisma migrate deploy` against the target database 
 - [ ] `CRON_SECRET` set if using M365 subscription renewal cron
 - [ ] Backups enabled for the `smartcrm_postgres_data` volume
 - [ ] `/api/health` monitored
-- [ ] OAuth redirect URIs registered for `{NEXT_PUBLIC_APP_URL}/api/auth/m365/callback`
+- [ ] OAuth redirect URIs registered for `{NEXT_PUBLIC_APP_URL}/api/auth/callback/azure-ad` (SSO) and `{NEXT_PUBLIC_APP_URL}/api/auth/m365/callback` (Graph)
+- [ ] Admin consent for Mail.* + Files.ReadWrite.All + Sites.ReadWrite.All when using SharePoint document backend
+- [ ] `SHAREPOINT_TRANSPORT=graph` and `SHAREPOINT_SITE_ID` set when filing SmartDocs to SharePoint
+- [ ] Outlook add-in sideload or central deploy of `outlook/relationship-card/manifest.xml` (see `outlook/README.md`)
 
 ---
 

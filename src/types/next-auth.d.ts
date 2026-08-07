@@ -14,6 +14,7 @@ declare module "next-auth" {
     };
     azureAccessToken?: string;
     azureTenantId?: string;
+    azureOid?: string;
   }
 }
 
@@ -23,6 +24,7 @@ declare module "next-auth/jwt" {
     azureIdToken?: string;
     azureAccessTokenExpiresAt?: number;
     azureTenantId?: string;
+    azureOid?: string;
     accessRole?: UserRole;
   }
 }

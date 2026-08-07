@@ -6,6 +6,7 @@ import {
   getAccessTokenForIntegration,
   getActiveM365AccessToken,
 } from "@/lib/m365-client";
+import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
 
 function htmlToPlainText(html: string): string {
   return html
@@ -57,7 +58,8 @@ export async function POST(request: Request) {
       const token = await getAccessTokenForIntegration(integrationId);
       if (!token) integrationId = null;
     } else {
-      const active = await getActiveM365AccessToken();
+      const oid = await getSessionAzureOid();
+      const active = await getActiveM365AccessToken(oid);
       integrationId = active?.integrationId ?? null;
     }
 

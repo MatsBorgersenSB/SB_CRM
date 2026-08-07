@@ -7,7 +7,7 @@
   xsi:type="MailApp"
 >
   <Id>6f3c8b2a-9d4e-4a1c-b7e2-smartcrm-outlook-v1</Id>
-  <Version>1.1.1.0</Version>
+  <Version>1.2.0.0</Version>
   <ProviderName>SmartCRM</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="SmartCRM for Outlook" />
@@ -90,6 +90,28 @@
               <Group id="SmartCRM.AppointmentGroup">
                 <Label resid="SmartCRM.GroupLabel" />
                 <Control xsi:type="Button" id="SmartCRM.MeetingBriefing.Appointment">
+                  <Label resid="SmartCRM.MeetingBriefing.Label" />
+                  <Supertip>
+                    <Title resid="SmartCRM.MeetingBriefing.Label" />
+                    <Description resid="SmartCRM.MeetingBriefing.Description" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="SmartCRM.Icon16" />
+                    <bt:Image size="32" resid="SmartCRM.Icon32" />
+                    <bt:Image size="80" resid="SmartCRM.Icon80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="SmartCRM.MeetingBriefing.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+          <ExtensionPoint xsi:type="AppointmentAttendeeCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="SmartCRM.AttendeeGroup">
+                <Label resid="SmartCRM.GroupLabel" />
+                <Control xsi:type="Button" id="SmartCRM.MeetingBriefing.Attendee">
                   <Label resid="SmartCRM.MeetingBriefing.Label" />
                   <Supertip>
                     <Title resid="SmartCRM.MeetingBriefing.Label" />

@@ -45,7 +45,7 @@ export const ACCESS_GAP_RESOLUTION: Record<
   },
   companies_without_owners: {
     href: "/administration/users-access",
-    label: "Assign company owner",
+    label: "Assign account owner",
   },
   opportunities_without_owners: {
     href: "/administration/users-access",

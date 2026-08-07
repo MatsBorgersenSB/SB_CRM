@@ -44,7 +44,7 @@ export function CompaniesActionBar({
     Status: "Prospecting" as CompanyStatus,
     CompanyTypes: ["Prospect"] as CompanyType[],
     parentCompanyId: "",
-    accountOwnerId: defaultOwner.Id,
+    accountOwnerId: defaultOwner.Id > 0 ? defaultOwner.Id : 0,
     City: "",
     Domain: "",
     Phone: "",
@@ -57,6 +57,22 @@ export function CompaniesActionBar({
     vatNumber: "",
     industryNote: "",
   });
+
+  // Auth starts as Guest (id 0); once session resolves, sync a real owner id.
+  // Without this the UI shows Mats via fallback but Create stays disabled (!0).
+  useEffect(() => {
+    if (defaultOwner.Id <= 0) return;
+    setForm((current) =>
+      current.accountOwnerId > 0
+        ? current
+        : { ...current, accountOwnerId: defaultOwner.Id },
+    );
+  }, [defaultOwner.Id]);
+
+  const canCreate =
+    Boolean(form.Title.trim()) &&
+    Boolean(form.City.trim()) &&
+    form.accountOwnerId > 0;
 
   const applyRegistryResult = (company: UnifiedEuropeanCompany) => {
     setForm((current) => ({
@@ -98,7 +114,7 @@ export function CompaniesActionBar({
   };
 
   const handleCreate = async () => {
-    if (!form.Title.trim() || !form.City.trim() || !form.accountOwnerId) {
+    if (!canCreate) {
       return;
     }
 
@@ -135,7 +151,7 @@ export function CompaniesActionBar({
         Status: "Prospecting",
         CompanyTypes: ["Prospect"],
         parentCompanyId: "",
-        accountOwnerId: defaultOwner.Id,
+        accountOwnerId: defaultOwner.Id > 0 ? defaultOwner.Id : 0,
         City: "",
         Domain: "",
         Phone: "",
@@ -198,6 +214,17 @@ export function CompaniesActionBar({
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             />
           </label>
+          <div className="sm:col-span-2">
+            <CompanyOwnerSelect
+              companies={companies}
+              value={resolveOwnerById(form.accountOwnerId, companies) ?? defaultOwner}
+              onChange={(owner) =>
+                setForm((current) => ({ ...current, accountOwnerId: owner.Id }))
+              }
+              required
+              label="Account Owner"
+            />
+          </div>
           <label className="block">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
               Registration number
@@ -230,17 +257,6 @@ export function CompaniesActionBar({
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             />
           </label>
-          <div className="sm:col-span-2">
-            <CompanyOwnerSelect
-              companies={companies}
-              value={resolveOwnerById(form.accountOwnerId, companies) ?? defaultOwner}
-              onChange={(owner) =>
-                setForm((current) => ({ ...current, accountOwnerId: owner.Id }))
-              }
-              required
-              label="Company Owner"
-            />
-          </div>
           <label className="block">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
               Industry
@@ -427,7 +443,7 @@ export function CompaniesActionBar({
           </label>
           <button
             type="button"
-            disabled={saving || !form.Title.trim() || !form.City.trim() || !form.accountOwnerId}
+            disabled={saving || !canCreate}
             onClick={() => void handleCreate()}
             className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1.5 text-xs font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
           >

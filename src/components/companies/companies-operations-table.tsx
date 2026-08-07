@@ -41,7 +41,7 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
         <WorkspaceTableHeadRow>
           <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>Company Type</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Owner</WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell>Account Owner</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>Location</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>Health</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell align="right">Open Opportunities</WorkspaceTableHeadCell>

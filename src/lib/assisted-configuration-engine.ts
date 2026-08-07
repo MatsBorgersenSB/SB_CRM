@@ -90,7 +90,7 @@ function buildRoleRecommendations(input: ConfigurationAuditInput): ConfigRecomme
         impact:
           "Without commercial roles, follow-ups, quotations and deal progression depend on a single superuser.",
         nextAction:
-          `Map ${USER_ROLE_LABELS.commercial} users to company owners and opportunity owners in SharePoint security groups.`,
+          `Map ${USER_ROLE_LABELS.commercial} users to account owners and opportunity owners in SharePoint security groups.`,
         expectedOutcome:
           "Each account has a named commercial owner; SmartAssist routes attention to the right person.",
         severity: companies.length >= 8 ? "critical" : "warning",
@@ -195,16 +195,16 @@ function buildOwnershipRecommendations(input: ConfigurationAuditInput): ConfigRe
       buildRecommendation({
         id: "ownership-company-gaps",
         domain: "ownership",
-        title: "Assign company owners to incomplete accounts",
+        title: "Assign account owners to incomplete accounts",
         what: `${unownedCompanies.length} compan${unownedCompanies.length === 1 ? "y has" : "ies have"} no internal owner.`,
         why: "Every company must have exactly one accountable relationship owner.",
         impact: "SmartAssist cannot route follow-ups, alerts or recommendations without ownership.",
-        nextAction: "Open each company and assign a Standard Bio user as Company Owner.",
-        expectedOutcome: "100% company ownership — relationship accountability is explicit.",
+        nextAction: "Open each company and assign a Standard Bio user as Account Owner.",
+        expectedOutcome: "100% account ownership — relationship accountability is explicit.",
         severity: "critical",
         confidencePercent: 97,
         href: `/companies/${unownedCompanies[0]!.CompanyID}`,
-        resolutionLabel: "Assign company owner now",
+        resolutionLabel: "Assign account owner now",
       }),
     );
   }
@@ -221,9 +221,9 @@ function buildOwnershipRecommendations(input: ConfigurationAuditInput): ConfigRe
         domain: "ownership",
         title: "Set opportunity owners on open deals",
         what: `${dealsMissingOwner.length} opportunit${dealsMissingOwner.length === 1 ? "y lacks" : "ies lack"} a named owner.`,
-        why: "Opportunity owners inherit from company owners when unset — gaps mean both are missing.",
+        why: "Opportunity owners inherit from account owners when unset — gaps mean both are missing.",
         impact: "Pipeline alerts and quotation follow-ups have no accountable recipient.",
-        nextAction: "Assign opportunity owners on deal headers or fix company ownership first.",
+        nextAction: "Assign opportunity owners on deal headers or fix account ownership first.",
         expectedOutcome: "Every open opportunity routes notifications to a responsible commercial lead.",
         severity: "critical",
         confidencePercent: 94,
@@ -554,7 +554,7 @@ export function buildConfigurationSnapshot(input: ConfigurationAuditInput): Conf
     recommendations,
     vitals: [
       { label: "Architecture", value: `${readinessScore}%`, highlight: readinessScore < 70 },
-      { label: "Company ownership", value: `${ownedCount}/${input.companies.length}` },
+      { label: "Account ownership", value: `${ownedCount}/${input.companies.length}` },
       { label: "Active deals", value: String(input.pipelines.length) },
       { label: "Role tiers", value: String(USER_ROLES.length) },
       {

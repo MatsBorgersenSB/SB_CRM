@@ -11,7 +11,7 @@ const tableHeaders = [
   "ID",
   "Company Name",
   "Facility/Industry Type",
-  "Company Owner",
+  "Account Owner",
   "Location",
 ] as const;
 

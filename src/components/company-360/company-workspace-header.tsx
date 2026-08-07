@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/smartcrm-icon";
 
 /**
- * Full-width balanced company header — identity left, reachability right.
+ * Full-width company header — name + account owner first (accountability),
+ * then type/status, reachability on the right.
  */
 export function CompanyWorkspaceHeader({
   header,
@@ -30,6 +31,8 @@ export function CompanyWorkspaceHeader({
       : `https://${identity.website}`
     : null;
 
+  const ownerAssigned = hasCompanyOwner(company);
+
   return (
     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0 flex-1">
@@ -38,7 +41,29 @@ export function CompanyWorkspaceHeader({
           <span className="truncate">{header.companyName}</span>
         </h1>
 
-        <div className="mt-3">
+        {/* Account Owner — primary accountability signal under the name */}
+        <div
+          className={`mt-3 inline-flex max-w-full flex-col border px-3 py-2 ${
+            ownerAssigned
+              ? "border-carbon-blue/12 bg-carbon-blue/[0.03]"
+              : "border-thermal-red/25 bg-thermal-red/[0.04]"
+          }`}
+        >
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40">
+            Account Owner
+          </p>
+          {ownerAssigned ? (
+            <p className="mt-0.5 text-[15px] font-semibold text-carbon-blue">
+              {header.accountOwner}
+            </p>
+          ) : (
+            <p className="mt-0.5 text-[13px] font-medium text-thermal-red">
+              Incomplete — assign an account owner
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40">
             Company Type
           </p>
@@ -56,19 +81,6 @@ export function CompanyWorkspaceHeader({
           <span className="border border-carbon-blue/10 px-2.5 py-1 text-[12px] font-medium text-carbon-blue/55">
             {header.industry}
           </span>
-        </div>
-
-        <div className="mt-4">
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40">
-            Company Owner
-          </p>
-          {hasCompanyOwner(company) ? (
-            <p className="text-[15px] font-semibold text-carbon-blue">{header.accountOwner}</p>
-          ) : (
-            <p className="text-[13px] font-medium text-thermal-red">
-              Incomplete — assign an owner to activate relationship accountability
-            </p>
-          )}
         </div>
       </div>
 

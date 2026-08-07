@@ -57,7 +57,14 @@ export function MissingTouchpointsPanel({
   if (!connected) {
     return (
       <p className="px-1 text-xs text-carbon-blue/50">
-        Outlook is not connected. Connect M365 to detect missing touchpoints.
+        Outlook is not connected.{" "}
+        <a
+          href="/api/auth/m365/login"
+          className="font-semibold text-upcycle-orange hover:underline"
+        >
+          Connect Microsoft 365
+        </a>{" "}
+        to detect missing touchpoints.
       </p>
     );
   }

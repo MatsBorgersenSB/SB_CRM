@@ -6,6 +6,7 @@ import {
   getActiveM365AccessToken,
 } from "@/lib/m365-client";
 import { ingestEmailAttachmentToSmartDocs } from "@/lib/smartdocs-ingestion";
+import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
 
 /**
  * POST /api/m365/sync-attachments
@@ -53,7 +54,8 @@ export async function POST(request: Request) {
 
     let integrationId = body.integrationId?.trim() || null;
     if (!integrationId) {
-      const active = await getActiveM365AccessToken();
+      const oid = await getSessionAzureOid();
+      const active = await getActiveM365AccessToken(oid);
       integrationId = active?.integrationId ?? null;
     }
     if (!integrationId) {

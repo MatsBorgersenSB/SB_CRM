@@ -234,7 +234,7 @@ export function QuickImportPanel({
                 value={resolveOwnerById(accountOwnerId, companies) ?? defaultOwner}
                 onChange={(owner) => setAccountOwnerId(owner.Id)}
                 required
-                label="Company Owner"
+                label="Account Owner"
                 compact
               />
               <div className="flex flex-wrap gap-2">
