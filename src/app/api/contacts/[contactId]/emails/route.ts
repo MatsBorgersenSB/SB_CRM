@@ -5,10 +5,48 @@ import {
   purgeConversationForContact,
   readEmailsForContact,
   resolveContactIdForEmails,
-  setConversationOpportunityForContact,
+  setConversationLinksForContact,
 } from "@/lib/email-intelligence-data";
 import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
 import { getPrisma } from "@/lib/prisma";
+import { readProjects } from "@/lib/project-db";
+import { toContactTrackingId } from "@/lib/prisma-mappers";
+
+function projectTouchesContact(
+  project: Awaited<ReturnType<typeof readProjects>>[number],
+  contactId: string,
+  companyId: string | null,
+  trackingId: string,
+): boolean {
+  if (companyId && project.linkedCompanyId === companyId) return true;
+  if (
+    companyId &&
+    project.relatedOrganizations?.some((org) => org.companyId === companyId)
+  ) {
+    return true;
+  }
+  if (
+    project.team?.some(
+      (member) =>
+        member.contactId === contactId ||
+        member.contactId === trackingId ||
+        member.contactId?.toUpperCase() === trackingId.toUpperCase(),
+    )
+  ) {
+    return true;
+  }
+  if (
+    project.projectStakeholders?.some(
+      (row) =>
+        row.contactId === contactId ||
+        row.contactId === trackingId ||
+        row.contactId?.toUpperCase() === trackingId.toUpperCase(),
+    )
+  ) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * Person-lens Outlook mail for Contact 360 (live EmailMessageRecord).
@@ -30,6 +68,7 @@ export async function GET(
           emails: [],
           threads: [],
           opportunityOptions: [],
+          projectOptions: [],
         },
         { status: 404 },
       );
@@ -57,6 +96,8 @@ export async function GET(
 
     const contact = await findPrismaContactByIdOrEmail(contactKey);
     const prisma = getPrisma();
+    const trackingId = toContactTrackingId(contactId);
+
     const companyScoped = contact?.companyId
       ? await prisma.opportunity.findMany({
           where: { status: "open", companyId: contact.companyId },
@@ -79,9 +120,7 @@ export async function GET(
     });
 
     const opportunityRows = [...companyScoped, ...broader];
-
-    // Always include currently linked deals even if closed / other company.
-    const linkedIds = [
+    const linkedOppIds = [
       ...new Set(
         emails
           .map((email) => email.opportunityId)
@@ -89,12 +128,59 @@ export async function GET(
       ),
     ].filter((id) => !opportunityRows.some((row) => row.id === id));
 
-    if (linkedIds.length > 0) {
+    if (linkedOppIds.length > 0) {
       const linked = await prisma.opportunity.findMany({
-        where: { id: { in: linkedIds } },
+        where: { id: { in: linkedOppIds } },
         select: { id: true, name: true, code: true },
       });
       opportunityRows.push(...linked);
+    }
+
+    const allProjects = await readProjects();
+    const relatedProjects = allProjects.filter((project) =>
+      projectTouchesContact(
+        project,
+        contactId,
+        contact?.companyId ?? null,
+        trackingId,
+      ),
+    );
+    const otherProjects = allProjects
+      .filter((project) => !relatedProjects.some((row) => row.id === project.id))
+      .slice(0, 40);
+    const projectOptions: Array<{ id: string; label: string; name: string }> = [
+      ...relatedProjects.map((row) => ({
+        id: row.id,
+        label: row.name,
+        name: row.name,
+      })),
+      ...otherProjects.map((row) => ({
+        id: row.id,
+        label: row.name,
+        name: row.name,
+      })),
+    ];
+
+    const linkedProjectIds = [
+      ...new Set(
+        emails
+          .map((email) => email.projectId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    for (const projectId of linkedProjectIds) {
+      if (projectOptions.some((row) => row.id === projectId)) continue;
+      const project = allProjects.find((row) => row.id === projectId);
+      const linkedName =
+        project?.name ??
+        emails.find((email) => email.projectId === projectId)?.projectName ??
+        projectId;
+      projectOptions.push({
+        id: projectId,
+        label: linkedName,
+        name: linkedName,
+      });
     }
 
     return NextResponse.json({
@@ -107,6 +193,7 @@ export async function GET(
         code: row.code,
         name: row.name,
       })),
+      projectOptions,
     });
   } catch (error) {
     console.error("[contact emails GET]", error);
@@ -117,6 +204,7 @@ export async function GET(
         emails: [],
         threads: [],
         opportunityOptions: [],
+        projectOptions: [],
       },
       { status: 500 },
     );
@@ -124,8 +212,8 @@ export async function GET(
 }
 
 /**
- * Link / unlink a conversation to an opportunity.
- * Body: { conversationId, opportunityId: string | null }
+ * Link / unlink a conversation to an opportunity and/or project.
+ * Body: { conversationId, opportunityId?: string | null, projectId?: string | null }
  */
 export async function PATCH(
   request: Request,
@@ -142,6 +230,7 @@ export async function PATCH(
     const body = (await request.json().catch(() => ({}))) as {
       conversationId?: string;
       opportunityId?: string | null;
+      projectId?: string | null;
     };
     const conversationId = body.conversationId?.trim();
     if (!conversationId) {
@@ -151,20 +240,36 @@ export async function PATCH(
       );
     }
 
-    const opportunityId =
-      typeof body.opportunityId === "string" && body.opportunityId.trim()
-        ? body.opportunityId.trim()
-        : null;
+    if (body.opportunityId === undefined && body.projectId === undefined) {
+      return NextResponse.json(
+        { error: "opportunityId or projectId is required" },
+        { status: 400 },
+      );
+    }
 
-    const result = await setConversationOpportunityForContact(
+    const opportunityId =
+      body.opportunityId === undefined
+        ? undefined
+        : typeof body.opportunityId === "string" && body.opportunityId.trim()
+          ? body.opportunityId.trim()
+          : null;
+
+    const projectId =
+      body.projectId === undefined
+        ? undefined
+        : typeof body.projectId === "string" && body.projectId.trim()
+          ? body.projectId.trim()
+          : null;
+
+    const result = await setConversationLinksForContact(
       contactKey,
       conversationId,
-      opportunityId,
+      { opportunityId, projectId },
     );
 
-    if (result.updated === 0 && opportunityId) {
+    if (result.updated === 0) {
       return NextResponse.json(
-        { error: "Opportunity not found or no messages to update" },
+        { error: "No matching emails to update, or related record not found" },
         { status: 404 },
       );
     }
@@ -173,7 +278,6 @@ export async function PATCH(
       ok: true,
       ...result,
       conversationId,
-      opportunityId,
     });
   } catch (error) {
     console.error("[contact emails PATCH]", error);

@@ -22,6 +22,8 @@ export type EmailMessageIntelligenceDto = {
   opportunityId: string | null;
   opportunityName: string | null;
   opportunityCode: string | null;
+  projectId: string | null;
+  projectName: string | null;
   contactId: string | null;
   contactName: string | null;
   subject: string;
@@ -111,6 +113,8 @@ function toEmailDto(message: {
   externalMessageId: string;
   conversationId: string;
   opportunityId: string | null;
+  projectId: string | null;
+  projectName: string | null;
   contactId: string | null;
   subject: string;
   bodyPreview: string | null;
@@ -161,6 +165,8 @@ function toEmailDto(message: {
     opportunityId: message.opportunityId,
     opportunityName: message.opportunity?.name ?? null,
     opportunityCode: message.opportunity?.code ?? null,
+    projectId: message.projectId,
+    projectName: message.projectName,
     contactId: message.contactId,
     contactName: contactDisplayName(message.contact),
     subject: message.subject,
@@ -447,31 +453,91 @@ export async function purgeConversationForContact(
 }
 
 /**
- * Set or clear opportunity link for every message in a contact conversation.
+ * Set or clear opportunity / project links for every message in a contact conversation.
  */
-export async function setConversationOpportunityForContact(
+export async function setConversationLinksForContact(
   contactKey: string,
   conversationId: string,
-  opportunityId: string | null,
-): Promise<{ updated: number; opportunityName: string | null; opportunityCode: string | null }> {
+  links: {
+    opportunityId?: string | null;
+    projectId?: string | null;
+  },
+): Promise<{
+  updated: number;
+  opportunityId: string | null | undefined;
+  opportunityName: string | null;
+  opportunityCode: string | null;
+  projectId: string | null | undefined;
+  projectName: string | null;
+}> {
   const prisma = getPrisma();
   const contact = await findPrismaContactByIdOrEmail(contactKey);
   if (!contact || !conversationId.trim()) {
-    return { updated: 0, opportunityName: null, opportunityCode: null };
+    return {
+      updated: 0,
+      opportunityId: links.opportunityId,
+      opportunityName: null,
+      opportunityCode: null,
+      projectId: links.projectId,
+      projectName: null,
+    };
   }
+
+  const data: {
+    contactId: string;
+    opportunityId?: string | null;
+    projectId?: string | null;
+    projectName?: string | null;
+  } = { contactId: contact.id };
 
   let opportunityName: string | null = null;
   let opportunityCode: string | null = null;
-  if (opportunityId) {
-    const opportunity = await prisma.opportunity.findUnique({
-      where: { id: opportunityId },
-      select: { id: true, name: true, code: true },
-    });
-    if (!opportunity) {
-      return { updated: 0, opportunityName: null, opportunityCode: null };
+  if (links.opportunityId !== undefined) {
+    if (links.opportunityId) {
+      const opportunity = await prisma.opportunity.findUnique({
+        where: { id: links.opportunityId },
+        select: { id: true, name: true, code: true },
+      });
+      if (!opportunity) {
+        return {
+          updated: 0,
+          opportunityId: links.opportunityId,
+          opportunityName: null,
+          opportunityCode: null,
+          projectId: links.projectId,
+          projectName: null,
+        };
+      }
+      opportunityName = opportunity.name;
+      opportunityCode = opportunity.code;
+      data.opportunityId = opportunity.id;
+    } else {
+      data.opportunityId = null;
     }
-    opportunityName = opportunity.name;
-    opportunityCode = opportunity.code;
+  }
+
+  let projectName: string | null = null;
+  if (links.projectId !== undefined) {
+    if (links.projectId) {
+      const { readProjectById } = await import("@/lib/project-db");
+      const project = await readProjectById(links.projectId);
+      if (!project) {
+        return {
+          updated: 0,
+          opportunityId: links.opportunityId,
+          opportunityName,
+          opportunityCode,
+          projectId: links.projectId,
+          projectName: null,
+        };
+      }
+      projectName = project.name;
+      data.projectId = project.id;
+      data.projectName = project.name;
+    } else {
+      data.projectId = null;
+      data.projectName = null;
+    }
   }
 
   const addresses = contactEmailsFromJson(contact.emails);
@@ -488,16 +554,32 @@ export async function setConversationOpportunityForContact(
           : []),
       ],
     },
-    data: {
-      opportunityId,
-      contactId: contact.id,
-    },
+    data,
   });
 
   return {
     updated: result.count,
+    opportunityId: links.opportunityId,
     opportunityName,
     opportunityCode,
+    projectId: links.projectId,
+    projectName,
+  };
+}
+
+/** @deprecated Prefer setConversationLinksForContact */
+export async function setConversationOpportunityForContact(
+  contactKey: string,
+  conversationId: string,
+  opportunityId: string | null,
+): Promise<{ updated: number; opportunityName: string | null; opportunityCode: string | null }> {
+  const result = await setConversationLinksForContact(contactKey, conversationId, {
+    opportunityId,
+  });
+  return {
+    updated: result.updated,
+    opportunityName: result.opportunityName,
+    opportunityCode: result.opportunityCode,
   };
 }
 
