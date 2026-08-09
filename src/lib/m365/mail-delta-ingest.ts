@@ -179,10 +179,12 @@ async function upsertGraphMessage(input: {
   const contactId = contacts[0]?.id ?? null;
 
   const prisma = getPrisma();
+  const webLink = input.message.webLink?.trim() || null;
   const contentData = {
     conversationId,
     subject: input.message.subject?.trim() || "(no subject)",
     bodyPreview: input.message.bodyPreview?.slice(0, 2000) ?? null,
+    ...(webLink ? { webLink } : {}),
     senderEmail,
     recipientEmails,
     sentAt: parseSentAt(input.message),

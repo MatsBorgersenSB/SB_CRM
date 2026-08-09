@@ -524,6 +524,8 @@ model EmailMessageRecord {
   contact           Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
   subject           String
   bodyPreview       String?
+  /** Outlook deep link from Graph (`webLink`) — Open in Outlook. */
+  webLink           String?
   senderEmail       String
   recipientEmails   String[]
   sentAt            DateTime
