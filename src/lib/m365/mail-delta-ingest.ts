@@ -209,11 +209,13 @@ async function upsertGraphMessage(input: {
 
   if (existing) {
     // Sync must never re-attach or clear user-managed opportunity/project links.
+    // Drop stale Outlook category labels when there is no opportunity link.
     const updated = await prisma.emailMessageRecord.update({
       where: { id: existing.id },
       data: {
         ...contentData,
         ...(contactId ? { contactId } : {}),
+        ...(!existing.opportunityId ? { m365CategoryName: null } : {}),
       },
     });
     recordId = updated.id;

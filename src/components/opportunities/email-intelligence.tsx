@@ -571,9 +571,29 @@ export function EmailIntelligence({
                                     [Deleted in Outlook]
                                   </span>
                                 ) : null}
-                                {message.m365CategoryName ? (
-                                  <span className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/55">
-                                    {message.m365CategoryName}
+                                {message.opportunityId &&
+                                (message.opportunityCode || message.opportunityName) ? (
+                                  <span
+                                    className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/55"
+                                    title="Linked opportunity"
+                                  >
+                                    Opportunity:{" "}
+                                    {message.opportunityCode
+                                      ? `${message.opportunityCode} · ${message.opportunityName ?? ""}`
+                                      : (message.opportunityName ?? "Linked")}
+                                  </span>
+                                ) : null}
+                                {message.projectId && message.projectName ? (
+                                  <span
+                                    className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/55"
+                                    title="Linked project"
+                                  >
+                                    Project: {message.projectName}
+                                  </span>
+                                ) : null}
+                                {!message.opportunityId && !message.projectId ? (
+                                  <span className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/40">
+                                    Not linked
                                   </span>
                                 ) : null}
                                 {(message.senderIsExternal ?? false) ? (
