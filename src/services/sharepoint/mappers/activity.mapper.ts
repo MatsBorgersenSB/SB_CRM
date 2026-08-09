@@ -20,6 +20,8 @@ type ActivityFields = {
   Contact?: { LookupValue?: string };
   DealLookupId?: number;
   Deal?: { LookupValue?: string };
+  ProjectId?: string;
+  ProjectName?: string;
   LinkedDealsJson?: string;
   LinkedContactsJson?: string;
   ActivityOwnerLookupId?: number;
@@ -90,6 +92,8 @@ export const activityMapper: ListItemMapper<ActivityFields, Activity> = {
       Deal: fields.Deal?.LookupValue
         ? { Id: fields.DealLookupId ?? 0, Title: fields.Deal.LookupValue }
         : null,
+      ProjectId: fields.ProjectId?.trim() || null,
+      ProjectName: fields.ProjectName?.trim() || null,
       ActivityOwner: fields.ActivityOwnerLookupId
         ? {
             Id: fields.ActivityOwnerLookupId,
@@ -144,6 +148,8 @@ export const activityMapper: ListItemMapper<ActivityFields, Activity> = {
     if (row.Company) fields.CompanyLookupId = row.Company.Id;
     if (row.Contact) fields.ContactLookupId = row.Contact.Id;
     if (row.Deal) fields.DealLookupId = row.Deal.Id;
+    if (row.ProjectId !== undefined) fields.ProjectId = row.ProjectId ?? "";
+    if (row.ProjectName !== undefined) fields.ProjectName = row.ProjectName ?? "";
     if (row.ActivityOwner) fields.ActivityOwnerLookupId = row.ActivityOwner.Id;
     if (row.ActionRequired !== undefined) fields.ActionRequired = row.ActionRequired;
     if (row.NextAction !== undefined) fields.NextAction = row.NextAction;

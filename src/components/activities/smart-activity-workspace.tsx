@@ -29,7 +29,13 @@ import {
   consumeSmartAssistPrefill,
   prefillToCreateActivityInput,
 } from "@/lib/smart-assist-prefill";
-import { computeActivityIntelligence, getActivitiesForCompany, getActivitiesForContact, getActivitiesForDeal } from "@/lib/activity-utils";
+import {
+  computeActivityIntelligence,
+  getActivitiesForCompany,
+  getActivitiesForContact,
+  getActivitiesForDeal,
+  getActivitiesForProject,
+} from "@/lib/activity-utils";
 import { syncActivityUpdate } from "@/lib/sync-activity";
 import type { AttentionItem } from "@/types/attention-item";
 import type { Company } from "@/types/company";
@@ -69,6 +75,8 @@ function contextPreset(context?: ActivityWorkspaceContext): Partial<CreateActivi
     Company: context.companyId ? { CompanyID: context.companyId } : null,
     Contact: context.contactId ? { ContactID: context.contactId } : null,
     Deal: context.dealId ? { DealID: context.dealId } : null,
+    ProjectId: context.projectId ?? null,
+    ProjectName: context.projectName ?? null,
   };
 }
 
@@ -139,6 +147,11 @@ export function SmartActivityWorkspace({
 
   const scopeActivities = useCallback(
     (rows: Activity[]) => {
+      if (context?.projectId) {
+        return getActivitiesForProject(rows, context.projectId, {
+          linkedDealId: context.dealId,
+        });
+      }
       if (context?.dealId) return getActivitiesForDeal(rows, context.dealId);
       if (context?.contactId) return getActivitiesForContact(rows, context.contactId);
       if (context?.companyId) {

@@ -285,6 +285,28 @@ function getActivitiesForDealId(activities: Activity[], dealId: string): Activit
     );
 }
 
+export function getActivitiesForProject(
+  activities: Activity[],
+  projectId: string,
+  options?: { linkedDealId?: string | null },
+): Activity[] {
+  const id = projectId.trim();
+  if (!id) return [];
+  const linkedDealId = options?.linkedDealId?.trim() || "";
+  return activities
+    .filter((a) => {
+      if (a.ProjectId === id) return true;
+      // Legacy: project pages previously scoped by linked opportunity only.
+      if (!a.ProjectId && linkedDealId && a.Deal?.Title === linkedDealId) return true;
+      return false;
+    })
+    .sort(
+      (a, b) =>
+        parseActivityDate(b.ActivityDate).getTime() -
+        parseActivityDate(a.ActivityDate).getTime(),
+    );
+}
+
 export function computeActivityIntelligence(
   activities: Activity[],
   pipelines: PipelineRow[],

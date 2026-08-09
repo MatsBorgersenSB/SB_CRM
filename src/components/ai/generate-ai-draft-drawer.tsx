@@ -22,6 +22,7 @@ export type GenerateAiDraftContext = {
   companyName?: string | null;
   dealStage?: string | null;
   dealId?: string | null;
+  projectId?: string | null;
   contactId?: string | null;
   context?: string;
   objective?: string | null;
@@ -217,6 +218,7 @@ export function GenerateAiDraftControl({
                       subject={draft.subject}
                       bodyHtml={draft.body.replace(/\n/g, "<br/>")}
                       opportunityId={draftContext.dealId ?? undefined}
+                      projectId={draftContext.projectId ?? undefined}
                       role={user.role}
                       label="Open in Outlook"
                     />

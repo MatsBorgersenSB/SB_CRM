@@ -181,6 +181,9 @@ export function EmailIntelligence({
   const [domainFilter, setDomainFilter] = useState<"all" | "external" | "internal_only">(
     "external",
   );
+  const [composeTo, setComposeTo] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!scopeId) {
@@ -338,23 +341,89 @@ export function EmailIntelligence({
     }
   };
 
+  const scopeTagLabel =
+    scopeKind === "project" ? "this project" : "this opportunity";
+
   return (
     <section aria-label="Email intelligence" className="flex flex-col gap-4">
-      <div>
-        <p className="text-[11px] font-medium text-carbon-blue/45">
-          FS-009 Email & Interaction Intelligence
-        </p>
-        <h3 className="mt-1 text-base font-semibold text-carbon-blue">
-          {scopeKind === "project"
-            ? "Project email threads"
-            : "Email threads & sentiment"}
-        </h3>
-        <p className="mt-1 text-[13px] text-carbon-blue/55">
-          {scopeKind === "project"
-            ? "Outlook threads linked to this project. Preview in SmartCRM or open in Outlook. Link more from a contact’s Recent Outlook."
-            : "Review M365-linked conversation threads, sentiment evidence, and commercial takeaways. Sentiment is advisory — it does not change influence stance automatically."}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-medium text-carbon-blue/45">
+            FS-009 Email & Interaction Intelligence
+          </p>
+          <h3 className="mt-1 text-base font-semibold text-carbon-blue">
+            {scopeKind === "project"
+              ? "Project email threads"
+              : "Email threads & sentiment"}
+          </h3>
+          <p className="mt-1 text-[13px] text-carbon-blue/55">
+            {scopeKind === "project"
+              ? "Outlook threads linked to this project. Preview in SmartCRM or open in Outlook. Link more from a contact’s Recent Outlook."
+              : "Review M365-linked conversation threads, sentiment evidence, and commercial takeaways. Sentiment is advisory — it does not change influence stance automatically."}
+          </p>
+        </div>
+        {!readOnly && scopeId ? (
+          <button
+            type="button"
+            onClick={() => {
+              setComposeOpen((open) => !open);
+              if (!composeSubject) {
+                setComposeSubject(
+                  scopeKind === "project" ? "Project update" : "Opportunity update",
+                );
+              }
+            }}
+            className="shrink-0 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white hover:brightness-105"
+          >
+            {composeOpen ? "Close compose" : "New mail in Outlook"}
+          </button>
+        ) : null}
       </div>
+
+      {composeOpen && !readOnly ? (
+        <div className="border border-upcycle-orange/25 bg-upcycle-orange/[0.03] px-3 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
+            New mail · tagged to {scopeTagLabel}
+          </p>
+          <p className="mt-1 text-[12px] text-carbon-blue/55">
+            Opens an Outlook draft with the SmartCRM category for{" "}
+            {scopeKind === "project" ? "this project" : "this opportunity"}. Sync
+            keeps the link after you send.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <label className="block text-[11px] font-semibold text-carbon-blue/55">
+              To
+              <input
+                type="email"
+                value={composeTo}
+                onChange={(event) => setComposeTo(event.target.value)}
+                placeholder="name@company.com"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+              />
+            </label>
+            <label className="block text-[11px] font-semibold text-carbon-blue/55">
+              Subject
+              <input
+                type="text"
+                value={composeSubject}
+                onChange={(event) => setComposeSubject(event.target.value)}
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+              />
+            </label>
+            <div className="flex items-end">
+              <DraftInOutlookButton
+                toEmail={composeTo.trim()}
+                subject={composeSubject.trim() || "Follow-up"}
+                bodyHtml="<p>Hi,</p><p></p><p>Best regards</p>"
+                opportunityId={opportunityId}
+                projectId={projectId}
+                role={role}
+                label="Open tagged draft"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-end gap-3 border border-carbon-blue/10 bg-white px-3 py-3">
         <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
@@ -521,6 +590,7 @@ export function EmailIntelligence({
                                 subject={`Follow-up: ${summary.subject}`}
                                 bodyHtml={threadFollowUpHtml(summary)}
                                 opportunityId={opportunityId}
+                                projectId={projectId}
                                 role={role}
                               />
                             </div>
@@ -677,6 +747,7 @@ export function EmailIntelligence({
                                       subject={replyDraftSubject(message.subject)}
                                       bodyHtml={replyDraftHtml(message)}
                                       opportunityId={opportunityId}
+                                      projectId={projectId}
                                       role={role}
                                       disabled={busy}
                                     />

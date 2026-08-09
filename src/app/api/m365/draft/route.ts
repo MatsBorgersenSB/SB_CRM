@@ -23,7 +23,7 @@ function htmlToPlainText(html: string): string {
 
 /**
  * POST /api/m365/draft
- * Body: { toEmail, subject, bodyHtml, opportunityId?, integrationId? }
+ * Body: { toEmail, subject, bodyHtml, opportunityId?, projectId?, integrationId? }
  *
  * Active M365 integration → Graph draft + webLink
  * Otherwise → Outlook compose deepLink fallback

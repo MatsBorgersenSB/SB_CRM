@@ -35,7 +35,7 @@ import { ProjectStakeholderIntelligencePanel } from "@/components/project/projec
 import { ProjectStakeholdersRosterPanel } from "@/components/project/project-stakeholders-roster-panel";
 import { ProjectWorkspaceHeader } from "@/components/project/project-workspace-header";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
-import { getActivitiesForDeal } from "@/lib/activity-utils";
+import { getActivitiesForProject } from "@/lib/activity-utils";
 import {
   getProjectRelatedOrganizations,
   getProjectStakeholders,
@@ -156,9 +156,11 @@ export function Project360LivingWorkspace({
   }, [project.id, router]);
 
   const projectActivities = useMemo(() => {
-    if (project.linkedDealId) {
-      return getActivitiesForDeal(activities, project.linkedDealId);
-    }
+    const scoped = getActivitiesForProject(activities, project.id, {
+      linkedDealId: project.linkedDealId,
+    });
+    if (scoped.length > 0) return scoped;
+    // Last-resort display for untagged historical rows (not used for new creates).
     return activities.filter(
       (activity) =>
         activity.Company?.Title === project.linkedCompanyId ||
@@ -268,6 +270,8 @@ export function Project360LivingWorkspace({
               companies={companies}
               pipelines={pipelines}
               context={{
+                projectId: project.id,
+                projectName: project.name,
                 dealId: project.linkedDealId,
                 companyId: project.linkedCompanyId,
                 companyName: linkedCompany?.Title,

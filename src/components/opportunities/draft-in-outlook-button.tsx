@@ -9,6 +9,7 @@ export type DraftInOutlookRequest = {
   subject: string;
   bodyHtml: string;
   opportunityId?: string;
+  projectId?: string;
 };
 
 type DraftApiResponse = {
@@ -22,6 +23,7 @@ type DraftApiResponse = {
 
 /**
  * Opens a Graph draft (webLink) or Outlook compose deepLink in a new tab.
+ * When opportunityId or projectId is set, the draft receives intentional SmartCRM categories.
  */
 export async function openOutlookDraft(
   input: DraftInOutlookRequest,
@@ -33,7 +35,13 @@ export async function openOutlookDraft(
       "Content-Type": "application/json",
       [AUTH_ROLE_HEADER]: role,
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      toEmail: input.toEmail,
+      subject: input.subject,
+      bodyHtml: input.bodyHtml,
+      opportunityId: input.opportunityId,
+      projectId: input.projectId,
+    }),
   });
 
   const payload = (await response.json().catch(() => ({}))) as DraftApiResponse;
@@ -54,6 +62,7 @@ export function DraftInOutlookButton({
   subject,
   bodyHtml,
   opportunityId,
+  projectId,
   role = "superuser",
   disabled = false,
   className = "",
@@ -71,7 +80,10 @@ export function DraftInOutlookButton({
     setBusy(true);
     setError(null);
     try {
-      await openOutlookDraft({ toEmail, subject, bodyHtml, opportunityId }, role);
+      await openOutlookDraft(
+        { toEmail, subject, bodyHtml, opportunityId, projectId },
+        role,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Draft failed");
     } finally {
