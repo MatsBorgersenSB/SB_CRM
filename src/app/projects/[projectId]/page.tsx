@@ -8,9 +8,8 @@ import { readAssignableStandardBioUsers } from "@/lib/standard-bio-users-server"
 import {
   readActivities,
   readCommercialPackages,
-  readCompanies,
-  readPipelines,
 } from "@/lib/pipeline-db";
+import { readLivePortfolio } from "@/lib/prisma-data";
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 
 type Project360PageProps = {
@@ -25,15 +24,19 @@ export default async function Project360Page({ params }: Project360PageProps) {
     notFound();
   }
 
-  const [projects, companies, pipelines, activities, commercialPackages, standardBioUsers] =
-    await Promise.all([
-      readProjects(),
-      readCompanies(),
-      readPipelines(),
-      readActivities(),
-      readCommercialPackages(),
-      readAssignableStandardBioUsers(),
-    ]);
+  const [
+    projects,
+    { companies, pipelines },
+    activities,
+    commercialPackages,
+    standardBioUsers,
+  ] = await Promise.all([
+    readProjects(),
+    readLivePortfolio(),
+    readActivities(),
+    readCommercialPackages(),
+    readAssignableStandardBioUsers(),
+  ]);
 
   const project = await resolveProjectRouteRecord(projects, rawKey);
 

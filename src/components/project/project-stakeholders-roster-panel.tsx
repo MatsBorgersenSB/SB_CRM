@@ -16,6 +16,7 @@ import {
 } from "@/lib/project-relationship-utils";
 import {
   buildProjectContactOptions,
+  findCompanyByProjectRef,
   getProjectAccountCompanyId,
 } from "@/lib/project-stakeholder-contacts";
 import { findStandardBioUserOption } from "@/lib/standard-bio-users";
@@ -96,7 +97,7 @@ export function ProjectStakeholdersRosterPanel({
 
   const accountCompanyName = useMemo(() => {
     const accountId = getProjectAccountCompanyId(project);
-    return companies.find((company) => company.CompanyID === accountId)?.Title;
+    return findCompanyByProjectRef(companies, accountId)?.Title;
   }, [project, companies]);
 
   const allContactOptions = useMemo(
@@ -109,7 +110,9 @@ export function ProjectStakeholdersRosterPanel({
       { id: INTERNAL_ORGANIZATION_ID, label: "Standard Bio (Internal)" },
       ...organizations.map((org) => ({
         id: org.id,
-        label: companies.find((c) => c.CompanyID === org.companyId)?.Title ?? org.companyId,
+        label:
+          findCompanyByProjectRef(companies, org.companyId)?.Title ??
+          org.companyId,
       })),
     ],
     [organizations, companies],
@@ -282,7 +285,13 @@ export function ProjectStakeholdersRosterPanel({
               </optgroup>
             ) : null}
             {contactOptions.otherContacts.length > 0 ? (
-              <optgroup label="Other organizations">
+              <optgroup
+                label={
+                  contactOptions.accountContacts.length > 0
+                    ? "Other organizations"
+                    : "All contacts"
+                }
+              >
                 {contactOptions.otherContacts.map((option) => (
                   <option key={option.contact.ContactID} value={option.contact.ContactID}>
                     {getContactDisplayName(option.contact)} · {option.companyName}
@@ -291,6 +300,11 @@ export function ProjectStakeholdersRosterPanel({
               </optgroup>
             ) : null}
           </select>
+          {allContactOptions.length === 0 ? (
+            <p className="mt-1 text-[11px] text-thermal-red/80">
+              No contacts available to add. Create contacts on the company first, then return here.
+            </p>
+          ) : null}
         </label>
       )}
 
