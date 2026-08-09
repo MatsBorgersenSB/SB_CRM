@@ -1,6 +1,7 @@
 import { getPrisma } from "@/lib/prisma";
 import { resolveOpportunityId } from "@/lib/meeting-intelligence-data";
 import { isExternalEmail, isInternalEmail } from "@/lib/domain-rules";
+import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
 import type { SentimentGrade } from "@/generated/prisma";
 import type { IngestedSmartDoc } from "@/lib/smartdocs-ingestion";
 
@@ -19,6 +20,8 @@ export type EmailMessageIntelligenceDto = {
   externalMessageId: string;
   conversationId: string;
   opportunityId: string | null;
+  opportunityName: string | null;
+  opportunityCode: string | null;
   contactId: string | null;
   contactName: string | null;
   subject: string;
@@ -83,6 +86,26 @@ function toAttachmentDto(doc: {
   };
 }
 
+const emailMessageInclude = {
+  contact: {
+    select: { fullName: true, firstName: true, lastName: true },
+  },
+  opportunity: {
+    select: { id: true, name: true, code: true },
+  },
+  documents: {
+    select: {
+      id: true,
+      name: true,
+      mimeType: true,
+      sizeBytes: true,
+      source: true,
+      contentBase64: true,
+    },
+    orderBy: { name: "asc" as const },
+  },
+};
+
 function toEmailDto(message: {
   id: string;
   externalMessageId: string;
@@ -104,6 +127,11 @@ function toEmailDto(message: {
     fullName: string | null;
     firstName: string | null;
     lastName: string | null;
+  } | null;
+  opportunity: {
+    id: string;
+    name: string;
+    code: string | null;
   } | null;
   documents: Array<{
     id: string;
@@ -131,6 +159,8 @@ function toEmailDto(message: {
     externalMessageId: message.externalMessageId,
     conversationId: message.conversationId,
     opportunityId: message.opportunityId,
+    opportunityName: message.opportunity?.name ?? null,
+    opportunityCode: message.opportunity?.code ?? null,
     contactId: message.contactId,
     contactName: contactDisplayName(message.contact),
     subject: message.subject,
@@ -150,6 +180,31 @@ function toEmailDto(message: {
     createdAt: message.createdAt.toISOString(),
     attachments: message.documents.map(toAttachmentDto),
   };
+}
+
+function contactEmailsFromJson(emails: unknown): string[] {
+  if (!Array.isArray(emails)) return [];
+  return [
+    ...new Set(
+      emails
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") return "";
+          const address = (entry as { address?: unknown }).address;
+          return typeof address === "string" ? address.trim().toLowerCase() : "";
+        })
+        .filter(Boolean),
+    ),
+  ];
+}
+
+/**
+ * Resolve CRM contact UUID from route key (UUID, CT-… tracking code, or email).
+ */
+export async function resolveContactIdForEmails(
+  contactKey: string,
+): Promise<string | null> {
+  const prismaContact = await findPrismaContactByIdOrEmail(contactKey);
+  return prismaContact?.id ?? null;
 }
 
 /**
@@ -247,26 +302,50 @@ export async function readEmailsForOpportunity(
 
   const messages = await prisma.emailMessageRecord.findMany({
     where: { opportunityId },
-    include: {
-      contact: {
-        select: { fullName: true, firstName: true, lastName: true },
-      },
-      documents: {
-        select: {
-          id: true,
-          name: true,
-          mimeType: true,
-          sizeBytes: true,
-          source: true,
-          contentBase64: true,
-        },
-        orderBy: { name: "asc" },
-      },
-    },
+    include: emailMessageInclude,
     orderBy: [{ conversationId: "asc" }, { sentAt: "asc" }],
   });
 
   return messages.map(toEmailDto);
+}
+
+/**
+ * Load EmailMessageRecord rows for a contact (person lens).
+ * Matches by contactId and by known email addresses (when attribution left contact null).
+ */
+export async function readEmailsForContact(
+  contactKey: string,
+): Promise<EmailMessageIntelligenceDto[]> {
+  const prisma = getPrisma();
+  const contact = await findPrismaContactByIdOrEmail(contactKey);
+  if (!contact) return [];
+
+  const addresses = contactEmailsFromJson(contact.emails);
+  const messages = await prisma.emailMessageRecord.findMany({
+    where: {
+      OR: [
+        { contactId: contact.id },
+        ...(addresses.length > 0
+          ? [
+              { senderEmail: { in: addresses } },
+              { recipientEmails: { hasSome: addresses } },
+            ]
+          : []),
+      ],
+    },
+    include: emailMessageInclude,
+    orderBy: [{ sentAt: "desc" }],
+    take: 80,
+  });
+
+  // Return chronological within conversation for thread grouping.
+  return [...messages]
+    .sort((a, b) => {
+      const conv = a.conversationId.localeCompare(b.conversationId);
+      if (conv !== 0) return conv;
+      return a.sentAt.getTime() - b.sentAt.getTime();
+    })
+    .map(toEmailDto);
 }
 
 /**

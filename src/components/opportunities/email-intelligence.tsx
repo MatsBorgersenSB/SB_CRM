@@ -24,6 +24,8 @@ export type EmailIntelligenceItem = {
   externalMessageId: string;
   conversationId: string;
   opportunityId: string | null;
+  opportunityName?: string | null;
+  opportunityCode?: string | null;
   contactId: string | null;
   contactName: string | null;
   subject: string;
