@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestRole } from "@/lib/api-auth";
+import { resolveRequestRole } from "@/lib/api-auth";
 import {
   buildEmailThreadSummary,
   purgeConversationForContact,
@@ -148,17 +148,16 @@ export async function GET(
     const otherProjects = allProjects
       .filter((project) => !relatedProjects.some((row) => row.id === project.id))
       .slice(0, 40);
+    const toProjectOption = (row: (typeof allProjects)[number]) => ({
+      id: row.id,
+      label: row.linkedCompanyId
+        ? `${row.name} · ${row.linkedCompanyId}`
+        : row.name,
+      name: row.name,
+    });
     const projectOptions: Array<{ id: string; label: string; name: string }> = [
-      ...relatedProjects.map((row) => ({
-        id: row.id,
-        label: row.name,
-        name: row.name,
-      })),
-      ...otherProjects.map((row) => ({
-        id: row.id,
-        label: row.name,
-        name: row.name,
-      })),
+      ...relatedProjects.map(toProjectOption),
+      ...otherProjects.map(toProjectOption),
     ];
 
     const linkedProjectIds = [
@@ -220,7 +219,7 @@ export async function PATCH(
   { params }: { params: Promise<{ contactId: string }> },
 ) {
   const { contactId: contactKey } = await params;
-  const role = getRequestRole(request);
+  const role = await resolveRequestRole(request);
 
   if (role === "client_lead") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -300,7 +299,7 @@ export async function DELETE(
   { params }: { params: Promise<{ contactId: string }> },
 ) {
   const { contactId: contactKey } = await params;
-  const role = getRequestRole(request);
+  const role = await resolveRequestRole(request);
 
   if (role === "client_lead") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

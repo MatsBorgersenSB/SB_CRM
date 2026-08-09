@@ -77,48 +77,68 @@ async function findContactsByEmails(
     .map((contact) => ({ id: contact.id, companyId: contact.companyId }));
 }
 
-async function resolveConversationOpportunityId(
+type ConversationLinkState = {
+  opportunityId: string | null;
+  projectId: string | null;
+  projectName: string | null;
+  opportunityName?: string;
+};
+
+/**
+ * Inherit links from the latest message in the conversation (including explicit
+ * "Not linked" nulls). Never invent a deal from company context.
+ */
+async function resolveConversationLinks(
   conversationId: string,
-): Promise<string | null> {
-  if (!conversationId) return null;
+): Promise<ConversationLinkState> {
+  if (!conversationId) {
+    return { opportunityId: null, projectId: null, projectName: null };
+  }
   const prisma = getPrisma();
-  const existing = await prisma.emailMessageRecord.findFirst({
-    where: {
-      conversationId,
-      opportunityId: { not: null },
+  const latest = await prisma.emailMessageRecord.findFirst({
+    where: { conversationId },
+    select: {
+      opportunityId: true,
+      projectId: true,
+      projectName: true,
+      opportunity: { select: { name: true } },
     },
-    select: { opportunityId: true },
     orderBy: { sentAt: "desc" },
   });
-  return existing?.opportunityId ?? null;
+  if (!latest) {
+    return { opportunityId: null, projectId: null, projectName: null };
+  }
+  return {
+    opportunityId: latest.opportunityId,
+    projectId: latest.projectId,
+    projectName: latest.projectName,
+    opportunityName: latest.opportunity?.name,
+  };
 }
 
 /**
- * Attribute opportunity only when this conversation was already linked by a user
- * (or a prior deliberate attribution). Never guess from "one open deal at company"
- * — that wrongly attaches private / unrelated mail (e.g. all contact mail → PL-1001).
+ * Attribute contact + conversation links for *new* messages only.
+ * Never guess from "one open deal at company" (that wrongly attached all mail → PL-1001).
  */
-async function attributeOpportunity(input: {
+async function attributeForNewMessage(input: {
   conversationId: string;
   participantEmails: string[];
-}): Promise<{ opportunityId: string | null; contactId: string | null; opportunityName?: string }> {
+}): Promise<{
+  contactId: string | null;
+  opportunityId: string | null;
+  projectId: string | null;
+  projectName: string | null;
+  opportunityName?: string;
+}> {
   const contacts = await findContactsByEmails(input.participantEmails);
   const contactId = contacts[0]?.id ?? null;
-
-  const prior = await resolveConversationOpportunityId(input.conversationId);
-  if (!prior) {
-    return { opportunityId: null, contactId };
-  }
-
-  const prisma = getPrisma();
-  const opportunity = await prisma.opportunity.findUnique({
-    where: { id: prior },
-    select: { id: true, name: true },
-  });
+  const links = await resolveConversationLinks(input.conversationId);
   return {
-    opportunityId: prior,
     contactId,
-    opportunityName: opportunity?.name,
+    opportunityId: links.opportunityId,
+    projectId: links.projectId,
+    projectName: links.projectName,
+    opportunityName: links.opportunityName,
   };
 }
 
@@ -155,16 +175,12 @@ async function upsertGraphMessage(input: {
   const isOutbound = Boolean(mailbox) && senderEmail === mailbox;
 
   // Still persist internal-only mail; UI defaults to external filter (FS-009).
-  const attribution = await attributeOpportunity({
-    conversationId,
-    participantEmails,
-  });
+  const contacts = await findContactsByEmails(participantEmails);
+  const contactId = contacts[0]?.id ?? null;
 
   const prisma = getPrisma();
-  const data = {
+  const contentData = {
     conversationId,
-    opportunityId: attribution.opportunityId,
-    contactId: attribution.contactId,
     subject: input.message.subject?.trim() || "(no subject)",
     bodyPreview: input.message.bodyPreview?.slice(0, 2000) ?? null,
     senderEmail,
@@ -177,39 +193,64 @@ async function upsertGraphMessage(input: {
 
   const existing = await prisma.emailMessageRecord.findUnique({
     where: { externalMessageId },
-    select: { id: true, opportunityId: true, m365CategoryName: true },
+    select: {
+      id: true,
+      opportunityId: true,
+      projectId: true,
+      m365CategoryName: true,
+    },
   });
 
   let recordId: string;
+  let linkedOpportunityId: string | null = existing?.opportunityId ?? null;
+  let opportunityName: string | undefined;
+
   if (existing) {
-    // Keep an existing opportunity link if the new pass could not attribute.
-    const opportunityId = data.opportunityId ?? existing.opportunityId;
+    // Sync must never re-attach or clear user-managed opportunity/project links.
     const updated = await prisma.emailMessageRecord.update({
       where: { id: existing.id },
       data: {
-        ...data,
-        opportunityId,
+        ...contentData,
+        ...(contactId ? { contactId } : {}),
       },
     });
     recordId = updated.id;
+    linkedOpportunityId = existing.opportunityId;
+    if (linkedOpportunityId) {
+      const opportunity = await prisma.opportunity.findUnique({
+        where: { id: linkedOpportunityId },
+        select: { name: true },
+      });
+      opportunityName = opportunity?.name;
+    }
   } else {
+    const attribution = await attributeForNewMessage({
+      conversationId,
+      participantEmails,
+    });
     const created = await prisma.emailMessageRecord.create({
       data: {
         externalMessageId,
-        ...data,
+        ...contentData,
+        contactId: attribution.contactId ?? contactId,
+        opportunityId: attribution.opportunityId,
+        projectId: attribution.projectId,
+        projectName: attribution.projectName,
         sentiment: "neutral",
       },
     });
     recordId = created.id;
+    linkedOpportunityId = attribution.opportunityId;
+    opportunityName = attribution.opportunityName;
   }
 
-  if (attribution.opportunityId || existing?.opportunityId) {
+  if (linkedOpportunityId) {
     try {
       const categoryName = await applySmartCrmCategories(
         input.accessToken,
         externalMessageId,
         {
-          opportunityName: attribution.opportunityName,
+          opportunityName,
           existingCategories: input.message.categories,
         },
       );

@@ -484,11 +484,10 @@ export async function setConversationLinksForContact(
   }
 
   const data: {
-    contactId: string;
     opportunityId?: string | null;
     projectId?: string | null;
     projectName?: string | null;
-  } = { contactId: contact.id };
+  } = {};
 
   let opportunityName: string | null = null;
   let opportunityCode: string | null = null;
@@ -540,8 +539,20 @@ export async function setConversationLinksForContact(
     }
   }
 
+  if (Object.keys(data).length === 0) {
+    return {
+      updated: 0,
+      opportunityId: links.opportunityId,
+      opportunityName,
+      opportunityCode,
+      projectId: links.projectId,
+      projectName,
+    };
+  }
+
   const addresses = contactEmailsFromJson(contact.emails);
-  const result = await prisma.emailMessageRecord.updateMany({
+  // Authorize: contact must appear on at least one message in this conversation.
+  const participates = await prisma.emailMessageRecord.findFirst({
     where: {
       conversationId,
       OR: [
@@ -554,6 +565,23 @@ export async function setConversationLinksForContact(
           : []),
       ],
     },
+    select: { id: true },
+  });
+  if (!participates) {
+    return {
+      updated: 0,
+      opportunityId: links.opportunityId,
+      opportunityName,
+      opportunityCode,
+      projectId: links.projectId,
+      projectName,
+    };
+  }
+
+  // Apply links to the whole conversation so sync inheritance and other
+  // participants stay consistent (clearing "Not linked" must stick).
+  const result = await prisma.emailMessageRecord.updateMany({
+    where: { conversationId },
     data,
   });
 
