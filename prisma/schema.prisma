@@ -517,7 +517,7 @@ model EmailMessageRecord {
   conversationId    String
   opportunityId     String?
   opportunity       Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
-  /** Project Workspace Light id (JSON project store — no Prisma FK). */
+  /** Project Workspace Light id (`project_workspace.id` — no FK; projects are soft-linked). */
   projectId         String?
   projectName       String?
   contactId         String?
@@ -818,6 +818,21 @@ model Notification {
   @@index([userId, read])
   @@index([createdAt])
   @@map("notifications")
+}
+
+/// Project Workspace Light — durable store (replaces ephemeral /tmp JSON on Vercel).
+model ProjectWorkspace {
+  id        String   @id
+  name      String
+  kind      String   @default("customer")
+  /** Full Project payload (milestones, stakeholders, discovery, etc.). */
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind])
+  @@index([name])
+  @@map("project_workspace")
 }
 
 // Add these optional M365 mapping fields to your existing Contact model:
