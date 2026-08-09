@@ -3,6 +3,7 @@ export const PROJECT_MISSION_CONTROL_VIEWS = [
   { id: "gaps", label: "Gaps" },
   { id: "understanding", label: "Understanding" },
   { id: "risks", label: "Risks" },
+  { id: "emails", label: "Emails" },
   { id: "actions", label: "Actions" },
 ] as const;
 

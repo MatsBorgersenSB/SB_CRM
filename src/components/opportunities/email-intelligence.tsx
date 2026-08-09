@@ -148,13 +148,24 @@ function threadFollowUpHtml(summary: {
 
 export function EmailIntelligence({
   opportunityId,
+  projectId,
   role = "superuser",
   readOnly = false,
 }: {
-  opportunityId: string;
+  /** Opportunity-scoped emails (deal Mission Control). */
+  opportunityId?: string;
+  /** Project-scoped emails (project Mission Control). */
+  projectId?: string;
   role?: UserRole;
   readOnly?: boolean;
 }) {
+  const scopeKind = projectId ? "project" : "opportunity";
+  const scopeId = projectId || opportunityId || "";
+  const emailsApiPath =
+    scopeKind === "project"
+      ? `/api/projects/${encodeURIComponent(scopeId)}/emails`
+      : `/api/opportunities/${encodeURIComponent(scopeId)}/emails`;
+
   const [threads, setThreads] = useState<EmailThreadPayload[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,16 +183,23 @@ export function EmailIntelligence({
   );
 
   const load = useCallback(async () => {
+    if (!scopeId) {
+      setThreads([]);
+      setLoading(false);
+      setError(
+        scopeKind === "project"
+          ? "Project is required to load emails."
+          : "Opportunity is required to load emails.",
+      );
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `/api/opportunities/${encodeURIComponent(opportunityId)}/emails`,
-        {
-          headers: { [AUTH_ROLE_HEADER]: role },
-          cache: "no-store",
-        },
-      );
+      const response = await fetch(emailsApiPath, {
+        headers: { [AUTH_ROLE_HEADER]: role },
+        cache: "no-store",
+      });
       const payload = (await response.json().catch(() => ({}))) as {
         threads?: EmailThreadPayload[];
         emails?: EmailIntelligenceItem[];
@@ -208,7 +226,7 @@ export function EmailIntelligence({
     } finally {
       setLoading(false);
     }
-  }, [opportunityId, role]);
+  }, [emailsApiPath, role, scopeId, scopeKind]);
 
   useEffect(() => {
     void load();
@@ -290,17 +308,14 @@ export function EmailIntelligence({
     setPurgingId(emailId);
     setError(null);
     try {
-      const response = await fetch(
-        `/api/opportunities/${encodeURIComponent(opportunityId)}/emails`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            [AUTH_ROLE_HEADER]: role,
-          },
-          body: JSON.stringify({ emailId, action: "purge" }),
+      const response = await fetch(emailsApiPath, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          [AUTH_ROLE_HEADER]: role,
         },
-      );
+        body: JSON.stringify({ emailId, action: "purge" }),
+      });
       if (!response.ok) {
         const payload = (await response.json().catch(() => ({}))) as {
           error?: string;
@@ -330,11 +345,14 @@ export function EmailIntelligence({
           FS-009 Email & Interaction Intelligence
         </p>
         <h3 className="mt-1 text-base font-semibold text-carbon-blue">
-          Email threads & sentiment
+          {scopeKind === "project"
+            ? "Project email threads"
+            : "Email threads & sentiment"}
         </h3>
         <p className="mt-1 text-[13px] text-carbon-blue/55">
-          Review M365-linked conversation threads, sentiment evidence, and commercial
-          takeaways. Sentiment is advisory — it does not change influence stance automatically.
+          {scopeKind === "project"
+            ? "Outlook threads linked to this project. Preview in SmartCRM or open in Outlook. Link more from a contact’s Recent Outlook."
+            : "Review M365-linked conversation threads, sentiment evidence, and commercial takeaways. Sentiment is advisory — it does not change influence stance automatically."}
         </p>
       </div>
 
@@ -426,9 +444,17 @@ export function EmailIntelligence({
       {loading ? (
         <p className="text-[13px] text-carbon-blue/45">Loading emails…</p>
       ) : totalMessages === 0 ? (
-        <p className="border border-carbon-blue/10 bg-white px-4 py-6 text-[13px] text-carbon-blue/55">
-          No emails linked to this opportunity yet.
-        </p>
+        <div className="space-y-2 border border-carbon-blue/10 bg-white px-4 py-6 text-[13px] leading-relaxed text-carbon-blue/55">
+          <p>
+            {scopeKind === "project"
+              ? "No emails linked to this project yet."
+              : "No emails linked to this opportunity yet."}
+          </p>
+          <p>
+            Open a contact’s Recent Outlook, then set Opportunity and/or Project on each
+            thread (or use Apply to all shown threads).
+          </p>
+        </div>
       ) : filteredThreads.length === 0 ? (
         <p className="border border-carbon-blue/10 bg-white px-4 py-6 text-[13px] text-carbon-blue/55">
           No emails match the active filters.
