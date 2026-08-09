@@ -18,6 +18,14 @@ export async function syncProjectRecord(
       | "projectStakeholders"
       | "removedStakeholders"
       | "linkedCompanyId"
+      | "objective"
+      | "problem"
+      | "successCriteria"
+      | "discoveryAnswers"
+      | "name"
+      | "kind"
+      | "status"
+      | "stage"
     >
   >,
   role: UserRole = "superuser",

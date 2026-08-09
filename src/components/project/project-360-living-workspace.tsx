@@ -256,7 +256,9 @@ export function Project360LivingWorkspace({
       case "questions":
         return intelligence.discovery ? (
           <ProjectDiscoveryQuestionsPanel
-            questions={intelligence.discovery.suggestedQuestions}
+            projectId={project.id}
+            project={project}
+            questions={intelligence.discovery.discoveryQuestionItems}
             validations={intelligence.discovery.suggestedValidations}
             conversations={intelligence.discovery.recommendedConversations}
           />

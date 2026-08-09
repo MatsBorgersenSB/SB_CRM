@@ -39,12 +39,19 @@ export type ProjectKnowledgeModel = {
   confirmedUnderstanding: ConfirmedUnderstandingRow[];
 };
 
+export type ProjectDiscoveryQuestionItem = {
+  id: string;
+  question: string;
+};
+
 export type ProjectUnderstanding = {
   discoveryReady: boolean;
   discoveryScore: number;
   discoveryLabel: string;
   knowledgeModel: ProjectKnowledgeModel;
   suggestedQuestions: string[];
+  /** Stable ids for answer capture in the Questions panel. */
+  discoveryQuestionItems: ProjectDiscoveryQuestionItem[];
   suggestedValidations: string[];
   recommendedConversations: string[];
   nextBestAction: NextBestAction;
@@ -115,7 +122,7 @@ const PROJECT_GAP_TEMPLATES: Record<string, GapTemplate> = {
   },
 };
 
-const PROJECT_QUESTION_MAP: Record<string, string> = {
+export const PROJECT_QUESTION_MAP: Record<string, string> = {
   account: "Which organization is the primary customer or partner for this project?",
   objective: "Why does this project exist — what outcome is the customer pursuing?",
   "success-criteria": "What does success look like when this project is complete?",
@@ -126,6 +133,29 @@ const PROJECT_QUESTION_MAP: Record<string, string> = {
   "relationship-mismatch": "Is the connected account correct for this project scope?",
   milestones: "What are the next delivery milestones and who owns them?",
 };
+
+const DEFAULT_PROJECT_QUESTION_ITEMS: ProjectDiscoveryQuestionItem[] = [
+  { id: "regulations", question: "What regulations apply?" },
+  { id: "local-requirements", question: "What local requirements apply?" },
+  { id: "authorities", question: "Which authorities are involved?" },
+  { id: "permits-required", question: "Which permits may be required?" },
+  { id: "major-risks", question: "What are the major risks?" },
+  { id: "approval-timeline", question: "What is the expected approval timeline?" },
+  { id: "funding-opportunities", question: "What funding opportunities may exist?" },
+  { id: "next-for-sb", question: "What should Standard Bio do next?" },
+];
+
+/** Map discovery question ids onto core Project fields when saving answers. */
+export const PROJECT_QUESTION_FIELD_MAP: Partial<
+  Record<string, "objective" | "problem" | "successCriteria">
+> = {
+  objective: "objective",
+  "success-criteria": "successCriteria",
+};
+
+function discoveryAnswer(project: Project, id: string): string {
+  return project.discoveryAnswers?.[id]?.trim() ?? "";
+}
 
 function hasEvidenceActivities(activities: Activity[]): boolean {
   return activities.some(
@@ -143,11 +173,13 @@ function buildConfirmedUnderstanding(
 ): ConfirmedUnderstandingRow[] {
   const rows: ConfirmedUnderstandingRow[] = [];
 
-  if (project.objective.trim()) {
+  const objectiveAnswer =
+    project.objective.trim() || discoveryAnswer(project, "objective");
+  if (objectiveAnswer) {
     rows.push({
       id: "objective",
       topic: "Project objective",
-      answer: project.objective.trim(),
+      answer: objectiveAnswer,
     });
   }
 
@@ -159,11 +191,13 @@ function buildConfirmedUnderstanding(
     });
   }
 
-  if (project.successCriteria.trim()) {
+  const successAnswer =
+    project.successCriteria.trim() || discoveryAnswer(project, "success-criteria");
+  if (successAnswer) {
     rows.push({
       id: "success",
       topic: "Success criteria",
-      answer: project.successCriteria.trim(),
+      answer: successAnswer,
     });
   }
 
@@ -238,6 +272,28 @@ function buildConfirmedUnderstanding(
         answer: `Latest logged interaction: ${context}`,
       });
     }
+  } else if (discoveryAnswer(project, "engagement")) {
+    rows.push({
+      id: "engagement",
+      topic: "Recent dialogue",
+      answer: discoveryAnswer(project, "engagement"),
+    });
+  }
+
+  // Capture remaining free-text discovery answers as confirmed understanding.
+  for (const [id, answer] of Object.entries(project.discoveryAnswers ?? {})) {
+    const trimmed = answer.trim();
+    if (!trimmed) continue;
+    if (rows.some((row) => row.id === id)) continue;
+    const topic =
+      PROJECT_QUESTION_MAP[id] ??
+      DEFAULT_PROJECT_QUESTION_ITEMS.find((item) => item.id === id)?.question ??
+      id;
+    rows.push({
+      id,
+      topic: topic.length > 48 ? `${topic.slice(0, 45)}…` : topic,
+      answer: trimmed,
+    });
   }
 
   return rows.slice(0, 12);
@@ -257,27 +313,40 @@ function buildCriticalKnowledgeGaps(
   const organizations = getProjectRelatedOrganizations(project);
   const stakeholders = getProjectStakeholders(project);
 
-  if (!project.linkedCompanyId && organizations.length === 0) {
+  if (
+    !project.linkedCompanyId &&
+    organizations.length === 0 &&
+    !discoveryAnswer(project, "account")
+  ) {
     gapIds.push("account");
   }
 
-  if (!project.objective.trim()) {
+  if (!project.objective.trim() && !discoveryAnswer(project, "objective")) {
     gapIds.push("objective");
   }
 
-  if (!project.successCriteria.trim()) {
+  if (
+    !project.successCriteria.trim() &&
+    !discoveryAnswer(project, "success-criteria")
+  ) {
     gapIds.push("success-criteria");
   }
 
-  if (stakeholders.length < 2) {
+  if (stakeholders.length < 2 && !discoveryAnswer(project, "stakeholders")) {
     gapIds.push("stakeholders");
   }
 
-  if (!hasEvidenceActivities(activities)) {
+  if (
+    !hasEvidenceActivities(activities) &&
+    !discoveryAnswer(project, "engagement")
+  ) {
     gapIds.push("engagement");
   }
 
-  if (stakeholderGaps.some((gap) => gap.id === "decision_maker")) {
+  if (
+    stakeholderGaps.some((gap) => gap.id === "decision_maker") &&
+    !discoveryAnswer(project, "decision-maker")
+  ) {
     gapIds.push("decision-maker");
   }
 
@@ -341,14 +410,31 @@ function isDiscoveryReady(
   return confirmed.length >= 4 && blockingGaps.length === 0 && hasObjectiveEvidence;
 }
 
-function buildSuggestedQuestions(gaps: CriticalKnowledgeGap[]): string[] {
-  const fromGaps = gaps
-    .map((gap) => PROJECT_QUESTION_MAP[gap.id])
-    .filter(Boolean) as string[];
+function buildDiscoveryQuestionItems(
+  gaps: CriticalKnowledgeGap[],
+): ProjectDiscoveryQuestionItem[] {
+  const fromGaps: ProjectDiscoveryQuestionItem[] = gaps
+    .map((gap) => {
+      const question = PROJECT_QUESTION_MAP[gap.id];
+      return question ? { id: gap.id, question } : null;
+    })
+    .filter((item): item is ProjectDiscoveryQuestionItem => item !== null);
 
-  const defaults = [...SMARTASSIST_REGULATORY_LEVELS.projectQuestions];
+  const seen = new Set(fromGaps.map((item) => item.id));
+  const defaults = DEFAULT_PROJECT_QUESTION_ITEMS.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
 
-  return [...new Set([...fromGaps, ...defaults])].slice(0, 8);
+  // Keep config text aligned when defaults change wording.
+  const configDefaults = SMARTASSIST_REGULATORY_LEVELS.projectQuestions;
+  const mergedDefaults = defaults.map((item, index) => ({
+    ...item,
+    question: configDefaults[index] ?? item.question,
+  }));
+
+  return [...fromGaps, ...mergedDefaults].slice(0, 8);
 }
 
 function buildSuggestedValidations(
@@ -481,9 +567,10 @@ export function buildProjectUnderstanding(
   const discoveryReady = isPostDeliveryStage(project.stage)
     ? true
     : isDiscoveryReady(confirmedUnderstanding, criticalGaps);
-  const suggestedQuestions = isPostDeliveryStage(project.stage)
+  const discoveryQuestionItems = isPostDeliveryStage(project.stage)
     ? []
-    : buildSuggestedQuestions(criticalGaps);
+    : buildDiscoveryQuestionItems(criticalGaps);
+  const suggestedQuestions = discoveryQuestionItems.map((item) => item.question);
   const suggestedValidations = isPostDeliveryStage(project.stage)
     ? []
     : buildSuggestedValidations(criticalGaps, project);
@@ -500,6 +587,7 @@ export function buildProjectUnderstanding(
       confirmedUnderstanding,
     },
     suggestedQuestions,
+    discoveryQuestionItems,
     suggestedValidations,
     recommendedConversations,
     nextBestAction: buildNextBestAction(

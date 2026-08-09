@@ -34,6 +34,7 @@ export type ProjectPatch = Partial<
     | "objective"
     | "problem"
     | "successCriteria"
+    | "discoveryAnswers"
     | "linkedDealId"
   >
 >;
@@ -132,10 +133,15 @@ export async function updateProject(projectId: string, patch: ProjectPatch): Pro
     throw new Error(`Project not found: ${projectId}`);
   }
 
+  const current = rowToProject(existing);
   const updated = normalizeProject({
-    ...rowToProject(existing),
+    ...current,
     ...patch,
     id: existing.id,
+    discoveryAnswers:
+      patch.discoveryAnswers !== undefined
+        ? { ...(current.discoveryAnswers ?? {}), ...patch.discoveryAnswers }
+        : current.discoveryAnswers,
   });
 
   await prisma.projectWorkspace.update({
@@ -236,6 +242,7 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
     objective: "",
     problem: "",
     successCriteria: "",
+    discoveryAnswers: {},
     linkedCompanyId: input.linkedCompanyId,
     linkedDealId: input.linkedDealId,
     relatedOrganizations,

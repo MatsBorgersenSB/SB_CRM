@@ -107,6 +107,11 @@ export type Project = {
   objective: string;
   problem: string;
   successCriteria: string;
+  /**
+   * Free-text answers to SmartAssist discovery questions (keyed by question id).
+   * Core fields (objective / successCriteria) are also mirrored when those ids are answered.
+   */
+  discoveryAnswers?: Record<string, string>;
   linkedCompanyId?: string;
   linkedDealId?: string;
   /** Phase 2.2A — related organizations on the project */
