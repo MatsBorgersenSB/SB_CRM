@@ -56,6 +56,7 @@ export function buildM365RelationshipCard(
       whatShouldHappenNext: nextBestAction.action,
     }),
     companyName: header.companyName,
+    companyId: company.CompanyID,
     health: {
       score: header.healthScore,
       status: header.healthStatus,

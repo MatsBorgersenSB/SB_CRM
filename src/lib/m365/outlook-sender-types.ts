@@ -27,6 +27,8 @@ export type OutlookAddContactInput = {
   firstName: string;
   lastName: string;
   companyName: string;
+  /** User-selected SharePoint contact role — required; never invent. */
+  role?: string;
   /** User confirmed an auto-matched company — link contact to this record. */
   matchedCompanyId?: string;
   /** User rejected auto-match — do not resolve company from email domain. */

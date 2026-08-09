@@ -9,6 +9,7 @@ import { buildM365RelationshipCard } from "@/lib/m365/relationship-card";
 import { loadM365DataContext } from "@/lib/m365/resolve-context";
 import type { M365RelationshipCardPayload } from "@/types/m365";
 import type { ContactListRole, ContactStatus, RelationshipLevel } from "@/types/contact";
+import { CONTACT_LIST_ROLES } from "@/types/contact";
 import { extractEmailDomain, parsePersonName } from "@/lib/m365/outlook-sender-utils";
 import {
   parseSignatureIntelligence,
@@ -177,7 +178,8 @@ export async function addOutlookContact(
     company = await createCompany({
       Title: title,
       Domain: websiteDomain || domain,
-      Industry: "Polymer Processing",
+      // Reality First — do not invent industry from Outlook mail.
+      Industry: "",
       Status: "Prospecting",
       City: addressFields?.City ?? "",
       Phone: normalizePhoneNumber(enrichment.phone ?? ""),
@@ -191,22 +193,19 @@ export async function addOutlookContact(
     company = await updateCompany(company.CompanyID, buildCompanyEnrichmentPatch(enrichment));
   }
 
-  const defaults = {
-    JobTitle: enrichment.jobTitle?.trim() ?? "",
-    Role: "Plant Manager" as ContactListRole,
-    Phone: "",
-    Mobile: normalizePhoneNumber(enrichment.mobile ?? ""),
-    LinkedInURL: "",
-    Status: "Prospecting" as ContactStatus,
-    RelationshipLevel: "Operational" as RelationshipLevel,
-  };
-
+  const role = resolveOutlookContactRole(input.role, enrichment.jobTitle);
   const contact = await createCompanyContact(company.CompanyID, {
     FirstName: input.firstName.trim() || "Contact",
     LastName: input.lastName.trim(),
     Email: email,
     Company: { CompanyID: company.CompanyID },
-    ...defaults,
+    JobTitle: enrichment.jobTitle?.trim() ?? "",
+    Role: role,
+    Phone: "",
+    Mobile: normalizePhoneNumber(enrichment.mobile ?? ""),
+    LinkedInURL: "",
+    Status: "Prospecting" as ContactStatus,
+    RelationshipLevel: "Operational" as RelationshipLevel,
   });
 
   logOutlookImport("PERSISTED CONTACT", {
@@ -250,4 +249,38 @@ export async function addOutlookContact(
 
 export function isLikelyPersonalDomain(domain: string): boolean {
   return PERSONAL_DOMAINS.has(domain.trim().toLowerCase());
+}
+
+/** Map user/signature role text to a SharePoint choice — never invent a job. */
+export function resolveOutlookContactRole(
+  role: string | undefined,
+  jobTitle: string | undefined,
+): ContactListRole {
+  const candidates = [role, jobTitle]
+    .map((value) => value?.trim() ?? "")
+    .filter(Boolean);
+
+  for (const candidate of candidates) {
+    const exact = CONTACT_LIST_ROLES.find(
+      (item) => item.toLowerCase() === candidate.toLowerCase(),
+    );
+    if (exact) return exact;
+
+    const lower = candidate.toLowerCase();
+    if (lower.includes("sponsor") || lower.includes("executive") || lower.includes("ceo")) {
+      return "Executive Sponsor";
+    }
+    if (lower.includes("plant") || lower.includes("operations") || lower.includes("manager")) {
+      return "Plant Manager";
+    }
+    if (lower.includes("compliance") || lower.includes("environment") || lower.includes("hse")) {
+      return "Compliance Officer";
+    }
+    if (lower.includes("procure") || lower.includes("buyer") || lower.includes("purchasing")) {
+      return "Procurement";
+    }
+  }
+
+  // Explicit user selection is required in the UI; fall back only if omitted.
+  return "Executive Sponsor";
 }

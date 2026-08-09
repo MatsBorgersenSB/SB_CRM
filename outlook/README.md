@@ -68,5 +68,7 @@ Vercel cron (see `vercel.json`):
 3. Open an opportunity whose contacts appear in those emails → Email Intelligence shows live threads (Domain filter defaults to **External**).
 4. **Draft in Outlook** from the opportunity creates/opens a draft with the connected token.
 5. Sideload → open mail → Sign in → Relationship Card loads for a known contact.
-6. Optional: `POST /api/m365/sync-attachments` → DocumentRecord has `sharepointWebUrl`.
-7. Unauthenticated `GET /api/m365/relationship-card` returns JSON `401` (not an HTML redirect).
+6. Unknown sender → **Add contact / company** (confirm role + link or create company) → optional **Create opportunity**.
+7. Known contact → **Create opportunity** on the Relationship Card (name, company role, offerings required).
+8. Optional: `POST /api/m365/sync-attachments` → DocumentRecord has `sharepointWebUrl`.
+9. Unauthenticated `GET /api/m365/relationship-card` returns JSON `401` (not an HTML redirect).
