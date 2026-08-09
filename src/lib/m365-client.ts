@@ -31,6 +31,37 @@ const DEFAULT_SCOPES = [
 
 export const SMARTCRM_MASTER_CATEGORY = "SmartCRM";
 
+/**
+ * DB-only marker: m365CategoryName values starting with this were set by the
+ * user (link action / draft inherit), not by legacy sync pollution.
+ */
+export const SMARTCRM_CATEGORY_INTENT_PREFIX = "intent:";
+
+export function toIntentionalCategoryLabel(outlookCategoryName: string): string {
+  const trimmed = outlookCategoryName.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith(SMARTCRM_CATEGORY_INTENT_PREFIX)) return trimmed;
+  return `${SMARTCRM_CATEGORY_INTENT_PREFIX}${trimmed}`;
+}
+
+export function fromIntentionalCategoryLabel(
+  stored: string | null | undefined,
+): string | null {
+  if (!stored?.trim()) return null;
+  const trimmed = stored.trim();
+  if (trimmed.startsWith(SMARTCRM_CATEGORY_INTENT_PREFIX)) {
+    return trimmed.slice(SMARTCRM_CATEGORY_INTENT_PREFIX.length).trim() || null;
+  }
+  // Legacy pollution (no intent marker) is not a displayable intentional tag.
+  return null;
+}
+
+export function isIntentionalCategoryLabel(
+  stored: string | null | undefined,
+): boolean {
+  return Boolean(fromIntentionalCategoryLabel(stored));
+}
+
 export type M365TokenSet = {
   accessToken: string;
   refreshToken?: string | null;
@@ -233,36 +264,136 @@ export function buildOpportunityCategoryName(opportunityName: string): string {
   return `${SMARTCRM_MASTER_CATEGORY} / ${sanitized || "Opportunity"}`;
 }
 
+export function buildProjectCategoryName(projectName: string): string {
+  const sanitized = projectName.replace(/[^\w\s\-./]/g, "").trim().slice(0, 70);
+  return `${SMARTCRM_MASTER_CATEGORY} / Project · ${sanitized || "Project"}`;
+}
+
+/** True for master "SmartCRM" or deal/project labels "SmartCRM / …". */
+export function isSmartCrmManagedCategory(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  return (
+    normalized === SMARTCRM_MASTER_CATEGORY.toLowerCase() ||
+    normalized.startsWith(`${SMARTCRM_MASTER_CATEGORY.toLowerCase()} /`) ||
+    normalized.startsWith(`${SMARTCRM_MASTER_CATEGORY.toLowerCase()}/`)
+  );
+}
+
+export function extractSmartCrmDealCategory(
+  categories: string[] | null | undefined,
+): string | null {
+  for (const category of categories ?? []) {
+    const trimmed = category.trim();
+    if (!trimmed) continue;
+    const lower = trimmed.toLowerCase();
+    if (
+      lower.startsWith(`${SMARTCRM_MASTER_CATEGORY.toLowerCase()} /`) ||
+      lower.startsWith(`${SMARTCRM_MASTER_CATEGORY.toLowerCase()}/`)
+    ) {
+      return trimmed;
+    }
+  }
+  return null;
+}
+
+async function readMessageCategories(
+  accessToken: string,
+  externalMessageId: string,
+  existingCategories?: string[],
+): Promise<string[]> {
+  if (existingCategories) return existingCategories;
+  const message = await graphRequest<{ categories?: string[] }>(
+    accessToken,
+    `/me/messages/${encodeURIComponent(externalMessageId)}?$select=categories`,
+  );
+  return message.categories ?? [];
+}
+
+/**
+ * Apply intentional SmartCRM Outlook categories (master + one deal/project label).
+ * Replaces any prior SmartCRM-managed categories so stale VEAS tags cannot stick.
+ */
 export async function applySmartCrmCategories(
   accessToken: string,
   externalMessageId: string,
-  options?: { opportunityName?: string; existingCategories?: string[] },
+  options?: {
+    opportunityName?: string;
+    projectName?: string;
+    existingCategories?: string[];
+  },
 ): Promise<string> {
   await ensureSmartCrmMasterCategory(accessToken);
 
-  const opportunityCategory = options?.opportunityName
+  const dealCategory = options?.opportunityName?.trim()
     ? buildOpportunityCategoryName(options.opportunityName)
-    : null;
+    : options?.projectName?.trim()
+      ? buildProjectCategoryName(options.projectName)
+      : null;
 
-  let current = options?.existingCategories;
-  if (!current) {
-    const message = await graphRequest<{ categories?: string[] }>(
-      accessToken,
-      `/me/messages/${encodeURIComponent(externalMessageId)}?$select=categories`,
-    );
-    current = message.categories ?? [];
-  }
+  const current = await readMessageCategories(
+    accessToken,
+    externalMessageId,
+    options?.existingCategories,
+  );
 
-  const next = new Set(current);
-  next.add(SMARTCRM_MASTER_CATEGORY);
-  if (opportunityCategory) next.add(opportunityCategory);
+  const next = current.filter((category) => !isSmartCrmManagedCategory(category));
+  next.push(SMARTCRM_MASTER_CATEGORY);
+  if (dealCategory) next.push(dealCategory);
 
   await graphRequest(accessToken, `/me/messages/${encodeURIComponent(externalMessageId)}`, {
     method: "PATCH",
-    body: JSON.stringify({ categories: [...next] }),
+    body: JSON.stringify({ categories: next }),
   });
 
-  return opportunityCategory ?? SMARTCRM_MASTER_CATEGORY;
+  return dealCategory ?? SMARTCRM_MASTER_CATEGORY;
+}
+
+/** Remove SmartCRM master + deal/project categories from a Graph message. */
+export async function stripSmartCrmCategories(
+  accessToken: string,
+  externalMessageId: string,
+  options?: { existingCategories?: string[] },
+): Promise<boolean> {
+  const current = await readMessageCategories(
+    accessToken,
+    externalMessageId,
+    options?.existingCategories,
+  );
+  const next = current.filter((category) => !isSmartCrmManagedCategory(category));
+  if (next.length === current.length) return false;
+
+  await graphRequest(accessToken, `/me/messages/${encodeURIComponent(externalMessageId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ categories: next }),
+  });
+  return true;
+}
+
+/**
+ * Find inbox/mailbox messages still carrying the SmartCRM master category
+ * (used to scrub legacy sync pollution).
+ */
+export async function fetchMessagesWithSmartCrmMasterCategory(
+  accessToken: string,
+  top = 25,
+): Promise<Array<{ id: string; categories: string[] }>> {
+  const filter = encodeURIComponent(
+    `categories/any(c:c eq '${SMARTCRM_MASTER_CATEGORY}')`,
+  );
+  const payload = await graphRequest<{
+    value?: Array<{ id?: string; categories?: string[] }>;
+  }>(
+    accessToken,
+    `/me/messages?$filter=${filter}&$select=id,categories&$top=${Math.min(Math.max(top, 1), 50)}`,
+  );
+  return (payload.value ?? [])
+    .filter((row): row is { id: string; categories?: string[] } =>
+      Boolean(row.id?.trim()),
+    )
+    .map((row) => ({
+      id: row.id,
+      categories: row.categories ?? [],
+    }));
 }
 
 export async function fetchMailDelta(
@@ -530,6 +661,10 @@ export type CreateM365DraftInput = {
   toEmail: string;
   subject: string;
   bodyHtml: string;
+  /** When set, draft is tagged as sent from this opportunity. */
+  opportunityName?: string | null;
+  /** When set (and no opportunity), draft is tagged as sent from this project. */
+  projectName?: string | null;
 };
 
 export type CreateM365DraftResult = {
@@ -572,6 +707,22 @@ export async function createM365DraftEmail(
 
   if (!created?.id) {
     throw new Error("Graph did not return a draft message id");
+  }
+
+  const opportunityName = input.opportunityName?.trim() || null;
+  const projectName = input.projectName?.trim() || null;
+  if (opportunityName || projectName) {
+    try {
+      await applySmartCrmCategories(accessToken, created.id, {
+        opportunityName: opportunityName ?? undefined,
+        projectName: projectName ?? undefined,
+      });
+    } catch (error) {
+      console.warn(
+        "[m365-client] draft category apply failed:",
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   return {

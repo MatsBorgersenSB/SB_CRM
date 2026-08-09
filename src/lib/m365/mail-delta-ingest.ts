@@ -8,9 +8,16 @@ import {
 } from "@/lib/email-intelligence-data";
 import {
   applySmartCrmCategories,
+  extractSmartCrmDealCategory,
   fetchGraphMe,
   fetchMailDelta,
+  fetchMessagesWithSmartCrmMasterCategory,
+  fromIntentionalCategoryLabel,
   getAccessTokenForIntegration,
+  isIntentionalCategoryLabel,
+  isSmartCrmManagedCategory,
+  stripSmartCrmCategories,
+  toIntentionalCategoryLabel,
   type GraphMailMessage,
 } from "@/lib/m365-client";
 
@@ -117,6 +124,184 @@ async function resolveConversationLinks(
 }
 
 /**
+ * Intentional Outlook tags only — set by the user (or inherited onto a reply
+ * after the user tagged the thread), never by blind sync attribution.
+ */
+async function resolveIntentionalCategory(input: {
+  conversationId: string;
+  recordId?: string;
+  existingCategoryName?: string | null;
+  outlookCategories?: string[];
+  isOutbound: boolean;
+}): Promise<{
+  apply: boolean;
+  opportunityName?: string;
+  projectName?: string;
+  categoryName?: string;
+}> {
+  const prisma = getPrisma();
+
+  // Outbound already tagged in Outlook (e.g. draft sent from opportunity/project).
+  const outlookDeal = extractSmartCrmDealCategory(input.outlookCategories);
+  if (input.isOutbound && outlookDeal) {
+    return {
+      apply: true,
+      categoryName: toIntentionalCategoryLabel(outlookDeal),
+    };
+  }
+
+  const whereConversation = input.conversationId
+    ? {
+        conversationId: input.conversationId,
+        // Only user-intent markers — never legacy "SmartCRM / …" pollution.
+        m365CategoryName: { startsWith: "intent:SmartCRM /" },
+        ...(input.recordId ? { id: { not: input.recordId } } : {}),
+      }
+    : null;
+
+  const taggedSibling = whereConversation
+    ? await prisma.emailMessageRecord.findFirst({
+        where: whereConversation,
+        select: {
+          m365CategoryName: true,
+          opportunityId: true,
+          projectId: true,
+          projectName: true,
+          opportunity: { select: { name: true } },
+        },
+        orderBy: { sentAt: "desc" },
+      })
+    : null;
+
+  const selfTagged = isIntentionalCategoryLabel(input.existingCategoryName)
+    ? input.existingCategoryName
+    : null;
+
+  if (!taggedSibling && !selfTagged) {
+    return { apply: false };
+  }
+
+  if (taggedSibling?.opportunity?.name) {
+    return {
+      apply: true,
+      opportunityName: taggedSibling.opportunity.name,
+      categoryName: taggedSibling.m365CategoryName ?? undefined,
+    };
+  }
+  if (taggedSibling?.projectName) {
+    return {
+      apply: true,
+      projectName: taggedSibling.projectName,
+      categoryName: taggedSibling.m365CategoryName ?? undefined,
+    };
+  }
+  if (selfTagged) {
+    const self = input.recordId
+      ? await prisma.emailMessageRecord.findUnique({
+          where: { id: input.recordId },
+          select: {
+            opportunity: { select: { name: true } },
+            projectName: true,
+          },
+        })
+      : null;
+    return {
+      apply: true,
+      opportunityName: self?.opportunity?.name,
+      projectName: self?.projectName ?? undefined,
+      categoryName: selfTagged,
+    };
+  }
+
+  return { apply: false };
+}
+
+async function syncOutlookCategoriesForRecord(input: {
+  accessToken: string;
+  externalMessageId: string;
+  recordId: string;
+  conversationId: string;
+  existingCategoryName: string | null;
+  outlookCategories: string[] | undefined;
+  isOutbound: boolean;
+  linkedOpportunityId: string | null;
+  linkedProjectId: string | null;
+  opportunityName?: string;
+  projectName?: string | null;
+}): Promise<void> {
+  const prisma = getPrisma();
+  const outlookCategories = input.outlookCategories ?? [];
+  const hasManaged = outlookCategories.some(isSmartCrmManagedCategory);
+
+  const intentional = await resolveIntentionalCategory({
+    conversationId: input.conversationId,
+    recordId: input.recordId,
+    existingCategoryName: input.existingCategoryName,
+    outlookCategories,
+    isOutbound: input.isOutbound,
+  });
+
+  const canTag =
+    intentional.apply &&
+    Boolean(input.linkedOpportunityId || input.linkedProjectId || input.isOutbound);
+
+  if (canTag) {
+    try {
+      const outlookName = await applySmartCrmCategories(
+        input.accessToken,
+        input.externalMessageId,
+        {
+          opportunityName:
+            intentional.opportunityName ?? input.opportunityName,
+          projectName:
+            intentional.projectName ?? input.projectName ?? undefined,
+          existingCategories: outlookCategories,
+        },
+      );
+      await prisma.emailMessageRecord.update({
+        where: { id: input.recordId },
+        data: {
+          m365CategoryName: toIntentionalCategoryLabel(
+            fromIntentionalCategoryLabel(intentional.categoryName) ??
+              outlookName,
+          ),
+        },
+      });
+    } catch (error) {
+      console.warn(
+        "[mail-delta-ingest] category apply failed:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+    return;
+  }
+
+  // No intentional tag — strip SmartCRM pollution from Outlook and clear DB label.
+  if (hasManaged || input.existingCategoryName) {
+    try {
+      if (hasManaged) {
+        await stripSmartCrmCategories(
+          input.accessToken,
+          input.externalMessageId,
+          { existingCategories: outlookCategories },
+        );
+      }
+      if (input.existingCategoryName) {
+        await prisma.emailMessageRecord.update({
+          where: { id: input.recordId },
+          data: { m365CategoryName: null },
+        });
+      }
+    } catch (error) {
+      console.warn(
+        "[mail-delta-ingest] category strip failed:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+}
+
+/**
  * Attribute contact + conversation links for *new* messages only.
  * Never guess from "one open deal at company" (that wrongly attached all mail → PL-1001).
  */
@@ -199,27 +384,31 @@ async function upsertGraphMessage(input: {
       id: true,
       opportunityId: true,
       projectId: true,
+      projectName: true,
       m365CategoryName: true,
     },
   });
 
   let recordId: string;
   let linkedOpportunityId: string | null = existing?.opportunityId ?? null;
+  let linkedProjectId: string | null = existing?.projectId ?? null;
+  let linkedProjectName: string | null = existing?.projectName ?? null;
   let opportunityName: string | undefined;
+  let existingCategoryName: string | null = existing?.m365CategoryName ?? null;
 
   if (existing) {
     // Sync must never re-attach or clear user-managed opportunity/project links.
-    // Drop stale Outlook category labels when there is no opportunity link.
-    const updated = await prisma.emailMessageRecord.update({
+    await prisma.emailMessageRecord.update({
       where: { id: existing.id },
       data: {
         ...contentData,
         ...(contactId ? { contactId } : {}),
-        ...(!existing.opportunityId ? { m365CategoryName: null } : {}),
       },
     });
-    recordId = updated.id;
+    recordId = existing.id;
     linkedOpportunityId = existing.opportunityId;
+    linkedProjectId = existing.projectId;
+    linkedProjectName = existing.projectName;
     if (linkedOpportunityId) {
       const opportunity = await prisma.opportunity.findUnique({
         where: { id: linkedOpportunityId },
@@ -232,6 +421,12 @@ async function upsertGraphMessage(input: {
       conversationId,
       participantEmails,
     });
+    // Inherit intentional Outlook category onto replies in a user-tagged thread.
+    const intentional = await resolveIntentionalCategory({
+      conversationId,
+      outlookCategories: input.message.categories,
+      isOutbound,
+    });
     const created = await prisma.emailMessageRecord.create({
       data: {
         externalMessageId,
@@ -240,35 +435,36 @@ async function upsertGraphMessage(input: {
         opportunityId: attribution.opportunityId,
         projectId: attribution.projectId,
         projectName: attribution.projectName,
+        // Only persist category label when the thread was intentionally tagged.
+        m365CategoryName: intentional.apply
+          ? intentional.categoryName ?? null
+          : null,
         sentiment: "neutral",
       },
     });
     recordId = created.id;
     linkedOpportunityId = attribution.opportunityId;
+    linkedProjectId = attribution.projectId;
+    linkedProjectName = attribution.projectName;
     opportunityName = attribution.opportunityName;
+    existingCategoryName = intentional.apply
+      ? intentional.categoryName ?? null
+      : null;
   }
 
-  if (linkedOpportunityId) {
-    try {
-      const categoryName = await applySmartCrmCategories(
-        input.accessToken,
-        externalMessageId,
-        {
-          opportunityName,
-          existingCategories: input.message.categories,
-        },
-      );
-      await prisma.emailMessageRecord.update({
-        where: { id: recordId },
-        data: { m365CategoryName: categoryName },
-      });
-    } catch (error) {
-      console.warn(
-        "[mail-delta-ingest] category apply failed:",
-        error instanceof Error ? error.message : error,
-      );
-    }
-  }
+  await syncOutlookCategoriesForRecord({
+    accessToken: input.accessToken,
+    externalMessageId,
+    recordId,
+    conversationId,
+    existingCategoryName,
+    outlookCategories: input.message.categories,
+    isOutbound,
+    linkedOpportunityId,
+    linkedProjectId,
+    opportunityName,
+    projectName: linkedProjectName,
+  });
 
   return "upserted";
 }
@@ -372,6 +568,13 @@ export async function syncMailDeltaForIntegration(
       break;
     }
 
+    const scrubbed = await scrubUnintentionalOutlookCategories(accessToken);
+    if (scrubbed > 0) {
+      console.info(
+        `[mail-delta-ingest] scrubbed ${scrubbed} unintentional Outlook categories`,
+      );
+    }
+
     return {
       integrationId,
       status: "ok",
@@ -391,6 +594,61 @@ export async function syncMailDeltaForIntegration(
       error: message,
     };
   }
+}
+
+/**
+ * Remove SmartCRM Outlook categories that were never intentionally set
+ * (legacy sync painted "SmartCRM" / "SmartCRM / VEAS…" on unrelated mail).
+ */
+async function scrubUnintentionalOutlookCategories(
+  accessToken: string,
+): Promise<number> {
+  const prisma = getPrisma();
+
+  // Drop legacy DB labels that lack the intent: marker.
+  await prisma.emailMessageRecord.updateMany({
+    where: {
+      m365CategoryName: { not: null },
+      NOT: { m365CategoryName: { startsWith: "intent:" } },
+    },
+    data: { m365CategoryName: null },
+  });
+
+  let scrubbed = 0;
+  try {
+    const polluted = await fetchMessagesWithSmartCrmMasterCategory(
+      accessToken,
+      25,
+    );
+    for (const message of polluted) {
+      const record = await prisma.emailMessageRecord.findUnique({
+        where: { externalMessageId: message.id },
+        select: { m365CategoryName: true },
+      });
+      if (isIntentionalCategoryLabel(record?.m365CategoryName)) {
+        continue;
+      }
+      try {
+        const changed = await stripSmartCrmCategories(
+          accessToken,
+          message.id,
+          { existingCategories: message.categories },
+        );
+        if (changed) scrubbed += 1;
+      } catch (error) {
+        console.warn(
+          "[mail-delta-ingest] pollution scrub failed:",
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "[mail-delta-ingest] pollution query failed:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+  return scrubbed;
 }
 
 /** Sync all active M365 Graph integrations (cron). */
