@@ -542,6 +542,18 @@ model EmailMessageRecord {
   @@map("email_message_records")
 }
 
+/// User-purged mail that must not reappear on later Graph delta sync (privacy / sovereignty).
+model EmailIngestExclusion {
+  id                String   @id @default(uuid())
+  externalMessageId String?  @unique
+  conversationId    String?
+  reason            String?  @default("user_purge")
+  createdAt         DateTime @default(now())
+
+  @@index([conversationId])
+  @@map("email_ingest_exclusions")
+}
+
 /// SmartDocs / commercial file ingested from M365 email (Gap 4).
 model DocumentRecord {
   id                   String   @id @default(uuid())
