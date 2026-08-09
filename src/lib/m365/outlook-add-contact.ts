@@ -10,6 +10,8 @@ import { loadM365DataContext } from "@/lib/m365/resolve-context";
 import type { M365RelationshipCardPayload } from "@/types/m365";
 import type { ContactListRole, ContactStatus, RelationshipLevel } from "@/types/contact";
 import { CONTACT_LIST_ROLES } from "@/types/contact";
+import type { CompanyIndustry } from "@/types/company";
+import { COMPANY_INDUSTRIES } from "@/types/company";
 import { extractEmailDomain, parsePersonName } from "@/lib/m365/outlook-sender-utils";
 import {
   parseSignatureIntelligence,
@@ -168,6 +170,10 @@ export async function addOutlookContact(
 
   if (!company) {
     const title = titleForNewCompanyCreation(input.companyName, domain);
+    const industry = resolveOutlookCompanyIndustry(input.industry);
+    if (!industry) {
+      throw new Error("Select an industry when creating a new company.");
+    }
     const addressFields = enrichment.address?.trim()
       ? parseCompanyAddressInput(enrichment.address)
       : null;
@@ -178,8 +184,7 @@ export async function addOutlookContact(
     company = await createCompany({
       Title: title,
       Domain: websiteDomain || domain,
-      // Reality First — do not invent industry from Outlook mail.
-      Industry: "",
+      Industry: industry,
       Status: "Prospecting",
       City: addressFields?.City ?? "",
       Phone: normalizePhoneNumber(enrichment.phone ?? ""),
@@ -249,6 +254,18 @@ export async function addOutlookContact(
 
 export function isLikelyPersonalDomain(domain: string): boolean {
   return PERSONAL_DOMAINS.has(domain.trim().toLowerCase());
+}
+
+export function resolveOutlookCompanyIndustry(
+  industry: string | undefined,
+): CompanyIndustry | null {
+  const trimmed = industry?.trim() ?? "";
+  if (!trimmed) return null;
+  return (
+    COMPANY_INDUSTRIES.find(
+      (item) => item.toLowerCase() === trimmed.toLowerCase(),
+    ) ?? null
+  );
 }
 
 /** Map user/signature role text to a SharePoint choice — never invent a job. */

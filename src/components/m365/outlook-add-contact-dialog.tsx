@@ -11,6 +11,7 @@ import {
   resolveOutlookMessageBody,
   logOutlookImportClient,
 } from "@/lib/m365/outlook-message-body";
+import { COMPANY_INDUSTRIES, type CompanyIndustry } from "@/types/company";
 import { CONTACT_LIST_ROLES, type ContactListRole } from "@/types/contact";
 
 type OutlookAddContactDialogProps = {
@@ -33,6 +34,7 @@ export function OutlookAddContactDialog({
   const [companyName, setCompanyName] = useState("");
   const [companyOverride, setCompanyOverride] = useState(false);
   const [role, setRole] = useState<ContactListRole | "">("");
+  const [industry, setIndustry] = useState<CompanyIndustry | "">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enrichmentDismissed, setEnrichmentDismissed] = useState(false);
@@ -55,6 +57,7 @@ export function OutlookAddContactDialog({
       setPrepopulation(null);
       setCompanyOverride(false);
       setRole("");
+      setIndustry("");
       return;
     }
 
@@ -146,6 +149,10 @@ export function OutlookAddContactDialog({
 
   const handleSubmit = async () => {
     if (!prepopulation || !role) return;
+    const useMatchedCompany = Boolean(
+      showMatchedCompany && prepopulation.companyId,
+    );
+    if (!useMatchedCompany && !industry) return;
 
     setLoading(true);
     setError(null);
@@ -154,14 +161,13 @@ export function OutlookAddContactDialog({
       ? acceptedEnrichmentToContactFields(acceptedSuggestions)
       : null;
 
-    const useMatchedCompany = showMatchedCompany && prepopulation.companyId;
-
     const requestPayload = {
       email: prepopulation.email,
       firstName: prepopulation.firstName,
       lastName: prepopulation.lastName,
       companyName: useMatchedCompany ? prepopulation.companyName : companyName,
       role,
+      industry: useMatchedCompany ? undefined : industry || undefined,
       matchedCompanyId: useMatchedCompany ? prepopulation.companyId : undefined,
       skipAutoCompanyMatch:
         prepopulation.companyResolved && companyOverride ? true : undefined,
@@ -297,23 +303,44 @@ export function OutlookAddContactDialog({
                   </p>
                 </div>
               ) : (
-                <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
-                    Create company
-                  </span>
-                  <input
-                    type="text"
-                    value={companyName}
-                    onChange={(event) => setCompanyName(event.target.value)}
-                    className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
-                  />
-                  <p className="mt-1 text-[10px] text-carbon-blue/45">
-                    {companyOverride
-                      ? "A new company will be created with this name."
-                      : (prepopulation?.companyHint ??
-                        "A new company will be created when you confirm.")}
-                  </p>
-                </label>
+                <>
+                  <label className="block">
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                      Create company
+                    </span>
+                    <input
+                      type="text"
+                      value={companyName}
+                      onChange={(event) => setCompanyName(event.target.value)}
+                      className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
+                    />
+                    <p className="mt-1 text-[10px] text-carbon-blue/45">
+                      {companyOverride
+                        ? "A new company will be created with this name."
+                        : (prepopulation?.companyHint ??
+                          "A new company will be created when you confirm.")}
+                    </p>
+                  </label>
+                  <label className="block">
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                      Industry
+                    </span>
+                    <select
+                      value={industry}
+                      onChange={(event) =>
+                        setIndustry(event.target.value as CompanyIndustry | "")
+                      }
+                      className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                    >
+                      <option value="">Select industry…</option>
+                      {COMPANY_INDUSTRIES.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </>
               )}
 
               {showEnrichment ? (
@@ -352,7 +379,8 @@ export function OutlookAddContactDialog({
               !prepopulation ||
               !role ||
               !prepopulation.displayName.trim() ||
-              (!showMatchedCompany && !companyName.trim())
+              (!showMatchedCompany &&
+                (!companyName.trim() || !industry))
             }
             className="flex-1 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
           >
