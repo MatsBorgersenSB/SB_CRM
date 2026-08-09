@@ -1,37 +1,11 @@
 import { NextResponse } from "next/server";
+import { assertCronAuthorized } from "@/lib/cron-auth";
 import { getPrisma } from "@/lib/prisma";
 import {
   getAccessTokenForIntegration,
   M365_SUBSCRIPTION_RENEWAL_MINUTES,
   renewGraphSubscription,
 } from "@/lib/m365-client";
-
-/**
- * Authorize cron callers with CRON_SECRET (Bearer or x-cron-secret).
- */
-function assertCronAuthorized(request: Request): NextResponse | null {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) {
-    return NextResponse.json(
-      { error: "CRON_SECRET is not configured" },
-      { status: 500 },
-    );
-  }
-
-  const authHeader = request.headers.get("authorization");
-  const bearer =
-    authHeader?.toLowerCase().startsWith("bearer ")
-      ? authHeader.slice(7).trim()
-      : null;
-  const headerSecret = request.headers.get("x-cron-secret")?.trim() ?? null;
-  const provided = bearer || headerSecret;
-
-  if (!provided || provided !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  return null;
-}
 
 /**
  * Renew Graph webhook subscriptions expiring within 24 hours.

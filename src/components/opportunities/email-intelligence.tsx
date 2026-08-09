@@ -159,7 +159,8 @@ export function EmailIntelligence({
   const [sentimentFilter, setSentimentFilter] = useState<"all" | SentimentGrade>("all");
   const [directionFilter, setDirectionFilter] = useState<"all" | "inbound" | "outbound">("all");
   const [deletedFilter, setDeletedFilter] = useState<"all" | "active" | "deleted">("all");
-  // FS-009 Privacy First — exclude internal-only by default (AD-001 chip visible).
+  // FS-009 Privacy First — exclude internal-only by default (AD-001 chip: Domain · External).
+  // Clearing the chip switches to All domains (transparent).
   const [domainFilter, setDomainFilter] = useState<"all" | "external" | "internal_only">(
     "external",
   );

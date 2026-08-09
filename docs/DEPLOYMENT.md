@@ -23,7 +23,7 @@ Copy `.env.example` to `.env` (Compose loads `.env` from the project root automa
 | `DATABASE_URL` | Yes | Postgres URL used by the app / Prisma adapter. In Compose default: `postgresql://postgres:postgres@postgres:5432/smartcrm?schema=public` |
 | `DIRECT_URL` | Yes | Same as `DATABASE_URL` unless using a pooler (then DIRECT_URL = direct Postgres). |
 | `TOKEN_ENCRYPTION_SECRET` | Yes (prod) | AES-256-GCM key material for M365 OAuth tokens at rest. **Must** be set in production. |
-| `CRON_SECRET` | Recommended | Protects `/api/cron/*` (Bearer or `x-cron-secret`). |
+| `CRON_SECRET` | Recommended | Protects `/api/cron/*` (Bearer or `x-cron-secret`). Required for mail sync + subscription renew. |
 | `NEXT_PUBLIC_APP_URL` | Yes | Public origin (OAuth redirects, Outlook deep links), e.g. `https://crm.example.com`. |
 | `INTERNAL_DOMAINS` | Recommended | Comma-separated host domains for FS-009 privacy classification. |
 | `SHAREPOINT_TRANSPORT` | For docs | `local` (default) or `graph` (SharePoint Online SoT for SmartDocs). |
@@ -188,12 +188,13 @@ Deploy pipelines should run `prisma migrate deploy` against the target database 
 - [ ] Strong `POSTGRES_PASSWORD` (not the Compose default)
 - [ ] `NEXT_PUBLIC_APP_URL` matches the public TLS hostname
 - [ ] TLS termination (reverse proxy / load balancer) in front of port 3000
-- [ ] `CRON_SECRET` set if using M365 subscription renewal cron
+- [ ] `CRON_SECRET` set for M365 mail sync cron (`/api/cron/m365-mail-sync`) and subscription renewal
 - [ ] Backups enabled for the `smartcrm_postgres_data` volume
 - [ ] `/api/health` monitored
 - [ ] OAuth redirect URIs registered for `{NEXT_PUBLIC_APP_URL}/api/auth/callback/azure-ad` (SSO) and `{NEXT_PUBLIC_APP_URL}/api/auth/m365/callback` (Graph)
 - [ ] Admin consent for Mail.* + Files.ReadWrite.All + Sites.ReadWrite.All when using SharePoint document backend
 - [ ] `SHAREPOINT_TRANSPORT=graph` and `SHAREPOINT_SITE_ID` set when filing SmartDocs to SharePoint
+- [ ] After Connect: Sync mail now on `/m365-preview` (or wait for Vercel cron) and confirm opportunity Email Intelligence
 - [ ] Outlook add-in sideload or central deploy of `outlook/relationship-card/manifest.xml` (see `outlook/README.md`)
 
 ---
