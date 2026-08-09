@@ -538,6 +538,8 @@ export async function setConversationLinksForContact(
     opportunityId?: string | null;
     projectId?: string | null;
     projectName?: string | null;
+    /** Keep SmartCRM category aligned with the real opportunity link (never stale VEAS labels). */
+    m365CategoryName?: string | null;
   } = {};
 
   let opportunityName: string | null = null;
@@ -561,8 +563,11 @@ export async function setConversationLinksForContact(
       opportunityName = opportunity.name;
       opportunityCode = opportunity.code;
       data.opportunityId = opportunity.id;
+      data.m365CategoryName = `SmartCRM / ${opportunity.name.replace(/[^\w\s\-./]/g, "").trim().slice(0, 80) || "Opportunity"}`;
     } else {
       data.opportunityId = null;
+      // Clearing the deal must drop the Outlook category badge in SmartCRM.
+      data.m365CategoryName = null;
     }
   }
 

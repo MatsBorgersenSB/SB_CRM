@@ -484,6 +484,29 @@ export function ContactRecentOutlook({
                 role={role}
                 compact
               />
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {dealId && (latest.opportunityCode || latest.opportunityName) ? (
+                  <span className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] text-carbon-blue/55">
+                    Opportunity:{" "}
+                    {latest.opportunityCode
+                      ? `${latest.opportunityCode} · ${latest.opportunityName ?? ""}`
+                      : latest.opportunityName}
+                  </span>
+                ) : (
+                  <span className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-1.5 py-0.5 text-[10px] text-carbon-blue/40">
+                    Opportunity: Not linked
+                  </span>
+                )}
+                {projectId && latest.projectName ? (
+                  <span className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] text-carbon-blue/55">
+                    Project: {latest.projectName}
+                  </span>
+                ) : (
+                  <span className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-1.5 py-0.5 text-[10px] text-carbon-blue/40">
+                    Project: Not linked
+                  </span>
+                )}
+              </div>
               {risk ? (
                 <p className="mt-1 text-[11px] text-amber-800/90">Attention: {risk}</p>
               ) : null}
