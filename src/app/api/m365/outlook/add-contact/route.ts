@@ -9,6 +9,7 @@ type AddContactBody = {
   lastName?: string;
   companyName?: string;
   role?: string;
+  industry?: string;
   matchedCompanyId?: string;
   skipAutoCompanyMatch?: boolean;
   enrichment?: OutlookContactEnrichment;
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
       lastName: body.lastName?.trim() ?? "",
       companyName: body.companyName?.trim() ?? "",
       role: body.role?.trim(),
+      industry: body.industry?.trim(),
       matchedCompanyId: body.matchedCompanyId,
       skipAutoCompanyMatch: body.skipAutoCompanyMatch,
       enrichment: body.enrichment,
