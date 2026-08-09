@@ -7,6 +7,7 @@ import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
 import type { SentimentGrade } from "@/generated/prisma";
+import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
 import { project360Href } from "@/types/relationship-navigation";
 
 type ContactEmailMessage = {
@@ -19,6 +20,7 @@ type ContactEmailMessage = {
   projectName: string | null;
   subject: string;
   bodyPreview: string | null;
+  webLink?: string | null;
   senderEmail: string;
   sentAt: string;
   sentiment: SentimentGrade;
@@ -474,12 +476,14 @@ export function ContactRecentOutlook({
                 {(thread.summary?.messageCount ?? thread.messages.length) === 1
                   ? ""
                   : "s"}
-                {latest.bodyPreview
-                  ? ` · ${latest.bodyPreview.slice(0, 120)}${
-                      latest.bodyPreview.length > 120 ? "…" : ""
-                    }`
-                  : ""}
               </p>
+              <SyncedMailPreview
+                emailId={latest.id}
+                bodyPreview={latest.bodyPreview}
+                webLink={latest.webLink}
+                role={role}
+                compact
+              />
               {risk ? (
                 <p className="mt-1 text-[11px] text-amber-800/90">Attention: {risk}</p>
               ) : null}

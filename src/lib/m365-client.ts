@@ -44,6 +44,7 @@ export type GraphMailMessage = {
   conversationId?: string;
   subject?: string;
   bodyPreview?: string;
+  webLink?: string;
   from?: { emailAddress?: { address?: string; name?: string } };
   toRecipients?: Array<{ emailAddress?: { address?: string } }>;
   ccRecipients?: Array<{ emailAddress?: { address?: string } }>;
@@ -51,6 +52,12 @@ export type GraphMailMessage = {
   receivedDateTime?: string;
   categories?: string[];
   "@removed"?: { reason?: string };
+};
+
+export type GraphMailMessageView = {
+  webLink: string | null;
+  bodyPreview: string | null;
+  bodyText: string | null;
 };
 
 export type MailDeltaPage = {
@@ -264,7 +271,7 @@ export async function fetchMailDelta(
 ): Promise<MailDeltaPage> {
   const path =
     deltaOrNextUrl ||
-    "/me/mailFolders/inbox/messages/delta?$select=id,conversationId,subject,bodyPreview,from,toRecipients,ccRecipients,sentDateTime,receivedDateTime,categories";
+    "/me/mailFolders/inbox/messages/delta?$select=id,conversationId,subject,bodyPreview,webLink,from,toRecipients,ccRecipients,sentDateTime,receivedDateTime,categories";
 
   const payload = await graphRequest<{
     value?: GraphMailMessage[];
@@ -276,6 +283,35 @@ export async function fetchMailDelta(
     value: payload.value ?? [],
     nextLink: payload["@odata.nextLink"],
     deltaLink: payload["@odata.deltaLink"],
+  };
+}
+
+/**
+ * Fetch Outlook webLink + plain-text body for SmartCRM preview / Open in Outlook.
+ */
+export async function fetchGraphMailMessageView(
+  accessToken: string,
+  externalMessageId: string,
+): Promise<GraphMailMessageView> {
+  const payload = await graphRequest<{
+    webLink?: string;
+    bodyPreview?: string;
+    body?: { contentType?: string; content?: string };
+  }>(
+    accessToken,
+    `/me/messages/${encodeURIComponent(externalMessageId)}?$select=webLink,bodyPreview,body`,
+    {
+      headers: {
+        Prefer: 'outlook.body-content-type="text"',
+      },
+    },
+  );
+
+  const bodyContent = payload.body?.content?.trim() || null;
+  return {
+    webLink: payload.webLink?.trim() || null,
+    bodyPreview: payload.bodyPreview?.trim() || null,
+    bodyText: bodyContent ? bodyContent.slice(0, 12_000) : null,
   };
 }
 

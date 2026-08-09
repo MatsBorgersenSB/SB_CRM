@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
+import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
 import { ATTIO_GROUP_ACTIONS } from "@/lib/attio-workspace-surfaces";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
@@ -32,6 +33,7 @@ export type EmailIntelligenceItem = {
   contactName: string | null;
   subject: string;
   bodyPreview: string | null;
+  webLink?: string | null;
   senderEmail: string;
   recipientEmails: string[];
   sentAt: string;
@@ -583,9 +585,12 @@ export function EmailIntelligence({
                               <h5 className="mt-2 text-[13px] font-semibold text-carbon-blue">
                                 {message.subject}
                               </h5>
-                              <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/70">
-                                {message.bodyPreview || "No preview available."}
-                              </p>
+                              <SyncedMailPreview
+                                emailId={message.id}
+                                bodyPreview={message.bodyPreview}
+                                webLink={message.webLink}
+                                role={role}
+                              />
                               {message.attachments?.length ? (
                                 <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Attachments">
                                   {message.attachments.map((attachment) => (

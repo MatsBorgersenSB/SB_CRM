@@ -28,6 +28,7 @@ export type EmailMessageIntelligenceDto = {
   contactName: string | null;
   subject: string;
   bodyPreview: string | null;
+  webLink: string | null;
   senderEmail: string;
   recipientEmails: string[];
   sentAt: string;
@@ -118,6 +119,7 @@ function toEmailDto(message: {
   contactId: string | null;
   subject: string;
   bodyPreview: string | null;
+  webLink: string | null;
   senderEmail: string;
   recipientEmails: string[];
   sentAt: Date;
@@ -171,6 +173,7 @@ function toEmailDto(message: {
     contactName: contactDisplayName(message.contact),
     subject: message.subject,
     bodyPreview: message.bodyPreview,
+    webLink: message.webLink,
     senderEmail: message.senderEmail,
     recipientEmails: message.recipientEmails,
     sentAt: message.sentAt.toISOString(),
