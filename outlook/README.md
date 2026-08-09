@@ -50,14 +50,23 @@ Same app registration can serve SSO and Graph Connect.
 | `NEXT_PUBLIC_APP_URL` / `AUTH_URL` | `https://sb-crm-seven.vercel.app` |
 | `AZURE_AD_CLIENT_ID` / `SECRET` / `TENANT_ID` | Entra app |
 | `TOKEN_ENCRYPTION_SECRET` | Encrypt Graph tokens at rest |
+| `CRON_SECRET` | Protects `/api/cron/m365-mail-sync` and subscription renew |
+| `INTERNAL_DOMAINS` | FS-009 internal vs external mail classification |
 | `SHAREPOINT_TRANSPORT` | `graph` |
 | `SHAREPOINT_SITE_ID` | Target site for opportunity folders |
 | `MICROSOFT_GRAPH_ACCESS_TOKEN` | Optional app/daemon token for folder provision |
 
+Vercel cron (see `vercel.json`):
+
+- `/api/cron/m365-mail-sync` every 10 minutes
+- `/api/cron/m365-renew-subscriptions` every 12 hours
+
 ## Verify
 
-1. Sideload → open mail → Sign in → Relationship Card loads for a known contact.
-2. `/m365-preview` → Connect → status shows connected; SharePoint ready when site env is set.
-3. Create an opportunity → folder under `Opportunities/…` when Graph transport is on.
-4. `POST /api/m365/sync-attachments` → DocumentRecord has `sharepointWebUrl`.
-5. Unauthenticated `GET /api/m365/relationship-card` returns JSON `401` (not an HTML redirect).
+1. `/m365-preview` → **Connect Microsoft 365** → status shows connected; SharePoint ready when site env is set.
+2. Click **Sync mail now** (or wait for cron) → `lastSyncedAt` updates; messages land in Neon as `EmailMessageRecord`.
+3. Open an opportunity whose contacts appear in those emails → Email Intelligence shows live threads (Domain filter defaults to **External**).
+4. **Draft in Outlook** from the opportunity creates/opens a draft with the connected token.
+5. Sideload → open mail → Sign in → Relationship Card loads for a known contact.
+6. Optional: `POST /api/m365/sync-attachments` → DocumentRecord has `sharepointWebUrl`.
+7. Unauthenticated `GET /api/m365/relationship-card` returns JSON `401` (not an HTML redirect).

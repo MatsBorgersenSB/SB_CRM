@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/m365-mail-sync",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/m365-renew-subscriptions",
+      "schedule": "0 */12 * * *"
+    }
+  ]
+}
