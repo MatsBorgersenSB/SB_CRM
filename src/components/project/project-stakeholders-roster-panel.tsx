@@ -66,6 +66,7 @@ export function ProjectStakeholdersRosterPanel({
   const [responsibilities, setResponsibilities] = useState("");
   const [influence, setInfluence] = useState<StakeholderInfluence>("Medium");
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState("");
   const [editCustomRole, setEditCustomRole] = useState("");
@@ -119,8 +120,12 @@ export function ProjectStakeholdersRosterPanel({
   );
 
   const persist = async (next: ProjectStakeholderRecord[]) => {
-    if (!onChange) return;
+    if (!onChange) {
+      setFormError("You do not have permission to update stakeholders.");
+      return;
+    }
     setSaving(true);
+    setFormError(null);
     try {
       await onChange(next);
       setAssignOpen(false);
@@ -130,6 +135,10 @@ export function ProjectStakeholdersRosterPanel({
       setRole(DEFAULT_ROLE);
       setCustomRole("");
       setResponsibilities("");
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Could not save stakeholder.",
+      );
     } finally {
       setSaving(false);
     }
@@ -140,11 +149,22 @@ export function ProjectStakeholdersRosterPanel({
 
   const handleAdd = async () => {
     const finalRole = resolvedRole(role, customRole);
-    if (!finalRole || !onChange) return;
+    setFormError(null);
+    if (!finalRole) {
+      setFormError("Enter a role for this stakeholder.");
+      return;
+    }
+    if (!onChange) {
+      setFormError("You do not have permission to update stakeholders.");
+      return;
+    }
 
     if (memberKind === "user") {
       const user = findStandardBioUserOption(standardBioUsers, Number(selectedUserId));
-      if (!user) return;
+      if (!user) {
+        setFormError("Select an internal user.");
+        return;
+      }
       await persist([
         ...stakeholders,
         {
@@ -159,11 +179,26 @@ export function ProjectStakeholdersRosterPanel({
       return;
     }
 
-    const option = allContactOptions.find((entry) => entry.contact.ContactID === selectedContactId);
-    if (!option) return;
+    if (!selectedContactId) {
+      setFormError("Select a contact.");
+      return;
+    }
+
+    const option = allContactOptions.find(
+      (entry) => entry.contact.ContactID === selectedContactId,
+    );
+    if (!option) {
+      setFormError("Selected contact is no longer available. Refresh and try again.");
+      return;
+    }
 
     const orgForContact =
-      organizations.find((org) => org.companyId === option.companyId)?.id ?? organizationId;
+      organizations.find((org) => {
+        const matched = findCompanyByProjectRef(companies, org.companyId);
+        return (
+          matched?.CompanyID === option.companyId || org.companyId === option.companyId
+        );
+      })?.id ?? organizationId;
 
     await persist([
       ...stakeholders,
@@ -369,6 +404,12 @@ export function ProjectStakeholdersRosterPanel({
         />
       </label>
 
+      {formError ? (
+        <p className="mt-3 text-[12px] text-thermal-red/90" role="alert">
+          {formError}
+        </p>
+      ) : null}
+
       <div className="mt-3 flex gap-2">
         <button
           type="button"
@@ -380,7 +421,10 @@ export function ProjectStakeholdersRosterPanel({
         </button>
         <button
           type="button"
-          onClick={() => setAssignOpen(false)}
+          onClick={() => {
+            setAssignOpen(false);
+            setFormError(null);
+          }}
           className="px-3 py-1.5 text-xs font-semibold text-carbon-blue/55"
         >
           Cancel

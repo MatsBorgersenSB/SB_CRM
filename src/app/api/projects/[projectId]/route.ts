@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestRole } from "@/lib/api-auth";
+import { resolveRequestRole } from "@/lib/api-auth";
 import { readProjectById, updateProject, type ProjectPatch } from "@/lib/project-db";
 import {
   canAssignProjectOwner,
@@ -27,7 +27,7 @@ export async function PATCH(
   { params }: { params: Promise<{ projectId: string }> },
 ) {
   const { projectId } = await params;
-  const role = getRequestRole(request);
+  const role = await resolveRequestRole(request);
   const body = (await request.json()) as UpdateProjectBody;
 
   if (body.owner !== undefined && !canAssignProjectOwner(role)) {
