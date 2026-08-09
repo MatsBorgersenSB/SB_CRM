@@ -1,11 +1,10 @@
 "use client";
 
 import { ContactLifecycleInsights } from "@/components/contacts/contact-lifecycle-insights";
-import { MissingTouchpointsPanel } from "@/components/m365/missing-touchpoints-panel";
+import { ContactRecentOutlook } from "@/components/contacts/contact-recent-outlook";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
-import type { OutlookEvidenceRecord } from "@/types/outlook-reconciliation";
 import type { PipelineRow } from "@/types/pipeline";
 
 /**
@@ -18,9 +17,6 @@ export function ContactRelationshipIntelligenceSection({
   companies,
   pipelines,
   activities,
-  outlookEvidence,
-  showEmailReconciliation,
-  onReconciliationImported,
 }: {
   contact: Contact;
   companyId: string;
@@ -28,7 +24,8 @@ export function ContactRelationshipIntelligenceSection({
   companies: Company[];
   pipelines: PipelineRow[];
   activities: Activity[];
-  outlookEvidence?: OutlookEvidenceRecord[];
+  /** @deprecated Seed Outlook reconciliation replaced by live ContactRecentOutlook. */
+  outlookEvidence?: unknown;
   showEmailReconciliation?: boolean;
   onReconciliationImported?: () => void;
 }) {
@@ -44,24 +41,10 @@ export function ContactRelationshipIntelligenceSection({
         showBanner={false}
       />
 
-      {showEmailReconciliation && outlookEvidence ? (
-        <div className="border-t border-carbon-blue/10 pt-4">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-            Outlook emails
-          </p>
-          <MissingTouchpointsPanel
-            companies={companies}
-            pipelines={pipelines}
-            activities={activities}
-            outlookEvidence={outlookEvidence}
-            entityFilter={{
-              entityType: "contact",
-              entityId: contact.ContactID,
-            }}
-            onImported={onReconciliationImported}
-          />
-        </div>
-      ) : null}
+      <ContactRecentOutlook
+        contactId={contact.ContactID}
+        contactEmail={contact.Email || undefined}
+      />
     </div>
   );
 }
