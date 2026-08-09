@@ -10,6 +10,7 @@ import { getActivitiesForCompany } from "@/lib/activity-utils";
 import { workspaceSectionStorageKey } from "@/lib/workspace-collapsible-state";
 import { CompanyContactsTable } from "@/components/company-360/company-contacts-table";
 import { CompanyWorkspaceHeader } from "@/components/company-360/company-workspace-header";
+import { Company360TabBar } from "@/components/company-360/company-360-tab-bar";
 import {
   Company360ActionsBar,
   type Company360ActiveTool,
@@ -129,6 +130,17 @@ export function Company360LivingWorkspace({
 
   return (
     <WorkspaceStack>
+      <Company360TabBar
+        active="overview"
+        onChange={() => undefined}
+        activityContext={{
+          companyId: company.CompanyID,
+          companyName: company.Title,
+        }}
+        companies={companies}
+        pipelines={linkedPipelines}
+      />
+
       <WorkspacePanel title="Company Details">
         <Company360ActionsBar
           role={role}

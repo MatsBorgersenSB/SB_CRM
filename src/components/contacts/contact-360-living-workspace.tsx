@@ -20,6 +20,7 @@ import {
 } from "@/components/contacts/contact-lifecycle-wizard";
 import { OpportunitiesOverviewTable } from "@/components/opportunity/opportunities-overview-table";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
+import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
 import { useSmartAssistActionHost } from "@/components/smartassist/smartassist-action-host";
 import { useAuth } from "@/context/auth-context";
@@ -235,14 +236,28 @@ export function Contact360LivingWorkspace({
         />
       )}
 
-      <ContactLifecycleActionsBar
-        contact={contact}
-        role={role}
-        editing={contactEditOpen}
-        onWizardOpen={setWizardMode}
-        onArchiveOpen={() => setArchiveOpen(true)}
-        onEditOpen={toggleContactEdit}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <ContactLifecycleActionsBar
+            contact={contact}
+            role={role}
+            editing={contactEditOpen}
+            onWizardOpen={setWizardMode}
+            onArchiveOpen={() => setArchiveOpen(true)}
+            onEditOpen={toggleContactEdit}
+          />
+        </div>
+        <EntityNewActivityButton
+          context={{
+            companyId: record.companyId,
+            companyName: record.companyName,
+            contactId: contact.ContactID,
+            contactName: getContactDisplayName(contact),
+          }}
+          companies={companies}
+          pipelines={pipelines}
+        />
+      </div>
 
       {contact.IsArchived ? (
         <p className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-3 py-2 text-[11px] text-carbon-blue/55">
