@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { RelationshipCard } from "@/components/m365/relationship-card";
+import { OutlookAddOpportunityDialog } from "@/components/m365/outlook-add-opportunity-dialog";
 import { OutlookReconciliationCard } from "@/components/m365/outlook-reconciliation-card";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
 import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
@@ -22,6 +23,7 @@ export function OutlookRelationshipCardPane() {
   const [reconciliationAudit, setReconciliationAudit] = useState<
     ReturnType<typeof analyzeOutlookReconciliation> | null
   >(null);
+  const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
 
   useEffect(() => {
     void fetch("/api/m365/reconciliation")
@@ -121,7 +123,21 @@ export function OutlookRelationshipCardPane() {
             }}
           />
         ) : null}
-        <RelationshipCard payload={state.payload} variant="outlook" />
+        <RelationshipCard
+          payload={state.payload}
+          variant="outlook"
+          onCreateOpportunity={() => setOpportunityDialogOpen(true)}
+        />
+        <OutlookAddOpportunityDialog
+          open={opportunityDialogOpen}
+          companyId={state.payload.companyId}
+          companyName={state.payload.companyName}
+          onClose={() => setOpportunityDialogOpen(false)}
+          onCreated={() => {
+            setOpportunityDialogOpen(false);
+            reload();
+          }}
+        />
       </div>
     );
   }

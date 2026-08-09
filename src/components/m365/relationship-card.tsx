@@ -17,9 +17,11 @@ function BlockLabel({ children }: { children: string }) {
 function CardActions({
   payload,
   outlookHost,
+  onCreateOpportunity,
 }: {
   payload: M365RelationshipCardPayload;
   outlookHost: boolean;
+  onCreateOpportunity?: () => void;
 }) {
   const smartCrmHref = buildSmartCrmUrl(payload.deepLink);
   const linkProps = outlookHost
@@ -36,6 +38,15 @@ function CardActions({
         >
           Execute in Planner
         </a>
+      ) : null}
+      {outlookHost && onCreateOpportunity ? (
+        <button
+          type="button"
+          onClick={onCreateOpportunity}
+          className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+        >
+          Create opportunity
+        </button>
       ) : null}
       {outlookHost ? (
         <a
@@ -64,9 +75,11 @@ function CardActions({
 export function RelationshipCard({
   payload,
   variant = "default",
+  onCreateOpportunity,
 }: {
   payload: M365RelationshipCardPayload;
   variant?: "default" | "outlook";
+  onCreateOpportunity?: () => void;
 }) {
   const outlookHost = variant === "outlook";
   const shellClass = outlookHost
@@ -127,7 +140,11 @@ export function RelationshipCard({
           <div className="mt-2">
             <NextBestActionCard action={payload.nextBestAction} prominent hideLinks />
           </div>
-          <CardActions payload={payload} outlookHost={outlookHost} />
+          <CardActions
+            payload={payload}
+            outlookHost={outlookHost}
+            onCreateOpportunity={onCreateOpportunity}
+          />
         </section>
 
         <section aria-label="Open Opportunities and Commitments" className="grid grid-cols-2 gap-2">

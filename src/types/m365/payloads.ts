@@ -86,6 +86,8 @@ export type M365RelationshipCardPayload = {
   kind: "relationship-card";
   meta: M365IntelligenceMeta;
   companyName: string;
+  /** Account id for Outlook capture actions (create opportunity). */
+  companyId: string;
   health: M365HealthBlock;
   topRisk: M365RiskBlock | null;
   nextBestAction: M365ActionBlock;
