@@ -8,7 +8,7 @@ Production Outlook add-in for relationship intelligence and meeting briefings, w
 | --- | --- |
 | Relationship Card | `/outlook-addin` |
 | Meeting Briefing | `/outlook/meeting-briefing` |
-| Manifest | [`manifest.xml`](./relationship-card/manifest.xml) (version **1.3.0.0**, 2026-08-09) |
+| Manifest | [`manifest.xml`](./relationship-card/manifest.xml) (version **1.3.1.0**, schema-valid GUID) |
 
 ## Architecture (dual auth)
 
