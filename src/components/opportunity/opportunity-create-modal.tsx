@@ -412,7 +412,7 @@ export function OpportunityCreateModal({
 
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
-              Offerings in scope
+              Offerings in scope <span className="text-thermal-red">*</span>
             </span>
             <div className="mt-1">
               <OpportunityOfferingsPicker
@@ -420,6 +420,10 @@ export function OpportunityCreateModal({
                 onChange={(offeringIds) =>
                   setForm((current) => ({ ...current, offeringIds }))
                 }
+                required
+                defaultOpen
+                label="Selected offerings"
+                helper="Select at least one Standard Bio offering — required to create."
               />
             </div>
           </div>
@@ -462,7 +466,18 @@ export function OpportunityCreateModal({
           ) : null}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-carbon-blue/8 px-4 py-3">
+        <div className="flex flex-col gap-2 border-t border-carbon-blue/8 px-4 py-3 sm:flex-row sm:items-center sm:justify-end">
+          {!isValid && !saving ? (
+            <p className="text-[11px] text-carbon-blue/55 sm:mr-auto">
+              {!hasCompanyTarget
+                ? "Select or create a company to continue."
+                : form.assetName.trim().length === 0
+                  ? "Enter an opportunity name."
+                  : form.offeringIds.length === 0
+                    ? "Add at least one offering to enable Create."
+                    : "Complete the required fields."}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={handleClose}
