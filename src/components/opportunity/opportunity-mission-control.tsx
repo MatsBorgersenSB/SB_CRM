@@ -61,6 +61,7 @@ export function OpportunityMissionControl({
   focusFieldId,
   onAnswerNow,
   onSaveUnderstandingField,
+  onSaveDiscoveryAnswer,
   role = "superuser",
   influenceReadOnly = false,
 }: {
@@ -82,6 +83,10 @@ export function OpportunityMissionControl({
   onAnswerNow?: (fieldId: string) => void;
   onSaveUnderstandingField?: (
     fieldId: UnderstandingFieldId,
+    value: string,
+  ) => Promise<void>;
+  onSaveDiscoveryAnswer?: (
+    item: import("@/lib/opportunity-workspace-intelligence").OpportunityDiscoveryQuestionItem,
     value: string,
   ) => Promise<void>;
   role?: UserRole;
@@ -231,7 +236,8 @@ export function OpportunityMissionControl({
                 companies={companies}
                 commercialPackages={commercialPackages}
                 understanding={understanding}
-                questions={understanding.suggestedQuestions}
+                questions={understanding.discoveryQuestionItems}
+                onSaveAnswer={onSaveDiscoveryAnswer}
               />
             ) : null}
             {actionTab === "validations" ? (

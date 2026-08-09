@@ -248,6 +248,11 @@ export const UNDERSTANDING_FIELD_BY_ID = Object.fromEntries(
 /** User-captured answers — source of truth for opportunity understanding. */
 export type OpportunityUnderstandingCapture = {
   fields: Partial<Record<UnderstandingFieldId, string>>;
+  /**
+   * Free-text answers for discovery questions that are not formal understanding fields
+   * (e.g. offerings scope, ad-hoc discovery prompts).
+   */
+  discoveryNotes?: Record<string, string>;
   updatedAt?: string;
 };
 

@@ -73,6 +73,13 @@ export type NextBestAction = {
 export type RecommendedAttention = "HIGH" | "MEDIUM" | "LOW" | "HOLD";
 
 /** SmartAssist Phase 1.1 — opportunity understanding snapshot for every deal. */
+export type OpportunityDiscoveryQuestionItem = {
+  id: string;
+  question: string;
+  /** When set, answer saves into the Understanding Capture model. */
+  fieldId?: import("@/types/opportunity-understanding").UnderstandingFieldId;
+};
+
 export type OpportunityUnderstanding = {
   clientObjective: ClientObjective;
   knowledgeModel: OpportunityKnowledgeModel;
@@ -81,6 +88,8 @@ export type OpportunityUnderstanding = {
   /** @deprecated Use knowledgeModel.criticalGaps */
   stillNeedToLearn: LearningGap[];
   suggestedQuestions: string[];
+  /** Stable ids for answer capture on the Questions action tab. */
+  discoveryQuestionItems: OpportunityDiscoveryQuestionItem[];
   suggestedValidations: string[];
   recommendedConversations: string[];
   assessment: AssistantAssessment;
@@ -301,7 +310,10 @@ function buildCriticalKnowledgeGaps(
     });
   }
 
-  if (dealActivities.length === 0) {
+  if (
+    dealActivities.length === 0 &&
+    !pipeline.understanding?.discoveryNotes?.engagement?.trim()
+  ) {
     extras.push({
       id: "engagement",
       priority: "high",
@@ -378,6 +390,28 @@ function buildConfirmedUnderstanding(
         answer: describeEngagementInsight(latestContext),
       });
     }
+  } else {
+    const engagementNote = pipeline.understanding?.discoveryNotes?.engagement?.trim();
+    if (engagementNote) {
+      rows.push({
+        id: "engagement",
+        topic: "Recent Dialogue",
+        answer: engagementNote,
+      });
+    }
+  }
+
+  for (const [id, answer] of Object.entries(
+    pipeline.understanding?.discoveryNotes ?? {},
+  )) {
+    const trimmed = answer.trim();
+    if (!trimmed || id === "engagement") continue;
+    if (rows.some((row) => row.id === id)) continue;
+    rows.push({
+      id,
+      topic: id.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      answer: trimmed,
+    });
   }
 
   // Keep company unused warning quiet for signature compatibility
@@ -401,52 +435,157 @@ function toLegacyUnderstandingItems(rows: ConfirmedUnderstandingRow[]): Understa
   }));
 }
 
-function buildSuggestedQuestions(
+function buildDiscoveryQuestionItems(
   gaps: LearningGap[],
   pipeline: PipelineRow,
-): string[] {
+): OpportunityDiscoveryQuestionItem[] {
   const offeringIntel = buildOfferingIntelligence(pipeline.offeringIds, pipeline.team);
-  const questionMap: Record<string, string> = {
-    decision_maker: "Who owns the go / no-go decision?",
-    economic_buyer: "Who holds budget authority for this project?",
-    offtake_strategy: "How will the end product be used or sold?",
-    feedstock_volume: "What annual feedstock volume is realistically available?",
-    feedstock_quality: "What quality and contamination limits apply to feedstock?",
-    utilities: "What utility capacity is available at the proposed site?",
-    timeline: "When must a decision or start-up happen?",
-    budget: "What budget range has been allocated?",
-    end_product: "What end product is targeted — biochar, energy, or materials?",
-    permitting: "Has permitting or environmental assessment been initiated?",
-    stakeholder_map: "Who are the key technical, commercial, and executive sponsors?",
-    business_case_strength: "Why will the customer invest in this project?",
-    funding_source: "How will the project be funded?",
-    capacity: "What capacity is required?",
-    technical_fit: "Does Standard Bio technology fit this application?",
-    site_readiness: "Is the site ready for installation?",
-    engagement: "Who should we speak with first to advance discovery on this opportunity?",
-    offerings:
-      "Which Standard Bio systems, products, or services are in scope for this opportunity?",
+  const questionMap: Record<
+    string,
+    { question: string; fieldId?: OpportunityDiscoveryQuestionItem["fieldId"] }
+  > = {
+    decision_maker: {
+      question: "Who owns the go / no-go decision?",
+      fieldId: "decision_maker",
+    },
+    economic_buyer: {
+      question: "Who holds budget authority for this project?",
+      fieldId: "economic_buyer",
+    },
+    offtake_strategy: {
+      question: "How will the end product be used or sold?",
+      fieldId: "offtake_strategy",
+    },
+    feedstock_volume: {
+      question: "What annual feedstock volume is realistically available?",
+      fieldId: "feedstock_volume",
+    },
+    feedstock_quality: {
+      question: "What quality and contamination limits apply to feedstock?",
+      fieldId: "feedstock_quality",
+    },
+    utilities: {
+      question: "What utility capacity is available at the proposed site?",
+      fieldId: "utilities",
+    },
+    timeline: {
+      question: "When must a decision or start-up happen?",
+      fieldId: "timeline",
+    },
+    budget: {
+      question: "What budget range has been allocated?",
+      fieldId: "budget",
+    },
+    end_product: {
+      question: "What end product is targeted — biochar, energy, or materials?",
+      fieldId: "end_product",
+    },
+    permitting: {
+      question: "Has permitting or environmental assessment been initiated?",
+      fieldId: "permitting",
+    },
+    stakeholder_map: {
+      question: "Who are the key technical, commercial, and executive sponsors?",
+      fieldId: "stakeholder_map",
+    },
+    business_case_strength: {
+      question: "Why will the customer invest in this project?",
+      fieldId: "business_case_strength",
+    },
+    funding_source: {
+      question: "How will the project be funded?",
+      fieldId: "funding_source",
+    },
+    capacity: {
+      question: "What capacity is required?",
+      fieldId: "capacity",
+    },
+    technical_fit: {
+      question: "Does Standard Bio technology fit this application?",
+      fieldId: "technical_fit",
+    },
+    site_readiness: {
+      question: "Is the site ready for installation?",
+      fieldId: "site_readiness",
+    },
+    engagement: {
+      question:
+        "Who should we speak with first to advance discovery on this opportunity?",
+    },
+    offerings: {
+      question:
+        "Which Standard Bio systems, products, or services are in scope for this opportunity?",
+    },
   };
 
-  const fromGaps = gaps.map((item) => questionMap[item.id]).filter(Boolean) as string[];
-  const fromOfferings = offeringIntel.offeringsUnknown
-    ? []
-    : offeringIntel.discoveryQuestions.slice(0, 3);
+  const items: OpportunityDiscoveryQuestionItem[] = [];
+  const seen = new Set<string>();
 
-  const defaults = offeringIntel.offeringsUnknown
+  for (const gap of gaps) {
+    const mapped = questionMap[gap.id];
+    if (!mapped || seen.has(gap.id)) continue;
+    items.push({ id: gap.id, question: mapped.question, fieldId: mapped.fieldId });
+    seen.add(gap.id);
+  }
+
+  if (offeringIntel.offeringsUnknown && !seen.has("offerings")) {
+    items.push({
+      id: "offerings",
+      question: questionMap.offerings!.question,
+    });
+    seen.add("offerings");
+  } else {
+    for (const question of offeringIntel.discoveryQuestions.slice(0, 3)) {
+      const id = `offering-${question.slice(0, 24)}`;
+      if (seen.has(id)) continue;
+      items.push({ id, question });
+      seen.add(id);
+    }
+  }
+
+  const defaults: OpportunityDiscoveryQuestionItem[] = offeringIntel.offeringsUnknown
     ? [
-        "Which Standard Bio offerings are we proposing — systems, products, or services?",
-        "What end product is targeted — biochar, energy, or materials?",
-        "What budget range has been allocated for project development?",
+        {
+          id: "end_product",
+          question: questionMap.end_product!.question,
+          fieldId: "end_product",
+        },
+        {
+          id: "budget",
+          question: questionMap.budget!.question,
+          fieldId: "budget",
+        },
       ]
     : [
-        "What end product is targeted — biochar, energy, or materials?",
-        "What budget range has been allocated for project development?",
-        "What would success look like in 12 months?",
-        "What regulatory constraints apply to the proposed feedstock?",
+        {
+          id: "end_product",
+          question: questionMap.end_product!.question,
+          fieldId: "end_product",
+        },
+        {
+          id: "budget",
+          question: questionMap.budget!.question,
+          fieldId: "budget",
+        },
+        {
+          id: "business_case_strength",
+          question: "What would success look like in 12 months?",
+          fieldId: "business_case_strength",
+        },
+        {
+          id: "permitting",
+          question: "What regulatory constraints apply to the proposed feedstock?",
+          fieldId: "permitting",
+        },
       ];
 
-  return [...new Set([...fromGaps, ...fromOfferings, ...defaults])].slice(0, 6);
+  for (const item of defaults) {
+    if (seen.has(item.id)) continue;
+    items.push(item);
+    seen.add(item.id);
+  }
+
+  return items.slice(0, 8);
 }
 
 function buildSuggestedValidations(
@@ -814,7 +953,11 @@ export function buildOpportunityUnderstanding(
   };
   const stillNeedToLearn = toLegacyLearningGaps(criticalGaps);
   const currentUnderstanding = toLegacyUnderstandingItems(confirmedUnderstanding);
-  const suggestedQuestions = buildSuggestedQuestions(stillNeedToLearn, pipeline);
+  const discoveryQuestionItems = buildDiscoveryQuestionItems(
+    stillNeedToLearn,
+    pipeline,
+  );
+  const suggestedQuestions = discoveryQuestionItems.map((item) => item.question);
   const suggestedValidations = buildSuggestedValidations(stillNeedToLearn, pipeline, company);
   const recommendedConversations = buildRecommendedConversations(
     stillNeedToLearn,
@@ -842,6 +985,7 @@ export function buildOpportunityUnderstanding(
     currentUnderstanding,
     stillNeedToLearn,
     suggestedQuestions,
+    discoveryQuestionItems,
     suggestedValidations,
     recommendedConversations,
     assessment: assistantAssessment,

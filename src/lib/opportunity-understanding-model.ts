@@ -173,6 +173,27 @@ export function patchUnderstandingCapture(
   }
   return {
     fields,
+    discoveryNotes: current?.discoveryNotes,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function patchDiscoveryNote(
+  current: OpportunityUnderstandingCapture | undefined,
+  noteId: string,
+  value: string,
+): OpportunityUnderstandingCapture {
+  const discoveryNotes = { ...(current?.discoveryNotes ?? {}) };
+  const trimmed = value.trim();
+  if (trimmed) {
+    discoveryNotes[noteId] = trimmed;
+  } else {
+    delete discoveryNotes[noteId];
+  }
+  return {
+    fields: { ...(current?.fields ?? {}) },
+    discoveryNotes:
+      Object.keys(discoveryNotes).length > 0 ? discoveryNotes : undefined,
     updatedAt: new Date().toISOString(),
   };
 }
