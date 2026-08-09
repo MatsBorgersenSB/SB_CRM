@@ -56,7 +56,19 @@ export async function PATCH(
     body.projectStakeholders === undefined &&
     body.relatedOrganizations === undefined &&
     body.removedStakeholders === undefined &&
-    body.linkedCompanyId === undefined
+    body.linkedCompanyId === undefined &&
+    body.objective === undefined &&
+    body.problem === undefined &&
+    body.successCriteria === undefined &&
+    body.discoveryAnswers === undefined &&
+    body.name === undefined &&
+    body.kind === undefined &&
+    body.status === undefined &&
+    body.stage === undefined &&
+    body.priority === undefined &&
+    body.health === undefined &&
+    body.strategicImportance === undefined &&
+    body.linkedDealId === undefined
   ) {
     return NextResponse.json({ error: "No project updates provided" }, { status: 400 });
   }
