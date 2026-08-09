@@ -517,6 +517,9 @@ model EmailMessageRecord {
   conversationId    String
   opportunityId     String?
   opportunity       Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  /** Project Workspace Light id (JSON project store — no Prisma FK). */
+  projectId         String?
+  projectName       String?
   contactId         String?
   contact           Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
   subject           String
@@ -535,6 +538,7 @@ model EmailMessageRecord {
 
   @@index([conversationId])
   @@index([opportunityId])
+  @@index([projectId])
   @@index([contactId])
   @@index([sentAt])
   @@index([senderEmail])

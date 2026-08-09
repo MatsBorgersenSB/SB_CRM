@@ -7,6 +7,7 @@ import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
 import type { SentimentGrade } from "@/generated/prisma";
+import { project360Href } from "@/types/relationship-navigation";
 
 type ContactEmailMessage = {
   id: string;
@@ -14,6 +15,8 @@ type ContactEmailMessage = {
   opportunityId: string | null;
   opportunityName: string | null;
   opportunityCode: string | null;
+  projectId: string | null;
+  projectName: string | null;
   subject: string;
   bodyPreview: string | null;
   senderEmail: string;
@@ -35,10 +38,10 @@ type ContactEmailThread = {
   messages: ContactEmailMessage[];
 };
 
-type OpportunityOption = {
+type LinkOption = {
   id: string;
   label: string;
-  code: string | null;
+  code?: string | null;
   name: string;
 };
 
@@ -60,7 +63,7 @@ function dealEmailsHref(dealId: string): string {
 
 /**
  * Compact person-lens Outlook threads for Contact 360.
- * Full deal Email Intelligence lives on the opportunity.
+ * User sets opportunity and/or project relationship; no silent auto-link.
  */
 export function ContactRecentOutlook({
   contactId,
@@ -72,9 +75,8 @@ export function ContactRecentOutlook({
   role?: UserRole;
 }) {
   const [threads, setThreads] = useState<ContactEmailThread[]>([]);
-  const [opportunityOptions, setOpportunityOptions] = useState<OpportunityOption[]>(
-    [],
-  );
+  const [opportunityOptions, setOpportunityOptions] = useState<LinkOption[]>([]);
+  const [projectOptions, setProjectOptions] = useState<LinkOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [domainFilter, setDomainFilter] = useState<"all" | "external">("external");
@@ -94,23 +96,29 @@ export function ContactRecentOutlook({
       );
       const payload = (await response.json().catch(() => ({}))) as {
         threads?: ContactEmailThread[];
-        opportunityOptions?: OpportunityOption[];
+        opportunityOptions?: LinkOption[];
+        projectOptions?: LinkOption[];
         error?: string;
         detail?: string;
       };
       if (!response.ok) {
         setThreads([]);
         setOpportunityOptions([]);
+        setProjectOptions([]);
         throw new Error(payload.detail || payload.error || "Could not load emails");
       }
       setThreads(Array.isArray(payload.threads) ? payload.threads : []);
       setOpportunityOptions(
         Array.isArray(payload.opportunityOptions) ? payload.opportunityOptions : [],
       );
+      setProjectOptions(
+        Array.isArray(payload.projectOptions) ? payload.projectOptions : [],
+      );
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Could not load emails");
       setThreads([]);
       setOpportunityOptions([]);
+      setProjectOptions([]);
     } finally {
       setLoading(false);
     }
@@ -120,9 +128,9 @@ export function ContactRecentOutlook({
     void load();
   }, [load]);
 
-  const setThreadOpportunity = async (
+  const setThreadLinks = async (
     conversationId: string,
-    opportunityId: string | null,
+    links: { opportunityId?: string | null; projectId?: string | null },
   ) => {
     setLinkingId(conversationId);
     setError(null);
@@ -135,7 +143,7 @@ export function ContactRecentOutlook({
             "Content-Type": "application/json",
             [AUTH_ROLE_HEADER]: role,
           },
-          body: JSON.stringify({ conversationId, opportunityId }),
+          body: JSON.stringify({ conversationId, ...links }),
         },
       );
       const payload = (await response.json().catch(() => ({}))) as {
@@ -143,14 +151,20 @@ export function ContactRecentOutlook({
         detail?: string;
         opportunityName?: string | null;
         opportunityCode?: string | null;
+        projectName?: string | null;
       };
       if (!response.ok) {
         throw new Error(payload.detail || payload.error || "Could not update link");
       }
 
-      const option = opportunityId
-        ? opportunityOptions.find((row) => row.id === opportunityId)
-        : null;
+      const oppOption =
+        links.opportunityId !== undefined && links.opportunityId
+          ? opportunityOptions.find((row) => row.id === links.opportunityId)
+          : null;
+      const projectOption =
+        links.projectId !== undefined && links.projectId
+          ? projectOptions.find((row) => row.id === links.projectId)
+          : null;
 
       setThreads((current) =>
         current.map((thread) => {
@@ -159,11 +173,28 @@ export function ContactRecentOutlook({
             ...thread,
             messages: thread.messages.map((message) => ({
               ...message,
-              opportunityId,
-              opportunityName:
-                payload.opportunityName ?? option?.name ?? null,
-              opportunityCode:
-                payload.opportunityCode ?? option?.code ?? null,
+              ...(links.opportunityId !== undefined
+                ? {
+                    opportunityId: links.opportunityId,
+                    opportunityName:
+                      links.opportunityId == null
+                        ? null
+                        : (payload.opportunityName ?? oppOption?.name ?? null),
+                    opportunityCode:
+                      links.opportunityId == null
+                        ? null
+                        : (payload.opportunityCode ?? oppOption?.code ?? null),
+                  }
+                : {}),
+              ...(links.projectId !== undefined
+                ? {
+                    projectId: links.projectId,
+                    projectName:
+                      links.projectId == null
+                        ? null
+                        : (payload.projectName ?? projectOption?.name ?? null),
+                  }
+                : {}),
             })),
           };
         }),
@@ -269,8 +300,8 @@ export function ContactRecentOutlook({
       </div>
 
       <p className="mb-2 text-[11px] leading-relaxed text-carbon-blue/50">
-        Mail is not auto-linked to opportunities. Link the correct deal below, or remove
-        private / irrelevant threads from SmartCRM.
+        Link each thread to the correct opportunity and/or project. Remove private or
+        irrelevant mail from SmartCRM.
       </p>
 
       {!loading && threads.length > 0 ? (
@@ -297,14 +328,7 @@ export function ContactRecentOutlook({
             {contactEmail ? ` (${contactEmail})` : ""}.
           </p>
           <p>
-            Connect Microsoft 365 and sync on{" "}
-            <Link
-              href="/m365-preview"
-              className="font-semibold text-upcycle-orange underline-offset-2 hover:underline"
-            >
-              /m365-preview
-            </Link>
-            , then reopen this contact.
+            Connect Microsoft 365 and sync, then reopen this contact.
           </p>
         </div>
       ) : null}
@@ -318,6 +342,7 @@ export function ContactRecentOutlook({
             latest.subject;
           const risk = thread.summary?.riskAlerts?.[0];
           const dealId = latest.opportunityId;
+          const projectId = latest.projectId;
           const busy =
             purgingId === thread.conversationId ||
             linkingId === thread.conversationId;
@@ -354,36 +379,71 @@ export function ContactRecentOutlook({
                 <p className="mt-1 text-[11px] text-amber-800/90">Attention: {risk}</p>
               ) : null}
 
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <label className="sr-only" htmlFor={`link-${thread.conversationId}`}>
-                  Link to opportunity
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="block min-w-0">
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                    Opportunity
+                  </span>
+                  <select
+                    value={dealId ?? ""}
+                    disabled={busy}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      void setThreadLinks(thread.conversationId, {
+                        opportunityId: value ? value : null,
+                      });
+                    }}
+                    className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
+                  >
+                    <option value="">Not linked</option>
+                    {opportunityOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                <select
-                  id={`link-${thread.conversationId}`}
-                  value={dealId ?? ""}
-                  disabled={busy}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    void setThreadOpportunity(
-                      thread.conversationId,
-                      value ? value : null,
-                    );
-                  }}
-                  className="min-w-[12rem] flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
-                >
-                  <option value="">Not linked to an opportunity</option>
-                  {opportunityOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+
+                <label className="block min-w-0">
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                    Project
+                  </span>
+                  <select
+                    value={projectId ?? ""}
+                    disabled={busy}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      void setThreadLinks(thread.conversationId, {
+                        projectId: value ? value : null,
+                      });
+                    }}
+                    className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
+                  >
+                    <option value="">Not linked</option>
+                    {projectOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 {dealId ? (
                   <Link
                     href={dealEmailsHref(dealId)}
                     className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
                   >
-                    Open
+                    Open opportunity
+                  </Link>
+                ) : null}
+                {projectId ? (
+                  <Link
+                    href={project360Href(projectId)}
+                    className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
+                  >
+                    Open project
                   </Link>
                 ) : null}
                 <button

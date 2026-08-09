@@ -26,6 +26,8 @@ export type EmailIntelligenceItem = {
   opportunityId: string | null;
   opportunityName?: string | null;
   opportunityCode?: string | null;
+  projectId?: string | null;
+  projectName?: string | null;
   contactId: string | null;
   contactName: string | null;
   subject: string;
