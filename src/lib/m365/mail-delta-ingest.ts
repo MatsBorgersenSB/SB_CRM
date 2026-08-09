@@ -2,7 +2,10 @@ import "server-only";
 
 import { getPrisma } from "@/lib/prisma";
 import { emailsIncludeAddress } from "@/lib/entity-route-utils";
-import { markEmailDeletedInSource } from "@/lib/email-intelligence-data";
+import {
+  isEmailIngestExcluded,
+  markEmailDeletedInSource,
+} from "@/lib/email-intelligence-data";
 import {
   applySmartCrmCategories,
   fetchGraphMe,
@@ -91,104 +94,32 @@ async function resolveConversationOpportunityId(
 }
 
 /**
- * Attribute to an opportunity when evidence is clear:
- * 1) prior conversation attribution, else
- * 2) single open opportunity for matched contact companies / roster.
+ * Attribute opportunity only when this conversation was already linked by a user
+ * (or a prior deliberate attribution). Never guess from "one open deal at company"
+ * — that wrongly attaches private / unrelated mail (e.g. all contact mail → PL-1001).
  */
 async function attributeOpportunity(input: {
   conversationId: string;
   participantEmails: string[];
 }): Promise<{ opportunityId: string | null; contactId: string | null; opportunityName?: string }> {
-  const prior = await resolveConversationOpportunityId(input.conversationId);
   const contacts = await findContactsByEmails(input.participantEmails);
   const contactId = contacts[0]?.id ?? null;
 
-  if (prior) {
-    const prisma = getPrisma();
-    const opportunity = await prisma.opportunity.findUnique({
-      where: { id: prior },
-      select: { id: true, name: true },
-    });
-    return {
-      opportunityId: prior,
-      contactId,
-      opportunityName: opportunity?.name,
-    };
-  }
-
-  if (contacts.length === 0) {
-    return { opportunityId: null, contactId: null };
+  const prior = await resolveConversationOpportunityId(input.conversationId);
+  if (!prior) {
+    return { opportunityId: null, contactId };
   }
 
   const prisma = getPrisma();
-  const companyIds = [
-    ...new Set(
-      contacts
-        .map((contact) => contact.companyId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-  const contactIds = contacts.map((contact) => contact.id);
-
-  // Prefer company-linked open deals; also scan recent opens for roster hits.
-  const pool = await prisma.opportunity.findMany({
-    where: {
-      status: "open",
-      ...(companyIds.length > 0
-        ? { OR: [{ companyId: { in: companyIds } }] }
-        : {}),
-    },
-    select: {
-      id: true,
-      name: true,
-      companyId: true,
-      team: true,
-      updatedAt: true,
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 100,
+  const opportunity = await prisma.opportunity.findUnique({
+    where: { id: prior },
+    select: { id: true, name: true },
   });
-
-  // When contacts have no company, or may sit on another account's roster,
-  // widen to recent open opportunities for roster-only matches.
-  const rosterPool =
-    companyIds.length > 0
-      ? pool
-      : await prisma.opportunity.findMany({
-          where: { status: "open" },
-          select: {
-            id: true,
-            name: true,
-            companyId: true,
-            team: true,
-            updatedAt: true,
-          },
-          orderBy: { updatedAt: "desc" },
-          take: 100,
-        });
-
-  const rosterMatches = rosterPool.filter((opportunity) => {
-    if (companyIds.includes(opportunity.companyId)) return true;
-    const team = Array.isArray(opportunity.team) ? opportunity.team : [];
-    return team.some((member) => {
-      if (!member || typeof member !== "object") return false;
-      const contactIdValue = (member as { contactId?: unknown }).contactId;
-      return (
-        typeof contactIdValue === "string" && contactIds.includes(contactIdValue)
-      );
-    });
-  });
-
-  if (rosterMatches.length === 1) {
-    return {
-      opportunityId: rosterMatches[0]!.id,
-      contactId,
-      opportunityName: rosterMatches[0]!.name,
-    };
-  }
-
-  // Multiple open deals for the same company — leave unattributed (FS-009: no silent guess).
-  return { opportunityId: null, contactId };
+  return {
+    opportunityId: prior,
+    contactId,
+    opportunityName: opportunity?.name,
+  };
 }
 
 async function upsertGraphMessage(input: {
@@ -204,13 +135,22 @@ async function upsertGraphMessage(input: {
     return "upserted";
   }
 
+  const conversationId =
+    input.message.conversationId?.trim() || `msg-${externalMessageId}`;
+  if (
+    await isEmailIngestExcluded({
+      externalMessageId,
+      conversationId,
+    })
+  ) {
+    return "skipped";
+  }
+
   const senderEmail = normalizeEmail(input.message.from?.emailAddress?.address);
   if (!senderEmail) return "skipped";
 
   const recipientEmails = collectRecipientEmails(input.message);
   const participantEmails = extractParticipantEmails(input.message);
-  const conversationId =
-    input.message.conversationId?.trim() || `msg-${externalMessageId}`;
   const mailbox = normalizeEmail(input.mailboxEmail);
   const isOutbound = Boolean(mailbox) && senderEmail === mailbox;
 

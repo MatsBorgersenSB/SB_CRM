@@ -367,6 +367,7 @@ export async function markEmailDeletedInSource(
 
 /**
  * Permanently remove a SmartCRM email record (user sovereignty / accidental sync).
+ * Also records ingest exclusions so Graph delta does not re-create private mail.
  */
 export async function purgeEmailFromSmartCrm(
   opportunityKey: string,
@@ -378,12 +379,189 @@ export async function purgeEmailFromSmartCrm(
 
   const existing = await prisma.emailMessageRecord.findFirst({
     where: { id: emailId, opportunityId },
-    select: { id: true },
+    select: {
+      id: true,
+      externalMessageId: true,
+      conversationId: true,
+    },
   });
   if (!existing) return false;
 
+  await recordEmailIngestExclusions([
+    {
+      externalMessageId: existing.externalMessageId,
+      conversationId: existing.conversationId,
+    },
+  ]);
   await prisma.emailMessageRecord.delete({ where: { id: existing.id } });
   return true;
+}
+
+/**
+ * Purge a whole conversation for a contact (private / irrelevant sync).
+ * Removes every matching EmailMessageRecord and blocks re-ingest.
+ */
+export async function purgeConversationForContact(
+  contactKey: string,
+  conversationId: string,
+): Promise<{ purged: number }> {
+  const prisma = getPrisma();
+  const contact = await findPrismaContactByIdOrEmail(contactKey);
+  if (!contact || !conversationId.trim()) return { purged: 0 };
+
+  const addresses = contactEmailsFromJson(contact.emails);
+  const messages = await prisma.emailMessageRecord.findMany({
+    where: {
+      conversationId,
+      OR: [
+        { contactId: contact.id },
+        ...(addresses.length > 0
+          ? [
+              { senderEmail: { in: addresses } },
+              { recipientEmails: { hasSome: addresses } },
+            ]
+          : []),
+      ],
+    },
+    select: {
+      id: true,
+      externalMessageId: true,
+      conversationId: true,
+    },
+  });
+
+  if (messages.length === 0) return { purged: 0 };
+
+  await recordEmailIngestExclusions(
+    messages.map((message) => ({
+      externalMessageId: message.externalMessageId,
+      conversationId: message.conversationId,
+    })),
+  );
+
+  await prisma.emailMessageRecord.deleteMany({
+    where: { id: { in: messages.map((message) => message.id) } },
+  });
+
+  return { purged: messages.length };
+}
+
+/**
+ * Set or clear opportunity link for every message in a contact conversation.
+ */
+export async function setConversationOpportunityForContact(
+  contactKey: string,
+  conversationId: string,
+  opportunityId: string | null,
+): Promise<{ updated: number; opportunityName: string | null; opportunityCode: string | null }> {
+  const prisma = getPrisma();
+  const contact = await findPrismaContactByIdOrEmail(contactKey);
+  if (!contact || !conversationId.trim()) {
+    return { updated: 0, opportunityName: null, opportunityCode: null };
+  }
+
+  let opportunityName: string | null = null;
+  let opportunityCode: string | null = null;
+  if (opportunityId) {
+    const opportunity = await prisma.opportunity.findUnique({
+      where: { id: opportunityId },
+      select: { id: true, name: true, code: true },
+    });
+    if (!opportunity) {
+      return { updated: 0, opportunityName: null, opportunityCode: null };
+    }
+    opportunityName = opportunity.name;
+    opportunityCode = opportunity.code;
+  }
+
+  const addresses = contactEmailsFromJson(contact.emails);
+  const result = await prisma.emailMessageRecord.updateMany({
+    where: {
+      conversationId,
+      OR: [
+        { contactId: contact.id },
+        ...(addresses.length > 0
+          ? [
+              { senderEmail: { in: addresses } },
+              { recipientEmails: { hasSome: addresses } },
+            ]
+          : []),
+      ],
+    },
+    data: {
+      opportunityId,
+      contactId: contact.id,
+    },
+  });
+
+  return {
+    updated: result.count,
+    opportunityName,
+    opportunityCode,
+  };
+}
+
+async function recordEmailIngestExclusions(
+  rows: Array<{ externalMessageId: string; conversationId: string }>,
+): Promise<void> {
+  const prisma = getPrisma();
+  for (const row of rows) {
+    if (row.externalMessageId) {
+      await prisma.emailIngestExclusion.upsert({
+        where: { externalMessageId: row.externalMessageId },
+        create: {
+          externalMessageId: row.externalMessageId,
+          conversationId: row.conversationId,
+          reason: "user_purge",
+        },
+        update: {
+          conversationId: row.conversationId,
+          reason: "user_purge",
+        },
+      });
+    }
+  }
+
+  const conversationIds = [
+    ...new Set(rows.map((row) => row.conversationId).filter(Boolean)),
+  ];
+  for (const conversationId of conversationIds) {
+    const existing = await prisma.emailIngestExclusion.findFirst({
+      where: { conversationId, externalMessageId: null },
+      select: { id: true },
+    });
+    if (!existing) {
+      await prisma.emailIngestExclusion.create({
+        data: {
+          conversationId,
+          externalMessageId: null,
+          reason: "user_purge",
+        },
+      });
+    }
+  }
+}
+
+/** True when the user previously purged this message or conversation. */
+export async function isEmailIngestExcluded(input: {
+  externalMessageId?: string | null;
+  conversationId?: string | null;
+}): Promise<boolean> {
+  const prisma = getPrisma();
+  const or: Array<{ externalMessageId?: string; conversationId?: string }> = [];
+  if (input.externalMessageId) {
+    or.push({ externalMessageId: input.externalMessageId });
+  }
+  if (input.conversationId) {
+    or.push({ conversationId: input.conversationId });
+  }
+  if (or.length === 0) return false;
+
+  const hit = await prisma.emailIngestExclusion.findFirst({
+    where: { OR: or },
+    select: { id: true },
+  });
+  return Boolean(hit);
 }
 
 export type { IngestedSmartDoc };

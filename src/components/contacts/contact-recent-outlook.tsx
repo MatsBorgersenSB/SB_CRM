@@ -35,6 +35,13 @@ type ContactEmailThread = {
   messages: ContactEmailMessage[];
 };
 
+type OpportunityOption = {
+  id: string;
+  label: string;
+  code: string | null;
+  name: string;
+};
+
 function formatSentAt(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Time unknown";
@@ -65,9 +72,14 @@ export function ContactRecentOutlook({
   role?: UserRole;
 }) {
   const [threads, setThreads] = useState<ContactEmailThread[]>([]);
+  const [opportunityOptions, setOpportunityOptions] = useState<OpportunityOption[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [domainFilter, setDomainFilter] = useState<"all" | "external">("external");
+  const [purgingId, setPurgingId] = useState<string | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,17 +94,23 @@ export function ContactRecentOutlook({
       );
       const payload = (await response.json().catch(() => ({}))) as {
         threads?: ContactEmailThread[];
+        opportunityOptions?: OpportunityOption[];
         error?: string;
         detail?: string;
       };
       if (!response.ok) {
         setThreads([]);
+        setOpportunityOptions([]);
         throw new Error(payload.detail || payload.error || "Could not load emails");
       }
       setThreads(Array.isArray(payload.threads) ? payload.threads : []);
+      setOpportunityOptions(
+        Array.isArray(payload.opportunityOptions) ? payload.opportunityOptions : [],
+      );
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Could not load emails");
       setThreads([]);
+      setOpportunityOptions([]);
     } finally {
       setLoading(false);
     }
@@ -101,6 +119,102 @@ export function ContactRecentOutlook({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const setThreadOpportunity = async (
+    conversationId: string,
+    opportunityId: string | null,
+  ) => {
+    setLinkingId(conversationId);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/contacts/${encodeURIComponent(contactId)}/emails`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            [AUTH_ROLE_HEADER]: role,
+          },
+          body: JSON.stringify({ conversationId, opportunityId }),
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        detail?: string;
+        opportunityName?: string | null;
+        opportunityCode?: string | null;
+      };
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.error || "Could not update link");
+      }
+
+      const option = opportunityId
+        ? opportunityOptions.find((row) => row.id === opportunityId)
+        : null;
+
+      setThreads((current) =>
+        current.map((thread) => {
+          if (thread.conversationId !== conversationId) return thread;
+          return {
+            ...thread,
+            messages: thread.messages.map((message) => ({
+              ...message,
+              opportunityId,
+              opportunityName:
+                payload.opportunityName ?? option?.name ?? null,
+              opportunityCode:
+                payload.opportunityCode ?? option?.code ?? null,
+            })),
+          };
+        }),
+      );
+    } catch (linkError) {
+      setError(
+        linkError instanceof Error ? linkError.message : "Could not update link",
+      );
+    } finally {
+      setLinkingId(null);
+    }
+  };
+
+  const removeThread = async (conversationId: string) => {
+    const confirmed = window.confirm(
+      "Remove this conversation from SmartCRM? Use this for private or irrelevant mail. Outlook is not changed, and it will not come back on the next sync.",
+    );
+    if (!confirmed) return;
+
+    setPurgingId(conversationId);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/contacts/${encodeURIComponent(contactId)}/emails`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            [AUTH_ROLE_HEADER]: role,
+          },
+          body: JSON.stringify({ conversationId, action: "purge" }),
+        },
+      );
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          detail?: string;
+        };
+        throw new Error(payload.detail || payload.error || "Could not remove mail");
+      }
+      setThreads((current) =>
+        current.filter((thread) => thread.conversationId !== conversationId),
+      );
+    } catch (purgeError) {
+      setError(
+        purgeError instanceof Error ? purgeError.message : "Could not remove mail",
+      );
+    } finally {
+      setPurgingId(null);
+    }
+  };
 
   const visibleThreads = useMemo(() => {
     return threads
@@ -154,6 +268,11 @@ export function ContactRecentOutlook({
         </div>
       </div>
 
+      <p className="mb-2 text-[11px] leading-relaxed text-carbon-blue/50">
+        Mail is not auto-linked to opportunities. Link the correct deal below, or remove
+        private / irrelevant threads from SmartCRM.
+      </p>
+
       {!loading && threads.length > 0 ? (
         <FilterTransparencyBar
           entityLabel="threads"
@@ -199,8 +318,9 @@ export function ContactRecentOutlook({
             latest.subject;
           const risk = thread.summary?.riskAlerts?.[0];
           const dealId = latest.opportunityId;
-          const dealLabel =
-            latest.opportunityCode || latest.opportunityName || "Open opportunity";
+          const busy =
+            purgingId === thread.conversationId ||
+            linkingId === thread.conversationId;
 
           return (
             <li
@@ -233,21 +353,50 @@ export function ContactRecentOutlook({
               {risk ? (
                 <p className="mt-1 text-[11px] text-amber-800/90">Attention: {risk}</p>
               ) : null}
-              {dealId ? (
-                <p className="mt-1.5 text-[11px]">
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <label className="sr-only" htmlFor={`link-${thread.conversationId}`}>
+                  Link to opportunity
+                </label>
+                <select
+                  id={`link-${thread.conversationId}`}
+                  value={dealId ?? ""}
+                  disabled={busy}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    void setThreadOpportunity(
+                      thread.conversationId,
+                      value ? value : null,
+                    );
+                  }}
+                  className="min-w-[12rem] flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
+                >
+                  <option value="">Not linked to an opportunity</option>
+                  {opportunityOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {dealId ? (
                   <Link
                     href={dealEmailsHref(dealId)}
-                    className="font-semibold text-carbon-blue underline-offset-2 hover:text-upcycle-orange hover:underline"
+                    className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
                   >
-                    {dealLabel}
+                    Open
                   </Link>
-                  <span className="text-carbon-blue/40"> · Email Intelligence</span>
-                </p>
-              ) : (
-                <p className="mt-1.5 text-[11px] text-carbon-blue/40">
-                  Not linked to an opportunity yet
-                </p>
-              )}
+                ) : null}
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void removeThread(thread.conversationId)}
+                  className="border border-carbon-blue/20 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/65 hover:border-thermal-red/40 hover:text-thermal-red disabled:opacity-50"
+                >
+                  {purgingId === thread.conversationId
+                    ? "Removing…"
+                    : "Remove from SmartCRM"}
+                </button>
+              </div>
             </li>
           );
         })}
