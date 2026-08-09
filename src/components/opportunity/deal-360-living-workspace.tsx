@@ -27,12 +27,16 @@ import { getActivitiesForDeal } from "@/lib/activity-utils";
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
 import { computeCommercialViability } from "@/lib/commercial-viability-engine";
 import { buildOpportunityUnderstanding } from "@/lib/opportunity-workspace-intelligence";
-import { patchUnderstandingCapture } from "@/lib/opportunity-understanding-model";
+import {
+  patchDiscoveryNote,
+  patchUnderstandingCapture,
+} from "@/lib/opportunity-understanding-model";
 import { DealStakeholdersTable } from "@/components/opportunity/deal-stakeholders-table";
 import { OpportunityWorkspaceHeader } from "@/components/opportunity/opportunity-workspace-header";
 import { OpportunityMissionControl } from "@/components/opportunity/opportunity-mission-control";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
+import type { OpportunityDiscoveryQuestionItem } from "@/lib/opportunity-workspace-intelligence";
 
 const LEGACY_HASH_TO_ACTION: Record<string, OpportunityActionTab> = {
   activities: "activities",
@@ -154,6 +158,28 @@ export function Deal360LivingWorkspace({
     async (fieldId: UnderstandingFieldId, value: string) => {
       if (!onPipelinePatch) return;
       const understanding = patchUnderstandingCapture(pipeline.understanding, fieldId, value);
+      await onPipelinePatch({ understanding });
+    },
+    [onPipelinePatch, pipeline.understanding],
+  );
+
+  const handleSaveDiscoveryAnswer = useCallback(
+    async (item: OpportunityDiscoveryQuestionItem, value: string) => {
+      if (!onPipelinePatch) return;
+      if (item.fieldId) {
+        const understanding = patchUnderstandingCapture(
+          pipeline.understanding,
+          item.fieldId,
+          value,
+        );
+        await onPipelinePatch({ understanding });
+        return;
+      }
+      const understanding = patchDiscoveryNote(
+        pipeline.understanding,
+        item.id,
+        value,
+      );
       await onPipelinePatch({ understanding });
     },
     [onPipelinePatch, pipeline.understanding],
@@ -326,6 +352,9 @@ export function Deal360LivingWorkspace({
         onAnswerNow={goAnswerField}
         onSaveUnderstandingField={
           onPipelinePatch ? handleSaveUnderstandingField : undefined
+        }
+        onSaveDiscoveryAnswer={
+          onPipelinePatch ? handleSaveDiscoveryAnswer : undefined
         }
         role={role}
         influenceReadOnly={dealTeam.readOnly}
