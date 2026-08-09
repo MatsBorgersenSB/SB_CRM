@@ -1,3 +1,5 @@
+import { promises as fs } from "fs";
+import path from "path";
 import { PROJECTS } from "@/data/projects-data";
 import { normalizeProjectRelationships } from "@/lib/project-relationship-utils";
 import { normalizeProjectTeam } from "@/lib/project-team-utils";
@@ -23,7 +25,17 @@ export type ProjectPatch = Partial<
   >
 >;
 
-const DB_PATH = `${process.cwd()}/src/data/projects-db.json`;
+/** Bundled seed checked into the repo. */
+const BUNDLED_DB_PATH = path.join(process.cwd(), "src/data/projects-db.json");
+
+/**
+ * On Vercel the deployment FS is read-only. Persist mutations under /tmp so
+ * stakeholder/org updates do not fail with EROFS.
+ */
+const DB_PATH =
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    ? path.join("/tmp", "projects-db.json")
+    : BUNDLED_DB_PATH;
 
 function normalizeProject(project: Project): Project {
   const seed = PROJECTS.find((entry) => entry.id === project.id);
@@ -45,13 +57,29 @@ function normalizeProject(project: Project): Project {
   return normalizeProjectRelationships(normalizeProjectTeam(withSeed));
 }
 
+async function readRawDb(): Promise<string | null> {
+  try {
+    return await fs.readFile(DB_PATH, "utf-8");
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT" && DB_PATH !== BUNDLED_DB_PATH) {
+      try {
+        return await fs.readFile(BUNDLED_DB_PATH, "utf-8");
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
 async function readDbFile(): Promise<ProjectsDatabase | null> {
   try {
-    const { promises: fs } = await import("fs");
-    const raw = await fs.readFile(DB_PATH, "utf-8");
+    const raw = await readRawDb();
+    if (!raw) return null;
     const parsed = JSON.parse(raw) as ProjectsDatabase;
     return {
-      projects: parsed.projects.map(normalizeProject),
+      projects: (parsed.projects ?? []).map(normalizeProject),
     };
   } catch {
     return null;
@@ -59,13 +87,20 @@ async function readDbFile(): Promise<ProjectsDatabase | null> {
 }
 
 async function writeDb(database: ProjectsDatabase): Promise<void> {
-  const { promises: fs } = await import("fs");
   await fs.writeFile(DB_PATH, JSON.stringify(database, null, 2), "utf-8");
 }
 
 async function ensureDb(): Promise<ProjectsDatabase> {
   const existing = await readDbFile();
   if (existing?.projects?.length) {
+    // On Vercel, copy bundled → /tmp on first writeable ensure so PATCH can persist.
+    if (DB_PATH !== BUNDLED_DB_PATH) {
+      try {
+        await fs.access(DB_PATH);
+      } catch {
+        await writeDb(existing);
+      }
+    }
     return existing;
   }
 

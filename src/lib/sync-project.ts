@@ -32,8 +32,10 @@ export async function syncProjectRecord(
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Failed to update project");
+    const payload = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(payload?.error || `Failed to update project (${response.status})`);
   }
 
   return (await response.json()) as Project;

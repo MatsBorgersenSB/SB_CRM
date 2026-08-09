@@ -75,7 +75,12 @@ export function Project360PageShell({
 
   const persistStakeholders = useCallback(
     async (projectStakeholders: ProjectStakeholderRecord[]) => {
-      if (!resolvedProject || !canManageProjectStakeholders(user.role)) return;
+      if (!resolvedProject) {
+        throw new Error("Project is not available.");
+      }
+      if (!canManageProjectStakeholders(user.role)) {
+        throw new Error("You do not have permission to update stakeholders.");
+      }
 
       const previous = getProjectStakeholders(resolvedProject);
       const nextIds = new Set(projectStakeholders.map((entry) => entry.id));
