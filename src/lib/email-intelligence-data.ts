@@ -319,6 +319,25 @@ export async function readEmailsForOpportunity(
 }
 
 /**
+ * Load EmailMessageRecord rows linked to a project workspace.
+ */
+export async function readEmailsForProject(
+  projectId: string,
+): Promise<EmailMessageIntelligenceDto[]> {
+  const id = projectId.trim();
+  if (!id) return [];
+
+  const prisma = getPrisma();
+  const messages = await prisma.emailMessageRecord.findMany({
+    where: { projectId: id },
+    include: emailMessageInclude,
+    orderBy: [{ conversationId: "asc" }, { sentAt: "asc" }],
+  });
+
+  return messages.map(toEmailDto);
+}
+
+/**
  * Load EmailMessageRecord rows for a contact (person lens).
  * Matches by contactId and by known email addresses (when attribution left contact null).
  */
@@ -388,6 +407,35 @@ export async function purgeEmailFromSmartCrm(
 
   const existing = await prisma.emailMessageRecord.findFirst({
     where: { id: emailId, opportunityId },
+    select: {
+      id: true,
+      externalMessageId: true,
+      conversationId: true,
+    },
+  });
+  if (!existing) return false;
+
+  await recordEmailIngestExclusions([
+    {
+      externalMessageId: existing.externalMessageId,
+      conversationId: existing.conversationId,
+    },
+  ]);
+  await prisma.emailMessageRecord.delete({ where: { id: existing.id } });
+  return true;
+}
+
+/** Purge one synced message from a project lens (same sovereignty rules as opportunity). */
+export async function purgeEmailFromProject(
+  projectId: string,
+  emailId: string,
+): Promise<boolean> {
+  const prisma = getPrisma();
+  const id = projectId.trim();
+  if (!id) return false;
+
+  const existing = await prisma.emailMessageRecord.findFirst({
+    where: { id: emailId, projectId: id },
     select: {
       id: true,
       externalMessageId: true,

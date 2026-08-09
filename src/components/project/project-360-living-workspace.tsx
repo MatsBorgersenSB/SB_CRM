@@ -366,6 +366,8 @@ export function Project360LivingWorkspace({
         organizationsOverview={organizationsOverview}
         stakeholderIntelligenceOverview={stakeholderIntelligenceOverview}
         stakeholdersOverview={stakeholdersOverview}
+        role={role}
+        emailsReadOnly={relationshipsReadOnly}
       />
     </WorkspaceStack>
   );

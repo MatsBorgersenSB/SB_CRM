@@ -8,7 +8,7 @@ import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
 import type { SentimentGrade } from "@/generated/prisma";
 import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
-import { project360Href } from "@/types/relationship-navigation";
+import { projectEmailsHref } from "@/types/relationship-navigation";
 
 type ContactEmailMessage = {
   id: string;
@@ -563,10 +563,10 @@ export function ContactRecentOutlook({
                 ) : null}
                 {projectId ? (
                   <Link
-                    href={project360Href(projectId)}
+                    href={projectEmailsHref(projectId)}
                     className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
                   >
-                    Open project
+                    Open project emails
                   </Link>
                 ) : null}
                 <button

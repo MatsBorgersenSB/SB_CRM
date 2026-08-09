@@ -45,8 +45,19 @@ export function deal360Href(
 }
 
 /** Project Workspace Light — coordinated effort toward a defined outcome. */
-export function project360Href(projectId: string): string {
-  return `/projects/${encodeURIComponent(projectId)}`;
+export function project360Href(
+  projectId: string,
+  options?: { view?: string },
+): string {
+  const base = `/projects/${encodeURIComponent(projectId)}`;
+  if (options?.view) {
+    return `${base}?view=${encodeURIComponent(options.view)}`;
+  }
+  return base;
+}
+
+export function projectEmailsHref(projectId: string): string {
+  return project360Href(projectId, { view: "emails" });
 }
 
 export function companyHref(companyId: string) {

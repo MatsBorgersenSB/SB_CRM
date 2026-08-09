@@ -5,6 +5,7 @@ import type { Project, ProjectIntelligence } from "@/types/project";
 import { PROJECT_STAGE_LABELS } from "@/types/project";
 import type { ProjectActionTab } from "@/types/project-actions";
 import type { ProjectMissionControlView } from "@/types/project-mission-control";
+import { EmailIntelligence } from "@/components/opportunities/email-intelligence";
 import { OpportunityKnowledgeView } from "@/components/opportunity/opportunity-knowledge-view";
 import { ProjectActionsTabBar } from "@/components/project/project-actions-tab-bar";
 import { ProjectInsightCatalogPanel } from "@/components/project/project-insight-catalog-panel";
@@ -17,6 +18,7 @@ import {
   SmartAssistConfidenceLabel,
 } from "@/components/smartassist/smartassist-intelligence-display";
 import { projectFieldCategory } from "@/lib/project-discovery-intelligence";
+import type { UserRole } from "@/types/auth";
 import type { InsightCategory } from "@/types/smartassist-intelligence";
 import {
   EDITORIAL_BODY_MUTED,
@@ -39,6 +41,8 @@ export function ProjectMissionControl({
   organizationsOverview,
   stakeholderIntelligenceOverview,
   stakeholdersOverview,
+  role = "superuser",
+  emailsReadOnly = false,
 }: {
   view: ProjectMissionControlView;
   onViewChange: (view: ProjectMissionControlView) => void;
@@ -51,6 +55,8 @@ export function ProjectMissionControl({
   organizationsOverview?: ReactNode;
   stakeholderIntelligenceOverview?: ReactNode;
   stakeholdersOverview?: ReactNode;
+  role?: UserRole;
+  emailsReadOnly?: boolean;
 }) {
   const discovery = intelligence.discovery;
   const discoveryReady = intelligence.discoveryReady ?? false;
@@ -178,6 +184,14 @@ export function ProjectMissionControl({
               <ProjectRisksPanel risks={project.risks} />
             )}
           </div>
+        ) : null}
+
+        {view === "emails" ? (
+          <EmailIntelligence
+            projectId={project.id}
+            role={role}
+            readOnly={emailsReadOnly}
+          />
         ) : null}
 
         {view === "actions" ? <div className="pt-1">{actionContent}</div> : null}
