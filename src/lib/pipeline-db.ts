@@ -405,6 +405,8 @@ export async function createActivity(input: CreateActivityInput): Promise<Activi
     Company: companyLookup as Activity["Company"],
     Contact: contactLookup as Activity["Contact"],
     Deal: dealLookup as Activity["Deal"],
+    ProjectId: input.ProjectId?.trim() || null,
+    ProjectName: input.ProjectName?.trim() || null,
     ActivityOwner: input.ActivityOwner ?? null,
     ActionRequired: input.ActionRequired,
     NextAction: input.NextAction,

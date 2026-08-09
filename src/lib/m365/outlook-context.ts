@@ -85,6 +85,69 @@ export async function resolveOutlookCounterpartyEmail(): Promise<string | null> 
   return sender?.email ?? null;
 }
 
+/**
+ * Graph conversationId for the open Outlook item (read or compose), when available.
+ */
+export async function resolveOutlookConversationId(): Promise<string | null> {
+  if (typeof window === "undefined" || typeof Office === "undefined") {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+
+    try {
+      Office.onReady(() => {
+        try {
+          const item = Office.context.mailbox?.item as
+            | {
+                conversationId?: string;
+                getConversationIdAsync?: (
+                  callback: (result: {
+                    status: Office.AsyncResultStatus;
+                    value?: string;
+                  }) => void,
+                ) => void;
+              }
+            | undefined;
+          if (!item) {
+            finish(null);
+            return;
+          }
+
+          const direct = item.conversationId?.trim();
+          if (direct) {
+            finish(direct);
+            return;
+          }
+
+          if (typeof item.getConversationIdAsync === "function") {
+            item.getConversationIdAsync((result) => {
+              if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                finish(null);
+                return;
+              }
+              finish(result.value?.trim() || null);
+            });
+            return;
+          }
+
+          finish(null);
+        } catch {
+          finish(null);
+        }
+      });
+    } catch {
+      finish(null);
+    }
+  });
+}
+
 export function resolveDevEmail(searchParams: URLSearchParams): string | null {
   const email = searchParams.get("email")?.trim().toLowerCase();
   return email || null;

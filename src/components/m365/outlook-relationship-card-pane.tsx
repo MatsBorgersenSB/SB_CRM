@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RelationshipCard } from "@/components/m365/relationship-card";
 import { OutlookAddOpportunityDialog } from "@/components/m365/outlook-add-opportunity-dialog";
+import { OutlookMailTagPanel } from "@/components/m365/outlook-mail-tag-panel";
 import { OutlookReconciliationCard } from "@/components/m365/outlook-reconciliation-card";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
 import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
@@ -123,6 +124,7 @@ export function OutlookRelationshipCardPane() {
             }}
           />
         ) : null}
+        {resolvedEmail ? <OutlookMailTagPanel email={resolvedEmail} /> : null}
         <RelationshipCard
           payload={state.payload}
           variant="outlook"

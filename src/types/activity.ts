@@ -174,6 +174,9 @@ export type Activity = {
   Company: SharePointLookup | null;
   Contact: SharePointLookup | null;
   Deal: SharePointLookup | null;
+  /** Project Workspace Light id (JSON project store — not a SharePoint lookup). */
+  ProjectId?: string | null;
+  ProjectName?: string | null;
   ActivityOwner: SharePointPerson | null;
   ActionRequired: boolean;
   NextAction: string;
@@ -239,6 +242,8 @@ export type CreateActivityInput = Pick<
   Company?: SharePointLookup | { CompanyID: string } | null;
   Contact?: SharePointLookup | { ContactID: string } | null;
   Deal?: SharePointLookup | { DealID: string } | null;
+  ProjectId?: string | null;
+  ProjectName?: string | null;
   ActivityOwner?: SharePointPerson | null;
 };
 
@@ -276,7 +281,9 @@ export type ActivityWorkspaceContext = {
   companyId?: string;
   contactId?: string;
   dealId?: string;
+  projectId?: string;
   companyName?: string;
   contactName?: string;
   dealName?: string;
+  projectName?: string;
 };

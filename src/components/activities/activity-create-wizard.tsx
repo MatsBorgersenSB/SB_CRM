@@ -76,6 +76,10 @@ function extractPresetDealId(preset: Partial<CreateActivityInput> | undefined): 
   return deal.Title ?? "";
 }
 
+function extractPresetProjectId(preset: Partial<CreateActivityInput> | undefined): string {
+  return preset?.ProjectId?.trim() ?? "";
+}
+
 export function ActivityCreateWizard({
   open,
   onClose,
@@ -92,6 +96,8 @@ export function ActivityCreateWizard({
   const [companyId, setCompanyId] = useState("");
   const [contactId, setContactId] = useState("");
   const [dealId, setDealId] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [subject, setSubject] = useState("");
   const [summary, setSummary] = useState("");
   const [notes, setNotes] = useState("");
@@ -118,6 +124,8 @@ export function ActivityCreateWizard({
     setCompanyId(extractPresetCompanyId(preset));
     setContactId(extractPresetContactId(preset));
     setDealId(extractPresetDealId(preset));
+    setProjectId(extractPresetProjectId(preset));
+    setProjectName(preset?.ProjectName?.trim() ?? "");
     setSubject(preset?.Subject ?? "");
     setSummary(preset?.Summary ?? "");
     setNotes(preset?.ActivityDescription ?? "");
@@ -148,11 +156,13 @@ export function ActivityCreateWizard({
 
   const stepLabels = STEPS[mode];
 
+  const contextLocked = Boolean(extractPresetDealId(preset) || extractPresetProjectId(preset));
+
   const canNext =
     step === 1
       ? Boolean(activityType)
       : step === 2
-        ? Boolean(companyId || contactId || dealId)
+        ? Boolean(companyId || contactId || dealId || projectId)
         : step === 3
           ? mode === "plan"
             ? Boolean(subject.trim())
@@ -182,6 +192,8 @@ export function ActivityCreateWizard({
     setCompanyId("");
     setContactId("");
     setDealId("");
+    setProjectId("");
+    setProjectName("");
     setSubject("");
     setSummary("");
     setNotes("");
@@ -227,6 +239,8 @@ export function ActivityCreateWizard({
         Company: companyId ? { CompanyID: companyId } : null,
         Contact: contactId ? { ContactID: contactId } : null,
         Deal: dealId ? { DealID: dealId } : null,
+        ProjectId: projectId || null,
+        ProjectName: projectId ? projectName || null : null,
         LinkedDeals: dealId ? [{ Id: 0, Title: dealId }] : [],
         LinkedContacts: contactId
           ? [
@@ -325,6 +339,20 @@ export function ActivityCreateWizard({
 
           {step === 2 ? (
             <div className="grid gap-3">
+              {contextLocked ? (
+                <div className="border border-upcycle-orange/25 bg-upcycle-orange/[0.04] px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
+                    Auto-tagged from workspace
+                  </p>
+                  <p className="mt-1 text-[13px] text-carbon-blue">
+                    {projectId
+                      ? `Project · ${projectName || projectId}`
+                      : dealId
+                        ? `Opportunity · ${selectedDeal?.assetName || dealId}`
+                        : "Workspace context"}
+                  </p>
+                </div>
+              ) : null}
               <label className="block">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
                   Company
@@ -361,23 +389,26 @@ export function ActivityCreateWizard({
                   )}
                 </select>
               </label>
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Opportunity
-                </span>
-                <select
-                  value={dealId}
-                  onChange={(e) => handleDealChange(e.target.value)}
-                  className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                >
-                  <option value="">Select opportunity…</option>
-                  {pipelines.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.id} — {p.assetName}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {!projectId ? (
+                <label className="block">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                    Opportunity
+                  </span>
+                  <select
+                    value={dealId}
+                    onChange={(e) => handleDealChange(e.target.value)}
+                    disabled={Boolean(extractPresetDealId(preset))}
+                    className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40 disabled:bg-carbon-blue/[0.03] disabled:text-carbon-blue/70"
+                  >
+                    <option value="">Select opportunity…</option>
+                    {pipelines.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.id} — {p.assetName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
             </div>
           ) : null}
 

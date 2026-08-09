@@ -18,6 +18,7 @@ export {
 } from "./provision-opportunity-folder";
 export {
   resolveOutlookCounterpartyEmail,
+  resolveOutlookConversationId,
   resolveOutlookSenderDetails,
   resolveDevEmail,
   resolveDevDisplayName,
