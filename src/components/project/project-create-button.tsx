@@ -7,12 +7,21 @@ import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import { canCreateProject } from "@/lib/permissions";
 import { project360Href } from "@/types/relationship-navigation";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import type { ProjectKind } from "@/types/project";
+
+const PROJECT_KINDS: Array<{ value: ProjectKind; label: string }> = [
+  { value: "internal", label: "Internal development" },
+  { value: "customer", label: "Customer project" },
+  { value: "strategic", label: "Strategic initiative" },
+  { value: "research", label: "Research" },
+];
 
 export function ProjectCreateButton() {
   const { user } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [kind, setKind] = useState<ProjectKind>("internal");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +40,11 @@ export function ProjectCreateButton() {
           "Content-Type": "application/json",
           [AUTH_ROLE_HEADER]: user.role,
         },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          kind,
+          owner: user.displayName?.trim() || undefined,
+        }),
       });
       if (!response.ok) {
         const payload = (await response.json()) as { error?: string };
@@ -39,6 +52,7 @@ export function ProjectCreateButton() {
       }
       const project = (await response.json()) as { id: string };
       router.push(`${project360Href(project.id)}?view=actions&action=questions`);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");
     } finally {
@@ -62,9 +76,25 @@ export function ProjectCreateButton() {
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="e.g. Site expansion phase 2"
+              placeholder="e.g. Bio4Metal"
               className="mt-1 w-full max-w-md border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
             />
+          </label>
+          <label className="mt-3 block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              Type
+            </span>
+            <select
+              value={kind}
+              onChange={(event) => setKind(event.target.value as ProjectKind)}
+              className="mt-1 w-full max-w-md border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
+            >
+              {PROJECT_KINDS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
           {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
           <div className="mt-3 flex gap-2">
@@ -82,6 +112,7 @@ export function ProjectCreateButton() {
               onClick={() => {
                 setOpen(false);
                 setName("");
+                setKind("internal");
                 setError(null);
               }}
               className="px-3 py-1.5 text-xs font-semibold text-carbon-blue/55"

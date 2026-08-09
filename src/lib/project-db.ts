@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { PROJECTS } from "@/data/projects-data";
+import { getPrisma } from "@/lib/prisma";
 import { normalizeProjectRelationships } from "@/lib/project-relationship-utils";
 import { normalizeProjectTeam } from "@/lib/project-team-utils";
 import type { Project } from "@/types/project";
@@ -8,6 +9,7 @@ import type {
   ProjectRelatedOrganization,
   ProjectStakeholderRecord,
 } from "@/types/project-relationships";
+import type { Prisma } from "@/generated/prisma";
 
 export type ProjectsDatabase = {
   projects: Project[];
@@ -22,20 +24,22 @@ export type ProjectPatch = Partial<
     | "projectStakeholders"
     | "removedStakeholders"
     | "linkedCompanyId"
+    | "kind"
+    | "name"
+    | "status"
+    | "stage"
+    | "priority"
+    | "health"
+    | "strategicImportance"
+    | "objective"
+    | "problem"
+    | "successCriteria"
+    | "linkedDealId"
   >
 >;
 
-/** Bundled seed checked into the repo. */
+/** Bundled seed checked into the repo (first-time Neon seed only). */
 const BUNDLED_DB_PATH = path.join(process.cwd(), "src/data/projects-db.json");
-
-/**
- * On Vercel the deployment FS is read-only. Persist mutations under /tmp so
- * stakeholder/org updates do not fail with EROFS.
- */
-const DB_PATH =
-  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
-    ? path.join("/tmp", "projects-db.json")
-    : BUNDLED_DB_PATH;
 
 function normalizeProject(project: Project): Project {
   const seed = PROJECTS.find((entry) => entry.id === project.id);
@@ -57,85 +61,92 @@ function normalizeProject(project: Project): Project {
   return normalizeProjectRelationships(normalizeProjectTeam(withSeed));
 }
 
-async function readRawDb(): Promise<string | null> {
-  try {
-    return await fs.readFile(DB_PATH, "utf-8");
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException)?.code;
-    if (code === "ENOENT" && DB_PATH !== BUNDLED_DB_PATH) {
-      try {
-        return await fs.readFile(BUNDLED_DB_PATH, "utf-8");
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
+function rowToProject(row: { id: string; data: unknown }): Project {
+  const payload =
+    row.data && typeof row.data === "object"
+      ? (row.data as Project)
+      : ({ id: row.id, name: row.id } as Project);
+  return normalizeProject({ ...payload, id: row.id });
 }
 
-async function readDbFile(): Promise<ProjectsDatabase | null> {
+async function loadBundledSeedProjects(): Promise<Project[]> {
   try {
-    const raw = await readRawDb();
-    if (!raw) return null;
+    const raw = await fs.readFile(BUNDLED_DB_PATH, "utf-8");
     const parsed = JSON.parse(raw) as ProjectsDatabase;
-    return {
-      projects: (parsed.projects ?? []).map(normalizeProject),
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function writeDb(database: ProjectsDatabase): Promise<void> {
-  await fs.writeFile(DB_PATH, JSON.stringify(database, null, 2), "utf-8");
-}
-
-async function ensureDb(): Promise<ProjectsDatabase> {
-  const existing = await readDbFile();
-  if (existing?.projects?.length) {
-    // On Vercel, copy bundled → /tmp on first writeable ensure so PATCH can persist.
-    if (DB_PATH !== BUNDLED_DB_PATH) {
-      try {
-        await fs.access(DB_PATH);
-      } catch {
-        await writeDb(existing);
-      }
+    if (Array.isArray(parsed.projects) && parsed.projects.length > 0) {
+      return parsed.projects.map(normalizeProject);
     }
-    return existing;
+  } catch {
+    // Fall through to in-code seed.
   }
+  return PROJECTS.map(normalizeProject);
+}
 
-  const database: ProjectsDatabase = { projects: PROJECTS.map(normalizeProject) };
-  await writeDb(database);
-  return database;
+/**
+ * Seed Neon once from the bundled JSON so existing projects (Carbon Emergente, etc.)
+ * survive the move off ephemeral /tmp filesystem storage.
+ */
+async function ensureSeeded(): Promise<void> {
+  const prisma = getPrisma();
+  const count = await prisma.projectWorkspace.count();
+  if (count > 0) return;
+
+  const projects = await loadBundledSeedProjects();
+  if (projects.length === 0) return;
+
+  await prisma.projectWorkspace.createMany({
+    data: projects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      kind: project.kind,
+      data: project as unknown as Prisma.InputJsonValue,
+    })),
+    skipDuplicates: true,
+  });
 }
 
 export async function readProjects(): Promise<Project[]> {
-  const database = await ensureDb();
-  return [...database.projects];
+  await ensureSeeded();
+  const rows = await getPrisma().projectWorkspace.findMany({
+    orderBy: { name: "asc" },
+  });
+  return rows.map(rowToProject);
 }
 
 export async function readProjectById(projectId: string): Promise<Project | null> {
-  const database = await ensureDb();
-  const project = database.projects.find((entry) => entry.id === projectId);
-  return project ? normalizeProject(project) : null;
+  await ensureSeeded();
+  const row = await getPrisma().projectWorkspace.findUnique({
+    where: { id: projectId },
+  });
+  return row ? rowToProject(row) : null;
 }
 
 export async function updateProject(projectId: string, patch: ProjectPatch): Promise<Project> {
-  const database = await ensureDb();
-  const index = database.projects.findIndex((project) => project.id === projectId);
+  await ensureSeeded();
+  const prisma = getPrisma();
+  const existing = await prisma.projectWorkspace.findUnique({
+    where: { id: projectId },
+  });
 
-  if (index === -1) {
+  if (!existing) {
     throw new Error(`Project not found: ${projectId}`);
   }
 
   const updated = normalizeProject({
-    ...database.projects[index],
+    ...rowToProject(existing),
     ...patch,
-    id: database.projects[index].id,
+    id: existing.id,
   });
 
-  database.projects[index] = updated;
-  await writeDb(database);
+  await prisma.projectWorkspace.update({
+    where: { id: projectId },
+    data: {
+      name: updated.name,
+      kind: updated.kind,
+      data: updated as unknown as Prisma.InputJsonValue,
+    },
+  });
+
   return updated;
 }
 
@@ -193,10 +204,13 @@ function createProjectId(name: string, existingIds: Set<string>): string {
 }
 
 export async function createProject(input: CreateProjectInput): Promise<Project> {
-  const database = await ensureDb();
-  const existingIds = new Set(database.projects.map((project) => project.id));
+  await ensureSeeded();
+  const prisma = getPrisma();
+  const existing = await prisma.projectWorkspace.findMany({ select: { id: true } });
+  const existingIds = new Set(existing.map((row) => row.id));
   const id = createProjectId(input.name, existingIds);
 
+  const kind = input.kind ?? "customer";
   const relatedOrganizations = input.linkedCompanyId
     ? [
         {
@@ -212,7 +226,7 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
   const project: Project = normalizeProject({
     id,
     name: input.name.trim() || "Untitled Project",
-    kind: input.kind ?? "customer",
+    kind,
     owner: input.owner?.trim() ?? "",
     status: "Planning",
     stage: "Planning",
@@ -233,7 +247,14 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
     risks: [],
   });
 
-  database.projects.push(project);
-  await writeDb(database);
+  await prisma.projectWorkspace.create({
+    data: {
+      id: project.id,
+      name: project.name,
+      kind: project.kind,
+      data: project as unknown as Prisma.InputJsonValue,
+    },
+  });
+
   return project;
 }
