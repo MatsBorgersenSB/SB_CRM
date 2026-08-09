@@ -1,6 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import type { ActivityWorkspaceContext } from "@/types/activity";
+import type { Company } from "@/types/company";
+import type { PipelineRow } from "@/types/pipeline";
 import type { Project, ProjectIntelligence } from "@/types/project";
 import { PROJECT_STAGE_LABELS } from "@/types/project";
 import type { ProjectActionTab } from "@/types/project-actions";
@@ -41,6 +44,9 @@ export function ProjectMissionControl({
   organizationsOverview,
   stakeholderIntelligenceOverview,
   stakeholdersOverview,
+  companies = [],
+  pipelines = [],
+  activityContext,
   role = "superuser",
   emailsReadOnly = false,
 }: {
@@ -55,6 +61,9 @@ export function ProjectMissionControl({
   organizationsOverview?: ReactNode;
   stakeholderIntelligenceOverview?: ReactNode;
   stakeholdersOverview?: ReactNode;
+  companies?: Company[];
+  pipelines?: PipelineRow[];
+  activityContext: ActivityWorkspaceContext;
   role?: UserRole;
   emailsReadOnly?: boolean;
 }) {
@@ -89,7 +98,13 @@ export function ProjectMissionControl({
 
   return (
     <section aria-label="Project mission control" className="flex flex-col">
-      <ProjectMissionControlTabBar active={view} onChange={onViewChange} />
+      <ProjectMissionControlTabBar
+        active={view}
+        onChange={onViewChange}
+        activityContext={activityContext}
+        companies={companies}
+        pipelines={pipelines}
+      />
 
       {view === "actions" ? (
         <div className="mt-4">

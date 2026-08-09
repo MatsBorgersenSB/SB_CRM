@@ -372,6 +372,15 @@ export function Project360LivingWorkspace({
         organizationsOverview={organizationsOverview}
         stakeholderIntelligenceOverview={stakeholderIntelligenceOverview}
         stakeholdersOverview={stakeholdersOverview}
+        companies={companies}
+        pipelines={pipelines}
+        activityContext={{
+          projectId: project.id,
+          projectName: project.name,
+          dealId: project.linkedDealId,
+          companyId: project.linkedCompanyId,
+          companyName: linkedCompany?.Title,
+        }}
         role={role}
         emailsReadOnly={relationshipsReadOnly}
       />

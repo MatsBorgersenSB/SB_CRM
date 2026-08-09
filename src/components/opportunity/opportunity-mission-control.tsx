@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import type { Activity } from "@/types/activity";
+import type { Activity, ActivityWorkspaceContext } from "@/types/activity";
 import type { AttentionItem } from "@/types/attention-item";
 import type { CommercialViabilityAssessment } from "@/types/commercial-viability";
 import type { Company } from "@/types/company";
@@ -125,6 +125,16 @@ export function OpportunityMissionControl({
 
   const topGap = understanding.knowledgeModel.criticalGaps[0];
 
+  const activityContext = useMemo<ActivityWorkspaceContext>(() => {
+    const company = companies.find((row) => row.pipelineIds.includes(pipeline.id));
+    return {
+      companyId: company?.CompanyID,
+      companyName: company?.Title,
+      dealId: pipeline.id,
+      dealName: pipeline.assetName,
+    };
+  }, [pipeline.id, pipeline.assetName, companies]);
+
   const discoveryCounts = useMemo(
     () => ({
       questions: understanding.suggestedQuestions.length,
@@ -144,7 +154,13 @@ export function OpportunityMissionControl({
     <section aria-label="Mission control" className="flex flex-col gap-4">
       <div className={`${ATTIO_SURFACE} overflow-hidden`}>
         <div className={ATTIO_SURFACE_HEADER}>
-          <OpportunityMissionControlTabBar active={view} onChange={onViewChange} />
+          <OpportunityMissionControlTabBar
+            active={view}
+            onChange={onViewChange}
+            activityContext={activityContext}
+            companies={companies}
+            pipelines={pipelines}
+          />
         </div>
 
         {view === "actions" ? (
