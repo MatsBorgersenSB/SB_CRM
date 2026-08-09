@@ -82,6 +82,8 @@ export function ContactRecentOutlook({
   const [domainFilter, setDomainFilter] = useState<"all" | "external">("external");
   const [purgingId, setPurgingId] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,76 +130,91 @@ export function ContactRecentOutlook({
     void load();
   }, [load]);
 
+  const applyLinksToConversation = async (
+    conversationId: string,
+    links: { opportunityId?: string | null; projectId?: string | null },
+  ): Promise<void> => {
+    const response = await fetch(
+      `/api/contacts/${encodeURIComponent(contactId)}/emails`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          [AUTH_ROLE_HEADER]: role,
+        },
+        body: JSON.stringify({ conversationId, ...links }),
+      },
+    );
+    const payload = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      detail?: string;
+      opportunityName?: string | null;
+      opportunityCode?: string | null;
+      projectName?: string | null;
+    };
+    if (!response.ok) {
+      throw new Error(payload.detail || payload.error || "Could not update link");
+    }
+
+    const oppOption =
+      links.opportunityId !== undefined && links.opportunityId
+        ? opportunityOptions.find((row) => row.id === links.opportunityId)
+        : null;
+    const projectOption =
+      links.projectId !== undefined && links.projectId
+        ? projectOptions.find((row) => row.id === links.projectId)
+        : null;
+
+    setThreads((current) =>
+      current.map((thread) => {
+        if (thread.conversationId !== conversationId) return thread;
+        return {
+          ...thread,
+          messages: thread.messages.map((message) => ({
+            ...message,
+            ...(links.opportunityId !== undefined
+              ? {
+                  opportunityId: links.opportunityId,
+                  opportunityName:
+                    links.opportunityId == null
+                      ? null
+                      : (payload.opportunityName ?? oppOption?.name ?? null),
+                  opportunityCode:
+                    links.opportunityId == null
+                      ? null
+                      : (payload.opportunityCode ?? oppOption?.code ?? null),
+                }
+              : {}),
+            ...(links.projectId !== undefined
+              ? {
+                  projectId: links.projectId,
+                  projectName:
+                    links.projectId == null
+                      ? null
+                      : (payload.projectName ?? projectOption?.name ?? null),
+                }
+              : {}),
+          })),
+        };
+      }),
+    );
+  };
+
   const setThreadLinks = async (
     conversationId: string,
     links: { opportunityId?: string | null; projectId?: string | null },
   ) => {
     setLinkingId(conversationId);
     setError(null);
+    setStatusMessage(null);
     try {
-      const response = await fetch(
-        `/api/contacts/${encodeURIComponent(contactId)}/emails`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            [AUTH_ROLE_HEADER]: role,
-          },
-          body: JSON.stringify({ conversationId, ...links }),
-        },
-      );
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        detail?: string;
-        opportunityName?: string | null;
-        opportunityCode?: string | null;
-        projectName?: string | null;
-      };
-      if (!response.ok) {
-        throw new Error(payload.detail || payload.error || "Could not update link");
-      }
-
-      const oppOption =
-        links.opportunityId !== undefined && links.opportunityId
-          ? opportunityOptions.find((row) => row.id === links.opportunityId)
-          : null;
-      const projectOption =
-        links.projectId !== undefined && links.projectId
-          ? projectOptions.find((row) => row.id === links.projectId)
-          : null;
-
-      setThreads((current) =>
-        current.map((thread) => {
-          if (thread.conversationId !== conversationId) return thread;
-          return {
-            ...thread,
-            messages: thread.messages.map((message) => ({
-              ...message,
-              ...(links.opportunityId !== undefined
-                ? {
-                    opportunityId: links.opportunityId,
-                    opportunityName:
-                      links.opportunityId == null
-                        ? null
-                        : (payload.opportunityName ?? oppOption?.name ?? null),
-                    opportunityCode:
-                      links.opportunityId == null
-                        ? null
-                        : (payload.opportunityCode ?? oppOption?.code ?? null),
-                  }
-                : {}),
-              ...(links.projectId !== undefined
-                ? {
-                    projectId: links.projectId,
-                    projectName:
-                      links.projectId == null
-                        ? null
-                        : (payload.projectName ?? projectOption?.name ?? null),
-                  }
-                : {}),
-            })),
-          };
-        }),
+      await applyLinksToConversation(conversationId, links);
+      setStatusMessage(
+        links.opportunityId === null && links.projectId === undefined
+          ? "Opportunity cleared — Not linked."
+          : links.projectId === null && links.opportunityId === undefined
+            ? "Project cleared — Not linked."
+            : "Link updated.",
       );
     } catch (linkError) {
       setError(
@@ -205,6 +222,31 @@ export function ContactRecentOutlook({
       );
     } finally {
       setLinkingId(null);
+    }
+  };
+
+  const applyBulkLinks = async (
+    links: { opportunityId?: string | null; projectId?: string | null },
+    successLabel: string,
+  ) => {
+    if (visibleThreads.length === 0) return;
+    setBulkBusy(true);
+    setError(null);
+    setStatusMessage(null);
+    try {
+      for (const thread of visibleThreads) {
+        await applyLinksToConversation(thread.conversationId, links);
+      }
+      setStatusMessage(successLabel);
+    } catch (bulkError) {
+      setError(
+        bulkError instanceof Error
+          ? bulkError.message
+          : "Could not update all threads",
+      );
+      await load();
+    } finally {
+      setBulkBusy(false);
     }
   };
 
@@ -300,8 +342,9 @@ export function ContactRecentOutlook({
       </div>
 
       <p className="mb-2 text-[11px] leading-relaxed text-carbon-blue/50">
-        Link each thread to the correct opportunity and/or project. Remove private or
-        irrelevant mail from SmartCRM.
+        Link each thread to the correct opportunity and/or project — or choose Not
+        linked. Sync will not override your choice. Remove private or irrelevant mail
+        from SmartCRM.
       </p>
 
       {!loading && threads.length > 0 ? (
@@ -315,11 +358,73 @@ export function ContactRecentOutlook({
         />
       ) : null}
 
+      {!loading && visibleThreads.length > 0 ? (
+        <div className="mb-2 flex flex-wrap items-end gap-2 border border-carbon-blue/10 bg-white px-2 py-2">
+          <p className="w-full text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            Apply to all shown threads
+          </p>
+          <button
+            type="button"
+            disabled={bulkBusy}
+            onClick={() =>
+              void applyBulkLinks(
+                { opportunityId: null },
+                "Cleared opportunity on all shown threads (Not linked).",
+              )
+            }
+            className="border border-carbon-blue/20 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70 hover:border-upcycle-orange/50 hover:text-upcycle-orange disabled:opacity-50"
+          >
+            Clear opportunity
+          </button>
+          <label className="min-w-[12rem] flex-1">
+            <span className="sr-only">Set project on all shown threads</span>
+            <select
+              disabled={bulkBusy || projectOptions.length === 0}
+              defaultValue=""
+              onChange={(event) => {
+                const value = event.target.value;
+                event.target.value = "";
+                if (!value) return;
+                if (value === "__clear__") {
+                  void applyBulkLinks(
+                    { projectId: null },
+                    "Cleared project on all shown threads (Not linked).",
+                  );
+                  return;
+                }
+                const option = projectOptions.find((row) => row.id === value);
+                void applyBulkLinks(
+                  { projectId: value },
+                  option
+                    ? `Linked all shown threads to ${option.label}.`
+                    : "Linked all shown threads to the selected project.",
+                );
+              }}
+              className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
+            >
+              <option value="">Set project…</option>
+              <option value="__clear__">Not linked (clear project)</option>
+              {projectOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {bulkBusy ? (
+            <span className="text-[11px] text-carbon-blue/45">Updating…</span>
+          ) : null}
+        </div>
+      ) : null}
+
       {loading ? (
         <p className="text-[12px] text-carbon-blue/45">Loading Outlook threads…</p>
       ) : null}
 
       {error ? <p className="text-[12px] text-red-700/80">{error}</p> : null}
+      {statusMessage && !error ? (
+        <p className="text-[12px] text-carbon-blue/70">{statusMessage}</p>
+      ) : null}
 
       {!loading && !error && visibleThreads.length === 0 ? (
         <div className="space-y-1 text-[12px] leading-relaxed text-carbon-blue/55">
@@ -386,7 +491,7 @@ export function ContactRecentOutlook({
                   </span>
                   <select
                     value={dealId ?? ""}
-                    disabled={busy}
+                    disabled={busy || bulkBusy}
                     onChange={(event) => {
                       const value = event.target.value;
                       void setThreadLinks(thread.conversationId, {
@@ -396,6 +501,14 @@ export function ContactRecentOutlook({
                     className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
                   >
                     <option value="">Not linked</option>
+                    {dealId &&
+                    !opportunityOptions.some((option) => option.id === dealId) ? (
+                      <option value={dealId}>
+                        {latest.opportunityCode
+                          ? `${latest.opportunityCode} · ${latest.opportunityName ?? dealId}`
+                          : (latest.opportunityName ?? dealId)}
+                      </option>
+                    ) : null}
                     {opportunityOptions.map((option) => (
                       <option key={option.id} value={option.id}>
                         {option.label}
@@ -410,7 +523,7 @@ export function ContactRecentOutlook({
                   </span>
                   <select
                     value={projectId ?? ""}
-                    disabled={busy}
+                    disabled={busy || bulkBusy}
                     onChange={(event) => {
                       const value = event.target.value;
                       void setThreadLinks(thread.conversationId, {
@@ -420,6 +533,12 @@ export function ContactRecentOutlook({
                     className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
                   >
                     <option value="">Not linked</option>
+                    {projectId &&
+                    !projectOptions.some((option) => option.id === projectId) ? (
+                      <option value={projectId}>
+                        {latest.projectName ?? projectId}
+                      </option>
+                    ) : null}
                     {projectOptions.map((option) => (
                       <option key={option.id} value={option.id}>
                         {option.label}
