@@ -183,7 +183,10 @@ function toEmailDto(message: {
     senderIsExternal,
     isInternalOnly,
     recipientDomains,
-    m365CategoryName: message.m365CategoryName,
+    // Only surface intentional tags (intent:…); hide legacy sync pollution.
+    m365CategoryName: message.m365CategoryName?.startsWith("intent:")
+      ? message.m365CategoryName.slice("intent:".length) || null
+      : null,
     isDeletedInSource: message.isDeletedInSource,
     deletedAtInSource: message.deletedAtInSource?.toISOString() ?? null,
     createdAt: message.createdAt.toISOString(),
@@ -538,8 +541,6 @@ export async function setConversationLinksForContact(
     opportunityId?: string | null;
     projectId?: string | null;
     projectName?: string | null;
-    /** Keep SmartCRM category aligned with the real opportunity link (never stale VEAS labels). */
-    m365CategoryName?: string | null;
   } = {};
 
   let opportunityName: string | null = null;
@@ -563,11 +564,8 @@ export async function setConversationLinksForContact(
       opportunityName = opportunity.name;
       opportunityCode = opportunity.code;
       data.opportunityId = opportunity.id;
-      data.m365CategoryName = `SmartCRM / ${opportunity.name.replace(/[^\w\s\-./]/g, "").trim().slice(0, 80) || "Opportunity"}`;
     } else {
       data.opportunityId = null;
-      // Clearing the deal must drop the Outlook category badge in SmartCRM.
-      data.m365CategoryName = null;
     }
   }
 
@@ -641,13 +639,79 @@ export async function setConversationLinksForContact(
     data,
   });
 
+  // Resolve final link state for intentional Outlook category (user action only).
+  const sample = await prisma.emailMessageRecord.findFirst({
+    where: { conversationId },
+    select: {
+      opportunityId: true,
+      projectId: true,
+      projectName: true,
+      opportunity: { select: { name: true } },
+    },
+  });
+  const finalOpportunityName = sample?.opportunity?.name ?? opportunityName;
+  const finalProjectName = sample?.projectName ?? projectName;
+  const {
+    buildOpportunityCategoryName,
+    buildProjectCategoryName,
+    applySmartCrmCategories,
+    stripSmartCrmCategories,
+    getActiveM365AccessToken,
+    toIntentionalCategoryLabel,
+  } = await import("@/lib/m365-client");
+
+  let outlookCategoryName: string | null = null;
+  if (sample?.opportunityId && finalOpportunityName) {
+    outlookCategoryName = buildOpportunityCategoryName(finalOpportunityName);
+  } else if (sample?.projectId && finalProjectName) {
+    outlookCategoryName = buildProjectCategoryName(finalProjectName);
+  }
+
+  const storedCategoryName = outlookCategoryName
+    ? toIntentionalCategoryLabel(outlookCategoryName)
+    : null;
+
+  await prisma.emailMessageRecord.updateMany({
+    where: { conversationId },
+    data: { m365CategoryName: storedCategoryName },
+  });
+
+  // Push intentional tag (or strip) to Outlook for every message we can reach.
+  const graphMessages = await prisma.emailMessageRecord.findMany({
+    where: { conversationId },
+    select: { externalMessageId: true },
+  });
+  const token = await getActiveM365AccessToken();
+  if (token) {
+    for (const message of graphMessages) {
+      try {
+        if (outlookCategoryName && finalOpportunityName) {
+          await applySmartCrmCategories(token.accessToken, message.externalMessageId, {
+            opportunityName: finalOpportunityName,
+          });
+        } else if (outlookCategoryName && finalProjectName) {
+          await applySmartCrmCategories(token.accessToken, message.externalMessageId, {
+            projectName: finalProjectName,
+          });
+        } else {
+          await stripSmartCrmCategories(token.accessToken, message.externalMessageId);
+        }
+      } catch (error) {
+        console.warn(
+          "[email-intelligence] Outlook category sync failed:",
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+  }
+
   return {
     updated: result.count,
     opportunityId: links.opportunityId,
-    opportunityName,
+    opportunityName: finalOpportunityName,
     opportunityCode,
     projectId: links.projectId,
-    projectName,
+    projectName: finalProjectName,
   };
 }
 

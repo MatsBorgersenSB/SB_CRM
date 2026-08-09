@@ -7,6 +7,7 @@ import {
   getActiveM365AccessToken,
 } from "@/lib/m365-client";
 import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
+import { getPrisma } from "@/lib/prisma";
 
 function htmlToPlainText(html: string): string {
   return html
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       subject?: string;
       bodyHtml?: string;
       opportunityId?: string;
+      projectId?: string;
       integrationId?: string;
     };
 
@@ -51,6 +53,22 @@ export async function POST(request: Request) {
         { error: "toEmail, subject, and bodyHtml are required" },
         { status: 400 },
       );
+    }
+
+    let opportunityName: string | null = null;
+    let projectName: string | null = null;
+    const opportunityId = body.opportunityId?.trim() || null;
+    const projectId = body.projectId?.trim() || null;
+    if (opportunityId) {
+      const opportunity = await getPrisma().opportunity.findUnique({
+        where: { id: opportunityId },
+        select: { name: true },
+      });
+      opportunityName = opportunity?.name ?? null;
+    } else if (projectId) {
+      const { readProjectById } = await import("@/lib/project-db");
+      const project = await readProjectById(projectId);
+      projectName = project?.name ?? null;
     }
 
     let integrationId = body.integrationId?.trim() || null;
@@ -69,6 +87,8 @@ export async function POST(request: Request) {
         toEmail,
         subject,
         bodyHtml,
+        opportunityName,
+        projectName,
       });
 
       return NextResponse.json({
@@ -76,7 +96,8 @@ export async function POST(request: Request) {
         mode: "graph_draft",
         draftId: draft.draftId,
         webLink: draft.webLink,
-        opportunityId: body.opportunityId ?? null,
+        opportunityId,
+        projectId,
       });
     }
 
@@ -90,7 +111,8 @@ export async function POST(request: Request) {
       success: true,
       mode: "deep_link",
       deepLink,
-      opportunityId: body.opportunityId ?? null,
+      opportunityId,
+      projectId,
     });
   } catch (error) {
     console.error("[m365 draft POST]", error);
