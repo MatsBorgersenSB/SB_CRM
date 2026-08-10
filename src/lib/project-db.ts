@@ -2,7 +2,10 @@ import { promises as fs } from "fs";
 import path from "path";
 import { PROJECTS } from "@/data/projects-data";
 import { getPrisma } from "@/lib/prisma";
-import { normalizeProjectRelationships } from "@/lib/project-relationship-utils";
+import {
+  detachCompanyFromProject,
+  normalizeProjectRelationships,
+} from "@/lib/project-relationship-utils";
 import { normalizeProjectTeam } from "@/lib/project-team-utils";
 import type { Project } from "@/types/project";
 import type {
@@ -10,6 +13,15 @@ import type {
   ProjectStakeholderRecord,
 } from "@/types/project-relationships";
 import type { Prisma } from "@/generated/prisma";
+
+/**
+ * Known false pilot links — Reality First corrections.
+ * DorsetGM (CO-1009) was seeded as Carbon Emergente's customer/site owner
+ * without a real company↔project relationship.
+ */
+const FALSE_PROJECT_COMPANY_LINKS: ReadonlyArray<{ projectId: string; companyId: string }> = [
+  { projectId: "PRJ-CARBON-EMERGENTE", companyId: "CO-1009" },
+];
 
 export type ProjectsDatabase = {
   projects: Project[];
@@ -44,7 +56,7 @@ const BUNDLED_DB_PATH = path.join(process.cwd(), "src/data/projects-db.json");
 
 function normalizeProject(project: Project): Project {
   const seed = PROJECTS.find((entry) => entry.id === project.id);
-  const withSeed: Project = {
+  let withSeed: Project = {
     ...project,
     team: project.team?.length ? project.team : (seed?.team ?? []),
     relatedOrganizations:
@@ -59,6 +71,12 @@ function normalizeProject(project: Project): Project {
     stakeholders: project.stakeholders ?? seed?.stakeholders,
     internalMembers: project.internalMembers ?? seed?.internalMembers,
   };
+
+  for (const link of FALSE_PROJECT_COMPANY_LINKS) {
+    if (withSeed.id !== link.projectId) continue;
+    withSeed = detachCompanyFromProject(withSeed, link.companyId).project;
+  }
+
   return normalizeProjectRelationships(normalizeProjectTeam(withSeed));
 }
 
@@ -84,26 +102,61 @@ async function loadBundledSeedProjects(): Promise<Project[]> {
 }
 
 /**
+ * Persist Reality First repairs for known false company↔project links that
+ * already landed in Neon from the pilot seed (ensureSeeded only runs when empty).
+ */
+async function repairFalseProjectCompanyLinks(): Promise<void> {
+  const prisma = getPrisma();
+
+  for (const link of FALSE_PROJECT_COMPANY_LINKS) {
+    const row = await prisma.projectWorkspace.findUnique({
+      where: { id: link.projectId },
+    });
+    if (!row) continue;
+
+    const payload =
+      row.data && typeof row.data === "object"
+        ? (row.data as Project)
+        : ({ id: row.id, name: row.name } as Project);
+    const current = { ...payload, id: row.id };
+    const { project: repaired, changed } = detachCompanyFromProject(current, link.companyId);
+    if (!changed) continue;
+
+    const normalized = normalizeProject(repaired);
+    await prisma.projectWorkspace.update({
+      where: { id: row.id },
+      data: {
+        name: normalized.name,
+        kind: normalized.kind,
+        data: normalized as unknown as Prisma.InputJsonValue,
+      },
+    });
+  }
+}
+
+/**
  * Seed Neon once from the bundled JSON so existing projects (Carbon Emergente, etc.)
  * survive the move off ephemeral /tmp filesystem storage.
  */
 async function ensureSeeded(): Promise<void> {
   const prisma = getPrisma();
   const count = await prisma.projectWorkspace.count();
-  if (count > 0) return;
+  if (count === 0) {
+    const projects = await loadBundledSeedProjects();
+    if (projects.length > 0) {
+      await prisma.projectWorkspace.createMany({
+        data: projects.map((project) => ({
+          id: project.id,
+          name: project.name,
+          kind: project.kind,
+          data: project as unknown as Prisma.InputJsonValue,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
 
-  const projects = await loadBundledSeedProjects();
-  if (projects.length === 0) return;
-
-  await prisma.projectWorkspace.createMany({
-    data: projects.map((project) => ({
-      id: project.id,
-      name: project.name,
-      kind: project.kind,
-      data: project as unknown as Prisma.InputJsonValue,
-    })),
-    skipDuplicates: true,
-  });
+  await repairFalseProjectCompanyLinks();
 }
 
 export async function readProjects(): Promise<Project[]> {

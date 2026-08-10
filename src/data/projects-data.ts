@@ -17,17 +17,11 @@ export const PROJECTS: Project[] = [
     problem: "",
     successCriteria:
       "Stable operational relationship, timely follow-up, and clear path to expansion opportunities when evidence emerges.",
-    linkedCompanyId: "CO-1009",
+    // Reality First: no company account until Carbon Emergente (or another org) is
+    // explicitly linked on the project. Do not use DorsetGM (CO-1009) as a placeholder.
+    linkedCompanyId: undefined,
     linkedDealId: "PL-1031",
-    relatedOrganizations: [
-      {
-        id: "org-ce-customer",
-        companyId: "CO-1009",
-        organizationType: "customer",
-        isPrimary: true,
-        label: "Site owner",
-      },
-    ],
+    relatedOrganizations: [],
     projectStakeholders: [
       {
         id: "ps-ce-cl",
