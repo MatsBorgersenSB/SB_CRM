@@ -64,7 +64,13 @@ export async function assignDocumentToSet(
     DocumentSetID: documentSetId,
   });
 
-  const packages = await readCommercialPackagesForDeal(record.DealId ?? "");
+  if (!record.DealId) {
+    throw new Error(
+      "Company-owned SmartDocs cannot be assigned to opportunity Document Sets (FS-006)",
+    );
+  }
+
+  const packages = await readCommercialPackagesForDeal(record.DealId);
   const pkg = packages.find((item) => item.DocumentSetID === documentSetId);
   if (!pkg) {
     throw new Error(`Document set not found: ${documentSetId}`);

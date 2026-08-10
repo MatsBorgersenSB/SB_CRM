@@ -174,7 +174,7 @@ export function assignDocumentSetToLibrary(
 
     const pkg = findDocumentSetForFile(
       record.FileLeafRef,
-      record.DealId,
+      record.DealId ?? "",
       packages,
       record,
     );

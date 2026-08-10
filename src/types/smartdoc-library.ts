@@ -1,8 +1,27 @@
 /** SmartDocs library row — SharePoint SmartDocs list shape. */
+
+/** Who owns the SmartDoc in SmartCRM (file SoT may still be SharePoint). */
+export type SmartDocOwnership = "company" | "opportunity";
+
 export type SmartDocLibraryRecord = {
   id: number;
   SmartDocID: string;
-  DealId: string;
+  /**
+   * Opportunity owner / link.
+   * Required for opportunity-owned docs; null/omit for company-owned (FS-006).
+   */
+  DealId: string | null;
+  /**
+   * Company that owns the SmartDoc (required for company-owned; preferred on all rows).
+   * Public company code when available (e.g. CO-1009).
+   */
+  OwnerCompanyId?: string;
+  /** Ownership kind — company-owned docs must set `company`. */
+  Ownership?: SmartDocOwnership;
+  /**
+   * Identity owner code embedded in SmartDocID prefix.
+   * PL-#### for opportunity-owned; CO-#### for company-owned.
+   */
   PlNumber: string;
   ClientName: string;
   DealName: string;
@@ -13,7 +32,7 @@ export type SmartDocLibraryRecord = {
   DocumentName: string;
   Revision: string;
   FileLeafRef: string;
-  /** Assigned Document Set (e.g. FQ-001). */
+  /** Assigned Document Set (e.g. FQ-001). Deal commercial sets only. */
   DocumentSetID?: string;
   /**
    * Who produced the document.
@@ -22,6 +41,14 @@ export type SmartDocLibraryRecord = {
   Origin?: SmartDocOrigin;
   /** External producer name (supplier / customer / partner) when Origin = external. */
   Counterparty?: string;
+  /** Expected SharePoint folder path under company Documents (FS-006). */
+  SharePointFolderPath?: string;
+  /** Browser URL when filed in SharePoint Online. */
+  SharePointWebUrl?: string;
+  /** Phase 2 — optional opportunity link without changing ownership. */
+  LinkedDealId?: string | null;
+  /** Phase 2 — optional project link without changing ownership. */
+  LinkedProjectId?: string | null;
 };
 
 /** Document authorship — independent of category/type. */
@@ -116,6 +143,15 @@ export type DealDocumentContext = {
   createdAt: string;
 };
 
+/** Company document context for company-owned SmartDocs (FS-006). */
+export type CompanyDocumentContext = {
+  companyId: string;
+  companyCode: string;
+  companyName: string;
+  sharePointFolderPath: string;
+  createdAt: string;
+};
+
 export type SmartDocNameSuggestions = {
   primary: string;
   alternatives: string[];
@@ -137,6 +173,9 @@ export type CreateSmartDocInput = {
   DocumentSetID?: string;
   Origin?: SmartDocOrigin;
   Counterparty?: string;
+  /** Optional opportunity link on company-owned create (Phase 2 stub). */
+  LinkedDealId?: string;
+  LinkedProjectId?: string;
 };
 
 export function normalizeSmartDocOrigin(
@@ -153,4 +192,18 @@ export function suggestOriginForDocType(docType: string): SmartDocOrigin {
   if (SMARTDOC_EXTERNAL_TYPES.has(docType)) return "external";
   if (SMARTDOC_STANDARD_BIO_TYPES.has(docType)) return "standard_bio";
   return "unknown";
+}
+
+/** SharePoint SoT path for company documents (FS-006). */
+export function companyDocumentsSharePointPath(companyName: string): string {
+  const safe = companyName.trim() || "Unknown Company";
+  return `/Companies/${safe}/Documents`;
+}
+
+export function isCompanyOwnedSmartDoc(
+  record: Pick<SmartDocLibraryRecord, "Ownership" | "DealId" | "OwnerCompanyId">,
+): boolean {
+  if (record.Ownership === "company") return true;
+  if (record.Ownership === "opportunity") return false;
+  return Boolean(record.OwnerCompanyId && !record.DealId);
 }

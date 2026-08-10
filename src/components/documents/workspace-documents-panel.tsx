@@ -8,6 +8,7 @@ import {
   suggestImportDocumentName,
 } from "@/lib/mock-ai-parser";
 import {
+  buildCompanySmartDocIdentityPreview,
   buildSmartDocIdentityPreview,
   suggestDocumentNames,
 } from "@/lib/smartdoc-identity";
@@ -30,7 +31,9 @@ import {
 } from "@/types/smartdoc-library";
 import {
   buildWorkspaceDocumentRows,
+  canCreateCompanyOwnedDocuments,
   defaultTargetDealId,
+  WORKSPACE_COMPANY_DOCUMENT_PRESETS,
   WORKSPACE_CREATE_DOCUMENT_PRESETS,
   workspaceDocumentsLinkSummary,
   type WorkspaceDocumentsContext,
@@ -111,6 +114,10 @@ export function WorkspaceDocumentsPanel({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [targetDealId, setTargetDealId] = useState<string>("");
+  /** Company scope: file as company-owned when no deal (or user chooses company). */
+  const [ownershipMode, setOwnershipMode] = useState<"company" | "opportunity">(
+    "company",
+  );
   const [presetIndex, setPresetIndex] = useState(0);
   const [documentName, setDocumentName] = useState("");
   const [createdDocuments, setCreatedDocuments] = useState<SmartDocLibraryRecord[]>([]);
@@ -119,9 +126,7 @@ export function WorkspaceDocumentsPanel({
   const [importQueue, setImportQueue] = useState<ImportQueueItem[]>([]);
   const [classifying, setClassifying] = useState(false);
 
-  const preset = WORKSPACE_CREATE_DOCUMENT_PRESETS[presetIndex] ?? WORKSPACE_CREATE_DOCUMENT_PRESETS[0]!;
   const resolvedDealId = targetDealId || defaultTargetDealId(context, pipelines) || "";
-  const targetPipeline = pipelines.find((deal) => deal.id === resolvedDealId);
   const dealOptions = useMemo(
     () =>
       context.pipelineIds
@@ -129,6 +134,23 @@ export function WorkspaceDocumentsPanel({
         .filter((deal): deal is PipelineRow => Boolean(deal)),
     [context.pipelineIds, pipelines],
   );
+
+  const companyOwnedEnabled = canCreateCompanyOwnedDocuments(context);
+  const useCompanyOwnership =
+    companyOwnedEnabled &&
+    (ownershipMode === "company" || !resolvedDealId || dealOptions.length === 0);
+
+  const documentPresets =
+    useCompanyOwnership && context.scope === "company"
+      ? WORKSPACE_COMPANY_DOCUMENT_PRESETS
+      : WORKSPACE_CREATE_DOCUMENT_PRESETS;
+  const preset = documentPresets[presetIndex] ?? documentPresets[0]!;
+  const targetPipeline = pipelines.find((deal) => deal.id === resolvedDealId);
+  const ownerCompany =
+    companies.find((row) => row.CompanyID === context.companyId) ??
+    companies.find((row) =>
+      targetPipeline ? row.pipelineIds.includes(targetPipeline.id) : false,
+    );
 
   const rows = useMemo(
     () => buildWorkspaceDocumentRows(library, context, pipelines, companies, activities),
@@ -154,6 +176,17 @@ export function WorkspaceDocumentsPanel({
   }, [onDocumentCountChange, rows.length]);
 
   const identityPreview = useMemo(() => {
+    if (useCompanyOwnership && ownerCompany) {
+      const companyCode =
+        (ownerCompany.code?.trim() || ownerCompany.CompanyID).toUpperCase();
+      return buildCompanySmartDocIdentityPreview(
+        companyCode,
+        ownerCompany.Title,
+        preset.category,
+        preset.type,
+        library.map((record) => record.SmartDocID),
+      );
+    }
     if (!targetPipeline) return null;
     const plNumber = opportunityPublicCode(targetPipeline);
     return buildSmartDocIdentityPreview(
@@ -163,16 +196,40 @@ export function WorkspaceDocumentsPanel({
       preset.type,
       library.map((record) => record.SmartDocID),
     );
-  }, [targetPipeline, preset, library]);
+  }, [useCompanyOwnership, ownerCompany, targetPipeline, preset, library]);
 
   const importIdentityIds = useMemo(() => {
     const ids = library.map((record) => record.SmartDocID);
-    if (!targetPipeline) return importQueue.map(() => null);
-
-    const plNumber = opportunityPublicCode(targetPipeline);
     const provisional: Array<string | null> = [];
     const known = [...ids];
 
+    if (useCompanyOwnership && ownerCompany) {
+      const companyCode =
+        (ownerCompany.code?.trim() || ownerCompany.CompanyID).toUpperCase();
+      for (const item of importQueue) {
+        if (item.status === "done" && item.result?.SmartDocID) {
+          provisional.push(item.result.SmartDocID);
+          if (!known.includes(item.result.SmartDocID)) {
+            known.push(item.result.SmartDocID);
+          }
+          continue;
+        }
+        const preview = buildCompanySmartDocIdentityPreview(
+          companyCode,
+          ownerCompany.Title,
+          item.DocCategory,
+          item.DocType,
+          known,
+        );
+        provisional.push(preview.documentId);
+        known.push(preview.documentId);
+      }
+      return provisional;
+    }
+
+    if (!targetPipeline) return importQueue.map(() => null);
+
+    const plNumber = opportunityPublicCode(targetPipeline);
     for (const item of importQueue) {
       if (item.status === "done" && item.result?.SmartDocID) {
         provisional.push(item.result.SmartDocID);
@@ -192,9 +249,19 @@ export function WorkspaceDocumentsPanel({
       known.push(preview.documentId);
     }
     return provisional;
-  }, [importQueue, library, targetPipeline]);
+  }, [importQueue, library, targetPipeline, useCompanyOwnership, ownerCompany]);
 
   const nameSuggestions = useMemo(() => {
+    if (useCompanyOwnership && ownerCompany) {
+      const companyCode =
+        (ownerCompany.code?.trim() || ownerCompany.CompanyID).toUpperCase();
+      return suggestDocumentNames(
+        companyCode,
+        ownerCompany.Title,
+        ownerCompany.Title,
+        preset.type,
+      );
+    }
     if (!targetPipeline) return null;
     const company = companies.find((row) => row.pipelineIds.includes(targetPipeline.id));
     return suggestDocumentNames(
@@ -203,7 +270,7 @@ export function WorkspaceDocumentsPanel({
       company?.Title ?? targetPipeline.companyRole,
       preset.type,
     );
-  }, [targetPipeline, preset.type, companies]);
+  }, [useCompanyOwnership, ownerCompany, targetPipeline, preset.type, companies]);
 
   const loadLibrary = useCallback(async () => {
     setLoading(true);
@@ -227,6 +294,10 @@ export function WorkspaceDocumentsPanel({
   useEffect(() => {
     const initial = defaultTargetDealId(context, pipelines);
     if (initial) setTargetDealId(initial);
+    if (context.scope === "company") {
+      // Prefer company ownership so supplier docs don't invent deals.
+      setOwnershipMode("company");
+    }
   }, [context, pipelines]);
 
   useEffect(() => {
@@ -235,10 +306,17 @@ export function WorkspaceDocumentsPanel({
     }
   }, [nameSuggestions, documentName, mode]);
 
+  const canSubmitDocuments =
+    !readOnly && (useCompanyOwnership ? Boolean(context.companyId) : Boolean(resolvedDealId));
+
   const postSmartDoc = async (
     payload: CreateSmartDocInput,
     file?: File | null,
   ): Promise<SmartDocLibraryRecord> => {
+    const endpoint = useCompanyOwnership
+      ? `/api/companies/${encodeURIComponent(context.companyId!)}/smartdocs`
+      : `/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`;
+
     let response: Response;
     if (file) {
       const form = new FormData();
@@ -248,7 +326,7 @@ export function WorkspaceDocumentsPanel({
       if (payload.originalFileName) {
         form.append("originalFileName", payload.originalFileName);
       }
-      if (payload.DocumentSetID) {
+      if (payload.DocumentSetID && !useCompanyOwnership) {
         form.append("DocumentSetID", payload.DocumentSetID);
       }
       if (payload.Origin) {
@@ -258,12 +336,12 @@ export function WorkspaceDocumentsPanel({
         form.append("Counterparty", payload.Counterparty);
       }
       form.append("file", file, file.name);
-      response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
+      response = await fetch(endpoint, {
         method: "POST",
         body: form,
       });
     } else {
-      response = await fetch(`/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`, {
+      response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -275,7 +353,7 @@ export function WorkspaceDocumentsPanel({
   };
 
   const handleCreate = async () => {
-    if (!resolvedDealId || readOnly) return;
+    if (!canSubmitDocuments) return;
 
     setSaving(true);
     setError(null);
@@ -284,7 +362,13 @@ export function WorkspaceDocumentsPanel({
       DocCategory: preset.category,
       DocType: preset.type,
       DocumentName: documentName.trim() || nameSuggestions?.primary || preset.label,
-      Origin: "standard_bio",
+      Origin: useCompanyOwnership
+        ? suggestOriginForDocType(preset.type)
+        : "standard_bio",
+      Counterparty:
+        useCompanyOwnership && suggestOriginForDocType(preset.type) === "external"
+          ? context.companyName
+          : undefined,
     };
 
     try {
@@ -301,7 +385,7 @@ export function WorkspaceDocumentsPanel({
   };
 
   const handleImportAll = async () => {
-    if (!resolvedDealId || readOnly) return;
+    if (!canSubmitDocuments) return;
     const pending = importQueue.filter(
       (item) => item.status === "ready" || item.status === "error",
     );
@@ -384,7 +468,10 @@ export function WorkspaceDocumentsPanel({
       setClassifying(true);
       setError(null);
       setMode("import");
-      const dealName = targetPipeline?.assetName ?? "Opportunity";
+      const dealName =
+        (useCompanyOwnership
+          ? context.companyName || ownerCompany?.Title
+          : targetPipeline?.assetName) || "Document";
 
       window.setTimeout(() => {
         setImportQueue((current) => {
@@ -393,13 +480,27 @@ export function WorkspaceDocumentsPanel({
           );
           const next = list
             .filter((file) => !existingNames.has(`${file.name}:${file.size}`))
-            .map((file) => classifyFileToQueueItem(file, dealName));
+            .map((file) => {
+              const item = classifyFileToQueueItem(file, dealName);
+              if (useCompanyOwnership && item.Origin === "external" && !item.Counterparty) {
+                return {
+                  ...item,
+                  Counterparty: context.companyName || ownerCompany?.Title || "",
+                };
+              }
+              return item;
+            });
           return [...current, ...next];
         });
         setClassifying(false);
       }, 200);
     },
-    [targetPipeline?.assetName],
+    [
+      targetPipeline?.assetName,
+      useCompanyOwnership,
+      context.companyName,
+      ownerCompany?.Title,
+    ],
   );
 
   const updateQueueItem = (id: string, patch: Partial<ImportQueueItem>) => {
@@ -588,7 +689,35 @@ export function WorkspaceDocumentsPanel({
 
       {mode === "create" && !readOnly ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
-          {context.scope !== "opportunity" && dealOptions.length > 1 ? (
+          {companyOwnedEnabled ? (
+            <label className="mb-3 block">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                Ownership
+              </span>
+              <select
+                value={useCompanyOwnership ? "company" : "opportunity"}
+                onChange={(event) => {
+                  const next = event.target.value as "company" | "opportunity";
+                  setOwnershipMode(next);
+                  setPresetIndex(0);
+                  setDocumentName("");
+                }}
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+              >
+                <option value="company">
+                  Company document (no opportunity required)
+                </option>
+                <option value="opportunity" disabled={dealOptions.length === 0}>
+                  Opportunity document
+                  {dealOptions.length === 0 ? " (none linked)" : ""}
+                </option>
+              </select>
+            </label>
+          ) : null}
+
+          {!useCompanyOwnership &&
+          context.scope !== "opportunity" &&
+          dealOptions.length > 1 ? (
             <label className="mb-3 block">
               <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
                 Link to opportunity
@@ -619,7 +748,7 @@ export function WorkspaceDocumentsPanel({
               }}
               className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
             >
-              {WORKSPACE_CREATE_DOCUMENT_PRESETS.map((item, index) => (
+              {documentPresets.map((item, index) => (
                 <option key={item.label} value={index}>
                   {item.label}
                 </option>
@@ -651,20 +780,49 @@ export function WorkspaceDocumentsPanel({
 
           <button
             type="button"
-            disabled={saving || !resolvedDealId}
+            disabled={saving || !canSubmitDocuments}
             onClick={() => void handleCreate()}
             className="mt-4 border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold text-white disabled:opacity-50"
           >
             {saving ? "Creating…" : "Create SmartDoc"}
           </button>
           <p className="mt-2 text-[11px] text-carbon-blue/45">
-            Created documents are marked as Standard Bio origin.
+            {useCompanyOwnership
+              ? "Company-owned documents use CO-… identity and do not invent opportunities."
+              : "Created documents are marked as Standard Bio origin."}
           </p>
         </div>
       ) : null}
 
       {mode === "import" && !readOnly ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
+          {companyOwnedEnabled ? (
+            <label className="mb-3 block">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                Ownership
+              </span>
+              <select
+                value={useCompanyOwnership ? "company" : "opportunity"}
+                onChange={(event) => {
+                  const next = event.target.value as "company" | "opportunity";
+                  setOwnershipMode(next);
+                }}
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+              >
+                <option value="company">
+                  Company document — CO-… identity (e.g. Dorset SUQ)
+                </option>
+                <option value="opportunity" disabled={dealOptions.length === 0}>
+                  Opportunity document — PL-… identity
+                  {dealOptions.length === 0 ? " (none linked)" : ""}
+                </option>
+              </select>
+              <p className="mt-1 text-[11px] text-carbon-blue/45">
+                Supplier quotations stay on the company. No fake opportunity required.
+              </p>
+            </label>
+          ) : null}
+
           <div {...onDropZone} className={dropZoneClass}>
             <p className="text-sm font-medium text-carbon-blue">
               Drag & drop files here
@@ -891,7 +1049,7 @@ export function WorkspaceDocumentsPanel({
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={saving || !resolvedDealId || readyImportCount === 0}
+                  disabled={saving || !canSubmitDocuments || readyImportCount === 0}
                   onClick={() => void handleImportAll()}
                   className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold text-white disabled:opacity-50"
                 >

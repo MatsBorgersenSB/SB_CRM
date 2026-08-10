@@ -165,6 +165,7 @@ function StatusBadge({
     in_set: "border-sky-500/25 bg-sky-500/[0.06] text-sky-700",
     library: "border-carbon-blue/12 bg-carbon-blue/[0.03] text-carbon-blue/60",
     activity_link: "border-upcycle-orange/25 bg-upcycle-orange/[0.06] text-upcycle-orange",
+    company: "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-700",
   } as const;
 
   return (

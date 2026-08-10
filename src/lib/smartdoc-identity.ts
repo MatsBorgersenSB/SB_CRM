@@ -49,10 +49,13 @@ export const SMARTDOC_IDENTITY_TYPE_CODES: Record<string, string> = {
   Correspondence: "COR",
 };
 
-const IDENTITY_PATTERN = /^(PL-\d{4})-([A-Z])-([A-Z]{3})-(\d{4})$/;
+/** PL-… (opportunity) or CO-… (company) owner prefix + category + type + sequence. */
+const IDENTITY_PATTERN = /^((?:PL|CO)-[A-Z0-9]+)-([A-Z])-([A-Z]{3})-(\d{4})$/i;
+
+const OWNER_CODE_PATTERN = /^(PL|CO)-[A-Z0-9]+$/i;
 
 export const SMARTDOC_IDENTITY_EXPLANATION =
-  "SmartDoc IDs encode deal context: PL number, document category (e.g. S = Sales & Marketing), document type (e.g. QUO = Quotation), and a unique sequence. IDs are assigned automatically — never edited manually. SharePoint manages file version history.";
+  "SmartDoc IDs encode ownership context: PL number for deal-outbound docs, or CO number for company-owned docs (e.g. supplier quotations), plus document category (e.g. S = Sales & Marketing), document type (e.g. SUQ = Supplier Quotation), and a unique sequence. IDs are assigned automatically — never edited manually. SharePoint manages file version history.";
 
 export type { SmartDocIdentityPreview, SmartDocNameSuggestions };
 
@@ -102,6 +105,16 @@ function normalizeTypeForSuggestedName(docType: string): string {
   return docType;
 }
 
+export function normalizeSmartDocOwnerCode(ownerCode: string): string {
+  const trimmed = ownerCode.trim().toUpperCase();
+  if (!OWNER_CODE_PATTERN.test(trimmed)) {
+    throw new Error(
+      `SmartDoc owner code must be PL-… or CO-… (received: ${ownerCode})`,
+    );
+  }
+  return trimmed;
+}
+
 export function suggestDocumentName(dealName: string, docType: string): string {
   const label = normalizeTypeForSuggestedName(docType);
   const trimmedDeal = dealName.trim();
@@ -137,19 +150,24 @@ export function suggestDocumentNames(
 }
 
 export function nextIdentitySequence(
-  plNumber: string,
+  ownerCode: string,
   categoryCode: string,
   typeCode: string,
   existingIds: string[],
 ): number {
-  const prefix = `${plNumber}-${categoryCode}-${typeCode}-`;
+  const normalizedOwner = normalizeSmartDocOwnerCode(ownerCode);
+  const prefix = `${normalizedOwner}-${categoryCode}-${typeCode}-`;
   let max = 0;
 
   for (const id of existingIds) {
     const match = id.match(IDENTITY_PATTERN);
     if (!match) continue;
-    const [, pl, cat, type, seq] = match;
-    if (pl === plNumber && cat === categoryCode && type === typeCode) {
+    const [, owner, cat, type, seq] = match;
+    if (
+      owner!.toUpperCase() === normalizedOwner &&
+      cat!.toUpperCase() === categoryCode.toUpperCase() &&
+      type!.toUpperCase() === typeCode.toUpperCase()
+    ) {
       max = Math.max(max, Number(seq));
     }
   }
@@ -158,17 +176,23 @@ export function nextIdentitySequence(
 }
 
 export function buildDocumentIdentity(
-  plNumber: string,
+  ownerCode: string,
   category: SmartDocCategory,
   docType: string,
   existingIds: string[],
 ): SmartDocIdentityPreview {
+  const normalizedOwner = normalizeSmartDocOwnerCode(ownerCode);
   const categoryCode = resolveCategoryCode(category);
   const typeCode = resolveTypeCode(docType);
-  const sequence = nextIdentitySequence(plNumber, categoryCode, typeCode, existingIds);
+  const sequence = nextIdentitySequence(
+    normalizedOwner,
+    categoryCode,
+    typeCode,
+    existingIds,
+  );
 
   return {
-    documentId: `${plNumber}-${categoryCode}-${typeCode}-${String(sequence).padStart(4, "0")}`,
+    documentId: `${normalizedOwner}-${categoryCode}-${typeCode}-${String(sequence).padStart(4, "0")}`,
     suggestedName: "",
     categoryCode,
     categoryLabel: resolveCategoryLabel(category),
@@ -176,6 +200,7 @@ export function buildDocumentIdentity(
   };
 }
 
+/** Opportunity-owned identity (PL-####-…). */
 export function buildSmartDocIdentityPreview(
   plNumber: string,
   dealName: string,
@@ -190,13 +215,41 @@ export function buildSmartDocIdentityPreview(
   };
 }
 
+/** Company-owned identity (CO-####-…), e.g. CO-1009-S-SUQ-0001. */
+export function buildCompanySmartDocIdentityPreview(
+  companyCode: string,
+  companyName: string,
+  category: SmartDocCategory,
+  docType: string,
+  existingIds: string[],
+): SmartDocIdentityPreview {
+  const identity = buildDocumentIdentity(companyCode, category, docType, existingIds);
+  return {
+    ...identity,
+    suggestedName: suggestDocumentName(companyName, docType),
+  };
+}
+
 export function isSmartDocIdentityId(value: string): boolean {
-  return IDENTITY_PATTERN.test(value);
+  return IDENTITY_PATTERN.test(value.trim());
+}
+
+export function isCompanySmartDocIdentityId(value: string): boolean {
+  const match = value.trim().match(IDENTITY_PATTERN);
+  return Boolean(match?.[1]?.toUpperCase().startsWith("CO-"));
+}
+
+export function isOpportunitySmartDocIdentityId(value: string): boolean {
+  const match = value.trim().match(IDENTITY_PATTERN);
+  return Boolean(match?.[1]?.toUpperCase().startsWith("PL-"));
 }
 
 export type SmartDocIdentityBreakdown = {
   documentId: string;
+  /** @deprecated Prefer ownerCode — kept for existing call sites. */
   plNumber: string;
+  ownerCode: string;
+  ownership: "company" | "opportunity";
   categoryCode: string;
   categoryLabel: string;
   typeCode: string;
@@ -204,20 +257,23 @@ export type SmartDocIdentityBreakdown = {
 };
 
 export function parseSmartDocIdentity(documentId: string): SmartDocIdentityBreakdown | null {
-  const match = documentId.match(IDENTITY_PATTERN);
+  const match = documentId.trim().match(IDENTITY_PATTERN);
   if (!match) return null;
 
-  const [, plNumber, categoryCode, typeCode, sequence] = match;
+  const [, ownerCode, categoryCode, typeCode, sequence] = match;
+  const normalizedOwner = ownerCode!.toUpperCase();
   const categoryEntry = Object.entries(SMARTDOC_IDENTITY_CATEGORY_CODES).find(
-    ([, value]) => value.code === categoryCode,
+    ([, value]) => value.code === categoryCode!.toUpperCase(),
   );
 
   return {
-    documentId,
-    plNumber: plNumber!,
-    categoryCode: categoryCode!,
-    categoryLabel: categoryEntry?.[1].label ?? categoryCode!,
-    typeCode: typeCode!,
+    documentId: `${normalizedOwner}-${categoryCode!.toUpperCase()}-${typeCode!.toUpperCase()}-${sequence}`,
+    plNumber: normalizedOwner,
+    ownerCode: normalizedOwner,
+    ownership: normalizedOwner.startsWith("CO-") ? "company" : "opportunity",
+    categoryCode: categoryCode!.toUpperCase(),
+    categoryLabel: categoryEntry?.[1].label ?? categoryCode!.toUpperCase(),
+    typeCode: typeCode!.toUpperCase(),
     sequence: sequence!,
   };
 }

@@ -2,11 +2,17 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project } from "@/types/project";
-import type { SmartDocCategory, SmartDocLibraryRecord, SmartDocOrigin } from "@/types/smartdoc-library";
+import type {
+  SmartDocCategory,
+  SmartDocLibraryRecord,
+  SmartDocOrigin,
+} from "@/types/smartdoc-library";
 import {
+  isCompanyOwnedSmartDoc,
   normalizeSmartDocOrigin,
   SMARTDOC_ORIGIN_LABELS,
 } from "@/types/smartdoc-library";
+import { company360Href } from "@/types/company-360";
 import { deal360Href, documentHref, contact360Href } from "@/types/relationship-navigation";
 import { formatRelativeTime } from "@/lib/relative-time";
 
@@ -33,7 +39,7 @@ export type WorkspaceDocumentRow = {
   counterparty?: string;
   version: string;
   status: string;
-  statusKind: "in_set" | "library" | "activity_link";
+  statusKind: "in_set" | "library" | "activity_link" | "company";
   relatedObjectLabel: string;
   relatedObjectHref?: string;
   modifiedLabel: string;
@@ -59,9 +65,21 @@ export const WORKSPACE_CREATE_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[] 
   { label: "Price Indication", category: "Commercial", type: "Price Indication" },
   { label: "Budget Quotation", category: "Commercial", type: "Budget Quotation" },
   { label: "Formal Quotation", category: "Commercial", type: "Formal Quotation" },
+  { label: "Supplier Quotation", category: "Commercial", type: "Supplier Quotation" },
   { label: "Technical Datasheet", category: "Technical", type: "Technical Datasheet" },
   { label: "Meeting Notes", category: "Operational", type: "Meeting Notes" },
   { label: "Commercial Terms", category: "Commercial", type: "Terms Schedule" },
+  { label: "Custom Document", category: "General", type: "Unclassified Document" },
+];
+
+/** Prefer supplier-first presets when importing on a company with no deals. */
+export const WORKSPACE_COMPANY_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[] = [
+  { label: "Supplier Quotation", category: "Commercial", type: "Supplier Quotation" },
+  { label: "Technical Datasheet", category: "Technical", type: "Technical Datasheet" },
+  { label: "Third-party Report", category: "Technical", type: "Third-party Report" },
+  { label: "Vendor Agreement", category: "Legal", type: "Vendor Agreement" },
+  { label: "Supplier Invoice", category: "Financial", type: "Supplier Invoice" },
+  { label: "Meeting Notes", category: "Operational", type: "Meeting Notes" },
   { label: "Custom Document", category: "General", type: "Unclassified Document" },
 ];
 
@@ -98,6 +116,35 @@ function relatedObjectForDeal(
   return { label: dealId };
 }
 
+function recordMatchesCompanyContext(
+  record: SmartDocLibraryRecord,
+  context: WorkspaceDocumentsContext,
+  pipelineSet: Set<string>,
+): boolean {
+  if (context.scope === "opportunity" && context.dealId) {
+    return (
+      record.DealId === context.dealId ||
+      record.LinkedDealId === context.dealId ||
+      pipelineSet.has(record.DealId ?? "")
+    );
+  }
+
+  if (record.DealId && pipelineSet.has(record.DealId)) return true;
+
+  if (context.companyId) {
+    const companyKey = context.companyId.trim().toLowerCase();
+    if (record.OwnerCompanyId?.trim().toLowerCase() === companyKey) return true;
+    if (
+      isCompanyOwnedSmartDoc(record) &&
+      record.PlNumber?.trim().toLowerCase() === companyKey
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function buildWorkspaceDocumentRows(
   library: SmartDocLibraryRecord[],
   context: WorkspaceDocumentsContext,
@@ -107,11 +154,24 @@ export function buildWorkspaceDocumentRows(
 ): WorkspaceDocumentRow[] {
   const pipelineSet = new Set(context.pipelineIds);
   const rows: WorkspaceDocumentRow[] = [];
+  const seen = new Set<string>();
 
   for (const record of library) {
-    if (!pipelineSet.has(record.DealId)) continue;
+    if (!recordMatchesCompanyContext(record, context, pipelineSet)) continue;
+    if (seen.has(record.SmartDocID)) continue;
+    seen.add(record.SmartDocID);
 
-    const related = relatedObjectForDeal(record.DealId, pipelines, companies);
+    const companyOwned = isCompanyOwnedSmartDoc(record);
+    const related = companyOwned
+      ? {
+          label: record.ClientName || context.companyName || "Company",
+          href: context.companyId
+            ? company360Href(context.companyId, "documents")
+            : record.OwnerCompanyId
+              ? company360Href(record.OwnerCompanyId, "documents")
+              : undefined,
+        }
+      : relatedObjectForDeal(record.DealId ?? "", pipelines, companies);
 
     const origin = normalizeSmartDocOrigin(record.Origin);
     rows.push({
@@ -123,8 +183,16 @@ export function buildWorkspaceDocumentRows(
       originLabel: SMARTDOC_ORIGIN_LABELS[origin],
       counterparty: record.Counterparty,
       version: record.Revision ? `Rev ${record.Revision}` : "—",
-      status: record.DocumentSetID ? `In ${record.DocumentSetID}` : "Library",
-      statusKind: record.DocumentSetID ? "in_set" : "library",
+      status: companyOwned
+        ? "Company"
+        : record.DocumentSetID
+          ? `In ${record.DocumentSetID}`
+          : "Library",
+      statusKind: companyOwned
+        ? "company"
+        : record.DocumentSetID
+          ? "in_set"
+          : "library",
       relatedObjectLabel: related.label,
       relatedObjectHref: related.href,
       modifiedLabel: formatModifiedDate(record.CreatedAt),
@@ -134,8 +202,6 @@ export function buildWorkspaceDocumentRows(
   }
 
   if (context.scope === "contact" && context.contactId) {
-    const seen = new Set(rows.map((row) => row.id));
-
     for (const activity of activities) {
       const matchesContact =
         activity.Contact?.Title === context.contactId ||
@@ -184,7 +250,7 @@ export function buildWorkspaceDocumentRows(
 export function workspaceDocumentsLinkSummary(context: WorkspaceDocumentsContext): string {
   switch (context.scope) {
     case "company":
-      return `Documents are linked to ${context.companyName ?? "this company"}.`;
+      return `Documents are owned by ${context.companyName ?? "this company"} (company SmartDocs + linked opportunity docs). SharePoint: /Companies/{Name}/Documents.`;
     case "contact":
       return `Documents are linked to ${context.contactName ?? "this contact"} and ${context.companyName ?? "company"}.`;
     case "opportunity":
@@ -208,6 +274,13 @@ export function defaultTargetDealId(
     );
 
   return active[0]?.id ?? context.pipelineIds[0] ?? null;
+}
+
+/** Company scope may file without a deal (FS-006). */
+export function canCreateCompanyOwnedDocuments(
+  context: WorkspaceDocumentsContext,
+): boolean {
+  return context.scope === "company" && Boolean(context.companyId?.trim());
 }
 
 export function workspaceDocumentsContextFromCompany(
