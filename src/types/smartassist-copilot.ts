@@ -51,3 +51,13 @@ export const COPILOT_ACTION_LABELS: Record<CoPilotActionKind, string> = {
   review_document: "Review document",
   log_meeting_outcome: "Log meeting outcome",
 };
+
+/** Result of approving a Co-Pilot proposal (API / server executor). */
+export type CoPilotExecuteResult =
+  | { mode: "applied"; message: string }
+  | {
+      mode: "navigate";
+      href: string;
+      message: string;
+      prefill?: Record<string, string>;
+    };

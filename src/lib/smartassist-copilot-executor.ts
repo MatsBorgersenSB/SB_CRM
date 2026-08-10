@@ -1,12 +1,11 @@
-import { syncActivityCreate, syncActivityUpdate } from "@/lib/sync-activity";
-import { stashSmartAssistPrefill } from "@/lib/smart-assist-prefill";
-import type { CreateActivityInput } from "@/types/activity";
-import type { CoPilotActionProposal } from "@/types/smartassist-copilot";
-import { markCoPilotProposalApproved } from "@/lib/smartassist-copilot-store";
+import "server-only";
 
-export type CoPilotExecuteResult =
-  | { mode: "applied"; message: string }
-  | { mode: "navigate"; href: string; message: string };
+import { getServerSharePointServices } from "@/services/sharepoint/factory";
+import type { CreateActivityInput } from "@/types/activity";
+import type {
+  CoPilotActionProposal,
+  CoPilotExecuteResult,
+} from "@/types/smartassist-copilot";
 
 function defaultActivityDate(): string {
   return new Date().toISOString();
@@ -25,7 +24,11 @@ function normalizeCreateInput(
     NextActionDate: partial.NextActionDate ?? "",
     ActionStatus: partial.ActionStatus ?? "Planned",
     ActionOutcome: partial.ActionOutcome ?? "",
-    ActivityDescription: partial.ActivityDescription ?? partial.Summary ?? partial.Subject ?? "CRM update",
+    ActivityDescription:
+      partial.ActivityDescription ??
+      partial.Summary ??
+      partial.Subject ??
+      "CRM update",
     Company: partial.Company ?? null,
     Contact: partial.Contact ?? null,
     Deal: partial.Deal ?? null,
@@ -42,10 +45,15 @@ function normalizeCreateInput(
   };
 }
 
+/**
+ * Apply a Co-Pilot proposal against live CRM entities.
+ * Server-only — never import from Client Components.
+ */
 export async function executeCoPilotProposal(
   proposal: CoPilotActionProposal,
 ): Promise<CoPilotExecuteResult> {
   const { kind, payload } = proposal;
+  const { activities } = getServerSharePointServices();
 
   if (kind === "complete_commitment" && payload.activityId && payload.activityUpdate) {
     const { getActivityById } = await import("@/lib/pipeline-db");
@@ -63,8 +71,7 @@ export async function executeCoPilotProposal(
       );
     }
 
-    await syncActivityUpdate(payload.activityId, payload.activityUpdate);
-    markCoPilotProposalApproved(proposal.id);
+    await activities.update(payload.activityId, payload.activityUpdate);
     return {
       mode: "applied",
       message: `Marked "${proposal.objectName ?? "commitment"}" complete in CRM.`,
@@ -98,8 +105,7 @@ export async function executeCoPilotProposal(
       }
     }
 
-    await syncActivityCreate(createInput);
-    markCoPilotProposalApproved(proposal.id);
+    await activities.create(createInput);
     return {
       mode: "applied",
       message: `Created activity "${payload.createActivity.Subject ?? proposal.title}" in CRM.`,
@@ -112,22 +118,20 @@ export async function executeCoPilotProposal(
       kind === "log_meeting_outcome") &&
     proposal.href
   ) {
-    if (payload.prefill) stashSmartAssistPrefill(payload.prefill);
-    markCoPilotProposalApproved(proposal.id);
     return {
       mode: "navigate",
       href: proposal.href,
       message: `Opening ${proposal.objectName ?? "record"} for review.`,
+      prefill: payload.prefill,
     };
   }
 
   if (proposal.href) {
-    if (payload.prefill) stashSmartAssistPrefill(payload.prefill);
-    markCoPilotProposalApproved(proposal.id);
     return {
       mode: "navigate",
       href: proposal.href,
       message: "Opening record for manual review.",
+      prefill: payload.prefill,
     };
   }
 

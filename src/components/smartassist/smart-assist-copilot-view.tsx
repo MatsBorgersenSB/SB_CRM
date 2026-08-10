@@ -3,15 +3,15 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronRight, X } from "lucide-react";
-import {
-  executeCoPilotProposal,
-  type CoPilotExecuteResult,
-} from "@/lib/smartassist-copilot-executor";
+import { executeCoPilotProposal } from "@/lib/smartassist-copilot-client";
 import { dismissCoPilotProposal } from "@/lib/smartassist-copilot-store";
 import { proposalAsBusinessImpact } from "@/lib/smart-assist-conversation-engine";
 import { SMARTASSIST_COPILOT } from "@/lib/smart-assist-config";
 import { BusinessImpactCard } from "@/components/smartassist/business-impact-card";
-import type { CoPilotActionProposal } from "@/types/smartassist-copilot";
+import type {
+  CoPilotActionProposal,
+  CoPilotExecuteResult,
+} from "@/types/smartassist-copilot";
 
 function severityBorder(severity: CoPilotActionProposal["severity"]): string {
   switch (severity) {

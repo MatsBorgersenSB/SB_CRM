@@ -1,3 +1,5 @@
+import "server-only";
+
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Activity } from "@/types/activity";
