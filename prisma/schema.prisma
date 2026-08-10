@@ -842,6 +842,27 @@ model ProjectWorkspace {
   @@map("project_workspace")
 }
 
+/// CRM Co-Pilot dismissals — durable suppression so recommendations do not resurrect after refresh/redeploy.
+model CoPilotDismissal {
+  id              String   @id @default(uuid())
+  /// Stable identity, e.g. create_opportunity:{companyId} or proposal id.
+  suggestionKey   String
+  proposalId      String?
+  companyId       String?
+  actionKind      String?
+  note            String
+  /// Normalized email; use "anonymous" when signed-out / guest.
+  userEmail       String   @default("anonymous")
+  userDisplayName String?
+  createdAt       DateTime @default(now())
+
+  @@unique([suggestionKey, userEmail])
+  @@index([suggestionKey])
+  @@index([userEmail])
+  @@index([companyId])
+  @@map("copilot_dismissals")
+}
+
 // Add these optional M365 mapping fields to your existing Contact model:
 // m365GraphId    String?   @unique // Microsoft Graph Contact / User Object ID
 // m365ImmutableId String?  @unique // Immutable ID across tenant transfers

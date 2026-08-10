@@ -267,7 +267,10 @@ function buildCompanyAttention(
         severity: health.score < 30 ? "urgent" : "needs_attention",
       });
       if (mapped) {
-        mapped.ruleId = "risk_threshold_exceeded";
+        // Preserve create_new_opportunity so Co-Pilot can map/suppress correctly.
+        if (nba.ruleId !== "create_new_opportunity") {
+          mapped.ruleId = "risk_threshold_exceeded";
+        }
         items.push(mapped);
       }
     } else {

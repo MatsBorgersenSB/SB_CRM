@@ -18,6 +18,8 @@ import type {
   CoPilotSourceType,
 } from "@/types/smartassist-copilot";
 import type { AttentionItem } from "@/types/attention-item";
+import { buildCoPilotSuppressionKey } from "@/lib/smartassist-copilot-keys";
+import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 
 const MAX_PROPOSALS = 8;
 
@@ -58,6 +60,7 @@ const RULE_KIND_MAP: Record<string, CoPilotActionKind> = {
   incomplete_document_set: "review_document",
   package_not_transmitted: "review_document",
   add_primary_contact: "review_opportunity",
+  create_new_opportunity: "create_opportunity",
 };
 
 const RULE_SOURCE_MAP: Record<string, CoPilotSourceType> = {
@@ -72,6 +75,7 @@ const RULE_SOURCE_MAP: Record<string, CoPilotSourceType> = {
   incomplete_document_set: "document",
   package_not_transmitted: "document",
   add_primary_contact: "relationship",
+  create_new_opportunity: "opportunity",
 };
 
 function impactForSeverity(severity: AttentionItem["severity"]): string {
@@ -103,18 +107,40 @@ function observedChangeForItem(item: AttentionItem): string {
   }
 }
 
+function resolveProposalKind(item: AttentionItem): CoPilotActionKind | null {
+  if (
+    item.ruleId === "create_new_opportunity" ||
+    item.suggestedAiAction === "Create New Opportunity"
+  ) {
+    return "create_opportunity";
+  }
+  return RULE_KIND_MAP[item.ruleId] ?? null;
+}
+
 function proposalFromAttentionItem(
   item: AttentionItem,
   suggestionsByAttentionId: Map<string, ReturnType<typeof buildSuggestedActivities>[number]>,
 ): CoPilotActionProposal | null {
-  const kind = RULE_KIND_MAP[item.ruleId];
+  const kind = resolveProposalKind(item);
   if (!kind) return null;
 
   const suggestion = suggestionsByAttentionId.get(item.id);
-  const sourceType = RULE_SOURCE_MAP[item.ruleId] ?? "activity";
+  const sourceType =
+    kind === "create_opportunity"
+      ? "opportunity"
+      : (RULE_SOURCE_MAP[item.ruleId] ?? "activity");
+
+  const id = `copilot-${item.id}`;
+  const suppressionKey = buildCoPilotSuppressionKey({
+    id,
+    kind,
+    companyId: item.companyId,
+    ruleId: item.ruleId,
+    title: item.suggestedAiAction,
+  });
 
   const base: CoPilotActionProposal = {
-    id: `copilot-${item.id}`,
+    id,
     kind,
     status: "pending",
     title: item.suggestedAiAction,
@@ -123,10 +149,12 @@ function proposalFromAttentionItem(
     observedChange: observedChangeForItem(item),
     sourceType,
     severity: item.severity,
+    companyId: item.companyId,
     companyName: item.companyName,
     objectName: item.sourceObjectName,
     href: item.href,
     attentionItemId: item.id,
+    suppressionKey,
     payload: {},
   };
 
@@ -166,7 +194,11 @@ function proposalFromAttentionItem(
     };
   }
 
-  if (kind === "review_opportunity" || kind === "review_document") {
+  if (
+    kind === "create_opportunity" ||
+    kind === "review_opportunity" ||
+    kind === "review_document"
+  ) {
     return {
       ...base,
       payload: {
@@ -193,9 +225,11 @@ function proposalsFromMeetings(
     const company = resolveActivityCompany(activity, companies);
     if (!company) continue;
 
+    const id = `copilot-meeting-${activity.ActivityID}`;
+    const kind = "log_meeting_outcome" as const;
     proposals.push({
-      id: `copilot-meeting-${activity.ActivityID}`,
-      kind: "log_meeting_outcome",
+      id,
+      kind,
       status: "pending",
       title: `Log outcome for "${activity.Subject}"`,
       reason: "Meeting ended — capture decisions and next steps in CRM",
@@ -203,9 +237,15 @@ function proposalsFromMeetings(
       observedChange: `Meeting "${activity.Subject}" completed today`,
       sourceType: "meeting",
       severity: "needs_attention",
+      companyId: company.CompanyID,
       companyName: company.Title,
       objectName: activity.Subject,
       href: `/activities/${activity.ActivityID}?capture=1`,
+      suppressionKey: buildCoPilotSuppressionKey({
+        id,
+        kind,
+        companyId: company.CompanyID,
+      }),
       payload: {
         activityId: activity.ActivityID,
         prefill: {
@@ -234,9 +274,11 @@ function proposalsFromQuotations(
     if (!isQuotationKind(pkg.kind)) continue;
     if (pkg.status !== "sent") continue;
 
+    const id = `copilot-quote-${pkg.PackageID}`;
+    const kind = "draft_email" as const;
     proposals.push({
-      id: `copilot-quote-${pkg.PackageID}`,
-      kind: "draft_email",
+      id,
+      kind,
       status: "pending",
       title: `Follow up on quotation — ${pkg.title || pkg.DocumentSetID}`,
       reason: "Quotation sent and awaiting customer response",
@@ -246,6 +288,7 @@ function proposalsFromQuotations(
       severity: "needs_attention",
       objectName: pkg.title || pkg.DocumentSetID,
       href: deal360Href(pkg.DealId, "commercial", { packageId: pkg.PackageID }),
+      suppressionKey: buildCoPilotSuppressionKey({ id, kind }),
       payload: {
         createActivity: {
           ActivityType: "Email Follow-Up",
@@ -283,9 +326,11 @@ function proposalsFromOverdueFollowUps(
     const company = resolveActivityCompany(activity, companies);
     if (!company) continue;
 
+    const id = `copilot-overdue-${activity.ActivityID}`;
+    const kind = "complete_commitment" as const;
     proposals.push({
-      id: `copilot-overdue-${activity.ActivityID}`,
-      kind: "complete_commitment",
+      id,
+      kind,
       status: "pending",
       title: `Close overdue commitment — ${activity.NextAction || activity.Subject}`,
       reason: "Open commitment is past due — update CRM status",
@@ -293,9 +338,15 @@ function proposalsFromOverdueFollowUps(
       observedChange: `Commitment "${activity.NextAction || activity.Subject}" is overdue`,
       sourceType: "activity",
       severity: "urgent",
+      companyId: company.CompanyID,
       companyName: company.Title,
       objectName: activity.Subject,
       href: `/activities/${activity.ActivityID}`,
+      suppressionKey: buildCoPilotSuppressionKey({
+        id,
+        kind,
+        companyId: company.CompanyID,
+      }),
       payload: {
         activityId: activity.ActivityID,
         activityUpdate: { ActionStatus: "Completed" },
@@ -343,7 +394,13 @@ export function buildCoPilotProposals(
 
   for (const item of attentionItems) {
     const proposal = proposalFromAttentionItem(item, suggestionsByAttentionId);
-    if (proposal) pushUnique(proposal);
+    if (!proposal) continue;
+    // Defense in depth — never nag non-commercial companies to open deals.
+    if (proposal.kind === "create_opportunity" && proposal.companyId) {
+      const company = companies.find((entry) => entry.CompanyID === proposal.companyId);
+      if (company && !isOpportunityEligibleCompany(company)) continue;
+    }
+    pushUnique(proposal);
   }
 
   for (const proposal of proposalsFromMeetings(liveActivities, companies)) {

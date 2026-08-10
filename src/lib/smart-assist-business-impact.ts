@@ -151,6 +151,8 @@ function expectedOutcomeForCopilot(proposal: CoPilotActionProposal): string {
       return "Institutional knowledge captured; team alignment on next commercial steps.";
     case "create_activity":
       return "Customer engagement recorded; pipeline intelligence strengthens.";
+    case "create_opportunity":
+      return "Commercial pipeline reflects real demand; resources focus on true opportunities.";
     default:
       return "CRM stays accurate with minimal effort from you.";
   }
