@@ -1,6 +1,7 @@
 import type { Company, Contact } from "@/types/company";
 import type { Activity } from "@/types/activity";
 import type { PipelineRow } from "@/types/pipeline";
+import { filterActivitiesToLiveEntities } from "@/lib/activity-utils";
 import { readInventory } from "@/lib/pipeline-db";
 import {
   readLiveActivities,
@@ -25,7 +26,15 @@ export async function loadM365DataContext(): Promise<M365DataContext> {
     readInventory(),
   ]);
 
-  return { companies, pipelines, activities, inventory };
+  return {
+    companies,
+    pipelines,
+    activities: filterActivitiesToLiveEntities(activities, {
+      companies,
+      pipelines,
+    }),
+    inventory,
+  };
 }
 
 export function resolveCompanyById(

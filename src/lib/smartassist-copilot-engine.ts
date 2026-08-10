@@ -1,5 +1,10 @@
 import { buildSuggestedActivities } from "@/lib/activity-workspace";
-import { isFollowUpOpen, isFollowUpOverdue } from "@/lib/activity-utils";
+import {
+  filterActivitiesToLiveEntities,
+  isFollowUpOpen,
+  isFollowUpOverdue,
+  resolveActivityCompany,
+} from "@/lib/activity-utils";
 import { buildAttentionItems } from "@/lib/smart-attention-engine";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -173,7 +178,10 @@ function proposalFromAttentionItem(
   return base;
 }
 
-function proposalsFromMeetings(activities: Activity[]): CoPilotActionProposal[] {
+function proposalsFromMeetings(
+  activities: Activity[],
+  companies: Company[],
+): CoPilotActionProposal[] {
   const proposals: CoPilotActionProposal[] = [];
 
   for (const activity of activities) {
@@ -181,6 +189,9 @@ function proposalsFromMeetings(activities: Activity[]): CoPilotActionProposal[] 
     if (!isToday(activity.ActivityDate)) continue;
     if (!meetingEnded(activity)) continue;
     if (activity.ActionStatus === "Completed") continue;
+
+    const company = resolveActivityCompany(activity, companies);
+    if (!company) continue;
 
     proposals.push({
       id: `copilot-meeting-${activity.ActivityID}`,
@@ -192,7 +203,7 @@ function proposalsFromMeetings(activities: Activity[]): CoPilotActionProposal[] 
       observedChange: `Meeting "${activity.Subject}" completed today`,
       sourceType: "meeting",
       severity: "needs_attention",
-      companyName: activity.Company?.Title,
+      companyName: company.Title,
       objectName: activity.Subject,
       href: `/activities/${activity.ActivityID}?capture=1`,
       payload: {
@@ -200,7 +211,7 @@ function proposalsFromMeetings(activities: Activity[]): CoPilotActionProposal[] 
         prefill: {
           ActivityType: activity.ActivityType,
           Subject: activity.Subject,
-          companyId: activity.Company?.Title ?? "",
+          companyId: company.CompanyID,
           dealId: activity.Deal?.Title ?? "",
           recordMode: "true",
         },
@@ -213,10 +224,13 @@ function proposalsFromMeetings(activities: Activity[]): CoPilotActionProposal[] 
 
 function proposalsFromQuotations(
   commercialPackages: CommercialPackage[],
+  pipelines: PipelineRow[],
 ): CoPilotActionProposal[] {
   const proposals: CoPilotActionProposal[] = [];
+  const dealIds = new Set(pipelines.map((pipeline) => pipeline.id));
 
   for (const pkg of commercialPackages) {
+    if (!dealIds.has(pkg.DealId)) continue;
     if (!isQuotationKind(pkg.kind)) continue;
     if (pkg.status !== "sent") continue;
 
@@ -256,12 +270,18 @@ function proposalsFromQuotations(
   return proposals;
 }
 
-function proposalsFromOverdueFollowUps(activities: Activity[]): CoPilotActionProposal[] {
+function proposalsFromOverdueFollowUps(
+  activities: Activity[],
+  companies: Company[],
+): CoPilotActionProposal[] {
   const proposals: CoPilotActionProposal[] = [];
 
   for (const activity of activities) {
     if (!isFollowUpOpen(activity)) continue;
     if (!isFollowUpOverdue(activity)) continue;
+
+    const company = resolveActivityCompany(activity, companies);
+    if (!company) continue;
 
     proposals.push({
       id: `copilot-overdue-${activity.ActivityID}`,
@@ -273,7 +293,7 @@ function proposalsFromOverdueFollowUps(activities: Activity[]): CoPilotActionPro
       observedChange: `Commitment "${activity.NextAction || activity.Subject}" is overdue`,
       sourceType: "activity",
       severity: "urgent",
-      companyName: activity.Company?.Title,
+      companyName: company.Title,
       objectName: activity.Subject,
       href: `/activities/${activity.ActivityID}`,
       payload: {
@@ -292,11 +312,19 @@ export function buildCoPilotProposals(
   activities: Activity[],
   commercialPackages: CommercialPackage[],
 ): CoPilotActionProposal[] {
+  const liveActivities = filterActivitiesToLiveEntities(activities, {
+    companies,
+    pipelines,
+  });
+  const livePackages = commercialPackages.filter((pkg) =>
+    pipelines.some((pipeline) => pipeline.id === pkg.DealId),
+  );
+
   const attentionItems = buildAttentionItems({
     companies,
     pipelines,
-    activities,
-    commercialPackages,
+    activities: liveActivities,
+    commercialPackages: livePackages,
   }).filter((item) => item.status === "open");
 
   const suggestions = buildSuggestedActivities(attentionItems);
@@ -318,15 +346,15 @@ export function buildCoPilotProposals(
     if (proposal) pushUnique(proposal);
   }
 
-  for (const proposal of proposalsFromMeetings(activities)) {
+  for (const proposal of proposalsFromMeetings(liveActivities, companies)) {
     pushUnique(proposal);
   }
 
-  for (const proposal of proposalsFromQuotations(commercialPackages)) {
+  for (const proposal of proposalsFromQuotations(livePackages, pipelines)) {
     pushUnique(proposal);
   }
 
-  for (const proposal of proposalsFromOverdueFollowUps(activities)) {
+  for (const proposal of proposalsFromOverdueFollowUps(liveActivities, companies)) {
     pushUnique(proposal);
   }
 

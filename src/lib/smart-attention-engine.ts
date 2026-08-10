@@ -1,9 +1,11 @@
 import {
+  filterActivitiesToLiveEntities,
   getActivitiesForCompany,
   getActivitiesForContact,
   getActivitiesForDeal,
   isFollowUpOpen,
   isFollowUpOverdue,
+  resolveActivityCompany,
 } from "@/lib/activity-utils";
 import type { NextBestAction } from "@/lib/next-best-action-engine";
 import { computeOpportunityIntelligence } from "@/lib/opportunity-intelligence-engine";
@@ -133,12 +135,10 @@ function buildActivityAttention(
   for (const activity of activities) {
     if (!isFollowUpOpen(activity)) continue;
 
-    const company = companies.find(
-      (c) =>
-        c.Title === activity.Company?.Title ||
-        c.CompanyID === activity.Company?.Title,
-    );
-    if (companyId && company?.CompanyID !== companyId) continue;
+    // Reality First — never surface follow-ups for deleted/seed companies.
+    const company = resolveActivityCompany(activity, companies);
+    if (!company) continue;
+    if (companyId && company.CompanyID !== companyId) continue;
 
     const href = `/activities/${activity.ActivityID}`;
 
@@ -156,8 +156,8 @@ function buildActivityAttention(
         suggestedAiAction: "Complete Overdue Commitment",
         dueDate: activity.NextActionDate,
         href,
-        companyId: company?.CompanyID,
-        companyName: company?.Title ?? activity.Company?.Title,
+        companyId: company.CompanyID,
+        companyName: company.Title,
         ruleId: "overdue_followup",
       });
     } else if (isDueToday(activity)) {
@@ -171,8 +171,8 @@ function buildActivityAttention(
         suggestedAiAction: activity.NextAction || "Complete commitment",
         dueDate: activity.NextActionDate,
         href,
-        companyId: company?.CompanyID,
-        companyName: company?.Title ?? activity.Company?.Title,
+        companyId: company.CompanyID,
+        companyName: company.Title,
         ruleId: "due_today",
       });
     }
@@ -348,7 +348,9 @@ function buildOpportunityAttention(
 
   for (const deal of pipelines) {
     const company = findCompanyForDeal(deal.id, companies);
-    if (companyId && company?.CompanyID !== companyId) continue;
+    // Reality First — skip orphan opportunities with no live company.
+    if (!company) continue;
+    if (companyId && company.CompanyID !== companyId) continue;
     if (["Live Production", "Scheduled Maintenance"].includes(deal.status)) continue;
 
     const intelligence = computeOpportunityIntelligence(
@@ -465,11 +467,15 @@ function buildCommercialPackageAttention(
   const items: AttentionItem[] = [];
 
   for (const pkg of packages) {
-    const company = findCompanyForDeal(pkg.DealId, companies);
-    if (companyId && company?.CompanyID !== companyId) continue;
-
     const pipeline = pipelines.find((p) => p.id === pkg.DealId);
-    const dealName = pipeline?.assetName ?? pkg.DealId;
+    // Reality First — skip packages tied to deleted/seed deals.
+    if (!pipeline) continue;
+
+    const company = findCompanyForDeal(pkg.DealId, companies);
+    if (!company) continue;
+    if (companyId && company.CompanyID !== companyId) continue;
+
+    const dealName = pipeline.assetName;
     const href = commercialPackageHref(pkg);
 
     const missingMembers = pkg.members.filter((m) => !m.fileName && !m.Title);
@@ -538,32 +544,82 @@ function dedupeAttentionItems(items: AttentionItem[]): AttentionItem[] {
   return sortAttentionItems([...byKey.values()]);
 }
 
+function attentionItemReferencesLiveEntity(
+  item: AttentionItem,
+  ctx: AttentionEngineContext,
+): boolean {
+  if (item.companyId && !ctx.companies.some((c) => c.CompanyID === item.companyId)) {
+    return false;
+  }
+
+  switch (item.objectType) {
+    case "Company":
+      return ctx.companies.some((c) => c.CompanyID === item.sourceObjectId);
+    case "Contact":
+      return ctx.companies.some((c) =>
+        c.contacts.some((contact) => contact.ContactID === item.sourceObjectId),
+      );
+    case "Opportunity":
+      return ctx.pipelines.some((p) => p.id === item.sourceObjectId);
+    case "Activity":
+      return ctx.activities.some(
+        (a) => a.ActivityID === item.sourceObjectId || String(a.id) === item.sourceObjectId,
+      );
+    case "Document":
+    case "DocumentSet":
+    case "TransmissionPackage":
+    case "CommercialBaseline":
+      return ctx.commercialPackages.some(
+        (pkg) =>
+          pkg.PackageID === item.sourceObjectId ||
+          pkg.DocumentSetID === item.sourceObjectId,
+      );
+    default:
+      return Boolean(item.companyId);
+  }
+}
+
 /** Generate attention items across the portfolio or for one company. */
 export function buildAttentionItems(ctx: AttentionEngineContext): AttentionItem[] {
+  const liveActivities = filterActivitiesToLiveEntities(ctx.activities, {
+    companies: ctx.companies,
+    pipelines: ctx.pipelines,
+  });
+  const livePackages = ctx.commercialPackages.filter((pkg) =>
+    ctx.pipelines.some((pipeline) => pipeline.id === pkg.DealId),
+  );
+  const scoped: AttentionEngineContext = {
+    ...ctx,
+    activities: liveActivities,
+    commercialPackages: livePackages,
+  };
+
   const raw = [
-    ...buildActivityAttention(ctx.activities, ctx.companies, ctx.companyId),
+    ...buildActivityAttention(scoped.activities, scoped.companies, scoped.companyId),
     ...buildCompanyAttention(
-      ctx.companies,
-      ctx.pipelines,
-      ctx.activities,
-      ctx.companyId,
+      scoped.companies,
+      scoped.pipelines,
+      scoped.activities,
+      scoped.companyId,
     ),
-    ...buildContactAttention(ctx.companies, ctx.activities, ctx.companyId),
+    ...buildContactAttention(scoped.companies, scoped.activities, scoped.companyId),
     ...buildOpportunityAttention(
-      ctx.companies,
-      ctx.pipelines,
-      ctx.activities,
-      ctx.companyId,
+      scoped.companies,
+      scoped.pipelines,
+      scoped.activities,
+      scoped.companyId,
     ),
     ...buildCommercialPackageAttention(
-      ctx.companies,
-      ctx.pipelines,
-      ctx.commercialPackages,
-      ctx.companyId,
+      scoped.companies,
+      scoped.pipelines,
+      scoped.commercialPackages,
+      scoped.companyId,
     ),
   ];
 
-  return dedupeAttentionItems(raw).filter((item) => item.status === "open");
+  return dedupeAttentionItems(raw)
+    .filter((item) => item.status === "open")
+    .filter((item) => attentionItemReferencesLiveEntity(item, scoped));
 }
 
 export function buildAttentionQueue(

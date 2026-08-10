@@ -3,6 +3,7 @@ import type { AuthUser } from "@/types/auth";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import { STANDARD_BIO_USERS } from "@/types/bio-user";
+import { resolveActivityCompany } from "@/lib/activity-utils";
 
 export function authUserToAccountOwner(user: AuthUser): SharePointPerson {
   const display = user.displayName?.trim().toLowerCase() ?? "";
@@ -117,18 +118,14 @@ export function resolveSmartAssistPortfolio(
     companies: portfolioScoped,
     pipelines: pipelines.filter((pipeline) => {
       const company = companies.find((record) => record.pipelineIds.includes(pipeline.id));
-      return company ? portfolioIds.has(company.CompanyID) : user.role === "superuser";
+      // Reality First — never keep opportunities without a live company.
+      return company ? portfolioIds.has(company.CompanyID) : false;
     }),
     activities: activities.filter((activity) => {
-      if (!activity.Company) return user.role === "superuser";
-      const companyRef = activity.Company;
-      const company = companies.find((record) => {
-        if ("CompanyID" in companyRef && companyRef.CompanyID) {
-          return record.CompanyID === companyRef.CompanyID;
-        }
-        return record.id === companyRef.Id || record.Title === companyRef.Title;
-      });
-      return company ? portfolioIds.has(company.CompanyID) : user.role === "superuser";
+      const company = resolveActivityCompany(activity, companies);
+      // Reality First — drop seed/orphan activities whose company is gone.
+      if (!company) return false;
+      return portfolioIds.has(company.CompanyID);
     }),
     ownedCompanyIds,
   };

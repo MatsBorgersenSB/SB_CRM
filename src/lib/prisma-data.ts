@@ -1,5 +1,9 @@
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import type { Activity } from "@/types/activity";
+import type { CommercialPackage } from "@/types/commercial-package";
+import type { Project } from "@/types/project";
+import { filterActivitiesToLiveEntities } from "@/lib/activity-utils";
 import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import {
   mapPrismaCompanyToApp,
@@ -12,10 +16,20 @@ import {
   readOutlookEvidence as readJsonOutlookEvidence,
   readPipelines as readJsonPipelines,
 } from "@/lib/pipeline-db";
+import { readProjects } from "@/lib/project-db";
 
 export type LivePortfolio = {
   companies: Company[];
   pipelines: PipelineRow[];
+  source: "prisma" | "json";
+};
+
+export type LiveFocusContext = {
+  companies: Company[];
+  pipelines: PipelineRow[];
+  activities: Activity[];
+  commercialPackages: CommercialPackage[];
+  projects: Project[];
   source: "prisma" | "json";
 };
 
@@ -93,6 +107,42 @@ export async function readLiveCommercialPackages() {
 
 export async function readLiveOutlookEvidence() {
   return readJsonOutlookEvidence();
+}
+
+/**
+ * Focus / My Attention context — live companies & opportunities, with
+ * activities and commercial packages pruned to entities that still exist.
+ * Reality First: seed/orphan Nordic-style rows never reach the queue.
+ */
+export async function readLiveFocusContext(): Promise<LiveFocusContext> {
+  const [portfolio, activities, commercialPackages, projects] = await Promise.all([
+    readLivePortfolio(),
+    readJsonActivities(),
+    readJsonCommercialPackages(),
+    readProjects().catch((error) => {
+      console.warn(
+        "[prisma-data] Could not load projects for Focus scope:",
+        error instanceof Error ? error.message : error,
+      );
+      return [] as Project[];
+    }),
+  ]);
+
+  const projectIds = new Set(projects.map((project) => project.id));
+  const dealIds = new Set(portfolio.pipelines.map((pipeline) => pipeline.id));
+
+  return {
+    companies: portfolio.companies,
+    pipelines: portfolio.pipelines,
+    activities: filterActivitiesToLiveEntities(activities, {
+      companies: portfolio.companies,
+      pipelines: portfolio.pipelines,
+      projectIds,
+    }),
+    commercialPackages: commercialPackages.filter((pkg) => dealIds.has(pkg.DealId)),
+    projects,
+    source: portfolio.source,
+  };
 }
 
 export {
