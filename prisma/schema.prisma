@@ -62,6 +62,8 @@ model Company {
   opportunities Opportunity[]
   notes         CompanyNote[]
   meetings      MeetingRecord[]
+  /// FS-006 company-owned SmartDocs / uploaded document records
+  documents     DocumentRecord[]
 
   // FS-010 Growth & Expansion Intelligence
   healthRecords    AccountHealthRecord[]
@@ -569,11 +571,15 @@ model DocumentRecord {
   source               String   @default("m365_email") // m365_email | upload | manual
   externalAttachmentId String?
   contentBase64        String?  // Optional local cache for small files; SharePoint is SoT
-  sharepointItemId     String?  // Graph drive item id when filed in opportunity folder
+  sharepointItemId     String?  // Graph drive item id when filed in SharePoint
   sharepointWebUrl     String?  // Browser URL in SharePoint Online
 
+  /// Opportunity link when deal-owned / deal-linked (optional for company-owned FS-006).
   opportunityId  String?
   opportunity    Opportunity?       @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  /// Company owner for company-owned SmartDocs (FS-006).
+  companyId      String?
+  company        Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
   emailMessageId String?
   emailMessage   EmailMessageRecord? @relation(fields: [emailMessageId], references: [id], onDelete: Cascade)
 
@@ -582,6 +588,7 @@ model DocumentRecord {
 
   @@unique([emailMessageId, externalAttachmentId])
   @@index([opportunityId])
+  @@index([companyId])
   @@index([emailMessageId])
   @@index([source])
   @@index([sharepointItemId])

@@ -254,3 +254,50 @@ export async function ensureOpportunitySharePointFolder(
     throw error;
   }
 }
+
+export type CompanyDocumentsSharePointFolder = {
+  folderId: string;
+  webUrl: string;
+  name: string;
+  /** Drive-relative path, e.g. Companies/DorsetGM/Documents */
+  path: string;
+};
+
+/**
+ * Ensures company documents folder (FS-006):
+ * /Companies/{CompanyName}/Documents
+ *
+ * TODO(FS-006 Phase 2): persist folder id on Company registry (mirror opportunity).
+ */
+export async function ensureCompanyDocumentsSharePointFolder(
+  accessToken: string,
+  siteId: string,
+  companyName: string,
+): Promise<CompanyDocumentsSharePointFolder> {
+  if (!accessToken?.trim()) {
+    throw new Error("Graph access token is required to ensure company Documents folder");
+  }
+  if (!siteId?.trim()) {
+    throw new Error("SHAREPOINT_SITE_ID is required to ensure company Documents folder");
+  }
+
+  const safeCompany = sanitizeSharePointName(companyName || "Unknown Company");
+  const segments = ["Companies", safeCompany, "Documents"];
+  const path = segments.join("/");
+
+  try {
+    const item = await ensureFolderPath(accessToken, siteId, segments);
+    return {
+      folderId: item.id!,
+      webUrl: item.webUrl!,
+      name: item.name ?? "Documents",
+      path,
+    };
+  } catch (error) {
+    console.error(
+      "[SharePoint Graph Error]: Failed to ensure company Documents folder",
+      { path, error },
+    );
+    throw error;
+  }
+}

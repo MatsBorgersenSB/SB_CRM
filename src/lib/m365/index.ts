@@ -6,10 +6,14 @@ export { buildM365DailyFocus } from "./daily-focus";
 export { buildM365AccountWorkspace } from "./account-workspace";
 export {
   ensureOpportunitySharePointFolder,
+  ensureCompanyDocumentsSharePointFolder,
   sanitizeSharePointName,
   sanitizeSharePointFolderName,
 } from "./graph-client";
-export type { OpportunitySharePointFolder } from "./graph-client";
+export type {
+  OpportunitySharePointFolder,
+  CompanyDocumentsSharePointFolder,
+} from "./graph-client";
 export { getGraphAccessToken } from "./get-graph-access-token";
 export {
   scheduleOpportunitySharePointFolderProvision,

@@ -35,8 +35,13 @@ import type { CreateCommercialPackageInput } from "@/types/commercial-package-in
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import { buildDefaultSmartDocsLibrary } from "@/lib/smartdocs-library-data";
 import { assignDocumentSetToLibrary, findDocumentSetForFile, generateDocumentSetId } from "@/lib/document-set-engine";
-import { buildSmartDocLibraryRecord } from "@/lib/smartdoc-library-engine";
+import {
+  buildCompanyDocumentContext,
+  buildCompanySmartDocLibraryRecord,
+  buildSmartDocLibraryRecord,
+} from "@/lib/smartdoc-library-engine";
 import type { CreateSmartDocInput } from "@/types/smartdoc-library";
+import { isCompanyOwnedSmartDoc } from "@/types/smartdoc-library";
 import type { DeepResearchBriefing } from "@/types/deep-research";
 import type { ResearchReport, StoredResearchReport } from "@/types/research-report";
 import {
@@ -1201,10 +1206,79 @@ export async function readSmartDocsForDeal(dealId: string): Promise<SmartDocLibr
   const library = await readSmartDocsLibrary();
   const key = dealId.trim().toLowerCase();
   return library.filter((record) => {
-    if (record.DealId.toLowerCase() === key) return true;
-    if (record.PlNumber?.toLowerCase() === key) return true;
+    if (record.DealId?.toLowerCase() === key) return true;
+    if (record.LinkedDealId?.toLowerCase() === key) return true;
+    if (record.PlNumber?.toLowerCase() === key && record.Ownership !== "company") {
+      return true;
+    }
     return false;
   });
+}
+
+export async function readSmartDocsForCompany(
+  companyId: string,
+): Promise<SmartDocLibraryRecord[]> {
+  const database = await ensureDb();
+  const key = companyId.trim().toLowerCase();
+  const company = database.companies.find(
+    (row) =>
+      row.CompanyID.trim().toLowerCase() === key ||
+      row.code?.trim().toLowerCase() === key,
+  );
+  const pipelineIds = new Set(
+    (company?.pipelineIds ?? []).map((id) => id.trim().toLowerCase()),
+  );
+
+  return database.smartDocsLibrary.filter((record) => {
+    if (record.OwnerCompanyId?.trim().toLowerCase() === key) return true;
+    if (
+      company?.CompanyID &&
+      record.OwnerCompanyId?.trim().toLowerCase() ===
+        company.CompanyID.trim().toLowerCase()
+    ) {
+      return true;
+    }
+    if (company?.code && record.PlNumber?.toUpperCase() === company.code.toUpperCase()) {
+      return true;
+    }
+    if (record.DealId && pipelineIds.has(record.DealId.trim().toLowerCase())) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/** Resolve company from JSON seed or Prisma company registry. */
+export async function resolveCompanyForSmartDocs(
+  companyId: string,
+): Promise<Company | undefined> {
+  const key = companyId.trim();
+  if (!key) return undefined;
+
+  const database = await ensureDb();
+  const fromJson = database.companies.find(
+    (row) =>
+      row.CompanyID === key ||
+      row.code?.trim().toLowerCase() === key.toLowerCase() ||
+      String(row.id) === key,
+  );
+  if (fromJson) return fromJson;
+
+  try {
+    const { findPrismaCompanyByRouteKey } = await import(
+      "@/lib/resolve-company-route"
+    );
+    const { mapPrismaCompanyToApp } = await import("@/lib/prisma-mappers");
+    const prismaCompany = await findPrismaCompanyByRouteKey(key);
+    if (!prismaCompany) return undefined;
+    return mapPrismaCompanyToApp(prismaCompany);
+  } catch (error) {
+    console.warn(
+      "[smartdocs] Prisma company lookup failed:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+  return undefined;
 }
 
 /** Resolve deal from JSON seed or Prisma opportunity registry. */
@@ -1319,7 +1393,7 @@ export async function createSmartDocLibraryRecord(
             fileName: record.FileLeafRef,
             DocCategory: record.DocCategory,
             Revision: record.Revision,
-            DealId: record.DealId,
+            DealId: record.DealId ?? pipeline.id,
           },
         ],
       };
@@ -1338,6 +1412,61 @@ export async function createSmartDocLibraryRecord(
     };
   }
 
+  await writeDb(database);
+  return record;
+}
+
+/**
+ * Register a company-owned SmartDoc (FS-006). Does not invent a deal.
+ * Supplier quotations and other company knowledge use CO-… identity.
+ */
+export async function createCompanySmartDocLibraryRecord(
+  companyId: string,
+  input: CreateSmartDocInput,
+): Promise<SmartDocLibraryRecord> {
+  const database = await ensureDb();
+  let company =
+    database.companies.find(
+      (row) =>
+        row.CompanyID === companyId ||
+        row.code?.trim().toLowerCase() === companyId.trim().toLowerCase(),
+    ) ?? (await resolveCompanyForSmartDocs(companyId));
+
+  if (!company) {
+    throw new Error(`Company not found: ${companyId}`);
+  }
+
+  // Refuse stuffing company SUQ into commercial package membership.
+  if (input.DocumentSetID?.trim()) {
+    throw new Error(
+      "Company-owned SmartDocs cannot join opportunity Document Sets (PI/BQ/FQ). Leave DocumentSetID empty.",
+    );
+  }
+
+  const nextId =
+    database.smartDocsLibrary.reduce((max, record) => Math.max(max, record.id), 0) + 1;
+
+  const context = buildCompanyDocumentContext(company);
+  const draft = buildCompanySmartDocLibraryRecord(
+    context,
+    database.smartDocsLibrary,
+    input,
+  );
+
+  if (!draft.OwnerCompanyId) {
+    throw new Error("OwnerCompanyId is required for company-owned SmartDocs");
+  }
+
+  const record: SmartDocLibraryRecord = {
+    ...draft,
+    id: nextId,
+  };
+
+  if (!isCompanyOwnedSmartDoc(record)) {
+    throw new Error("Failed to create company-owned SmartDoc ownership");
+  }
+
+  database.smartDocsLibrary.push(record);
   await writeDb(database);
   return record;
 }
@@ -1405,8 +1534,10 @@ export async function createResearchReport(
   const libraryRecord: SmartDocLibraryRecord = {
     id: database.smartDocsLibrary.length + 1,
     SmartDocID: report.reportId,
-    DealId: options.dealId ?? "",
-    PlNumber: options.dealId ?? report.reportId,
+    DealId: options.dealId ?? null,
+    OwnerCompanyId: options.companyId,
+    Ownership: options.dealId ? "opportunity" : options.companyId ? "company" : undefined,
+    PlNumber: options.dealId ?? options.companyId ?? report.reportId,
     ClientName: report.metadata.companyName ?? report.subject,
     DealName: options.dealId ?? report.subject,
     CommercialStage: report.typeLabel,

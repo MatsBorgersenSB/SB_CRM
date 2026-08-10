@@ -13,9 +13,10 @@ const LEGACY_SMARTDOCS_FILENAME_PATTERN =
  * Identity with display name:
  * PL-1001-S-ORC-0001.pdf
  * PL-1001-S-ORC-0001 Order Confirmation.pdf
+ * CO-1009-S-SUQ-0001 Dorset S02325.pdf
  */
 const IDENTITY_SMARTDOCS_FILENAME_PATTERN =
-  /^(PL-\d{4})-([A-Z])-([A-Z]{3})-(\d{4})(?:\s+.+)?\.([^.]+)$/i;
+  /^((?:PL|CO)-[A-Z0-9]+)-([A-Z])-([A-Z]{3})-(\d{4})(?:\s+.+)?\.([^.]+)$/i;
 
 export function parseSmartDocsFilename(
   fileName: string,
@@ -66,6 +67,7 @@ function extractExtension(fileName: string): string {
 /**
  * SharePoint file name:
  * PL-1001-S-ORC-0001 Order Confirmation.pdf
+ * CO-1009-S-SUQ-0001 Dorset Quotation.pdf
  */
 export function buildIdentitySmartDocsFileLeafRef(input: {
   documentId: string;
@@ -86,7 +88,7 @@ export function buildIdentitySmartDocsFileLeafRef(input: {
 
 /**
  * SharePoint file name uses SmartDoc identity codes + display name:
- * PL-1001-S-ORC-0001 Order Confirmation.pdf
+ * PL-1001-S-ORC-0001 Order Confirmation.pdf / CO-1009-S-SUQ-0001 ….pdf
  */
 export function buildSmartDocsFilename(
   clientLookup: string,
