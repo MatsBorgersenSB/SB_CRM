@@ -13,7 +13,6 @@
       "objective": "Maintain customer relationship after installation and commissioning — follow-up, support, and future opportunity development.",
       "problem": "",
       "successCriteria": "Stable operational relationship, timely follow-up, and clear path to expansion opportunities when evidence emerges.",
-      "linkedCompanyId": "CO-1009",
       "linkedDealId": "PL-1031",
       "milestones": [
         {
@@ -55,15 +54,7 @@
       ],
       "risks": [],
       "team": [],
-      "relatedOrganizations": [
-        {
-          "id": "org-ce-customer",
-          "companyId": "CO-1009",
-          "organizationType": "customer",
-          "isPrimary": true,
-          "label": "Site owner"
-        }
-      ],
+      "relatedOrganizations": [],
       "projectStakeholders": [
         {
           "id": "ps-ce-cl",
@@ -77,7 +68,7 @@
           "role": "Technical Lead",
           "name": "Roberto Sanchez",
           "contactId": "CT-10057",
-          "organizationId": "org-ce-customer",
+          "organizationId": "org-unassigned",
           "influence": "High"
         },
         {
@@ -85,7 +76,7 @@
           "role": "Executive Sponsor",
           "name": "Sebastian Shrady",
           "contactId": "CT-10056",
-          "organizationId": "org-ce-customer",
+          "organizationId": "org-unassigned",
           "influence": "High"
         },
         {

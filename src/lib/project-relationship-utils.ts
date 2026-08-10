@@ -11,6 +11,7 @@ import {
   DEFAULT_PROJECT_STAKEHOLDER_ROLES,
   INTERNAL_ORGANIZATION_ID,
   PROJECT_ORGANIZATION_TYPE_LABELS,
+  UNASSIGNED_ORGANIZATION_ID,
 } from "@/types/project-relationships";
 
 let idCounter = 0;
@@ -153,6 +154,10 @@ export function resolveStakeholderOrganizationName(
     return { name: "Standard Bio", type: "internal" };
   }
 
+  if (stakeholder.organizationId === UNASSIGNED_ORGANIZATION_ID) {
+    return { name: "Organization not linked", type: "other" };
+  }
+
   const org = organizations.find((entry) => entry.id === stakeholder.organizationId);
   if (!org) {
     const company = companies.find((entry) => entry.CompanyID === stakeholder.organizationId);
@@ -166,6 +171,75 @@ export function resolveStakeholderOrganizationName(
   return {
     name: company?.Title ?? org.companyId,
     type: org.organizationType,
+  };
+}
+
+/**
+ * Company ↔ project membership rule (Reality First):
+ * A company appears on Company 360 → Projects only when it is listed in
+ * `project.relatedOrganizations` with a matching `companyId` (or legacy
+ * `linkedCompanyId` when `relatedOrganizations` is unset and migrated).
+ *
+ * Do NOT treat as membership:
+ * - stakeholder rows that reuse a company name/string
+ * - contacts whose registry company happens to match
+ * - deal ClientName / project name similarity
+ */
+export function isCompanyExplicitlyLinkedToProject(
+  companyId: string,
+  project: Project,
+): boolean {
+  if (!companyId.trim()) return false;
+  return getProjectRelatedOrganizations(project).some(
+    (org) => org.companyId === companyId,
+  );
+}
+
+/**
+ * Strip a company from a project's explicit organization links.
+ * Also reassigns stakeholders that pointed at removed org rows to unassigned
+ * so Company 360 cannot inherit a false organization label.
+ */
+export function detachCompanyFromProject(
+  project: Project,
+  companyId: string,
+): { project: Project; changed: boolean } {
+  if (!companyId.trim()) return { project, changed: false };
+
+  const organizations = getProjectRelatedOrganizations(project);
+  const removedOrgIds = new Set(
+    organizations.filter((org) => org.companyId === companyId).map((org) => org.id),
+  );
+  const nextOrganizations = organizations.filter((org) => org.companyId !== companyId);
+  const linkedCleared = project.linkedCompanyId === companyId;
+
+  const stakeholders = getProjectStakeholders(project);
+  let stakeholdersChanged = false;
+  const nextStakeholders = stakeholders.map((entry) => {
+    if (!removedOrgIds.has(entry.organizationId)) return entry;
+    stakeholdersChanged = true;
+    return { ...entry, organizationId: UNASSIGNED_ORGANIZATION_ID };
+  });
+
+  const changed =
+    removedOrgIds.size > 0 ||
+    linkedCleared ||
+    stakeholdersChanged ||
+    nextOrganizations.length !== organizations.length;
+
+  if (!changed) return { project, changed: false };
+
+  const primary =
+    nextOrganizations.find((org) => org.isPrimary) ?? nextOrganizations[0];
+
+  return {
+    changed: true,
+    project: {
+      ...project,
+      relatedOrganizations: nextOrganizations,
+      projectStakeholders: nextStakeholders,
+      linkedCompanyId: primary?.companyId,
+    },
   };
 }
 
@@ -220,4 +294,4 @@ export function getCompanyIdsForProject(project: Project): string[] {
   return getProjectRelatedOrganizations(project).map((org) => org.companyId);
 }
 
-export { DEFAULT_PROJECT_STAKEHOLDER_ROLES, INTERNAL_ORGANIZATION_ID };
+export { DEFAULT_PROJECT_STAKEHOLDER_ROLES, INTERNAL_ORGANIZATION_ID, UNASSIGNED_ORGANIZATION_ID };

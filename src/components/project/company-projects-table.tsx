@@ -7,7 +7,7 @@ import {
   getProjectStakeholders,
   resolveStakeholderOrganizationName,
 } from "@/lib/project-relationship-utils";
-import { INTERNAL_ORGANIZATION_ID } from "@/types/project-relationships";
+import { getCompanyProjectParticipants } from "@/lib/project-team-utils";
 import { ProjectLink, ContactLink } from "@/components/relationship/relationship-links";
 import { HealthStatusIcon, IconLabel } from "@/components/ui/smartcrm-icon";
 
@@ -23,7 +23,8 @@ export function CompanyProjectsTable({
   if (projects.length === 0) {
     return (
       <p className="text-sm text-carbon-blue/45">
-        No linked projects yet. Customer projects appear here when this company is the account.
+        No linked projects yet. Projects appear here only when this company is explicitly
+        linked as a related organization on the project.
       </p>
     );
   }
@@ -32,8 +33,8 @@ export function CompanyProjectsTable({
     <div className="flex flex-col gap-6">
       {projects.map((project) => {
         const organizations = getProjectRelatedOrganizations(project);
-        const customerTeam = getProjectStakeholders(project).filter(
-          (member) => member.organizationId !== INTERNAL_ORGANIZATION_ID,
+        const companyTeam = getCompanyProjectParticipants(companyId, [project]).map(
+          (row) => row.member,
         );
 
         return (
@@ -48,8 +49,10 @@ export function CompanyProjectsTable({
               </span>
             </div>
 
-            {customerTeam.length === 0 ? (
-              <p className="text-[12px] text-carbon-blue/45">No customer-side roles assigned yet.</p>
+            {companyTeam.length === 0 ? (
+              <p className="text-[12px] text-carbon-blue/45">
+                No roles from this company assigned on the project yet.
+              </p>
             ) : (
               <table className="min-w-full text-left text-sm">
                 <thead>
@@ -61,7 +64,7 @@ export function CompanyProjectsTable({
                   </tr>
                 </thead>
                 <tbody>
-                  {customerTeam.map((member) => (
+                  {companyTeam.map((member) => (
                     <tr key={member.id} className="border-b border-carbon-blue/5 last:border-b-0">
                       <td className="px-2 py-2.5">
                         {member.contactId ? (

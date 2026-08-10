@@ -23,6 +23,12 @@ export type ProjectRelatedOrganization = {
 /** Sentinel id for Standard Bio internal organization on a project. */
 export const INTERNAL_ORGANIZATION_ID = "org-internal-standard-bio";
 
+/**
+ * Sentinel for external stakeholders whose company is not yet explicitly linked
+ * on the project. Reality First: never invent a company membership from this.
+ */
+export const UNASSIGNED_ORGANIZATION_ID = "org-unassigned";
+
 export type ProjectStakeholderRecord = {
   id: string;
   role: string;

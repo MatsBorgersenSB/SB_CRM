@@ -3,8 +3,13 @@ import { STANDARD_BIO_USERS } from "@/types/bio-user";
 import {
   getProjectRelatedOrganizations,
   getProjectStakeholders,
+  isCompanyExplicitlyLinkedToProject,
 } from "@/lib/project-relationship-utils";
-import { INTERNAL_ORGANIZATION_ID, type ProjectStakeholderRecord } from "@/types/project-relationships";
+import {
+  INTERNAL_ORGANIZATION_ID,
+  UNASSIGNED_ORGANIZATION_ID,
+  type ProjectStakeholderRecord,
+} from "@/types/project-relationships";
 import type {
   Project,
   ProjectInternalMember,
@@ -204,9 +209,14 @@ export function getContactProjectRoles(
   return roles.sort((a, b) => a.projectName.localeCompare(b.projectName));
 }
 
+/**
+ * Company 360 → Projects membership.
+ * Only projects with an explicit relatedOrganizations.companyId match.
+ * Stakeholder company strings / contact registry company are not enough.
+ */
 export function getProjectsForCompany(companyId: string, projects: Project[]): Project[] {
   return projects
-    .filter((project) => getProjectRelatedOrganizations(project).some((org) => org.companyId === companyId))
+    .filter((project) => isCompanyExplicitlyLinkedToProject(companyId, project))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -217,12 +227,18 @@ export function getCompanyProjectParticipants(
   const rows: Array<{ project: Project; member: ProjectStakeholderRecord }> = [];
 
   for (const project of projects) {
-    const linked = getProjectRelatedOrganizations(project).some((org) => org.companyId === companyId);
-    if (!linked) continue;
+    if (!isCompanyExplicitlyLinkedToProject(companyId, project)) continue;
+    const organizations = getProjectRelatedOrganizations(project);
     for (const member of getProjectStakeholders(project)) {
-      if (member.organizationId === INTERNAL_ORGANIZATION_ID) continue;
-      const org = getProjectRelatedOrganizations(project).find((entry) => entry.id === member.organizationId);
-      if (org?.companyId === companyId || project.linkedCompanyId === companyId) {
+      if (
+        member.organizationId === INTERNAL_ORGANIZATION_ID ||
+        member.organizationId === UNASSIGNED_ORGANIZATION_ID
+      ) {
+        continue;
+      }
+      const org = organizations.find((entry) => entry.id === member.organizationId);
+      // Only people whose project org row is this company — not every external stakeholder.
+      if (org?.companyId === companyId) {
         rows.push({ project, member });
       }
     }
