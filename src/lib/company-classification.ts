@@ -143,6 +143,34 @@ export function isStrategicCustomersQuery(query: string): boolean {
   return /\bstrategic customers?\b/.test(query.toLowerCase());
 }
 
+/**
+ * Reality First — only surface "create opportunity" for commercial-target roles.
+ * Suppliers, competitors, and internal entities should not be nagged to open deals
+ * unless they are also typed as a commercial target (e.g. Customer + Supplier).
+ */
+const COMMERCIAL_TARGET_TYPES: CompanyType[] = [
+  "Customer",
+  "Prospect",
+  "Offtaker",
+  "Partner",
+];
+
+const NON_OPPORTUNITY_TYPES: CompanyType[] = [
+  "Supplier / Vendor",
+  "Competitor",
+  "Internal Company",
+  "Investor",
+];
+
+export function isOpportunityEligibleCompany(
+  company: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
+): boolean {
+  const types = normalizeCompanyTypes(company);
+  if (types.some((type) => COMMERCIAL_TARGET_TYPES.includes(type))) return true;
+  if (types.some((type) => NON_OPPORTUNITY_TYPES.includes(type))) return false;
+  return true;
+}
+
 export function listSelectableCompanyTypes(): CompanyType[] {
   return [...COMPANY_TYPE_SELECT_OPTIONS];
 }

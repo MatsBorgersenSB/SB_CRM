@@ -10,6 +10,7 @@ import {
   isFollowUpOpen,
   isFollowUpOverdue,
 } from "@/lib/activity-utils";
+import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 import { daysBetween } from "@/lib/relative-time";
 
 /** V1 deterministic output — future AI providers return source: "ai". */
@@ -389,10 +390,12 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
   },
   {
     id: "create_new_opportunity",
-    evaluate(inputs) {
+    evaluate(inputs, ctx) {
       const salesDeals = inputs.deals.filter((d) => d.lifecycleStage === "sales");
       if (salesDeals.length > 0 || inputs.isNewRelationship) return null;
       if (inputs.contactCount === 0) return null;
+      // Reality First — suppliers / vendors (and similar) are not sales targets.
+      if (!isOpportunityEligibleCompany(ctx.company)) return null;
 
       return {
         id: `nba-pipeline-${inputs.companyId}`,

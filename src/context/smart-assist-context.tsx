@@ -16,7 +16,7 @@ import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { SmartAssistFocus } from "@/types/smart-assist";
 import { buildSmartAssistFocus } from "@/lib/smart-assist-engine";
-import { filterHandledCoPilotProposals } from "@/lib/smartassist-copilot-store";
+import { filterHandledCoPilotProposals, hydrateCoPilotDismissalsFromServer } from "@/lib/smartassist-copilot-store";
 import { useAuth } from "@/context/auth-context";
 import {
   filterCompaniesForUser,
@@ -54,43 +54,45 @@ export function SmartAssistProvider({ children }: { children: ReactNode }) {
   const loadFocus = useCallback(() => {
     if (!visible) return;
     setLoading(true);
-    void fetch("/api/smartassist/focus")
-      .then((r) => r.json())
-      .then(
-        (body: {
+    void (async () => {
+      try {
+        await hydrateCoPilotDismissalsFromServer(user.email);
+        const response = await fetch("/api/smartassist/focus");
+        const body = (await response.json()) as {
           focus: SmartAssistFocus;
           meta: NonNullable<SmartAssistContextValue["meta"]>;
-        }) => {
-          const scopedCompanies = filterCompaniesForUser(body.meta.companies, user);
-          const scopedPipelines = filterPipelinesForUser(
-            body.meta.pipelines,
-            user,
-            body.meta.companies,
-          );
-          setMeta({
-            ...body.meta,
-            companies: scopedCompanies,
-            pipelines: scopedPipelines,
-          });
-          const built = buildSmartAssistFocus(
-            scopedCompanies,
-            scopedPipelines,
-            body.meta.activities,
-            body.meta.commercialPackages,
-            user,
-          );
-          const filteredProposals = filterHandledCoPilotProposals(built.copilotProposals);
-          setFocus({
-            ...built,
-            copilotProposals: filteredProposals,
-            metrics: {
-              ...built.metrics,
-              pendingCrmActions: filteredProposals.length,
-            },
-          });
-        },
-      )
-      .finally(() => setLoading(false));
+        };
+        const scopedCompanies = filterCompaniesForUser(body.meta.companies, user);
+        const scopedPipelines = filterPipelinesForUser(
+          body.meta.pipelines,
+          user,
+          body.meta.companies,
+        );
+        setMeta({
+          ...body.meta,
+          companies: scopedCompanies,
+          pipelines: scopedPipelines,
+        });
+        const built = buildSmartAssistFocus(
+          scopedCompanies,
+          scopedPipelines,
+          body.meta.activities,
+          body.meta.commercialPackages,
+          user,
+        );
+        const filteredProposals = filterHandledCoPilotProposals(built.copilotProposals);
+        setFocus({
+          ...built,
+          copilotProposals: filteredProposals,
+          metrics: {
+            ...built.metrics,
+            pendingCrmActions: filteredProposals.length,
+          },
+        });
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [user, visible]);
 
   useEffect(() => {

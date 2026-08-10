@@ -113,7 +113,8 @@ export async function executeCoPilotProposal(
   }
 
   if (
-    (kind === "review_opportunity" ||
+    (kind === "create_opportunity" ||
+      kind === "review_opportunity" ||
       kind === "review_document" ||
       kind === "log_meeting_outcome") &&
     proposal.href

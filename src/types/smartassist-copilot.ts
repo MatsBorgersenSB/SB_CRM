@@ -11,6 +11,7 @@ export type CoPilotSourceType =
 
 export type CoPilotActionKind =
   | "create_activity"
+  | "create_opportunity"
   | "complete_commitment"
   | "schedule_follow_up"
   | "draft_email"
@@ -30,10 +31,13 @@ export type CoPilotActionProposal = {
   observedChange: string;
   sourceType: CoPilotSourceType;
   severity: AttentionSeverity;
+  companyId?: string;
   companyName?: string;
   objectName?: string;
   href?: string;
   attentionItemId?: string;
+  /** Stable suppress key — survives proposal id format changes. */
+  suppressionKey?: string;
   payload: {
     createActivity?: Partial<CreateActivityInput>;
     activityId?: string;
@@ -44,6 +48,7 @@ export type CoPilotActionProposal = {
 
 export const COPILOT_ACTION_LABELS: Record<CoPilotActionKind, string> = {
   create_activity: "Create activity",
+  create_opportunity: "Create opportunity",
   complete_commitment: "Mark commitment complete",
   schedule_follow_up: "Schedule follow-up",
   draft_email: "Draft follow-up email",
