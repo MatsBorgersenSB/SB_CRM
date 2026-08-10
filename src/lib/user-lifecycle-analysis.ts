@@ -104,17 +104,19 @@ export function analyzeUserOwnership(
 
   const ownedDocuments: OwnedEntityRef[] = smartDocs
     .filter((doc) => {
-      if (ownedDealIds.has(doc.DealId)) return true;
-      const company = companies.find(
-        (record) =>
-          record.Title === doc.ClientName || ownedCompanyIds.has(record.CompanyID),
-      );
+      if (doc.DealId && ownedDealIds.has(doc.DealId)) return true;
+      if (doc.OwnerCompanyId && ownedCompanyIds.has(doc.OwnerCompanyId)) return true;
+      const company = companies.find((record) => record.Title === doc.ClientName);
       return Boolean(company && ownedCompanyIds.has(company.CompanyID));
     })
     .map((doc) => ({
       id: doc.SmartDocID,
       label: doc.DocumentName,
-      href: `/deals/${doc.DealId}`,
+      href: doc.DealId
+        ? `/deals/${doc.DealId}`
+        : doc.OwnerCompanyId
+          ? `/companies/${doc.OwnerCompanyId}`
+          : `/documents/${doc.SmartDocID}`,
     }));
 
   const totalRecords =
