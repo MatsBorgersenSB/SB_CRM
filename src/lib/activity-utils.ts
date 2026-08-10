@@ -155,6 +155,28 @@ export function activityMatchesContact(
   return false;
 }
 
+/**
+ * Resolve an activity's company lookup against the live company registry.
+ * Reality First: returns undefined when the referenced company no longer exists.
+ */
+export function resolveActivityCompany(
+  activity: Activity,
+  companies: Company[],
+): Company | undefined {
+  const ref = activity.Company;
+  if (!ref) return undefined;
+
+  return companies.find((record) => {
+    if ("CompanyID" in ref && typeof ref.CompanyID === "string" && ref.CompanyID) {
+      return record.CompanyID === ref.CompanyID;
+    }
+    if ("Id" in ref && typeof ref.Id === "number") {
+      return record.id === ref.Id || record.Title === ref.Title;
+    }
+    return record.Title === ref.Title;
+  });
+}
+
 function matchesCompany(
   activity: Activity,
   companyId: string,
@@ -176,6 +198,51 @@ function matchesCompany(
   if (activity.Contact?.Title && contactNames.has(activity.Contact.Title)) return true;
 
   return false;
+}
+
+export type LiveEntityScope = {
+  companies: Company[];
+  pipelines?: PipelineRow[];
+  /** Live project workspace IDs — when provided, ProjectId refs must resolve. */
+  projectIds?: ReadonlySet<string>;
+};
+
+/**
+ * Drop activities whose company / deal / project references are not in the
+ * live registries. Used by Focus and attention so seed/orphan rows cannot
+ * surface as My Attention or Co-Pilot work.
+ */
+export function filterActivitiesToLiveEntities(
+  activities: Activity[],
+  scope: LiveEntityScope,
+): Activity[] {
+  const { companies } = scope;
+  const dealIds = scope.pipelines
+    ? new Set(scope.pipelines.map((pipeline) => pipeline.id))
+    : null;
+  const projectIds = scope.projectIds ?? null;
+
+  return activities.filter((activity) => {
+    if (activity.Company) {
+      if (!resolveActivityCompany(activity, companies)) return false;
+    } else {
+      const dealTitle = activity.Deal?.Title?.trim();
+      const hasLiveDeal = Boolean(dealTitle && dealIds?.has(dealTitle));
+      const hasLiveProject = Boolean(
+        activity.ProjectId?.trim() && projectIds?.has(activity.ProjectId.trim()),
+      );
+      // Unlinked seed/orphan rows with no live company, deal, or project.
+      if (!hasLiveDeal && !hasLiveProject) return false;
+    }
+
+    const dealRef = activity.Deal?.Title?.trim();
+    if (dealIds && dealRef && !dealIds.has(dealRef)) return false;
+
+    const projectRef = activity.ProjectId?.trim();
+    if (projectIds && projectRef && !projectIds.has(projectRef)) return false;
+
+    return true;
+  });
 }
 
 export function filterActivities(

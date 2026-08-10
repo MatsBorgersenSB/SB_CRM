@@ -1,16 +1,9 @@
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import {
-  readLiveActivities,
-  readLiveCommercialPackages,
-  readLivePortfolio,
-} from "@/lib/prisma-data";
+import { readLiveFocusContext } from "@/lib/prisma-data";
 
 export default async function Home() {
-  const [{ companies, pipelines }, activities, commercialPackages] = await Promise.all([
-    readLivePortfolio(),
-    readLiveActivities(),
-    readLiveCommercialPackages(),
-  ]);
+  const { companies, pipelines, activities, commercialPackages } =
+    await readLiveFocusContext();
 
   return (
     <DashboardShell

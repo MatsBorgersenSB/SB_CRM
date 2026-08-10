@@ -48,6 +48,21 @@ export async function executeCoPilotProposal(
   const { kind, payload } = proposal;
 
   if (kind === "complete_commitment" && payload.activityId && payload.activityUpdate) {
+    const { getActivityById } = await import("@/lib/pipeline-db");
+    const { readLiveCompanies } = await import("@/lib/prisma-data");
+    const { resolveActivityCompany } = await import("@/lib/activity-utils");
+
+    const existing = await getActivityById(payload.activityId);
+    if (!existing) {
+      throw new Error("That activity no longer exists — suggestion dismissed.");
+    }
+    const companies = await readLiveCompanies();
+    if (existing.Company && !resolveActivityCompany(existing, companies)) {
+      throw new Error(
+        "That activity references a company that no longer exists — suggestion dismissed.",
+      );
+    }
+
     await syncActivityUpdate(payload.activityId, payload.activityUpdate);
     markCoPilotProposalApproved(proposal.id);
     return {
@@ -62,7 +77,28 @@ export async function executeCoPilotProposal(
       kind === "draft_email") &&
     payload.createActivity
   ) {
-    await syncActivityCreate(normalizeCreateInput(payload.createActivity));
+    const createInput = normalizeCreateInput(payload.createActivity);
+    if (createInput.Company) {
+      const { readLiveCompanies } = await import("@/lib/prisma-data");
+      const companies = await readLiveCompanies();
+      const companyRef = createInput.Company;
+      const resolved = companies.find((record) => {
+        if ("CompanyID" in companyRef && companyRef.CompanyID) {
+          return record.CompanyID === companyRef.CompanyID;
+        }
+        if ("Id" in companyRef) {
+          return record.id === companyRef.Id || record.Title === companyRef.Title;
+        }
+        return false;
+      });
+      if (!resolved) {
+        throw new Error(
+          "Cannot create activity for a company that no longer exists.",
+        );
+      }
+    }
+
+    await syncActivityCreate(createInput);
     markCoPilotProposalApproved(proposal.id);
     return {
       mode: "applied",
