@@ -18,6 +18,21 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
 
+  // Ghost CRA /static/js chunks (not shipped by this Next app). Never redirect them
+  // to HTML /auth/signin — that produces script SyntaxErrors and confusing stacks.
+  if (pathname.startsWith("/static/")) {
+    return new NextResponse(
+      "Gone: SmartCRM no longer serves CRA /static assets. Use /outlook-addin.",
+      {
+        status: 410,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  }
+
   if (
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/health") ||
