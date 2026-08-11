@@ -1,13 +1,15 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ActivityIntelligentRow } from "@/lib/activity-mission-control";
 import {
   buildActivityScheduleItems,
   buildMonthGrid,
   formatMonthLabel,
+  formatShortDay,
   groupScheduleItemsByDay,
+  orderedScheduledItems,
   startOfDay,
   toDayKey,
   type ActivityScheduleItem,
@@ -32,21 +34,42 @@ function barTone(item: ActivityScheduleItem): string {
 export function ActivityCalendarView({
   rows,
   primaryFocusActivityId,
+  focusedActivityId,
+  onFocusedActivityIdChange,
   onOpen,
 }: {
   rows: ActivityIntelligentRow[];
   primaryFocusActivityId?: string | null;
+  focusedActivityId?: string | null;
+  onFocusedActivityIdChange?: (activityId: string) => void;
   onOpen?: (activityId: string) => void;
 }) {
-  const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
-
   const items = useMemo(() => buildActivityScheduleItems(rows), [rows]);
+  const scheduled = useMemo(() => orderedScheduledItems(rows), [rows]);
   const byDay = useMemo(() => groupScheduleItemsByDay(items), [items]);
+
+  const focusedItem =
+    scheduled.find((item) => item.row.id === focusedActivityId) ??
+    scheduled[0] ??
+    null;
+
+  const [anchor, setAnchor] = useState(() =>
+    focusedItem ? startOfDay(focusedItem.start) : startOfDay(new Date()),
+  );
+
+  useEffect(() => {
+    if (!focusedActivityId) return;
+    const item = scheduled.find((entry) => entry.row.id === focusedActivityId);
+    if (item) setAnchor(startOfDay(item.start));
+  }, [focusedActivityId, scheduled]);
+
   const grid = useMemo(() => buildMonthGrid(anchor), [anchor]);
   const todayKey = toDayKey(startOfDay(new Date()));
   const month = anchor.getMonth();
-
   const unscheduled = items.filter((item) => item.isUnscheduled);
+  const focusIndex = focusedItem
+    ? scheduled.findIndex((item) => item.row.id === focusedItem.row.id)
+    : -1;
 
   if (rows.length === 0) {
     return (
@@ -58,42 +81,41 @@ export function ActivityCalendarView({
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[11px] font-medium text-carbon-blue/45">Calendar</p>
           <h3 className="text-[15px] font-semibold text-carbon-blue">
             {formatMonthLabel(anchor)}
           </h3>
+          {focusedItem ? (
+            <p className="mt-0.5 truncate text-[12px] text-carbon-blue/55">
+              Task {focusIndex + 1} of {scheduled.length}
+              <span className="mx-1.5 text-carbon-blue/25">·</span>
+              {formatShortDay(focusedItem.start)}
+              <span className="mx-1.5 text-carbon-blue/25">·</span>
+              {focusedItem.row.headline}
+            </p>
+          ) : (
+            <p className="mt-0.5 text-[12px] text-carbon-blue/45">
+              No dated tasks in this filter
+            </p>
+          )}
         </div>
-        <div className="flex items-center border border-carbon-blue/10">
-          <button
-            type="button"
-            aria-label="Previous month"
-            onClick={() =>
-              setAnchor(new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1))
-            }
-            className="px-2 py-1.5 text-carbon-blue/55 hover:text-upcycle-orange"
-          >
-            <ChevronLeft className="size-4" strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setAnchor(startOfDay(new Date()))}
-            className="border-x border-carbon-blue/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:text-upcycle-orange"
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            aria-label="Next month"
-            onClick={() =>
-              setAnchor(new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1))
-            }
-            className="px-2 py-1.5 text-carbon-blue/55 hover:text-upcycle-orange"
-          >
-            <ChevronRight className="size-4" strokeWidth={2} />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const today = startOfDay(new Date());
+            setAnchor(today);
+            if (scheduled.length === 0 || !onFocusedActivityIdChange) return;
+            const nearest =
+              scheduled.find((item) => item.start.getTime() >= today.getTime()) ??
+              scheduled[scheduled.length - 1]!;
+            onFocusedActivityIdChange(nearest.row.id);
+          }}
+          className="self-start border border-carbon-blue/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+        >
+          Today
+        </button>
       </div>
 
       <div className="overflow-x-auto">
@@ -143,21 +165,29 @@ export function ActivityCalendarView({
                     ) : null}
                   </div>
                   <div className="space-y-1">
-                    {visible.map((item) => (
-                      <button
-                        key={item.row.id}
-                        type="button"
-                        onClick={() => onOpen?.(item.row.activity.ActivityID)}
-                        className={`block w-full truncate border px-1.5 py-0.5 text-left text-[10px] font-medium leading-snug ${barTone(item)} ${
-                          primaryFocusActivityId === item.row.id
-                            ? "ring-1 ring-upcycle-orange/50"
-                            : ""
-                        }`}
-                        title={item.row.headline}
-                      >
-                        {item.row.headline}
-                      </button>
-                    ))}
+                    {visible.map((item) => {
+                      const isFocused = focusedItem?.row.id === item.row.id;
+                      return (
+                        <button
+                          key={item.row.id}
+                          type="button"
+                          onClick={() => {
+                            onFocusedActivityIdChange?.(item.row.id);
+                            onOpen?.(item.row.activity.ActivityID);
+                          }}
+                          className={`block w-full truncate border px-1.5 py-0.5 text-left text-[10px] font-medium leading-snug ${barTone(item)} ${
+                            isFocused
+                              ? "ring-2 ring-upcycle-orange"
+                              : primaryFocusActivityId === item.row.id
+                                ? "ring-1 ring-upcycle-orange/50"
+                                : ""
+                          }`}
+                          title={item.row.headline}
+                        >
+                          {item.row.headline}
+                        </button>
+                      );
+                    })}
                     {overflow > 0 ? (
                       <p className="px-1 text-[9px] text-carbon-blue/40">
                         +{overflow} more
@@ -192,8 +222,58 @@ export function ActivityCalendarView({
       ) : null}
 
       <p className="text-[10px] text-carbon-blue/40">
-        Tasks place on due date; meetings and other activities use the scheduled date.
+        Use the arrows next to Showing to jump task by task. Calendar follows the selected task.
       </p>
+    </div>
+  );
+}
+
+/** Compact prev/next control for the filter transparency bar. */
+export function ActivityScheduleJumpControl({
+  index,
+  total,
+  label,
+  onPrevious,
+  onNext,
+}: {
+  index: number;
+  total: number;
+  label?: string;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  if (total <= 0) return null;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="flex items-center border border-carbon-blue/10">
+        <button
+          type="button"
+          aria-label="Previous task"
+          disabled={index <= 0}
+          onClick={onPrevious}
+          className="px-1.5 py-1 text-carbon-blue/55 hover:text-upcycle-orange disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <ChevronLeft className="size-3.5" strokeWidth={2} />
+        </button>
+        <span className="border-x border-carbon-blue/10 px-2 py-1 text-[10px] font-semibold tabular-nums text-carbon-blue/70">
+          {index + 1}/{total}
+        </span>
+        <button
+          type="button"
+          aria-label="Next task"
+          disabled={index < 0 || index >= total - 1}
+          onClick={onNext}
+          className="px-1.5 py-1 text-carbon-blue/55 hover:text-upcycle-orange disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <ChevronRight className="size-3.5" strokeWidth={2} />
+        </button>
+      </div>
+      {label ? (
+        <span className="hidden max-w-[180px] truncate text-[11px] text-carbon-blue/50 sm:inline">
+          {label}
+        </span>
+      ) : null}
     </div>
   );
 }
