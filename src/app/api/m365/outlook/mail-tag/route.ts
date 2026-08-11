@@ -10,6 +10,7 @@ import {
 import { loadM365DataContext, resolveCompanyFromInput } from "@/lib/m365";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
+import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 
 type LinkOption = {
   id: string;
@@ -50,13 +51,19 @@ export async function GET(request: Request) {
     const contactId = resolved.contact.ContactID;
     const companyId = resolved.company.CompanyID;
     const prisma = getPrisma();
+    const prismaCompany = await findPrismaCompanyByRouteKey(companyId).catch(() => null);
+    const prismaCompanyId =
+      prismaCompany?.id ??
+      (/^[0-9a-f-]{36}$/i.test(companyId) ? companyId : null);
 
-    const companyScoped = await prisma.opportunity.findMany({
-      where: { status: "open", companyId },
-      select: { id: true, name: true, code: true },
-      orderBy: { updatedAt: "desc" },
-      take: 50,
-    });
+    const companyScoped = prismaCompanyId
+      ? await prisma.opportunity.findMany({
+          where: { status: "open", companyId: prismaCompanyId },
+          select: { id: true, name: true, code: true },
+          orderBy: { updatedAt: "desc" },
+          take: 50,
+        })
+      : [];
     const broader = await prisma.opportunity.findMany({
       where: {
         status: "open",

@@ -127,16 +127,27 @@ export function OutlookNoContactState({
     acceptedSuggestions === null &&
     proposal.enrichment.suggestions.length > 0;
 
-  const linkOptions =
-    linkKind === "opportunity"
-      ? proposal?.opportunityOptions ?? []
-      : linkKind === "project"
-        ? proposal?.projectOptions ?? []
-        : [];
+  const applyEnrichmentSuggestions = (suggestions: SignatureSuggestion[]) => {
+    setAcceptedSuggestions(suggestions);
+    setEnrichmentDismissed(false);
+    const fields = acceptedEnrichmentToContactFields(suggestions);
+    if (fields.companyName && !(proposal?.companyResolved && proposal.companyId && !companyOverride)) {
+      setCompanyName(fields.companyName);
+    }
+    if (fields.jobTitle) {
+      const matchedRole =
+        suggestContactListRoleFromTitle(fields.jobTitle) ||
+        resolveContactListRole(fields.jobTitle);
+      if (matchedRole) setRole((current) => current || matchedRole);
+    }
+  };
 
   const handleYes = () => {
     setPhase("confirm");
     setError(null);
+    if (proposal?.enrichment.suggestions.length) {
+      applyEnrichmentSuggestions(proposal.enrichment.suggestions);
+    }
   };
 
   const handleNo = () => {
@@ -145,18 +156,7 @@ export function OutlookNoContactState({
 
   const handleAcceptEnrichment = () => {
     if (!proposal) return;
-    const suggestions = proposal.enrichment.suggestions;
-    setAcceptedSuggestions(suggestions);
-    const fields = acceptedEnrichmentToContactFields(suggestions);
-    if (fields.companyName && !showMatchedCompany) {
-      setCompanyName(fields.companyName);
-    }
-    if (fields.jobTitle && !role) {
-      const matchedRole =
-        suggestContactListRoleFromTitle(fields.jobTitle) ||
-        resolveContactListRole(fields.jobTitle);
-      if (matchedRole) setRole(matchedRole);
-    }
+    applyEnrichmentSuggestions(proposal.enrichment.suggestions);
   };
 
   const handleCreate = async () => {
@@ -387,6 +387,29 @@ export function OutlookNoContactState({
               />
             </label>
 
+            {acceptedSuggestions && acceptedSuggestions.length > 0 ? (
+              <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                  Captured from email signature
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {acceptedSuggestions.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex gap-2 text-[11px] text-carbon-blue/75"
+                    >
+                      <span className="shrink-0 font-semibold text-carbon-blue/45">
+                        {item.label}
+                      </span>
+                      <span className="min-w-0 whitespace-pre-wrap break-words">
+                        {item.value}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             {showMatchedCompany ? (
               <div>
                 <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
@@ -454,40 +477,63 @@ export function OutlookNoContactState({
             {(proposal.opportunityOptions.length > 0 ||
               proposal.projectOptions.length > 0) && (
               <div className="space-y-2 border-t border-carbon-blue/8 pt-3">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
-                  Connect this thread (optional)
-                </span>
-                <select
-                  value={linkKind}
-                  onChange={(event) => {
-                    setLinkKind(
-                      event.target.value as "none" | "opportunity" | "project",
-                    );
-                    setSelectedLinkId("");
-                  }}
-                  className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                >
-                  <option value="none">Do not link yet</option>
-                  {proposal.opportunityOptions.length > 0 ? (
-                    <option value="opportunity">Opportunity</option>
-                  ) : null}
-                  {proposal.projectOptions.length > 0 ? (
-                    <option value="project">Project</option>
-                  ) : null}
-                </select>
-                {linkKind !== "none" ? (
+                <label className="block">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                    Connect this thread (optional)
+                  </span>
                   <select
-                    value={selectedLinkId}
-                    onChange={(event) => setSelectedLinkId(event.target.value)}
-                    className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                    value={
+                      linkKind === "none"
+                        ? "none"
+                        : `${linkKind}:${selectedLinkId || ""}`
+                    }
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (value === "none") {
+                        setLinkKind("none");
+                        setSelectedLinkId("");
+                        return;
+                      }
+                      const [kind, ...rest] = value.split(":");
+                      const id = rest.join(":");
+                      if (kind === "opportunity" || kind === "project") {
+                        setLinkKind(kind);
+                        setSelectedLinkId(id);
+                      }
+                    }}
+                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
                   >
-                    <option value="">Select…</option>
-                    {linkOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
+                    <option value="none">Do not link yet</option>
+                    {proposal.opportunityOptions.length > 0 ? (
+                      <optgroup label="Opportunities">
+                        {proposal.opportunityOptions.map((option) => (
+                          <option
+                            key={`opportunity:${option.id}`}
+                            value={`opportunity:${option.id}`}
+                          >
+                            {option.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : null}
+                    {proposal.projectOptions.length > 0 ? (
+                      <optgroup label="Projects">
+                        {proposal.projectOptions.map((option) => (
+                          <option
+                            key={`project:${option.id}`}
+                            value={`project:${option.id}`}
+                          >
+                            {option.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : null}
                   </select>
+                </label>
+                {proposal.opportunityOptions.length === 0 ? (
+                  <p className="text-[10px] text-carbon-blue/45">
+                    No open opportunities on this company yet.
+                  </p>
                 ) : null}
               </div>
             )}
