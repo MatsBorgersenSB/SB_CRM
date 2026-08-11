@@ -47,6 +47,8 @@ SmartAssist shall prepare activities (not blank forms) when:
 - Open follow-up / commitment is due or overdue
 - Meeting ended today without outcome capture
 - Quotation awaiting response
+- Inbound correspondence that asks for an action (note the ask as an open commitment)
+- Outbound proposal / quotation / RFP with no reply after 3+ days (follow-up reminder)
 
 On **Approve**: create or complete the activity in CRM.  
 On **Dismiss**: require a note; suppress that suggestion key.
@@ -115,6 +117,7 @@ Max **8** pending proposals globally; company-scoped filter on Company 360. Comp
 7. Outlook Relationship Card can **Approve in SmartCRM** for the prepared Active Assist action without leaving mail.  
 8. Meeting AgreedActions become reminder proposals when still open.  
 9. Correspondence (EmailMessageRecord / open mail / project tags) suppresses “first interaction” and “Create Opportunity” for Prospect-only project delivery partners; propose classify or capture instead.  
+10. Inbound mail action asks become “Note requested action” proposals; outbound proposal/RFP without reply become follow-up reminders after 3 days.  
 
 ---
 

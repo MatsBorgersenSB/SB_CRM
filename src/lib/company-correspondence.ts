@@ -8,6 +8,12 @@ import {
   isOpportunityEligibleCompany,
   normalizeCompanyTypes,
 } from "@/lib/company-classification";
+import {
+  extractCorrespondenceActionSignals,
+  type CorrespondenceActionAsk,
+  type CorrespondenceMailSnippet,
+  type CorrespondenceProposalFollowUp,
+} from "@/lib/correspondence-action-signals";
 import type { Company } from "@/types/company";
 
 export type CompanyCorrespondenceEvidence = {
@@ -15,6 +21,10 @@ export type CompanyCorrespondenceEvidence = {
   lastSentAt: string | null;
   projectLinkedCount: number;
   projectNames: string[];
+  /** Inbound mail that asks for an action — SmartAssist must note these. */
+  actionAsks: CorrespondenceActionAsk[];
+  /** Outbound proposal/quote/RFP with no reply — follow-up required. */
+  proposalFollowUps: CorrespondenceProposalFollowUp[];
 };
 
 export const EMPTY_CORRESPONDENCE: CompanyCorrespondenceEvidence = {
@@ -22,6 +32,8 @@ export const EMPTY_CORRESPONDENCE: CompanyCorrespondenceEvidence = {
   lastSentAt: null,
   projectLinkedCount: 0,
   projectNames: [],
+  actionAsks: [],
+  proposalFollowUps: [],
 };
 
 export function hasCorrespondence(
@@ -103,6 +115,8 @@ export function mergeLiveMailIntoEvidence(
       projectName ? 1 : 0,
     ),
     projectNames,
+    actionAsks: base.actionAsks ?? [],
+    proposalFollowUps: base.proposalFollowUps ?? [],
   };
 }
 
@@ -162,16 +176,23 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       OR: orClauses,
     },
     select: {
+      id: true,
+      conversationId: true,
       contactId: true,
       senderEmail: true,
       recipientEmails: true,
       sentAt: true,
       projectId: true,
       projectName: true,
+      subject: true,
+      bodyPreview: true,
+      isOutbound: true,
     },
     orderBy: { sentAt: "desc" },
     take: Math.min(3000, Math.max(200, companies.length * 40)),
   });
+
+  const snippetsByCompany = new Map<string, CorrespondenceMailSnippet[]>();
 
   for (const message of messages) {
     const companyIds = new Set<string>();
@@ -192,6 +213,14 @@ export async function loadCorrespondenceEvidenceByCompanyId(
     const sentAt = message.sentAt.toISOString();
     const projectLinked = Boolean(message.projectId?.trim());
     const projectName = message.projectName?.trim() || null;
+    const snippet: CorrespondenceMailSnippet = {
+      id: message.id,
+      conversationId: message.conversationId,
+      subject: message.subject,
+      bodyPreview: message.bodyPreview,
+      sentAt,
+      isOutbound: message.isOutbound,
+    };
 
     for (const companyId of companyIds) {
       const current = result.get(companyId) ?? { ...EMPTY_CORRESPONDENCE };
@@ -205,8 +234,24 @@ export async function loadCorrespondenceEvidenceByCompanyId(
         projectLinkedCount:
           current.projectLinkedCount + (projectLinked ? 1 : 0),
         projectNames,
+        actionAsks: current.actionAsks,
+        proposalFollowUps: current.proposalFollowUps,
       });
+
+      const list = snippetsByCompany.get(companyId) ?? [];
+      list.push(snippet);
+      snippetsByCompany.set(companyId, list);
     }
+  }
+
+  for (const [companyId, snippets] of snippetsByCompany) {
+    const current = result.get(companyId) ?? { ...EMPTY_CORRESPONDENCE };
+    const signals = extractCorrespondenceActionSignals(snippets);
+    result.set(companyId, {
+      ...current,
+      actionAsks: signals.actionAsks,
+      proposalFollowUps: signals.proposalFollowUps,
+    });
   }
 
   return result;

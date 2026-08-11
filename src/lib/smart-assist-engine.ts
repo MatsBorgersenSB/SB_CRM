@@ -17,6 +17,7 @@ import {
 } from "@/lib/cvm-config";
 import { buildAttentionItems } from "@/lib/smart-attention-engine";
 import { buildCoPilotProposals } from "@/lib/smartassist-copilot-engine";
+import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import { company360Href } from "@/types/company-360";
 import { deal360Href } from "@/types/relationship-navigation";
 import type {
@@ -64,6 +65,9 @@ export function buildSmartAssistFocus(
   activities: Activity[],
   commercialPackages: CommercialPackage[],
   user: AuthUser,
+  options?: {
+    correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>;
+  },
 ): SmartAssistFocus {
   const portfolio = resolveSmartAssistPortfolio(companies, pipelines, activities, user);
   const {
@@ -274,6 +278,7 @@ export function buildSmartAssistFocus(
     scopedPipelines,
     scopedActivities,
     commercialPackages,
+    { correspondenceByCompanyId: options?.correspondenceByCompanyId },
   );
 
   const ownedPortfolioCount = scopedCompanies.filter((company) =>

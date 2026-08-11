@@ -393,3 +393,149 @@ export function proposalsFromMeetingCommitments(
 
   return proposals;
 }
+
+/**
+ * Note action asks from inbound mail; remind when proposal/RFP wait needs follow-up.
+ */
+export function proposalsFromCorrespondenceActions(
+  companies: Company[],
+  activities: Activity[],
+  correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>,
+): CoPilotActionProposal[] {
+  if (!correspondenceByCompanyId?.size) return [];
+
+  const proposals: CoPilotActionProposal[] = [];
+
+  for (const company of companies) {
+    const evidence = correspondenceByCompanyId.get(company.CompanyID);
+    if (!evidence) continue;
+
+    const companyActivities = getActivitiesForCompany(activities, company);
+    const contact = company.contacts[0];
+
+    for (const ask of evidence.actionAsks.slice(0, 2)) {
+      const subjectKey = ask.subject.replace(/^re:\s*/i, "").trim().toLowerCase().slice(0, 40);
+      const alreadyNoted = companyActivities.some((activity) => {
+        const hay =
+          `${activity.Subject} ${activity.NextAction ?? ""} ${activity.Summary ?? ""}`.toLowerCase();
+        return (
+          (subjectKey.length > 8 && hay.includes(subjectKey)) ||
+          (ask.excerpt.length > 20 && hay.includes(ask.excerpt.slice(0, 40).toLowerCase()))
+        );
+      });
+      if (alreadyNoted) continue;
+
+      const id = `copilot-mail-ask-${ask.messageId}`;
+      const kind = "create_activity" as const;
+      const nextAction = ask.excerpt.slice(0, 120) || ask.subject;
+      proposals.push({
+        id,
+        kind,
+        status: "pending",
+        title: `Note requested action — ${ask.subject.replace(/^Re:\s*/i, "").slice(0, 64)}`,
+        reason: `Inbound correspondence asks for action: "${ask.excerpt}"`,
+        impact:
+          "Untracked asks become broken promises — note the commitment so follow-through is visible.",
+        observedChange: `Action ask in mail "${ask.subject}" (${ask.sentAt.slice(0, 10)})`,
+        sourceType: "email",
+        severity: "needs_attention",
+        companyId: company.CompanyID,
+        companyName: company.Title,
+        objectName: ask.subject,
+        href: company360Href(company.CompanyID),
+        suppressionKey: buildCoPilotSuppressionKey({
+          id,
+          kind,
+          companyId: company.CompanyID,
+          ruleId: "mail_action_ask",
+        }),
+        payload: {
+          createActivity: {
+            ActivityType: "Email",
+            Subject: `Action requested: ${ask.subject.replace(/^Re:\s*/i, "").slice(0, 100)}`,
+            Summary: ask.excerpt,
+            ActivityDate: ask.sentAt,
+            ActionRequired: true,
+            NextAction: nextAction,
+            NextActionDate: isoDatePlusDays(3),
+            ActionStatus: "Planned",
+            Company: { CompanyID: company.CompanyID },
+            Contact: contact ? { ContactID: contact.ContactID } : undefined,
+          },
+        },
+      });
+    }
+
+    for (const followUp of evidence.proposalFollowUps.slice(0, 2)) {
+      const subjectKey = followUp.subject
+        .replace(/^re:\s*/i, "")
+        .trim()
+        .toLowerCase()
+        .slice(0, 40);
+      const alreadyTracked = companyActivities.some((activity) => {
+        if (!isFollowUpOpen(activity)) return false;
+        const hay = `${activity.Subject} ${activity.NextAction ?? ""}`.toLowerCase();
+        return (
+          hay.includes("proposal") ||
+          hay.includes("quotation") ||
+          hay.includes("tilbud") ||
+          hay.includes("quote") ||
+          (subjectKey.length > 8 && hay.includes(subjectKey))
+        );
+      });
+      if (alreadyTracked) continue;
+
+      const id = `copilot-mail-proposal-${followUp.messageId}`;
+      const kind = "set_reminder" as const;
+      const isRequest = followUp.kind === "proposal_requested";
+      proposals.push({
+        id,
+        kind,
+        status: "pending",
+        title: isRequest
+          ? `Follow up proposal request — ${company.Title}`
+          : `Follow up proposal — ${company.Title}`,
+        reason: isRequest
+          ? `Proposal/quote was requested ${followUp.daysSince} days ago with no reply — follow-up is required.`
+          : `Proposal/quotation was sent ${followUp.daysSince} days ago with no reply — follow-up is required.`,
+        impact:
+          "Silent proposal threads stall deals and supplier delivery; a dated reminder protects momentum.",
+        observedChange: `"${followUp.subject}" sent ${followUp.sentAt.slice(0, 10)} — no inbound reply`,
+        sourceType: "email",
+        severity: followUp.daysSince >= 7 ? "urgent" : "needs_attention",
+        companyId: company.CompanyID,
+        companyName: company.Title,
+        objectName: followUp.subject,
+        href: company360Href(company.CompanyID),
+        suppressionKey: buildCoPilotSuppressionKey({
+          id,
+          kind,
+          companyId: company.CompanyID,
+          ruleId: "mail_proposal_followup",
+        }),
+        payload: {
+          createActivity: {
+            ActivityType: "Task",
+            Subject: isRequest
+              ? `Follow up proposal request — ${followUp.subject.replace(/^Re:\s*/i, "").slice(0, 80)}`
+              : `Follow up proposal — ${followUp.subject.replace(/^Re:\s*/i, "").slice(0, 80)}`,
+            Summary: isRequest
+              ? `Outbound request for proposal/quote has waited ${followUp.daysSince} days without a reply.`
+              : `Outbound proposal/quotation has waited ${followUp.daysSince} days without a reply.`,
+            ActivityDate: new Date().toISOString(),
+            ActionRequired: true,
+            NextAction: isRequest
+              ? "Chase proposal/quote response"
+              : "Chase proposal follow-up",
+            NextActionDate: isoDatePlusDays(1),
+            ActionStatus: "Planned",
+            Company: { CompanyID: company.CompanyID },
+            Contact: contact ? { ContactID: contact.ContactID } : undefined,
+          },
+        },
+      });
+    }
+  }
+
+  return proposals;
+}

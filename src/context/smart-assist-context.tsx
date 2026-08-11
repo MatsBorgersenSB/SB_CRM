@@ -16,6 +16,7 @@ import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { SmartAssistFocus } from "@/types/smart-assist";
 import { buildSmartAssistFocus } from "@/lib/smart-assist-engine";
+import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import { filterHandledCoPilotProposals, hydrateCoPilotDismissalsFromServer } from "@/lib/smartassist-copilot-store";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -32,6 +33,7 @@ type SmartAssistContextValue = {
     pipelines: PipelineRow[];
     activities: Activity[];
     commercialPackages: CommercialPackage[];
+    correspondenceByCompanyId?: Record<string, CompanyCorrespondenceEvidence>;
   } | null;
   visible: boolean;
 };
@@ -73,12 +75,16 @@ export function SmartAssistProvider({ children }: { children: ReactNode }) {
           companies: scopedCompanies,
           pipelines: scopedPipelines,
         });
+        const correspondenceByCompanyId = body.meta.correspondenceByCompanyId
+          ? new Map(Object.entries(body.meta.correspondenceByCompanyId))
+          : undefined;
         const built = buildSmartAssistFocus(
           scopedCompanies,
           scopedPipelines,
           body.meta.activities,
           body.meta.commercialPackages,
           user,
+          { correspondenceByCompanyId },
         );
         const filteredProposals = filterHandledCoPilotProposals(built.copilotProposals);
         setFocus({
