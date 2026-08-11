@@ -20,6 +20,10 @@ import type {
 import type { AttentionItem } from "@/types/attention-item";
 import { buildCoPilotSuppressionKey } from "@/lib/smartassist-copilot-keys";
 import { isOpportunityEligibleCompany } from "@/lib/company-classification";
+import {
+  proposalsFromLivingRecords,
+  proposalsFromUpcomingCommitments,
+} from "@/lib/smartassist-active-loop";
 
 const MAX_PROPOSALS = 8;
 
@@ -393,7 +397,10 @@ export function buildCoPilotProposals(
 
   const pushUnique = (proposal: CoPilotActionProposal) => {
     if (seen.has(proposal.id)) return;
+    const suppress = proposal.suppressionKey ?? proposal.id;
+    if (seen.has(`sk:${suppress}`)) return;
     seen.add(proposal.id);
+    seen.add(`sk:${suppress}`);
     proposals.push(proposal);
   };
 
@@ -417,6 +424,17 @@ export function buildCoPilotProposals(
   }
 
   for (const proposal of proposalsFromOverdueFollowUps(liveActivities, companies)) {
+    pushUnique(proposal);
+  }
+
+  for (const proposal of proposalsFromUpcomingCommitments(liveActivities, companies)) {
+    pushUnique(proposal);
+  }
+
+  for (const proposal of proposalsFromLivingRecords(
+    companies,
+    liveActivities,
+  )) {
     pushUnique(proposal);
   }
 

@@ -423,8 +423,9 @@ export const SMARTASSIST_BUSINESS_IMPACT = {
 } as const;
 
 export const SMARTASSIST_COPILOT = {
-  title: "CRM Co-Pilot",
-  subtitle: "Review and approve — you focus on customers, I maintain the knowledge platform.",
+  title: "Active Assist",
+  subtitle:
+    "I prepare the next work — create, remind, update. You approve. SmartCRM stays active, not passive.",
   loop: SMARTASSIST_LOOP.label,
   objective: "Reduce manual CRM work. Users approve rather than create.",
   successMetric: "Reducing the amount of manual CRM work required from users.",

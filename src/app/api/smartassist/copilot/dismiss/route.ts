@@ -4,20 +4,30 @@ import {
   listCoPilotDismissalKeys,
   recordCoPilotDismissal,
 } from "@/lib/smartassist-copilot-dismissals";
+import {
+  deriveLearningSuppressKeys,
+  listLearnedCoPilotSuppressKeys,
+} from "@/lib/smartassist-copilot-learning";
 
 /**
- * GET — list durable Co-Pilot dismissal keys for the current user.
+ * GET — list durable Co-Pilot dismissal keys (+ learned policy keys) for the user.
  * Query: ?userEmail=
  */
 export async function GET(request: Request) {
   const userEmail = new URL(request.url).searchParams.get("userEmail");
   try {
-    const keys = await listCoPilotDismissalKeys(userEmail);
+    const keys = await listLearnedCoPilotSuppressKeys(userEmail);
     return NextResponse.json({ keys });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Could not load dismissals.";
-    return NextResponse.json({ error: message, keys: [] as string[] }, { status: 500 });
+    // Fallback to raw keys if learning query fails
+    try {
+      const keys = await listCoPilotDismissalKeys(userEmail);
+      return NextResponse.json({ keys, error: message });
+    } catch {
+      return NextResponse.json({ error: message, keys: [] as string[] }, { status: 500 });
+    }
   }
 }
 
@@ -71,7 +81,15 @@ export async function POST(request: Request) {
       userEmail: body.userEmail,
       userDisplayName: body.userDisplayName,
     });
-    return NextResponse.json({ ok: true, record });
+
+    const learnedKeys = deriveLearningSuppressKeys({
+      suggestionKey: record.suggestionKey,
+      note: record.note,
+      companyId: record.companyId,
+      actionKind: record.actionKind,
+    });
+
+    return NextResponse.json({ ok: true, record, learnedKeys });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Could not save dismissal.";

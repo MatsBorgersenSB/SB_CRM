@@ -18,5 +18,20 @@ export function buildCoPilotSuppressionKey(input: {
     return `create_opportunity:${companyId}`;
   }
 
+  if (input.ruleId === "assign_account_owner" && companyId) {
+    return `propose_record_update:owner:${companyId}`;
+  }
+
+  if (
+    (input.kind === "classify_company" || input.ruleId === "classify_relationship") &&
+    companyId
+  ) {
+    return `classify_company:${companyId}`;
+  }
+
+  if (input.ruleId === "no_activity" && companyId) {
+    return `create_activity:first_touch:${companyId}`;
+  }
+
   return input.id;
 }
