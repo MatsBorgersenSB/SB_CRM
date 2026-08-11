@@ -59,12 +59,11 @@ export function AttentionActionButtons({
       className="text-[11px] font-semibold text-upcycle-orange"
     >
       {actions.map((action) => (
-        <AttentionActionButton
+        <AttentionActionEntries
           key={`${action.kind}-${action.label}`}
           action={action}
           attentionItem={attentionItem}
           onDraftEmail={onDraftEmail}
-          asMenuItem
         />
       ))}
       {attentionItem && onNoAction ? (
@@ -89,6 +88,51 @@ function ActionLabel({ action }: { action: AttentionAction }) {
     <IconLabel icon={icon} iconSize="xs">
       {action.label}
     </IconLabel>
+  );
+}
+
+/** Flat menu entries — no nested ActionMenu (nested portals broke mail link clicks). */
+function AttentionActionEntries({
+  action,
+  attentionItem,
+  onDraftEmail,
+}: {
+  action: AttentionAction;
+  attentionItem?: AttentionItem;
+  onDraftEmail?: (item: AttentionItem) => void;
+}) {
+  if (action.kind === "draft_email" && attentionItem && onDraftEmail) {
+    return (
+      <ActionMenuItem onClick={() => onDraftEmail(attentionItem)}>
+        <ActionLabel action={action} />
+      </ActionMenuItem>
+    );
+  }
+
+  if (action.kind === "draft_email" && action.email) {
+    return (
+      <>
+        <ActionMenuItem href={m365ComposeHref(action.email)} external>
+          <IconLabel icon="email" iconSize="xs">
+            Outlook Web
+          </IconLabel>
+        </ActionMenuItem>
+        <ActionMenuItem href={mailtoHref(action.email)}>
+          <IconLabel icon="email" iconSize="xs">
+            Default mail app
+          </IconLabel>
+        </ActionMenuItem>
+      </>
+    );
+  }
+
+  return (
+    <AttentionActionButton
+      action={action}
+      attentionItem={attentionItem}
+      onDraftEmail={onDraftEmail}
+      asMenuItem
+    />
   );
 }
 
@@ -122,11 +166,32 @@ function AttentionActionButton({
   }
 
   if (action.kind === "draft_email" && action.email) {
+    if (asMenuItem) {
+      return (
+        <>
+          <a
+            href={m365ComposeHref(action.email)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={className}
+          >
+            <IconLabel icon="email" iconSize="xs">
+              Outlook Web
+            </IconLabel>
+          </a>
+          <a href={mailtoHref(action.email)} className={className}>
+            <IconLabel icon="email" iconSize="xs">
+              Default mail app
+            </IconLabel>
+          </a>
+        </>
+      );
+    }
     return (
       <ActionMenu
         label={label}
         align="right"
-        className={asMenuItem ? "" : "text-[10px] font-semibold text-carbon-blue"}
+        className="text-[10px] font-semibold text-carbon-blue"
       >
         <ActionMenuItem href={m365ComposeHref(action.email)} external>
           <IconLabel icon="email" iconSize="xs">
