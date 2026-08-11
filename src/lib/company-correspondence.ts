@@ -1,18 +1,15 @@
 /**
- * Correspondence evidence from EmailMessageRecord + live Outlook context.
- * Knowledge before questions — mail and project tags count as interaction.
+ * Correspondence evidence helpers — client-safe (no Prisma / pg).
+ * Loaders live in company-correspondence-data.ts (server only).
  */
 
-import { getPrisma } from "@/lib/prisma";
 import {
   isOpportunityEligibleCompany,
   normalizeCompanyTypes,
 } from "@/lib/company-classification";
-import {
-  extractCorrespondenceActionSignals,
-  type CorrespondenceActionAsk,
-  type CorrespondenceMailSnippet,
-  type CorrespondenceProposalFollowUp,
+import type {
+  CorrespondenceActionAsk,
+  CorrespondenceProposalFollowUp,
 } from "@/lib/correspondence-action-signals";
 import type { Company } from "@/types/company";
 
@@ -61,8 +58,6 @@ export function isProjectDeliveryPartner(
 /**
  * Prospect (or similar sell-to) with live mail but no Customer/Offtaker —
  * still allow Create Opportunity only when there is no project-delivery signal.
- * When mail exists and role is Prospect-only, prefer classify over inventing deals
- * if the thread is project-tagged OR the caller marked project context.
  */
 export function isMisclassifiedCommercialTarget(
   company: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
@@ -75,8 +70,6 @@ export function isMisclassifiedCommercialTarget(
   );
   if (hasTrueCustomer) return false;
   if (isProjectDeliveryPartner(company, evidence)) return true;
-  // Prospect-only + correspondence: do not auto-push Create Opportunity;
-  // classify / capture first (user may still create manually later).
   return types.length === 1 && types[0] === "Prospect";
 }
 
@@ -118,141 +111,4 @@ export function mergeLiveMailIntoEvidence(
     actionAsks: base.actionAsks ?? [],
     proposalFollowUps: base.proposalFollowUps ?? [],
   };
-}
-
-/**
- * Load EmailMessageRecord evidence for one company (contact id + email match).
- */
-export async function loadCorrespondenceEvidenceForCompany(
-  company: Company,
-): Promise<CompanyCorrespondenceEvidence> {
-  const map = await loadCorrespondenceEvidenceByCompanyId([company]);
-  return map.get(company.CompanyID) ?? EMPTY_CORRESPONDENCE;
-}
-
-export async function loadCorrespondenceEvidenceByCompanyId(
-  companies: Company[],
-): Promise<Map<string, CompanyCorrespondenceEvidence>> {
-  const result = new Map<string, CompanyCorrespondenceEvidence>();
-  if (companies.length === 0) return result;
-
-  const emails: string[] = [];
-  const contactIds: string[] = [];
-  const emailToCompany = new Map<string, string>();
-  const contactToCompany = new Map<string, string>();
-
-  for (const company of companies) {
-    result.set(company.CompanyID, { ...EMPTY_CORRESPONDENCE });
-    for (const contact of company.contacts) {
-      const contactId = contact.ContactID?.trim();
-      if (contactId) {
-        contactIds.push(contactId);
-        contactToCompany.set(contactId, company.CompanyID);
-      }
-      const email = contact.Email?.trim().toLowerCase();
-      if (email) {
-        emails.push(email);
-        emailToCompany.set(email, company.CompanyID);
-      }
-    }
-  }
-
-  if (emails.length === 0 && contactIds.length === 0) return result;
-
-  const prisma = getPrisma();
-  const orClauses: Array<Record<string, unknown>> = [];
-  if (contactIds.length > 0) {
-    orClauses.push({ contactId: { in: [...new Set(contactIds)] } });
-  }
-  if (emails.length > 0) {
-    const uniqueEmails = [...new Set(emails)];
-    orClauses.push({ senderEmail: { in: uniqueEmails } });
-    orClauses.push({ recipientEmails: { hasSome: uniqueEmails } });
-  }
-
-  const messages = await prisma.emailMessageRecord.findMany({
-    where: {
-      isDeletedInSource: false,
-      OR: orClauses,
-    },
-    select: {
-      id: true,
-      conversationId: true,
-      contactId: true,
-      senderEmail: true,
-      recipientEmails: true,
-      sentAt: true,
-      projectId: true,
-      projectName: true,
-      subject: true,
-      bodyPreview: true,
-      isOutbound: true,
-    },
-    orderBy: { sentAt: "desc" },
-    take: Math.min(3000, Math.max(200, companies.length * 40)),
-  });
-
-  const snippetsByCompany = new Map<string, CorrespondenceMailSnippet[]>();
-
-  for (const message of messages) {
-    const companyIds = new Set<string>();
-    if (message.contactId && contactToCompany.has(message.contactId)) {
-      companyIds.add(contactToCompany.get(message.contactId)!);
-    }
-    const sender = message.senderEmail?.trim().toLowerCase();
-    if (sender && emailToCompany.has(sender)) {
-      companyIds.add(emailToCompany.get(sender)!);
-    }
-    for (const recipient of message.recipientEmails ?? []) {
-      const normalized = recipient.trim().toLowerCase();
-      if (normalized && emailToCompany.has(normalized)) {
-        companyIds.add(emailToCompany.get(normalized)!);
-      }
-    }
-
-    const sentAt = message.sentAt.toISOString();
-    const projectLinked = Boolean(message.projectId?.trim());
-    const projectName = message.projectName?.trim() || null;
-    const snippet: CorrespondenceMailSnippet = {
-      id: message.id,
-      conversationId: message.conversationId,
-      subject: message.subject,
-      bodyPreview: message.bodyPreview,
-      sentAt,
-      isOutbound: message.isOutbound,
-    };
-
-    for (const companyId of companyIds) {
-      const current = result.get(companyId) ?? { ...EMPTY_CORRESPONDENCE };
-      const projectNames =
-        projectName && !current.projectNames.includes(projectName)
-          ? [...current.projectNames, projectName]
-          : current.projectNames;
-      result.set(companyId, {
-        messageCount: current.messageCount + 1,
-        lastSentAt: current.lastSentAt ?? sentAt,
-        projectLinkedCount:
-          current.projectLinkedCount + (projectLinked ? 1 : 0),
-        projectNames,
-        actionAsks: current.actionAsks,
-        proposalFollowUps: current.proposalFollowUps,
-      });
-
-      const list = snippetsByCompany.get(companyId) ?? [];
-      list.push(snippet);
-      snippetsByCompany.set(companyId, list);
-    }
-  }
-
-  for (const [companyId, snippets] of snippetsByCompany) {
-    const current = result.get(companyId) ?? { ...EMPTY_CORRESPONDENCE };
-    const signals = extractCorrespondenceActionSignals(snippets);
-    result.set(companyId, {
-      ...current,
-      actionAsks: signals.actionAsks,
-      proposalFollowUps: signals.proposalFollowUps,
-    });
-  }
-
-  return result;
 }
