@@ -53,6 +53,15 @@ export function Contact360PageShell({
   const [companyRows, setCompanyRows] = useState(companies);
   const [activityRows, setActivityRows] = useState(activities);
   const [evidenceRows, setEvidenceRows] = useState(outlookEvidence);
+  const [projectRows, setProjectRows] = useState(projects);
+
+  const handleProjectUpdated = useCallback((updated: Project) => {
+    setProjectRows((current) => {
+      const exists = current.some((row) => row.id === updated.id);
+      if (!exists) return [...current, updated];
+      return current.map((row) => (row.id === updated.id ? updated : row));
+    });
+  }, []);
 
   const scopedCompanies = useMemo(
     () => filterCompaniesForUser(companyRows, user),
@@ -256,7 +265,8 @@ export function Contact360PageShell({
           onContactTransferred={handleContactTransferred}
           onContactMerged={handleContactMerged}
           onReconciliationImported={handleReconciliationImported}
-          projects={projects}
+          projects={projectRows}
+          onProjectUpdated={handleProjectUpdated}
         />
       </WorkspaceMain>
     </WorkspaceChrome>
