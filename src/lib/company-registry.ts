@@ -130,7 +130,7 @@ export async function createRegistryCompany(
         code,
         name: input.Title.trim(),
         website: domain ? `https://${domain}` : null,
-        industry: input.Industry || "Polymer Processing",
+        industry: input.Industry || "Other",
         types: storedTypes,
         companyType: storedTypes[0] ?? "Unclassified",
         status: "active",
@@ -200,7 +200,7 @@ export async function updateRegistryCompany(
           code,
           name: (patch.Title ?? jsonCompany.Title).trim(),
           website: domain ? `https://${domain}` : null,
-          industry: patch.Industry ?? jsonCompany.Industry ?? "Polymer Processing",
+          industry: patch.Industry ?? jsonCompany.Industry ?? "Other",
           types: toPrismaCompanyTypes(patch.CompanyTypes ?? jsonCompany.CompanyTypes),
           companyType:
             toPrismaCompanyTypes(patch.CompanyTypes ?? jsonCompany.CompanyTypes)[0] ??

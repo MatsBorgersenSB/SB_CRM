@@ -12,9 +12,12 @@ import { buildM365RelationshipCard } from "@/lib/m365/relationship-card";
 import { loadM365DataContext } from "@/lib/m365/resolve-context";
 import type { M365RelationshipCardPayload } from "@/types/m365";
 import type { ContactListRole, ContactStatus, RelationshipLevel } from "@/types/contact";
-import { CONTACT_LIST_ROLES } from "@/types/contact";
+import {
+  resolveContactListRole,
+  suggestContactListRoleFromTitle,
+} from "@/types/contact";
 import type { CompanyIndustry } from "@/types/company";
-import { COMPANY_INDUSTRIES } from "@/types/company";
+import { resolveCompanyIndustry } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType, COMPANY_TYPE_SELECT_OPTIONS } from "@/types/company-type";
 import { extractEmailDomain, parsePersonName } from "@/lib/m365/outlook-sender-utils";
@@ -43,7 +46,7 @@ import type {
 
 export type { OutlookAddContactInput, OutlookAddContactResult };
 
-export { resolveCompanyByDomain, resolveCompanyForEmail, canonicalCompanyDisplayName } from "@/lib/m365/company-resolution";
+export { resolveCompanyByDomain, resolveCompanyByName, resolveCompanyForEmail, canonicalCompanyDisplayName } from "@/lib/m365/company-resolution";
 
 const PERSONAL_DOMAINS = new Set([
   "gmail.com",
@@ -67,9 +70,8 @@ function buildCompanyEnrichmentPatch(
     Object.assign(patch, parseCompanyAddressInput(enrichment.address));
   }
 
-  if (enrichment.website?.trim()) {
-    patch.Domain = websiteToDomain(enrichment.website);
-  }
+  // Do not patch Domain from body websites — survey/vendor links (e.g. Questback)
+  // must never overwrite an existing company domain.
 
   return patch;
 }
@@ -93,9 +95,14 @@ export async function buildOutlookSenderPrepopulation(input: {
   const parsed = parsePersonName(input.displayName ?? signatureName ?? "", email);
   const domain = extractEmailDomain(email);
   const companies = await readLiveCompanies().catch(() => readCompanies());
-  const matched = resolveCompanyForEmail(companies, email);
 
   const enrichment = parseSignatureIntelligence(messageBody, email);
+  const signatureCompany = enrichment.suggestions.find((item) => item.id === "company")?.value;
+
+  const matched = resolveCompanyForEmail(companies, email, {
+    companyName: signatureCompany,
+  });
+
   const filteredSuggestions = enrichment.suggestions.filter(
     (item) => !(matched && item.id === "company"),
   );
@@ -105,9 +112,10 @@ export async function buildOutlookSenderPrepopulation(input: {
     parsedName: parsed,
     suggestions: enrichment.suggestions,
     filteredSuggestions,
+    matchedCompanyId: matched?.CompanyID ?? null,
+    matchedCompanyTitle: matched?.Title ?? null,
   });
 
-  const signatureCompany = enrichment.suggestions.find((item) => item.id === "company")?.value;
   const companyDisplay = buildOutlookCompanyDisplay(matched, signatureCompany, domain);
 
   const prepopulation: OutlookSenderPrepopulation = {
@@ -168,7 +176,9 @@ export async function addOutlookContact(
   }
 
   if (!company && !input.skipAutoCompanyMatch) {
-    company = resolveCompanyForEmail(companies, email);
+    company = resolveCompanyForEmail(companies, email, {
+      companyName: input.companyName,
+    });
   }
 
   const enrichment = input.enrichment ?? {};
@@ -192,10 +202,16 @@ export async function addOutlookContact(
     const websiteDomain = enrichment.website?.trim()
       ? websiteToDomain(enrichment.website)
       : "";
+    // Prefer sender email domain over unrelated body websites when creating.
+    const createDomain =
+      websiteDomain &&
+      websiteDomain.toLowerCase() === domain.toLowerCase()
+        ? websiteDomain
+        : domain || websiteDomain;
 
     const newCompanyInput = {
       Title: title,
-      Domain: websiteDomain || domain,
+      Domain: createDomain,
       Industry: industry,
       CompanyTypes: companyTypes,
       // Active + explicit types — never invent Prospect/Customer from Outlook mail.
@@ -212,8 +228,11 @@ export async function addOutlookContact(
       (await createRegistryCompany(newCompanyInput)) ??
       (await createCompany(newCompanyInput));
     companyCreated = true;
-  } else if (Object.keys(buildCompanyEnrichmentPatch(enrichment)).length > 0) {
-    company = await updateCompany(company.CompanyID, buildCompanyEnrichmentPatch(enrichment));
+  } else {
+    const enrichmentPatch = buildCompanyEnrichmentPatch(enrichment);
+    if (Object.keys(enrichmentPatch).length > 0) {
+      company = await updateCompany(company.CompanyID, enrichmentPatch);
+    }
   }
 
   const role = resolveOutlookContactRole(input.role, enrichment.jobTitle);
@@ -283,11 +302,7 @@ export function resolveOutlookCompanyIndustry(
 ): CompanyIndustry | null {
   const trimmed = industry?.trim() ?? "";
   if (!trimmed) return null;
-  return (
-    COMPANY_INDUSTRIES.find(
-      (item) => item.toLowerCase() === trimmed.toLowerCase(),
-    ) ?? null
-  );
+  return resolveCompanyIndustry(trimmed) || null;
 }
 
 /** Reality First — only persist selectable ecosystem roles the user chose. */
@@ -309,36 +324,17 @@ export function resolveOutlookCompanyTypes(
   return resolved;
 }
 
-/** Map user/signature role text to a SharePoint choice — never invent a job. */
+/** Map user/signature role text — prefer explicit choice; never invent a job. */
 export function resolveOutlookContactRole(
   role: string | undefined,
   jobTitle: string | undefined,
 ): ContactListRole {
-  const candidates = [role, jobTitle]
-    .map((value) => value?.trim() ?? "")
-    .filter(Boolean);
+  const explicit = resolveContactListRole(role);
+  if (explicit) return explicit;
 
-  for (const candidate of candidates) {
-    const exact = CONTACT_LIST_ROLES.find(
-      (item) => item.toLowerCase() === candidate.toLowerCase(),
-    );
-    if (exact) return exact;
+  const suggested = suggestContactListRoleFromTitle(jobTitle);
+  if (suggested) return suggested;
 
-    const lower = candidate.toLowerCase();
-    if (lower.includes("sponsor") || lower.includes("executive") || lower.includes("ceo")) {
-      return "Executive Sponsor";
-    }
-    if (lower.includes("plant") || lower.includes("operations") || lower.includes("manager")) {
-      return "Plant Manager";
-    }
-    if (lower.includes("compliance") || lower.includes("environment") || lower.includes("hse")) {
-      return "Compliance Officer";
-    }
-    if (lower.includes("procure") || lower.includes("buyer") || lower.includes("purchasing")) {
-      return "Procurement";
-    }
-  }
-
-  // Explicit user selection is required in the UI; fall back only if omitted.
-  return "Executive Sponsor";
+  const fromTitle = resolveContactListRole(jobTitle);
+  return fromTitle || "Other";
 }

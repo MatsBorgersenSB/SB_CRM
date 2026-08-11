@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { CreateContactInput } from "@/types/contact";
 import {
   BUYING_ROLES,
-  CONTACT_LIST_ROLES,
   CONTACT_SENTIMENTS,
   CONTACT_STATUSES,
   ENGAGEMENT_CADENCES,
@@ -14,12 +13,13 @@ import {
 import { EMPLOYMENT_STATUSES } from "@/types/contact-lifecycle";
 import { CountryContinentFields } from "@/components/companies/country-continent-fields";
 import { findCountryEntry } from "@/lib/geo/country-continent";
+import { ContactRoleSelect } from "@/components/ui/contact-role-select";
 
 export const emptyContactForm = (): CreateContactInput => ({
   FirstName: "",
   LastName: "",
   JobTitle: "",
-  Role: "Plant Manager",
+  Role: "",
   Email: "",
   Phone: "",
   Mobile: "",
@@ -547,19 +547,12 @@ export function ContactFormFields({
           </label>
           <label className="block">
             <span className={LABEL_CLASS}>Role</span>
-            <select
+            <ContactRoleSelect
               value={form.Role}
-              onChange={(event) =>
-                onChange({ ...form, Role: event.target.value as CreateContactInput["Role"] })
-              }
+              onChange={(role) => onChange({ ...form, Role: role })}
+              allowEmpty
               className={FIELD_CLASS}
-            >
-              {CONTACT_LIST_ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           <label className="block">
             <span className={LABEL_CLASS}>Employment Status</span>

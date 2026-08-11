@@ -20,8 +20,14 @@ import {
 import { acceptedEnrichmentToContactFields } from "@/lib/m365/signature-intelligence";
 import type { SignatureSuggestion } from "@/lib/m365/signature-intelligence";
 import type { OutlookAddContactResult } from "@/lib/m365/outlook-sender-types";
-import { COMPANY_INDUSTRIES, type CompanyIndustry } from "@/types/company";
-import { CONTACT_LIST_ROLES, type ContactListRole } from "@/types/contact";
+import { IndustrySelect } from "@/components/ui/industry-select";
+import { ContactRoleSelect } from "@/components/ui/contact-role-select";
+import type { CompanyIndustry } from "@/types/company";
+import {
+  resolveContactListRole,
+  suggestContactListRoleFromTitle,
+  type ContactListRole,
+} from "@/types/contact";
 import {
   COMPANY_TYPE_SELECT_OPTIONS,
   type CompanyType,
@@ -145,9 +151,9 @@ export function OutlookNoContactState({
       setCompanyName(fields.companyName);
     }
     if (fields.jobTitle && !role) {
-      const matchedRole = CONTACT_LIST_ROLES.find(
-        (item) => item.toLowerCase() === fields.jobTitle.toLowerCase(),
-      );
+      const matchedRole =
+        suggestContactListRoleFromTitle(fields.jobTitle) ||
+        resolveContactListRole(fields.jobTitle);
       if (matchedRole) setRole(matchedRole);
     }
   };
@@ -294,7 +300,9 @@ export function OutlookNoContactState({
 
         {phase === "propose" && proposal ? (
           <>
-            <p className="mt-2 text-sm font-semibold text-carbon-blue">New relationship</p>
+            <p className="mt-2 text-sm font-semibold text-carbon-blue">
+              {proposal.companyResolved ? "Add contact?" : "New relationship"}
+            </p>
             <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
               {proposal.decisionQuestion}
             </p>
@@ -304,7 +312,7 @@ export function OutlookNoContactState({
             <p className="mt-0.5 text-[10px] text-carbon-blue/40">{proposal.email}</p>
             <p className="mt-3 text-[11px] text-carbon-blue/70">
               {proposal.companyResolved
-                ? `Company: ${proposal.companyName}`
+                ? `Company already in SmartCRM: ${proposal.companyName}`
                 : proposal.companyName
                   ? `Suggested company: ${proposal.companyName}`
                   : "Company: not yet known"}
@@ -317,7 +325,7 @@ export function OutlookNoContactState({
               onClick={handleYes}
               className="mt-5 border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
             >
-              Yes
+              {proposal.companyResolved ? "Yes, add contact" : "Yes"}
             </button>
             <button
               type="button"
@@ -339,27 +347,25 @@ export function OutlookNoContactState({
 
         {phase === "confirm" && proposal ? (
           <div className="mt-2 max-h-[78dvh] space-y-3 overflow-y-auto">
-            <p className="text-sm font-semibold text-carbon-blue">Confirm create</p>
+            <p className="text-sm font-semibold text-carbon-blue">
+              {showMatchedCompany ? "Confirm add contact" : "Confirm create"}
+            </p>
             <p className="text-[11px] text-carbon-blue/50">
-              SmartAssist prepared this draft. Nothing is saved until you create.
+              {showMatchedCompany
+                ? `${proposal.companyName} is already in SmartCRM. Choose a role, then add the contact.`
+                : "SmartAssist prepared this draft. Nothing is saved until you create."}
             </p>
 
             <label className="block">
               <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
                 Role
               </span>
-              <select
+              <ContactRoleSelect
                 value={role}
-                onChange={(event) => setRole(event.target.value as ContactListRole | "")}
+                onChange={(value) => setRole(value)}
+                allowEmpty
                 className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-              >
-                <option value="">Select role…</option>
-                {CONTACT_LIST_ROLES.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
 
             {showMatchedCompany ? (
@@ -416,20 +422,12 @@ export function OutlookNoContactState({
                   <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
                     Industry
                   </span>
-                  <select
+                  <IndustrySelect
                     value={industry}
-                    onChange={(event) =>
-                      setIndustry(event.target.value as CompanyIndustry | "")
-                    }
+                    onChange={(value) => setIndustry(value)}
+                    allowEmpty
                     className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                  >
-                    <option value="">Select industry…</option>
-                    {COMPANY_INDUSTRIES.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </label>
               </>
             )}
@@ -487,11 +485,21 @@ export function OutlookNoContactState({
 
             <button
               type="button"
-              disabled={busy || !role}
+              disabled={
+                busy ||
+                !role ||
+                (!showMatchedCompany && (!industry || !companyType || !companyName.trim()))
+              }
               onClick={() => void handleCreate()}
               className="w-full border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"
             >
-              {busy ? "Creating…" : "Create in SmartCRM"}
+              {busy
+                ? showMatchedCompany
+                  ? "Adding…"
+                  : "Creating…"
+                : showMatchedCompany
+                  ? "Add contact to SmartCRM"
+                  : "Create in SmartCRM"}
             </button>
             <button
               type="button"

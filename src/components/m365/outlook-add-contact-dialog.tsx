@@ -11,8 +11,14 @@ import {
   resolveOutlookMessageBody,
   logOutlookImportClient,
 } from "@/lib/m365/outlook-message-body";
-import { COMPANY_INDUSTRIES, type CompanyIndustry } from "@/types/company";
-import { CONTACT_LIST_ROLES, type ContactListRole } from "@/types/contact";
+import { IndustrySelect } from "@/components/ui/industry-select";
+import { ContactRoleSelect } from "@/components/ui/contact-role-select";
+import type { CompanyIndustry } from "@/types/company";
+import {
+  resolveContactListRole,
+  suggestContactListRoleFromTitle,
+  type ContactListRole,
+} from "@/types/contact";
 import {
   COMPANY_TYPE_SELECT_OPTIONS,
   type CompanyType,
@@ -142,9 +148,9 @@ export function OutlookAddContactDialog({
       setCompanyName(fields.companyName);
     }
     if (fields.jobTitle && !role) {
-      const matchedRole = CONTACT_LIST_ROLES.find(
-        (item) => item.toLowerCase() === fields.jobTitle.toLowerCase(),
-      );
+      const matchedRole =
+        suggestContactListRoleFromTitle(fields.jobTitle) ||
+        resolveContactListRole(fields.jobTitle);
       if (matchedRole) setRole(matchedRole);
     }
   };
@@ -275,18 +281,12 @@ export function OutlookAddContactDialog({
                 <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
                   Role
                 </span>
-                <select
+                <ContactRoleSelect
                   value={role}
-                  onChange={(event) => setRole(event.target.value as ContactListRole | "")}
+                  onChange={(value) => setRole(value)}
+                  allowEmpty
                   className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                >
-                  <option value="">Select role…</option>
-                  {CONTACT_LIST_ROLES.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
 
               {showMatchedCompany ? (
@@ -355,20 +355,12 @@ export function OutlookAddContactDialog({
                     <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
                       Industry
                     </span>
-                    <select
+                    <IndustrySelect
                       value={industry}
-                      onChange={(event) =>
-                        setIndustry(event.target.value as CompanyIndustry | "")
-                      }
+                      onChange={(value) => setIndustry(value)}
+                      allowEmpty
                       className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                    >
-                      <option value="">Select industry…</option>
-                      {COMPANY_INDUSTRIES.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </label>
                 </>
               )}

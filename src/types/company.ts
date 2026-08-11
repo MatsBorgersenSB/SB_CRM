@@ -14,12 +14,52 @@ export type SharePointPerson = {
   Title: string;
 };
 
-export type CompanyIndustry =
-  | "Polymer Processing"
-  | "Textile Recovery"
-  | "Chemical Manufacturing"
-  | "Waste Management"
-  | "Energy & Infrastructure";
+export type CompanyIndustry = string;
+
+/** Suggested sectors — users may add others. */
+export const COMPANY_INDUSTRIES: CompanyIndustry[] = [
+  "Polymer Processing",
+  "Textile Recovery",
+  "Chemical Manufacturing",
+  "Waste Management",
+  "Energy & Infrastructure",
+  "IT Services & Managed Services",
+  "Software & Technology",
+  "Consulting & Professional Services",
+  "Engineering & EPC",
+  "Industrial Equipment & Machinery",
+  "Pulp & Paper",
+  "Agriculture & Agribusiness",
+  "Food & Beverage",
+  "Cement & Building Materials",
+  "Metals & Mining",
+  "Oil & Gas",
+  "Utilities",
+  "Logistics & Transportation",
+  "Construction",
+  "Public Sector / Government",
+  "University / Research",
+  "Finance & Investment",
+  "Environmental Services",
+  "Biochar & Carbon Markets",
+  "Other",
+];
+
+export function normalizeCompanyIndustry(value: string | null | undefined): string {
+  return (value ?? "").trim().replace(/\s+/g, " ");
+}
+
+/** Prefer exact preset match (case-insensitive); otherwise keep free text. */
+export function resolveCompanyIndustry(
+  value: string | null | undefined,
+): CompanyIndustry {
+  const trimmed = normalizeCompanyIndustry(value);
+  if (!trimmed) return "";
+  const preset = COMPANY_INDUSTRIES.find(
+    (item) => item.toLowerCase() === trimmed.toLowerCase(),
+  );
+  return preset ?? trimmed;
+}
 
 export type CompanyStatus =
   | "Active"
@@ -27,14 +67,6 @@ export type CompanyStatus =
   | "Contracted"
   | "On Hold"
   | "Inactive";
-
-export const COMPANY_INDUSTRIES: CompanyIndustry[] = [
-  "Polymer Processing",
-  "Textile Recovery",
-  "Chemical Manufacturing",
-  "Waste Management",
-  "Energy & Infrastructure",
-];
 
 export const COMPANY_STATUSES: CompanyStatus[] = [
   "Active",
