@@ -49,6 +49,8 @@ On Outlook relationship pane for an unknown sender email, SmartAssist shall:
 2. If no contact: search Company Registry by exact domain (then known company name from signature if present).
 3. Classify resolution as: **company_match** | **new_company** | (contact already exists → show relationship card, not intake).
 
+Hard rule: **unknown contact never opens the Relationship Card.** Company-domain match without a Contact Registry hit must open Relationship Intake (“Add this contact?”). Missing company must open intake for company + contact.
+
 Confidence:
 
 | Match | Confidence | UI behaviour |

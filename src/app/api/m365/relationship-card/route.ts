@@ -31,6 +31,16 @@ export async function GET(request: Request) {
       return m365Error("No matching account found for this context", 404);
     }
 
+    // FS-012: Relationship Card only when the person exists.
+    // Company-only match (domain) must go to Relationship Intake — ask to add contact.
+    if (email && !companyId && !resolved.contact) {
+      return m365Error("No matching contact for this email", 404, {
+        code: "CONTACT_MISSING",
+        companyId: resolved.company.CompanyID,
+        companyName: resolved.company.Title,
+      });
+    }
+
     const stored = await loadCorrespondenceEvidenceForCompany(resolved.company);
     let correspondence = mergeLiveMailIntoEvidence(stored, {
       liveCorrespondentEmail: email,
