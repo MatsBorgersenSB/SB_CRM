@@ -9,6 +9,11 @@ import {
   hasCompanyOwner,
 } from "@/lib/company-owner";
 import { isCompanyUnclassified } from "@/lib/company-classification";
+import {
+  hasCorrespondence,
+  isMisclassifiedCommercialTarget,
+  type CompanyCorrespondenceEvidence,
+} from "@/lib/company-correspondence";
 import { buildCoPilotSuppressionKey } from "@/lib/smartassist-copilot-keys";
 import { company360Href } from "@/types/company-360";
 import type { Activity } from "@/types/activity";
@@ -103,15 +108,19 @@ export function proposalsFromUpcomingCommitments(
 /**
  * Living record proposals — missing owner / unclassified relationship /
  * first interaction when contacts exist with zero activities.
+ * Correspondence (mail / project tags) counts as interaction — Reality First.
  */
 export function proposalsFromLivingRecords(
   companies: Company[],
   activities: Activity[],
+  correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>,
 ): CoPilotActionProposal[] {
   const proposals: CoPilotActionProposal[] = [];
 
   for (const company of companies) {
     const companyActivities = getActivitiesForCompany(activities, company);
+    const correspondence =
+      correspondenceByCompanyId?.get(company.CompanyID) ?? null;
 
     if (!hasCompanyOwner(company) || !formatAccountOwnerDisplay(company.AccountOwner)) {
       const id = `copilot-owner-${company.CompanyID}`;
@@ -147,18 +156,35 @@ export function proposalsFromLivingRecords(
       });
     }
 
-    if (isCompanyUnclassified(company)) {
+    if (
+      isCompanyUnclassified(company) ||
+      isMisclassifiedCommercialTarget(company, correspondence)
+    ) {
       const id = `copilot-classify-${company.CompanyID}`;
       const kind = "classify_company" as const;
+      const projectLabel =
+        correspondence?.projectNames[0] != null
+          ? ` (e.g. ${correspondence.projectNames[0]})`
+          : "";
+      const misclassifiedDelivery = isMisclassifiedCommercialTarget(
+        company,
+        correspondence,
+      );
       proposals.push({
         id,
         kind,
         status: "pending",
-        title: `Classify relationship — ${company.Title}`,
-        reason:
-          "Relationship type is Unclassified — SmartAssist will not invent Customer or opportunities.",
-        impact: "Wrong posture creates junk pipeline; classify once, decide correctly forever.",
-        observedChange: `Account "${company.Title}" is Unclassified`,
+        title: misclassifiedDelivery
+          ? `Classify as supplier / service provider — ${company.Title}`
+          : `Classify relationship — ${company.Title}`,
+        reason: misclassifiedDelivery
+          ? `Project-tagged correspondence${projectLabel} shows delivery work — do not invent a sales opportunity; set the correct relationship role.`
+          : "Relationship type is Unclassified — SmartAssist will not invent Customer or opportunities.",
+        impact:
+          "Wrong posture creates junk pipeline; classify once, decide correctly forever.",
+        observedChange: misclassifiedDelivery
+          ? `"${company.Title}" has project-linked mail but is not typed Customer/Offtaker`
+          : `Account "${company.Title}" is Unclassified`,
         sourceType: "relationship",
         severity: "needs_attention",
         companyId: company.CompanyID,
@@ -172,12 +198,23 @@ export function proposalsFromLivingRecords(
           ruleId: "classify_relationship",
         }),
         payload: {
-          prefill: { companyId: company.CompanyID, focus: "company-type" },
+          prefill: {
+            companyId: company.CompanyID,
+            focus: "company-type",
+            ...(misclassifiedDelivery
+              ? { suggestedType: "Service Provider" }
+              : {}),
+          },
         },
       });
     }
 
-    if (company.contacts.length > 0 && companyActivities.length === 0) {
+    // Knowledge before questions — Outlook / project mail means this is not first contact.
+    if (
+      company.contacts.length > 0 &&
+      companyActivities.length === 0 &&
+      !hasCorrespondence(correspondence)
+    ) {
       const contact = company.contacts[0]!;
       const id = `copilot-first-touch-${company.CompanyID}`;
       const kind = "create_activity" as const;
@@ -212,6 +249,55 @@ export function proposalsFromLivingRecords(
             NextAction: "Complete discovery call and capture next step",
             NextActionDate: isoDatePlusDays(3),
             ActionStatus: "Planned",
+            Company: { CompanyID: company.CompanyID },
+            Contact: { ContactID: contact.ContactID },
+          },
+        },
+      });
+    }
+
+    // Correspondence exists but CRM has no activity — capture what we already know.
+    if (
+      company.contacts.length > 0 &&
+      companyActivities.length === 0 &&
+      hasCorrespondence(correspondence)
+    ) {
+      const contact = company.contacts[0]!;
+      const projectHint =
+        correspondence?.projectNames[0] != null
+          ? ` (${correspondence.projectNames[0]})`
+          : "";
+      const id = `copilot-capture-mail-${company.CompanyID}`;
+      const kind = "create_activity" as const;
+      proposals.push({
+        id,
+        kind,
+        status: "pending",
+        title: `Capture correspondence — ${company.Title}`,
+        reason: `${correspondence!.messageCount} email(s) already exist${projectHint} — log a CRM activity so SmartAssist stops treating this as a cold start.`,
+        impact:
+          "Without capturing known mail, recommendations invent first-contact and miss delivery context.",
+        observedChange: `Mail evidence for "${company.Title}" with zero CRM activities`,
+        sourceType: "email",
+        severity: "needs_attention",
+        companyId: company.CompanyID,
+        companyName: company.Title,
+        objectName: company.Title,
+        href: company360Href(company.CompanyID),
+        suppressionKey: buildCoPilotSuppressionKey({
+          id,
+          kind,
+          companyId: company.CompanyID,
+          ruleId: "capture_correspondence",
+        }),
+        payload: {
+          createActivity: {
+            ActivityType: "Email",
+            Subject: `Correspondence${projectHint} — ${company.Title}`,
+            Summary: `Capture ongoing correspondence with ${contact.FirstName} ${contact.LastName}`.trim(),
+            ActivityDate: correspondence!.lastSentAt ?? new Date().toISOString(),
+            ActionRequired: false,
+            ActionStatus: "Completed",
             Company: { CompanyID: company.CompanyID },
             Contact: { ContactID: contact.ContactID },
           },

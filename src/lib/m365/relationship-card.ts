@@ -3,9 +3,13 @@ import {
   formatCompanyTypesLabel,
   formatRelationshipPostureLabel,
   getCompanyRelationshipPosture,
-  isOpportunityEligibleCompany,
   normalizeCompanyTypes,
 } from "@/lib/company-classification";
+import {
+  hasCorrespondence,
+  shouldOfferCreateOpportunity,
+  type CompanyCorrespondenceEvidence,
+} from "@/lib/company-correspondence";
 import { sumPipelineValue, buildPipelineImpactLines } from "@/lib/impact-context";
 import { isFollowUpOpen, isFollowUpOverdue } from "@/lib/activity-utils";
 import { buildM365Meta } from "@/lib/m365/meta";
@@ -21,19 +25,33 @@ import type { M365RelationshipCardPayload } from "@/types/m365";
 import { M365_BUDGETS } from "@/types/m365";
 import { company360Href } from "@/types/company-360";
 
+export type BuildM365RelationshipCardOptions = {
+  correspondence?: CompanyCorrespondenceEvidence | null;
+};
+
 export function buildM365RelationshipCard(
   company: Company,
   ctx: M365DataContext,
+  options?: BuildM365RelationshipCardOptions,
 ): M365RelationshipCardPayload {
+  const correspondence = options?.correspondence ?? null;
+  const correspondenceByCompanyId = new Map<string, CompanyCorrespondenceEvidence>();
+  if (correspondence) {
+    correspondenceByCompanyId.set(company.CompanyID, correspondence);
+  }
+
   const snapshot = buildCompany360Snapshot(
     company,
     ctx.pipelines,
     ctx.activities,
     ctx.inventory,
+    { correspondence },
   );
 
   const { header, intelligence, pipelines, openActions } = snapshot;
-  const topRiskSignal = intelligence.riskSignals[0];
+  const topRiskSignal =
+    intelligence.riskSignals.find((signal) => signal.id !== "no-contact") ??
+    (hasCorrespondence(correspondence) ? undefined : intelligence.riskSignals[0]);
   const topRisk = topRiskSignal ? toM365RiskFromCompanySignal(topRiskSignal) : null;
 
   const overdue = openActions.filter((a) => isFollowUpOverdue(a));
@@ -55,7 +73,30 @@ export function buildM365RelationshipCard(
     pipelines,
     ctx.activities,
     [],
+    { correspondenceByCompanyId },
   ).find((proposal) => proposal.companyId === company.CompanyID);
+
+  const rawRecommended = intelligence.recommendedAction;
+  const recommendedAction =
+    rawRecommended.ruleId === "create_new_opportunity" &&
+    !shouldOfferCreateOpportunity(company, correspondence)
+      ? {
+          ...rawRecommended,
+          action: "Classify this relationship",
+          reason:
+            "Project or correspondence context suggests delivery work — classify the role before inventing a sales opportunity.",
+          ruleId: "classify_relationship",
+        }
+      : rawRecommended.ruleId === "new_relationship" &&
+          hasCorrespondence(correspondence)
+        ? {
+            ...rawRecommended,
+            action: "Capture correspondence",
+            reason:
+              "Mail already exists for this relationship — capture it in CRM instead of treating this as a first cold contact.",
+            ruleId: "capture_correspondence",
+          }
+        : rawRecommended;
 
   const nextBestAction = prepared
     ? toM365ActionFromFields({
@@ -74,11 +115,7 @@ export function buildM365RelationshipCard(
         // Prefer in-card Approve over Planner for prepared CRM actions.
         plannerEligible: false,
       })
-    : toM365Action(
-        intelligence.recommendedAction,
-        company.CompanyID,
-        pipelineImpact,
-      );
+    : toM365Action(recommendedAction, company.CompanyID, pipelineImpact);
 
   const whatIsAtRisk = topRisk?.label ?? "No critical risks detected";
   const whyItMatters =
@@ -102,7 +139,7 @@ export function buildM365RelationshipCard(
     companyName: header.companyName,
     companyId: company.CompanyID,
     relationshipRoleLabel,
-    opportunityEligible: isOpportunityEligibleCompany(company),
+    opportunityEligible: shouldOfferCreateOpportunity(company, correspondence),
     health: {
       score: header.healthScore,
       status: header.healthStatus,

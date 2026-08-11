@@ -19,6 +19,11 @@ import {
   formatCompanyTypesLabel,
   normalizeCompanyTypes,
 } from "@/lib/company-classification";
+import {
+  hasCorrespondence,
+  shouldOfferCreateOpportunity,
+  type CompanyCorrespondenceEvidence,
+} from "@/lib/company-correspondence";
 import { formatAccountOwnerDisplay } from "@/lib/company-owner";
 
 export type Company360Header = {
@@ -94,6 +99,7 @@ function buildRiskSignals(
   summary: CompanyRelationshipSummary,
   activities: Activity[],
   pipelines: PipelineRow[],
+  correspondence?: CompanyCorrespondenceEvidence | null,
 ): Company360RiskSignal[] {
   const signals: Company360RiskSignal[] = [];
   const linkedPipelines = getLinkedPipelines(company, pipelines);
@@ -188,6 +194,21 @@ function buildRiskSignals(
         ],
       });
     }
+  } else if (hasCorrespondence(correspondence)) {
+    const projectHint =
+      correspondence!.projectNames[0] != null
+        ? ` · project ${correspondence!.projectNames[0]}`
+        : "";
+    signals.push({
+      id: "mail-not-in-crm",
+      label: "Correspondence not captured",
+      severity: "info",
+      detail: `${correspondence!.messageCount} email(s) known${projectHint} — not yet logged as CRM activity`,
+      impact: [
+        "SmartAssist already sees the mail — capture it so health and commitments stay accurate",
+        "Do not treat this as a first-contact cold start",
+      ],
+    });
   } else if (company.contacts.length > 0 || company.pipelineIds.length > 0) {
     signals.push({
       id: "no-contact",
@@ -210,6 +231,7 @@ function buildSuggestedActions(
   company: Company,
   summary: CompanyRelationshipSummary,
   activities: Activity[],
+  correspondence?: CompanyCorrespondenceEvidence | null,
 ): string[] {
   const actions: string[] = [];
 
@@ -230,12 +252,20 @@ function buildSuggestedActions(
     actions.push("Add a primary contact to strengthen this relationship");
   }
 
-  if (summary.activeDeals === 0 && company.pipelineIds.length === 0) {
+  if (
+    summary.activeDeals === 0 &&
+    company.pipelineIds.length === 0 &&
+    shouldOfferCreateOpportunity(company, correspondence)
+  ) {
     actions.push("Explore a new opportunity with this company");
   }
 
   if (actions.length === 0) {
-    actions.push("Record today's interaction to keep the timeline current");
+    if (hasCorrespondence(correspondence) && summary.lastContactAt == null) {
+      actions.push("Capture known correspondence into the relationship timeline");
+    } else {
+      actions.push("Record today's interaction to keep the timeline current");
+    }
   }
 
   return actions.slice(0, 4);
@@ -275,14 +305,22 @@ export function buildCompany360Snapshot(
   pipelines: PipelineRow[],
   activities: Activity[],
   inventory: InventoryDb,
+  options?: { correspondence?: CompanyCorrespondenceEvidence | null },
 ): Company360Snapshot {
+  const correspondence = options?.correspondence ?? null;
   const summary = buildCompanyRelationshipSummary(company, activities, pipelines);
   const companyActivities = getActivitiesForCompany(activities, company);
   const openActions = companyActivities.filter(isFollowUpOpen);
   const linkedPipelines = getLinkedPipelines(company, pipelines);
   const documents = getCompanySmartDocs(company, pipelines);
   const materials = buildMaterialTracks(company, pipelines, inventory);
-  const riskSignals = buildRiskSignals(company, summary, activities, pipelines);
+  const riskSignals = buildRiskSignals(
+    company,
+    summary,
+    activities,
+    pipelines,
+    correspondence,
+  );
   const recommendedAction = summary.healthReport.recommendedAction;
   const extensions: RelationshipIntelligenceExtensions = {
     healthScore: summary.healthScore,
@@ -296,7 +334,12 @@ export function buildCompany360Snapshot(
     trend: summary.trend,
     healthReport: summary.healthReport,
     riskSignals,
-    suggestedActions: buildSuggestedActions(company, summary, activities),
+    suggestedActions: buildSuggestedActions(
+      company,
+      summary,
+      activities,
+      correspondence,
+    ),
     recommendedAction,
     extensions,
   };

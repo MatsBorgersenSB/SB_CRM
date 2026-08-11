@@ -19,7 +19,10 @@ import type {
 } from "@/types/smartassist-copilot";
 import type { AttentionItem } from "@/types/attention-item";
 import { buildCoPilotSuppressionKey } from "@/lib/smartassist-copilot-keys";
-import { isOpportunityEligibleCompany } from "@/lib/company-classification";
+import {
+  shouldOfferCreateOpportunity,
+  type CompanyCorrespondenceEvidence,
+} from "@/lib/company-correspondence";
 import {
   proposalsFromLivingRecords,
   proposalsFromMeetingCommitments,
@@ -372,7 +375,11 @@ export function buildCoPilotProposals(
   pipelines: PipelineRow[],
   activities: Activity[],
   commercialPackages: CommercialPackage[],
+  options?: {
+    correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>;
+  },
 ): CoPilotActionProposal[] {
+  const correspondenceByCompanyId = options?.correspondenceByCompanyId;
   const liveActivities = filterActivitiesToLiveEntities(activities, {
     companies,
     pipelines,
@@ -408,10 +415,26 @@ export function buildCoPilotProposals(
   for (const item of attentionItems) {
     const proposal = proposalFromAttentionItem(item, suggestionsByAttentionId);
     if (!proposal) continue;
-    // Defense in depth — never nag non-commercial companies to open deals.
-    if (proposal.kind === "create_opportunity" && proposal.companyId) {
-      const company = companies.find((entry) => entry.CompanyID === proposal.companyId);
-      if (company && !isOpportunityEligibleCompany(company)) continue;
+
+    const company = proposal.companyId
+      ? companies.find((entry) => entry.CompanyID === proposal.companyId)
+      : undefined;
+    const correspondence = proposal.companyId
+      ? correspondenceByCompanyId?.get(proposal.companyId)
+      : undefined;
+
+    // Mail / project tags already prove interaction — skip cold-start nags.
+    if (
+      (item.ruleId === "no_activity" || item.ruleId === "new_relationship") &&
+      correspondence &&
+      correspondence.messageCount > 0
+    ) {
+      continue;
+    }
+
+    // Defense in depth — never invent deals for suppliers / project delivery partners.
+    if (proposal.kind === "create_opportunity" && company) {
+      if (!shouldOfferCreateOpportunity(company, correspondence)) continue;
     }
     pushUnique(proposal);
   }
@@ -439,6 +462,7 @@ export function buildCoPilotProposals(
   for (const proposal of proposalsFromLivingRecords(
     companies,
     liveActivities,
+    correspondenceByCompanyId,
   )) {
     pushUnique(proposal);
   }
