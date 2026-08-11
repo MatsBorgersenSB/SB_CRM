@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
-import { resolveOutlookConversationId } from "@/lib/m365/outlook-context";
+import {
+  applyOutlookItemSmartCrmCategories,
+  resolveOutlookOpenMessageSeed,
+  type OutlookOpenMessageSeed,
+} from "@/lib/m365/outlook-context";
 import type { UserRole } from "@/types/auth";
 
 type LinkOption = {
@@ -25,6 +29,7 @@ type TagContextPayload = {
 /**
  * Compact Outlook add-in control: tag the open thread and/or open a tagged draft.
  * Intentional only — user chooses opportunity OR project.
+ * Seeds unsynced open messages so Tag this thread works without prior mail sync.
  */
 export function OutlookMailTagPanel({
   email,
@@ -36,7 +41,7 @@ export function OutlookMailTagPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [seed, setSeed] = useState<OutlookOpenMessageSeed | null>(null);
   const [context, setContext] = useState<TagContextPayload | null>(null);
   const [linkKind, setLinkKind] = useState<"opportunity" | "project">("opportunity");
   const [selectedId, setSelectedId] = useState("");
@@ -48,12 +53,14 @@ export function OutlookMailTagPanel({
       setLoading(true);
       setError(null);
       try {
-        const convId = await resolveOutlookConversationId();
+        const openSeed = await resolveOutlookOpenMessageSeed();
         if (cancelled) return;
-        setConversationId(convId);
+        setSeed(openSeed);
 
         const params = new URLSearchParams({ email });
-        if (convId) params.set("conversationId", convId);
+        if (openSeed?.conversationId) {
+          params.set("conversationId", openSeed.conversationId);
+        }
         const response = await fetch(`/api/m365/outlook/mail-tag?${params}`, {
           headers: { [AUTH_ROLE_HEADER]: role },
           credentials: "include",
@@ -89,9 +96,10 @@ export function OutlookMailTagPanel({
   }, [email, role]);
 
   const options = linkKind === "project" ? context?.projectOptions ?? [] : context?.opportunityOptions ?? [];
+  const conversationId = seed?.conversationId ?? null;
 
   const applyTag = async () => {
-    if (!context?.contactId || !conversationId || !selectedId) return;
+    if (!context?.contactId || !conversationId || !selectedId || !seed) return;
     setBusy(true);
     setError(null);
     setStatus(null);
@@ -107,19 +115,35 @@ export function OutlookMailTagPanel({
           conversationId,
           opportunityId: linkKind === "opportunity" ? selectedId : null,
           projectId: linkKind === "project" ? selectedId : null,
+          message: {
+            externalMessageId: seed.externalMessageId,
+            subject: seed.subject,
+            senderEmail: seed.senderEmail || email,
+            sentAt: seed.sentAt,
+          },
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
         error?: string;
         detail?: string;
+        projectName?: string | null;
+        opportunityName?: string | null;
       };
       if (!response.ok) {
         throw new Error(payload.detail || payload.error || "Could not tag mail");
       }
+
+      const selectedName = options.find((row) => row.id === selectedId)?.name;
+      await applyOutlookItemSmartCrmCategories(
+        linkKind === "project"
+          ? { projectName: payload.projectName || selectedName }
+          : { opportunityName: payload.opportunityName || selectedName },
+      );
+
       setStatus(
         linkKind === "project"
-          ? "Thread tagged to project in Outlook and SmartCRM."
-          : "Thread tagged to opportunity in Outlook and SmartCRM.",
+          ? "Thread tagged to project in SmartCRM."
+          : "Thread tagged to opportunity in SmartCRM.",
       );
     } catch (tagError) {
       setError(tagError instanceof Error ? tagError.message : "Could not tag mail");
@@ -191,7 +215,7 @@ export function OutlookMailTagPanel({
       </label>
 
       <div className="mt-2 flex flex-col gap-1.5">
-        {conversationId ? (
+        {conversationId && seed ? (
           <button
             type="button"
             disabled={!selectedId || busy}
@@ -202,7 +226,7 @@ export function OutlookMailTagPanel({
           </button>
         ) : (
           <p className="text-[10px] text-carbon-blue/45">
-            No synced thread yet — open a tagged draft below, then Sync Outlook.
+            Open a mail item to tag this thread, or start a tagged draft below.
           </p>
         )}
 
