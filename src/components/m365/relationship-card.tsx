@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import type { M365RelationshipCardPayload } from "@/types/m365";
 import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
 import { HealthRing } from "@/components/m365/health-ring";
@@ -6,6 +9,10 @@ import { ImpactContext } from "@/components/m365/impact-context";
 import { NextBestActionCard } from "@/components/m365/next-best-action-card";
 import { OutlookActiveAssistApprove } from "@/components/m365/outlook-active-assist-approve";
 import { RelationshipHeader } from "@/components/m365/relationship-header";
+import {
+  hydrateCoPilotDismissalsFromServer,
+  isCoPilotProposalHandled,
+} from "@/lib/smartassist-copilot-store";
 
 function BlockLabel({ children }: { children: string }) {
   return (
@@ -20,18 +27,22 @@ function CardActions({
   outlookHost,
   onCreateOpportunity,
   onActiveAssistApplied,
+  onNoAction,
+  showApprove,
 }: {
   payload: M365RelationshipCardPayload;
   outlookHost: boolean;
   onCreateOpportunity?: () => void;
   onActiveAssistApplied?: () => void;
+  onNoAction?: () => void;
+  showApprove: boolean;
 }) {
   const smartCrmHref = buildSmartCrmUrl(payload.deepLink);
   const linkProps = outlookHost
     ? { target: "_blank" as const, rel: "noopener noreferrer" as const }
     : {};
   const proposal = payload.nextBestAction.activeAssistProposal;
-  const canApproveInPlace = Boolean(outlookHost && proposal);
+  const canApproveInPlace = Boolean(outlookHost && proposal && showApprove);
 
   return (
     <div className="mt-3 flex flex-col gap-2">
@@ -39,6 +50,7 @@ function CardActions({
         <OutlookActiveAssistApprove
           proposal={proposal}
           onApplied={onActiveAssistApplied}
+          onNoAction={onNoAction}
         />
       ) : payload.nextBestAction.plannerEligible ? (
         <a
@@ -48,6 +60,15 @@ function CardActions({
         >
           Execute in Planner
         </a>
+      ) : null}
+      {outlookHost && !canApproveInPlace ? (
+        <button
+          type="button"
+          onClick={onNoAction}
+          className="inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-carbon-blue/35 hover:text-carbon-blue"
+        >
+          No Action
+        </button>
       ) : null}
       {outlookHost && onCreateOpportunity && payload.opportunityEligible ? (
         <button
@@ -97,6 +118,33 @@ export function RelationshipCard({
   const shellClass = outlookHost
     ? "flex h-full max-h-[100dvh] flex-col overflow-hidden bg-white"
     : "dashboard-card overflow-hidden";
+
+  const proposal = payload.nextBestAction.activeAssistProposal;
+  const [actionCleared, setActionCleared] = useState(false);
+  const [approveReady, setApproveReady] = useState(!proposal);
+
+  useEffect(() => {
+    if (!outlookHost || !proposal) {
+      setApproveReady(true);
+      return;
+    }
+    let active = true;
+    void (async () => {
+      await hydrateCoPilotDismissalsFromServer();
+      if (!active) return;
+      if (isCoPilotProposalHandled(proposal.id, proposal)) {
+        setActionCleared(true);
+        setApproveReady(false);
+      } else {
+        setApproveReady(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [outlookHost, proposal]);
+
+  const showRecommendedDetail = !actionCleared;
 
   return (
     <article className={shellClass}>
@@ -152,15 +200,47 @@ export function RelationshipCard({
           className="border border-upcycle-orange/35 bg-upcycle-orange/[0.05] px-3 py-3"
         >
           <BlockLabel>Recommended Action</BlockLabel>
-          <div className="mt-2">
-            <NextBestActionCard action={payload.nextBestAction} prominent hideLinks />
-          </div>
-          <CardActions
-            payload={payload}
-            outlookHost={outlookHost}
-            onCreateOpportunity={onCreateOpportunity}
-            onActiveAssistApplied={onActiveAssistApplied}
-          />
+          {showRecommendedDetail ? (
+            <>
+              <div className="mt-2">
+                <NextBestActionCard action={payload.nextBestAction} prominent hideLinks />
+              </div>
+              <CardActions
+                payload={payload}
+                outlookHost={outlookHost}
+                onCreateOpportunity={onCreateOpportunity}
+                onActiveAssistApplied={onActiveAssistApplied}
+                onNoAction={() => setActionCleared(true)}
+                showApprove={approveReady}
+              />
+            </>
+          ) : (
+            <div className="mt-2 space-y-2">
+              <p className="text-[12px] font-semibold leading-snug text-carbon-blue">
+                No action for now
+              </p>
+              <p className="text-[10px] leading-relaxed text-carbon-blue/50">
+                You chose not to act. SmartAssist will not push this recommendation again.
+              </p>
+              {outlookHost ? (
+                <a
+                  href={buildSmartCrmUrl(payload.deepLink)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
+                >
+                  Open in SmartCRM
+                </a>
+              ) : (
+                <Link
+                  href={payload.deepLink}
+                  className="inline-block text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
+                >
+                  Open in SmartCRM
+                </Link>
+              )}
+            </div>
+          )}
         </section>
 
         <section
