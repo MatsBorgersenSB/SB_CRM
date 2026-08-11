@@ -3,6 +3,10 @@ import { getRequestRole, resolveRequestRole } from "@/lib/api-auth";
 import {
   setConversationLinksForContact,
 } from "@/lib/email-intelligence-data";
+import {
+  getCompanyRelationshipPosture,
+  isOpportunityEligibleCompany,
+} from "@/lib/company-classification";
 import { loadM365DataContext, resolveCompanyFromInput } from "@/lib/m365";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
@@ -95,6 +99,8 @@ export async function GET(request: Request) {
       conversationId: conversationId || null,
       currentOpportunityId,
       currentProjectId,
+      relationshipPosture: getCompanyRelationshipPosture(resolved.company),
+      opportunityEligible: isOpportunityEligibleCompany(resolved.company),
       opportunityOptions: opportunityRows.map(
         (row): LinkOption => ({
           id: row.id,

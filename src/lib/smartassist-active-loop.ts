@@ -8,7 +8,10 @@ import {
   formatAccountOwnerDisplay,
   hasCompanyOwner,
 } from "@/lib/company-owner";
-import { isCompanyUnclassified } from "@/lib/company-classification";
+import {
+  getCompanyRelationshipPosture,
+  isCompanyUnclassified,
+} from "@/lib/company-classification";
 import {
   hasCorrespondence,
   isMisclassifiedCommercialTarget,
@@ -256,11 +259,22 @@ export function proposalsFromLivingRecords(
       });
     }
 
-    // Correspondence exists but CRM has no activity — capture what we already know.
+    // Correspondence exists but CRM has no activity — capture for commercial
+    // relationships only. Buy-from / collaborate mail is already knowledge;
+    // do not nag IT suppliers to invent CRM busywork.
+    const posture = getCompanyRelationshipPosture(company);
+    const skipCaptureForPosture =
+      posture === "buy_from" ||
+      posture === "collaborate" ||
+      posture === "watch" ||
+      posture === "fund" ||
+      posture === "internal";
+
     if (
       company.contacts.length > 0 &&
       companyActivities.length === 0 &&
-      hasCorrespondence(correspondence)
+      hasCorrespondence(correspondence) &&
+      !skipCaptureForPosture
     ) {
       const contact = company.contacts[0]!;
       const projectHint =
