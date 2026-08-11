@@ -187,6 +187,7 @@ export async function updateProject(projectId: string, patch: ProjectPatch): Pro
   }
 
   const current = rowToProject(existing);
+  const previousName = current.name;
   const updated = normalizeProject({
     ...current,
     ...patch,
@@ -206,7 +207,93 @@ export async function updateProject(projectId: string, patch: ProjectPatch): Pro
     },
   });
 
+  if (
+    typeof patch.name === "string" &&
+    patch.name.trim() &&
+    patch.name.trim() !== previousName
+  ) {
+    await propagateProjectRename({
+      projectId,
+      previousName,
+      nextName: updated.name,
+    });
+  }
+
   return updated;
+}
+
+/**
+ * Keep email intelligence + Outlook intentional categories aligned when a
+ * project display name changes. Project id stays stable.
+ */
+async function propagateProjectRename(input: {
+  projectId: string;
+  previousName: string;
+  nextName: string;
+}): Promise<{ emailsUpdated: number; outlookUpdated: number; outlookFailed: number }> {
+  const prisma = getPrisma();
+  const {
+    buildProjectCategoryName,
+    applySmartCrmCategories,
+    getActiveM365AccessToken,
+    toIntentionalCategoryLabel,
+  } = await import("@/lib/m365-client");
+
+  const nextCategory = buildProjectCategoryName(input.nextName);
+  const storedCategory = toIntentionalCategoryLabel(nextCategory);
+
+  const emailResult = await prisma.emailMessageRecord.updateMany({
+    where: { projectId: input.projectId },
+    data: {
+      projectName: input.nextName,
+      m365CategoryName: storedCategory,
+    },
+  });
+
+  // Also catch denormalized name matches that lost projectId somehow.
+  await prisma.emailMessageRecord.updateMany({
+    where: {
+      projectId: null,
+      projectName: input.previousName,
+    },
+    data: {
+      projectId: input.projectId,
+      projectName: input.nextName,
+      m365CategoryName: storedCategory,
+    },
+  });
+
+  const messages = await prisma.emailMessageRecord.findMany({
+    where: { projectId: input.projectId },
+    select: { externalMessageId: true },
+  });
+
+  let outlookUpdated = 0;
+  let outlookFailed = 0;
+  const token = await getActiveM365AccessToken();
+  if (token) {
+    for (const message of messages) {
+      try {
+        await applySmartCrmCategories(token.accessToken, message.externalMessageId, {
+          projectName: input.nextName,
+        });
+        outlookUpdated += 1;
+      } catch (error) {
+        outlookFailed += 1;
+        console.warn(
+          "[project-db] Outlook category rename failed:",
+          message.externalMessageId,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+  }
+
+  return {
+    emailsUpdated: emailResult.count,
+    outlookUpdated,
+    outlookFailed,
+  };
 }
 
 export async function updateProjectStakeholders(
