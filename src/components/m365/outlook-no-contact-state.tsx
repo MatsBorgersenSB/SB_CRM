@@ -325,14 +325,14 @@ export function OutlookNoContactState({
               onClick={handleYes}
               className="mt-5 border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
             >
-              {proposal.companyResolved ? "Yes, add contact" : "Yes"}
+              {proposal.companyResolved ? "Yes, add contact" : "Yes — create company & contact"}
             </button>
             <button
               type="button"
               onClick={handleNo}
               className="mt-3 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue"
             >
-              No
+              No — leave unchanged
             </button>
             <a
               href={buildSmartCrmUrl("/companies")}
