@@ -20,6 +20,10 @@ import {
   toIntentionalCategoryLabel,
   type GraphMailMessage,
 } from "@/lib/m365-client";
+import {
+  gradeEmailSentiment,
+  toPrismaSentimentGrade,
+} from "@/lib/email-sentiment";
 
 export type MailSyncIntegrationResult = {
   integrationId: string;
@@ -365,6 +369,12 @@ async function upsertGraphMessage(input: {
 
   const prisma = getPrisma();
   const webLink = input.message.webLink?.trim() || null;
+  const sentiment = toPrismaSentimentGrade(
+    gradeEmailSentiment(
+      input.message.subject?.trim() || "(no subject)",
+      input.message.bodyPreview,
+    ),
+  );
   const contentData = {
     conversationId,
     subject: input.message.subject?.trim() || "(no subject)",
@@ -374,6 +384,7 @@ async function upsertGraphMessage(input: {
     recipientEmails,
     sentAt: parseSentAt(input.message),
     isOutbound,
+    sentiment,
     isDeletedInSource: false,
     deletedAtInSource: null as Date | null,
   };
@@ -439,7 +450,7 @@ async function upsertGraphMessage(input: {
         m365CategoryName: intentional.apply
           ? intentional.categoryName ?? null
           : null,
-        sentiment: "neutral",
+        sentiment,
       },
     });
     recordId = created.id;

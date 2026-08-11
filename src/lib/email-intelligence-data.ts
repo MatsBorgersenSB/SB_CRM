@@ -2,6 +2,10 @@ import { getPrisma } from "@/lib/prisma";
 import { resolveOpportunityId } from "@/lib/meeting-intelligence-data";
 import { isExternalEmail, isInternalEmail } from "@/lib/domain-rules";
 import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
+import {
+  extractEmailCommitments,
+  gradeEmailSentiment,
+} from "@/lib/email-sentiment";
 import { extractCorrespondenceActionSignals } from "@/lib/correspondence-action-signals";
 import type { SentimentGrade } from "@/generated/prisma";
 import type { IngestedSmartDoc } from "@/lib/smartdocs-ingestion";
@@ -291,7 +295,12 @@ export function buildEmailThreadSummary(
     })),
   );
   for (const ask of signals.actionAsks.slice(0, 2)) {
-    takeaways.push(`Action requested in mail: ${ask.excerpt}`);
+    const tone =
+      ask.sentiment !== "neutral" ? ` [${ask.sentiment}]` : "";
+    takeaways.push(`Action requested in mail${tone}: ${ask.excerpt}`);
+  }
+  for (const promise of signals.openPromises.slice(0, 2)) {
+    takeaways.push(`Open promise in our outbound mail: ${promise.excerpt}`);
   }
   for (const followUp of signals.proposalFollowUps.slice(0, 2)) {
     riskAlerts.push(
@@ -299,6 +308,16 @@ export function buildEmailThreadSummary(
         ? `Proposal/quote requested ${followUp.daysSince} days ago with no reply — follow-up required.`
         : `Proposal/quotation sent ${followUp.daysSince} days ago with no reply — follow-up required.`,
     );
+  }
+
+  // Commitment cues from previews (advisory).
+  const commitmentCues = sorted.flatMap((message) =>
+    extractEmailCommitments(message.subject, message.bodyPreview, message.isOutbound),
+  );
+  for (const cue of commitmentCues.slice(0, 2)) {
+    if (cue.kind === "deadline") {
+      takeaways.push(`Deadline language detected: ${cue.text}`);
+    }
   }
 
   const daysSinceLatest =
@@ -670,7 +689,10 @@ export async function setConversationLinksForContact(
           ? seed.recipientEmails
           : addresses.filter((address) => address !== senderEmail),
         sentAt: Number.isNaN(sentAt.getTime()) ? new Date() : sentAt,
-        sentiment: "neutral",
+        sentiment: gradeEmailSentiment(
+          seed.subject?.trim() || "(no subject)",
+          seed.bodyPreview,
+        ),
         isOutbound: false,
         opportunityId: data.opportunityId ?? null,
         projectId: data.projectId ?? null,

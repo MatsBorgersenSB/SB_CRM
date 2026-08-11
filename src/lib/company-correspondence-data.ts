@@ -83,6 +83,7 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       subject: true,
       bodyPreview: true,
       isOutbound: true,
+      sentiment: true,
     },
     orderBy: { sentAt: "desc" },
     take: Math.min(3000, Math.max(200, companies.length * 40)),
@@ -116,6 +117,7 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       bodyPreview: message.bodyPreview,
       sentAt,
       isOutbound: message.isOutbound,
+      sentiment: message.sentiment,
     };
 
     for (const companyId of companyIds) {
@@ -132,6 +134,7 @@ export async function loadCorrespondenceEvidenceByCompanyId(
         projectNames,
         actionAsks: current.actionAsks,
         proposalFollowUps: current.proposalFollowUps,
+        openPromises: current.openPromises,
       });
 
       const list = snippetsByCompany.get(companyId) ?? [];
@@ -147,6 +150,7 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       ...current,
       actionAsks: signals.actionAsks,
       proposalFollowUps: signals.proposalFollowUps,
+      openPromises: signals.openPromises,
     });
   }
 
