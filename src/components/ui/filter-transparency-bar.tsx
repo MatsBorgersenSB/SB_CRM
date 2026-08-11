@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
 
@@ -10,6 +11,8 @@ export type FilterTransparencyBarProps = {
   activeFilters: FilterSummaryChip[];
   onClearAll?: () => void;
   className?: string;
+  /** Optional controls aligned with the Showing count (e.g. prev/next task). */
+  endActions?: ReactNode;
 };
 
 /**
@@ -23,6 +26,7 @@ export function FilterTransparencyBar({
   activeFilters,
   onClearAll,
   className = "",
+  endActions,
 }: FilterTransparencyBarProps) {
   const hasActiveFilters = activeFilters.length > 0;
 
@@ -31,11 +35,14 @@ export function FilterTransparencyBar({
       className={`border-b border-carbon-blue/10 bg-white px-3 py-2.5 sm:px-4 ${className}`}
       aria-live="polite"
     >
-      <p className="text-[12px] font-medium text-carbon-blue/75">
-        Showing{" "}
-        <span className="tabular-nums text-carbon-blue">{filteredCount}</span> of{" "}
-        <span className="tabular-nums text-carbon-blue">{totalCount}</span> {entityLabel}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 text-[12px] font-medium text-carbon-blue/75">
+          Showing{" "}
+          <span className="tabular-nums text-carbon-blue">{filteredCount}</span> of{" "}
+          <span className="tabular-nums text-carbon-blue">{totalCount}</span> {entityLabel}
+        </p>
+        {endActions ? <div className="shrink-0">{endActions}</div> : null}
+      </div>
 
       {hasActiveFilters ? (
         <div className="mt-2">

@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChartGantt, List, Plus } from "lucide-react";
-import { ActivityCalendarView } from "@/components/activities/activity-calendar-view";
+import {
+  ActivityCalendarView,
+  ActivityScheduleJumpControl,
+} from "@/components/activities/activity-calendar-view";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
 import { ActivityGanttView } from "@/components/activities/activity-gantt-view";
 import { TaskCreateModal } from "@/components/activities/task-create-modal";
@@ -19,7 +22,11 @@ import {
   filterActivityRows,
   type ActivityWorkFilter,
 } from "@/lib/activity-mission-control";
-import type { ActivityScheduleViewMode } from "@/lib/activity-schedule-views";
+import {
+  formatShortDay,
+  orderedScheduledItems,
+  type ActivityScheduleViewMode,
+} from "@/lib/activity-schedule-views";
 import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import { syncActivityUpdate } from "@/lib/sync-activity";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
@@ -58,6 +65,7 @@ export function ActivityWorkManagementWorkspace({
   const [filter, setFilter] = useState<ActivityWorkFilter>("my_tasks");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ActivityScheduleViewMode>("list");
+  const [scheduleFocusId, setScheduleFocusId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
 
@@ -102,6 +110,42 @@ export function ActivityWorkManagementWorkspace({
     filteredRows.find((row) => row.requiresAttention)?.id ??
     filteredRows[0]?.id ??
     null;
+
+  const scheduledItems = useMemo(
+    () => orderedScheduledItems(filteredRows),
+    [filteredRows],
+  );
+
+  useEffect(() => {
+    if (scheduledItems.length === 0) {
+      setScheduleFocusId(null);
+      return;
+    }
+    if (
+      !scheduleFocusId ||
+      !scheduledItems.some((item) => item.row.id === scheduleFocusId)
+    ) {
+      setScheduleFocusId(scheduledItems[0]!.row.id);
+    }
+  }, [scheduledItems, scheduleFocusId]);
+
+  const scheduleFocusIndex = scheduledItems.findIndex(
+    (item) => item.row.id === scheduleFocusId,
+  );
+  const scheduleFocusItem =
+    scheduleFocusIndex >= 0 ? scheduledItems[scheduleFocusIndex] : null;
+
+  const jumpToPreviousTask = useCallback(() => {
+    if (scheduleFocusIndex <= 0) return;
+    setScheduleFocusId(scheduledItems[scheduleFocusIndex - 1]!.row.id);
+  }, [scheduleFocusIndex, scheduledItems]);
+
+  const jumpToNextTask = useCallback(() => {
+    if (scheduleFocusIndex < 0 || scheduleFocusIndex >= scheduledItems.length - 1) {
+      return;
+    }
+    setScheduleFocusId(scheduledItems[scheduleFocusIndex + 1]!.row.id);
+  }, [scheduleFocusIndex, scheduledItems]);
 
   const activeFilterChips = useMemo(() => {
     const chips: FilterSummaryChip[] = [];
@@ -246,6 +290,21 @@ export function ActivityWorkManagementWorkspace({
             activeFilters={activeFilterChips}
             onClearAll={activeFilterChips.length > 0 ? handleClearAllFilters : undefined}
             className="mt-3 border border-carbon-blue/10"
+            endActions={
+              viewMode === "calendar" || viewMode === "gantt" ? (
+                <ActivityScheduleJumpControl
+                  index={scheduleFocusIndex}
+                  total={scheduledItems.length}
+                  label={
+                    scheduleFocusItem
+                      ? `${formatShortDay(scheduleFocusItem.start)} · ${scheduleFocusItem.row.headline}`
+                      : undefined
+                  }
+                  onPrevious={jumpToPreviousTask}
+                  onNext={jumpToNextTask}
+                />
+              ) : undefined
+            }
           />
         </div>
 
@@ -265,6 +324,8 @@ export function ActivityWorkManagementWorkspace({
           <ActivityCalendarView
             rows={filteredRows}
             primaryFocusActivityId={primaryFocusActivityId}
+            focusedActivityId={scheduleFocusId}
+            onFocusedActivityIdChange={setScheduleFocusId}
             onOpen={openActivity}
           />
         ) : null}
@@ -273,6 +334,8 @@ export function ActivityWorkManagementWorkspace({
           <ActivityGanttView
             rows={filteredRows}
             primaryFocusActivityId={primaryFocusActivityId}
+            focusedActivityId={scheduleFocusId}
+            onFocusedActivityIdChange={setScheduleFocusId}
             onOpen={openActivity}
           />
         ) : null}

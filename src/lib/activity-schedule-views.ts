@@ -103,7 +103,21 @@ export function buildActivityScheduleItems(
 ): ActivityScheduleItem[] {
   return rows
     .map(toActivityScheduleItem)
-    .sort((a, b) => a.start.getTime() - b.start.getTime());
+    .sort((a, b) => {
+      if (a.isUnscheduled !== b.isUnscheduled) {
+        return a.isUnscheduled ? 1 : -1;
+      }
+      const byStart = a.start.getTime() - b.start.getTime();
+      if (byStart !== 0) return byStart;
+      return a.row.headline.localeCompare(b.row.headline);
+    });
+}
+
+/** Chronological dated items only — for prev/next task navigation. */
+export function orderedScheduledItems(
+  rows: ActivityIntelligentRow[],
+): ActivityScheduleItem[] {
+  return buildActivityScheduleItems(rows).filter((item) => !item.isUnscheduled);
 }
 
 export function groupScheduleItemsByDay(

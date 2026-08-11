@@ -1,14 +1,13 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { ActivityIntelligentRow } from "@/lib/activity-mission-control";
 import {
   addDays,
   buildActivityScheduleItems,
-  buildGanttRange,
   formatShortDay,
   ganttBarStyle,
+  orderedScheduledItems,
   startOfDay,
   toDayKey,
   type ActivityScheduleItem,
@@ -28,30 +27,49 @@ function barTone(item: ActivityScheduleItem): string {
   return "bg-carbon-blue/45";
 }
 
+function buildWindowAround(focus: Date, dayCount = 42): Date[] {
+  let start = addDays(startOfDay(focus), -7);
+  const weekday = (start.getDay() + 6) % 7;
+  start = addDays(start, -weekday);
+  return Array.from({ length: dayCount }, (_, index) => addDays(start, index));
+}
+
 export function ActivityGanttView({
   rows,
   primaryFocusActivityId,
+  focusedActivityId,
+  onFocusedActivityIdChange,
   onOpen,
 }: {
   rows: ActivityIntelligentRow[];
   primaryFocusActivityId?: string | null;
+  focusedActivityId?: string | null;
+  onFocusedActivityIdChange?: (activityId: string) => void;
   onOpen?: (activityId: string) => void;
 }) {
-  const [rangeOffsetWeeks, setRangeOffsetWeeks] = useState(0);
-
   const items = useMemo(() => buildActivityScheduleItems(rows), [rows]);
+  const scheduled = useMemo(() => orderedScheduledItems(rows), [rows]);
+  const unscheduled = items.filter((item) => item.isUnscheduled);
 
-  const { days } = useMemo(() => {
-    const base = buildGanttRange(items, 6);
-    return {
-      days: base.days.map((day) => addDays(day, rangeOffsetWeeks * 7)),
-    };
-  }, [items, rangeOffsetWeeks]);
+  const focusedItem =
+    scheduled.find((item) => item.row.id === focusedActivityId) ??
+    scheduled[0] ??
+    null;
+
+  const days = useMemo(
+    () =>
+      buildWindowAround(
+        focusedItem?.start ?? startOfDay(new Date()),
+        42,
+      ),
+    [focusedItem],
+  );
 
   const rangeStart = days[0] ?? startOfDay(new Date());
   const todayKey = toDayKey(startOfDay(new Date()));
-  const unscheduled = items.filter((item) => item.isUnscheduled);
-  const scheduled = items.filter((item) => !item.isUnscheduled);
+  const focusIndex = focusedItem
+    ? scheduled.findIndex((item) => item.row.id === focusedItem.row.id)
+    : -1;
 
   if (rows.length === 0) {
     return (
@@ -63,37 +81,21 @@ export function ActivityGanttView({
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[11px] font-medium text-carbon-blue/45">Gantt</p>
           <h3 className="text-[15px] font-semibold text-carbon-blue">
             {formatShortDay(days[0]!)} – {formatShortDay(days[days.length - 1]!)}
           </h3>
-        </div>
-        <div className="flex items-center border border-carbon-blue/10">
-          <button
-            type="button"
-            aria-label="Previous weeks"
-            onClick={() => setRangeOffsetWeeks((value) => value - 2)}
-            className="px-2 py-1.5 text-carbon-blue/55 hover:text-upcycle-orange"
-          >
-            <ChevronLeft className="size-4" strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setRangeOffsetWeeks(0)}
-            className="border-x border-carbon-blue/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:text-upcycle-orange"
-          >
-            This window
-          </button>
-          <button
-            type="button"
-            aria-label="Next weeks"
-            onClick={() => setRangeOffsetWeeks((value) => value + 2)}
-            className="px-2 py-1.5 text-carbon-blue/55 hover:text-upcycle-orange"
-          >
-            <ChevronRight className="size-4" strokeWidth={2} />
-          </button>
+          {focusedItem ? (
+            <p className="mt-0.5 truncate text-[12px] text-carbon-blue/55">
+              Task {focusIndex + 1} of {scheduled.length}
+              <span className="mx-1.5 text-carbon-blue/25">·</span>
+              {formatShortDay(focusedItem.start)}
+              <span className="mx-1.5 text-carbon-blue/25">·</span>
+              {focusedItem.row.headline}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -142,18 +144,24 @@ export function ActivityGanttView({
           ) : (
             scheduled.map((item) => {
               const style = ganttBarStyle(item, rangeStart, days.length);
+              const isFocused = focusedItem?.row.id === item.row.id;
               return (
                 <div
                   key={item.row.id}
                   className={`grid grid-cols-[220px_1fr] border-b border-carbon-blue/8 ${
-                    primaryFocusActivityId === item.row.id
-                      ? "bg-upcycle-orange/[0.03]"
-                      : "bg-white"
+                    isFocused
+                      ? "bg-upcycle-orange/[0.06]"
+                      : primaryFocusActivityId === item.row.id
+                        ? "bg-upcycle-orange/[0.03]"
+                        : "bg-white"
                   }`}
                 >
                   <button
                     type="button"
-                    onClick={() => onOpen?.(item.row.activity.ActivityID)}
+                    onClick={() => {
+                      onFocusedActivityIdChange?.(item.row.id);
+                      onOpen?.(item.row.activity.ActivityID);
+                    }}
                     className="truncate px-3 py-2.5 text-left text-[12px] font-medium text-carbon-blue hover:text-upcycle-orange"
                     title={item.row.headline}
                   >
@@ -189,8 +197,13 @@ export function ActivityGanttView({
                     {style ? (
                       <button
                         type="button"
-                        onClick={() => onOpen?.(item.row.activity.ActivityID)}
-                        className={`absolute top-1/2 h-6 -translate-y-1/2 rounded-sm px-2 text-left text-[10px] font-semibold text-white shadow-sm ${barTone(item)}`}
+                        onClick={() => {
+                          onFocusedActivityIdChange?.(item.row.id);
+                          onOpen?.(item.row.activity.ActivityID);
+                        }}
+                        className={`absolute top-1/2 h-6 -translate-y-1/2 rounded-sm px-2 text-left text-[10px] font-semibold text-white shadow-sm ${barTone(item)} ${
+                          isFocused ? "ring-2 ring-upcycle-orange ring-offset-1" : ""
+                        }`}
                         style={{
                           left: `calc(${style.leftPct}% + 2px)`,
                           width: `max(24px, calc(${style.widthPct}% - 4px))`,
@@ -234,8 +247,7 @@ export function ActivityGanttView({
       ) : null}
 
       <p className="text-[10px] text-carbon-blue/40">
-        Bars use due date (tasks) or scheduled date. Duration stretches the bar when set;
-        otherwise one day.
+        Use the arrows next to Showing to jump task by task. Timeline follows the selected task.
       </p>
     </div>
   );
