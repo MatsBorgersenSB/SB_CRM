@@ -34,7 +34,7 @@ const SUGGESTION_ORDER: SignatureFieldId[] = [
 ];
 
 const TITLE_KEYWORDS =
-  /\b(manager|director|engineer|officer|lead|head|vp|president|specialist|coordinator|supervisor|analyst|consultant|chief|executive|sponsor|procurement|compliance|founder|co-founder|cofounder|ceo|cto|cfo|coo|partner|owner|fundador|director\s+general|marketing)\b/i;
+  /\b(manager|director|engineer|officer|lead|head|vp|president|specialist|coordinator|supervisor|analyst|consultant|chief|executive|sponsor|procurement|compliance|founder|co-founder|cofounder|ceo|cto|cfo|coo|partner|owner|ambassador|director\s+general|marketing|ansvarlig|prosjekt|prosjektleder|miljø|miljo|leder|sjef|ingeniør|ingenior|rådgiver|radgiver|direktør|direktor|daglig|salgssjef|markedssjef)\b/i;
 
 const ROLE_COMPANY_PATTERN = /^(.+?)\s+(?:de|del|d'|at|@|for|en|bei|von)\s+(.+)$/i;
 
@@ -185,14 +185,18 @@ function isLikelyPersonName(line: string): boolean {
 
 function looksLikeCompanyStandalone(line: string): boolean {
   if (line.includes("@") || isLikelyPhoneLine(line) || WEBSITE_PATTERN.test(line)) return false;
-  if (looksLikeRole(line) || looksLikePersonNameStandalone(line)) return false;
   if (isAddressLine(line)) return false;
   if (line.length < 3 || line.length > 100) return false;
 
   const labeled = labeledValue(line, ["company", "organization", "organisation", "empresa"]);
   if (labeled) return true;
 
-  return COMPANY_SUFFIX.test(line);
+  // Legal suffix wins over person-name heuristics ("Ottem Resirk AS").
+  if (COMPANY_SUFFIX.test(line)) return true;
+
+  if (looksLikeRole(line) || looksLikePersonNameStandalone(line)) return false;
+
+  return false;
 }
 
 function isAddressLine(line: string): boolean {
@@ -243,7 +247,7 @@ function extractAddressAfterIndex(
     consumed.add(i);
   }
 
-  if (block.length >= 2) return block.join("\n");
+  if (block.length >= 1) return block.join("\n");
   return null;
 }
 
@@ -350,11 +354,18 @@ export function parseSignatureIntelligence(
       "tel",
       "telephone",
       "office",
+      "t",
     ]);
     if (phoneLabel && isLikelyPhoneValue(phoneLabel) && !found.phone) {
       found.phone = normalizePhoneNumber(phoneLabel);
       consumed.add(i);
       if (LABEL_ONLY_PATTERN.test(line)) consumed.add(i + 1);
+    }
+
+    const mobileShort = labeledValueOrNextLine(lines, i, ["m"]);
+    if (mobileShort && isLikelyPhoneValue(mobileShort) && !found.mobile) {
+      found.mobile = normalizePhoneNumber(mobileShort);
+      consumed.add(i);
     }
 
     const emailLabel = labeledValueOrNextLine(lines, i, ["email", "e-mail"]);
@@ -418,6 +429,44 @@ export function parseSignatureIntelligence(
         }
         consumed.add(i);
         break;
+      }
+    }
+  }
+
+  // Structural: Name / Job title / Company AS — capture middle line as title.
+  if (!found.jobTitle) {
+    const nameIndex = lines.findIndex((line, index) => {
+      if (consumed.has(index)) return false;
+      return isLikelyPersonName(line);
+    });
+    const companyIndex = found.company
+      ? lines.findIndex((line) => line.trim() === found.company?.trim())
+      : lines.findIndex((line, index) => {
+          if (consumed.has(index)) return false;
+          return looksLikeCompanyStandalone(line);
+        });
+    if (
+      nameIndex >= 0 &&
+      companyIndex > nameIndex + 1 &&
+      companyIndex - nameIndex <= 3
+    ) {
+      for (let i = nameIndex + 1; i < companyIndex; i++) {
+        if (consumed.has(i)) continue;
+        const line = lines[i]!;
+        if (
+          isLikelyPhoneLine(line) ||
+          line.includes("@") ||
+          WEBSITE_PATTERN.test(line) ||
+          isAddressLine(line) ||
+          looksLikeCompanyStandalone(line)
+        ) {
+          continue;
+        }
+        if (line.length > 2 && line.length < 100) {
+          found.jobTitle = line;
+          consumed.add(i);
+          break;
+        }
       }
     }
   }

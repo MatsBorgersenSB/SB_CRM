@@ -7,6 +7,7 @@ import { addOutlookContact, buildOutlookSenderPrepopulation } from "@/lib/m365/o
 import { setConversationLinksForContact } from "@/lib/email-intelligence-data";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
+import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import type {
   RelationshipIntakeApproveInput,
   RelationshipIntakeApproveResult,
@@ -36,9 +37,19 @@ async function loadLinkOptions(companyId: string | null): Promise<{
   const prisma = getPrisma();
   const opportunityOptions: RelationshipIntakeLinkOption[] = [];
 
+  let prismaCompanyId: string | null = null;
   if (companyId) {
+    const prismaCompany = await findPrismaCompanyByRouteKey(companyId).catch(() => null);
+    prismaCompanyId = prismaCompany?.id ?? null;
+    // UUID already stored as CompanyID in some environments
+    if (!prismaCompanyId && /^[0-9a-f-]{36}$/i.test(companyId)) {
+      prismaCompanyId = companyId;
+    }
+  }
+
+  if (prismaCompanyId) {
     const companyScoped = await prisma.opportunity.findMany({
-      where: { status: "open", companyId },
+      where: { status: "open", companyId: prismaCompanyId },
       select: { id: true, name: true, code: true },
       orderBy: { updatedAt: "desc" },
       take: 40,

@@ -236,6 +236,12 @@ export async function addOutlookContact(
   }
 
   const role = resolveOutlookContactRole(input.role, enrichment.jobTitle);
+  const officePhone = normalizePhoneNumber(enrichment.phone ?? "");
+  const mobilePhone = normalizePhoneNumber(enrichment.mobile ?? "");
+  const addressFields = enrichment.address?.trim()
+    ? parseCompanyAddressInput(enrichment.address)
+    : null;
+
   const contactInput = {
     FirstName: input.firstName.trim() || "Contact",
     LastName: input.lastName.trim(),
@@ -243,11 +249,14 @@ export async function addOutlookContact(
     Company: { CompanyID: company.CompanyID },
     JobTitle: enrichment.jobTitle?.trim() ?? "",
     Role: role,
-    Phone: "",
-    Mobile: normalizePhoneNumber(enrichment.mobile ?? ""),
+    Phone: officePhone,
+    Mobile: mobilePhone,
     LinkedInURL: "",
     Status: "Prospecting" as ContactStatus,
     RelationshipLevel: "Operational" as RelationshipLevel,
+    streetAddress: addressFields?.AddressLine1?.trim() || undefined,
+    city: addressFields?.City?.trim() || undefined,
+    country: addressFields?.Country?.Title?.trim() || undefined,
   };
 
   const contact =
