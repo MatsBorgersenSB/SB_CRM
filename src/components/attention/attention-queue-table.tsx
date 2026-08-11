@@ -1,7 +1,12 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { resolveAttentionActions } from "@/lib/attention-action-resolver";
+import {
+  dismissAttentionItem,
+  filterDismissedAttentionItems,
+} from "@/lib/attention-dismiss-store";
 import type { AttentionItem } from "@/types/attention-item";
 import {
   ATTENTION_SEVERITY_LABELS,
@@ -40,9 +45,23 @@ export function AttentionQueueTable({
   emptyMessage?: string;
   onDraftEmail?: (item: AttentionItem) => void;
 }) {
-  const sorted = sortAttentionItems(items);
+  const [dismissTick, setDismissTick] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
 
-  if (sorted.length === 0) {
+  useEffect(() => setHydrated(true), []);
+
+  const visible = useMemo(() => {
+    void dismissTick;
+    const sorted = sortAttentionItems(items);
+    return hydrated ? filterDismissedAttentionItems(sorted) : sorted;
+  }, [items, dismissTick, hydrated]);
+
+  const handleNoAction = useCallback((item: AttentionItem) => {
+    dismissAttentionItem(item.id);
+    setDismissTick((value) => value + 1);
+  }, []);
+
+  if (visible.length === 0) {
     return <p className="text-sm text-carbon-blue/45">{emptyMessage}</p>;
   }
 
@@ -69,7 +88,7 @@ export function AttentionQueueTable({
         </WorkspaceTableHeadRow>
       </WorkspaceTableHead>
       <WorkspaceTableBody>
-        {sorted.map((item) => {
+        {visible.map((item) => {
           const actions = resolveAttentionActions(item);
 
           return (
@@ -103,11 +122,12 @@ export function AttentionQueueTable({
               <WorkspaceTableBodyCell className="truncate text-carbon-blue/65">
                 {item.ownerLabel ?? "—"}
               </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell>
+              <WorkspaceTableBodyCell className="overflow-visible">
                 <AttentionActionButtons
                   actions={actions}
                   attentionItem={item}
                   onDraftEmail={onDraftEmail}
+                  onNoAction={handleNoAction}
                   compact
                 />
               </WorkspaceTableBodyCell>

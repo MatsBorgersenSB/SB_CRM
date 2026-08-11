@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { AttentionQueue } from "@/types/attention-item";
 import { flattenAttentionQueue } from "@/types/attention-item";
+import { filterDismissedAttentionItems } from "@/lib/attention-dismiss-store";
 import { AttentionQueueTable } from "@/components/attention/attention-queue-table";
 
 type MyAttentionPanelProps = {
@@ -13,13 +15,23 @@ type MyAttentionPanelProps = {
 };
 
 export function MyAttentionPanel({ queue, limit = 20, ownerFilter }: MyAttentionPanelProps) {
-  let items = flattenAttentionQueue(queue, { includeHealthy: false, limit: ownerFilter ? 100 : limit });
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
 
-  if (ownerFilter) {
-    items = items.filter(
-      (item) => item.ownerLabel?.toLowerCase() === ownerFilter.toLowerCase(),
-    );
-  }
+  const items = useMemo(() => {
+    let rows = flattenAttentionQueue(queue, {
+      includeHealthy: false,
+      limit: ownerFilter ? 100 : limit,
+    });
+
+    if (ownerFilter) {
+      rows = rows.filter(
+        (item) => item.ownerLabel?.toLowerCase() === ownerFilter.toLowerCase(),
+      );
+    }
+
+    return hydrated ? filterDismissedAttentionItems(rows) : rows;
+  }, [queue, limit, ownerFilter, hydrated]);
 
   if (items.length === 0) {
     return (
