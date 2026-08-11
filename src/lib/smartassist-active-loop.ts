@@ -222,3 +222,88 @@ export function proposalsFromLivingRecords(
 
   return proposals;
 }
+
+/**
+ * Turn captured AgreedActions / NextAction from meetings into reminder proposals.
+ * Reality First — only uses text already on the activity.
+ */
+export function proposalsFromMeetingCommitments(
+  activities: Activity[],
+  companies: Company[],
+): CoPilotActionProposal[] {
+  const proposals: CoPilotActionProposal[] = [];
+
+  for (const activity of activities) {
+    const isMeeting =
+      activity.ActivityType === "Meeting" || activity.ActivityType === "Teams Meeting";
+    if (!isMeeting) continue;
+
+    const company = resolveActivityCompany(activity, companies);
+    if (!company) continue;
+
+    const commitments: { text: string; due?: string }[] = [];
+
+    for (const agreed of activity.AgreedActions ?? []) {
+      if (!agreed.text?.trim()) continue;
+      if (agreed.status === "Completed" || agreed.status === "Cancelled") continue;
+      commitments.push({ text: agreed.text.trim(), due: agreed.dueDate });
+    }
+
+    const nextAction = activity.NextAction?.trim() ?? "";
+    if (
+      nextAction &&
+      isFollowUpOpen(activity) &&
+      commitments.every((item) => item.text.toLowerCase() !== nextAction.toLowerCase())
+    ) {
+      commitments.push({
+        text: nextAction,
+        due: activity.NextActionDate,
+      });
+    }
+
+    for (const [index, commitment] of commitments.slice(0, 2).entries()) {
+      const id = `copilot-meeting-commit-${activity.ActivityID}-${index}`;
+      const kind = "set_reminder" as const;
+      const due = commitment.due?.trim().slice(0, 10) || isoDatePlusDays(3);
+
+      proposals.push({
+        id,
+        kind,
+        status: "pending",
+        title: `Set reminder — ${commitment.text.slice(0, 72)}`,
+        reason:
+          "Meeting commitment captured — prepare a dated follow-up so the promise stays visible.",
+        impact: "Missed meeting commitments erode trust and stall commercial progress.",
+        observedChange: `Commitment from meeting "${activity.Subject}"`,
+        sourceType: "meeting",
+        severity: "needs_attention",
+        companyId: company.CompanyID,
+        companyName: company.Title,
+        objectName: activity.Subject,
+        href: `/activities/${activity.ActivityID}`,
+        suppressionKey: buildCoPilotSuppressionKey({
+          id,
+          kind,
+          companyId: company.CompanyID,
+        }),
+        payload: {
+          createActivity: {
+            ActivityType: "Task",
+            Subject: `Reminder: ${commitment.text.slice(0, 100)}`,
+            Summary: `From meeting "${activity.Subject}": ${commitment.text}`,
+            ActivityDate: new Date().toISOString(),
+            ActionRequired: true,
+            NextAction: commitment.text,
+            NextActionDate: due,
+            ActionStatus: "Planned",
+            Company: { CompanyID: company.CompanyID },
+            Contact: activity.Contact,
+            Deal: activity.Deal,
+          },
+        },
+      });
+    }
+  }
+
+  return proposals;
+}

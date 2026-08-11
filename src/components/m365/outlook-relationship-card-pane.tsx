@@ -136,6 +136,9 @@ export function OutlookRelationshipCardPane() {
           payload={state.payload}
           variant="outlook"
           onCreateOpportunity={() => setOpportunityDialogOpen(true)}
+          onActiveAssistApplied={() => {
+            reload();
+          }}
         />
         <OutlookAddOpportunityDialog
           open={opportunityDialogOpen}

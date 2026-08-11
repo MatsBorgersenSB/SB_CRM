@@ -109,9 +109,11 @@ Max **8** pending proposals globally; company-scoped filter on Company 360. Comp
 1. Approve on “Log first interaction” creates a Planned activity linked to the company.  
 2. Approve on overdue commitment marks activity Completed.  
 3. Approve on “Set reminder” creates a dated follow-up activity.  
-4. Approve on “Assign account owner” / classify navigates or applies proposed patch only after user confirm.  
+4. Approve on “Assign account owner” assigns the signed-in user when session is available.  
 5. Dismiss with “this is a supplier” stops Create Opportunity for that company.  
 6. No parallel proposal UI on Activities when Company 360 already shows Co-Pilot.  
+7. Outlook Relationship Card can **Approve in SmartCRM** for the prepared Active Assist action without leaving mail.  
+8. Meeting AgreedActions become reminder proposals when still open.  
 
 ---
 

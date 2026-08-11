@@ -22,6 +22,7 @@ import { buildCoPilotSuppressionKey } from "@/lib/smartassist-copilot-keys";
 import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 import {
   proposalsFromLivingRecords,
+  proposalsFromMeetingCommitments,
   proposalsFromUpcomingCommitments,
 } from "@/lib/smartassist-active-loop";
 
@@ -428,6 +429,10 @@ export function buildCoPilotProposals(
   }
 
   for (const proposal of proposalsFromUpcomingCommitments(liveActivities, companies)) {
+    pushUnique(proposal);
+  }
+
+  for (const proposal of proposalsFromMeetingCommitments(liveActivities, companies)) {
     pushUnique(proposal);
   }
 

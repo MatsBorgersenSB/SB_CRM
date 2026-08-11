@@ -54,6 +54,8 @@ export function toM365ActionFromFields(input: {
   priority: M365ActionBlock["priority"];
   href: string;
   extraImpact?: string[];
+  activeAssistProposal?: M365ActionBlock["activeAssistProposal"];
+  plannerEligible?: boolean;
 }): M365ActionBlock {
   return {
     id: input.id,
@@ -61,7 +63,10 @@ export function toM365ActionFromFields(input: {
     priority: input.priority,
     impact: ensureImpact([input.reason, ...(input.extraImpact ?? [])], input.reason),
     href: input.href,
-    plannerEligible: input.priority === "High" || input.priority === "Medium",
+    plannerEligible:
+      input.plannerEligible ??
+      (input.priority === "High" || input.priority === "Medium"),
+    activeAssistProposal: input.activeAssistProposal,
   };
 }
 
