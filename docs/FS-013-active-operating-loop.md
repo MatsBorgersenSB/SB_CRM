@@ -114,7 +114,7 @@ Max **8** pending proposals globally; company-scoped filter on Company 360. Comp
 4. Approve on “Assign account owner” assigns the signed-in user when session is available.  
 5. Dismiss with “this is a supplier” stops Create Opportunity for that company.  
 6. No parallel proposal UI on Activities when Company 360 already shows Co-Pilot.  
-7. Outlook Relationship Card can **Approve in SmartCRM** for the prepared Active Assist action without leaving mail.  
+7. Outlook Relationship Card can **Approve in SmartCRM** or choose **No Action** (dismiss / learn) for the prepared Active Assist action without leaving mail.  
 8. Meeting AgreedActions become reminder proposals when still open.  
 9. Correspondence (EmailMessageRecord / open mail / project tags) suppresses “first interaction” and “Create Opportunity” for Prospect-only project delivery partners; propose classify or capture instead.  
 10. Inbound mail action asks become “Note requested action” proposals; outbound proposal/RFP without reply become follow-up reminders after 3 days.  
