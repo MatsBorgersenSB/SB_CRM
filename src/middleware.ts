@@ -23,6 +23,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/azure-start") ||
+    // Dialog bridge claim runs in the task-pane iframe before a session cookie exists.
+    pathname.startsWith("/api/outlook/dialog-bridge") ||
     pathname.startsWith("/auth/signin") ||
     pathname.startsWith("/outlook-addin") ||
     pathname.startsWith("/outlook/")
@@ -79,6 +81,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|api/azure-start|auth/signin|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/auth|api/azure-start|api/outlook/dialog-bridge|auth/signin|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
