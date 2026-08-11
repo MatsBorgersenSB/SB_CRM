@@ -103,6 +103,7 @@ On Yes + confirm:
 2. New companies: `Status = Active` + user-chosen `CompanyTypes` — never default to Prospect/Customer.
 3. If user selected an opportunity or project and a conversation id is available: tag the thread intentionally (same rules as Outlook mail tag).
 4. Return refreshed relationship card.
+5. Offer **View contact in SmartCRM** and **View company in SmartCRM** deep links after successful create.
 
 ### FR-006 Posture-gated commercial CTAs
 

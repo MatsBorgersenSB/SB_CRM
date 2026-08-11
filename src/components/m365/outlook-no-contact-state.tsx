@@ -28,6 +28,7 @@ import {
   suggestContactListRoleFromTitle,
   type ContactListRole,
 } from "@/types/contact";
+import { contact360Href, companyHref } from "@/types/relationship-navigation";
 import {
   COMPANY_TYPE_SELECT_OPTIONS,
   type CompanyType,
@@ -275,16 +276,34 @@ export function OutlookNoContactState({
             <p className="mt-2 text-sm font-semibold text-carbon-blue">Added to SmartCRM</p>
             <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
               {created.companyCreated
-                ? "Contact and company created — stay in Outlook."
+                ? "Contact and company created — stay in Outlook, or open SmartCRM."
                 : "Contact linked to the existing company."}
               {created.threadLinked ? " This thread was connected." : ""}
             </p>
+            <a
+              href={buildSmartCrmUrl(
+                contact360Href(created.contactId, created.companyId),
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+            >
+              View contact in SmartCRM
+            </a>
+            <a
+              href={buildSmartCrmUrl(companyHref(created.companyId))}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+            >
+              View company in SmartCRM
+            </a>
             <button
               type="button"
               onClick={onContactCreated}
-              className="mt-5 border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+              className="mt-3 border border-carbon-blue/15 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
             >
-              Open relationship card
+              Continue in Outlook
             </button>
             {opportunityEligible ? (
               <button
