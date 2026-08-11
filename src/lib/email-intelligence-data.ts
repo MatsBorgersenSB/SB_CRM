@@ -508,6 +508,7 @@ export async function purgeConversationForContact(
 
 /**
  * Set or clear opportunity / project links for every message in a contact conversation.
+ * When the conversation is not yet synced, optionally seed from the open Outlook item.
  */
 export async function setConversationLinksForContact(
   contactKey: string,
@@ -516,6 +517,17 @@ export async function setConversationLinksForContact(
     opportunityId?: string | null;
     projectId?: string | null;
   },
+  options?: {
+    seedMessage?: {
+      externalMessageId: string;
+      subject?: string;
+      senderEmail?: string;
+      recipientEmails?: string[];
+      sentAt?: string;
+      bodyPreview?: string;
+      webLink?: string;
+    };
+  },
 ): Promise<{
   updated: number;
   opportunityId: string | null | undefined;
@@ -523,6 +535,7 @@ export async function setConversationLinksForContact(
   opportunityCode: string | null;
   projectId: string | null | undefined;
   projectName: string | null;
+  seeded?: boolean;
 }> {
   const prisma = getPrisma();
   const contact = await findPrismaContactByIdOrEmail(contactKey);
@@ -605,6 +618,53 @@ export async function setConversationLinksForContact(
   }
 
   const addresses = contactEmailsFromJson(contact.emails);
+  let seeded = false;
+
+  // If Outlook opened a thread that mail sync has not ingested yet, seed one
+  // record from the open item so intentional tagging still works.
+  const anyInConversation = await prisma.emailMessageRecord.findFirst({
+    where: { conversationId },
+    select: { id: true },
+  });
+  if (!anyInConversation && options?.seedMessage?.externalMessageId?.trim()) {
+    const seed = options.seedMessage;
+    const externalMessageId = seed.externalMessageId.trim();
+    const senderEmail =
+      seed.senderEmail?.trim().toLowerCase() ||
+      addresses[0] ||
+      "";
+    const sentAt = seed.sentAt ? new Date(seed.sentAt) : new Date();
+    await prisma.emailMessageRecord.upsert({
+      where: { externalMessageId },
+      create: {
+        externalMessageId,
+        conversationId,
+        contactId: contact.id,
+        subject: seed.subject?.trim() || "(no subject)",
+        bodyPreview: seed.bodyPreview?.slice(0, 2000) ?? null,
+        webLink: seed.webLink?.trim() || null,
+        senderEmail,
+        recipientEmails: seed.recipientEmails?.length
+          ? seed.recipientEmails
+          : addresses.filter((address) => address !== senderEmail),
+        sentAt: Number.isNaN(sentAt.getTime()) ? new Date() : sentAt,
+        sentiment: "neutral",
+        isOutbound: false,
+        opportunityId: data.opportunityId ?? null,
+        projectId: data.projectId ?? null,
+        projectName: data.projectName ?? null,
+      },
+      update: {
+        conversationId,
+        contactId: contact.id,
+        ...(seed.subject?.trim() ? { subject: seed.subject.trim() } : {}),
+        ...(senderEmail ? { senderEmail } : {}),
+        ...data,
+      },
+    });
+    seeded = true;
+  }
+
   // Authorize: contact must appear on at least one message in this conversation.
   const participates = await prisma.emailMessageRecord.findFirst({
     where: {
@@ -629,6 +689,7 @@ export async function setConversationLinksForContact(
       opportunityCode,
       projectId: links.projectId,
       projectName,
+      seeded,
     };
   }
 
@@ -712,6 +773,7 @@ export async function setConversationLinksForContact(
     opportunityCode,
     projectId: links.projectId,
     projectName: finalProjectName,
+    seeded,
   };
 }
 

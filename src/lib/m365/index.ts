@@ -23,11 +23,13 @@ export {
 export {
   resolveOutlookCounterpartyEmail,
   resolveOutlookConversationId,
+  resolveOutlookOpenMessageSeed,
   resolveOutlookSenderDetails,
   resolveDevEmail,
   resolveDevDisplayName,
   buildSmartCrmUrl,
 } from "./outlook-context";
+export type { OutlookOpenMessageSeed } from "./outlook-context";
 export {
   buildOutlookSenderPrepopulation,
   addOutlookContact,

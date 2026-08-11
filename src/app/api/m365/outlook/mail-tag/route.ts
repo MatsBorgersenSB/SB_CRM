@@ -129,6 +129,15 @@ export async function PATCH(request: Request) {
       conversationId?: string;
       opportunityId?: string | null;
       projectId?: string | null;
+      message?: {
+        externalMessageId?: string;
+        subject?: string;
+        senderEmail?: string;
+        recipientEmails?: string[];
+        sentAt?: string;
+        bodyPreview?: string;
+        webLink?: string;
+      };
     };
 
     const contactId = body.contactId?.trim();
@@ -160,16 +169,35 @@ export async function PATCH(request: Request) {
           ? body.projectId.trim()
           : null;
 
-    const result = await setConversationLinksForContact(contactId, conversationId, {
-      opportunityId,
-      projectId,
-    });
+    const seedExternalId = body.message?.externalMessageId?.trim();
+    const result = await setConversationLinksForContact(
+      contactId,
+      conversationId,
+      {
+        opportunityId,
+        projectId,
+      },
+      seedExternalId
+        ? {
+            seedMessage: {
+              externalMessageId: seedExternalId,
+              subject: body.message?.subject,
+              senderEmail: body.message?.senderEmail,
+              recipientEmails: body.message?.recipientEmails,
+              sentAt: body.message?.sentAt,
+              bodyPreview: body.message?.bodyPreview,
+              webLink: body.message?.webLink,
+            },
+          }
+        : undefined,
+    );
 
     if (result.updated === 0) {
       return NextResponse.json(
         {
-          error:
-            "No matching emails to update yet. Sync Outlook first, or open a tagged draft from SmartCRM.",
+          error: seedExternalId
+            ? "Could not tag this thread for the matched contact. Confirm the sender is linked to the contact, then try again."
+            : "No matching emails to update yet. Open the mail in Outlook and try Tag this thread again.",
         },
         { status: 404 },
       );
