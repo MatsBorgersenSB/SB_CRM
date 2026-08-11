@@ -275,6 +275,9 @@ model Opportunity {
   companyRole String?
   offeringIds String[] @default([])
 
+  // User-captured opportunity understanding (gaps / confirmed answers)
+  understanding Json?
+
   // FS-001 Stakeholder Roster stored as normalized relations or atomic JSON array
   team     Json[]               @default([]) // Array of { contactId: string, projectRole: string }
   insights OpportunityInsight[]

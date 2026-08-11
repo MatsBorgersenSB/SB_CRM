@@ -124,6 +124,20 @@ export function assertPipelinePatchAllowed(
       continue;
     }
 
+    if (key === "understanding") {
+      if (!canCaptureOpportunityUnderstanding(role)) {
+        throw new Error(`Role "${role}" cannot update opportunity understanding`);
+      }
+      continue;
+    }
+
+    if (key === "offeringIds") {
+      if (!canCaptureOpportunityUnderstanding(role)) {
+        throw new Error(`Role "${role}" cannot update opportunity offerings`);
+      }
+      continue;
+    }
+
     if (smartDocKeys.has(key)) {
       if (!canUploadSmartDocs(role)) {
         throw new Error(`Role "${role}" cannot update SmartDocs metadata`);
@@ -290,6 +304,16 @@ export function canCreateOpportunity(role: UserRole): boolean {
 
 export function canEditExpectedCloseDate(role: UserRole): boolean {
   return role === "superuser" || role === "commercial";
+}
+
+/** Capture answers that drive Gaps / Understanding (not financial ledger fields). */
+export function canCaptureOpportunityUnderstanding(role: UserRole): boolean {
+  return (
+    role === "superuser" ||
+    role === "admin" ||
+    role === "commercial" ||
+    role === "engineer"
+  );
 }
 
 export function canEditOpportunityValue(role: UserRole): boolean {

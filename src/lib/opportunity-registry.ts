@@ -178,6 +178,9 @@ export async function updateRegistryOpportunity(
       projectRole: member.projectRole,
     })) as Prisma.InputJsonValue[];
   }
+  if (patch.understanding !== undefined) {
+    data.understanding = patch.understanding as Prisma.InputJsonValue;
+  }
   if (patch.opportunityOwner?.Id != null) {
     data.ownerId = String(patch.opportunityOwner.Id);
   }

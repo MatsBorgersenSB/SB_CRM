@@ -93,6 +93,7 @@ function UnderstandingFieldRow({
   );
   const [editing, setEditing] = useState(focused && !readOnly);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -127,9 +128,12 @@ function UnderstandingFieldRow({
   const handleSave = async () => {
     if (!onSave) return;
     setSaving(true);
+    setError(null);
     try {
       await onSave(fieldId, draft);
       setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save answer.");
     } finally {
       setSaving(false);
     }
@@ -186,6 +190,7 @@ function UnderstandingFieldRow({
               type="button"
               onClick={() => {
                 setDraft(resolved.source === "captured" ? resolved.value : "");
+                setError(null);
                 setEditing(false);
               }}
               className="px-3 py-1.5 text-xs font-semibold text-carbon-blue/55 hover:text-carbon-blue"
@@ -193,6 +198,9 @@ function UnderstandingFieldRow({
               Cancel
             </button>
           </div>
+          {error ? (
+            <p className="mt-2 text-[11px] text-thermal-red">{error}</p>
+          ) : null}
         </div>
       ) : (
         <div className="mt-2 flex flex-wrap items-end justify-between gap-2">

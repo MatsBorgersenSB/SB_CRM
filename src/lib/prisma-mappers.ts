@@ -25,6 +25,8 @@ import type {
   PipelineTeamMember,
 } from "@/types/pipeline";
 import { COMPANY_ROLES } from "@/types/pipeline";
+import type { OpportunityUnderstandingCapture } from "@/types/opportunity-understanding";
+import { isUnderstandingFieldId } from "@/types/opportunity-understanding";
 import type {
   Company as PrismaCompany,
   Contact as PrismaContact,
@@ -320,6 +322,53 @@ function mapTeam(team: unknown): PipelineTeamMember[] {
     .filter((entry): entry is PipelineTeamMember => Boolean(entry));
 }
 
+function mapUnderstanding(value: unknown): OpportunityUnderstandingCapture | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const row = value as {
+    fields?: unknown;
+    discoveryNotes?: unknown;
+    updatedAt?: unknown;
+  };
+
+  const fields: OpportunityUnderstandingCapture["fields"] = {};
+  if (row.fields && typeof row.fields === "object" && !Array.isArray(row.fields)) {
+    for (const [key, answer] of Object.entries(row.fields)) {
+      if (!isUnderstandingFieldId(key)) continue;
+      if (typeof answer !== "string") continue;
+      const trimmed = answer.trim();
+      if (trimmed) fields[key] = trimmed;
+    }
+  }
+
+  const discoveryNotes: Record<string, string> = {};
+  if (
+    row.discoveryNotes &&
+    typeof row.discoveryNotes === "object" &&
+    !Array.isArray(row.discoveryNotes)
+  ) {
+    for (const [key, answer] of Object.entries(row.discoveryNotes)) {
+      if (typeof answer !== "string") continue;
+      const trimmed = answer.trim();
+      if (trimmed) discoveryNotes[key] = trimmed;
+    }
+  }
+
+  if (
+    Object.keys(fields).length === 0 &&
+    Object.keys(discoveryNotes).length === 0 &&
+    typeof row.updatedAt !== "string"
+  ) {
+    return undefined;
+  }
+
+  return {
+    fields,
+    discoveryNotes:
+      Object.keys(discoveryNotes).length > 0 ? discoveryNotes : undefined,
+    updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : undefined,
+  };
+}
+
 function inferCompanyRole(name: string): CompanyRole {
   if (/thermal|heat|energy/i.test(name)) return "Infrastructure Partner";
   if (/fiber|feedstock|circular/i.test(name)) return "Technology Buyer";
@@ -356,6 +405,7 @@ export function mapPrismaOpportunityToPipelineRow(
       ? opportunity.offeringIds.filter(Boolean)
       : [],
     team: mapTeam(opportunity.team),
+    understanding: mapUnderstanding(opportunity.understanding),
     sharepointFolderId: opportunity.sharepointFolderId,
     sharepointFolderUrl: opportunity.sharepointFolderUrl,
     sharepointFolderPath: opportunity.sharepointFolderPath,
