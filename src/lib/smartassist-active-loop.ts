@@ -535,6 +535,47 @@ export function proposalsFromCorrespondenceActions(
         },
       });
     }
+
+    for (const promise of evidence.openPromises.slice(0, 2)) {
+      const id = `copilot-mail-promise-${promise.messageId}`;
+      const kind = "create_activity" as const;
+      proposals.push({
+        id,
+        kind,
+        status: "pending",
+        title: `Deliver promised follow-through — ${company.Title}`,
+        reason: `We promised in mail: "${promise.excerpt}" — note and complete the commitment.`,
+        impact:
+          "Broken outbound promises erode trust faster than missed inbound asks.",
+        observedChange: `Open promise in "${promise.subject}" (${promise.sentAt.slice(0, 10)})`,
+        sourceType: "email",
+        severity: "needs_attention",
+        companyId: company.CompanyID,
+        companyName: company.Title,
+        objectName: promise.subject,
+        href: company360Href(company.CompanyID),
+        suppressionKey: buildCoPilotSuppressionKey({
+          id,
+          kind,
+          companyId: company.CompanyID,
+          ruleId: "mail_open_promise",
+        }),
+        payload: {
+          createActivity: {
+            ActivityType: "Task",
+            Subject: `Promise: ${promise.excerpt.slice(0, 100)}`,
+            Summary: promise.excerpt,
+            ActivityDate: promise.sentAt,
+            ActionRequired: true,
+            NextAction: promise.excerpt.slice(0, 120),
+            NextActionDate: isoDatePlusDays(2),
+            ActionStatus: "Planned",
+            Company: { CompanyID: company.CompanyID },
+            Contact: contact ? { ContactID: contact.ContactID } : undefined,
+          },
+        },
+      });
+    }
   }
 
   return proposals;

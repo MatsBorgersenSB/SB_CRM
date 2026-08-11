@@ -3,12 +3,20 @@
  * Reality First — only surface what the message evidence supports.
  */
 
+import {
+  extractEmailCommitments,
+  gradeEmailSentiment,
+  type EmailCommitmentSignal,
+  type EmailSentimentGrade,
+} from "@/lib/email-sentiment";
+
 export type CorrespondenceActionAsk = {
   messageId: string;
   subject: string;
   excerpt: string;
   sentAt: string;
   conversationId: string;
+  sentiment: EmailSentimentGrade;
 };
 
 export type CorrespondenceProposalFollowUp = {
@@ -20,6 +28,14 @@ export type CorrespondenceProposalFollowUp = {
   kind: "proposal_sent" | "proposal_requested";
 };
 
+export type CorrespondenceOpenPromise = {
+  messageId: string;
+  subject: string;
+  excerpt: string;
+  sentAt: string;
+  conversationId: string;
+};
+
 export type CorrespondenceMailSnippet = {
   id: string;
   conversationId: string;
@@ -27,17 +43,8 @@ export type CorrespondenceMailSnippet = {
   bodyPreview: string | null;
   sentAt: string;
   isOutbound: boolean;
+  sentiment?: EmailSentimentGrade;
 };
-
-const ACTION_ASK_PATTERNS: RegExp[] = [
-  /\b(please|kindly)\s+(send|provide|confirm|review|share|call|reply|advise|update|clarify)/i,
-  /\b(can you|could you|would you|will you)\s+/i,
-  /\b(we need|we require|requesting|looking for|waiting for|awaiting)\b/i,
-  /\b(action required|next steps?|please advise|as soon as possible|\basap\b)\b/i,
-  // Norwegian
-  /\b(kan du|kan dere|vennligst|trenger|ber om|send(e)?\s+(oss|meg)|følg\s+opp|oppdatere?)\b/i,
-  /\b(trenger\s+(dokumentasjon|tilbud|svar|bekreftelse)|send\s+dokumentasjon)\b/i,
-];
 
 const PROPOSAL_SENT_PATTERNS: RegExp[] = [
   /\b(please find|attached|enclosed).{0,40}\b(proposal|quotation|quote|tilbud|forslag|offer)\b/i,
@@ -72,18 +79,30 @@ function excerptFrom(message: CorrespondenceMailSnippet): string {
   return preview.slice(0, 140);
 }
 
+function messageSentiment(message: CorrespondenceMailSnippet): EmailSentimentGrade {
+  return (
+    message.sentiment ?? gradeEmailSentiment(message.subject, message.bodyPreview)
+  );
+}
+
 export function detectInboundActionAsk(
   message: CorrespondenceMailSnippet,
 ): CorrespondenceActionAsk | null {
   if (message.isOutbound) return null;
-  const text = haystack(message);
-  if (!ACTION_ASK_PATTERNS.some((pattern) => pattern.test(text))) return null;
+  const commitments = extractEmailCommitments(
+    message.subject,
+    message.bodyPreview,
+    false,
+  );
+  const ask = commitments.find((item) => item.kind === "action_ask");
+  if (!ask) return null;
   return {
     messageId: message.id,
     subject: message.subject,
-    excerpt: excerptFrom(message),
+    excerpt: ask.text || excerptFrom(message),
     sentAt: message.sentAt,
     conversationId: message.conversationId,
+    sentiment: messageSentiment(message),
   };
 }
 
@@ -98,7 +117,6 @@ export function detectOutboundProposalSignal(
   if (PROPOSAL_REQUEST_PATTERNS.some((pattern) => pattern.test(text))) {
     return "proposal_requested";
   }
-  // Subject-only commercial package cues
   if (/\b(proposal|quotation|quote|tilbud|forslag|RFP)\b/i.test(message.subject)) {
     return /request|forespørsel|RFP|ber om|trenger/i.test(message.subject)
       ? "proposal_requested"
@@ -115,6 +133,8 @@ export function extractCorrespondenceActionSignals(
 ): {
   actionAsks: CorrespondenceActionAsk[];
   proposalFollowUps: CorrespondenceProposalFollowUp[];
+  openPromises: CorrespondenceOpenPromise[];
+  commitments: EmailCommitmentSignal[];
 } {
   const sorted = [...messages].sort(
     (a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime(),
@@ -122,13 +142,23 @@ export function extractCorrespondenceActionSignals(
 
   const actionAsks: CorrespondenceActionAsk[] = [];
   const proposalFollowUps: CorrespondenceProposalFollowUp[] = [];
+  const openPromises: CorrespondenceOpenPromise[] = [];
+  const commitments: EmailCommitmentSignal[] = [];
   const seenAskConversations = new Set<string>();
   const seenFollowUpConversations = new Set<string>();
+  const seenPromiseConversations = new Set<string>();
 
   for (const message of sorted) {
+    commitments.push(
+      ...extractEmailCommitments(
+        message.subject,
+        message.bodyPreview,
+        message.isOutbound,
+      ),
+    );
+
     const ask = detectInboundActionAsk(message);
     if (ask && !seenAskConversations.has(ask.conversationId)) {
-      // Only keep if no later outbound reply in same thread after the ask.
       const laterOutbound = sorted.some(
         (row) =>
           row.conversationId === ask.conversationId &&
@@ -138,6 +168,33 @@ export function extractCorrespondenceActionSignals(
       if (!laterOutbound) {
         seenAskConversations.add(ask.conversationId);
         actionAsks.push(ask);
+      }
+    }
+
+    if (message.isOutbound && !seenPromiseConversations.has(message.conversationId)) {
+      const promise = extractEmailCommitments(
+        message.subject,
+        message.bodyPreview,
+        true,
+      ).find((item) => item.kind === "promise");
+      if (promise) {
+        const laterInbound = sorted.some(
+          (row) =>
+            row.conversationId === message.conversationId &&
+            !row.isOutbound &&
+            new Date(row.sentAt).getTime() > new Date(message.sentAt).getTime(),
+        );
+        const days = daysSinceIso(message.sentAt);
+        if (!laterInbound && days >= 1) {
+          seenPromiseConversations.add(message.conversationId);
+          openPromises.push({
+            messageId: message.id,
+            subject: message.subject,
+            excerpt: promise.text,
+            sentAt: message.sentAt,
+            conversationId: message.conversationId,
+          });
+        }
       }
     }
 
@@ -167,9 +224,10 @@ export function extractCorrespondenceActionSignals(
     });
   }
 
-  // Prefer newest asks / follow-ups first; cap noise.
   return {
     actionAsks: actionAsks.reverse().slice(0, 3),
     proposalFollowUps: proposalFollowUps.reverse().slice(0, 3),
+    openPromises: openPromises.reverse().slice(0, 3),
+    commitments: commitments.slice(0, 12),
   };
 }

@@ -118,6 +118,7 @@ Max **8** pending proposals globally; company-scoped filter on Company 360. Comp
 8. Meeting AgreedActions become reminder proposals when still open.  
 9. Correspondence (EmailMessageRecord / open mail / project tags) suppresses “first interaction” and “Create Opportunity” for Prospect-only project delivery partners; propose classify or capture instead.  
 10. Inbound mail action asks become “Note requested action” proposals; outbound proposal/RFP without reply become follow-up reminders after 3 days.  
+11. Mail ingest grades sentiment (positive / neutral / cautious / negative) from subject + preview and extracts commitment cues for Active Assist (asks, promises, deadlines).  
 
 ---
 

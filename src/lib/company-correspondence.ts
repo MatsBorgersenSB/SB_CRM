@@ -9,6 +9,7 @@ import {
 } from "@/lib/company-classification";
 import type {
   CorrespondenceActionAsk,
+  CorrespondenceOpenPromise,
   CorrespondenceProposalFollowUp,
 } from "@/lib/correspondence-action-signals";
 import type { Company } from "@/types/company";
@@ -22,6 +23,8 @@ export type CompanyCorrespondenceEvidence = {
   actionAsks: CorrespondenceActionAsk[];
   /** Outbound proposal/quote/RFP with no reply — follow-up required. */
   proposalFollowUps: CorrespondenceProposalFollowUp[];
+  /** Outbound promises we made that still need follow-through. */
+  openPromises: CorrespondenceOpenPromise[];
 };
 
 export const EMPTY_CORRESPONDENCE: CompanyCorrespondenceEvidence = {
@@ -31,6 +34,7 @@ export const EMPTY_CORRESPONDENCE: CompanyCorrespondenceEvidence = {
   projectNames: [],
   actionAsks: [],
   proposalFollowUps: [],
+  openPromises: [],
 };
 
 export function hasCorrespondence(
@@ -110,5 +114,6 @@ export function mergeLiveMailIntoEvidence(
     projectNames,
     actionAsks: base.actionAsks ?? [],
     proposalFollowUps: base.proposalFollowUps ?? [],
+    openPromises: base.openPromises ?? [],
   };
 }

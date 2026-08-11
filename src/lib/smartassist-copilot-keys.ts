@@ -41,5 +41,9 @@ export function buildCoPilotSuppressionKey(input: {
     return `set_reminder:mail_proposal:${companyId}:${input.id}`;
   }
 
+  if (input.ruleId === "mail_open_promise" && companyId) {
+    return `create_activity:mail_promise:${companyId}:${input.id}`;
+  }
+
   return input.id;
 }
