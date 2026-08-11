@@ -237,8 +237,59 @@ function buildAzureAdProvider() {
 }
 
 /**
- * Shared Auth.js config — JWT only, no Prisma/database adapter.
+ * Outlook Web task panes are cross-site iframes. Auth.js defaults (SameSite=Lax)
+ * mean cookies set in the Office Dialog never reach the task pane. Use
+ * SameSite=None; Secure in production so dialog + iframe can share the session
+ * when the browser still allows third-party cookies; dialog-bridge covers the rest.
  */
+function buildAuthCookies(): NextAuthConfig["cookies"] {
+  const secure =
+    process.env.NODE_ENV === "production" ||
+    process.env.VERCEL === "1" ||
+    Boolean(process.env.AUTH_URL?.startsWith("https://")) ||
+    Boolean(process.env.NEXTAUTH_URL?.startsWith("https://"));
+
+  if (!secure) return undefined;
+
+  const base = {
+    httpOnly: true as const,
+    sameSite: "none" as const,
+    path: "/",
+    secure: true,
+  };
+
+  return {
+    sessionToken: {
+      name: "__Secure-authjs.session-token",
+      options: base,
+    },
+    callbackUrl: {
+      name: "__Secure-authjs.callback-url",
+      options: base,
+    },
+    csrfToken: {
+      name: "__Host-authjs.csrf-token",
+      options: base,
+    },
+    pkceCodeVerifier: {
+      name: "__Secure-authjs.pkce.code_verifier",
+      options: { ...base, maxAge: 60 * 15 },
+    },
+    state: {
+      name: "__Secure-authjs.state",
+      options: { ...base, maxAge: 60 * 15 },
+    },
+    nonce: {
+      name: "__Secure-authjs.nonce",
+      options: base,
+    },
+  };
+}
+
+const authCookies = buildAuthCookies();
+const useSecureCookies = Boolean(authCookies);
+
+/** Shared Auth.js config — JWT only, no Prisma/database adapter. */
 export const authOptions: NextAuthConfig = {
   trustHost: true,
   // Must match middleware getToken({ secret }) exactly (including trim).
@@ -248,7 +299,9 @@ export const authOptions: NextAuthConfig = {
     strategy: "jwt",
     maxAge: 60 * 60 * 8,
   },
-  // Use Auth.js default cookie names so getToken(secureCookie:true) finds the session.
+  useSecureCookies,
+  // Keep Auth.js cookie *names*; override SameSite for Office iframe / dialog SSO.
+  cookies: authCookies,
   providers: [buildAzureAdProvider()],
   pages: {
     signIn: "/auth/signin",
