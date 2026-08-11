@@ -7,13 +7,32 @@ import { AuthProvider } from "@/context/auth-context";
 import { SmartAssistProvider } from "@/context/smart-assist-context";
 import { UniversalSearchProvider } from "@/components/search/universal-search-provider";
 
+function isLiteShellPath(pathname: string | null | undefined): boolean {
+  if (pathname) {
+    return (
+      pathname.startsWith("/auth/") ||
+      pathname.startsWith("/outlook-addin") ||
+      pathname.startsWith("/outlook/")
+    );
+  }
+  // Pathname can be briefly null during client transitions — fall back to location
+  // so Outlook never mounts SessionProvider (HTML session responses → SyntaxError).
+  if (typeof window !== "undefined") {
+    const path = window.location.pathname;
+    return (
+      path.startsWith("/auth/") ||
+      path.startsWith("/outlook-addin") ||
+      path.startsWith("/outlook/")
+    );
+  }
+  return false;
+}
+
 export function RootProviders({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isAuthRoute = pathname?.startsWith("/auth/") ?? false;
-
-  // Keep Microsoft sign-in free of next-auth/react client fetches
-  // (those can throw SyntaxError when a response is HTML).
-  if (isAuthRoute) {
+  // Outlook task panes / dialogs + auth: no SessionProvider, SmartAssist, or search index.
+  // Auth is owned by OutlookAuthGate + dialog-bridge instead.
+  if (isLiteShellPath(pathname)) {
     return <>{children}</>;
   }
 

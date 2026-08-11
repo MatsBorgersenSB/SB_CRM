@@ -46,8 +46,11 @@ function loadOfficeScript(): Promise<void> {
 /**
  * Resolves when Office.js is ready for Dialog / Mailbox APIs.
  * Returns null when not hosted in Office (browser preview / timeout).
+ * Pass a shorter `timeoutMs` for Sign In so dialog fallback is fast.
  */
-export async function whenOfficeReady(): Promise<NonNullable<typeof Office> | null> {
+export async function whenOfficeReady(
+  timeoutMs: number = READY_TIMEOUT_MS,
+): Promise<NonNullable<typeof Office> | null> {
   try {
     await loadOfficeScript();
   } catch {
@@ -57,8 +60,10 @@ export async function whenOfficeReady(): Promise<NonNullable<typeof Office> | nu
   const office = getOffice();
   if (!office?.onReady) return null;
 
+  const waitMs = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : READY_TIMEOUT_MS;
+
   return await new Promise((resolve) => {
-    const timer = window.setTimeout(() => resolve(null), READY_TIMEOUT_MS);
+    const timer = window.setTimeout(() => resolve(null), waitMs);
     try {
       office.onReady(() => {
         window.clearTimeout(timer);
