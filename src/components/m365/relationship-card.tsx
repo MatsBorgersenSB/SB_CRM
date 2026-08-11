@@ -4,6 +4,7 @@ import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
 import { HealthRing } from "@/components/m365/health-ring";
 import { ImpactContext } from "@/components/m365/impact-context";
 import { NextBestActionCard } from "@/components/m365/next-best-action-card";
+import { OutlookActiveAssistApprove } from "@/components/m365/outlook-active-assist-approve";
 import { RelationshipHeader } from "@/components/m365/relationship-header";
 
 function BlockLabel({ children }: { children: string }) {
@@ -18,19 +19,28 @@ function CardActions({
   payload,
   outlookHost,
   onCreateOpportunity,
+  onActiveAssistApplied,
 }: {
   payload: M365RelationshipCardPayload;
   outlookHost: boolean;
   onCreateOpportunity?: () => void;
+  onActiveAssistApplied?: () => void;
 }) {
   const smartCrmHref = buildSmartCrmUrl(payload.deepLink);
   const linkProps = outlookHost
     ? { target: "_blank" as const, rel: "noopener noreferrer" as const }
     : {};
+  const proposal = payload.nextBestAction.activeAssistProposal;
+  const canApproveInPlace = Boolean(outlookHost && proposal);
 
   return (
     <div className="mt-3 flex flex-col gap-2">
-      {payload.nextBestAction.plannerEligible ? (
+      {canApproveInPlace && proposal ? (
+        <OutlookActiveAssistApprove
+          proposal={proposal}
+          onApplied={onActiveAssistApplied}
+        />
+      ) : payload.nextBestAction.plannerEligible ? (
         <a
           href="https://tasks.office.com/"
           {...linkProps}
@@ -76,10 +86,12 @@ export function RelationshipCard({
   payload,
   variant = "default",
   onCreateOpportunity,
+  onActiveAssistApplied,
 }: {
   payload: M365RelationshipCardPayload;
   variant?: "default" | "outlook";
   onCreateOpportunity?: () => void;
+  onActiveAssistApplied?: () => void;
 }) {
   const outlookHost = variant === "outlook";
   const shellClass = outlookHost
@@ -88,7 +100,9 @@ export function RelationshipCard({
 
   return (
     <article className={shellClass}>
-      <div className={`space-y-3 ${outlookHost ? "min-h-0 flex-1 overflow-hidden px-4 py-3" : "px-5 py-5"}`}>
+      <div
+        className={`space-y-3 ${outlookHost ? "min-h-0 flex-1 overflow-hidden px-4 py-3" : "px-5 py-5"}`}
+      >
         {outlookHost ? (
           <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
             SmartCRM
@@ -145,16 +159,22 @@ export function RelationshipCard({
             payload={payload}
             outlookHost={outlookHost}
             onCreateOpportunity={onCreateOpportunity}
+            onActiveAssistApplied={onActiveAssistApplied}
           />
         </section>
 
-        <section aria-label="Open Opportunities and Commitments" className="grid grid-cols-2 gap-2">
+        <section
+          aria-label="Open Opportunities and Commitments"
+          className="grid grid-cols-2 gap-2"
+        >
           <div className="border border-carbon-blue/8 px-3 py-2.5">
             <BlockLabel>Open Opportunities</BlockLabel>
             <p className="mt-2 text-base font-semibold tabular-nums text-carbon-blue/80">
               {payload.openOpportunities.count}
             </p>
-            <p className="text-[10px] text-carbon-blue/45">{payload.openOpportunities.valueLabel}</p>
+            <p className="text-[10px] text-carbon-blue/45">
+              {payload.openOpportunities.valueLabel}
+            </p>
             <ImpactContext items={payload.openOpportunities.impact} />
           </div>
           <div className="border border-carbon-blue/8 px-3 py-2.5">
@@ -162,7 +182,9 @@ export function RelationshipCard({
             <p className="mt-2 text-base font-semibold tabular-nums text-carbon-blue/80">
               {payload.openCommitments.count}
             </p>
-            <p className="text-[10px] text-carbon-blue/45">{payload.openCommitments.stateLabel}</p>
+            <p className="text-[10px] text-carbon-blue/45">
+              {payload.openCommitments.stateLabel}
+            </p>
             <ImpactContext items={payload.openCommitments.impact} />
           </div>
         </section>

@@ -43,6 +43,11 @@ export type M365ActionBlock = {
   impact: string[];
   href: string;
   plannerEligible: boolean;
+  /**
+   * FS-013 — when set, Outlook / Active Assist can Approve without leaving context.
+   * Serialized Co-Pilot proposal for `/api/smartassist/copilot/execute`.
+   */
+  activeAssistProposal?: import("@/types/smartassist-copilot").CoPilotActionProposal;
 };
 
 export type M365OpportunityBlock = {

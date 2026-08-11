@@ -70,6 +70,9 @@ export function buildM365RelationshipCard(
               : "Low",
         href: prepared.href ?? company360Href(company.CompanyID),
         extraImpact: [prepared.impact, ...pipelineImpact],
+        activeAssistProposal: prepared,
+        // Prefer in-card Approve over Planner for prepared CRM actions.
+        plannerEligible: false,
       })
     : toM365Action(
         intelligence.recommendedAction,

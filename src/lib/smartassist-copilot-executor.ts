@@ -117,18 +117,45 @@ export async function executeCoPilotProposal(
   }
 
   if (kind === "propose_record_update") {
+    const companyId = payload.recordUpdate?.companyId?.trim();
+    const fieldLabel = payload.recordUpdate?.fieldLabel ?? "";
+
+    // Assign signed-in user as Account Owner on Approve (user decided).
+    if (companyId && /account owner/i.test(fieldLabel)) {
+      const { auth } = await import("@/lib/auth");
+      const { authUserToAccountOwner } = await import("@/lib/company-owner");
+      const session = await auth();
+      const displayName = session?.user?.name?.trim();
+      const email = session?.user?.email ?? undefined;
+      if (displayName) {
+        const owner = authUserToAccountOwner({
+          id: 0,
+          displayName,
+          role: "commercial",
+          email,
+        });
+        const { getServerSharePointServices } = await import(
+          "@/services/sharepoint/factory"
+        );
+        const { companies } = getServerSharePointServices();
+        await companies.update(companyId, { AccountOwner: owner });
+        return {
+          mode: "applied",
+          message: `Assigned ${owner.Title} as account owner.`,
+        };
+      }
+    }
+
     const href =
       proposal.href ??
-      (payload.recordUpdate?.companyId
-        ? `/companies/${encodeURIComponent(payload.recordUpdate.companyId)}`
-        : undefined);
+      (companyId ? `/companies/${encodeURIComponent(companyId)}` : undefined);
     if (!href) {
       throw new Error("This record update needs a company to open.");
     }
     return {
       mode: "navigate",
       href,
-      message: `Open ${payload.recordUpdate?.fieldLabel ?? "company"} to confirm the update — SmartAssist prepared it; you decide.`,
+      message: `Open ${fieldLabel || "company"} to confirm the update — SmartAssist prepared it; you decide.`,
       prefill: payload.prefill,
     };
   }
