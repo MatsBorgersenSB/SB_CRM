@@ -65,7 +65,7 @@ export function ContactProjectRolesTable({
   const availableProjects = useMemo(() => {
     return projects
       .filter((project) => !assignedProjectIds.has(project.id))
-      .filter((project) => project.status !== "Cancelled" && project.status !== "On Hold")
+      .filter((project) => project.status !== "Completed" && project.status !== "On Hold")
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [projects, assignedProjectIds]);
 
