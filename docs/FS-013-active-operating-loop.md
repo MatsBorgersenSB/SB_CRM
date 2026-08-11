@@ -114,6 +114,7 @@ Max **8** pending proposals globally; company-scoped filter on Company 360. Comp
 6. No parallel proposal UI on Activities when Company 360 already shows Co-Pilot.  
 7. Outlook Relationship Card can **Approve in SmartCRM** for the prepared Active Assist action without leaving mail.  
 8. Meeting AgreedActions become reminder proposals when still open.  
+9. Correspondence (EmailMessageRecord / open mail / project tags) suppresses “first interaction” and “Create Opportunity” for Prospect-only project delivery partners; propose classify or capture instead.  
 
 ---
 
