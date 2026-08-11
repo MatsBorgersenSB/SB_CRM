@@ -2,13 +2,14 @@
 
 Production Outlook add-in for relationship intelligence and meeting briefings, with SharePoint Online as the SmartDocs document backend.
 
-**Host URLs:** `https://sb-crm-seven.vercel.app`
+**Host URLs:** `https://sb-crm-seven.vercel.app`  
+**Retired (do not use):** `https://smart-crm-outlook-plugin-phi.vercel.app`
 
 | Surface | Task pane URL |
 | --- | --- |
 | Relationship Card | `/outlook-addin` |
 | Meeting Briefing | `/outlook/meeting-briefing` |
-| Manifest | [`manifest.xml`](./relationship-card/manifest.xml) (version **1.4.0.0**, nested V1_0+V1_1; see [`VALIDATION-REPORT.md`](./relationship-card/VALIDATION-REPORT.md)) |
+| Manifest | [`manifest.xml`](./relationship-card/manifest.xml) (version **1.4.1.0**, nested V1_0+V1_1; see [`VALIDATION-REPORT.md`](./relationship-card/VALIDATION-REPORT.md)) |
 
 ## Architecture (dual auth)
 
@@ -23,14 +24,24 @@ SharePoint folder layout:
 
 ## Sideload (Outlook on the web or Desktop)
 
-1. Deploy SmartCRM to production (or confirm Vercel is current).
-2. In Outlook: **Get Add-ins** → **My add-ins** → **Add a custom add-in** → **Add from file**.
-3. Upload `outlook/relationship-card/manifest.xml`.
-4. Open a message or calendar item → ribbon **SmartCRM** → **Relationship Card** or **Meeting Briefing**.
-5. Sign in with your Microsoft work account when prompted.
-6. In the browser app, open `/m365-preview` → **Connect Microsoft 365** and consent to mail + SharePoint scopes.
+1. Deploy SmartCRM to production (or confirm Vercel project **sb-crm-seven** is current).
+2. **Remove any older SmartCRM add-in** (especially one whose task pane / Network tab shows `smart-crm-outlook-plugin-phi.vercel.app`).
+3. In Outlook: **Get Add-ins** → **My add-ins** → **Add a custom add-in** → **Add from file**.
+4. Upload `outlook/relationship-card/manifest.xml` (version **1.4.1.0** — all SourceLocation / Url entries must be `https://sb-crm-seven.vercel.app/...`).
+5. Open a message or calendar item → ribbon **SmartCRM** → **Relationship Card** or **Meeting Briefing**.
+6. Confirm DevTools Network / iframe origin is `sb-crm-seven.vercel.app` (not `…-phi…`).
+7. Sign in with your Microsoft work account when prompted.
+8. In the browser app, open `/m365-preview` → **Connect Microsoft 365** and consent to mail + SharePoint scopes.
 
 Centralized deployment (preferred for the tenant): upload the same manifest in Microsoft 365 admin center → Integrated apps / Exchange add-ins.
+
+### Wrong host / missing Azure env
+
+| Symptom | Meaning | Fix |
+| --- | --- | --- |
+| iframe / Network host is `smart-crm-outlook-plugin-phi.vercel.app` | Stale sideload still points at the retired Vercel project | Remove add-in → re-sideload this repo’s `manifest.xml` |
+| Console mentions `SMARTCRM_AZURE_CLIENT_ID` / `SMARTCRM_AZURE_APP_SECRET` | Old phi deployment code (not current SmartCRM) | Do **not** set those on phi — switch host to **sb-crm-seven** |
+| Console mentions `AZURE_AD_CLIENT_*` missing on seven | Env gap on production project | Set vars below on **sb-crm-seven**, then Redeploy |
 
 ## Azure / Entra checklist
 
@@ -45,16 +56,24 @@ Same app registration can serve SSO and Graph Connect.
 
 ## Vercel environment
 
+Set these on the **`sb-crm-seven`** Vercel project only (Production). Do not maintain a separate Outlook plugin project.
+
 | Variable | Purpose |
 | --- | --- |
-| `NEXT_PUBLIC_APP_URL` / `AUTH_URL` | `https://sb-crm-seven.vercel.app` |
-| `AZURE_AD_CLIENT_ID` / `SECRET` / `TENANT_ID` | Entra app |
+| `NEXT_PUBLIC_APP_URL` | `https://sb-crm-seven.vercel.app` |
+| `AUTH_URL` (and optional `NEXTAUTH_URL`) | Same origin as above |
+| `AUTH_SECRET` / `NEXTAUTH_SECRET` | Auth.js JWT secret |
+| `AZURE_AD_CLIENT_ID` | Entra app client ID (aliases also accepted: `AZURE_CLIENT_ID`, `SMARTCRM_AZURE_CLIENT_ID`) |
+| `AZURE_AD_CLIENT_SECRET` | Entra app secret (aliases: `AZURE_CLIENT_SECRET`, `SMARTCRM_AZURE_APP_SECRET`) |
+| `AZURE_AD_TENANT_ID` | Prefer `organizations` |
 | `TOKEN_ENCRYPTION_SECRET` | Encrypt Graph tokens at rest |
 | `CRON_SECRET` | Protects `/api/cron/m365-mail-sync` and subscription renew |
 | `INTERNAL_DOMAINS` | FS-009 internal vs external mail classification |
 | `SHAREPOINT_TRANSPORT` | `graph` |
 | `SHAREPOINT_SITE_ID` | Target site for opportunity folders |
 | `MICROSOFT_GRAPH_ACCESS_TOKEN` | Optional app/daemon token for folder provision |
+
+Verify live (no secrets): `https://sb-crm-seven.vercel.app/api/auth/debug` — `urls.*` and `azure.AZURE_AD_CLIENT_*` should be true / set.
 
 Vercel cron (see `vercel.json`):
 
