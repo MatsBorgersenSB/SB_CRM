@@ -736,7 +736,7 @@ export async function createCompany(input: NewCompanyInput): Promise<Company> {
     ParentCompany: input.ParentCompany ?? null,
     Domain: input.Domain,
     Industry: input.Industry,
-    CompanyTypes: input.CompanyTypes ?? (input.Status === "Prospecting" ? ["Prospect"] : ["Customer"]),
+    CompanyTypes: input.CompanyTypes ?? (input.Status === "Prospecting" ? ["Prospect"] : ["Unclassified"]),
     Status: input.Status,
     AccountOwner: accountOwner,
     Phone: input.Phone,

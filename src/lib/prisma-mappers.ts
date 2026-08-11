@@ -88,7 +88,7 @@ function mapCompanyTypes(types: string[]): CompanyType[] {
   const mapped = types
     .map((type) => canonicalizeCompanyType(type))
     .filter((type): type is CompanyType => Boolean(type));
-  return mapped.length > 0 ? mapped : ["Prospect"];
+  return mapped.length > 0 ? mapped : ["Unclassified"];
 }
 
 function mapIndustry(industry: string | null | undefined): CompanyIndustry {

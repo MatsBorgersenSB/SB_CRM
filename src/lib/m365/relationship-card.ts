@@ -1,4 +1,11 @@
 import { buildCompany360Snapshot } from "@/lib/company-360-data";
+import {
+  formatCompanyTypesLabel,
+  formatRelationshipPostureLabel,
+  getCompanyRelationshipPosture,
+  isOpportunityEligibleCompany,
+  normalizeCompanyTypes,
+} from "@/lib/company-classification";
 import { sumPipelineValue, buildPipelineImpactLines } from "@/lib/impact-context";
 import { isFollowUpOpen, isFollowUpOverdue } from "@/lib/activity-utils";
 import { buildM365Meta } from "@/lib/m365/meta";
@@ -47,16 +54,25 @@ export function buildM365RelationshipCard(
   const whyItMatters =
     topRisk?.impact ?? pipelineImpact.length > 0 ? pipelineImpact : ["Relationship is stable"];
 
+  const companyTypes = normalizeCompanyTypes(company);
+  const posture = getCompanyRelationshipPosture(company);
+  const relationshipRoleLabel =
+    companyTypes[0] === "Unclassified"
+      ? formatRelationshipPostureLabel(posture)
+      : formatCompanyTypesLabel(companyTypes, { max: 2 });
+
   return {
     kind: "relationship-card",
     meta: buildM365Meta({
-      whatMatters: `${header.companyName} — ${header.healthStatus} relationship`,
+      whatMatters: `${header.companyName} — ${relationshipRoleLabel} · ${header.healthStatus}`,
       whatIsAtRisk,
       whyItMatters,
       whatShouldHappenNext: nextBestAction.action,
     }),
     companyName: header.companyName,
     companyId: company.CompanyID,
+    relationshipRoleLabel,
+    opportunityEligible: isOpportunityEligibleCompany(company),
     health: {
       score: header.healthScore,
       status: header.healthStatus,

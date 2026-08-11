@@ -12,6 +12,7 @@ export type CoPilotSourceType =
 export type CoPilotActionKind =
   | "create_activity"
   | "create_opportunity"
+  | "classify_company"
   | "complete_commitment"
   | "schedule_follow_up"
   | "draft_email"
@@ -49,6 +50,7 @@ export type CoPilotActionProposal = {
 export const COPILOT_ACTION_LABELS: Record<CoPilotActionKind, string> = {
   create_activity: "Create activity",
   create_opportunity: "Create opportunity",
+  classify_company: "Classify company",
   complete_commitment: "Mark commitment complete",
   schedule_follow_up: "Schedule follow-up",
   draft_email: "Draft follow-up email",

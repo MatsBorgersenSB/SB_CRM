@@ -267,8 +267,12 @@ function buildCompanyAttention(
         severity: health.score < 30 ? "urgent" : "needs_attention",
       });
       if (mapped) {
-        // Preserve create_new_opportunity so Co-Pilot can map/suppress correctly.
-        if (nba.ruleId !== "create_new_opportunity") {
+        // Preserve commercial / classification rule ids for Co-Pilot mapping.
+        if (
+          nba.ruleId !== "create_new_opportunity" &&
+          nba.ruleId !== "classify_relationship" &&
+          nba.ruleId !== "supplier_follow_through"
+        ) {
           mapped.ruleId = "risk_threshold_exceeded";
         }
         items.push(mapped);

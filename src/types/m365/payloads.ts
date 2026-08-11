@@ -88,6 +88,13 @@ export type M365RelationshipCardPayload = {
   companyName: string;
   /** Account id for Outlook capture actions (create opportunity). */
   companyId: string;
+  /** Ecosystem role label — Supplier, Prospect, Unclassified, etc. */
+  relationshipRoleLabel: string;
+  /**
+   * Reality First — true only for sell-to roles (Customer / Prospect / Offtaker).
+   * Outlook must not nag "Create opportunity" for suppliers, consultants, or unclassified.
+   */
+  opportunityEligible: boolean;
   health: M365HealthBlock;
   topRisk: M365RiskBlock | null;
   nextBestAction: M365ActionBlock;

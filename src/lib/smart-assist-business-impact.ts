@@ -153,6 +153,8 @@ function expectedOutcomeForCopilot(proposal: CoPilotActionProposal): string {
       return "Customer engagement recorded; pipeline intelligence strengthens.";
     case "create_opportunity":
       return "Commercial pipeline reflects real demand; resources focus on true opportunities.";
+    case "classify_company":
+      return "SmartAssist recommends the right next action for this relationship — not a fake sales pipeline.";
     default:
       return "CRM stays accurate with minimal effort from you.";
   }
