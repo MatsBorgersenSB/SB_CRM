@@ -21,10 +21,20 @@ import {
 } from "@/lib/project-stakeholder-contacts";
 import { findStandardBioUserOption } from "@/lib/standard-bio-users";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { ContactCombobox } from "@/components/ui/contact-combobox";
+import type { ProjectContactOption } from "@/lib/project-stakeholder-contacts";
 
 const INFLUENCE_OPTIONS: StakeholderInfluence[] = ["High", "Medium", "Low"];
 const CUSTOM_ROLE_VALUE = "__custom__";
 const DEFAULT_ROLE = "Decision Maker";
+
+/** Strip accidental markup fragments from contact title fields. */
+function sanitizeDisplayText(value: string | null | undefined): string {
+  return (value ?? "")
+    .replace(/<\/?[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function suggestRoleForContact(jobTitle?: string, role?: string): string {
   const corpus = `${jobTitle ?? ""} ${role ?? ""}`.toLowerCase();
@@ -106,8 +116,8 @@ export function ProjectStakeholdersRosterPanel({
     [contactOptions],
   );
 
-  const organizationOptions = useMemo(
-    () => [
+  const organizationOptions = useMemo(() => {
+    const base = [
       { id: INTERNAL_ORGANIZATION_ID, label: "Standard Bio (Internal)" },
       ...organizations.map((org) => ({
         id: org.id,
@@ -115,9 +125,46 @@ export function ProjectStakeholdersRosterPanel({
           findCompanyByProjectRef(companies, org.companyId)?.Title ??
           org.companyId,
       })),
-    ],
-    [organizations, companies],
-  );
+    ];
+    const selected = allContactOptions.find(
+      (entry) => entry.contact.ContactID === selectedContactId,
+    );
+    if (!selected) return base;
+
+    const alreadyLinked =
+      base.some((option) => option.id === selected.companyId) ||
+      organizations.some((org) => {
+        const matched = findCompanyByProjectRef(companies, org.companyId);
+        return (
+          matched?.CompanyID === selected.companyId ||
+          org.companyId === selected.companyId
+        );
+      });
+
+    if (!alreadyLinked) {
+      base.push({
+        id: selected.companyId,
+        label: `${selected.companyName} (contact company)`,
+      });
+    }
+    return base;
+  }, [organizations, companies, allContactOptions, selectedContactId]);
+
+  const resolveOrgForContact = (
+    option: ProjectContactOption,
+    preferred?: string,
+  ) => {
+    const matchedOrg = organizations.find((org) => {
+      const matched = findCompanyByProjectRef(companies, org.companyId);
+      return (
+        matched?.CompanyID === option.companyId || org.companyId === option.companyId
+      );
+    });
+    if (matchedOrg) return matchedOrg.id;
+    if (preferred && preferred !== INTERNAL_ORGANIZATION_ID) return preferred;
+    // Persist company id directly — roster resolves Title via CompanyID fallback.
+    return option.companyId;
+  };
 
   const persist = async (next: ProjectStakeholderRecord[]) => {
     if (!onChange) {
@@ -192,13 +239,7 @@ export function ProjectStakeholdersRosterPanel({
       return;
     }
 
-    const orgForContact =
-      organizations.find((org) => {
-        const matched = findCompanyByProjectRef(companies, org.companyId);
-        return (
-          matched?.CompanyID === option.companyId || org.companyId === option.companyId
-        );
-      })?.id ?? organizationId;
+    const orgForContact = resolveOrgForContact(option, organizationId);
 
     await persist([
       ...stakeholders,
@@ -249,8 +290,7 @@ export function ProjectStakeholdersRosterPanel({
     const option = allContactOptions.find((entry) => entry.contact.ContactID === contactId);
     if (!option || !onChange) return;
 
-    const orgForContact =
-      organizations.find((org) => org.companyId === option.companyId)?.id ?? organizationId;
+    const orgForContact = resolveOrgForContact(option, organizationId);
     const suggestedRole = suggestRoleForContact(option.contact.JobTitle, option.contact.Role);
 
     await persist([
@@ -302,45 +342,33 @@ export function ProjectStakeholdersRosterPanel({
           </select>
         </label>
       ) : (
-        <label className="block">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">Contact</span>
-          <select
-            value={selectedContactId}
-            onChange={(event) => setSelectedContactId(event.target.value)}
-            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
-          >
-            <option value="">Select contact…</option>
-            {contactOptions.accountContacts.length > 0 ? (
-              <optgroup label={accountCompanyName ? `From ${accountCompanyName}` : "From connected account"}>
-                {contactOptions.accountContacts.map((option) => (
-                  <option key={option.contact.ContactID} value={option.contact.ContactID}>
-                    {getContactDisplayName(option.contact)}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-            {contactOptions.otherContacts.length > 0 ? (
-              <optgroup
-                label={
-                  contactOptions.accountContacts.length > 0
-                    ? "Other organizations"
-                    : "All contacts"
-                }
-              >
-                {contactOptions.otherContacts.map((option) => (
-                  <option key={option.contact.ContactID} value={option.contact.ContactID}>
-                    {getContactDisplayName(option.contact)} · {option.companyName}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-          </select>
-          {allContactOptions.length === 0 ? (
-            <p className="mt-1 text-[11px] text-thermal-red/80">
-              No contacts available to add. Create contacts on the company first, then return here.
-            </p>
-          ) : null}
-        </label>
+        <div className="block">
+          <ContactCombobox
+            options={allContactOptions}
+            selectedContactId={selectedContactId}
+            onSelect={(option) => {
+              if (!option) {
+                setSelectedContactId("");
+                return;
+              }
+              setSelectedContactId(option.contact.ContactID);
+              setOrganizationId(resolveOrgForContact(option));
+              if (!customRole) {
+                setRole(suggestRoleForContact(option.contact.JobTitle, option.contact.Role));
+              }
+            }}
+            disabled={saving}
+            groupAccountLabel={
+              accountCompanyName ? `From ${accountCompanyName}` : "From connected account"
+            }
+            groupOtherLabel="Search all contacts"
+            emptyMessage={
+              allContactOptions.length === 0
+                ? "No contacts available. Create contacts on a company first."
+                : "No contacts match your search."
+            }
+          />
+        </div>
       )}
 
       <div className="mt-3">
@@ -610,7 +638,9 @@ export function ProjectStakeholdersRosterPanel({
                     {getContactDisplayName(option.contact)}
                   </p>
                   <p className="text-[11px] text-carbon-blue/45">
-                    {option.contact.JobTitle ?? option.contact.Role}
+                    {sanitizeDisplayText(option.contact.JobTitle) ||
+                      sanitizeDisplayText(option.contact.Role) ||
+                      option.companyName}
                   </p>
                 </div>
                 <button

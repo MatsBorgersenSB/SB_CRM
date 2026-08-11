@@ -107,17 +107,13 @@ export function buildProjectContactOptions(
     const isOrg =
       orgCompanyIds.has(company.CompanyID) && company.CompanyID !== resolvedAccountId;
 
-    if (!isAccount && !isOrg) continue;
-
     for (const contact of company.contacts ?? []) {
-      pushOption(contact, company, isAccount ? "account" : "organization");
-    }
-  }
-
-  // Fallback: if related orgs resolve to no selectable contacts, offer the full directory.
-  if (accountContacts.length === 0 && otherContacts.length === 0) {
-    for (const company of companies) {
-      for (const contact of company.contacts ?? []) {
+      if (isAccount) {
+        pushOption(contact, company, "account");
+      } else if (isOrg) {
+        pushOption(contact, company, "organization");
+      } else {
+        // Always searchable — suppliers / partners on the project (e.g. AlsaFlam on Escalante).
         pushOption(contact, company, "other");
       }
     }
