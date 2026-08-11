@@ -139,13 +139,12 @@ export async function resolveOutlookOpenMessageSeed(): Promise<OutlookOpenMessag
     try {
       const convert = (
         mailbox as {
-          convertToRestId?: (id: string, version: Office.MailboxEnums.RestVersion) => string;
+          convertToRestId?: (id: string, version: string) => string;
         }
       ).convertToRestId;
-      if (typeof convert === "function" && typeof Office !== "undefined") {
-        const restId = convert
-          .call(mailbox, ewsOrRestId, Office.MailboxEnums.RestVersion.v2_0)
-          ?.trim();
+      if (typeof convert === "function") {
+        // Office.MailboxEnums.RestVersion.v2_0 === "v2.0" (avoid Office namespace typing gaps).
+        const restId = convert.call(mailbox, ewsOrRestId, "v2.0")?.trim();
         if (restId) externalMessageId = restId;
       }
     } catch {
