@@ -22,16 +22,21 @@ export function AttentionActionButtons({
   actions,
   attentionItem,
   onDraftEmail,
+  onNoAction,
   compact = false,
 }: {
   actions: AttentionAction[];
   attentionItem?: AttentionItem;
   onDraftEmail?: (item: AttentionItem) => void;
+  /** User explicitly chooses not to act on this attention item. */
+  onNoAction?: (item: AttentionItem) => void;
   compact?: boolean;
 }) {
-  if (actions.length === 0) return null;
+  if (actions.length === 0 && !onNoAction) return null;
 
-  if (actions.length === 1) {
+  const showMenu = actions.length > 1 || Boolean(onNoAction && attentionItem);
+
+  if (!showMenu && actions.length === 1) {
     const action = actions[0]!;
     return (
       <AttentionActionButton
@@ -54,15 +59,25 @@ export function AttentionActionButtons({
       className="text-[11px] font-semibold text-upcycle-orange"
     >
       {actions.map((action) => (
-        <ActionMenuItem key={`${action.kind}-${action.label}`}>
-          <AttentionActionButton
-            action={action}
-            attentionItem={attentionItem}
-            onDraftEmail={onDraftEmail}
-            asMenuItem
-          />
-        </ActionMenuItem>
+        <AttentionActionButton
+          key={`${action.kind}-${action.label}`}
+          action={action}
+          attentionItem={attentionItem}
+          onDraftEmail={onDraftEmail}
+          asMenuItem
+        />
       ))}
+      {attentionItem && onNoAction ? (
+        <>
+          <div className="my-1 border-t border-carbon-blue/10" role="separator" />
+          <ActionMenuItem onClick={() => onNoAction(attentionItem)}>
+            <span className="inline-flex items-center gap-1.5 text-carbon-blue/55">
+              <SmartCRMIcon name="healthy" size="xs" />
+              No Action
+            </span>
+          </ActionMenuItem>
+        </>
+      ) : null}
     </ActionMenu>
   );
 }
@@ -114,16 +129,24 @@ function AttentionActionButton({
         className={asMenuItem ? "" : "text-[10px] font-semibold text-carbon-blue"}
       >
         <ActionMenuItem href={m365ComposeHref(action.email)} external>
-          <IconLabel icon="email" iconSize="xs">Outlook Web</IconLabel>
+          <IconLabel icon="email" iconSize="xs">
+            Outlook Web
+          </IconLabel>
         </ActionMenuItem>
         <ActionMenuItem href={mailtoHref(action.email)}>
-          <IconLabel icon="email" iconSize="xs">Default mail app</IconLabel>
+          <IconLabel icon="email" iconSize="xs">
+            Default mail app
+          </IconLabel>
         </ActionMenuItem>
       </ActionMenu>
     );
   }
 
-  if (action.href?.startsWith("http") || action.href?.startsWith("mailto:") || action.href?.startsWith("tel:")) {
+  if (
+    action.href?.startsWith("http") ||
+    action.href?.startsWith("mailto:") ||
+    action.href?.startsWith("tel:")
+  ) {
     return (
       <a href={action.href} target="_blank" rel="noopener noreferrer" className={className}>
         {label}
