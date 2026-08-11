@@ -72,12 +72,21 @@ function parseDialogMessage(raw: string): {
 }
 
 /**
- * Opens SmartCRM SSO in an Office dialog (or a popup fallback) so the task
- * pane can receive a session via dialog-bridge (iframe-safe).
+ * Working Outlook Dialog SSO URL.
+ * There is no `/login` route — `/auth/signin` + auth-complete bridge is required
+ * for iframe-safe session handoff after Microsoft sign-in.
  */
-async function openSignInDialog(onComplete: () => void): Promise<void> {
-  const completeUrl = `${appOrigin()}/outlook/auth-complete`;
-  const signInUrl = `${appOrigin()}/auth/signin?callbackUrl=${encodeURIComponent(completeUrl)}`;
+export function buildOutlookSignInUrl(origin = appOrigin()): string {
+  const completeUrl = `${origin}/outlook/auth-complete`;
+  return `${origin}/auth/signin?callbackUrl=${encodeURIComponent(completeUrl)}`;
+}
+
+/**
+ * Opens SmartCRM SSO in an Office dialog (or a popup / new-tab fallback) so the
+ * task pane can receive a session via dialog-bridge (iframe-safe).
+ */
+export async function openOutlookSignInDialog(onComplete: () => void): Promise<void> {
+  const signInUrl = buildOutlookSignInUrl();
 
   const office = await whenOfficeReady();
   const displayDialog = office?.context?.ui?.displayDialogAsync;
@@ -142,7 +151,7 @@ async function openSignInDialog(onComplete: () => void): Promise<void> {
 
   const popup = window.open(signInUrl, "smartcrm-signin", "width=520,height=720");
   if (!popup) {
-    window.location.href = signInUrl;
+    window.open(signInUrl, "_blank", "noopener,noreferrer");
     return;
   }
   const timer = window.setInterval(() => {
@@ -153,9 +162,36 @@ async function openSignInDialog(onComplete: () => void): Promise<void> {
   }, 800);
 }
 
+function SignInToSmartCrmCard({ onSignedIn }: { onSignedIn: () => void }) {
+  return (
+    <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
+      <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+          SmartCRM
+        </p>
+        <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+          Relationship intelligence stays in SmartCRM. Sign in with your Microsoft work
+          account — then this pane answers what matters and what to do next.
+        </p>
+        <button
+          type="button"
+          onClick={() => void openOutlookSignInDialog(onSignedIn)}
+          className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+        >
+          Sign In to SmartCRM
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Ensures the Outlook task pane has a SmartCRM SSO session before loading
  * relationship / briefing intelligence.
+ *
+ * Office.onReady runs on mount (via whenOfficeReady) regardless of auth status.
+ * Session probe uses /api/auth/session — 401/403 → needs-sign-in, never throws.
  */
 export function OutlookAuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GateState>({ status: "checking" });
@@ -173,10 +209,13 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
         credentials: "include",
         cache: "no-store",
       });
-      if (!response.ok) {
+
+      // Unauthenticated / forbidden → friendly sign-in, never an unhandled error
+      if (response.status === 401 || response.status === 403 || !response.ok) {
         setState({ status: "needs-sign-in" });
         return;
       }
+
       const session = (await response.json()) as {
         user?: { email?: string | null } | null;
       };
@@ -186,8 +225,14 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
       }
       setState({ status: "needs-sign-in" });
     } catch {
-      setState({ status: "error", message: "Unable to verify SmartCRM session." });
+      // Network / parse failures: treat as signed out so the pane stays usable
+      setState({ status: "needs-sign-in" });
     }
+  }, []);
+
+  // Office.onReady must run on mount regardless of authentication status
+  useEffect(() => {
+    void whenOfficeReady();
   }, []);
 
   useEffect(() => {
@@ -244,25 +289,7 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
   }
 
   if (state.status === "needs-sign-in") {
-    return (
-      <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
-          SmartCRM
-        </p>
-        <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign in to continue</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
-          Relationship intelligence stays in SmartCRM. Sign in with your Microsoft work
-          account — then this pane answers what matters and what to do next.
-        </p>
-        <button
-          type="button"
-          onClick={() => void openSignInDialog(() => void checkSession())}
-          className="mt-5 inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
-        >
-          Sign in with Microsoft
-        </button>
-      </div>
-    );
+    return <SignInToSmartCrmCard onSignedIn={() => void checkSession()} />;
   }
 
   return <>{children}</>;

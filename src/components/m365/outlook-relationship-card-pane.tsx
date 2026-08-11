@@ -6,6 +6,7 @@ import { OutlookAddOpportunityDialog } from "@/components/m365/outlook-add-oppor
 import { OutlookMailTagPanel } from "@/components/m365/outlook-mail-tag-panel";
 import { OutlookReconciliationCard } from "@/components/m365/outlook-reconciliation-card";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
+import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
 import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
 import { analyzeOutlookReconciliation } from "@/lib/outlook-reconciliation-engine";
 import { useOutlookM365PaneLoad } from "@/hooks/use-outlook-m365-pane-load";
@@ -66,18 +67,24 @@ export function OutlookRelationshipCardPane() {
   if (state.status === "auth-required") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
-          SmartCRM
-        </p>
-        <p className="mt-2 text-sm font-semibold text-carbon-blue">Session expired</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">{state.message}</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-5 inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
-        >
-          Sign in again
-        </button>
+        <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+            SmartCRM
+          </p>
+          <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">{state.message}</p>
+          <button
+            type="button"
+            onClick={() =>
+              void openOutlookSignInDialog(() => {
+                window.location.reload();
+              })
+            }
+            className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+          >
+            Sign In to SmartCRM
+          </button>
+        </div>
       </div>
     );
   }

@@ -98,10 +98,10 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
 
         if (requestId !== requestIdRef.current || !mountedRef.current) return;
 
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 403) {
           safeSetState({
             status: "auth-required",
-            message: "Sign in to SmartCRM to load relationship intelligence.",
+            message: "Sign in to SmartCRM to continue.",
           });
           return;
         }
