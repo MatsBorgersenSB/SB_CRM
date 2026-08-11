@@ -4,10 +4,8 @@ import {
   resolveCompanyFromInput,
 } from "@/lib/m365";
 import { m365Error, m365Json } from "@/lib/m365/api-response";
-import {
-  loadCorrespondenceEvidenceForCompany,
-  mergeLiveMailIntoEvidence,
-} from "@/lib/company-correspondence";
+import { mergeLiveMailIntoEvidence } from "@/lib/company-correspondence";
+import { loadCorrespondenceEvidenceForCompany } from "@/lib/company-correspondence-data";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { getProjectsForCompany } from "@/lib/project-team-utils";

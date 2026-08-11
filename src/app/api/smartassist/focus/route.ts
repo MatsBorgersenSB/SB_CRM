@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildSmartAssistFocus } from "@/lib/smart-assist-engine";
-import { loadCorrespondenceEvidenceByCompanyId } from "@/lib/company-correspondence";
+import { loadCorrespondenceEvidenceByCompanyId } from "@/lib/company-correspondence-data";
 import { readLiveFocusContext } from "@/lib/prisma-data";
 import { DEFAULT_AUTH_USER } from "@/types/auth";
 
