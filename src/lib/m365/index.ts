@@ -35,6 +35,10 @@ export {
   addOutlookContact,
 } from "./outlook-add-contact";
 export {
+  buildRelationshipIntakeProposal,
+  approveRelationshipIntake,
+} from "./relationship-intake";
+export {
   canonicalCompanyDisplayName,
   resolveCompanyForEmail,
   resolveCompanyByDomain,

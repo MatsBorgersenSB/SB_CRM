@@ -1,10 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import { OutlookAddContactDialog } from "@/components/m365/outlook-add-contact-dialog";
+/**
+ * FS-012 Relationship Intake — Outlook surface.
+ * Propose → Yes/No → Confirm → Persist. Never auto-create.
+ */
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { OutlookAddOpportunityDialog } from "@/components/m365/outlook-add-opportunity-dialog";
-import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
+import { OutlookEnrichmentPanel } from "@/components/m365/outlook-enrichment-panel";
+import {
+  buildSmartCrmUrl,
+  resolveOutlookOpenMessageSeed,
+} from "@/lib/m365/outlook-context";
+import {
+  resolveDevMessageBody,
+  resolveOutlookMessageBody,
+} from "@/lib/m365/outlook-message-body";
+import { acceptedEnrichmentToContactFields } from "@/lib/m365/signature-intelligence";
+import type { SignatureSuggestion } from "@/lib/m365/signature-intelligence";
 import type { OutlookAddContactResult } from "@/lib/m365/outlook-sender-types";
+import { COMPANY_INDUSTRIES, type CompanyIndustry } from "@/types/company";
+import { CONTACT_LIST_ROLES, type ContactListRole } from "@/types/contact";
+import {
+  COMPANY_TYPE_SELECT_OPTIONS,
+  type CompanyType,
+} from "@/types/company-type";
+import type {
+  RelationshipIntakeApproveResult,
+  RelationshipIntakeProposal,
+} from "@/types/relationship-intake";
+
+type Phase = "loading" | "propose" | "confirm" | "done" | "dismissed" | "error";
 
 export function OutlookNoContactState({
   email,
@@ -15,9 +42,191 @@ export function OutlookNoContactState({
   displayName?: string | null;
   onContactCreated: () => void;
 }) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [created, setCreated] = useState<OutlookAddContactResult | null>(null);
+  const searchParams = useSearchParams();
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [error, setError] = useState<string | null>(null);
+  const [proposal, setProposal] = useState<RelationshipIntakeProposal | null>(null);
+  const [created, setCreated] = useState<RelationshipIntakeApproveResult | null>(null);
   const [opportunityOpen, setOpportunityOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const [role, setRole] = useState<ContactListRole | "">("");
+  const [industry, setIndustry] = useState<CompanyIndustry | "">("");
+  const [companyType, setCompanyType] = useState<CompanyType | "">("");
+  const [companyName, setCompanyName] = useState("");
+  const [companyOverride, setCompanyOverride] = useState(false);
+  const [linkKind, setLinkKind] = useState<"none" | "opportunity" | "project">("none");
+  const [selectedLinkId, setSelectedLinkId] = useState("");
+  const [enrichmentDismissed, setEnrichmentDismissed] = useState(false);
+  const [acceptedSuggestions, setAcceptedSuggestions] = useState<SignatureSuggestion[] | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let active = true;
+    setPhase("loading");
+    setError(null);
+
+    void (async () => {
+      try {
+        const devBody = resolveDevMessageBody(searchParams);
+        const messageBody = devBody ?? (await resolveOutlookMessageBody());
+        const response = await fetch("/api/m365/outlook/relationship-intake", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "propose",
+            email,
+            displayName: displayName ?? undefined,
+            messageBody: messageBody ?? undefined,
+          }),
+        });
+
+        if (!active) return;
+
+        if (!response.ok) {
+          setError("Unable to prepare relationship intake.");
+          setPhase("error");
+          return;
+        }
+
+        const data = (await response.json()) as RelationshipIntakeProposal;
+        if (!active) return;
+        setProposal(data);
+        setCompanyName(data.companyName);
+        setPhase("propose");
+      } catch {
+        if (!active) return;
+        setError("Unable to prepare relationship intake.");
+        setPhase("error");
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [email, displayName, searchParams]);
+
+  const opportunityEligible =
+    created?.relationshipCard?.opportunityEligible === true;
+
+  const showMatchedCompany =
+    Boolean(proposal?.companyResolved && proposal.companyId && !companyOverride);
+
+  const showEnrichment =
+    proposal &&
+    phase === "confirm" &&
+    !enrichmentDismissed &&
+    acceptedSuggestions === null &&
+    proposal.enrichment.suggestions.length > 0;
+
+  const linkOptions =
+    linkKind === "opportunity"
+      ? proposal?.opportunityOptions ?? []
+      : linkKind === "project"
+        ? proposal?.projectOptions ?? []
+        : [];
+
+  const handleYes = () => {
+    setPhase("confirm");
+    setError(null);
+  };
+
+  const handleNo = () => {
+    setPhase("dismissed");
+  };
+
+  const handleAcceptEnrichment = () => {
+    if (!proposal) return;
+    const suggestions = proposal.enrichment.suggestions;
+    setAcceptedSuggestions(suggestions);
+    const fields = acceptedEnrichmentToContactFields(suggestions);
+    if (fields.companyName && !showMatchedCompany) {
+      setCompanyName(fields.companyName);
+    }
+    if (fields.jobTitle && !role) {
+      const matchedRole = CONTACT_LIST_ROLES.find(
+        (item) => item.toLowerCase() === fields.jobTitle.toLowerCase(),
+      );
+      if (matchedRole) setRole(matchedRole);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!proposal || !role) return;
+    if (!showMatchedCompany && !industry) return;
+    if (!showMatchedCompany && !companyType) return;
+    if (linkKind !== "none" && !selectedLinkId) return;
+
+    setBusy(true);
+    setError(null);
+
+    const enrichmentFields = acceptedSuggestions
+      ? acceptedEnrichmentToContactFields(acceptedSuggestions)
+      : null;
+
+    const seed = await resolveOutlookOpenMessageSeed().catch(() => null);
+
+    try {
+      const response = await fetch("/api/m365/outlook/relationship-intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "approve",
+          email: proposal.email,
+          firstName: proposal.firstName,
+          lastName: proposal.lastName,
+          companyName: showMatchedCompany ? proposal.companyName : companyName,
+          role,
+          industry: showMatchedCompany ? undefined : industry || undefined,
+          companyTypes: showMatchedCompany
+            ? undefined
+            : companyType
+              ? [companyType]
+              : undefined,
+          matchedCompanyId: showMatchedCompany ? proposal.companyId : undefined,
+          skipAutoCompanyMatch:
+            proposal.companyResolved && companyOverride ? true : undefined,
+          enrichment: enrichmentFields
+            ? {
+                jobTitle: enrichmentFields.jobTitle || undefined,
+                mobile: enrichmentFields.mobile || undefined,
+                phone: enrichmentFields.phone || undefined,
+                companyName: enrichmentFields.companyName || undefined,
+                address: enrichmentFields.address || undefined,
+                website: enrichmentFields.website || undefined,
+              }
+            : undefined,
+          conversationId: seed?.conversationId ?? undefined,
+          opportunityId: linkKind === "opportunity" ? selectedLinkId : undefined,
+          projectId: linkKind === "project" ? selectedLinkId : undefined,
+          message: seed
+            ? {
+                externalMessageId: seed.externalMessageId,
+                subject: seed.subject,
+                senderEmail: seed.senderEmail,
+                sentAt: seed.sentAt,
+              }
+            : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        setError(body?.error ?? "Unable to create in SmartCRM.");
+        setBusy(false);
+        return;
+      }
+
+      const result = (await response.json()) as RelationshipIntakeApproveResult;
+      setCreated(result);
+      setPhase("done");
+      setBusy(false);
+    } catch {
+      setError("Unable to create in SmartCRM.");
+      setBusy(false);
+    }
+  };
 
   return (
     <>
@@ -25,43 +234,97 @@ export function OutlookNoContactState({
         <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
-        {created ? (
+
+        {phase === "loading" ? (
+          <p className="mt-2 text-[11px] text-carbon-blue/50">
+            Checking SmartCRM for this relationship…
+          </p>
+        ) : null}
+
+        {phase === "error" ? (
+          <>
+            <p className="mt-2 text-sm font-semibold text-carbon-blue">Unable to prepare</p>
+            <p className="mt-1 text-[11px] text-carbon-blue/50">{error}</p>
+          </>
+        ) : null}
+
+        {phase === "dismissed" ? (
+          <>
+            <p className="mt-2 text-sm font-semibold text-carbon-blue">Left unchanged</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+              Nothing was created. You can add this relationship later from Outlook.
+            </p>
+            <button
+              type="button"
+              onClick={() => setPhase("propose")}
+              className="mt-5 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue"
+            >
+              Review again
+            </button>
+          </>
+        ) : null}
+
+        {phase === "done" && created ? (
           <>
             <p className="mt-2 text-sm font-semibold text-carbon-blue">Added to SmartCRM</p>
             <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
               {created.companyCreated
-                ? "Contact and company created. Create an opportunity if this mail is a real deal."
-                : "Contact linked to the existing company. Create an opportunity if this mail is a real deal."}
+                ? "Contact and company created — stay in Outlook."
+                : "Contact linked to the existing company."}
+              {created.threadLinked ? " This thread was connected." : ""}
             </p>
-            <button
-              type="button"
-              onClick={() => setOpportunityOpen(true)}
-              className="mt-5 border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
-            >
-              Create opportunity
-            </button>
             <button
               type="button"
               onClick={onContactCreated}
-              className="mt-3 text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45 hover:text-upcycle-orange"
+              className="mt-5 border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
             >
               Open relationship card
             </button>
+            {opportunityEligible ? (
+              <button
+                type="button"
+                onClick={() => setOpportunityOpen(true)}
+                className="mt-3 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+              >
+                Create opportunity
+              </button>
+            ) : null}
           </>
-        ) : (
+        ) : null}
+
+        {phase === "propose" && proposal ? (
           <>
-            <p className="mt-2 text-sm font-semibold text-carbon-blue">No relationship context</p>
+            <p className="mt-2 text-sm font-semibold text-carbon-blue">New relationship</p>
             <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
-              This person is not in SmartCRM yet. Add the contact — and create the company only
-              when it is not already known.
+              {proposal.decisionQuestion}
             </p>
-            <p className="mt-3 text-[10px] text-carbon-blue/35">{email}</p>
+            <p className="mt-3 text-[12px] font-medium text-carbon-blue">
+              {proposal.displayName || email}
+            </p>
+            <p className="mt-0.5 text-[10px] text-carbon-blue/40">{proposal.email}</p>
+            <p className="mt-3 text-[11px] text-carbon-blue/70">
+              {proposal.companyResolved
+                ? `Company: ${proposal.companyName}`
+                : proposal.companyName
+                  ? `Suggested company: ${proposal.companyName}`
+                  : "Company: not yet known"}
+            </p>
+            <p className="mt-2 text-[10px] leading-relaxed text-carbon-blue/45">
+              {proposal.decisionImpact}
+            </p>
             <button
               type="button"
-              onClick={() => setDialogOpen(true)}
+              onClick={handleYes}
               className="mt-5 border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
             >
-              Add contact / company
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={handleNo}
+              className="mt-3 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue"
+            >
+              No
             </button>
             <a
               href={buildSmartCrmUrl("/companies")}
@@ -72,21 +335,177 @@ export function OutlookNoContactState({
               Open SmartCRM
             </a>
           </>
-        )}
+        ) : null}
+
+        {phase === "confirm" && proposal ? (
+          <div className="mt-2 max-h-[78dvh] space-y-3 overflow-y-auto">
+            <p className="text-sm font-semibold text-carbon-blue">Confirm create</p>
+            <p className="text-[11px] text-carbon-blue/50">
+              SmartAssist prepared this draft. Nothing is saved until you create.
+            </p>
+
+            <label className="block">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                Role
+              </span>
+              <select
+                value={role}
+                onChange={(event) => setRole(event.target.value as ContactListRole | "")}
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+              >
+                <option value="">Select role…</option>
+                {CONTACT_LIST_ROLES.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {showMatchedCompany ? (
+              <div>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                  Link to company
+                </span>
+                <div className="mt-1 flex items-center justify-between gap-2 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
+                  <p className="text-[12px] font-medium text-carbon-blue">
+                    {proposal.companyName}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setCompanyOverride(true)}
+                    className="shrink-0 border border-carbon-blue/15 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+                  >
+                    Change
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <label className="block">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                    Create company
+                  </span>
+                  <input
+                    type="text"
+                    value={companyName}
+                    onChange={(event) => setCompanyName(event.target.value)}
+                    className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                    Relationship type
+                  </span>
+                  <select
+                    value={companyType}
+                    onChange={(event) =>
+                      setCompanyType(event.target.value as CompanyType | "")
+                    }
+                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  >
+                    <option value="">What kind of company?…</option>
+                    {COMPANY_TYPE_SELECT_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                    Industry
+                  </span>
+                  <select
+                    value={industry}
+                    onChange={(event) =>
+                      setIndustry(event.target.value as CompanyIndustry | "")
+                    }
+                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  >
+                    <option value="">Select industry…</option>
+                    {COMPANY_INDUSTRIES.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
+
+            {(proposal.opportunityOptions.length > 0 ||
+              proposal.projectOptions.length > 0) && (
+              <div className="space-y-2 border-t border-carbon-blue/8 pt-3">
+                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                  Connect this thread (optional)
+                </span>
+                <select
+                  value={linkKind}
+                  onChange={(event) => {
+                    setLinkKind(
+                      event.target.value as "none" | "opportunity" | "project",
+                    );
+                    setSelectedLinkId("");
+                  }}
+                  className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                >
+                  <option value="none">Do not link yet</option>
+                  {proposal.opportunityOptions.length > 0 ? (
+                    <option value="opportunity">Opportunity</option>
+                  ) : null}
+                  {proposal.projectOptions.length > 0 ? (
+                    <option value="project">Project</option>
+                  ) : null}
+                </select>
+                {linkKind !== "none" ? (
+                  <select
+                    value={selectedLinkId}
+                    onChange={(event) => setSelectedLinkId(event.target.value)}
+                    className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  >
+                    <option value="">Select…</option>
+                    {linkOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
+            )}
+
+            {showEnrichment ? (
+              <OutlookEnrichmentPanel
+                suggestions={proposal.enrichment.suggestions}
+                onAccept={handleAcceptEnrichment}
+                onIgnore={() => setEnrichmentDismissed(true)}
+              />
+            ) : null}
+
+            {error ? <p className="text-[11px] text-red-600">{error}</p> : null}
+
+            <button
+              type="button"
+              disabled={busy || !role}
+              onClick={() => void handleCreate()}
+              className="w-full border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"
+            >
+              {busy ? "Creating…" : "Create in SmartCRM"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setPhase("propose")}
+              className="w-full border border-carbon-blue/15 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+            >
+              Back
+            </button>
+          </div>
+        ) : null}
       </div>
 
-      <OutlookAddContactDialog
-        open={dialogOpen}
-        email={email}
-        displayName={displayName}
-        onClose={() => setDialogOpen(false)}
-        onCreated={(result) => {
-          setCreated(result);
-          setDialogOpen(false);
-        }}
-      />
-
-      {created ? (
+      {created && opportunityEligible ? (
         <OutlookAddOpportunityDialog
           open={opportunityOpen}
           companyId={created.companyId}
@@ -101,3 +520,6 @@ export function OutlookNoContactState({
     </>
   );
 }
+
+/** @deprecated Alias kept for clarity in docs — same component. */
+export type OutlookRelationshipIntakeResult = OutlookAddContactResult;

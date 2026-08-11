@@ -4,6 +4,9 @@ import {
   readCompanies,
   updateCompany,
 } from "@/lib/pipeline-db";
+import { createRegistryCompany } from "@/lib/company-registry";
+import { createRegistryContact } from "@/lib/contact-registry";
+import { readLiveCompanies } from "@/lib/prisma-data";
 import { resolveAccountOwner } from "@/lib/company-owner";
 import { buildM365RelationshipCard } from "@/lib/m365/relationship-card";
 import { loadM365DataContext } from "@/lib/m365/resolve-context";
@@ -12,6 +15,8 @@ import type { ContactListRole, ContactStatus, RelationshipLevel } from "@/types/
 import { CONTACT_LIST_ROLES } from "@/types/contact";
 import type { CompanyIndustry } from "@/types/company";
 import { COMPANY_INDUSTRIES } from "@/types/company";
+import type { CompanyType } from "@/types/company-type";
+import { canonicalizeCompanyType, COMPANY_TYPE_SELECT_OPTIONS } from "@/types/company-type";
 import { extractEmailDomain, parsePersonName } from "@/lib/m365/outlook-sender-utils";
 import {
   parseSignatureIntelligence,
@@ -87,7 +92,7 @@ export async function buildOutlookSenderPrepopulation(input: {
   const signatureName = parseSignaturePersonName(messageBody, email);
   const parsed = parsePersonName(input.displayName ?? signatureName ?? "", email);
   const domain = extractEmailDomain(email);
-  const companies = await readCompanies();
+  const companies = await readLiveCompanies().catch(() => readCompanies());
   const matched = resolveCompanyForEmail(companies, email);
 
   const enrichment = parseSignatureIntelligence(messageBody, email);
@@ -128,7 +133,7 @@ export async function addOutlookContact(
 ): Promise<OutlookAddContactResult> {
   const email = input.email.trim().toLowerCase();
   const domain = extractEmailDomain(email);
-  const companies = await readCompanies();
+  const companies = await readLiveCompanies().catch(() => readCompanies());
 
   logOutlookImport("ADD-CONTACT REQUEST", {
     email,
@@ -137,6 +142,7 @@ export async function addOutlookContact(
     companyName: input.companyName,
     matchedCompanyId: input.matchedCompanyId ?? null,
     skipAutoCompanyMatch: input.skipAutoCompanyMatch ?? false,
+    companyTypes: input.companyTypes ?? null,
     enrichment: input.enrichment ?? null,
   });
 
@@ -174,6 +180,12 @@ export async function addOutlookContact(
     if (!industry) {
       throw new Error("Select an industry when creating a new company.");
     }
+    const companyTypes = resolveOutlookCompanyTypes(input.companyTypes);
+    if (companyTypes.length === 0) {
+      throw new Error(
+        "Select what kind of relationship this is (Supplier, Prospect, Partner, …).",
+      );
+    }
     const addressFields = enrichment.address?.trim()
       ? parseCompanyAddressInput(enrichment.address)
       : null;
@@ -181,25 +193,31 @@ export async function addOutlookContact(
       ? websiteToDomain(enrichment.website)
       : "";
 
-    company = await createCompany({
+    const newCompanyInput = {
       Title: title,
       Domain: websiteDomain || domain,
       Industry: industry,
-      Status: "Prospecting",
+      CompanyTypes: companyTypes,
+      // Active + explicit types — never invent Prospect/Customer from Outlook mail.
+      Status: "Active" as const,
       City: addressFields?.City ?? "",
       Phone: normalizePhoneNumber(enrichment.phone ?? ""),
       AddressLine1: addressFields?.AddressLine1 ?? "",
       Email: "",
       Country: addressFields?.Country ?? null,
       AccountOwner: resolveAccountOwner(null),
-    });
+    };
+
+    company =
+      (await createRegistryCompany(newCompanyInput)) ??
+      (await createCompany(newCompanyInput));
     companyCreated = true;
   } else if (Object.keys(buildCompanyEnrichmentPatch(enrichment)).length > 0) {
     company = await updateCompany(company.CompanyID, buildCompanyEnrichmentPatch(enrichment));
   }
 
   const role = resolveOutlookContactRole(input.role, enrichment.jobTitle);
-  const contact = await createCompanyContact(company.CompanyID, {
+  const contactInput = {
     FirstName: input.firstName.trim() || "Contact",
     LastName: input.lastName.trim(),
     Email: email,
@@ -211,7 +229,11 @@ export async function addOutlookContact(
     LinkedInURL: "",
     Status: "Prospecting" as ContactStatus,
     RelationshipLevel: "Operational" as RelationshipLevel,
-  });
+  };
+
+  const contact =
+    (await createRegistryContact(contactInput)) ??
+    (await createCompanyContact(company.CompanyID, contactInput));
 
   logOutlookImport("PERSISTED CONTACT", {
     ContactID: contact.ContactID,
@@ -266,6 +288,25 @@ export function resolveOutlookCompanyIndustry(
       (item) => item.toLowerCase() === trimmed.toLowerCase(),
     ) ?? null
   );
+}
+
+/** Reality First — only persist selectable ecosystem roles the user chose. */
+export function resolveOutlookCompanyTypes(
+  types: string[] | undefined,
+): CompanyType[] {
+  const resolved: CompanyType[] = [];
+  for (const value of types ?? []) {
+    const next = canonicalizeCompanyType(String(value));
+    if (
+      next &&
+      next !== "Unclassified" &&
+      COMPANY_TYPE_SELECT_OPTIONS.includes(next) &&
+      !resolved.includes(next)
+    ) {
+      resolved.push(next);
+    }
+  }
+  return resolved;
 }
 
 /** Map user/signature role text to a SharePoint choice — never invent a job. */
