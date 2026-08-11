@@ -11,6 +11,20 @@ const POSTAL_CITY_PATTERN = /^\d{4,6}\s+[A-Za-zÀ-ÿ]/;
 const COUNTRY_PATTERN =
   /^(norway|sweden|denmark|finland|germany|spain|france|netherlands|belgium|austria|switzerland|portugal|italy|poland|uk|united kingdom|usa|united states|canada|ireland)$/i;
 
+/** Decode URL-encoded phones (%20) and normalize for display. */
+export function decodePhoneForDisplay(phone: string | null | undefined): string {
+  let value = (phone ?? "").trim();
+  if (!value) return "";
+  try {
+    if (/%[0-9A-Fa-f]{2}/.test(value)) {
+      value = decodeURIComponent(value);
+    }
+  } catch {
+    value = value.replace(/%20/gi, " ");
+  }
+  return normalizePhoneNumber(value) || value.replace(/\s+/g, " ").trim();
+}
+
 export type CompanyHeroIdentityView = {
   companyName: string;
   industry: string;
@@ -113,7 +127,7 @@ export function buildCompanyHeroIdentity(company: Company): CompanyHeroIdentityV
     companyName: company.Title,
     industry: company.Industry,
     parentCompany: company.ParentCompany?.Title ?? "—",
-    mainPhone: company.Phone.trim(),
+    mainPhone: decodePhoneForDisplay(company.Phone),
     mainEmail: (company.Email ?? "").trim(),
     website: formatCompanyWebsite(company.Domain),
     address: formatCompanyAddress(company),

@@ -100,7 +100,7 @@ export function M365MailSyncHeaderButton() {
         type="button"
         disabled={syncing}
         onClick={() => void syncNow()}
-        className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 border border-carbon-blue/15 bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
         title="Sync Outlook mailbox now"
       >
         <RefreshCw

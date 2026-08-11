@@ -6,6 +6,7 @@ import { hasCompanyOwner } from "@/lib/company-owner";
 import type { Company } from "@/types/company";
 import { CompanyTypeBadges } from "@/components/companies/company-type-badges";
 import { PhoneActionMenu } from "@/components/relationship/relationship-links";
+import { decodePhoneForDisplay } from "@/lib/company-identity";
 import {
   ActionableField,
   HealthStatusIcon,
@@ -108,7 +109,7 @@ export function CompanyWorkspaceHeader({
         ) : null}
         {identity.mainPhone ? (
           <ActionableField icon="phone" className="lg:justify-end">
-            <PhoneActionMenu phone={identity.mainPhone} />
+            <PhoneActionMenu phone={decodePhoneForDisplay(identity.mainPhone)} />
           </ActionableField>
         ) : null}
       </div>

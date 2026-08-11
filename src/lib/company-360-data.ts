@@ -19,6 +19,7 @@ import {
   formatCompanyTypesLabel,
   normalizeCompanyTypes,
 } from "@/lib/company-classification";
+import { formatAccountOwnerDisplay } from "@/lib/company-owner";
 
 export type Company360Header = {
   companyName: string;
@@ -315,7 +316,7 @@ export function buildCompany360Snapshot(
     openActions: summary.openActions,
     openOpportunities: summary.activeDeals,
     location: formatCompanyLocation(company),
-    accountOwner: company.AccountOwner?.Title ?? null,
+    accountOwner: formatAccountOwnerDisplay(company.AccountOwner),
     recommendedAction,
   };
 

@@ -45,7 +45,8 @@ import {
 } from "@/lib/permissions";
 import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 /**
- * Unified company hub — Company Details → Contacts → Opportunities → Activities → Documents → Attention
+ * Unified company hub — Decide → People → Work → Memory → Expert
+ * Michelin: one Co-Pilot surface; Attention collapsed as expert tier.
  */
 export function Company360LivingWorkspace({
   snapshot,
@@ -190,6 +191,9 @@ export function Company360LivingWorkspace({
         )}
       </WorkspacePanel>
 
+      {/* What matters now — single decision surface */}
+      <SmartAssistCopilotHost companyName={company.Title} />
+
       <WorkspacePanel
         title="Contacts"
         id="contacts"
@@ -218,6 +222,7 @@ export function Company360LivingWorkspace({
         id="opportunities"
         collapsible
         count={linkedPipelines.length}
+        defaultCollapsed={linkedPipelines.length === 0}
         collapseStorageKey={sectionKey("opportunities")}
       >
         <CompanyOpportunitiesSection
@@ -242,6 +247,7 @@ export function Company360LivingWorkspace({
         id="projects"
         collapsible
         count={linkedProjects.length}
+        defaultCollapsed={linkedProjects.length === 0}
         collapseStorageKey={sectionKey("projects")}
       >
         <CompanyProjectsTable projects={linkedProjects} companyId={company.CompanyID} companies={companies} />
@@ -252,6 +258,7 @@ export function Company360LivingWorkspace({
         id="activities"
         collapsible
         count={companyActivities.length}
+        defaultCollapsed={companyActivities.length === 0}
         collapseStorageKey={sectionKey("activities")}
       >
         <SmartActivityWorkspace
@@ -259,6 +266,8 @@ export function Company360LivingWorkspace({
           companies={companies}
           pipelines={linkedPipelines}
           attentionItems={attentionItems}
+          showCopilot={false}
+          showSuggestions={false}
           context={{
             companyId: company.CompanyID,
             companyName: company.Title,
@@ -283,14 +292,12 @@ export function Company360LivingWorkspace({
         />
       </WorkspacePanel>
 
-      <SmartAssistCopilotHost companyName={company.Title} />
-
       <WorkspacePanel
         title="Attention"
         id="attention"
         collapsible
         count={attentionItems.length}
-        defaultCollapsed={attentionItems.length === 0}
+        defaultCollapsed
         collapseStorageKey={sectionKey("attention")}
       >
         <AttentionQueueTable items={attentionItems} />
