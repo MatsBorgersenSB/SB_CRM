@@ -4,7 +4,9 @@
 **Auditor:** Outlook Add-in expert audit (repo)  
 **Source of truth:** `outlook/relationship-card/manifest.xml`  
 **Backup of previous:** `outlook/relationship-card/manifest.v1.3.2.backup.xml`  
-**Production host:** `https://sb-crm-seven.vercel.app`
+**Production host:** `https://sb-crm-seven.vercel.app`  
+**Retired host (must not appear in SourceLocation):** `https://smart-crm-outlook-plugin-phi.vercel.app`  
+**Manifest version:** `1.4.1.0`
 
 ---
 

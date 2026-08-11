@@ -16,8 +16,13 @@ const FALLBACK_AZURE_AD_CLIENT_ID = "5423dfce-1efa-4ddf-a567-28c201b5c29f";
 
 export function getAzureAdClientId(): string {
   return (
-    env("AZURE_AD_CLIENT_ID", "AZURE_CLIENT_ID", "AUTH_MICROSOFT_ENTRA_ID_ID") ||
-    FALLBACK_AZURE_AD_CLIENT_ID
+    env(
+      "AZURE_AD_CLIENT_ID",
+      "AZURE_CLIENT_ID",
+      "AUTH_MICROSOFT_ENTRA_ID_ID",
+      // Legacy / misnamed Vercel keys (older Outlook plugin deploys)
+      "SMARTCRM_AZURE_CLIENT_ID",
+    ) || FALLBACK_AZURE_AD_CLIENT_ID
   );
 }
 
@@ -30,6 +35,9 @@ export function getAzureAdClientSecret(): string {
     "AZURE_AD_CLIENT_SECRET",
     "AZURE_CLIENT_SECRET",
     "AUTH_MICROSOFT_ENTRA_ID_SECRET",
+    // Legacy / misnamed Vercel keys (older Outlook plugin deploys)
+    "SMARTCRM_AZURE_APP_SECRET",
+    "SMARTCRM_AZURE_CLIENT_SECRET",
   );
 }
 
@@ -39,6 +47,7 @@ export function getAzureAdTenantId(): string {
       "AZURE_AD_TENANT_ID",
       "AZURE_TENANT_ID",
       "AUTH_MICROSOFT_ENTRA_ID_TENANT_ID",
+      "SMARTCRM_AZURE_TENANT_ID",
     ) || "organizations"
   );
 }

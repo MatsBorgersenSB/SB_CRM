@@ -2,16 +2,22 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { whenOfficeReady } from "@/lib/outlook-office";
+import {
+  isRetiredOutlookHost,
+  resolvePublicAppOrigin,
+  SMARTCRM_PRODUCTION_ORIGIN,
+} from "@/lib/smartcrm-origin";
 
 type GateState =
   | { status: "checking" }
   | { status: "authenticated" }
   | { status: "needs-sign-in" }
+  | { status: "wrong-host"; host: string }
   | { status: "error"; message: string };
 
 function appOrigin(): string {
   if (typeof window !== "undefined") return window.location.origin;
-  return (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+  return resolvePublicAppOrigin();
 }
 
 async function claimBridgeToken(bridgeToken: string): Promise<boolean> {
@@ -156,6 +162,12 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
 
   const checkSession = useCallback(async () => {
     setState({ status: "checking" });
+
+    if (typeof window !== "undefined" && isRetiredOutlookHost(window.location.host)) {
+      setState({ status: "wrong-host", host: window.location.host });
+      return;
+    }
+
     try {
       const response = await fetch("/api/auth/session", {
         credentials: "include",
@@ -186,6 +198,28 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-white px-6">
         <p className="text-[12px] text-carbon-blue/50">Connecting to SmartCRM…</p>
+      </div>
+    );
+  }
+
+  if (state.status === "wrong-host") {
+    return (
+      <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+          SmartCRM
+        </p>
+        <p className="mt-2 text-sm font-semibold text-carbon-blue">Wrong add-in host</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+          This task pane is loading from{" "}
+          <span className="font-medium text-carbon-blue">{state.host}</span>, which is
+          retired. Remove the old SmartCRM add-in, then sideload{" "}
+          <span className="font-medium text-carbon-blue">
+            outlook/relationship-card/manifest.xml
+          </span>{" "}
+          so SourceLocation is{" "}
+          <span className="font-medium text-carbon-blue">{SMARTCRM_PRODUCTION_ORIGIN}</span>
+          .
+        </p>
       </div>
     );
   }
