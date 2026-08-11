@@ -5,12 +5,8 @@ import type {
   EmploymentStatus,
 } from "@/types/contact-lifecycle";
 
-/** SharePoint Contacts list — Role choice field (PascalCase). */
-export type ContactListRole =
-  | "Executive Sponsor"
-  | "Plant Manager"
-  | "Compliance Officer"
-  | "Procurement";
+/** Contact Role — presets suggested; free text allowed (Reality First). */
+export type ContactListRole = string;
 
 export type BuyingRole =
   | "Economic Buyer"
@@ -41,12 +37,76 @@ export type RelationshipLevel =
   | "Tactical"
   | "Vendor";
 
+/** Suggested roles — users may add others. */
 export const CONTACT_LIST_ROLES: ContactListRole[] = [
   "Executive Sponsor",
+  "Decision Maker",
   "Plant Manager",
+  "Operations Manager",
+  "Project Manager",
+  "Technical Lead",
+  "Engineer",
   "Compliance Officer",
+  "Sustainability / ESG",
   "Procurement",
+  "Finance / CFO",
+  "Legal Counsel",
+  "Business Development",
+  "IT / Digital",
+  "Consultant",
+  "Researcher / Academic",
+  "Other",
 ];
+
+export function normalizeContactListRole(value: string | null | undefined): string {
+  return (value ?? "").trim().replace(/\s+/g, " ");
+}
+
+/** Prefer exact preset match (case-insensitive); otherwise keep free text. */
+export function resolveContactListRole(
+  value: string | null | undefined,
+): ContactListRole {
+  const trimmed = normalizeContactListRole(value);
+  if (!trimmed) return "";
+  const preset = CONTACT_LIST_ROLES.find(
+    (item) => item.toLowerCase() === trimmed.toLowerCase(),
+  );
+  return preset ?? trimmed;
+}
+
+/**
+ * Suggest a preset from job-title wording when the user did not pick a role.
+ * Never invent — returns empty when no clear signal.
+ */
+export function suggestContactListRoleFromTitle(
+  jobTitle: string | null | undefined,
+): ContactListRole {
+  const title = (jobTitle ?? "").toLowerCase();
+  if (!title.trim()) return "";
+  if (/ceo|cfo|chief|executive|sponsor|vp\b|vice president|managing director/.test(title)) {
+    return "Executive Sponsor";
+  }
+  if (/decision.?maker|owner|board/.test(title)) return "Decision Maker";
+  if (/plant manager/.test(title)) return "Plant Manager";
+  if (/operations manager|ops manager/.test(title)) return "Operations Manager";
+  if (/project manager|\bpm\b/.test(title)) return "Project Manager";
+  if (/technical lead|tech lead|cto|chief technology/.test(title)) return "Technical Lead";
+  if (/engineer|technician/.test(title)) return "Engineer";
+  if (/compliance|permit|hse|environment/.test(title)) return "Compliance Officer";
+  if (/sustainab|esg|climate|carbon/.test(title)) return "Sustainability / ESG";
+  if (/procure|buyer|purchasing|supply chain/.test(title)) return "Procurement";
+  if (/\bcfo\b|finance|controller|treasury/.test(title)) return "Finance / CFO";
+  if (/legal|counsel|attorney|lawyer/.test(title)) return "Legal Counsel";
+  if (/business development|\bbd\b|sales|commercial/.test(title)) {
+    return "Business Development";
+  }
+  if (/\bit\b|digital|cio|information systems/.test(title)) return "IT / Digital";
+  if (/consultant|advisor|adviser/.test(title)) return "Consultant";
+  if (/professor|researcher|phd|university|academic/.test(title)) {
+    return "Researcher / Academic";
+  }
+  return "";
+}
 
 export const BUYING_ROLES: BuyingRole[] = [
   "Economic Buyer",

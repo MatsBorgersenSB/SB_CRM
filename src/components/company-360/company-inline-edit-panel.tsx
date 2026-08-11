@@ -10,7 +10,7 @@ import { authUserToAccountOwner, resolveOwnerById } from "@/lib/company-owner";
 import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/types/company";
-import { COMPANY_INDUSTRIES } from "@/types/company";
+import { IndustrySelect } from "@/components/ui/industry-select";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
 import { CountryContinentFields } from "@/components/companies/country-continent-fields";
 import type { OsmLookupResult } from "@/lib/geo/nominatim";
@@ -225,23 +225,17 @@ export function CompanyInlineEditPanel({
 
           <label className="block">
             <span className={EDIT_LABEL_CLASS}>Industry</span>
-            <select
+            <IndustrySelect
               value={form.Industry}
-              onChange={(event) =>
+              onChange={(industry) =>
                 setForm((current) => ({
                   ...current,
-                  Industry: event.target.value as CompanyHeroQuickEdit["Industry"],
+                  Industry: industry,
                 }))
               }
               disabled={saving}
               className={`${EDIT_FIELD_CLASS} text-[13px]`}
-            >
-              {COMPANY_INDUSTRIES.map((industry) => (
-                <option key={industry} value={industry}>
-                  {industry}
-                </option>
-              ))}
-            </select>
+            />
           </label>
         </div>
 

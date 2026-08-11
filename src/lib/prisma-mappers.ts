@@ -1,4 +1,5 @@
 import type { Company, CompanyIndustry, CompanyStatus } from "@/types/company";
+import { resolveCompanyIndustry } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType } from "@/types/company-type";
 import { STANDARD_BIO_USERS } from "@/types/bio-user";
@@ -11,6 +12,10 @@ import type {
   EngagementCadence,
   InfluenceLevel,
   RelationshipLevel,
+} from "@/types/contact";
+import {
+  resolveContactListRole,
+  suggestContactListRoleFromTitle,
 } from "@/types/contact";
 import type {
   CompanyRole,
@@ -93,21 +98,9 @@ function mapCompanyTypes(types: string[]): CompanyType[] {
 }
 
 function mapIndustry(industry: string | null | undefined): CompanyIndustry {
-  const allowed: CompanyIndustry[] = [
-    "Polymer Processing",
-    "Textile Recovery",
-    "Chemical Manufacturing",
-    "Waste Management",
-    "Energy & Infrastructure",
-  ];
-  if (industry && (allowed as string[]).includes(industry)) {
-    return industry as CompanyIndustry;
-  }
-  if (industry && /renew|energy|infra/i.test(industry)) return "Energy & Infrastructure";
-  if (industry && /waste|circular/i.test(industry)) return "Waste Management";
-  if (industry && /chem/i.test(industry)) return "Chemical Manufacturing";
-  if (industry && /textile|fiber/i.test(industry)) return "Textile Recovery";
-  return "Polymer Processing";
+  const resolved = resolveCompanyIndustry(industry);
+  // Keep legacy default only when truly empty — never coerce custom sectors away.
+  return resolved || "Other";
 }
 
 function mapCompanyStatus(
@@ -122,14 +115,11 @@ function mapCompanyStatus(
 }
 
 function mapContactRole(jobTitle: string | null | undefined): ContactListRole {
-  const title = (jobTitle ?? "").toLowerCase();
-  if (/ceo|cfo|chief|executive|sponsor|director|vp|head/.test(title)) {
-    return "Executive Sponsor";
-  }
-  if (/plant|operations|manager|technical|cto/.test(title)) return "Plant Manager";
-  if (/compliance|legal|permit/.test(title)) return "Compliance Officer";
-  if (/procure|buyer|purchasing/.test(title)) return "Procurement";
-  return "Plant Manager";
+  const suggested = suggestContactListRoleFromTitle(jobTitle);
+  if (suggested) return suggested;
+  const resolved = resolveContactListRole(jobTitle);
+  // Keep free-text titles as role when no preset fits — never invent Plant Manager.
+  return resolved || "Other";
 }
 
 function mapContactStatus(status: PrismaContact["status"]): ContactStatus {

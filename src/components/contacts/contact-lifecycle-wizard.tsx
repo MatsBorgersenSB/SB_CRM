@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  CONTACT_LIST_ROLES,
   getContactDisplayName,
   type Contact,
 } from "@/types/contact";
@@ -13,6 +12,7 @@ import {
 import type { Company } from "@/types/company";
 import type { UpdateContactInput } from "@/types/contact";
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
+import { ContactRoleSelect } from "@/components/ui/contact-role-select";
 
 type WizardMode = "transfer" | "merge" | "position";
 
@@ -264,19 +264,11 @@ export function ContactLifecycleWizard({
                   <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
                     New role
                   </span>
-                  <select
+                  <ContactRoleSelect
                     value={newRole}
-                    onChange={(event) =>
-                      setNewRole(event.target.value as Contact["Role"])
-                    }
+                    onChange={(role) => setNewRole(role)}
                     className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-xs text-carbon-blue"
-                  >
-                    {CONTACT_LIST_ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </label>
                 <label className="block">
                   <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
@@ -335,17 +327,11 @@ export function ContactLifecycleWizard({
                 <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
                   Role
                 </span>
-                <select
+                <ContactRoleSelect
                   value={newRole}
-                  onChange={(event) => setNewRole(event.target.value as Contact["Role"])}
+                  onChange={(role) => setNewRole(role)}
                   className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-xs text-carbon-blue"
-                >
-                  {CONTACT_LIST_ROLES.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               <label className="block">
                 <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">

@@ -102,6 +102,15 @@ export function ContactsShell({
       .map((label) => ({ value: label, label }));
   }, [scopedCompanies]);
 
+  const roleFilterOptions = useMemo(() => {
+    const fromData = contactRecords
+      .map((record) => record.contact.Role?.trim())
+      .filter(Boolean) as string[];
+    return [...new Set([...CONTACT_LIST_ROLES, ...fromData])]
+      .sort((a, b) => a.localeCompare(b))
+      .map((role) => ({ value: role, label: role }));
+  }, [contactRecords]);
+
   const filterDefinitions = useMemo<FilterDefinition[]>(
     () => [
       {
@@ -117,7 +126,7 @@ export function ContactsShell({
         id: "role",
         label: "Role",
         mode: "multi",
-        options: CONTACT_LIST_ROLES.map((role) => ({ value: role, label: role })),
+        options: roleFilterOptions,
       },
       {
         id: "status",
@@ -134,7 +143,7 @@ export function ContactsShell({
         options: RELATIONSHIP_LEVELS.map((level) => ({ value: level, label: level })),
       },
     ],
-    [scopedCompanies],
+    [scopedCompanies, roleFilterOptions],
   );
 
   const filteredRecords = useMemo(() => {

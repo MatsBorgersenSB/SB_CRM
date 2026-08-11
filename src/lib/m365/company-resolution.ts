@@ -1,28 +1,75 @@
 import type { Company } from "@/types/company";
-import { extractEmailDomain, domainToSuggestedCompanyName } from "@/lib/m365/outlook-sender-utils";
+import { normalizeCompanyDomain } from "@/lib/company-domain";
+import {
+  extractEmailDomain,
+  domainToSuggestedCompanyName,
+} from "@/lib/m365/outlook-sender-utils";
 
 /** SmartCRM company record is the only display source of truth. */
 export function canonicalCompanyDisplayName(company: Company): string {
   return company.Title.trim();
 }
 
-export function resolveCompanyByDomain(
+function normalizeCompanyTitle(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+const COMPANY_LEGAL_SUFFIX =
+  /^(as|a\/s|asa|ab|ltd|llc|inc|gmbh|oy|aps|plc|sa|nv|bv|co|company|group)\.?$/i;
+
+/** Exact title match, or title + common legal suffix (e.g. Intility → Intility AS). */
+function companyTitleMatches(companyTitle: string, candidate: string): boolean {
+  const title = normalizeCompanyTitle(companyTitle);
+  const name = normalizeCompanyTitle(candidate);
+  if (!title || !name) return false;
+  if (title === name) return true;
+  if (!title.startsWith(`${name} `)) return false;
+  const remainder = title.slice(name.length + 1).trim();
+  const firstToken = remainder.split(/\s+/)[0] ?? "";
+  return COMPANY_LEGAL_SUFFIX.test(firstToken);
+}
+
+/** Exact company title match (case-insensitive). Never invents a company. */
+export function resolveCompanyByName(
   companies: Company[],
-  domain: string,
+  name: string,
 ): Company | null {
-  const normalized = domain.trim().toLowerCase();
+  const normalized = normalizeCompanyTitle(name);
   if (!normalized) return null;
 
   return (
-    companies.find((company) => company.Domain?.trim().toLowerCase() === normalized) ??
+    companies.find((company) => companyTitleMatches(company.Title, normalized)) ??
     null
   );
 }
 
-/** Resolve an existing company from a counterparty email — contact match first, then domain. */
+export function resolveCompanyByDomain(
+  companies: Company[],
+  domain: string,
+): Company | null {
+  const normalized = normalizeCompanyDomain(domain);
+  if (!normalized) return null;
+
+  return (
+    companies.find(
+      (company) => normalizeCompanyDomain(company.Domain ?? "") === normalized,
+    ) ?? null
+  );
+}
+
+export type ResolveCompanyForEmailHints = {
+  /** Signature / user-confirmed company name — used only for exact Title match. */
+  companyName?: string;
+};
+
+/**
+ * Resolve an existing company from a counterparty email.
+ * Order (FS-012): contact email → domain → known company name → domain-derived name.
+ */
 export function resolveCompanyForEmail(
   companies: Company[],
   email: string,
+  hints?: ResolveCompanyForEmailHints,
 ): Company | null {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return null;
@@ -35,7 +82,23 @@ export function resolveCompanyForEmail(
     }
   }
 
-  return resolveCompanyByDomain(companies, extractEmailDomain(normalized));
+  const domain = extractEmailDomain(normalized);
+  const byDomain = resolveCompanyByDomain(companies, domain);
+  if (byDomain) return byDomain;
+
+  const hintName = hints?.companyName?.trim() ?? "";
+  if (hintName) {
+    const byHint = resolveCompanyByName(companies, hintName);
+    if (byHint) return byHint;
+  }
+
+  const fromDomain = domainToSuggestedCompanyName(domain);
+  if (fromDomain) {
+    const byDomainName = resolveCompanyByName(companies, fromDomain);
+    if (byDomainName) return byDomainName;
+  }
+
+  return null;
 }
 
 export type OutlookCompanyDisplay = {

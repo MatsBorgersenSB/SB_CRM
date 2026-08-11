@@ -9,11 +9,12 @@ import type { RelationshipHealthStatus } from "@/lib/relationship-health-engine"
 import {
   HEALTH_STATUS_STYLES,
 } from "@/components/relationship/relationship-health-display";
-import { COMPANY_INDUSTRIES, formatCompanyLocation, type CompanyIndustry } from "@/types/company";
+import { COMPANY_INDUSTRIES, formatCompanyLocation } from "@/types/company";
 
 type SortKey = "score" | "name" | "contact";
 type ViewMode = "grid" | "table";
 type HealthFilter = "all" | "attention" | RelationshipHealthStatus;
+type IndustryFilter = "all" | string;
 
 const SORT_OPTIONS = [
   { key: "score", label: "Health" },
@@ -54,7 +55,7 @@ function filterSummaries(
   summaries: CompanyRelationshipSummary[],
   search: string,
   healthFilter: HealthFilter,
-  industryFilter: CompanyIndustry | "all",
+  industryFilter: IndustryFilter,
 ): CompanyRelationshipSummary[] {
   const query = search.trim().toLowerCase();
 
@@ -108,8 +109,17 @@ export function CompanyDirectory({
   const [view, setView] = useState<ViewMode>("table");
   const [search, setSearch] = useState("");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
-  const [industryFilter, setIndustryFilter] = useState<CompanyIndustry | "all">("all");
+  const [industryFilter, setIndustryFilter] = useState<IndustryFilter>("all");
   const [showExplanation, setShowExplanation] = useState(false);
+
+  const industryOptions = useMemo(() => {
+    const fromData = summaries
+      .map((summary) => summary.company.Industry?.trim())
+      .filter(Boolean) as string[];
+    return [...new Set([...COMPANY_INDUSTRIES, ...fromData])].sort((a, b) =>
+      a.localeCompare(b),
+    );
+  }, [summaries]);
 
   const filtered = useMemo(
     () => filterSummaries(summaries, search, healthFilter, industryFilter),
@@ -207,13 +217,11 @@ export function CompanyDirectory({
           </select>
           <select
             value={industryFilter}
-            onChange={(event) =>
-              setIndustryFilter(event.target.value as CompanyIndustry | "all")
-            }
+            onChange={(event) => setIndustryFilter(event.target.value)}
             className="border border-carbon-blue/10 bg-white px-2 py-1.5 text-xs text-carbon-blue"
           >
             <option value="all">All industries</option>
-            {COMPANY_INDUSTRIES.map((industry) => (
+            {industryOptions.map((industry) => (
               <option key={industry} value={industry}>
                 {industry}
               </option>

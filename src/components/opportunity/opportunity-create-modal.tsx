@@ -14,7 +14,7 @@ import {
 import { canCreateCompany } from "@/lib/permissions";
 import type { Company } from "@/types/company";
 import type { ContactListRole } from "@/types/contact";
-import { CONTACT_LIST_ROLES } from "@/types/contact";
+import { ContactRoleSelect } from "@/components/ui/contact-role-select";
 import type { UserRole } from "@/types/auth";
 import type { CompanyRole, PipelineCurrency, PipelineRow } from "@/types/pipeline";
 import { COMPANY_ROLES } from "@/types/pipeline";
@@ -37,7 +37,7 @@ type NewCompanyData = {
 type NewContactData = {
   contactName: string;
   contactEmail: string;
-  role: ContactListRole | "Decision Maker";
+  role: ContactListRole;
 };
 
 const EMPTY_FORM: FormState = {
@@ -352,23 +352,17 @@ export function OpportunityCreateModal({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
                   Contact role
                 </span>
-                <select
+                <ContactRoleSelect
                   value={newContactData.role}
-                  onChange={(event) =>
+                  onChange={(role) =>
                     setNewContactData((current) => ({
                       ...current,
-                      role: event.target.value as NewContactData["role"],
+                      role,
                     }))
                   }
+                  extraOptions={["Decision Maker"]}
                   className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
-                >
-                  <option value="Decision Maker">Decision Maker</option>
-                  {CONTACT_LIST_ROLES.map((listRole) => (
-                    <option key={listRole} value={listRole}>
-                      {listRole}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
             </div>
           ) : null}

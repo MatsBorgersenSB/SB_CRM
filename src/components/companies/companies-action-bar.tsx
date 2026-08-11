@@ -10,7 +10,8 @@ import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/lib/companies-data";
 import { canCreateCompany } from "@/lib/permissions";
 import type { CompanyIndustry, CompanyStatus } from "@/types/company";
-import { COMPANY_INDUSTRIES, COMPANY_STATUSES } from "@/types/company";
+import { COMPANY_STATUSES } from "@/types/company";
+import { IndustrySelect } from "@/components/ui/industry-select";
 import type { CompanyType } from "@/types/company-type";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
 import { CountryContinentFields } from "@/components/companies/country-continent-fields";
@@ -60,7 +61,7 @@ export function CompaniesActionBar({
       : STANDARD_BIO_USERS[0]!;
   const [form, setForm] = useState({
     Title: "",
-    Industry: "Polymer Processing" as CompanyIndustry,
+    Industry: "" as CompanyIndustry,
     Status: "Prospecting" as CompanyStatus,
     CompanyTypes: ["Prospect"] as CompanyType[],
     parentCompanyId: "",
@@ -175,7 +176,7 @@ export function CompaniesActionBar({
       onCreated(company);
       setForm({
         Title: "",
-        Industry: "Polymer Processing",
+        Industry: "",
         Status: "Prospecting",
         CompanyTypes: ["Prospect"],
         parentCompanyId: "",
@@ -301,22 +302,17 @@ export function CompaniesActionBar({
             <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
               Industry
             </span>
-            <select
+            <IndustrySelect
               value={form.Industry}
-              onChange={(event) =>
+              onChange={(industry) =>
                 setForm((current) => ({
                   ...current,
-                  Industry: event.target.value as CompanyIndustry,
+                  Industry: industry,
                 }))
               }
+              allowEmpty
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
-            >
-              {COMPANY_INDUSTRIES.map((industry) => (
-                <option key={industry} value={industry}>
-                  {industry}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           <div className="block sm:col-span-2">
             <CompanyTypeMultiSelect
