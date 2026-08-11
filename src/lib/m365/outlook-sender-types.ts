@@ -31,6 +31,11 @@ export type OutlookAddContactInput = {
   role?: string;
   /** Required when creating a new company — never invent industry. */
   industry?: string;
+  /**
+   * Ecosystem role for a newly created company (Supplier, Prospect, …).
+   * Required when creating a company — never invent Customer.
+   */
+  companyTypes?: string[];
   /** User confirmed an auto-matched company — link contact to this record. */
   matchedCompanyId?: string;
   /** User rejected auto-match — do not resolve company from email domain. */
