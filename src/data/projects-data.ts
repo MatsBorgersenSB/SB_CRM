@@ -4,7 +4,7 @@ import type { Project } from "@/types/project";
 export const PROJECTS: Project[] = [
   {
     id: "PRJ-CARBON-EMERGENTE",
-    name: "Carbon Emergente",
+    name: "Escalante",
     kind: "customer",
     owner: "Mats Borgersen",
     status: "Active",
@@ -17,7 +17,7 @@ export const PROJECTS: Project[] = [
     problem: "",
     successCriteria:
       "Stable operational relationship, timely follow-up, and clear path to expansion opportunities when evidence emerges.",
-    // Reality First: no company account until Carbon Emergente (or another org) is
+    // Reality First: no company account until Escalante (or another org) is
     // explicitly linked on the project. Do not use DorsetGM (CO-1009) as a placeholder.
     linkedCompanyId: undefined,
     linkedDealId: "PL-1031",

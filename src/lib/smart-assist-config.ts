@@ -1099,7 +1099,7 @@ export const PROJECT_WORKSPACE_LIGHT = {
     "Decisions",
     "Risks",
   ] as const,
-  pilotProjects: ["Carbon Emergente", "SmartCRM Platform"] as const,
+  pilotProjects: ["Escalante", "SmartCRM Platform"] as const,
   successCriteria: [
     "Projects feel like coordinated efforts — not task lists",
     "SmartAssist surfaces health, attention, and next action",
