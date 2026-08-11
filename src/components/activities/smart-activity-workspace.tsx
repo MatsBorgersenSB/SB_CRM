@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
+import { TaskCreateModal } from "@/components/activities/task-create-modal";
 import { ActivityWorkManagementWorkspace } from "@/components/activities/activity-work-management-workspace";
 import { GenerateAiDraftControl } from "@/components/ai/generate-ai-draft-drawer";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
@@ -25,6 +26,7 @@ import {
   filterActivitiesForWorkspace,
   partitionActivitiesForWorkspace,
 } from "@/lib/activity-workspace";
+import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import {
   consumeSmartAssistPrefill,
   prefillToCreateActivityInput,
@@ -38,8 +40,9 @@ import {
 } from "@/lib/activity-utils";
 import { syncActivityUpdate } from "@/lib/sync-activity";
 import type { AttentionItem } from "@/types/attention-item";
-import type { Company } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import type {
   ActionStatus,
   Activity,
@@ -71,6 +74,8 @@ type SmartActivityWorkspaceProps = {
   showCopilot?: boolean;
   /** When false, hide SmartAssist Recommendations (use Attention / Co-Pilot instead). */
   showSuggestions?: boolean;
+  /** Assignable users for New Task / Task assignee. */
+  assignableUsers?: StandardBioUserRecord[];
 };
 
 function contextPreset(context?: ActivityWorkspaceContext): Partial<CreateActivityInput> {
@@ -94,6 +99,7 @@ export function SmartActivityWorkspace({
   onActivitiesChange,
   showCopilot = true,
   showSuggestions = true,
+  assignableUsers = [],
 }: SmartActivityWorkspaceProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -132,8 +138,17 @@ export function SmartActivityWorkspace({
 
   useWorkspaceFilterBridge("activities", [...ACTIVITY_FILTER_KEYS], applyBridge);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(false);
   const [wizardPreset, setWizardPreset] = useState<Partial<CreateActivityInput>>(
     contextPreset(context),
+  );
+
+  const assigneeOptions = useMemo(
+    () =>
+      mergeStandardBioUserOptions(assignableUsers, [
+        { Id: user.id, Title: user.displayName },
+      ]),
+    [assignableUsers, user.id, user.displayName],
   );
 
   useEffect(() => {
@@ -179,6 +194,9 @@ export function SmartActivityWorkspace({
     return {
       all: scoped.length,
       mine: applyActivityQuickFilter(scoped, "mine", user.displayName).length,
+      my_tasks: applyActivityQuickFilter(scoped, "my_tasks", user.displayName).length,
+      shared_with_me: applyActivityQuickFilter(scoped, "shared_with_me", user.displayName)
+        .length,
       planned: applyActivityQuickFilter(scoped, "planned", user.displayName).length,
       overdue: applyActivityQuickFilter(scoped, "overdue", user.displayName).length,
       completed: applyActivityQuickFilter(scoped, "completed", user.displayName).length,
@@ -350,6 +368,27 @@ export function SmartActivityWorkspace({
     [refreshActivities],
   );
 
+  const handleAssigneeChange = useCallback(
+    async (activity: Activity, assignee: SharePointPerson) => {
+      await syncActivityUpdate(activity.ActivityID, { ActivityOwner: assignee });
+      refreshActivities();
+    },
+    [refreshActivities],
+  );
+
+  const handleSharedWithChange = useCallback(
+    async (activity: Activity, sharedWith: SharePointPerson[]) => {
+      await syncActivityUpdate(activity.ActivityID, { SharedWith: sharedWith });
+      refreshActivities();
+    },
+    [refreshActivities],
+  );
+
+  const currentUserPerson = useMemo(
+    () => ({ Id: user.id, Title: user.displayName }),
+    [user.id, user.displayName],
+  );
+
   const scopedActivityCount = useMemo(
     () => scopeActivities(activities).length,
     [activities, scopeActivities],
@@ -384,6 +423,7 @@ export function SmartActivityWorkspace({
         activities={initialActivities}
         companies={companies}
         pipelines={pipelines}
+        assignableUsers={assignableUsers}
         onActivitiesChange={onActivitiesChange}
       />
     );
@@ -437,6 +477,14 @@ export function SmartActivityWorkspace({
           ) : null}
           <button
             type="button"
+            onClick={() => setTaskOpen(true)}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-2 text-xs font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
+          >
+            <Plus className="size-3.5" strokeWidth={2} />
+            New Task
+          </button>
+          <button
+            type="button"
             onClick={() => openWizard()}
             className="inline-flex shrink-0 items-center justify-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
           >
@@ -467,6 +515,10 @@ export function SmartActivityWorkspace({
               activity={activity}
               onSelect={handleSelect}
               onStatusChange={handleStatusChange}
+              onAssigneeChange={handleAssigneeChange}
+              onSharedWithChange={handleSharedWithChange}
+              assigneeOptions={assigneeOptions}
+              currentUser={currentUserPerson}
               compact={!isPage}
             />
           ))}
@@ -483,6 +535,10 @@ export function SmartActivityWorkspace({
               activity={activity}
               onSelect={handleSelect}
               onStatusChange={handleStatusChange}
+              onAssigneeChange={handleAssigneeChange}
+              onSharedWithChange={handleSharedWithChange}
+              assigneeOptions={assigneeOptions}
+              currentUser={currentUserPerson}
               compact={!isPage}
             />
           ))}
@@ -518,6 +574,18 @@ export function SmartActivityWorkspace({
         companies={companies}
         pipelines={pipelines}
         preset={wizardPreset}
+        defaultOwner={user}
+        assignableUsers={assignableUsers}
+      />
+
+      <TaskCreateModal
+        open={taskOpen}
+        onClose={() => setTaskOpen(false)}
+        onCreated={refreshActivities}
+        companies={companies}
+        pipelines={pipelines}
+        assignableUsers={assignableUsers}
+        preset={contextPreset(context)}
         defaultOwner={user}
       />
 

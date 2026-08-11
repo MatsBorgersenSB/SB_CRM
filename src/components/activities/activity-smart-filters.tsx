@@ -14,14 +14,16 @@ export function ActivitySmartFilters({
   rows,
   search,
   onSearchChange,
+  currentUserName,
 }: {
   active: ActivityWorkFilter;
   onChange: (filter: ActivityWorkFilter) => void;
   rows: ActivityIntelligentRow[];
   search: string;
   onSearchChange: (value: string) => void;
+  currentUserName?: string;
 }) {
-  const counts = countActivityWorkFilters(rows);
+  const counts = countActivityWorkFilters(rows, currentUserName);
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

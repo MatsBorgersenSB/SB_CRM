@@ -1,18 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
-import type { Company } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import type { ActivityRecommendedActionType } from "@/types/activity-action-recommendations";
 import { ActivityActionRecommendationsPanel } from "@/components/activities/activity-action-recommendations";
 import { ActivityWorkspaceContextSidebar } from "@/components/activities/activity-workspace-context-sidebar";
 import { ActivityWorkspaceRecord } from "@/components/activities/activity-workspace-record";
+import { TaskShareControl } from "@/components/activities/task-share-control";
 import { WorkspaceIntelContextLayout } from "@/components/ui/workspace-intel-context-layout";
+import { useAuth } from "@/context/auth-context";
 import {
   buildActivityActionRecommendations,
   buildActivityActionRecommendationsForType,
@@ -29,6 +33,8 @@ import {
   EDITORIAL_LABEL,
   EDITORIAL_META,
 } from "@/lib/editorial-design-system";
+import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
+import { syncActivityUpdate } from "@/lib/sync-activity";
 import {
   WORKSPACE_INTEL_METRICS_GRID,
   WORKSPACE_PANEL_SURFACE,
@@ -47,12 +53,13 @@ const BUSINESS_STATE_STYLES = {
 } as const;
 
 export function ActivityBriefingView({
-  activity,
+  activity: activityProp,
   companies,
   pipelines,
   allActivities,
   smartDocsLibrary,
   commercialPackages,
+  assignableUsers = [],
   onEdit,
 }: {
   activity: Activity;
@@ -61,10 +68,44 @@ export function ActivityBriefingView({
   allActivities: Activity[];
   smartDocsLibrary: SmartDocLibraryRecord[];
   commercialPackages: CommercialPackage[];
+  assignableUsers?: StandardBioUserRecord[];
   onEdit?: () => void;
 }) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [activity, setActivity] = useState(activityProp);
+
+  useEffect(() => {
+    setActivity(activityProp);
+  }, [activityProp]);
+
+  const assigneeOptions = useMemo(
+    () =>
+      mergeStandardBioUserOptions(assignableUsers, [
+        { Id: user.id, Title: user.displayName },
+      ]),
+    [assignableUsers, user.id, user.displayName],
+  );
+
+  const currentUserPerson = useMemo(
+    () => ({ Id: user.id, Title: user.displayName }),
+    [user.id, user.displayName],
+  );
+
+  const handleSharedWithChange = useCallback(
+    async (sharedWith: SharePointPerson[]) => {
+      const updated = await syncActivityUpdate(activity.ActivityID, {
+        SharedWith: sharedWith,
+      });
+      setActivity(updated);
+      router.refresh();
+    },
+    [activity.ActivityID, router],
+  );
+
   const briefing = buildActivityBriefing(activity, pipelines, companies, allActivities);
   const hasRecord = briefingHasSupportContent(briefing.support);
+  const isTask = activity.ActivityType === "Task";
 
   return (
     <div className={`${WORKSPACE_SURFACE} ${EDITORIAL_GAP_BLOCK}`}>
@@ -75,16 +116,26 @@ export function ActivityBriefingView({
         >
           ← Activities
         </Link>
-        {onEdit ? (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-carbon-blue/45 transition-colors hover:text-carbon-blue"
-          >
-            <Pencil className="size-3" strokeWidth={2} />
-            Edit
-          </button>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {isTask && assigneeOptions.length > 0 ? (
+            <TaskShareControl
+              activity={activity}
+              options={assigneeOptions}
+              currentUser={currentUserPerson}
+              onSharedWithChange={handleSharedWithChange}
+            />
+          ) : null}
+          {onEdit ? (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-carbon-blue/45 transition-colors hover:text-carbon-blue"
+            >
+              <Pencil className="size-3" strokeWidth={2} />
+              Edit
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <ActivityWorkspace
@@ -196,6 +247,12 @@ function ActivityWorkspace({
             <span className="text-carbon-blue/40">Regarding </span>
             <ContextLinks briefing={briefing} />
           </p>
+          {activity.ActivityType === "Task" && (activity.SharedWith?.length ?? 0) > 0 ? (
+            <p className={`mt-2 ${EDITORIAL_META}`}>
+              <span className="text-carbon-blue/40">Shared with </span>
+              {activity.SharedWith!.map((person) => person.Title).join(", ")}
+            </p>
+          ) : null}
         </header>
       }
       intelligence={

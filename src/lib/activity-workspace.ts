@@ -133,6 +133,23 @@ export function applyActivityQuickFilter(
           Boolean(currentUserName) &&
           activity.ActivityOwner?.Title?.toLowerCase() === currentUserName!.toLowerCase()
         );
+      case "my_tasks":
+        return (
+          activity.ActivityType === "Task" &&
+          Boolean(currentUserName) &&
+          activity.ActivityOwner?.Title?.toLowerCase() === currentUserName!.toLowerCase() &&
+          activity.ActionStatus !== "Completed" &&
+          activity.ActionStatus !== "Cancelled"
+        );
+      case "shared_with_me":
+        return (
+          activity.ActivityType === "Task" &&
+          Boolean(currentUserName) &&
+          (activity.SharedWith ?? []).some(
+            (person) =>
+              person.Title.toLowerCase() === currentUserName!.toLowerCase(),
+          )
+        );
       case "planned":
         return isPlannedStatus(activity.ActionStatus) && isActiveStatus(activity.ActionStatus);
       case "overdue":

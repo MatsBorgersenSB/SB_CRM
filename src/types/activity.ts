@@ -100,6 +100,8 @@ export const ACTION_OUTCOMES: ActionOutcome[] = [
 export type ActivityQuickFilter =
   | "all"
   | "mine"
+  | "my_tasks"
+  | "shared_with_me"
   | "planned"
   | "overdue"
   | "completed"
@@ -115,6 +117,8 @@ export const ACTIVITY_QUICK_FILTERS: {
 }[] = [
   { id: "all", label: "All" },
   { id: "mine", label: "Mine" },
+  { id: "my_tasks", label: "My tasks" },
+  { id: "shared_with_me", label: "Shared with me" },
   { id: "planned", label: "Planned" },
   { id: "overdue", label: "Overdue" },
   { id: "completed", label: "Completed" },
@@ -188,6 +192,11 @@ export type Activity = {
   Priority?: ActivityPriority;
   /** M365 integration readiness */
   M365Targets?: M365ActivityTargets;
+  /**
+   * Colleagues this task is shared with (watchers / collaborators).
+   * Distinct from ActivityOwner (single assignee).
+   */
+  SharedWith?: SharePointPerson[];
   /** Phase 1.26 — Outlook reconciliation metadata */
   OutlookMessageId?: string;
   OutlookConversationId?: string;
@@ -236,6 +245,7 @@ export type CreateActivityInput = Pick<
   DurationMinutes?: number;
   Priority?: ActivityPriority;
   M365Targets?: M365ActivityTargets;
+  SharedWith?: SharePointPerson[];
   OutlookMessageId?: string;
   OutlookConversationId?: string;
   ReconciledFromOutlook?: boolean;

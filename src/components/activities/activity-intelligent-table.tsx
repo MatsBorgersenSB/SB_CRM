@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { TaskShareControl } from "@/components/activities/task-share-control";
 import type { ActivityIntelligentRow } from "@/lib/activity-mission-control";
 import { EDITORIAL_EMPTY } from "@/lib/editorial-design-system";
 import { WORKSPACE_PANEL_SURFACE } from "@/lib/workspace-design-system";
+import type { Activity } from "@/types/activity";
+import type { SharePointPerson } from "@/types/company";
 import {
   WorkspaceTable,
   WorkspaceTableBody,
@@ -26,12 +29,21 @@ export function ActivityIntelligentTable({
   primaryFocusActivityId,
   onOpen,
   embedded = false,
+  assigneeOptions = [],
+  currentUser = null,
+  onSharedWithChange,
 }: {
   rows: ActivityIntelligentRow[];
   primaryFocusActivityId?: string | null;
   onOpen?: (activityId: string) => void;
   /** When true, omit outer panel — parent provides the shell */
   embedded?: boolean;
+  assigneeOptions?: SharePointPerson[];
+  currentUser?: SharePointPerson | null;
+  onSharedWithChange?: (
+    activity: Activity,
+    sharedWith: SharePointPerson[],
+  ) => void | Promise<void>;
 }) {
   if (rows.length === 0) {
     return (
@@ -43,12 +55,13 @@ export function ActivityIntelligentTable({
 
   const table = (
     <div className="overflow-x-auto">
-      <WorkspaceTable className="min-w-[880px]">
+      <WorkspaceTable className="min-w-[960px]">
           <colgroup>
+            <col className="w-[20%]" />
             <col className="w-[22%]" />
-            <col className="w-[24%]" />
-            <col className="w-[22%]" />
-            <col className="w-[22%]" />
+            <col className="w-[20%]" />
+            <col className="w-[18%]" />
+            <col className="w-[10%]" />
             <col className="w-[10%]" />
           </colgroup>
           <WorkspaceTableHead>
@@ -58,6 +71,7 @@ export function ActivityIntelligentTable({
               <WorkspaceTableHeadCell>Blocking progress</WorkspaceTableHeadCell>
               <WorkspaceTableHeadCell>Next step</WorkspaceTableHeadCell>
               <WorkspaceTableHeadCell align="right">Due</WorkspaceTableHeadCell>
+              <WorkspaceTableHeadCell>Share</WorkspaceTableHeadCell>
             </WorkspaceTableHeadRow>
           </WorkspaceTableHead>
           <WorkspaceTableBody>
@@ -67,6 +81,9 @@ export function ActivityIntelligentTable({
                 row={row}
                 primaryFocusActivityId={primaryFocusActivityId}
                 onOpen={onOpen}
+                assigneeOptions={assigneeOptions}
+                currentUser={currentUser}
+                onSharedWithChange={onSharedWithChange}
               />
             ))}
           </WorkspaceTableBody>
@@ -83,14 +100,25 @@ function ActivityIntelligentTableRow({
   row,
   primaryFocusActivityId,
   onOpen,
+  assigneeOptions = [],
+  currentUser = null,
+  onSharedWithChange,
 }: {
   row: ActivityIntelligentRow;
   primaryFocusActivityId?: string | null;
   onOpen?: (activityId: string) => void;
+  assigneeOptions?: SharePointPerson[];
+  currentUser?: SharePointPerson | null;
+  onSharedWithChange?: (
+    activity: Activity,
+    sharedWith: SharePointPerson[],
+  ) => void | Promise<void>;
 }) {
   const isPrimaryFocus = primaryFocusActivityId === row.id;
   const href = `/activities/${row.activity.ActivityID}`;
   const attention = attentionMeta(row);
+  const isTask = row.activity.ActivityType === "Task";
+  const sharedCount = row.activity.SharedWith?.length ?? 0;
 
   return (
     <WorkspaceTableBodyRow
@@ -119,7 +147,15 @@ function ActivityIntelligentTableRow({
           {row.headline}
         </Link>
         <p className="mt-1 truncate text-[11px] text-carbon-blue/45">
-          {[row.companyLabel, row.dealLabel !== "—" ? row.dealLabel : null, row.activity.ActivityType]
+          {[
+            row.companyLabel,
+            row.dealLabel !== "—" ? row.dealLabel : null,
+            row.activity.ActivityType,
+            row.activity.ActivityOwner?.Title
+              ? `Assignee: ${row.activity.ActivityOwner.Title}`
+              : null,
+            sharedCount > 0 ? `Shared: ${sharedCount}` : null,
+          ]
             .filter(Boolean)
             .join(" · ")}
         </p>
@@ -150,6 +186,24 @@ function ActivityIntelligentTableRow({
 
       <WorkspaceTableBodyCell className="text-right align-top">
         <DueLabel row={row} />
+      </WorkspaceTableBodyCell>
+
+      <WorkspaceTableBodyCell className="align-top overflow-visible">
+        {isTask && onSharedWithChange && assigneeOptions.length > 0 ? (
+          <div onClick={(event) => event.stopPropagation()}>
+            <TaskShareControl
+              activity={row.activity}
+              options={assigneeOptions}
+              currentUser={currentUser}
+              onSharedWithChange={(sharedWith) =>
+                onSharedWithChange(row.activity, sharedWith)
+              }
+              compact
+            />
+          </div>
+        ) : (
+          <span className="text-[11px] text-carbon-blue/35">—</span>
+        )}
       </WorkspaceTableBodyCell>
     </WorkspaceTableBodyRow>
   );

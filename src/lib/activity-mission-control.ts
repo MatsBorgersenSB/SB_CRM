@@ -353,6 +353,9 @@ export const ACTIVITY_MISSION_VIEWS = [
 
 export type ActivityWorkFilter =
   | "all"
+  | "my_tasks"
+  | "shared_with_me"
+  | "tasks"
   | "attention"
   | "overdue"
   | "due_today"
@@ -361,6 +364,9 @@ export type ActivityWorkFilter =
 
 export const ACTIVITY_WORK_FILTERS: Array<{ id: ActivityWorkFilter; label: string }> = [
   { id: "all", label: "All" },
+  { id: "my_tasks", label: "My tasks" },
+  { id: "shared_with_me", label: "Shared with me" },
+  { id: "tasks", label: "All tasks" },
   { id: "attention", label: "Requires attention" },
   { id: "overdue", label: "Overdue" },
   { id: "due_today", label: "Due today" },
@@ -396,6 +402,7 @@ export function buildActivityIntelligentRows(
 export function filterActivityRows(
   rows: ActivityIntelligentRow[],
   filter: ActivityWorkFilter,
+  currentUserName?: string,
 ): ActivityIntelligentRow[] {
   return rows.filter((row) => {
     const activity = row.activity;
@@ -405,6 +412,23 @@ export function filterActivityRows(
     switch (filter) {
       case "all":
         return true;
+      case "my_tasks":
+        return (
+          activity.ActivityType === "Task" &&
+          Boolean(currentUserName) &&
+          activity.ActivityOwner?.Title?.toLowerCase() === currentUserName!.toLowerCase()
+        );
+      case "shared_with_me":
+        return (
+          activity.ActivityType === "Task" &&
+          Boolean(currentUserName) &&
+          (activity.SharedWith ?? []).some(
+            (person) =>
+              person.Title.toLowerCase() === currentUserName!.toLowerCase(),
+          )
+        );
+      case "tasks":
+        return activity.ActivityType === "Task";
       case "attention":
         return row.requiresAttention;
       case "overdue":
@@ -421,13 +445,17 @@ export function filterActivityRows(
 
 export function countActivityWorkFilters(
   rows: ActivityIntelligentRow[],
+  currentUserName?: string,
 ): Record<ActivityWorkFilter, number> {
   return {
     all: rows.filter((row) => !row.isCompleted).length,
-    attention: filterActivityRows(rows, "attention").length,
-    overdue: filterActivityRows(rows, "overdue").length,
-    due_today: filterActivityRows(rows, "due_today").length,
-    this_week: filterActivityRows(rows, "this_week").length,
+    my_tasks: filterActivityRows(rows, "my_tasks", currentUserName).length,
+    shared_with_me: filterActivityRows(rows, "shared_with_me", currentUserName).length,
+    tasks: filterActivityRows(rows, "tasks", currentUserName).length,
+    attention: filterActivityRows(rows, "attention", currentUserName).length,
+    overdue: filterActivityRows(rows, "overdue", currentUserName).length,
+    due_today: filterActivityRows(rows, "due_today", currentUserName).length,
+    this_week: filterActivityRows(rows, "this_week", currentUserName).length,
     completed: rows.filter((row) => row.isCompleted).length,
   };
 }

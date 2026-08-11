@@ -1,11 +1,13 @@
 import { ActivitiesShell } from "@/components/layout/activities-shell";
 import { readActivities, readCompanies, readPipelines } from "@/lib/pipeline-db";
+import { readAssignableStandardBioUsers } from "@/lib/standard-bio-users-server";
 
 export default async function ActivitiesPage() {
-  const [activities, companies, pipelines] = await Promise.all([
+  const [activities, companies, pipelines, assignableUsers] = await Promise.all([
     readActivities(),
     readCompanies(),
     readPipelines(),
+    readAssignableStandardBioUsers(),
   ]);
 
   return (
@@ -13,6 +15,7 @@ export default async function ActivitiesPage() {
       activities={activities}
       companies={companies}
       pipelines={pipelines}
+      assignableUsers={assignableUsers}
     />
   );
 }

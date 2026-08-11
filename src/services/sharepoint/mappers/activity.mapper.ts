@@ -1,4 +1,5 @@
 import type { Activity, CreateActivityInput, M365ActivityTargets, SmartAssistAssessment } from "@/types/activity";
+import type { SharePointPerson } from "@/types/company";
 import type { GraphListItem, ListItemMapper } from "@/services/sharepoint/client/types";
 
 type ActivityFields = {
@@ -13,6 +14,7 @@ type ActivityFields = {
   RisksJson?: string;
   LinkedDocumentsJson?: string;
   StakeholdersJson?: string;
+  SharedWithJson?: string;
   SmartAssistAssessmentJson?: string;
   CompanyLookupId?: number;
   Company?: { LookupValue?: string };
@@ -80,6 +82,7 @@ export const activityMapper: ListItemMapper<ActivityFields, Activity> = {
       LinkedDeals: parseJsonArray(fields.LinkedDealsJson),
       LinkedContacts: parseJsonArray(fields.LinkedContactsJson),
       Stakeholders: parseJsonArray(fields.StakeholdersJson),
+      SharedWith: parseJsonArray<SharePointPerson>(fields.SharedWithJson),
       SmartAssistAssessment: parseJsonObject<SmartAssistAssessment>(
         fields.SmartAssistAssessmentJson,
       ),
@@ -141,6 +144,9 @@ export const activityMapper: ListItemMapper<ActivityFields, Activity> = {
     }
     if (row.Stakeholders !== undefined) {
       fields.StakeholdersJson = stringifyJson(row.Stakeholders);
+    }
+    if (row.SharedWith !== undefined) {
+      fields.SharedWithJson = stringifyJson(row.SharedWith);
     }
     if (row.SmartAssistAssessment !== undefined) {
       fields.SmartAssistAssessmentJson = stringifyJson(row.SmartAssistAssessment);
