@@ -62,6 +62,7 @@ Canonical product docs live under `/docs`:
 | FS-006 | `docs/FS-006-company-owned-smartdocs.md` |
 | FS-012 | `docs/FS-012-relationship-intake.md` |
 | FS-013 | `docs/FS-013-active-operating-loop.md` |
+| FS-014 | `docs/FS-014-post-meeting-notes.md` |
 
 When implementing or changing behaviour covered by an FS/AD, **read the relevant doc first** and keep code aligned with it.
 
