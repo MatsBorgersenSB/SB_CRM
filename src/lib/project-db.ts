@@ -270,23 +270,32 @@ async function propagateProjectRename(input: {
 
   let outlookUpdated = 0;
   let outlookFailed = 0;
-  const token = await getActiveM365AccessToken();
-  if (token) {
-    for (const message of messages) {
-      try {
-        await applySmartCrmCategories(token.accessToken, message.externalMessageId, {
-          projectName: input.nextName,
-        });
-        outlookUpdated += 1;
-      } catch (error) {
-        outlookFailed += 1;
-        console.warn(
-          "[project-db] Outlook category rename failed:",
-          message.externalMessageId,
-          error instanceof Error ? error.message : error,
-        );
+  try {
+    const token = await getActiveM365AccessToken();
+    if (token) {
+      for (const message of messages) {
+        try {
+          await applySmartCrmCategories(token.accessToken, message.externalMessageId, {
+            projectName: input.nextName,
+          });
+          outlookUpdated += 1;
+        } catch (error) {
+          outlookFailed += 1;
+          console.warn(
+            "[project-db] Outlook category rename failed:",
+            message.externalMessageId,
+            error instanceof Error ? error.message : error,
+          );
+        }
       }
     }
+  } catch (error) {
+    // Local scripts often lack TOKEN_ENCRYPTION_SECRET — SmartCRM links still rename.
+    outlookFailed = messages.length;
+    console.warn(
+      "[project-db] Skipping Outlook category push (token unavailable):",
+      error instanceof Error ? error.message : error,
+    );
   }
 
   return {
