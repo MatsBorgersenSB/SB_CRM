@@ -11,6 +11,13 @@ import { createPortal } from "react-dom";
 
 const MENU_MIN_WIDTH = 180;
 const MENU_Z = 80;
+const PORTAL_ATTR = "data-action-menu-portal";
+const CLOSE_ALL_EVENT = "smartcrm:action-menu-close";
+
+function requestCloseAllMenus() {
+  if (typeof document === "undefined") return;
+  document.dispatchEvent(new Event(CLOSE_ALL_EVENT));
+}
 
 export function ActionMenu({
   label,
@@ -29,11 +36,13 @@ export function ActionMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const close = () => {
+    setOpen(false);
+    setCoords(null);
+  };
+
   useLayoutEffect(() => {
-    if (!open || !triggerRef.current) {
-      setCoords(null);
-      return;
-    }
+    if (!open || !triggerRef.current) return;
 
     const updatePosition = () => {
       const rect = triggerRef.current?.getBoundingClientRect();
@@ -59,26 +68,30 @@ export function ActionMenu({
   useEffect(() => {
     if (!open) return;
 
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
+    // Prefer click over mousedown so <a> items keep their user-gesture navigation.
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
       if (rootRef.current?.contains(target)) return;
       if (menuRef.current?.contains(target)) return;
-      setOpen(false);
-      setCoords(null);
+      // Nested ActionMenus also portal to body — treat those as inside.
+      if (target.closest(`[${PORTAL_ATTR}]`)) return;
+      close();
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        setCoords(null);
-      }
+      if (event.key === "Escape") close();
     };
 
-    document.addEventListener("mousedown", handlePointerDown);
+    const handleCloseAll = () => close();
+
+    document.addEventListener("click", handleDocumentClick);
     document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener(CLOSE_ALL_EVENT, handleCloseAll);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("click", handleDocumentClick);
       document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener(CLOSE_ALL_EVENT, handleCloseAll);
     };
   }, [open]);
 
@@ -121,6 +134,7 @@ export function ActionMenu({
             <div
               ref={menuRef}
               role="menu"
+              {...{ [PORTAL_ATTR]: "" }}
               className="min-w-[180px] border border-carbon-blue/15 bg-white py-1 shadow-lg"
               style={{
                 position: "fixed",
@@ -128,11 +142,7 @@ export function ActionMenu({
                 left: coords.left,
                 zIndex: MENU_Z,
               }}
-              onClick={(event) => {
-                event.stopPropagation();
-                setOpen(false);
-                setCoords(null);
-              }}
+              onClick={(event) => event.stopPropagation()}
             >
               {children}
             </div>,
@@ -165,6 +175,12 @@ export function ActionMenuItem({
         rel={external ? "noopener noreferrer" : undefined}
         className={className}
         role="menuitem"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick?.();
+          // Close after the browser accepts the navigation gesture.
+          window.setTimeout(() => requestCloseAllMenus(), 0);
+        }}
       >
         {children}
       </a>
@@ -172,7 +188,16 @@ export function ActionMenuItem({
   }
 
   return (
-    <button type="button" role="menuitem" onClick={onClick} className={className}>
+    <button
+      type="button"
+      role="menuitem"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.();
+        requestCloseAllMenus();
+      }}
+      className={className}
+    >
       {children}
     </button>
   );
