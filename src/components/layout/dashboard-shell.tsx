@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { MyAttentionPanel } from "@/components/attention/my-attention-panel";
+import { PortfolioRecommendationsPanel } from "@/components/attention/portfolio-recommendations-panel";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
@@ -23,7 +24,6 @@ import type { Company } from "@/types/company";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { PipelineRow } from "@/types/pipeline";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { company360Href } from "@/types/company-360";
 import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 
 type DashboardShellProps = {
@@ -159,19 +159,7 @@ function DashboardShellContent({
 
             {data.nextBestActions.length > 0 ? (
               <CollapsibleSection title="Portfolio recommendations" tier="nice-to-have">
-                <ul className="space-y-2">
-                  {data.nextBestActions.slice(0, 4).map((item) => (
-                    <li key={`${item.companyId}-${item.ruleId}`}>
-                      <Link
-                        href={company360Href(item.companyId)}
-                        className="block border border-carbon-blue/8 px-3 py-2 text-sm hover:border-upcycle-orange/25"
-                      >
-                        <span className="font-semibold text-carbon-blue">{item.action}</span>
-                        <span className="text-carbon-blue/45"> · {item.companyName}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                <PortfolioRecommendationsPanel recommendations={data.nextBestActions} />
               </CollapsibleSection>
             ) : null}
           </WorkspaceStack>
