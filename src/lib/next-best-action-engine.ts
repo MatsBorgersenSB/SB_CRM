@@ -10,7 +10,11 @@ import {
   isFollowUpOpen,
   isFollowUpOverdue,
 } from "@/lib/activity-utils";
-import { isOpportunityEligibleCompany } from "@/lib/company-classification";
+import {
+  getCompanyRelationshipPosture,
+  isCompanyUnclassified,
+  isOpportunityEligibleCompany,
+} from "@/lib/company-classification";
 import { daysBetween } from "@/lib/relative-time";
 
 /** V1 deterministic output — future AI providers return source: "ai". */
@@ -260,6 +264,22 @@ const DEFAULT_ACTION: NextBestAction = {
  */
 export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
   {
+    id: "classify_relationship",
+    evaluate(_inputs, ctx) {
+      if (!isCompanyUnclassified(ctx.company)) return null;
+      return {
+        id: `nba-classify-${ctx.company.CompanyID}`,
+        action: "Classify this relationship",
+        reason:
+          "Company role is unknown — classify as customer, supplier, consultant, or partner before inventing commercial actions.",
+        priority: "High",
+        confidenceScore: 94,
+        ruleId: "classify_relationship",
+        source: "rule",
+      };
+    },
+  },
+  {
     id: "complete_overdue_commitment",
     evaluate(inputs, ctx) {
       if (inputs.overdueActions === 0) return null;
@@ -394,16 +414,33 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
       const salesDeals = inputs.deals.filter((d) => d.lifecycleStage === "sales");
       if (salesDeals.length > 0 || inputs.isNewRelationship) return null;
       if (inputs.contactCount === 0) return null;
-      // Reality First — suppliers / vendors (and similar) are not sales targets.
+      // Sell-to only — never invent pipeline for suppliers, partners alone, or unclassified.
       if (!isOpportunityEligibleCompany(ctx.company)) return null;
 
       return {
         id: `nba-pipeline-${inputs.companyId}`,
         action: "Create New Opportunity",
-        reason: `No active sales opportunities despite ${inputs.contactCount} contact${inputs.contactCount === 1 ? "" : "s"} — growth potential is untapped (health ${inputs.healthScore}/100).`,
+        reason: `Commercial target with ${inputs.contactCount} contact${inputs.contactCount === 1 ? "" : "s"} and no active sales opportunity — clarify whether a deal should exist (health ${inputs.healthScore}/100).`,
         priority: inputs.healthScore >= 75 ? "Medium" : "Low",
         confidenceScore: inputs.healthScore >= 75 ? 76 : 68,
         ruleId: "create_new_opportunity",
+        source: "rule",
+      };
+    },
+  },
+  {
+    id: "supplier_follow_through",
+    evaluate(inputs, ctx) {
+      if (getCompanyRelationshipPosture(ctx.company) !== "buy_from") return null;
+      if (inputs.overdueActions > 0 || inputs.openCommitments > 0) return null;
+      if (inputs.lastContactDays === null || inputs.lastContactDays < 21) return null;
+      return {
+        id: `nba-supplier-${inputs.companyId}`,
+        action: "Follow up with supplier",
+        reason: `Supplier / advisor relationship quiet for ${inputs.lastContactDays} days — confirm open quotes, deliveries, or commitments without inventing a sales opportunity.`,
+        priority: "Medium",
+        confidenceScore: 72,
+        ruleId: "supplier_follow_through",
         source: "rule",
       };
     },

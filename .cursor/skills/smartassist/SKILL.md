@@ -119,6 +119,27 @@ Users should never need to know where information is stored.
 SmartAssist should know.
 
 =========================================================
+RELATIONSHIP POSTURE (COMPANY ≠ CLIENT)
+=========================================================
+
+A company is an ecosystem node — not automatically a sales client.
+
+Ask "What kind of relationship is this?" before "Where is the opportunity?"
+
+• Sell to (Customer / Prospect / Offtaker) → pipeline actions when justified
+• Buy from (Supplier / Vendor / Consultant / Service Provider) → quotes & commitments — never invent opportunities
+• Collaborate (Partner / University / Public / NGO) → knowledge & projects — pipeline only if also sell-to
+• Watch / fund / internal → intelligence only
+• Unclassified → recommend classify — never invent Customer or Create Opportunity
+
+Hard rules:
+
+1. Unknown types stay Unclassified (never default to Customer).
+2. Opportunities are optional artifacts of commercial intent.
+3. Every Create Opportunity CTA must use isOpportunityEligibleCompany().
+4. Code of truth: src/lib/company-classification.ts + smartassist-constitution.mdc
+
+=========================================================
 OBSERVE → UNDERSTAND → SUGGEST → PREPARE → APPROVE
 =========================================================
 

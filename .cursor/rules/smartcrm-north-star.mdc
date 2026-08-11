@@ -167,6 +167,30 @@ All intelligence from existing engines (health, NBA, opportunity, SmartDocs, gra
 
 Before shipping any UI: decision named, impact present, 3s/5s test pass, information budget respected, no required navigation to understand context.
 
+## Relationship posture (ecosystem roles)
+
+A company is an **ecosystem node**, not automatically a client.
+
+SmartCRM must answer **“What kind of relationship is this?”** before **“Where is the opportunity?”**
+
+| Posture | Typical types | SmartAssist behaviour |
+|---------|---------------|------------------------|
+| **Sell to** | Customer, Prospect, Offtaker | Pipeline intelligence; create opportunity only when justified |
+| **Buy from** | Supplier / Vendor, Consultant, Service Provider | Quotes, commitments, supplier docs — **never** invent opportunities |
+| **Collaborate** | Partner, University, Public, NGO | Knowledge, meetings, projects — pipeline only if also sell-to |
+| **Watch / fund** | Competitor, Investor | Intelligence — no sales CTAs |
+| **Unclassified** | Missing / unknown role | Recommend **classify** — never invent Customer or Create Opportunity |
+
+### Hard rules
+
+1. **Unknown stays Unclassified** — never default empty types to Customer.
+2. **Opportunities are optional** — a company without deals is healthy when the role is buy-from, collaborate, or unclassified.
+3. **Create opportunity** is gated to sell-to roles only (`isOpportunityEligibleCompany`).
+4. Multi-type is valid (e.g. Partner + Prospect). Sell-to presence enables commercial CTAs.
+5. Every Create Opportunity surface (NBA, Co-Pilot, Outlook, Company 360) must respect eligibility.
+
+Use `@/lib/company-classification` (`getCompanyRelationshipPosture`, `isOpportunityEligibleCompany`, `isCompanyUnclassified`).
+
 ## Opportunity Operating System (deal workspace)
 
 We are not designing a CRM page. We are designing an **Opportunity Operating System**.

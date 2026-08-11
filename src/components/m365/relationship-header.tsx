@@ -10,12 +10,15 @@ import type { RelationshipHealthStatus, RelationshipTrend } from "@/lib/relation
 
 export function RelationshipHeader({
   companyName,
+  relationshipRoleLabel,
   health,
   lastContactLabel,
   deepLink,
   hideHealthRing = false,
 }: {
   companyName: string;
+  /** Ecosystem role — Supplier, Prospect, Unclassified, etc. */
+  relationshipRoleLabel?: string;
   health?: M365HealthBlock;
   lastContactLabel?: string;
   deepLink?: string;
@@ -42,8 +45,11 @@ export function RelationshipHeader({
         ) : (
           <h2 className="mt-1 text-base font-semibold tracking-tight text-carbon-blue">{companyName}</h2>
         )}
+        {relationshipRoleLabel ? (
+          <p className="mt-1 text-[11px] font-medium text-carbon-blue/55">{relationshipRoleLabel}</p>
+        ) : null}
         {lastContactLabel ? (
-          <p className="mt-1 text-[11px] text-carbon-blue/45">
+          <p className="mt-0.5 text-[11px] text-carbon-blue/45">
             Last contact · {lastContactLabel}
           </p>
         ) : null}

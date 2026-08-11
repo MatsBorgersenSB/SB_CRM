@@ -84,15 +84,37 @@ A company may have:
 ---
 ### Company Types
 
-A company may have one or more Company Types.
+A company may have one or more Company Types. A company is an **ecosystem node**, not automatically a client.
 
-- Customer
+**Selectable roles**
+
 - Prospect
-- Supplier
+- Customer
 - Partner
 - Competitor
-- Internal
-- Other
+- Supplier / Vendor
+- Consultant
+- Public / Government
+- University / Research
+- Investor
+- NGO / Non-Profit
+- Granting Authority
+
+**System default when role is unknown**
+
+- Unclassified (Reality First — never invent Customer)
+
+**Relationship posture (drives SmartAssist)**
+
+| Posture | Types | Opportunity CTAs |
+|---------|-------|------------------|
+| Sell to | Customer, Prospect, Offtaker | Allowed when justified |
+| Buy from | Supplier / Vendor, Consultant, Service Provider | Never invent |
+| Collaborate | Partner, University, Public, NGO, … | Only if also sell-to |
+| Watch / fund / internal | Competitor, Investor, Internal | Never invent |
+| Unclassified | Missing role | Classify first — never Create Opportunity |
+
+See `.cursor/rules/smartcrm-north-star.mdc` (Relationship posture) and `src/lib/company-classification.ts`.
 
 ---
 

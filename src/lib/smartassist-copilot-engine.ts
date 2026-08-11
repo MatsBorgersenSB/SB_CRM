@@ -61,6 +61,8 @@ const RULE_KIND_MAP: Record<string, CoPilotActionKind> = {
   package_not_transmitted: "review_document",
   add_primary_contact: "review_opportunity",
   create_new_opportunity: "create_opportunity",
+  classify_relationship: "classify_company",
+  supplier_follow_through: "schedule_follow_up",
 };
 
 const RULE_SOURCE_MAP: Record<string, CoPilotSourceType> = {
@@ -76,6 +78,8 @@ const RULE_SOURCE_MAP: Record<string, CoPilotSourceType> = {
   package_not_transmitted: "document",
   add_primary_contact: "relationship",
   create_new_opportunity: "opportunity",
+  classify_relationship: "relationship",
+  supplier_follow_through: "relationship",
 };
 
 function impactForSeverity(severity: AttentionItem["severity"]): string {
@@ -196,6 +200,7 @@ function proposalFromAttentionItem(
 
   if (
     kind === "create_opportunity" ||
+    kind === "classify_company" ||
     kind === "review_opportunity" ||
     kind === "review_document"
   ) {

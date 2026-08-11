@@ -39,7 +39,7 @@ function CardActions({
           Execute in Planner
         </a>
       ) : null}
-      {outlookHost && onCreateOpportunity ? (
+      {outlookHost && onCreateOpportunity && payload.opportunityEligible ? (
         <button
           type="button"
           onClick={onCreateOpportunity}
@@ -107,6 +107,7 @@ export function RelationshipCard({
             <div className="min-w-0 flex-1">
               <RelationshipHeader
                 companyName={payload.companyName}
+                relationshipRoleLabel={payload.relationshipRoleLabel}
                 health={payload.health}
                 hideHealthRing={outlookHost}
                 deepLink={outlookHost ? undefined : payload.deepLink}

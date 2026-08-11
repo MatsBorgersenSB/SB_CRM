@@ -114,6 +114,7 @@ export async function executeCoPilotProposal(
 
   if (
     (kind === "create_opportunity" ||
+      kind === "classify_company" ||
       kind === "review_opportunity" ||
       kind === "review_document" ||
       kind === "log_meeting_outcome") &&
@@ -122,7 +123,10 @@ export async function executeCoPilotProposal(
     return {
       mode: "navigate",
       href: proposal.href,
-      message: `Opening ${proposal.objectName ?? "record"} for review.`,
+      message:
+        kind === "classify_company"
+          ? `Opening ${proposal.objectName ?? "company"} — set the relationship role before inventing commercial actions.`
+          : `Opening ${proposal.objectName ?? "record"} for review.`,
       prefill: payload.prefill,
     };
   }

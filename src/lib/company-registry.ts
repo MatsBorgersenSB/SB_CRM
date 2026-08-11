@@ -132,7 +132,7 @@ export async function createRegistryCompany(
         website: domain ? `https://${domain}` : null,
         industry: input.Industry || "Polymer Processing",
         types: storedTypes,
-        companyType: storedTypes[0] ?? "Prospect",
+        companyType: storedTypes[0] ?? "Unclassified",
         status: "active",
         city: input.City || null,
         addressLine1: input.AddressLine1 || null,
@@ -204,7 +204,7 @@ export async function updateRegistryCompany(
           types: toPrismaCompanyTypes(patch.CompanyTypes ?? jsonCompany.CompanyTypes),
           companyType:
             toPrismaCompanyTypes(patch.CompanyTypes ?? jsonCompany.CompanyTypes)[0] ??
-            "Prospect",
+            "Unclassified",
           status: "active",
           city: patch.City ?? jsonCompany.City ?? null,
           addressLine1: patch.AddressLine1 ?? jsonCompany.AddressLine1 ?? null,
@@ -264,7 +264,7 @@ export async function updateRegistryCompany(
   if (patch.CompanyTypes !== undefined) {
     const storedTypes = toPrismaCompanyTypes(patch.CompanyTypes);
     data.types = storedTypes;
-    data.companyType = storedTypes[0] ?? "Prospect";
+    data.companyType = storedTypes[0] ?? "Unclassified";
   }
   if (patch.City !== undefined) data.city = patch.City || null;
   if (patch.AddressLine1 !== undefined) data.addressLine1 = patch.AddressLine1 || null;

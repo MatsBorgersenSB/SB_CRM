@@ -16,6 +16,47 @@ export type CompanyClassificationCount = {
   label: string;
 };
 
+/**
+ * Relationship posture — drives SmartAssist behaviour.
+ * Ask "what kind of relationship?" before "where is the opportunity?"
+ */
+export type CompanyRelationshipPosture =
+  | "sell_to"
+  | "buy_from"
+  | "collaborate"
+  | "watch"
+  | "fund"
+  | "internal"
+  | "unclassified";
+
+/** Commercial targets — opportunities may be recommended. */
+export const SELL_TO_COMPANY_TYPES: CompanyType[] = [
+  "Customer",
+  "Prospect",
+  "Offtaker",
+];
+
+/** Buy-from / inbound supply — never invent sales opportunities. */
+export const BUY_FROM_COMPANY_TYPES: CompanyType[] = [
+  "Supplier / Vendor",
+  "Consultant",
+  "Service Provider",
+];
+
+const COLLABORATE_TYPES: CompanyType[] = [
+  "Partner",
+  "University / Research",
+  "Public / Government",
+  "NGO / Non-Profit",
+  "Granting Authority",
+  "Association",
+  "Distributor",
+];
+
+const WATCH_TYPES: CompanyType[] = ["Competitor"];
+const FUND_TYPES: CompanyType[] = ["Investor"];
+const INTERNAL_TYPES: CompanyType[] = ["Internal Company"];
+
 export function normalizeCompanyTypes(
   company: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
 ): CompanyType[] {
@@ -30,18 +71,25 @@ export function normalizeCompanyTypes(
     if (next && !canonical.includes(next)) canonical.push(next);
   }
 
-  if (canonical.length > 0) return canonical;
+  // Drop Unclassified when real roles are present.
+  const concrete = canonical.filter((type) => type !== "Unclassified");
+  if (concrete.length > 0) return concrete;
+
+  if (canonical.includes("Unclassified")) return ["Unclassified"];
+  // Reality First — Prospecting status is an explicit commercial signal.
   if (company.Status === "Prospecting") return ["Prospect"];
-  return ["Customer"];
+  // Never invent Customer. Unknown stays Unclassified.
+  return ["Unclassified"];
 }
 
 /** Persistable labels for Prisma `types` String[]. */
 export function toStoredCompanyTypes(types: CompanyType[] | undefined): string[] {
   const normalized = (types ?? [])
     .map((type) => canonicalizeCompanyType(type))
-    .filter((type): type is CompanyType => Boolean(type));
+    .filter((type): type is CompanyType => Boolean(type))
+    .filter((type) => type !== "Unclassified");
   const unique = [...new Set(normalized)];
-  return unique.length > 0 ? unique : ["Prospect"];
+  return unique.length > 0 ? unique : ["Unclassified"];
 }
 
 export function companyHasType(company: Company, type: CompanyType): boolean {
@@ -49,6 +97,66 @@ export function companyHasType(company: Company, type: CompanyType): boolean {
   return normalizeCompanyTypes(company).some(
     (entry) => entry === target || canonicalizeCompanyType(entry) === target,
   );
+}
+
+export function isCompanyUnclassified(
+  company: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
+): boolean {
+  const types = normalizeCompanyTypes(company);
+  return types.length === 1 && types[0] === "Unclassified";
+}
+
+/**
+ * Primary relationship posture for UI + SmartAssist.
+ * Multi-type: sell-to wins, then buy-from, then collaborate / watch / fund.
+ */
+export function getCompanyRelationshipPosture(
+  company: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
+): CompanyRelationshipPosture {
+  const types = normalizeCompanyTypes(company);
+  if (types.length === 0 || (types.length === 1 && types[0] === "Unclassified")) {
+    return "unclassified";
+  }
+  if (types.some((type) => SELL_TO_COMPANY_TYPES.includes(type))) return "sell_to";
+  if (types.some((type) => BUY_FROM_COMPANY_TYPES.includes(type))) return "buy_from";
+  if (types.some((type) => COLLABORATE_TYPES.includes(type))) return "collaborate";
+  if (types.some((type) => WATCH_TYPES.includes(type))) return "watch";
+  if (types.some((type) => FUND_TYPES.includes(type))) return "fund";
+  if (types.some((type) => INTERNAL_TYPES.includes(type))) return "internal";
+  return "unclassified";
+}
+
+export function formatRelationshipPostureLabel(
+  posture: CompanyRelationshipPosture,
+): string {
+  switch (posture) {
+    case "sell_to":
+      return "Commercial target";
+    case "buy_from":
+      return "Supplier / advisor";
+    case "collaborate":
+      return "Partner / collaborator";
+    case "watch":
+      return "Competitor";
+    case "fund":
+      return "Investor";
+    case "internal":
+      return "Internal";
+    case "unclassified":
+      return "Unclassified";
+  }
+}
+
+/**
+ * Reality First — only surface "create opportunity" for sell-to roles.
+ * Partner / supplier / unclassified alone must never be nagged to open deals
+ * unless also typed as Customer / Prospect / Offtaker.
+ */
+export function isOpportunityEligibleCompany(
+  company: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
+): boolean {
+  const types = normalizeCompanyTypes(company);
+  return types.some((type) => SELL_TO_COMPANY_TYPES.includes(type));
 }
 
 export function formatCompanyTypesLabel(
@@ -93,6 +201,7 @@ export function buildCompanyClassificationReport(
   for (const type of COMPANY_TYPE_SELECT_OPTIONS) {
     counts.set(type, 0);
   }
+  counts.set("Unclassified", 0);
 
   for (const company of companies) {
     for (const type of normalizeCompanyTypes(company)) {
@@ -100,12 +209,15 @@ export function buildCompanyClassificationReport(
     }
   }
 
-  return COMPANY_TYPE_SELECT_OPTIONS.map((type) => ({
-    type,
-    count: counts.get(type) ?? 0,
-    emoji: COMPANY_TYPE_META[type].emoji,
-    label: COMPANY_TYPE_META[type].plural,
-  })).filter((entry) => entry.count > 0);
+  const reportTypes: CompanyType[] = ["Unclassified", ...COMPANY_TYPE_SELECT_OPTIONS];
+  return reportTypes
+    .map((type) => ({
+      type,
+      count: counts.get(type) ?? 0,
+      emoji: COMPANY_TYPE_META[type].emoji,
+      label: COMPANY_TYPE_META[type].plural,
+    }))
+    .filter((entry) => entry.count > 0);
 }
 
 export function isStrategicCustomer(
@@ -121,6 +233,7 @@ export function isStrategicCustomer(
 
 export function matchCompanyTypeQuery(query: string): CompanyType | null {
   const q = query.toLowerCase();
+  if (/\bunclassified\b|\bunknown (compan(y|ies)|roles?)\b/.test(q)) return "Unclassified";
   if (/\bcompetitors?\b/.test(q)) return "Competitor";
   if (/\b(ngos?|non[- ]?profits?|associations?)\b/.test(q)) return "NGO / Non-Profit";
   if (/\bofftakers?\b/.test(q)) return "Offtaker";
@@ -141,34 +254,6 @@ export function matchCompanyTypeQuery(query: string): CompanyType | null {
 
 export function isStrategicCustomersQuery(query: string): boolean {
   return /\bstrategic customers?\b/.test(query.toLowerCase());
-}
-
-/**
- * Reality First — only surface "create opportunity" for commercial-target roles.
- * Suppliers, competitors, and internal entities should not be nagged to open deals
- * unless they are also typed as a commercial target (e.g. Customer + Supplier).
- */
-const COMMERCIAL_TARGET_TYPES: CompanyType[] = [
-  "Customer",
-  "Prospect",
-  "Offtaker",
-  "Partner",
-];
-
-const NON_OPPORTUNITY_TYPES: CompanyType[] = [
-  "Supplier / Vendor",
-  "Competitor",
-  "Internal Company",
-  "Investor",
-];
-
-export function isOpportunityEligibleCompany(
-  company: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
-): boolean {
-  const types = normalizeCompanyTypes(company);
-  if (types.some((type) => COMMERCIAL_TARGET_TYPES.includes(type))) return true;
-  if (types.some((type) => NON_OPPORTUNITY_TYPES.includes(type))) return false;
-  return true;
 }
 
 export function listSelectableCompanyTypes(): CompanyType[] {

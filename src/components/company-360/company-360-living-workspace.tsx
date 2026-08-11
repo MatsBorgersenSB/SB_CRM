@@ -43,6 +43,7 @@ import {
   canCreateOpportunity,
   canManageOpportunityStakeholders,
 } from "@/lib/permissions";
+import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 /**
  * Unified company hub — Company Details → Contacts → Opportunities → Activities → Documents → Attention
  */
@@ -223,7 +224,11 @@ export function Company360LivingWorkspace({
           deals={linkedPipelines}
           commercialPackages={commercialPackages}
           company={company}
-          canCreate={canCreateOpportunity(role) && Boolean(onCreateOpportunity)}
+          canCreate={
+            canCreateOpportunity(role) &&
+            Boolean(onCreateOpportunity) &&
+            isOpportunityEligibleCompany(company)
+          }
           canManageStakeholders={
             canManageOpportunityStakeholders(role) && Boolean(onAssignOpportunityStakeholder)
           }
