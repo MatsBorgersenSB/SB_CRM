@@ -131,7 +131,12 @@ export function OutlookRelationshipCardPane() {
             }}
           />
         ) : null}
-        {resolvedEmail ? <OutlookMailTagPanel email={resolvedEmail} /> : null}
+        {resolvedEmail ? (
+          <OutlookMailTagPanel
+            email={resolvedEmail}
+            opportunityEligible={state.payload.opportunityEligible}
+          />
+        ) : null}
         <RelationshipCard
           payload={state.payload}
           variant="outlook"

@@ -17,6 +17,7 @@ import type { RelationshipIntelligenceExtensions } from "@/types/company-360";
 import type { CompanyType } from "@/types/company-type";
 import {
   formatCompanyTypesLabel,
+  getCompanyRelationshipPosture,
   normalizeCompanyTypes,
 } from "@/lib/company-classification";
 import {
@@ -195,20 +196,31 @@ function buildRiskSignals(
       });
     }
   } else if (hasCorrespondence(correspondence)) {
-    const projectHint =
-      correspondence!.projectNames[0] != null
-        ? ` · project ${correspondence!.projectNames[0]}`
-        : "";
-    signals.push({
-      id: "mail-not-in-crm",
-      label: "Correspondence not captured",
-      severity: "info",
-      detail: `${correspondence!.messageCount} email(s) known${projectHint} — not yet logged as CRM activity`,
-      impact: [
-        "SmartAssist already sees the mail — capture it so health and commitments stay accurate",
-        "Do not treat this as a first-contact cold start",
-      ],
-    });
+    const posture = getCompanyRelationshipPosture(company);
+    if (
+      posture === "buy_from" ||
+      posture === "collaborate" ||
+      posture === "watch" ||
+      posture === "fund" ||
+      posture === "internal"
+    ) {
+      // Mail is known on a non-commercial posture — not a capture risk.
+    } else {
+      const projectHint =
+        correspondence!.projectNames[0] != null
+          ? ` · project ${correspondence!.projectNames[0]}`
+          : "";
+      signals.push({
+        id: "mail-not-in-crm",
+        label: "Correspondence not captured",
+        severity: "info",
+        detail: `${correspondence!.messageCount} email(s) known${projectHint} — not yet logged as CRM activity`,
+        impact: [
+          "SmartAssist already sees the mail — capture it so health and commitments stay accurate",
+          "Do not treat this as a first-contact cold start",
+        ],
+      });
+    }
   } else if (company.contacts.length > 0 || company.pipelineIds.length > 0) {
     signals.push({
       id: "no-contact",

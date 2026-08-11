@@ -49,9 +49,23 @@ export function buildM365RelationshipCard(
   );
 
   const { header, intelligence, pipelines, openActions } = snapshot;
+  const posture = getCompanyRelationshipPosture(company);
+  const nonCommercialPosture =
+    posture === "buy_from" ||
+    posture === "collaborate" ||
+    posture === "watch" ||
+    posture === "fund" ||
+    posture === "internal";
+
   const topRiskSignal =
-    intelligence.riskSignals.find((signal) => signal.id !== "no-contact") ??
-    (hasCorrespondence(correspondence) ? undefined : intelligence.riskSignals[0]);
+    intelligence.riskSignals.find(
+      (signal) =>
+        signal.id !== "no-contact" &&
+        !(nonCommercialPosture && signal.id === "mail-not-in-crm"),
+    ) ??
+    (hasCorrespondence(correspondence) || nonCommercialPosture
+      ? undefined
+      : intelligence.riskSignals[0]);
   const topRisk = topRiskSignal ? toM365RiskFromCompanySignal(topRiskSignal) : null;
 
   const overdue = openActions.filter((a) => isFollowUpOverdue(a));
@@ -87,32 +101,51 @@ export function buildM365RelationshipCard(
             "Project or correspondence context suggests delivery work — classify the role before inventing a sales opportunity.",
           ruleId: "classify_relationship",
         }
-      : rawRecommended.ruleId === "new_relationship" &&
-          hasCorrespondence(correspondence)
+      : nonCommercialPosture && hasCorrespondence(correspondence)
         ? {
             ...rawRecommended,
-            action: "Capture correspondence",
-            reason:
-              "Mail already exists for this relationship — capture it in CRM instead of treating this as a first cold contact.",
-            ruleId: "capture_correspondence",
+            id: `nba-supplier-mail-${company.CompanyID}`,
+            action: "No commercial tag required",
+            reason: `${formatCompanyTypesLabel(normalizeCompanyTypes(company), { max: 1 })} correspondence is visible — keep it on the company; do not invent an opportunity or project link.`,
+            priority: "Low" as const,
+            confidenceScore: 88,
+            ruleId: "supplier_relationship_mail",
           }
-        : rawRecommended;
+        : rawRecommended.ruleId === "new_relationship" &&
+            hasCorrespondence(correspondence)
+          ? {
+              ...rawRecommended,
+              action: "Capture correspondence",
+              reason:
+                "Mail already exists for this relationship — capture it in CRM instead of treating this as a first cold contact.",
+              ruleId: "capture_correspondence",
+            }
+          : rawRecommended;
 
-  const nextBestAction = prepared
+  // Prefer Active Assist only when it is not capture-busywork for suppliers.
+  const preparedUsable =
+    prepared &&
+    !(
+      nonCommercialPosture &&
+      prepared.suppressionKey?.includes("capture_correspondence")
+    )
+      ? prepared
+      : null;
+
+  const nextBestAction = preparedUsable
     ? toM365ActionFromFields({
-        id: prepared.id,
-        action: prepared.title,
-        reason: prepared.reason,
+        id: preparedUsable.id,
+        action: preparedUsable.title,
+        reason: preparedUsable.reason,
         priority:
-          prepared.severity === "urgent"
+          preparedUsable.severity === "urgent"
             ? "High"
-            : prepared.severity === "needs_attention"
+            : preparedUsable.severity === "needs_attention"
               ? "Medium"
               : "Low",
-        href: prepared.href ?? company360Href(company.CompanyID),
-        extraImpact: [prepared.impact, ...pipelineImpact],
-        activeAssistProposal: prepared,
-        // Prefer in-card Approve over Planner for prepared CRM actions.
+        href: preparedUsable.href ?? company360Href(company.CompanyID),
+        extraImpact: [preparedUsable.impact, ...pipelineImpact],
+        activeAssistProposal: preparedUsable,
         plannerEligible: false,
       })
     : toM365Action(recommendedAction, company.CompanyID, pipelineImpact);
@@ -122,7 +155,6 @@ export function buildM365RelationshipCard(
     topRisk?.impact ?? pipelineImpact.length > 0 ? pipelineImpact : ["Relationship is stable"];
 
   const companyTypes = normalizeCompanyTypes(company);
-  const posture = getCompanyRelationshipPosture(company);
   const relationshipRoleLabel =
     companyTypes[0] === "Unclassified"
       ? formatRelationshipPostureLabel(posture)
