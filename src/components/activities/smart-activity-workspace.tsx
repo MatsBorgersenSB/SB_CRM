@@ -67,6 +67,10 @@ type SmartActivityWorkspaceProps = {
   attentionItems?: AttentionItem[];
   variant?: "page" | "embedded";
   onActivitiesChange?: () => void;
+  /** When false, hide Co-Pilot (parent already shows one attention surface). */
+  showCopilot?: boolean;
+  /** When false, hide SmartAssist Recommendations (use Attention / Co-Pilot instead). */
+  showSuggestions?: boolean;
 };
 
 function contextPreset(context?: ActivityWorkspaceContext): Partial<CreateActivityInput> {
@@ -88,6 +92,8 @@ export function SmartActivityWorkspace({
   attentionItems = [],
   variant = "embedded",
   onActivitiesChange,
+  showCopilot = true,
+  showSuggestions = true,
 }: SmartActivityWorkspaceProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -385,7 +391,7 @@ export function SmartActivityWorkspace({
 
   return (
     <div className={`flex flex-col ${isPage ? "gap-6" : "gap-4"}`}>
-      {isPage || context?.companyName ? (
+      {showCopilot && (isPage || context?.companyName) ? (
         <SmartAssistCopilotHost companyName={context?.companyName} />
       ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -442,10 +448,12 @@ export function SmartActivityWorkspace({
 
       {isPage ? <ActivityIntelligencePanel intelligence={intelligence} /> : null}
 
-      <ActivitySuggestedPanel
-        suggestions={suggestions}
-        onExecuteSuggestion={executeSuggestion}
-      />
+      {showSuggestions ? (
+        <ActivitySuggestedPanel
+          suggestions={suggestions}
+          onExecuteSuggestion={executeSuggestion}
+        />
+      ) : null}
 
       <div className={`grid gap-4 ${isPage ? "lg:grid-cols-2" : ""}`}>
         <ActivityWorkspaceSection

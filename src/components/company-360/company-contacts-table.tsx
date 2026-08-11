@@ -8,6 +8,7 @@ import type { Project } from "@/types/project";
 import { getContactDisplayName } from "@/types/contact";
 import { getContactProjectRolesOnCompany } from "@/lib/project-team-utils";
 import { getActivitiesForContact } from "@/lib/activity-utils";
+import { decodePhoneForDisplay } from "@/lib/company-identity";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { canDeleteContact } from "@/lib/permissions";
 import type { UserRole } from "@/types/auth";
@@ -23,6 +24,14 @@ import {
 } from "@/components/contacts/contact-form-fields";
 import { ActionMenu, ActionMenuItem } from "@/components/relationship/action-menu";
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
+
+/** Strip leaked HTML / markup from contact fields before display. */
+function sanitizeContactDisplayField(value: string | null | undefined): string {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return "";
+  if (/<\/?[a-z][\s\S]*>/i.test(trimmed) || trimmed.includes("</")) return "";
+  return trimmed.replace(/<[^>]*>/g, "").trim();
+}
 import { IconLabel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 
 type ContactRowAction =
@@ -256,8 +265,11 @@ function ContactTableRow({
   onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
 }) {
-  const roleLabel = contact.JobTitle || contact.Role || "—";
-  const phone = contact.Mobile || contact.Phone;
+  const roleLabel =
+    sanitizeContactDisplayField(contact.JobTitle) ||
+    sanitizeContactDisplayField(contact.Role) ||
+    "—";
+  const phone = decodePhoneForDisplay(contact.Mobile || contact.Phone);
   const contactActivities = getActivitiesForContact(activities, contact.ContactID, contact);
   const lastInteraction = contactActivities[0];
   const canManage = canDeleteContact(role);

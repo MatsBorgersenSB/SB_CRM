@@ -1,6 +1,7 @@
 import type { Company, CompanyIndustry, CompanyStatus } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType } from "@/types/company-type";
+import { STANDARD_BIO_USERS } from "@/types/bio-user";
 import type {
   BuyingRole,
   Contact,
@@ -186,9 +187,22 @@ function mapOwnerPerson(ownerId: string | null | undefined): {
 } | null {
   if (!ownerId) return null;
   // Seed owner aligns with the default demo auth user so "My Opportunities" shows live rows.
-  const title =
-    ownerId === "seed-owner-commercial-01" ? "Mats Borgersen" : ownerId;
-  return { Id: stableNumericId(ownerId), Title: title };
+  if (ownerId === "seed-owner-commercial-01") {
+    return { Id: 1, Title: "Mats Borgersen" };
+  }
+
+  const numeric = Number(ownerId);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    const known = STANDARD_BIO_USERS.find((user) => user.Id === numeric);
+    if (known) return { Id: known.Id, Title: known.Title };
+  }
+
+  // Prefer a human name — never surface a bare numeric id as Title.
+  if (/[A-Za-z]/.test(ownerId) && !/^\d+$/.test(ownerId.trim())) {
+    return { Id: stableNumericId(ownerId), Title: ownerId.trim() };
+  }
+
+  return null;
 }
 
 export function mapPrismaContactToApp(

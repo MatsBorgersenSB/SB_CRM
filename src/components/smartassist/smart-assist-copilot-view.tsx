@@ -190,7 +190,7 @@ function CoPilotProposalCard({
       <article
         className={`rounded-lg border px-3 py-2.5 ${severityBorder(proposal.severity)}`}
       >
-        <BusinessImpactCard recommendation={businessImpact} />
+        <BusinessImpactCard recommendation={businessImpact} compact />
 
         {error ? (
           <p className="mt-2 text-[10px] text-red-600">{error}</p>

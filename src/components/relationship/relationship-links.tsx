@@ -212,7 +212,7 @@ export function PhoneActionMenu({
   phone: string;
   className?: string;
 }) {
-  const trimmed = phone.trim();
+  const trimmed = decodePhoneLabel(phone);
   if (!trimmed) return null;
 
   return (
@@ -236,4 +236,17 @@ export function PhoneActionMenu({
       </ActionMenuItem>
     </ActionMenu>
   );
+}
+
+function decodePhoneLabel(phone: string): string {
+  let value = phone.trim();
+  if (!value) return "";
+  try {
+    if (/%[0-9A-Fa-f]{2}/.test(value)) {
+      value = decodeURIComponent(value);
+    }
+  } catch {
+    value = value.replace(/%20/gi, " ");
+  }
+  return value.replace(/\s+/g, " ").trim();
 }

@@ -41,7 +41,24 @@ export function isCompanyOwnedByUser(company: Company, user: AuthUser): boolean 
 }
 
 export function hasCompanyOwner(company: Company): boolean {
-  return Boolean(company.AccountOwner?.Title?.trim());
+  const title = company.AccountOwner?.Title?.trim();
+  if (!title) return false;
+  // Numeric-only titles are leaked owner ids — not real accountability.
+  if (/^\d+$/.test(title)) return false;
+  return true;
+}
+
+/** Display name for Account Owner — never show raw ids. */
+export function formatAccountOwnerDisplay(
+  owner: SharePointPerson | null | undefined,
+): string | null {
+  const title = owner?.Title?.trim();
+  if (title && !/^\d+$/.test(title)) return title;
+  if (owner?.Id) {
+    const known = STANDARD_BIO_USERS.find((user) => user.Id === owner.Id);
+    if (known) return known.Title;
+  }
+  return null;
 }
 
 export function buildCompanyOwnerOptions(
