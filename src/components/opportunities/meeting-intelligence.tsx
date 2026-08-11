@@ -266,7 +266,11 @@ export function MeetingIntelligence({
         </p>
       </div>
 
-      <MeetingNotesAnalyzer opportunityId={opportunityId} role={role} />
+      <MeetingNotesAnalyzer
+        opportunityId={opportunityId}
+        role={role}
+        onImported={() => void load()}
+      />
 
       <div className="flex flex-wrap items-end gap-3 border border-carbon-blue/10 bg-white px-3 py-3">
         <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
