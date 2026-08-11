@@ -71,6 +71,7 @@ export function Contact360LivingWorkspace({
   onContactMerged,
   onReconciliationImported,
   projects,
+  onProjectUpdated,
 }: {
   record: GlobalContactRecord;
   company: Company;
@@ -95,6 +96,7 @@ export function Contact360LivingWorkspace({
   onContactMerged: (contact: Contact, removedContactId: string) => void;
   onReconciliationImported?: () => void;
   projects: Project[];
+  onProjectUpdated?: (project: Project) => void;
 }) {
   const { contact, linkedPipelineIds } = record;
   const [documentCount, setDocumentCount] = useState(0);
@@ -311,7 +313,15 @@ export function Contact360LivingWorkspace({
         count={projectRoles.length}
         collapseStorageKey={sectionKey("projects")}
       >
-        <ContactProjectRolesTable roles={projectRoles} />
+        <ContactProjectRolesTable
+          roles={projectRoles}
+          contact={contact}
+          company={company}
+          companies={companies}
+          projects={projects}
+          role={role}
+          onProjectUpdated={onProjectUpdated}
+        />
       </WorkspacePanel>
 
       <WorkspacePanel
