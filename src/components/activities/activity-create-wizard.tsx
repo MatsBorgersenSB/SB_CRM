@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { ACTIVITY_TYPE_OPTIONS } from "@/components/activities/activity-type-icon";
 import type { AuthUser } from "@/types/auth";
@@ -25,7 +25,12 @@ import {
   parseMemoryLines,
 } from "@/lib/relationship-memory";
 import { ActivityKnowledgeCapturePanel } from "@/components/activities/activity-knowledge-capture-panel";
+import { TaskAssigneeSelect } from "@/components/activities/task-assignee-select";
+import { TaskShareWithPicker } from "@/components/activities/task-share-control";
+import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import type { SmartAssistAssessment } from "@/types/activity";
+import type { SharePointPerson } from "@/types/company";
+import type { StandardBioUserRecord } from "@/types/user-access";
 
 type WizardStep = 1 | 2 | 3 | 4;
 type WizardMode = "plan" | "record";
@@ -38,6 +43,8 @@ type ActivityCreateWizardProps = {
   pipelines: PipelineRow[];
   preset?: Partial<CreateActivityInput>;
   defaultOwner?: AuthUser;
+  /** Assignable Standard Bio users — required for Task assignee. */
+  assignableUsers?: StandardBioUserRecord[];
 };
 
 const STEPS = {
@@ -88,6 +95,7 @@ export function ActivityCreateWizard({
   pipelines,
   preset,
   defaultOwner,
+  assignableUsers = [],
 }: ActivityCreateWizardProps) {
   const [step, setStep] = useState<WizardStep>(1);
   const [mode, setMode] = useState<WizardMode>("plan");
@@ -115,6 +123,15 @@ export function ActivityCreateWizard({
   const [followUpStatus, setFollowUpStatus] = useState<ActionStatus>("Open");
   const [smartAssistAssessment, setSmartAssistAssessment] =
     useState<SmartAssistAssessment | null>(null);
+  const [assignee, setAssignee] = useState<SharePointPerson | null>(null);
+  const [sharedWith, setSharedWith] = useState<SharePointPerson[]>([]);
+
+  const assigneeOptions = useMemo(() => {
+    const me = defaultOwner
+      ? [{ Id: defaultOwner.id, Title: defaultOwner.displayName }]
+      : [];
+    return mergeStandardBioUserOptions(assignableUsers, me);
+  }, [assignableUsers, defaultOwner]);
 
   useEffect(() => {
     if (!open) return;
@@ -147,7 +164,13 @@ export function ActivityCreateWizard({
     const today = new Date().toISOString().slice(0, 10);
     setPlanDate(preset?.ActivityDate?.slice(0, 10) ?? today);
     setPlanTime(preset?.ActivityDate?.slice(11, 16) || "09:00");
-  }, [open, preset]);
+    setAssignee(
+      defaultOwner
+        ? { Id: defaultOwner.id, Title: defaultOwner.displayName }
+        : preset?.ActivityOwner ?? null,
+    );
+    setSharedWith(preset?.SharedWith ?? []);
+  }, [open, preset, defaultOwner]);
 
   const selectedCompany = companies.find((c) => c.CompanyID === companyId);
   const contacts = selectedCompany?.contacts ?? [];
@@ -165,7 +188,8 @@ export function ActivityCreateWizard({
         ? Boolean(companyId || contactId || dealId || projectId)
         : step === 3
           ? mode === "plan"
-            ? Boolean(subject.trim())
+            ? Boolean(subject.trim()) &&
+              (activityType !== "Task" || Boolean(assignee))
             : Boolean(subject.trim() && notes.trim())
           : !followUp || Boolean(nextAction.trim());
 
@@ -209,6 +233,12 @@ export function ActivityCreateWizard({
     setDurationMinutes("60");
     setPriority("Normal");
     setTrackingStatus("Planned");
+    setAssignee(
+      defaultOwner
+        ? { Id: defaultOwner.id, Title: defaultOwner.displayName }
+        : null,
+    );
+    setSharedWith([]);
   };
 
   const handleSubmit = async () => {
@@ -221,9 +251,17 @@ export function ActivityCreateWizard({
           ? combineDateTime(planDate, planTime)
           : new Date().toISOString();
 
-      const owner = defaultOwner
-        ? { Id: defaultOwner.id, Title: defaultOwner.displayName }
-        : null;
+      const owner =
+        activityType === "Task"
+          ? assignee
+          : defaultOwner
+            ? { Id: defaultOwner.id, Title: defaultOwner.displayName }
+            : null;
+
+      if (activityType === "Task" && !owner) {
+        setSaving(false);
+        return;
+      }
 
       await syncActivityCreate({
         ActivityType: activityType,
@@ -252,16 +290,29 @@ export function ActivityCreateWizard({
             ]
           : [],
         ActivityOwner: owner,
+        SharedWith: activityType === "Task" ? sharedWith : undefined,
         DurationMinutes: mode === "plan" ? Number(durationMinutes) || undefined : undefined,
         Priority: mode === "plan" ? priority : undefined,
         M365Targets: inferM365Targets(activityType),
-        ActionRequired: followUp,
-        NextAction: followUp ? nextAction.trim() : "",
-        NextActionDate: followUp ? dueDate : "",
+        ActionRequired: activityType === "Task" ? true : followUp,
+        NextAction:
+          activityType === "Task"
+            ? subject.trim()
+            : followUp
+              ? nextAction.trim()
+              : "",
+        NextActionDate:
+          activityType === "Task"
+            ? planDate || activityDate.slice(0, 10)
+            : followUp
+              ? dueDate
+              : "",
         ActionStatus: followUp
           ? followUpStatus
           : mode === "plan"
-            ? trackingStatus
+            ? activityType === "Task"
+              ? "Open"
+              : trackingStatus
             : "Completed",
         ActionOutcome: "",
         SmartAssistAssessment: smartAssistAssessment ?? undefined,
@@ -497,6 +548,24 @@ export function ActivityCreateWizard({
                   </select>
                 </label>
               </div>
+              {activityType === "Task" ? (
+                <>
+                  <TaskAssigneeSelect
+                    value={assignee}
+                    onChange={setAssignee}
+                    options={assigneeOptions}
+                    required
+                    disabled={saving}
+                  />
+                  <TaskShareWithPicker
+                    value={sharedWith}
+                    onChange={setSharedWith}
+                    options={assigneeOptions}
+                    excludeIds={assignee ? [assignee.Id] : []}
+                    disabled={saving}
+                  />
+                </>
+              ) : null}
               <label className="block">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
                   Notes

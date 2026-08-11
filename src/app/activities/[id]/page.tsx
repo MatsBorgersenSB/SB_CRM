@@ -10,6 +10,7 @@ import {
   readCommercialPackages,
   getActivityById,
 } from "@/lib/pipeline-db";
+import { readAssignableStandardBioUsers } from "@/lib/standard-bio-users-server";
 import { notFound } from "next/navigation";
 
 export default async function ActivityDetailPage({
@@ -18,15 +19,23 @@ export default async function ActivityDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [activity, activities, companies, pipelines, smartDocsLibrary, commercialPackages] =
-    await Promise.all([
-      getActivityById(id),
-      readActivities(),
-      readCompanies(),
-      readPipelines(),
-      readSmartDocsLibrary(),
-      readCommercialPackages(),
-    ]);
+  const [
+    activity,
+    activities,
+    companies,
+    pipelines,
+    smartDocsLibrary,
+    commercialPackages,
+    assignableUsers,
+  ] = await Promise.all([
+    getActivityById(id),
+    readActivities(),
+    readCompanies(),
+    readPipelines(),
+    readSmartDocsLibrary(),
+    readCommercialPackages(),
+    readAssignableStandardBioUsers(),
+  ]);
 
   if (!activity) notFound();
 
@@ -41,6 +50,7 @@ export default async function ActivityDetailPage({
             allActivities={activities}
             smartDocsLibrary={smartDocsLibrary}
             commercialPackages={commercialPackages}
+            assignableUsers={assignableUsers}
           />
         </Suspense>
       </WorkspaceMain>

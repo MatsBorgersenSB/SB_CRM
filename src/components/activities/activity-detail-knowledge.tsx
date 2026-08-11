@@ -6,6 +6,7 @@ import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import { ActivityBriefingView } from "@/components/activities/activity-briefing-view";
 import { ActivityKnowledgeEditor } from "@/components/activities/activity-knowledge-editor";
 
@@ -16,6 +17,7 @@ export function ActivityDetailKnowledge({
   allActivities,
   smartDocsLibrary,
   commercialPackages,
+  assignableUsers = [],
 }: {
   activity: Activity;
   companies: Company[];
@@ -23,6 +25,7 @@ export function ActivityDetailKnowledge({
   allActivities: Activity[];
   smartDocsLibrary: SmartDocLibraryRecord[];
   commercialPackages: CommercialPackage[];
+  assignableUsers?: StandardBioUserRecord[];
 }) {
   const searchParams = useSearchParams();
   const capture = searchParams.get("capture") === "1";
@@ -42,6 +45,7 @@ export function ActivityDetailKnowledge({
           allActivities={allActivities}
           smartDocsLibrary={smartDocsLibrary}
           commercialPackages={commercialPackages}
+          assignableUsers={assignableUsers}
           onEdit={onEdit}
         />
       )}

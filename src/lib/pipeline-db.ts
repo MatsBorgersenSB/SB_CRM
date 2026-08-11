@@ -406,6 +406,7 @@ export async function createActivity(input: CreateActivityInput): Promise<Activi
     LinkedDeals: input.LinkedDeals ?? [],
     LinkedContacts: input.LinkedContacts ?? [],
     Stakeholders: input.Stakeholders ?? [],
+    SharedWith: input.SharedWith ?? [],
     SmartAssistAssessment: input.SmartAssistAssessment,
     Company: companyLookup as Activity["Company"],
     Contact: contactLookup as Activity["Contact"],

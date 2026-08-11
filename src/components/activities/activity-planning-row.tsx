@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Calendar, Clock, User } from "lucide-react";
 import { ActivityTypeIcon } from "@/components/activities/activity-type-icon";
+import { TaskAssigneeSelect } from "@/components/activities/task-assignee-select";
+import { TaskShareControl } from "@/components/activities/task-share-control";
 import {
   formatActivityTime,
   formatDuration,
@@ -17,11 +19,19 @@ import {
 } from "@/lib/activity-utils";
 import type { Activity, ActionStatus } from "@/types/activity";
 import type { M365ActivityTargets } from "@/types/activity";
+import type { SharePointPerson } from "@/types/company";
 
 type ActivityPlanningRowProps = {
   activity: Activity;
   onSelect?: (activity: Activity) => void;
   onStatusChange?: (activity: Activity, status: ActionStatus) => void;
+  onAssigneeChange?: (activity: Activity, assignee: SharePointPerson) => void;
+  onSharedWithChange?: (
+    activity: Activity,
+    sharedWith: SharePointPerson[],
+  ) => void;
+  assigneeOptions?: SharePointPerson[];
+  currentUser?: SharePointPerson | null;
   compact?: boolean;
 };
 
@@ -56,10 +66,15 @@ export function ActivityPlanningRow({
   activity,
   onSelect,
   onStatusChange,
+  onAssigneeChange,
+  onSharedWithChange,
+  assigneeOptions = [],
+  currentUser = null,
   compact = false,
 }: ActivityPlanningRowProps) {
   const overdue = isFollowUpOverdue(activity);
   const detailHref = `/activities/${activity.ActivityID}`;
+  const isTask = activity.ActivityType === "Task";
 
   return (
     <article
@@ -88,7 +103,9 @@ export function ActivityPlanningRow({
             <span
               className={`border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${statusBadgeClass(activity.ActionStatus)}`}
             >
-              {activity.ActionStatus === "Open" ? "Planned" : activity.ActionStatus}
+              {activity.ActionStatus === "Open" && !isTask
+                ? "Planned"
+                : activity.ActionStatus}
             </span>
             {activity.Priority ? (
               <span
@@ -103,32 +120,58 @@ export function ActivityPlanningRow({
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-carbon-blue/50">
           <span className="inline-flex items-center gap-1">
             <Calendar className="size-3" strokeWidth={2} />
-            {formatActivityDateTime(activity.ActivityDate)}
+            {isTask ? (
+              <>Due {formatDueDate(activity.NextActionDate || activity.ActivityDate)}</>
+            ) : (
+              formatActivityDateTime(activity.ActivityDate)
+            )}
           </span>
-          {activity.DurationMinutes ? (
+          {activity.DurationMinutes && !isTask ? (
             <span className="inline-flex items-center gap-1">
               <Clock className="size-3" strokeWidth={2} />
               {formatDuration(activity.DurationMinutes)}
             </span>
           ) : null}
-          {activity.ActivityOwner?.Title ? (
+          {isTask && onAssigneeChange && assigneeOptions.length > 0 ? (
+            <div className="min-w-[160px]">
+              <TaskAssigneeSelect
+                value={activity.ActivityOwner}
+                onChange={(next) => onAssigneeChange(activity, next)}
+                options={assigneeOptions}
+                label="Assignee"
+                compact
+              />
+            </div>
+          ) : activity.ActivityOwner?.Title ? (
             <span className="inline-flex items-center gap-1">
               <User className="size-3" strokeWidth={2} />
               {activity.ActivityOwner.Title}
             </span>
           ) : null}
-          {activity.NextAction && activity.ActionRequired ? (
+          {!isTask && activity.NextAction && activity.ActionRequired ? (
             <span className={overdue ? "font-semibold text-red-600" : ""}>
               Due {formatDueDate(activity.NextActionDate)} — {activity.NextAction}
             </span>
           ) : null}
         </div>
 
-        {!compact ? (
+        {(!compact ||
+          (isTask && onSharedWithChange && assigneeOptions.length > 0)) ? (
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            <M365ReadinessBadges targets={activity.M365Targets} />
+            {!compact ? <M365ReadinessBadges targets={activity.M365Targets} /> : <span />}
             <div className="flex items-center gap-2">
-              {onStatusChange && activity.ActionStatus !== "Completed" ? (
+              {isTask && onSharedWithChange && assigneeOptions.length > 0 ? (
+                <TaskShareControl
+                  activity={activity}
+                  options={assigneeOptions}
+                  currentUser={currentUser}
+                  onSharedWithChange={(sharedWith) =>
+                    onSharedWithChange(activity, sharedWith)
+                  }
+                  compact
+                />
+              ) : null}
+              {!compact && onStatusChange && activity.ActionStatus !== "Completed" ? (
                 <>
                   {activity.ActionStatus !== "In Progress" ? (
                     <button
@@ -148,12 +191,14 @@ export function ActivityPlanningRow({
                   </button>
                 </>
               ) : null}
-              <Link
-                href={detailHref}
-                className="text-[10px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
-              >
-                Details →
-              </Link>
+              {!compact ? (
+                <Link
+                  href={detailHref}
+                  className="text-[10px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
+                >
+                  Details →
+                </Link>
+              ) : null}
             </div>
           </div>
         ) : null}
