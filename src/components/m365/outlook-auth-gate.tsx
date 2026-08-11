@@ -1,7 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  Component,
+  useCallback,
+  useEffect,
+  useState,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
 import { whenOfficeReady } from "@/lib/outlook-office";
+import { markOutlookPaneReady } from "@/lib/outlook-addin-shell";
 import {
   isRetiredOutlookHost,
   resolvePublicAppOrigin,
@@ -14,6 +22,13 @@ type GateState =
   | { status: "needs-sign-in" }
   | { status: "wrong-host"; host: string }
   | { status: "error"; message: string };
+
+/** Abort hung session probes so the pane never sticks on "Connecting…". */
+const SESSION_FETCH_TIMEOUT_MS = 1_500;
+/** Absolute ceiling — always surface Sign In if still checking. */
+const CHECKING_FALLBACK_MS = 1_500;
+/** Do not block Sign In dialog on a long Office.onReady wait. */
+const SIGN_IN_OFFICE_READY_MS = 1_500;
 
 function appOrigin(): string {
   if (typeof window !== "undefined") return window.location.origin;
@@ -81,72 +96,88 @@ export function buildOutlookSignInUrl(origin = appOrigin()): string {
   return `${origin}/auth/signin?callbackUrl=${encodeURIComponent(completeUrl)}`;
 }
 
+function openSignInInBrowser(signInUrl: string): void {
+  try {
+    const popup = window.open(signInUrl, "smartcrm-signin", "width=520,height=720");
+    if (!popup) {
+      window.open(signInUrl, "_blank", "noopener,noreferrer");
+    }
+  } catch {
+    window.location.assign(signInUrl);
+  }
+}
+
 /**
  * Opens SmartCRM SSO in an Office dialog (or a popup / new-tab fallback) so the
  * task pane can receive a session via dialog-bridge (iframe-safe).
+ * Never throws — always falls back to a browser window.
  */
 export async function openOutlookSignInDialog(onComplete: () => void): Promise<void> {
   const signInUrl = buildOutlookSignInUrl();
 
-  const office = await whenOfficeReady();
-  const displayDialog = office?.context?.ui?.displayDialogAsync;
+  try {
+    const office = await whenOfficeReady(SIGN_IN_OFFICE_READY_MS);
+    const displayDialog = office?.context?.ui?.displayDialogAsync;
 
-  if (typeof displayDialog === "function" && office) {
-    displayDialog(
-      signInUrl,
-      {
-        height: 70,
-        width: 40,
-        promptBeforeOpen: false,
-        displayInIframe: false,
-      },
-      (result) => {
-        if (result.status !== Office.AsyncResultStatus.Succeeded || !result.value) {
-          window.open(signInUrl, "_blank", "noopener,noreferrer");
-          return;
-        }
-        const dialog = result.value;
-        let settled = false;
-
-        const finish = async (bridgeToken?: string) => {
-          if (settled) return;
-          settled = true;
-          try {
-            if (bridgeToken) {
-              await claimBridgeToken(bridgeToken);
-            }
-          } catch {
-            /* checkSession will surface failure */
+    if (typeof displayDialog === "function" && office) {
+      displayDialog(
+        signInUrl,
+        {
+          height: 70,
+          width: 40,
+          promptBeforeOpen: false,
+          displayInIframe: false,
+        },
+        (result) => {
+          if (result.status !== Office.AsyncResultStatus.Succeeded || !result.value) {
+            openSignInInBrowser(signInUrl);
+            return;
           }
-          try {
-            dialog.close();
-          } catch {
-            /* already closed */
-          }
-          onComplete();
-        };
+          const dialog = result.value;
+          let settled = false;
 
-        dialog.addEventHandler(
-          Office.EventType.DialogMessageReceived,
-          (arg) => {
-            const message =
-              typeof arg === "object" && arg && "message" in arg
-                ? String((arg as { message: string }).message)
-                : typeof arg === "string"
-                  ? arg
-                  : "";
-            const parsed = parseDialogMessage(message);
-            if (parsed.authenticated) {
-              void finish(parsed.bridgeToken);
+          const finish = async (bridgeToken?: string) => {
+            if (settled) return;
+            settled = true;
+            try {
+              if (bridgeToken) {
+                await claimBridgeToken(bridgeToken);
+              }
+            } catch {
+              /* checkSession will surface failure */
             }
-          },
-        );
-        dialog.addEventHandler(Office.EventType.DialogEventReceived, () => {
-          void finish();
-        });
-      },
-    );
-    return;
+            try {
+              dialog.close();
+            } catch {
+              /* already closed */
+            }
+            onComplete();
+          };
+
+          dialog.addEventHandler(
+            Office.EventType.DialogMessageReceived,
+            (arg) => {
+              const message =
+                typeof arg === "object" && arg && "message" in arg
+                  ? String((arg as { message: string }).message)
+                  : typeof arg === "string"
+                    ? arg
+                    : "";
+              const parsed = parseDialogMessage(message);
+              if (parsed.authenticated) {
+                void finish(parsed.bridgeToken);
+              }
+            },
+          );
+          dialog.addEventHandler(Office.EventType.DialogEventReceived, () => {
+            void finish();
+          });
+        },
+      );
+      return;
+    }
+  } catch {
+    /* fall through to browser open */
   }
 
   const popup = window.open(signInUrl, "smartcrm-signin", "width=520,height=720");
@@ -162,7 +193,15 @@ export async function openOutlookSignInDialog(onComplete: () => void): Promise<v
   }, 800);
 }
 
-function SignInToSmartCrmCard({ onSignedIn }: { onSignedIn: () => void }) {
+function SignInToSmartCrmCard({
+  onSignedIn,
+  verifying = false,
+}: {
+  onSignedIn: () => void;
+  verifying?: boolean;
+}) {
+  const signInUrl = buildOutlookSignInUrl();
+
   return (
     <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
       <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
@@ -174,16 +213,66 @@ function SignInToSmartCrmCard({ onSignedIn }: { onSignedIn: () => void }) {
           Relationship intelligence stays in SmartCRM. Sign in with your Microsoft work
           account — then this pane answers what matters and what to do next.
         </p>
+        {verifying ? (
+          <p className="mt-3 text-[10px] text-carbon-blue/40">Checking session…</p>
+        ) : null}
         <button
           type="button"
-          onClick={() => void openOutlookSignInDialog(onSignedIn)}
+          onClick={() => {
+            void openOutlookSignInDialog(onSignedIn).catch(() => {
+              openSignInInBrowser(signInUrl);
+            });
+          }}
           className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
         >
           Sign In to SmartCRM
         </button>
+        <a
+          href={signInUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 block text-center text-[10px] font-medium text-carbon-blue/60 underline-offset-2 hover:underline"
+        >
+          Open sign-in in browser
+        </a>
       </div>
     </div>
   );
+}
+
+/**
+ * Catches render errors in the Outlook task pane and always offers Sign In.
+ */
+export class OutlookAddinErrorBoundary extends Component<
+  { children: ReactNode; onRetry?: () => void },
+  { hasError: boolean; message: string }
+> {
+  state = { hasError: false, message: "" };
+
+  static getDerivedStateFromError(error: Error) {
+    return {
+      hasError: true,
+      message: error?.message?.trim() || "Something went wrong in the Outlook pane.",
+    };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[SmartCRM OutlookAddin]", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <SignInToSmartCrmCard
+          onSignedIn={() => {
+            this.setState({ hasError: false, message: "" });
+            this.props.onRetry?.();
+          }}
+        />
+      );
+    }
+    return this.props.children;
+  }
 }
 
 /**
@@ -191,57 +280,109 @@ function SignInToSmartCrmCard({ onSignedIn }: { onSignedIn: () => void }) {
  * relationship / briefing intelligence.
  *
  * Office.onReady runs on mount (via whenOfficeReady) regardless of auth status.
- * Session probe uses /api/auth/session — 401/403 → needs-sign-in, never throws.
+ * Session probe uses /api/auth/session — any failure / timeout → needs-sign-in.
+ * Never throws.
  */
 export function OutlookAuthGate({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<GateState>({ status: "checking" });
+  // Default to Sign In so SSR / failed hydration never leave a blank "Connecting…" pane.
+  // Session probe upgrades to authenticated when a session exists.
+  const [state, setState] = useState<GateState>({ status: "needs-sign-in" });
+  const [probePending, setProbePending] = useState(true);
 
-  const checkSession = useCallback(async () => {
-    setState({ status: "checking" });
-
-    if (typeof window !== "undefined" && isRetiredOutlookHost(window.location.host)) {
-      setState({ status: "wrong-host", host: window.location.host });
-      return;
+  const checkSession = useCallback(async (mode: "soft" | "hard" = "soft") => {
+    if (mode === "hard") {
+      setState({ status: "checking" });
     }
+    setProbePending(true);
 
     try {
-      const response = await fetch("/api/auth/session", {
-        credentials: "include",
-        cache: "no-store",
-      });
+      if (typeof window !== "undefined" && isRetiredOutlookHost(window.location.host)) {
+        setState({ status: "wrong-host", host: window.location.host });
+        return;
+      }
 
-      // Unauthenticated / forbidden → friendly sign-in, never an unhandled error
+      const controller = new AbortController();
+      const abortTimer = window.setTimeout(
+        () => controller.abort(),
+        SESSION_FETCH_TIMEOUT_MS,
+      );
+
+      let response: Response;
+      try {
+        response = await fetch("/api/auth/session", {
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(abortTimer);
+      }
+
+      // Unauthenticated / forbidden / non-OK → friendly sign-in, never an unhandled error
       if (response.status === 401 || response.status === 403 || !response.ok) {
         setState({ status: "needs-sign-in" });
         return;
       }
 
-      const session = (await response.json()) as {
-        user?: { email?: string | null } | null;
-      };
+      const raw = await response.text();
+      type SessionProbe = { user?: { email?: string | null } | null };
+      let session: SessionProbe | null = null;
+      try {
+        session = raw ? (JSON.parse(raw) as SessionProbe) : null;
+      } catch {
+        // HTML / non-JSON (e.g. unexpected middleware) → Sign In, never SyntaxError
+        setState({ status: "needs-sign-in" });
+        return;
+      }
+
       if (session?.user?.email) {
         setState({ status: "authenticated" });
         return;
       }
       setState({ status: "needs-sign-in" });
     } catch {
-      // Network / parse failures: treat as signed out so the pane stays usable
+      // Network / abort / parse failures: treat as signed out so the pane stays usable
       setState({ status: "needs-sign-in" });
+    } finally {
+      setProbePending(false);
     }
   }, []);
 
   // Office.onReady must run on mount regardless of authentication status
   useEffect(() => {
-    void whenOfficeReady();
+    markOutlookPaneReady();
+    void whenOfficeReady().catch(() => null);
   }, []);
 
   useEffect(() => {
-    void checkSession();
+    void checkSession("soft");
   }, [checkSession]);
+
+  // Hard timeout: never leave the user on "Connecting to SmartCRM…"
+  useEffect(() => {
+    if (state.status !== "checking") return;
+    const timer = window.setTimeout(() => {
+      setState((current) =>
+        current.status === "checking" ? { status: "needs-sign-in" } : current,
+      );
+      setProbePending(false);
+    }, CHECKING_FALLBACK_MS);
+    return () => window.clearTimeout(timer);
+  }, [state.status]);
+
+  // Soft probe should also settle quickly even if fetch hangs past AbortController quirks
+  useEffect(() => {
+    if (!probePending || state.status !== "needs-sign-in") return;
+    const timer = window.setTimeout(() => setProbePending(false), CHECKING_FALLBACK_MS);
+    return () => window.clearTimeout(timer);
+  }, [probePending, state.status]);
 
   if (state.status === "checking") {
     return (
-      <div className="flex h-[100dvh] items-center justify-center bg-white px-6">
+      <div
+        data-smartcrm-connecting=""
+        className="flex h-[100dvh] items-center justify-center bg-white px-6"
+      >
         <p className="text-[12px] text-carbon-blue/50">Connecting to SmartCRM…</p>
       </div>
     );
@@ -279,7 +420,7 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
         <p className="mt-1 text-[11px] text-carbon-blue/50">{state.message}</p>
         <button
           type="button"
-          onClick={() => void checkSession()}
+          onClick={() => void checkSession("hard")}
           className="mt-4 border border-carbon-blue/15 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue"
         >
           Retry
@@ -289,8 +430,17 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
   }
 
   if (state.status === "needs-sign-in") {
-    return <SignInToSmartCrmCard onSignedIn={() => void checkSession()} />;
+    return (
+      <SignInToSmartCrmCard
+        onSignedIn={() => void checkSession("hard")}
+        verifying={probePending}
+      />
+    );
   }
 
-  return <>{children}</>;
+  return (
+    <OutlookAddinErrorBoundary onRetry={() => void checkSession("hard")}>
+      {children}
+    </OutlookAddinErrorBoundary>
+  );
 }

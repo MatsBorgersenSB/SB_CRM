@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter } from "next/font/google";
 import { RootProviders } from "@/components/providers/root-providers";
+import { outlookHistoryPolyfillScript } from "@/lib/outlook-addin-shell";
 import "./globals.css";
 
 const inter = Inter({
@@ -21,6 +23,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">
+        {/*
+          beforeInteractive only works from the root layout.
+          Outlook Web stubs history.pushState/replaceState; Next App Router
+          calls them on hydrate and crashes. Polyfill is a no-op when History works.
+        */}
+        <Script
+          id="smartcrm-outlook-history-polyfill"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: outlookHistoryPolyfillScript() }}
+        />
         <RootProviders>{children}</RootProviders>
       </body>
     </html>
