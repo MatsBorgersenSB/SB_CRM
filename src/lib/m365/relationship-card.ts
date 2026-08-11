@@ -9,8 +9,13 @@ import {
 import { sumPipelineValue, buildPipelineImpactLines } from "@/lib/impact-context";
 import { isFollowUpOpen, isFollowUpOverdue } from "@/lib/activity-utils";
 import { buildM365Meta } from "@/lib/m365/meta";
-import { toM365Action, toM365RiskFromCompanySignal } from "@/lib/m365/blocks";
+import {
+  toM365Action,
+  toM365ActionFromFields,
+  toM365RiskFromCompanySignal,
+} from "@/lib/m365/blocks";
 import type { M365DataContext } from "@/lib/m365/resolve-context";
+import { buildCoPilotProposals } from "@/lib/smartassist-copilot-engine";
 import type { Company } from "@/types/company";
 import type { M365RelationshipCardPayload } from "@/types/m365";
 import { M365_BUDGETS } from "@/types/m365";
@@ -44,11 +49,33 @@ export function buildM365RelationshipCard(
   const pipelineValue = sumPipelineValue(pipelines);
   const pipelineImpact = buildPipelineImpactLines(pipelines);
 
-  const nextBestAction = toM365Action(
-    intelligence.recommendedAction,
-    company.CompanyID,
-    pipelineImpact,
-  );
+  // FS-013 — prefer Active Assist prepared action when available for this company.
+  const prepared = buildCoPilotProposals(
+    [company],
+    pipelines,
+    ctx.activities,
+    [],
+  ).find((proposal) => proposal.companyId === company.CompanyID);
+
+  const nextBestAction = prepared
+    ? toM365ActionFromFields({
+        id: prepared.id,
+        action: prepared.title,
+        reason: prepared.reason,
+        priority:
+          prepared.severity === "urgent"
+            ? "High"
+            : prepared.severity === "needs_attention"
+              ? "Medium"
+              : "Low",
+        href: prepared.href ?? company360Href(company.CompanyID),
+        extraImpact: [prepared.impact, ...pipelineImpact],
+      })
+    : toM365Action(
+        intelligence.recommendedAction,
+        company.CompanyID,
+        pipelineImpact,
+      );
 
   const whatIsAtRisk = topRisk?.label ?? "No critical risks detected";
   const whyItMatters =

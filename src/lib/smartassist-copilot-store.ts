@@ -89,6 +89,11 @@ export function isCoPilotProposalHandled(
   if (proposal) {
     keys.add(proposal.id);
     keys.add(proposalSuppressionKey(proposal));
+    // Learned policy: supplier dismissals suppress opportunity nags for the company.
+    if (proposal.kind === "create_opportunity" && proposal.companyId) {
+      keys.add(`create_opportunity:${proposal.companyId}`);
+      keys.add(`policy:no_opportunity:${proposal.companyId}`);
+    }
   }
   for (const key of keys) {
     if (record.dismissed.includes(key) || record.approved.includes(key)) {
@@ -152,7 +157,7 @@ export async function dismissCoPilotProposalWithReason(input: {
   });
 
   const body = (await response.json().catch(() => null)) as
-    | { error?: string; ok?: boolean }
+    | { error?: string; ok?: boolean; learnedKeys?: string[] }
     | null;
 
   if (!response.ok) {
@@ -162,6 +167,8 @@ export async function dismissCoPilotProposalWithReason(input: {
       "[copilot] durable dismiss save failed; kept local suppression",
       body?.error,
     );
+  } else if (body?.learnedKeys?.length) {
+    mergeDurableCoPilotDismissals(body.learnedKeys);
   }
 }
 

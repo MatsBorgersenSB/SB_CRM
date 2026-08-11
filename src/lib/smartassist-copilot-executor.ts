@@ -81,6 +81,7 @@ export async function executeCoPilotProposal(
   if (
     (kind === "create_activity" ||
       kind === "schedule_follow_up" ||
+      kind === "set_reminder" ||
       kind === "draft_email") &&
     payload.createActivity
   ) {
@@ -108,7 +109,27 @@ export async function executeCoPilotProposal(
     await activities.create(createInput);
     return {
       mode: "applied",
-      message: `Created activity "${payload.createActivity.Subject ?? proposal.title}" in CRM.`,
+      message:
+        kind === "set_reminder"
+          ? `Reminder set — "${payload.createActivity.Subject ?? proposal.title}" is on your activity plan.`
+          : `Created activity "${payload.createActivity.Subject ?? proposal.title}" in CRM.`,
+    };
+  }
+
+  if (kind === "propose_record_update") {
+    const href =
+      proposal.href ??
+      (payload.recordUpdate?.companyId
+        ? `/companies/${encodeURIComponent(payload.recordUpdate.companyId)}`
+        : undefined);
+    if (!href) {
+      throw new Error("This record update needs a company to open.");
+    }
+    return {
+      mode: "navigate",
+      href,
+      message: `Open ${payload.recordUpdate?.fieldLabel ?? "company"} to confirm the update — SmartAssist prepared it; you decide.`,
+      prefill: payload.prefill,
     };
   }
 

@@ -4,8 +4,8 @@ import { SmartAssistCopilotPanel } from "@/components/smartassist/smart-assist-c
 import { useSmartAssist } from "@/context/smart-assist-context";
 
 /**
- * Surfaces CRM Co-Pilot Approve / Dismiss / Review proposals.
- * SmartAssist prepares; the user decides. Reduces manual CRM punching.
+ * Surfaces Active Assist — prepare activities, reminders, record updates.
+ * SmartAssist prepares; the user decides. FS-013 Active Operating Loop.
  */
 export function SmartAssistCopilotHost({
   companyName,
