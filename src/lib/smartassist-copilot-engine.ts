@@ -24,6 +24,7 @@ import {
   type CompanyCorrespondenceEvidence,
 } from "@/lib/company-correspondence";
 import {
+  proposalsFromCorrespondenceActions,
   proposalsFromLivingRecords,
   proposalsFromMeetingCommitments,
   proposalsFromUpcomingCommitments,
@@ -456,6 +457,14 @@ export function buildCoPilotProposals(
   }
 
   for (const proposal of proposalsFromMeetingCommitments(liveActivities, companies)) {
+    pushUnique(proposal);
+  }
+
+  for (const proposal of proposalsFromCorrespondenceActions(
+    companies,
+    liveActivities,
+    correspondenceByCompanyId,
+  )) {
     pushUnique(proposal);
   }
 

@@ -2,6 +2,7 @@ import { getPrisma } from "@/lib/prisma";
 import { resolveOpportunityId } from "@/lib/meeting-intelligence-data";
 import { isExternalEmail, isInternalEmail } from "@/lib/domain-rules";
 import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
+import { extractCorrespondenceActionSignals } from "@/lib/correspondence-action-signals";
 import type { SentimentGrade } from "@/generated/prisma";
 import type { IngestedSmartDoc } from "@/lib/smartdocs-ingestion";
 
@@ -276,6 +277,27 @@ export function buildEmailThreadSummary(
   if (lastInbound && (lastInbound.sentiment === "cautious" || lastInbound.sentiment === "negative")) {
     riskAlerts.push(
       `Latest customer reply (${lastInbound.senderEmail}) is ${lastInbound.sentiment} — follow up promptly to prevent stall.`,
+    );
+  }
+
+  const signals = extractCorrespondenceActionSignals(
+    sorted.map((message) => ({
+      id: message.id,
+      conversationId: message.conversationId,
+      subject: message.subject,
+      bodyPreview: message.bodyPreview,
+      sentAt: message.sentAt,
+      isOutbound: message.isOutbound,
+    })),
+  );
+  for (const ask of signals.actionAsks.slice(0, 2)) {
+    takeaways.push(`Action requested in mail: ${ask.excerpt}`);
+  }
+  for (const followUp of signals.proposalFollowUps.slice(0, 2)) {
+    riskAlerts.push(
+      followUp.kind === "proposal_requested"
+        ? `Proposal/quote requested ${followUp.daysSince} days ago with no reply — follow-up required.`
+        : `Proposal/quotation sent ${followUp.daysSince} days ago with no reply — follow-up required.`,
     );
   }
 

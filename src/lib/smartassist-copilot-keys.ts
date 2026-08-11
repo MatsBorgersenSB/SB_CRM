@@ -33,5 +33,13 @@ export function buildCoPilotSuppressionKey(input: {
     return `create_activity:first_touch:${companyId}`;
   }
 
+  if (input.ruleId === "mail_action_ask" && companyId) {
+    return `create_activity:mail_ask:${companyId}:${input.id}`;
+  }
+
+  if (input.ruleId === "mail_proposal_followup" && companyId) {
+    return `set_reminder:mail_proposal:${companyId}:${input.id}`;
+  }
+
   return input.id;
 }
