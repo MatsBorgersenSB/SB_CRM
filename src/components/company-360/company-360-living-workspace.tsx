@@ -20,6 +20,7 @@ import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WebsiteDiscoveryPanel } from "@/components/companies/website-discovery-panel";
 import { AttentionQueueTable } from "@/components/attention/attention-queue-table";
 import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
+import { Company360OverviewStrips } from "@/components/company-360/company-360-overview-strips";
 import { CompanyOpportunitiesSection } from "@/components/opportunity/company-opportunities-section";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
@@ -31,6 +32,7 @@ import type { Activity } from "@/types/activity";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
 import type { CreateOpportunityInput } from "@/types/deal";
 import type { AttentionItem } from "@/types/attention-item";
+import { sortAttentionItems } from "@/types/attention-item";
 import type { UserRole } from "@/types/auth";
 import type { Project } from "@/types/project";
 import type { PipelineRow } from "@/types/pipeline";
@@ -44,6 +46,7 @@ import {
   canManageOpportunityStakeholders,
 } from "@/lib/permissions";
 import { isOpportunityEligibleCompany } from "@/lib/company-classification";
+import { filterDismissedAttentionItems } from "@/lib/attention-dismiss-store";
 import { companyRouteKey } from "@/types/company-360";
 import {
   companyMissionControlHref,
@@ -103,8 +106,8 @@ export function Company360LivingWorkspace({
   const [documentCount, setDocumentCount] = useState(0);
   const [activeTool, setActiveTool] = useState<Company360ActiveTool>(null);
   const [createRequestId, setCreateRequestId] = useState(0);
-  /** null until AttentionQueueTable reports visible (non-dismissed) count */
-  const [openAttentionCount, setOpenAttentionCount] = useState<number | null>(null);
+  const [attentionDismissTick, setAttentionDismissTick] = useState(0);
+  const [attentionHydrated, setAttentionHydrated] = useState(false);
   const [discoveryUrl, setDiscoveryUrl] = useState(
     company.Domain ? companyWebsiteHref(company.Domain) : "",
   );
@@ -117,7 +120,11 @@ export function Company360LivingWorkspace({
   );
 
   useEffect(() => {
-    setOpenAttentionCount(null);
+    setAttentionHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    setAttentionDismissTick(0);
   }, [attentionItems]);
 
   const companyActivities = useMemo(
@@ -132,6 +139,12 @@ export function Company360LivingWorkspace({
       }),
     [company.CompanyID, company.contacts, projects],
   );
+
+  const visibleAttentionItems = useMemo(() => {
+    void attentionDismissTick;
+    const sorted = sortAttentionItems(attentionItems);
+    return attentionHydrated ? filterDismissedAttentionItems(sorted) : sorted;
+  }, [attentionItems, attentionDismissTick, attentionHydrated]);
 
   const routeKey = companyRouteKey(company);
 
@@ -156,13 +169,13 @@ export function Company360LivingWorkspace({
 
   const viewCounts = useMemo(
     () => ({
-      overview: openAttentionCount ?? 0,
+      overview: visibleAttentionItems.length,
       people: company.contacts.length,
       work: linkedPipelines.length + linkedProjects.length,
       actions: companyActivities.length + documentCount,
     }),
     [
-      openAttentionCount,
+      visibleAttentionItems.length,
       company.contacts.length,
       linkedPipelines.length,
       linkedProjects.length,
@@ -275,21 +288,31 @@ export function Company360LivingWorkspace({
 
           <SmartAssistCopilotHost companyName={company.Title} />
 
-          <WorkspacePanel
-            title="Attention"
-            id="attention"
-            count={
-              openAttentionCount != null && openAttentionCount > 0
-                ? openAttentionCount
-                : undefined
-            }
-          >
-            <AttentionQueueTable
-              items={attentionItems}
-              emptyMessage="No open attention for this company."
-              onVisibleCountChange={setOpenAttentionCount}
-            />
-          </WorkspacePanel>
+          {visibleAttentionItems.length > 0 ? (
+            <WorkspacePanel
+              title="Attention"
+              id="attention"
+              count={visibleAttentionItems.length}
+            >
+              <AttentionQueueTable
+                items={attentionItems}
+                emptyMessage="No open attention for this company."
+                onItemDismissed={() =>
+                  setAttentionDismissTick((value) => value + 1)
+                }
+              />
+            </WorkspacePanel>
+          ) : null}
+
+          <Company360OverviewStrips
+            company={company}
+            activities={scopedActivities}
+            deals={linkedPipelines}
+            commercialPackages={commercialPackages}
+            projects={linkedProjects}
+            onOpenPeople={() => navigateView("people")}
+            onOpenWork={() => navigateView("work")}
+          />
         </>
       ) : null}
 
