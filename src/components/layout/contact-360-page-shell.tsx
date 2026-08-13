@@ -54,9 +54,18 @@ export function Contact360PageShell({
   const [activityRows, setActivityRows] = useState(activities);
   const [evidenceRows, setEvidenceRows] = useState(outlookEvidence);
   const [projectRows, setProjectRows] = useState(projects);
+  const [pipelineRows, setPipelineRows] = useState(pipelines);
 
   const handleProjectUpdated = useCallback((updated: Project) => {
     setProjectRows((current) => {
+      const exists = current.some((row) => row.id === updated.id);
+      if (!exists) return [...current, updated];
+      return current.map((row) => (row.id === updated.id ? updated : row));
+    });
+  }, []);
+
+  const handlePipelineUpdated = useCallback((updated: PipelineRow) => {
+    setPipelineRows((current) => {
       const exists = current.some((row) => row.id === updated.id);
       if (!exists) return [...current, updated];
       return current.map((row) => (row.id === updated.id ? updated : row));
@@ -68,8 +77,8 @@ export function Contact360PageShell({
     [companyRows, user],
   );
   const scopedPipelines = useMemo(
-    () => filterPipelinesForUser(pipelines, user, companyRows),
-    [pipelines, user, companyRows],
+    () => filterPipelinesForUser(pipelineRows, user, companyRows),
+    [pipelineRows, user, companyRows],
   );
 
   const record = useMemo(
@@ -267,6 +276,7 @@ export function Contact360PageShell({
           onReconciliationImported={handleReconciliationImported}
           projects={projectRows}
           onProjectUpdated={handleProjectUpdated}
+          onPipelineUpdated={handlePipelineUpdated}
         />
       </WorkspaceMain>
     </WorkspaceChrome>
