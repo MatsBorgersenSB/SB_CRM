@@ -14,10 +14,13 @@ import {
   applyOutlookItemSmartCrmCategories,
   ensureOutlookComposeSeed,
   resolveOutlookComposeRecipients,
+  subscribeOutlookComposeRecipientsChanged,
   type OutlookComposeRecipient,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
 import type { UserRole } from "@/types/auth";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type LinkOption = {
   id: string;
@@ -92,6 +95,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [manualEmail, setManualEmail] = useState("");
 
   const reload = useCallback(() => {
     setReloadKey((key) => key + 1);
@@ -110,6 +114,42 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
     }
   };
 
+  const loadForEmail = useCallback(
+    async (email: string, displayName = "") => {
+      setPhase({ status: "loading" });
+      setError(null);
+      setStatus(null);
+      const normalized = email.trim().toLowerCase();
+      if (!EMAIL_RE.test(normalized)) {
+        setError("Enter a valid email address.");
+        setPhase({ status: "no-recipients" });
+        return;
+      }
+
+      const result = await loadTagContext(normalized, role);
+      if (result.kind === "auth") {
+        setPhase({ status: "auth-required" });
+        return;
+      }
+      if (result.kind === "unknown") {
+        setPhase({
+          status: "unknown",
+          email: normalized,
+          displayName,
+        });
+        return;
+      }
+      if (result.kind === "error") {
+        setError(result.message);
+        setPhase({ status: "no-recipients" });
+        return;
+      }
+      setSelectedEmail(normalized);
+      applyReadyContext(normalized, result.context);
+    },
+    [role],
+  );
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -117,7 +157,10 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       setError(null);
       setStatus(null);
 
-      const list = await resolveOutlookComposeRecipients();
+      const list = await resolveOutlookComposeRecipients({
+        attempts: 6,
+        delayMs: 350,
+      });
       if (cancelled) return;
       setRecipients(list);
 
@@ -165,6 +208,28 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
     // Intentionally re-run on reload / role; recipient switch handled below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, reloadKey]);
+
+  useEffect(() => {
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+    let timer: number | undefined;
+
+    void (async () => {
+      unsubscribe = await subscribeOutlookComposeRecipientsChanged(() => {
+        if (!active) return;
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          if (active) reload();
+        }, 400);
+      });
+    })();
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+      unsubscribe?.();
+    };
+  }, [reload]);
 
   useEffect(() => {
     if (!selectedEmail || recipients.length === 0) return;
@@ -360,9 +425,41 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       ) : null}
 
       {phase.status === "no-recipients" ? (
-        <p className="mt-4 text-[11px] leading-relaxed text-carbon-blue/55">
-          Add someone in To, then open Assign again.
-        </p>
+        <div className="mt-4 space-y-3">
+          <p className="text-[11px] leading-relaxed text-carbon-blue/55">
+            Outlook has not shared the To field yet. Click refresh, or type the recipient
+            email.
+          </p>
+          <button
+            type="button"
+            onClick={reload}
+            className="inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+          >
+            Refresh recipients
+          </button>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            Recipient email
+            <input
+              type="email"
+              value={manualEmail}
+              onChange={(event) => setManualEmail(event.target.value)}
+              placeholder="name@company.com"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              const email = manualEmail.trim().toLowerCase();
+              setRecipients([{ email, displayName: "" }]);
+              void loadForEmail(email);
+            }}
+            disabled={!manualEmail.trim()}
+            className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
+          >
+            Continue with this email
+          </button>
+        </div>
       ) : null}
 
       {recipients.length > 0 ? (
