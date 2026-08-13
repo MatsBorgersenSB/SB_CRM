@@ -60,10 +60,15 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
     );
 
     if (companies.length === 0 && opportunities.length === 0) {
+      // Empty registry — only then fall back to seed JSON. Never replace a
+      // non-empty Prisma result; Outlook creates would vanish from lists.
       const [jsonCompanies, jsonPipelines] = await Promise.all([
         readJsonCompanies(),
         readJsonPipelines(),
       ]);
+      console.warn(
+        "[prisma-data] Prisma registry empty; using JSON portfolio fallback",
+      );
       return { companies: jsonCompanies, pipelines: jsonPipelines, source: "json" };
     }
 
@@ -80,6 +85,19 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
       `[prisma-data] Falling back to JSON portfolio${hint}:`,
       error instanceof Error ? error.message : error,
     );
+
+    // Production / Vercel: seed JSON must not replace the Prisma registry.
+    // Outlook creates (CO-/CT-) live only in Postgres — a silent JSON fallback
+    // makes brand-new contacts/companies disappear from list pages.
+    const registryConfigured = Boolean(
+      process.env.DATABASE_URL || process.env.DIRECT_URL,
+    );
+    if (registryConfigured && process.env.NODE_ENV === "production") {
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to load live portfolio from Prisma");
+    }
+
     const [companies, pipelines] = await Promise.all([
       readJsonCompanies(),
       readJsonPipelines(),

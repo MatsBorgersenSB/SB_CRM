@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Contact360LivingWorkspace } from "@/components/contacts/contact-360-living-workspace";
@@ -55,6 +55,26 @@ export function Contact360PageShell({
   const [evidenceRows, setEvidenceRows] = useState(outlookEvidence);
   const [projectRows, setProjectRows] = useState(projects);
   const [pipelineRows, setPipelineRows] = useState(pipelines);
+
+  useEffect(() => {
+    setCompanyRows(companies);
+  }, [companies]);
+
+  useEffect(() => {
+    setPipelineRows(pipelines);
+  }, [pipelines]);
+
+  useEffect(() => {
+    setActivityRows(activities);
+  }, [activities]);
+
+  useEffect(() => {
+    setEvidenceRows(outlookEvidence);
+  }, [outlookEvidence]);
+
+  useEffect(() => {
+    setProjectRows(projects);
+  }, [projects]);
 
   const handleProjectUpdated = useCallback((updated: Project) => {
     setProjectRows((current) => {

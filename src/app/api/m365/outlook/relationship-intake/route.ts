@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { m365Error } from "@/lib/m365/api-response";
 import {
@@ -5,6 +6,13 @@ import {
   buildRelationshipIntakeProposal,
 } from "@/lib/m365/relationship-intake";
 import type { OutlookContactEnrichment } from "@/lib/m365/outlook-sender-types";
+
+function revalidateRelationshipLists(contactId: string, companyId: string) {
+  revalidatePath("/contacts");
+  revalidatePath("/companies");
+  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/companies/${companyId}`);
+}
 
 /**
  * FS-012 Relationship Intake
@@ -79,6 +87,7 @@ export async function POST(request: Request) {
         projectId: body.projectId,
         message: body.message,
       });
+      revalidateRelationshipLists(result.contactId, result.companyId);
       return NextResponse.json(result, { status: 201 });
     }
 

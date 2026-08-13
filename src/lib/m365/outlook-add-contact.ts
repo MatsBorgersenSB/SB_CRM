@@ -1,12 +1,12 @@
 import {
-  createCompany,
   createCompanyContact,
   readCompanies,
   updateCompany,
 } from "@/lib/pipeline-db";
-import { createRegistryCompany } from "@/lib/company-registry";
-import { createRegistryContact } from "@/lib/contact-registry";
+import { createRegistryCompany, loadMappedPrismaCompany } from "@/lib/company-registry";
+import { createRegistryContact, getRegistryContactById } from "@/lib/contact-registry";
 import { readLiveCompanies } from "@/lib/prisma-data";
+import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import { resolveAccountOwner } from "@/lib/company-owner";
 import { buildM365RelationshipCard } from "@/lib/m365/relationship-card";
 import { loadM365DataContext } from "@/lib/m365/resolve-context";
@@ -224,14 +224,20 @@ export async function addOutlookContact(
       AccountOwner: resolveAccountOwner(null),
     };
 
-    company =
-      (await createRegistryCompany(newCompanyInput)) ??
-      (await createCompany(newCompanyInput));
+    company = await createRegistryCompany(newCompanyInput);
+    if (!company) {
+      throw new Error(
+        "Could not save the company to SmartCRM. Check database connectivity and try again.",
+      );
+    }
     companyCreated = true;
   } else {
     const enrichmentPatch = buildCompanyEnrichmentPatch(enrichment);
     if (Object.keys(enrichmentPatch).length > 0) {
-      company = await updateCompany(company.CompanyID, enrichmentPatch);
+      const { updateRegistryCompany } = await import("@/lib/company-registry");
+      company =
+        (await updateRegistryCompany(company.CompanyID, enrichmentPatch)) ??
+        (await updateCompany(company.CompanyID, enrichmentPatch));
     }
   }
 
@@ -252,16 +258,26 @@ export async function addOutlookContact(
     Phone: officePhone,
     Mobile: mobilePhone,
     LinkedInURL: "",
-    Status: "Prospecting" as ContactStatus,
+    Status: "Active" as ContactStatus,
     RelationshipLevel: "Operational" as RelationshipLevel,
     streetAddress: addressFields?.AddressLine1?.trim() || undefined,
     city: addressFields?.City?.trim() || undefined,
     country: addressFields?.Country?.Title?.trim() || undefined,
   };
 
-  const contact =
-    (await createRegistryContact(contactInput)) ??
-    (await createCompanyContact(company.CompanyID, contactInput));
+  // Registry-first only — never Prisma company + JSON-only contact (list disappears).
+  let contact = await createRegistryContact(contactInput);
+  if (!contact) {
+    // Matched JSON-only company: allow JSON contact write, then try promote is out of scope.
+    const liveCompanies = await readLiveCompanies().catch(() => [] as typeof companies);
+    const inLive = liveCompanies.some((row) => row.CompanyID === company!.CompanyID);
+    if (inLive || companyCreated) {
+      throw new Error(
+        "Company was saved but the contact could not be written to SmartCRM. Try again.",
+      );
+    }
+    contact = await createCompanyContact(company.CompanyID, contactInput);
+  }
 
   logOutlookImport("PERSISTED CONTACT", {
     ContactID: contact.ContactID,
@@ -284,18 +300,49 @@ export async function addOutlookContact(
   });
 
   const ctx = await loadM365DataContext();
-  const refreshedCompany =
-    ctx.companies.find((item) => item.CompanyID === company!.CompanyID) ?? company;
+  let refreshedCompany =
+    ctx.companies.find((item) => item.CompanyID === company!.CompanyID) ?? null;
+
+  if (!refreshedCompany) {
+    const prismaCompany = await findPrismaCompanyByRouteKey(company.CompanyID).catch(
+      () => null,
+    );
+    if (prismaCompany) {
+      refreshedCompany = await loadMappedPrismaCompany(prismaCompany.id).catch(() => null);
+    }
+  }
+  refreshedCompany = refreshedCompany ?? company;
+
+  // Ensure the new contact is nested on the company for relationship-card build.
+  const refreshedContact =
+    (await getRegistryContactById(contact.ContactID).catch(() => null)) ?? contact;
+  if (
+    !refreshedCompany.contacts.some(
+      (entry) => entry.ContactID === refreshedContact.ContactID,
+    )
+  ) {
+    refreshedCompany = {
+      ...refreshedCompany,
+      contacts: [...refreshedCompany.contacts, refreshedContact],
+    };
+  }
 
   let relationshipCard: M365RelationshipCardPayload | null = null;
   try {
-    relationshipCard = buildM365RelationshipCard(refreshedCompany, ctx);
+    relationshipCard = buildM365RelationshipCard(refreshedCompany, {
+      ...ctx,
+      companies: ctx.companies.some((row) => row.CompanyID === refreshedCompany!.CompanyID)
+        ? ctx.companies.map((row) =>
+            row.CompanyID === refreshedCompany!.CompanyID ? refreshedCompany! : row,
+          )
+        : [...ctx.companies, refreshedCompany],
+    });
   } catch {
     relationshipCard = null;
   }
 
   return {
-    contactId: contact.ContactID,
+    contactId: refreshedContact.ContactID,
     companyId: refreshedCompany.CompanyID,
     companyCreated,
     relationshipCard,

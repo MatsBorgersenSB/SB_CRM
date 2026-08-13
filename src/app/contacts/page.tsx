@@ -5,6 +5,9 @@ import {
   readLivePortfolio,
 } from "@/lib/prisma-data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function ContactsPage() {
   const [{ companies, pipelines }, activities, outlookEvidence] = await Promise.all([
     readLivePortfolio(),

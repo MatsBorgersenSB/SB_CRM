@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { BulkImportPanel } from "@/components/companies/bulk-import-panel";
@@ -59,12 +59,20 @@ export function ContactsShell({
   const { user } = useAuth();
   const router = useRouter();
   const [companyRows, setCompanyRows] = useState(companies);
-  const [pipelineRows] = useState(pipelines);
+  const [pipelineRows, setPipelineRows] = useState(pipelines);
   const [toolbarFilters, setToolbarFilters] = useState<WorkspaceFilterValues>(DEFAULT_FILTERS);
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("all");
   const [activeTool, setActiveTool] = useState<ContactsWorkspaceTool>(null);
   const [showArchived, setShowArchived] = useState(false);
+
+  useEffect(() => {
+    setCompanyRows(companies);
+  }, [companies]);
+
+  useEffect(() => {
+    setPipelineRows(pipelines);
+  }, [pipelines]);
 
   const applyBridge = useCallback(
     (patch: { filters?: WorkspaceFilterValues; search?: string; owner?: string }) => {
