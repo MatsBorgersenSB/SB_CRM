@@ -19,6 +19,7 @@ import {
   ContactLifecycleWizard,
 } from "@/components/contacts/contact-lifecycle-wizard";
 import { OpportunitiesOverviewTable } from "@/components/opportunity/opportunities-overview-table";
+import { ContactOpportunityRolesTable } from "@/components/opportunity/contact-opportunity-roles-table";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
@@ -72,6 +73,7 @@ export function Contact360LivingWorkspace({
   onReconciliationImported,
   projects,
   onProjectUpdated,
+  onPipelineUpdated,
 }: {
   record: GlobalContactRecord;
   company: Company;
@@ -97,6 +99,7 @@ export function Contact360LivingWorkspace({
   onReconciliationImported?: () => void;
   projects: Project[];
   onProjectUpdated?: (project: Project) => void;
+  onPipelineUpdated?: (pipeline: PipelineRow) => void;
 }) {
   const { contact, linkedPipelineIds } = record;
   const [documentCount, setDocumentCount] = useState(0);
@@ -303,7 +306,21 @@ export function Contact360LivingWorkspace({
         count={linkedDeals.length}
         collapseStorageKey={sectionKey("opportunities")}
       >
-        <OpportunitiesOverviewTable deals={linkedDeals} commercialPackages={commercialPackages} />
+        <div className="space-y-4">
+          <ContactOpportunityRolesTable
+            contact={contact}
+            company={company}
+            pipelines={pipelines}
+            role={role}
+            onPipelineUpdated={onPipelineUpdated}
+          />
+          {linkedDeals.length > 0 ? (
+            <OpportunitiesOverviewTable
+              deals={linkedDeals}
+              commercialPackages={commercialPackages}
+            />
+          ) : null}
+        </div>
       </WorkspacePanel>
 
       <WorkspacePanel
