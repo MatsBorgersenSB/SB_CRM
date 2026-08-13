@@ -220,6 +220,7 @@ export async function approveRelationshipIntake(
                 sentAt: input.message?.sentAt,
                 bodyPreview: input.message?.bodyPreview,
                 webLink: input.message?.webLink,
+                isOutbound: input.message?.isOutbound === true,
               },
             }
           : undefined,

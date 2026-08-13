@@ -40,11 +40,28 @@ declare namespace Office {
 
   interface MailboxItem {
     itemType?: string;
+    itemId?: string;
+    conversationId?: string;
+    subject?: string;
+    dateTimeCreated?: Date | string;
     from?: EmailAddressDetails;
     to?: Recipients;
+    cc?: Recipients;
     requiredAttendees?: Recipients;
     optionalAttendees?: Recipients;
     body?: Body;
+    saveAsync?: (
+      callback: (result: AsyncResult<{ itemId?: string } | string>) => void,
+    ) => void;
+    getConversationIdAsync?: (
+      callback: (result: AsyncResult<string>) => void,
+    ) => void;
+    categories?: {
+      addAsync: (
+        categories: string[],
+        callback: (result: AsyncResult<void>) => void,
+      ) => void;
+    };
   }
 
   interface Mailbox {

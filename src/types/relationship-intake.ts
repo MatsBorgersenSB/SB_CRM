@@ -63,6 +63,7 @@ export type RelationshipIntakeApproveInput = {
     sentAt?: string;
     bodyPreview?: string;
     webLink?: string;
+    isOutbound?: boolean;
   };
 };
 

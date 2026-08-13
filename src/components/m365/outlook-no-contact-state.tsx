@@ -11,6 +11,7 @@ import { OutlookAddOpportunityDialog } from "@/components/m365/outlook-add-oppor
 import { OutlookEnrichmentPanel } from "@/components/m365/outlook-enrichment-panel";
 import {
   buildSmartCrmUrl,
+  ensureOutlookComposeSeed,
   resolveOutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
 import {
@@ -44,10 +45,13 @@ export function OutlookNoContactState({
   email,
   displayName,
   onContactCreated,
+  variant = "read",
 }: {
   email: string;
   displayName?: string | null;
   onContactCreated: () => void;
+  /** Compose = unknown To recipient while writing; read = unknown sender. */
+  variant?: "read" | "compose";
 }) {
   const searchParams = useSearchParams();
   const [phase, setPhase] = useState<Phase>("loading");
@@ -172,7 +176,10 @@ export function OutlookNoContactState({
       ? acceptedEnrichmentToContactFields(acceptedSuggestions)
       : null;
 
-    const seed = await resolveOutlookOpenMessageSeed().catch(() => null);
+    const seed =
+      variant === "compose"
+        ? await ensureOutlookComposeSeed({ primaryRecipientEmail: email }).catch(() => null)
+        : await resolveOutlookOpenMessageSeed().catch(() => null);
 
     try {
       const response = await fetch("/api/m365/outlook/relationship-intake", {
@@ -212,7 +219,14 @@ export function OutlookNoContactState({
                 externalMessageId: seed.externalMessageId,
                 subject: seed.subject,
                 senderEmail: seed.senderEmail,
+                recipientEmails:
+                  seed.recipientEmails && seed.recipientEmails.length > 0
+                    ? seed.recipientEmails
+                    : variant === "compose"
+                      ? [email]
+                      : undefined,
                 sentAt: seed.sentAt,
+                isOutbound: variant === "compose" || seed.isOutbound === true,
               }
             : undefined,
         }),
@@ -244,7 +258,9 @@ export function OutlookNoContactState({
 
         {phase === "loading" ? (
           <p className="mt-2 text-[11px] text-carbon-blue/50">
-            Checking SmartCRM for this relationship…
+            {variant === "compose"
+              ? "Checking SmartCRM for this recipient…"
+              : "Checking SmartCRM for this relationship…"}
           </p>
         ) : null}
 
@@ -278,7 +294,11 @@ export function OutlookNoContactState({
               {created.companyCreated
                 ? "Contact and company created — stay in Outlook, or open SmartCRM."
                 : "Contact linked to the existing company."}
-              {created.threadLinked ? " This thread was connected." : ""}
+              {created.threadLinked
+                ? variant === "compose"
+                  ? " This draft was connected."
+                  : " This thread was connected."
+                : ""}
             </p>
             <a
               href={buildSmartCrmUrl(
@@ -322,9 +342,20 @@ export function OutlookNoContactState({
             <p className="mt-2 text-sm font-semibold text-carbon-blue">
               {proposal.companyResolved ? "Add contact?" : "New relationship"}
             </p>
-            <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
-              {proposal.decisionQuestion}
-            </p>
+            {variant === "compose" ? (
+              <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+                This recipient is not in SmartCRM yet. Add them so you can assign this mail.
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+                {proposal.decisionQuestion}
+              </p>
+            )}
+            {variant === "compose" ? (
+              <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/50">
+                {proposal.decisionQuestion}
+              </p>
+            ) : null}
             <p className="mt-3 text-[12px] font-medium text-carbon-blue">
               {proposal.displayName || email}
             </p>
