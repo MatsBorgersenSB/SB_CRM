@@ -320,6 +320,7 @@ export function Company360LivingWorkspace({
             role={role}
             activities={scopedActivities}
             deals={linkedPipelines}
+            pipelines={allPipelines}
             commercialPackages={commercialPackages}
             projects={linkedProjects}
             allProjects={projects}

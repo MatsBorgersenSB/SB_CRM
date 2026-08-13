@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
@@ -98,14 +99,19 @@ export function OpportunityProbabilityPill({
   companies,
   activities,
   pipelines,
+  popoverSide = "bottom",
 }: {
   pipeline: PipelineRow;
   companies: Company[];
   activities: Activity[];
   pipelines: PipelineRow[];
+  /** Prefer "top" inside overflow-clipped panels (e.g. Company Overview strips). */
+  popoverSide?: "top" | "bottom";
 }) {
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const explanation = useMemo(
     () =>
@@ -115,21 +121,46 @@ export function OpportunityProbabilityPill({
 
   useEffect(() => {
     if (!open) return;
+
+    const placePopover = () => {
+      const anchor = rootRef.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const width = Math.min(22 * 16, window.innerWidth - 16);
+      const left = Math.min(
+        Math.max(8, rect.left),
+        Math.max(8, window.innerWidth - width - 8),
+      );
+      const gap = 6;
+      const top = popoverSide === "top" ? rect.top - gap : rect.bottom + gap;
+      setCoords({ top, left });
+    };
+
+    placePopover();
     const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (dialogRef.current?.contains(target)) return;
+      setOpen(false);
+      setCoords(null);
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        setCoords(null);
+      }
     };
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", placePopover);
+    window.addEventListener("scroll", placePopover, true);
     return () => {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", placePopover);
+      window.removeEventListener("scroll", placePopover, true);
     };
-  }, [open]);
+  }, [open, popoverSide]);
 
   return (
     <div ref={rootRef} className={`relative ${ATTIO_PILL} group/pill`}>
@@ -139,7 +170,13 @@ export function OpportunityProbabilityPill({
       <dd className="min-w-0 font-medium text-slate-800 dark:text-slate-100">
         <button
           type="button"
-          onClick={() => setOpen((value) => !value)}
+          onClick={() =>
+            setOpen((value) => {
+              const next = !value;
+              if (!next) setCoords(null);
+              return next;
+            })
+          }
           aria-expanded={open}
           aria-haspopup="dialog"
           title="What this probability is based on"
@@ -152,15 +189,26 @@ export function OpportunityProbabilityPill({
         </button>
       </dd>
 
-      {open ? (
-        <div
-          role="dialog"
-          aria-label="Probability explanation"
-          className="absolute left-0 top-full z-[80] mt-1.5 w-[min(22rem,calc(100vw-2rem))] border border-slate-200/90 bg-white p-3 shadow-md dark:border-slate-700 dark:bg-slate-950"
-        >
-          <ProbabilityExplanationPanel explanation={explanation} />
-        </div>
-      ) : null}
+      {open && coords && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={dialogRef}
+              role="dialog"
+              aria-label="Probability explanation"
+              className="w-[min(22rem,calc(100vw-2rem))] border border-slate-200/90 bg-white p-3 shadow-md dark:border-slate-700 dark:bg-slate-950"
+              style={{
+                position: "fixed",
+                top: coords.top,
+                left: coords.left,
+                zIndex: 80,
+                transform: popoverSide === "top" ? "translateY(-100%)" : undefined,
+              }}
+            >
+              <ProbabilityExplanationPanel explanation={explanation} />
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

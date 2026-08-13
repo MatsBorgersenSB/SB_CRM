@@ -1,25 +1,60 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
 import type { PipelineRow } from "@/types/pipeline";
-import { formatDealValue, formatProbability } from "@/types/pipeline";
+import { formatDealValue } from "@/types/pipeline";
 import type { Project } from "@/types/project";
 import { PROJECT_STAGE_LABELS } from "@/types/project";
 import type { UserRole } from "@/types/auth";
 import { getActivitiesForDeal } from "@/lib/activity-utils";
 import { computeOpportunityMomentum } from "@/lib/opportunity-intelligence-engine";
 import { opportunityStageLabel } from "@/lib/opportunity-overview";
+import { resolveOpportunityOwner } from "@/lib/opportunity-owner";
+import { formatOfferingLabels } from "@/lib/standard-bio-offerings";
+import {
+  ATTIO_PILL,
+  ATTIO_STATUS_DOT,
+} from "@/lib/attio-workspace-surfaces";
 import { OpportunityMomentumBadge } from "@/components/opportunity/opportunity-intelligence-display";
+import { OpportunityProbabilityPill } from "@/components/opportunity/opportunity-probability-pill";
 import { CompanyContactsTable } from "@/components/company-360/company-contacts-table";
 import {
   DealLink,
   ProjectLink,
 } from "@/components/relationship/relationship-links";
 import { WorkspacePanel, HealthStatusIcon } from "@/components/ui/smartcrm-icon";
+
+function formatCloseDate(value: string | undefined): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function OpportunityKeyAttribute({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`${ATTIO_PILL} cursor-default`}>
+      <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+        {label}
+      </dt>
+      <dd className="min-w-0 font-medium text-slate-800 dark:text-slate-100">
+        {children}
+      </dd>
+    </div>
+  );
+}
 
 const DEAL_TEASER_LIMIT = 5;
 const PROJECT_TEASER_LIMIT = 5;
@@ -96,12 +131,19 @@ function PeopleOverviewStrip({
 }
 
 function OpportunitiesOverviewStrip({
+  company,
+  companies,
   deals,
+  pipelines,
   activities,
   commercialPackages,
   onViewAll,
 }: {
+  company: Company;
+  companies: Company[];
   deals: PipelineRow[];
+  /** Full pipeline set for win-probability context (same as deal workspace). */
+  pipelines: PipelineRow[];
   activities: Activity[];
   commercialPackages: CommercialPackage[];
   onViewAll: () => void;
@@ -119,9 +161,14 @@ function OpportunitiesOverviewStrip({
         stage: opportunityStageLabel(deal, commercialPackages),
         momentum: computeOpportunityMomentum(dealActivities),
         value: formatDealValue(deal.currency, deal.salesValue),
+        ownerLabel: resolveOpportunityOwner(deal, company)?.Title ?? "—",
+        closeDate: formatCloseDate(deal.expectedCloseDate),
+        offerings: formatOfferingLabels(deal.offeringIds),
       };
     });
-  }, [deals, activities, commercialPackages]);
+  }, [deals, activities, commercialPackages, company]);
+
+  const probabilityPipelines = pipelines.length > 0 ? pipelines : deals;
 
   return (
     <WorkspacePanel
@@ -134,45 +181,73 @@ function OpportunitiesOverviewStrip({
         <StripEmpty>No opportunities linked to this company.</StripEmpty>
       ) : (
         <ul className="divide-y divide-carbon-blue/6">
-          {rows.map(({ deal, primary, stage, momentum, value }) => (
-            <li
-              key={deal.id}
-              className={`flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 first:pt-0 last:pb-0 ${
-                primary ? "-mx-2 bg-carbon-blue/[0.02] px-2 sm:-mx-3 sm:px-3" : ""
-              }`}
-            >
-              <div className="min-w-0 flex-1">
-                <DealLink
-                  dealId={deal.id}
-                  showIcon={false}
-                  className={`truncate hover:text-upcycle-orange ${
-                    primary
-                      ? "text-[14px] font-bold text-carbon-blue"
-                      : "text-[13px] font-semibold text-carbon-blue"
-                  }`}
-                >
-                  {deal.assetName}
-                </DealLink>
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-carbon-blue/55">
-                  <span className="font-medium text-carbon-blue/70">{value}</span>
-                  <span aria-hidden>·</span>
-                  <span>{stage}</span>
-                  {Number.isFinite(deal.probability) ? (
-                    <>
-                      <span aria-hidden>·</span>
-                      <span
-                        className="tabular-nums"
-                        title="Opportunity record forecast probability"
-                      >
-                        {formatProbability(deal.probability)}
-                      </span>
-                    </>
-                  ) : null}
-                </p>
-              </div>
-              <OpportunityMomentumBadge momentum={momentum} className="shrink-0" />
-            </li>
-          ))}
+          {rows.map(
+            ({
+              deal,
+              primary,
+              stage,
+              momentum,
+              value,
+              ownerLabel,
+              closeDate,
+              offerings,
+            }) => (
+              <li
+                key={deal.id}
+                className={`py-3 first:pt-0 last:pb-0 ${
+                  primary ? "-mx-2 bg-carbon-blue/[0.02] px-2 sm:-mx-3 sm:px-3" : ""
+                }`}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <DealLink
+                    dealId={deal.id}
+                    showIcon={false}
+                    className={`min-w-0 truncate hover:text-upcycle-orange ${
+                      primary
+                        ? "text-[14px] font-bold text-carbon-blue"
+                        : "text-[13px] font-semibold text-carbon-blue"
+                    }`}
+                  >
+                    {deal.assetName}
+                  </DealLink>
+                  <OpportunityMomentumBadge momentum={momentum} className="shrink-0" />
+                </div>
+
+                <dl className="mt-1.5 flex flex-wrap gap-1">
+                  <OpportunityKeyAttribute label="Stage">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className={ATTIO_STATUS_DOT} aria-hidden />
+                      {stage}
+                    </span>
+                  </OpportunityKeyAttribute>
+
+                  <OpportunityKeyAttribute label="Value">
+                    <span className="font-mono tabular-nums">{value}</span>
+                  </OpportunityKeyAttribute>
+
+                  <OpportunityKeyAttribute label="Owner">
+                    {ownerLabel}
+                  </OpportunityKeyAttribute>
+
+                  <OpportunityProbabilityPill
+                    pipeline={deal}
+                    companies={companies}
+                    activities={activities}
+                    pipelines={probabilityPipelines}
+                    popoverSide="top"
+                  />
+
+                  <OpportunityKeyAttribute label="Close date">
+                    <span className="tabular-nums">{closeDate}</span>
+                  </OpportunityKeyAttribute>
+
+                  <OpportunityKeyAttribute label="Offerings">
+                    <span className="truncate">{offerings}</span>
+                  </OpportunityKeyAttribute>
+                </dl>
+              </li>
+            ),
+          )}
         </ul>
       )}
     </WorkspacePanel>
@@ -250,6 +325,7 @@ export function Company360OverviewStrips({
   role,
   activities,
   deals,
+  pipelines,
   commercialPackages,
   projects,
   allProjects,
@@ -266,6 +342,8 @@ export function Company360OverviewStrips({
   role: UserRole;
   activities: Activity[];
   deals: PipelineRow[];
+  /** Full pipeline list for probability context; defaults to linked deals. */
+  pipelines?: PipelineRow[];
   commercialPackages: CommercialPackage[];
   /** Linked projects for the Projects teaser. */
   projects: Project[];
@@ -295,7 +373,10 @@ export function Company360OverviewStrips({
         createRequestId={createRequestId}
       />
       <OpportunitiesOverviewStrip
+        company={company}
+        companies={companies}
         deals={deals}
+        pipelines={pipelines ?? deals}
         activities={activities}
         commercialPackages={commercialPackages}
         onViewAll={onOpenWork}
