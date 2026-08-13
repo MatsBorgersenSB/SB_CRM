@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { analyzeOutlookReconciliation } from "@/lib/outlook-reconciliation-engine";
 import {
   buildCareerTimeline,
@@ -13,6 +14,7 @@ import { Contact360EditPanel } from "@/components/contacts/contact-360-edit-pane
 import { Contact360Header } from "@/components/contacts/contact-360-header";
 import { ContactHistoryPanel } from "@/components/contacts/contact-history-panel";
 import { ContactLifecycleActionsBar } from "@/components/contacts/contact-lifecycle-actions-bar";
+import { ContactMissionControlTabBar } from "@/components/contacts/contact-mission-control-tab-bar";
 import { ContactRelationshipIntelligenceSection } from "@/components/contacts/contact-relationship-intelligence-section";
 import {
   ContactArchiveConfirm,
@@ -21,12 +23,10 @@ import {
 import { OpportunitiesOverviewTable } from "@/components/opportunity/opportunities-overview-table";
 import { ContactOpportunityRolesTable } from "@/components/opportunity/contact-opportunity-roles-table";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
-import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
 import { useSmartAssistActionHost } from "@/components/smartassist/smartassist-action-host";
 import { useAuth } from "@/context/auth-context";
 import { workspaceDocumentsContextFromContact } from "@/lib/workspace-documents-data";
-import { workspaceSectionStorageKey } from "@/lib/workspace-collapsible-state";
 import { canDeleteContact } from "@/lib/permissions";
 import { getContactDisplayName, type UpdateContactInput } from "@/types/contact";
 import type { EditableContactField as EditableContactFieldName } from "@/types/contact";
@@ -42,6 +42,11 @@ import type { Contact } from "@/types/contact";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project } from "@/types/project";
 import type { UserRole } from "@/types/auth";
+import {
+  contactMissionControlHref,
+  resolveContactMissionControlView,
+  type ContactMissionControlView,
+} from "@/types/contact-mission-control";
 import { getContactProjectRoles } from "@/lib/project-team-utils";
 import { ContactProjectRolesTable } from "@/components/project/contact-project-roles-table";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
@@ -102,7 +107,12 @@ export function Contact360LivingWorkspace({
   onPipelineUpdated?: (pipeline: PipelineRow) => void;
 }) {
   const { contact, linkedPipelineIds } = record;
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [documentCount, setDocumentCount] = useState(0);
+  const [activeView, setActiveView] = useState<ContactMissionControlView>(() =>
+    resolveContactMissionControlView(searchParams.get("view")),
+  );
   const [wizardMode, setWizardMode] = useState<LifecycleWizardMode>(
     lifecycleAction === "transfer" || lifecycleAction === "merge" || lifecycleAction === "position"
       ? lifecycleAction
@@ -117,6 +127,27 @@ export function Contact360LivingWorkspace({
   const { openEmailAssistant, EmailAssistantModal } = useSmartAssistActionHost({
     ownerName: user.displayName,
   });
+
+  useEffect(() => {
+    const hash =
+      typeof window !== "undefined" ? window.location.hash : "";
+    const next = resolveContactMissionControlView(searchParams.get("view"), hash);
+    setActiveView(next);
+  }, [searchParams]);
+
+  const navigateView = useCallback(
+    (view: ContactMissionControlView) => {
+      setActiveView(view);
+      router.replace(
+        contactMissionControlHref(contact.ContactID, {
+          companyId: record.companyId,
+          view,
+        }),
+        { scroll: false },
+      );
+    },
+    [contact.ContactID, record.companyId, router],
+  );
 
   const contactActivities = useMemo(
     () => getActivitiesForContact(activities, contact.ContactID, contact),
@@ -163,9 +194,6 @@ export function Contact360LivingWorkspace({
     }));
   }, [contact, record.companyId, companies, pipelines, activities]);
 
-  const sectionKey = (section: string) =>
-    workspaceSectionStorageKey("contact", contact.ContactID, section);
-
   const hasMissingTouchpoint = useMemo(() => {
     const audit = analyzeOutlookReconciliation({
       companies,
@@ -182,6 +210,21 @@ export function Contact360LivingWorkspace({
   const showEmailReconciliation = hasMissingTouchpoint || Boolean(reconcileAction);
 
   const canManage = canDeleteContact(role);
+
+  const viewCounts = useMemo(
+    () => ({
+      overview: attentionItems.length,
+      work: linkedDeals.length + projectRoles.length,
+      actions: contactActivities.length + documentCount,
+    }),
+    [
+      attentionItems.length,
+      linkedDeals.length,
+      projectRoles.length,
+      contactActivities.length,
+      documentCount,
+    ],
+  );
 
   const handleEmploymentStatusChange = async (status: EmploymentStatus) => {
     setEmploymentBusy(true);
@@ -241,28 +284,14 @@ export function Contact360LivingWorkspace({
         />
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <ContactLifecycleActionsBar
-            contact={contact}
-            role={role}
-            editing={contactEditOpen}
-            onWizardOpen={setWizardMode}
-            onArchiveOpen={() => setArchiveOpen(true)}
-            onEditOpen={toggleContactEdit}
-          />
-        </div>
-        <EntityNewActivityButton
-          context={{
-            companyId: record.companyId,
-            companyName: record.companyName,
-            contactId: contact.ContactID,
-            contactName: getContactDisplayName(contact),
-          }}
-          companies={companies}
-          pipelines={pipelines}
-        />
-      </div>
+      <ContactLifecycleActionsBar
+        contact={contact}
+        role={role}
+        editing={contactEditOpen}
+        onWizardOpen={setWizardMode}
+        onArchiveOpen={() => setArchiveOpen(true)}
+        onEditOpen={toggleContactEdit}
+      />
 
       {contact.IsArchived ? (
         <p className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-3 py-2 text-[11px] text-carbon-blue/55">
@@ -270,135 +299,123 @@ export function Contact360LivingWorkspace({
         </p>
       ) : null}
 
-      <WorkspacePanel title="Relationship Intelligence" id="intelligence">
-        <ContactRelationshipIntelligenceSection
-          contact={contact}
-          companyId={record.companyId}
-          companyName={record.companyName}
-          companies={companies}
-          pipelines={pipelines}
-          activities={activities}
-          outlookEvidence={outlookEvidence}
-          showEmailReconciliation={showEmailReconciliation}
-          onReconciliationImported={onReconciliationImported}
-        />
-      </WorkspacePanel>
+      <ContactMissionControlTabBar
+        active={activeView}
+        onChange={navigateView}
+        activityContext={{
+          companyId: record.companyId,
+          companyName: record.companyName,
+          contactId: contact.ContactID,
+          contactName: getContactDisplayName(contact),
+        }}
+        companies={companies}
+        pipelines={pipelines}
+        counts={viewCounts}
+      />
 
-      <WorkspacePanel
-        title="Attention"
-        id="attention"
-        collapsible
-        count={attentionItems.length}
-        defaultCollapsed={attentionItems.length === 0}
-        collapseStorageKey={sectionKey("attention")}
-      >
-        <AttentionQueueTable
-          items={attentionItems}
-          emptyMessage="No open attention — this relationship is on track."
-          onDraftEmail={openEmailAssistant}
-        />
-      </WorkspacePanel>
-
-      <WorkspacePanel
-        title="Opportunities"
-        id="opportunities"
-        collapsible
-        count={linkedDeals.length}
-        collapseStorageKey={sectionKey("opportunities")}
-      >
-        <div className="space-y-4">
-          <ContactOpportunityRolesTable
-            contact={contact}
-            company={company}
-            pipelines={pipelines}
-            role={role}
-            onPipelineUpdated={onPipelineUpdated}
-          />
-          {linkedDeals.length > 0 ? (
-            <OpportunitiesOverviewTable
-              deals={linkedDeals}
-              commercialPackages={commercialPackages}
+      {activeView === "overview" ? (
+        <>
+          <WorkspacePanel title="Relationship Intelligence" id="intelligence">
+            <ContactRelationshipIntelligenceSection
+              contact={contact}
+              companyId={record.companyId}
+              companyName={record.companyName}
+              companies={companies}
+              pipelines={pipelines}
+              activities={activities}
+              outlookEvidence={outlookEvidence}
+              showEmailReconciliation={showEmailReconciliation}
+              onReconciliationImported={onReconciliationImported}
             />
-          ) : null}
-        </div>
-      </WorkspacePanel>
+          </WorkspacePanel>
 
-      <WorkspacePanel
-        title="Projects"
-        id="projects"
-        collapsible
-        count={projectRoles.length}
-        collapseStorageKey={sectionKey("projects")}
-      >
-        <ContactProjectRolesTable
-          roles={projectRoles}
-          contact={contact}
-          company={company}
-          companies={companies}
-          projects={projects}
-          role={role}
-          onProjectUpdated={onProjectUpdated}
-        />
-      </WorkspacePanel>
+          <WorkspacePanel title="Attention" id="attention" count={attentionItems.length}>
+            <AttentionQueueTable
+              items={attentionItems}
+              emptyMessage="No open attention — this relationship is on track."
+              onDraftEmail={openEmailAssistant}
+            />
+          </WorkspacePanel>
+        </>
+      ) : null}
 
-      <WorkspacePanel
-        title="Activities"
-        id="activities"
-        collapsible
-        count={contactActivities.length}
-        collapseStorageKey={sectionKey("activities")}
-      >
-        <SmartActivityWorkspace
-          activities={contactActivities}
-          companies={companies}
-          pipelines={pipelines}
-          attentionItems={attentionItems}
-          context={{
-            companyId: company.CompanyID,
-            companyName: company.Title,
-            contactId: contact.ContactID,
-            contactName: getContactDisplayName(contact),
-          }}
-        />
-      </WorkspacePanel>
+      {activeView === "work" ? (
+        <>
+          <WorkspacePanel title="Opportunities" id="opportunities" count={linkedDeals.length}>
+            <div className="space-y-4">
+              <ContactOpportunityRolesTable
+                contact={contact}
+                company={company}
+                pipelines={pipelines}
+                role={role}
+                onPipelineUpdated={onPipelineUpdated}
+              />
+              {linkedDeals.length > 0 ? (
+                <OpportunitiesOverviewTable
+                  deals={linkedDeals}
+                  commercialPackages={commercialPackages}
+                />
+              ) : null}
+            </div>
+          </WorkspacePanel>
 
-      <WorkspacePanel
-        title="Documents"
-        id="documents"
-        collapsible
-        defaultCollapsed
-        count={documentCount}
-        collapseStorageKey={sectionKey("documents")}
-      >
-        <WorkspaceDocumentsPanel
-          context={workspaceDocumentsContextFromContact(
-            contact.ContactID,
-            getContactDisplayName(contact),
-            company,
-            linkedPipelineIds.length > 0 ? linkedPipelineIds : company.pipelineIds,
-          )}
-          pipelines={pipelines}
-          companies={companies}
-          activities={activities}
-          onDocumentCountChange={setDocumentCount}
-        />
-      </WorkspacePanel>
+          <WorkspacePanel title="Projects" id="projects" count={projectRoles.length}>
+            <ContactProjectRolesTable
+              roles={projectRoles}
+              contact={contact}
+              company={company}
+              companies={companies}
+              projects={projects}
+              role={role}
+              onProjectUpdated={onProjectUpdated}
+            />
+          </WorkspacePanel>
+        </>
+      ) : null}
 
-      <WorkspacePanel
-        title="History"
-        id="history"
-        collapsible
-        defaultCollapsed
-        collapseStorageKey={sectionKey("history")}
-      >
-        <ContactHistoryPanel
-          contact={contact}
-          careerEntries={careerTimeline}
-          transfers={contact.CompanyTransfers ?? []}
-          activities={contactActivities}
-          showCareerTimeline={showCareerTimeline}
-        />
-      </WorkspacePanel>
+      {activeView === "actions" ? (
+        <>
+          <WorkspacePanel title="Activities" id="activities" count={contactActivities.length}>
+            <SmartActivityWorkspace
+              activities={contactActivities}
+              companies={companies}
+              pipelines={pipelines}
+              attentionItems={attentionItems}
+              context={{
+                companyId: company.CompanyID,
+                companyName: company.Title,
+                contactId: contact.ContactID,
+                contactName: getContactDisplayName(contact),
+              }}
+            />
+          </WorkspacePanel>
+
+          <WorkspacePanel title="Documents" id="documents" count={documentCount}>
+            <WorkspaceDocumentsPanel
+              context={workspaceDocumentsContextFromContact(
+                contact.ContactID,
+                getContactDisplayName(contact),
+                company,
+                linkedPipelineIds.length > 0 ? linkedPipelineIds : company.pipelineIds,
+              )}
+              pipelines={pipelines}
+              companies={companies}
+              activities={activities}
+              onDocumentCountChange={setDocumentCount}
+            />
+          </WorkspacePanel>
+
+          <WorkspacePanel title="History" id="history">
+            <ContactHistoryPanel
+              contact={contact}
+              careerEntries={careerTimeline}
+              transfers={contact.CompanyTransfers ?? []}
+              activities={contactActivities}
+              showCareerTimeline={showCareerTimeline}
+            />
+          </WorkspacePanel>
+        </>
+      ) : null}
 
       <ContactLifecycleWizard
         open={wizardMode !== null}

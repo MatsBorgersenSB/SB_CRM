@@ -25,9 +25,14 @@ export function contact360Href(
   section?: Contact360Section,
 ): string {
   const base = `/contacts/${encodeURIComponent(contactId)}`;
-  const query = companyId ? `?company=${encodeURIComponent(companyId)}` : "";
-  const hash = section ? `#${section}` : "";
-  return `${base}${query}${hash}`;
+  const params = new URLSearchParams();
+  if (companyId) params.set("company", companyId);
+  if (section === "opportunities") params.set("view", "work");
+  else if (section === "timeline") params.set("view", "actions");
+  else if (section === "attention" || section === "reach") params.set("view", "overview");
+  else if (section === "master") params.set("view", "overview");
+  const query = params.toString();
+  return `${base}${query ? `?${query}` : ""}`;
 }
 
 /** Deal / Opportunity 360. */
