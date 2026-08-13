@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
+import type { CreateOpportunityInput } from "@/types/deal";
 import type { PipelineRow } from "@/types/pipeline";
 import { formatDealValue } from "@/types/pipeline";
 import type { Project } from "@/types/project";
@@ -21,12 +22,17 @@ import {
 } from "@/lib/attio-workspace-surfaces";
 import { OpportunityMomentumBadge } from "@/components/opportunity/opportunity-intelligence-display";
 import { OpportunityProbabilityPill } from "@/components/opportunity/opportunity-probability-pill";
+import { CompanyOpportunitiesSection } from "@/components/opportunity/company-opportunities-section";
 import { CompanyContactsTable } from "@/components/company-360/company-contacts-table";
 import {
   DealLink,
   ProjectLink,
 } from "@/components/relationship/relationship-links";
-import { WorkspacePanel, HealthStatusIcon } from "@/components/ui/smartcrm-icon";
+import {
+  WorkspacePanel,
+  HealthStatusIcon,
+  SmartCRMIcon,
+} from "@/components/ui/smartcrm-icon";
 
 function formatCloseDate(value: string | undefined): string {
   if (!value) return "—";
@@ -137,6 +143,11 @@ function OpportunitiesOverviewStrip({
   pipelines,
   activities,
   commercialPackages,
+  canCreate = false,
+  canManageStakeholders = false,
+  onCreateOpportunity,
+  onAssignStakeholder,
+  onCompanyUpdated,
   onViewAll,
 }: {
   company: Company;
@@ -146,8 +157,19 @@ function OpportunitiesOverviewStrip({
   pipelines: PipelineRow[];
   activities: Activity[];
   commercialPackages: CommercialPackage[];
+  canCreate?: boolean;
+  canManageStakeholders?: boolean;
+  onCreateOpportunity?: (input: CreateOpportunityInput) => Promise<PipelineRow>;
+  onAssignStakeholder?: (
+    dealId: string,
+    contactId: string,
+    projectRole: string,
+  ) => Promise<PipelineRow>;
+  onCompanyUpdated?: (company: Company) => void;
   onViewAll: () => void;
 }) {
+  const [createRequestId, setCreateRequestId] = useState(0);
+
   const rows = useMemo(() => {
     const sorted = [...deals].sort((a, b) => {
       if (b.salesValue !== a.salesValue) return b.salesValue - a.salesValue;
@@ -175,7 +197,21 @@ function OpportunitiesOverviewStrip({
       title="Opportunities"
       id="overview-opportunities"
       count={deals.length}
-      headerTrailing={<ViewAllButton label="View all →" onClick={onViewAll} />}
+      headerTrailing={
+        <div className="flex shrink-0 items-center gap-3">
+          {canCreate ? (
+            <button
+              type="button"
+              onClick={() => setCreateRequestId((value) => value + 1)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-upcycle-orange transition-colors hover:text-carbon-blue"
+            >
+              <SmartCRMIcon name="add" size="xs" />
+              Create Opportunity
+            </button>
+          ) : null}
+          <ViewAllButton label="View all →" onClick={onViewAll} />
+        </div>
+      }
     >
       {rows.length === 0 ? (
         <StripEmpty>No opportunities linked to this company.</StripEmpty>
@@ -250,6 +286,22 @@ function OpportunitiesOverviewStrip({
           )}
         </ul>
       )}
+
+      {canCreate && onCreateOpportunity ? (
+        <CompanyOpportunitiesSection
+          deals={deals}
+          commercialPackages={commercialPackages}
+          company={company}
+          canCreate={canCreate}
+          canManageStakeholders={canManageStakeholders}
+          onCreateOpportunity={onCreateOpportunity}
+          onAssignStakeholder={onAssignStakeholder}
+          onCompanyUpdated={onCompanyUpdated}
+          createRequestId={createRequestId}
+          createOnly
+          showCreateTrigger={false}
+        />
+      ) : null}
     </WorkspacePanel>
   );
 }
@@ -336,6 +388,11 @@ export function Company360OverviewStrips({
   onContactReassign,
   onContactArchive,
   createRequestId,
+  canCreateOpportunity: canCreateOpp = false,
+  canManageOpportunityStakeholders: canManageStakeholders = false,
+  onCreateOpportunity,
+  onAssignOpportunityStakeholder,
+  onCompanyUpdated,
 }: {
   company: Company;
   companies: Company[];
@@ -356,6 +413,15 @@ export function Company360OverviewStrips({
   onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
   createRequestId?: number;
+  canCreateOpportunity?: boolean;
+  canManageOpportunityStakeholders?: boolean;
+  onCreateOpportunity?: (input: CreateOpportunityInput) => Promise<PipelineRow>;
+  onAssignOpportunityStakeholder?: (
+    dealId: string,
+    contactId: string,
+    projectRole: string,
+  ) => Promise<PipelineRow>;
+  onCompanyUpdated?: (company: Company) => void;
 }) {
   return (
     <>
@@ -379,6 +445,11 @@ export function Company360OverviewStrips({
         pipelines={pipelines ?? deals}
         activities={activities}
         commercialPackages={commercialPackages}
+        canCreate={canCreateOpp}
+        canManageStakeholders={canManageStakeholders}
+        onCreateOpportunity={onCreateOpportunity}
+        onAssignStakeholder={onAssignOpportunityStakeholder}
+        onCompanyUpdated={onCompanyUpdated}
         onViewAll={onOpenWork}
       />
       <ProjectsOverviewStrip projects={projects} onViewAll={onOpenWork} />
