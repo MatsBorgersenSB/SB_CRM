@@ -6,7 +6,7 @@ import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
 import type { PipelineRow } from "@/types/pipeline";
-import { formatDealValue } from "@/types/pipeline";
+import { formatDealValue, formatProbability } from "@/types/pipeline";
 import type { Project } from "@/types/project";
 import { PROJECT_STAGE_LABELS } from "@/types/project";
 import type { UserRole } from "@/types/auth";
@@ -157,6 +157,17 @@ function OpportunitiesOverviewStrip({
                   <span className="font-medium text-carbon-blue/70">{value}</span>
                   <span aria-hidden>·</span>
                   <span>{stage}</span>
+                  {Number.isFinite(deal.probability) ? (
+                    <>
+                      <span aria-hidden>·</span>
+                      <span
+                        className="tabular-nums"
+                        title="Opportunity record forecast probability"
+                      >
+                        {formatProbability(deal.probability)}
+                      </span>
+                    </>
+                  ) : null}
                 </p>
               </div>
               <OpportunityMomentumBadge momentum={momentum} className="shrink-0" />

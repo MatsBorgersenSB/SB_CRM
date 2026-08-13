@@ -327,6 +327,8 @@ export function Deal360LivingWorkspace({
         pipeline={pipeline}
         companies={companies}
         commercialPackages={commercialPackages}
+        activities={activities}
+        pipelines={pipelines}
         role={role}
         onPipelinePatch={onPipelinePatch}
       />

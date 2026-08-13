@@ -373,6 +373,174 @@ export function detectDealRisks(
   return risks;
 }
 
+export type WinProbabilityFactorDirection = "base" | "up" | "down" | "neutral";
+
+export type WinProbabilityFactor = {
+  id: string;
+  /** Human label — no rule IDs */
+  label: string;
+  /** Business-language detail of why this factor applies */
+  detail: string;
+  /** Signed contribution in percentage points (before final clamp) */
+  impactPoints: number;
+  direction: WinProbabilityFactorDirection;
+};
+
+export type WinProbabilityExplanation = {
+  probability: number;
+  stageBaseline: number;
+  stageLabel: PipelineStatus;
+  factors: WinProbabilityFactor[];
+  /** One-line summary for the popover hero */
+  summary: string;
+  /** Opportunity record forecast when present and different from assessed % */
+  recordedForecast: number | null;
+};
+
+function formatImpactPoints(points: number): string {
+  const rounded = Math.round(points);
+  if (rounded > 0) return `+${rounded} pts`;
+  if (rounded < 0) return `${rounded} pts`;
+  return "0 pts";
+}
+
+function momentumAdjustment(momentum: OpportunityMomentum): number {
+  switch (momentum) {
+    case "Accelerating":
+      return 8;
+    case "Slowing":
+      return -6;
+    case "Stalled":
+      return -15;
+    default:
+      return 0;
+  }
+}
+
+function riskAdjustmentPoints(severity: DealRiskSignal["severity"]): number {
+  if (severity === "critical") return -10;
+  if (severity === "warning") return -5;
+  return -2;
+}
+
+/**
+ * Explain win probability in business language from the same rules as
+ * {@link computeWinProbability}. Reality First — only real inputs, no invented factors.
+ */
+export function explainWinProbability(
+  deal: PipelineRow,
+  relationshipHealthScore: number,
+  momentum: OpportunityMomentum,
+  risks: DealRiskSignal[],
+  stakeholderScore: number,
+): WinProbabilityExplanation {
+  const stageBaseline = STAGE_BASE_PROBABILITY[deal.status];
+  const factors: WinProbabilityFactor[] = [];
+
+  factors.push({
+    id: "stage_baseline",
+    label: "Stage baseline",
+    detail: `${deal.status} is the current commercial stage — SmartCRM starts from a typical win rate for this stage.`,
+    impactPoints: stageBaseline,
+    direction: "base",
+  });
+
+  const relationshipAdj = (relationshipHealthScore - 50) * 0.15;
+  factors.push({
+    id: "relationship_health",
+    label: "Account relationship",
+    detail:
+      relationshipHealthScore === 50
+        ? "Relationship health is at the midpoint — no lift or drag on win likelihood."
+        : relationshipHealthScore > 50
+          ? `Account relationship health is ${relationshipHealthScore}/100 — stronger trust lifts win likelihood.`
+          : `Account relationship health is ${relationshipHealthScore}/100 — weaker trust weighs on win likelihood.`,
+    impactPoints: relationshipAdj,
+    direction:
+      relationshipAdj > 0.5 ? "up" : relationshipAdj < -0.5 ? "down" : "neutral",
+  });
+
+  const momentumAdj = momentumAdjustment(momentum);
+  const momentumDetail: Record<OpportunityMomentum, string> = {
+    Accelerating: "Recent activity is picking up — momentum supports a higher win chance.",
+    Stable: "Activity pace is steady — no momentum adjustment.",
+    Slowing: "Engagement is cooling — momentum reduces win likelihood.",
+    Stalled: "Little recent progress — stalled momentum sharply reduces win likelihood.",
+  };
+  factors.push({
+    id: "momentum",
+    label: `Deal momentum · ${momentum}`,
+    detail: momentumDetail[momentum],
+    impactPoints: momentumAdj,
+    direction: momentumAdj > 0 ? "up" : momentumAdj < 0 ? "down" : "neutral",
+  });
+
+  const stakeholderAdj = (stakeholderScore - 50) * 0.08;
+  factors.push({
+    id: "stakeholder_coverage",
+    label: "Stakeholder coverage",
+    detail:
+      stakeholderScore === 50
+        ? "Stakeholder coverage is average for this opportunity."
+        : stakeholderScore > 50
+          ? `Stakeholder coverage scores ${stakeholderScore}/100 — broader buying-side coverage helps.`
+          : `Stakeholder coverage scores ${stakeholderScore}/100 — thin coverage hurts win likelihood.`,
+    impactPoints: stakeholderAdj,
+    direction:
+      stakeholderAdj > 0.5 ? "up" : stakeholderAdj < -0.5 ? "down" : "neutral",
+  });
+
+  for (const risk of risks) {
+    const pts = riskAdjustmentPoints(risk.severity);
+    factors.push({
+      id: `risk_${risk.id}`,
+      label: risk.label,
+      detail: risk.detail,
+      impactPoints: pts,
+      direction: "down",
+    });
+  }
+
+  const raw =
+    stageBaseline +
+    relationshipAdj +
+    momentumAdj +
+    stakeholderAdj +
+    risks.reduce((sum, risk) => sum + riskAdjustmentPoints(risk.severity), 0);
+  const probability = Math.round(Math.max(5, Math.min(95, raw)));
+
+  const drivers = factors
+    .filter((f) => f.direction === "up" || f.direction === "down")
+    .sort((a, b) => Math.abs(b.impactPoints) - Math.abs(a.impactPoints))
+    .slice(0, 2)
+    .map((f) => f.label.toLowerCase());
+
+  const summary =
+    drivers.length > 0
+      ? `${probability}% win likelihood — mainly shaped by ${drivers.join(" and ")}.`
+      : `${probability}% win likelihood — largely the stage baseline for ${deal.status}.`;
+
+  const recorded = Number.isFinite(deal.probability) ? deal.probability : null;
+  const recordedForecast =
+    recorded != null && Math.round(recorded) !== probability ? Math.round(recorded) : null;
+
+  return {
+    probability,
+    stageBaseline,
+    stageLabel: deal.status,
+    factors,
+    summary,
+    recordedForecast,
+  };
+}
+
+export function formatWinProbabilityFactorImpact(factor: WinProbabilityFactor): string {
+  if (factor.direction === "base") {
+    return `${Math.round(factor.impactPoints)}%`;
+  }
+  return formatImpactPoints(factor.impactPoints);
+}
+
 export function computeWinProbability(
   deal: PipelineRow,
   relationshipHealthScore: number,
@@ -380,33 +548,13 @@ export function computeWinProbability(
   risks: DealRiskSignal[],
   stakeholderScore: number,
 ): number {
-  let probability = STAGE_BASE_PROBABILITY[deal.status];
-
-  probability += (relationshipHealthScore - 50) * 0.15;
-
-  switch (momentum) {
-    case "Accelerating":
-      probability += 8;
-      break;
-    case "Slowing":
-      probability -= 6;
-      break;
-    case "Stalled":
-      probability -= 15;
-      break;
-    default:
-      break;
-  }
-
-  probability += (stakeholderScore - 50) * 0.08;
-
-  for (const risk of risks) {
-    if (risk.severity === "critical") probability -= 10;
-    else if (risk.severity === "warning") probability -= 5;
-    else probability -= 2;
-  }
-
-  return Math.round(Math.max(5, Math.min(95, probability)));
+  return explainWinProbability(
+    deal,
+    relationshipHealthScore,
+    momentum,
+    risks,
+    stakeholderScore,
+  ).probability;
 }
 
 function resolveOpportunityNextBestAction(
@@ -647,6 +795,34 @@ export function computeOpportunityIntelligence(
   const nextBestAction = resolveOpportunityNextBestAction(deal, company, draft);
 
   return { ...draft, nextBestAction };
+}
+
+/** Convenience: full explanation from the same inputs as opportunity intelligence. */
+export function explainOpportunityWinProbability(
+  deal: PipelineRow,
+  companies: Company[],
+  activities: Activity[],
+  pipelines: PipelineRow[],
+): WinProbabilityExplanation {
+  const intelligence = computeOpportunityIntelligence(
+    deal,
+    companies,
+    activities,
+    pipelines,
+  );
+  const company = findCompanyForDeal(deal.id, companies);
+  const dealActivities = getDealActivities(activities, deal.id);
+  const stakeholders = countStakeholders(dealActivities, company);
+  const relationshipScore =
+    intelligence.components.find((c) => c.id === "relationship_health")?.score ?? 50;
+
+  return explainWinProbability(
+    deal,
+    relationshipScore,
+    intelligence.momentum,
+    intelligence.risks,
+    stakeholders.score,
+  );
 }
 
 export function computePortfolioRevenueForecast(

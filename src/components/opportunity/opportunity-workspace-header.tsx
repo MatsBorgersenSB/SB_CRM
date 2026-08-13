@@ -25,6 +25,7 @@ import {
 } from "@/lib/permissions";
 import type { UserRole } from "@/types/auth";
 import { OpportunityOfferingsPanel } from "@/components/opportunity/opportunity-offerings-panel";
+import { OpportunityProbabilityPill } from "@/components/opportunity/opportunity-probability-pill";
 import { formatOfferingLabels } from "@/lib/standard-bio-offerings";
 import {
   ATTIO_PILL,
@@ -38,6 +39,7 @@ import {
   useOpportunitySharePointFolder,
 } from "@/components/opportunity/open-sharepoint-folder-control";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
+import type { Activity } from "@/types/activity";
 
 function formatTimelineDate(value: string | undefined): string {
   if (!value) return "—";
@@ -57,12 +59,16 @@ export function OpportunityWorkspaceHeader({
   pipeline,
   companies,
   commercialPackages,
+  activities = [],
+  pipelines = [],
   role,
   onPipelinePatch,
 }: {
   pipeline: PipelineRow;
   companies: Company[];
   commercialPackages: CommercialPackage[];
+  activities?: Activity[];
+  pipelines?: PipelineRow[];
   role: UserRole;
   onPipelinePatch?: (patch: Partial<PipelineRow>) => Promise<void>;
 }) {
@@ -214,6 +220,13 @@ export function OpportunityWorkspaceHeader({
               fallbackLabel={ownerLabel}
             />
           </AttributePill>
+
+          <OpportunityProbabilityPill
+            pipeline={pipeline}
+            companies={companies}
+            activities={activities}
+            pipelines={pipelines.length > 0 ? pipelines : [pipeline]}
+          />
 
           <AttributePill label="Close date">
             <EditableCloseDate
