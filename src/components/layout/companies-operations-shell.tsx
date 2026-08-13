@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { BulkImportPanel } from "@/components/companies/bulk-import-panel";
 import { CompaniesActionBar } from "@/components/companies/companies-action-bar";
-import { CompaniesInsightsPanel } from "@/components/companies/companies-insights-panel";
 import { CompaniesOperationsTable } from "@/components/companies/companies-operations-table";
 import {
   CompaniesWorkspaceHeader,
@@ -308,8 +307,6 @@ export function CompaniesOperationsShell({
             </div>
             <CompaniesOperationsTable rows={filteredRows} />
           </WorkspacePanel>
-
-          <CompaniesInsightsPanel summary={workspace.summary} />
         </WorkspaceStack>
       </WorkspaceMain>
     </WorkspaceChrome>
