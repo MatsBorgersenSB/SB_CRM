@@ -14,10 +14,11 @@ declare namespace Office {
   enum EventType {
     DialogMessageReceived = "dialogMessageReceived",
     DialogEventReceived = "dialogEventReceived",
+    RecipientsChanged = "recipientsChanged",
   }
 
   interface AsyncResult<T> {
-    status: AsyncResultStatus;
+    status: AsyncResultStatus | string | number;
     value: T;
     error?: { message: string };
   }
@@ -47,6 +48,7 @@ declare namespace Office {
     from?: EmailAddressDetails;
     to?: Recipients;
     cc?: Recipients;
+    bcc?: Recipients;
     requiredAttendees?: Recipients;
     optionalAttendees?: Recipients;
     body?: Body;
@@ -55,6 +57,16 @@ declare namespace Office {
     ) => void;
     getConversationIdAsync?: (
       callback: (result: AsyncResult<string>) => void,
+    ) => void;
+    addHandlerAsync?: (
+      eventType: EventType | string,
+      handler: (args?: unknown) => void,
+      callback?: (result: AsyncResult<void>) => void,
+    ) => void;
+    removeHandlerAsync?: (
+      eventType: EventType | string,
+      options?: { handler?: (args?: unknown) => void },
+      callback?: (result: AsyncResult<void>) => void,
     ) => void;
     categories?: {
       addAsync: (

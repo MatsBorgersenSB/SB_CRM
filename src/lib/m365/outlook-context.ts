@@ -39,7 +39,7 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
 
     return await new Promise((resolve) => {
       attendeeSource.getAsync((result) => {
-        if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        if (!isOfficeAsyncSuccess(result.status)) {
           resolve(null);
           return;
         }
@@ -95,37 +95,61 @@ export type OutlookComposeRecipient = {
   displayName: string;
 };
 
+function isOfficeAsyncSuccess(status: unknown): boolean {
+  if (status === "succeeded" || status === 0) return true;
+  try {
+    return status === Office?.AsyncResultStatus?.Succeeded;
+  } catch {
+    return false;
+  }
+}
+
 function getRecipientsAsync(
   source: { getAsync: (callback: (result: Office.AsyncResult<Office.EmailAddressDetails[]>) => void) => void } | undefined,
 ): Promise<OutlookComposeRecipient[]> {
   if (!source?.getAsync) return Promise.resolve([]);
   return new Promise((resolve) => {
-    source.getAsync((result) => {
-      if (result.status !== Office.AsyncResultStatus.Succeeded || !result.value) {
-        resolve([]);
-        return;
-      }
-      resolve(
-        result.value
-          .map((entry) => ({
-            email: entry.emailAddress?.trim().toLowerCase() ?? "",
-            displayName: entry.displayName?.trim() ?? "",
-          }))
-          .filter((entry) => Boolean(entry.email)),
-      );
-    });
+    try {
+      source.getAsync((result) => {
+        if (!isOfficeAsyncSuccess(result.status) || !result.value) {
+          resolve([]);
+          return;
+        }
+        resolve(
+          result.value
+            .map((entry) => ({
+              email: entry.emailAddress?.trim().toLowerCase() ?? "",
+              displayName: entry.displayName?.trim() ?? "",
+            }))
+            .filter((entry) => Boolean(entry.email)),
+        );
+      });
+    } catch {
+      resolve([]);
+    }
   });
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 /**
- * Resolve To (+ Cc) recipients on a compose item.
+ * Resolve To (+ Cc/Bcc) recipients on a compose item.
  * Excludes the mailbox owner. Reality First — only addresses Outlook provides.
+ * Retries briefly — New Outlook often resolves recipients after the pane opens.
  */
-export async function resolveOutlookComposeRecipients(): Promise<OutlookComposeRecipient[]> {
+export async function resolveOutlookComposeRecipients(options?: {
+  attempts?: number;
+  delayMs?: number;
+}): Promise<OutlookComposeRecipient[]> {
   if (typeof window === "undefined") return [];
 
   const office = await whenOfficeReady();
   if (!office) return [];
+
+  const attempts = Math.max(1, options?.attempts ?? 5);
+  const delayMs = Math.max(0, options?.delayMs ?? 400);
 
   try {
     const mailbox = office.context.mailbox;
@@ -133,22 +157,66 @@ export async function resolveOutlookComposeRecipients(): Promise<OutlookComposeR
     if (!item) return [];
 
     const selfEmail = mailbox?.userProfile?.emailAddress?.trim().toLowerCase() ?? "";
-    const [to, cc] = await Promise.all([
-      getRecipientsAsync(item.to),
-      getRecipientsAsync(item.cc),
-    ]);
 
-    const seen = new Set<string>();
-    const recipients: OutlookComposeRecipient[] = [];
-    for (const entry of [...to, ...cc]) {
-      if (!entry.email || entry.email === selfEmail || seen.has(entry.email)) continue;
-      seen.add(entry.email);
-      recipients.push(entry);
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const [to, cc, bcc] = await Promise.all([
+        getRecipientsAsync(item.to),
+        getRecipientsAsync(item.cc),
+        getRecipientsAsync(item.bcc),
+      ]);
+
+      const seen = new Set<string>();
+      const recipients: OutlookComposeRecipient[] = [];
+      for (const entry of [...to, ...cc, ...bcc]) {
+        if (!entry.email || entry.email === selfEmail || seen.has(entry.email)) continue;
+        seen.add(entry.email);
+        recipients.push(entry);
+      }
+
+      if (recipients.length > 0) return recipients;
+      if (attempt < attempts - 1) await sleep(delayMs);
     }
-    return recipients;
+
+    return [];
   } catch {
     return [];
   }
+}
+
+/**
+ * Subscribe to To/Cc/Bcc changes on the open compose item.
+ * Returns an unsubscribe function (best-effort).
+ */
+export async function subscribeOutlookComposeRecipientsChanged(
+  onChanged: () => void,
+): Promise<() => void> {
+  const office = await whenOfficeReady();
+  const item = office?.context.mailbox?.item;
+  if (!item?.addHandlerAsync) return () => undefined;
+
+  const eventType =
+    office?.EventType?.RecipientsChanged ??
+    ("recipientsChanged" as Office.EventType);
+
+  const handler = () => {
+    onChanged();
+  };
+
+  await new Promise<void>((resolve) => {
+    try {
+      item.addHandlerAsync!(eventType, handler, () => resolve());
+    } catch {
+      resolve();
+    }
+  });
+
+  return () => {
+    try {
+      item.removeHandlerAsync?.(eventType, { handler }, () => undefined);
+    } catch {
+      // ignore
+    }
+  };
 }
 
 async function saveComposeItemAsync(): Promise<boolean> {
@@ -158,7 +226,7 @@ async function saveComposeItemAsync(): Promise<boolean> {
 
   return await new Promise((resolve) => {
     item.saveAsync!((result) => {
-      resolve(result.status === Office.AsyncResultStatus.Succeeded);
+      resolve(isOfficeAsyncSuccess(result.status));
     });
   });
 }
@@ -212,7 +280,7 @@ export async function resolveOutlookOpenMessageSeed(options?: {
     if (!conversationId && typeof item.getConversationIdAsync === "function") {
       conversationId = await new Promise<string>((resolve) => {
         item.getConversationIdAsync!((result) => {
-          if (result.status !== Office.AsyncResultStatus.Succeeded) {
+          if (!isOfficeAsyncSuccess(result.status)) {
             resolve("");
             return;
           }
@@ -251,7 +319,10 @@ export async function resolveOutlookOpenMessageSeed(options?: {
       !fromEmail ||
       fromEmail === selfEmail;
 
-    const recipients = await resolveOutlookComposeRecipients().catch(() => []);
+    const recipients = await resolveOutlookComposeRecipients({
+      attempts: 1,
+      delayMs: 0,
+    }).catch(() => []);
     const recipientEmails = recipients.map((entry) => entry.email);
     if (
       options?.primaryRecipientEmail &&
@@ -312,7 +383,7 @@ export async function applyOutlookItemSmartCrmCategories(input: {
 
   return await new Promise((resolve) => {
     item.categories!.addAsync(toAdd, (result) => {
-      resolve(result.status === Office.AsyncResultStatus.Succeeded);
+      resolve(isOfficeAsyncSuccess(result.status));
     });
   });
 }
