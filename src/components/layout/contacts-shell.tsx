@@ -7,7 +7,6 @@ import { BulkImportPanel } from "@/components/companies/bulk-import-panel";
 import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WebsiteDiscoveryPanel } from "@/components/companies/website-discovery-panel";
 import { ContactsActionBar } from "@/components/contacts/contacts-action-bar";
-import { ContactsInsightsPanel } from "@/components/contacts/contacts-insights-panel";
 import { ContactRelationshipPortfolioPanel } from "@/components/contacts/contact-relationship-portfolio-panel";
 import { MissingTouchpointsPanel } from "@/components/m365/missing-touchpoints-panel";
 import { ContactsOperationsTable } from "@/components/contacts/contacts-operations-table";
@@ -22,7 +21,6 @@ import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
 import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
-import { buildContactOperationsSummary } from "@/lib/contact-operations-data";
 import type { Company, Contact } from "@/lib/companies-data";
 import { getGlobalContactRecords } from "@/lib/contact-utils";
 import { filterCompaniesForUser } from "@/lib/permissions";
@@ -97,11 +95,6 @@ export function ContactsShell({
   const contactRecords = useMemo(
     () => getGlobalContactRecords(scopedCompanies, pipelineRows),
     [scopedCompanies, pipelineRows],
-  );
-
-  const summary = useMemo(
-    () => buildContactOperationsSummary(contactRecords, activities),
-    [contactRecords, activities],
   );
 
   const ownerOptions = useMemo(() => {
@@ -359,8 +352,6 @@ export function ContactsShell({
               activities={activities}
             />
           </WorkspacePanel>
-
-          <ContactsInsightsPanel summary={summary} />
 
           <WorkspacePanel title="Outlook Reconciliation" id="reconciliation" collapsible defaultCollapsed>
             <MissingTouchpointsPanel
