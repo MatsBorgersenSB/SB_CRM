@@ -7,7 +7,7 @@ import type { Contact } from "@/types/contact";
 import { getContactDisplayName } from "@/types/contact";
 import type { CreateOpportunityInput } from "@/types/deal";
 import type { PipelineRow, CompanyRole, PipelineCurrency } from "@/types/pipeline";
-import { COMPANY_ROLES, formatDealValue } from "@/types/pipeline";
+import { COMPANY_ROLES, formatDealValue, opportunityPublicCode } from "@/types/pipeline";
 import { OpportunitiesOverviewTable } from "@/components/opportunity/opportunities-overview-table";
 import { DealLink } from "@/components/relationship/relationship-links";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
@@ -27,6 +27,8 @@ import {
   DEFAULT_OPPORTUNITY_CURRENCY,
   parseMoneyInput,
 } from "@/lib/geo/currencies";
+import { linkCompanyToOpportunity } from "@/lib/sync-company-opportunity-link";
+import { useAuth } from "@/context/auth-context";
 
 type CreateFormState = {
   assetName: string;
@@ -48,15 +50,18 @@ const EMPTY_FORM: CreateFormState = {
 
 export function CompanyOpportunitiesSection({
   deals,
+  allPipelines = [],
   commercialPackages,
   company,
   canCreate = false,
   canManageStakeholders = false,
   onCreateOpportunity,
   onAssignStakeholder,
+  onCompanyUpdated,
   createRequestId = 0,
 }: {
   deals: PipelineRow[];
+  allPipelines?: PipelineRow[];
   commercialPackages: CommercialPackage[];
   company: Company;
   canCreate?: boolean;
@@ -67,9 +72,14 @@ export function CompanyOpportunitiesSection({
     contactId: string,
     projectRole: string,
   ) => Promise<PipelineRow>;
+  onCompanyUpdated?: (company: Company) => void;
   createRequestId?: number;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkQuery, setLinkQuery] = useState("");
+  const [selectedLinkDealId, setSelectedLinkDealId] = useState("");
+  const [linking, setLinking] = useState(false);
   const [form, setForm] = useState<CreateFormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +88,56 @@ export function CompanyOpportunitiesSection({
   const [selectedContactId, setSelectedContactId] = useState("");
   const [stakeholderRole, setStakeholderRole] = useState("Champion");
   const [savingStakeholder, setSavingStakeholder] = useState(false);
+
+  const { user } = useAuth();
+  const linkedDealIds = useMemo(() => new Set(deals.map((deal) => deal.id)), [deals]);
+
+  const linkableDeals = useMemo(() => {
+    return allPipelines
+      .filter((deal) => !linkedDealIds.has(deal.id))
+      .sort((a, b) => a.assetName.localeCompare(b.assetName));
+  }, [allPipelines, linkedDealIds]);
+
+  const filteredLinkDeals = useMemo(() => {
+    const q = linkQuery.trim().toLowerCase();
+    if (!q) return linkableDeals.slice(0, 40);
+    return linkableDeals
+      .filter((deal) => {
+        const code = opportunityPublicCode(deal).toLowerCase();
+        return (
+          deal.assetName.toLowerCase().includes(q) ||
+          deal.id.toLowerCase().includes(q) ||
+          code.includes(q)
+        );
+      })
+      .slice(0, 40);
+  }, [linkableDeals, linkQuery]);
+
+  const selectedLinkDeal = linkableDeals.find((deal) => deal.id === selectedLinkDealId);
+
+  const handleLinkExisting = async () => {
+    if (!selectedLinkDeal) {
+      setError("Select an opportunity.");
+      return;
+    }
+    setLinking(true);
+    setError(null);
+    try {
+      const updated = await linkCompanyToOpportunity(
+        company.CompanyID,
+        selectedLinkDeal.id,
+        user.role,
+      );
+      onCompanyUpdated?.(updated);
+      setLinkOpen(false);
+      setSelectedLinkDealId("");
+      setLinkQuery("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not link opportunity");
+    } finally {
+      setLinking(false);
+    }
+  };
 
   useEffect(() => {
     if (createRequestId > 0 && canCreate) {
@@ -195,16 +255,27 @@ export function CompanyOpportunitiesSection({
       {deals.length === 0 && !createdDeal ? (
         <div className="flex flex-col gap-3 py-1">
           <p className="text-sm text-carbon-blue/45">No opportunities yet.</p>
-          {canCreate && !createOpen ? (
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex w-fit items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
-            >
-              <SmartCRMIcon name="add" size="xs" />
-              Create Opportunity
-            </button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {canCreate && !createOpen ? (
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex w-fit items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+              >
+                <SmartCRMIcon name="add" size="xs" />
+                Create Opportunity
+              </button>
+            ) : null}
+            {canManageStakeholders && !linkOpen ? (
+              <button
+                type="button"
+                onClick={() => setLinkOpen(true)}
+                className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+              >
+                Link existing opportunity
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : (
         <>
@@ -214,18 +285,93 @@ export function CompanyOpportunitiesSection({
               : deals}
             commercialPackages={commercialPackages}
           />
-          {canCreate && !createOpen && !createdDeal ? (
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-            >
-              <SmartCRMIcon name="add" size="xs" />
-              Create Opportunity
-            </button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {canCreate && !createOpen && !createdDeal ? (
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+              >
+                <SmartCRMIcon name="add" size="xs" />
+                Create Opportunity
+              </button>
+            ) : null}
+            {canManageStakeholders && !linkOpen ? (
+              <button
+                type="button"
+                onClick={() => setLinkOpen(true)}
+                className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+              >
+                Link existing opportunity
+              </button>
+            ) : null}
+          </div>
         </>
       )}
+
+      {linkOpen && canManageStakeholders ? (
+        <div className="border border-dashed border-carbon-blue/15 bg-white p-3">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+            Link existing opportunity to {company.Title}
+          </p>
+          <input
+            value={linkQuery}
+            onChange={(event) => {
+              setLinkQuery(event.target.value);
+              setSelectedLinkDealId("");
+            }}
+            placeholder="Search opportunities…"
+            className="mb-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+          />
+          <div className="mb-3 max-h-40 overflow-auto border border-carbon-blue/10">
+            {filteredLinkDeals.length === 0 ? (
+              <p className="px-3 py-2 text-[12px] text-carbon-blue/45">No matching opportunities.</p>
+            ) : (
+              filteredLinkDeals.map((deal) => (
+                <button
+                  key={deal.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedLinkDealId(deal.id);
+                    setLinkQuery(deal.assetName);
+                  }}
+                  className={`block w-full px-3 py-2 text-left text-[12px] hover:bg-upcycle-orange/10 ${
+                    selectedLinkDealId === deal.id
+                      ? "bg-upcycle-orange/10 text-upcycle-orange"
+                      : "text-carbon-blue"
+                  }`}
+                >
+                  {opportunityPublicCode(deal)} · {deal.assetName}
+                </button>
+              ))
+            )}
+          </div>
+          {error ? <p className="mb-2 text-[12px] text-thermal-red">{error}</p> : null}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={linking || !selectedLinkDeal}
+              onClick={() => void handleLinkExisting()}
+              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange disabled:opacity-50"
+            >
+              {linking ? "Linking…" : "Link opportunity"}
+            </button>
+            <button
+              type="button"
+              disabled={linking}
+              onClick={() => {
+                setLinkOpen(false);
+                setError(null);
+                setSelectedLinkDealId("");
+                setLinkQuery("");
+              }}
+              className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/70"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {createOpen && canCreate ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">

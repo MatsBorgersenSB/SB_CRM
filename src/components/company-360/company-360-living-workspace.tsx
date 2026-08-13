@@ -68,6 +68,8 @@ export function Company360LivingWorkspace({
   onContactArchive,
   onCompanyUpdated,
   projects,
+  onProjectUpdated,
+  allPipelines,
   onCreateOpportunity,
   onAssignOpportunityStakeholder,
 }: {
@@ -84,6 +86,9 @@ export function Company360LivingWorkspace({
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
   onCompanyUpdated: (company: Company) => void;
   projects: Project[];
+  onProjectUpdated?: (project: Project) => void;
+  /** Full pipeline list for “link existing opportunity” (not only linked deals). */
+  allPipelines: PipelineRow[];
   onCreateOpportunity?: (input: CreateOpportunityInput) => Promise<PipelineRow>;
   onAssignOpportunityStakeholder?: (
     dealId: string,
@@ -115,8 +120,11 @@ export function Company360LivingWorkspace({
   );
 
   const linkedProjects = useMemo(
-    () => getProjectsForCompany(company.CompanyID, projects),
-    [company.CompanyID, projects],
+    () =>
+      getProjectsForCompany(company.CompanyID, projects, {
+        contactIds: company.contacts.map((contact) => contact.ContactID),
+      }),
+    [company.CompanyID, company.contacts, projects],
   );
 
   const routeKey = companyRouteKey(company);
@@ -283,6 +291,7 @@ export function Company360LivingWorkspace({
           >
             <CompanyOpportunitiesSection
               deals={linkedPipelines}
+              allPipelines={allPipelines}
               commercialPackages={commercialPackages}
               company={company}
               canCreate={
@@ -290,17 +299,23 @@ export function Company360LivingWorkspace({
                 Boolean(onCreateOpportunity) &&
                 isOpportunityEligibleCompany(company)
               }
-              canManageStakeholders={
-                canManageOpportunityStakeholders(role) &&
-                Boolean(onAssignOpportunityStakeholder)
-              }
+              canManageStakeholders={canManageOpportunityStakeholders(role)}
               onCreateOpportunity={onCreateOpportunity}
               onAssignStakeholder={onAssignOpportunityStakeholder}
+              onCompanyUpdated={onCompanyUpdated}
             />
           </WorkspacePanel>
 
           <WorkspacePanel title="Projects" id="projects" count={linkedProjects.length}>
-            <CompanyProjectsTable projects={linkedProjects} companyId={company.CompanyID} />
+            <CompanyProjectsTable
+              projects={linkedProjects}
+              companyId={company.CompanyID}
+              company={company}
+              allProjects={projects}
+              companies={companies}
+              role={role}
+              onProjectUpdated={onProjectUpdated}
+            />
           </WorkspacePanel>
         </>
       ) : null}

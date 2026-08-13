@@ -176,14 +176,11 @@ export function resolveStakeholderOrganizationName(
 
 /**
  * Company ↔ project membership rule (Reality First):
- * A company appears on Company 360 → Projects only when it is listed in
- * `project.relatedOrganizations` with a matching `companyId` (or legacy
- * `linkedCompanyId` when `relatedOrganizations` is unset and migrated).
- *
- * Do NOT treat as membership:
- * - stakeholder rows that reuse a company name/string
- * - contacts whose registry company happens to match
- * - deal ClientName / project name similarity
+ * A company appears on Company 360 → Projects when:
+ * 1. It is listed in `project.relatedOrganizations` with a matching `companyId`, or
+ * 2. A contact from that company is on the project roster, or
+ * 3. A stakeholder row already points at this company id as organizationId
+ *    (legacy assign path before relatedOrganizations was written).
  */
 export function isCompanyExplicitlyLinkedToProject(
   companyId: string,
@@ -193,6 +190,59 @@ export function isCompanyExplicitlyLinkedToProject(
   return getProjectRelatedOrganizations(project).some(
     (org) => org.companyId === companyId,
   );
+}
+
+/**
+ * Ensure the company is on the project's relatedOrganizations list.
+ * Returns the organization row id to use for stakeholder.organizationId.
+ */
+export function ensureCompanyLinkedToProject(
+  project: Project,
+  companyId: string,
+  options?: {
+    organizationType?: ProjectOrganizationType;
+    label?: string;
+    makePrimaryIfEmpty?: boolean;
+  },
+): { project: Project; organizationId: string; changed: boolean } {
+  const trimmed = companyId.trim();
+  if (!trimmed) {
+    return {
+      project,
+      organizationId: UNASSIGNED_ORGANIZATION_ID,
+      changed: false,
+    };
+  }
+
+  const organizations = getProjectRelatedOrganizations(project);
+  const existing = organizations.find((org) => org.companyId === trimmed);
+  if (existing) {
+    return { project, organizationId: existing.id, changed: false };
+  }
+
+  const makePrimary =
+    options?.makePrimaryIfEmpty !== false && organizations.length === 0;
+  const nextOrg: ProjectRelatedOrganization = {
+    id: createOrganizationId(),
+    companyId: trimmed,
+    organizationType: options?.organizationType ?? "other",
+    label: options?.label,
+    isPrimary: makePrimary || undefined,
+  };
+
+  const nextOrganizations = [...organizations, nextOrg];
+  const primary =
+    nextOrganizations.find((org) => org.isPrimary) ?? nextOrganizations[0];
+
+  return {
+    changed: true,
+    organizationId: nextOrg.id,
+    project: {
+      ...project,
+      relatedOrganizations: nextOrganizations,
+      linkedCompanyId: primary?.companyId ?? project.linkedCompanyId,
+    },
+  };
 }
 
 /**

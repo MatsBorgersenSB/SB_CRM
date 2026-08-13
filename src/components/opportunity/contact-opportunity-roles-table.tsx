@@ -12,6 +12,7 @@ import {
   suggestOpportunityRoleForContact,
 } from "@/lib/opportunity-stakeholder-utils";
 import { syncPipelineRecord } from "@/lib/sync-pipeline";
+import { linkCompanyToOpportunity } from "@/lib/sync-company-opportunity-link";
 import { canManageOpportunityStakeholders } from "@/lib/permissions";
 import { DealLink } from "@/components/relationship/relationship-links";
 import { IconLabel } from "@/components/ui/smartcrm-icon";
@@ -31,6 +32,7 @@ type ContactOpportunityRolesTableProps = {
   pipelines: PipelineRow[];
   role: UserRole;
   onPipelineUpdated?: (pipeline: PipelineRow) => void;
+  onCompanyUpdated?: (company: Company) => void;
 };
 
 function buildContactOpportunityRoles(
@@ -62,6 +64,7 @@ export function ContactOpportunityRolesTable({
   pipelines,
   role,
   onPipelineUpdated,
+  onCompanyUpdated,
 }: ContactOpportunityRolesTableProps) {
   const canManage = canManageOpportunityStakeholders(role);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -144,6 +147,19 @@ export function ContactOpportunityRolesTable({
     try {
       const updated = await syncPipelineRecord(selectedDeal.id, { team }, role);
       onPipelineUpdated?.(updated);
+      // Contact on the deal ⇒ company is in commercial play.
+      if (!company.pipelineIds.includes(selectedDeal.id)) {
+        try {
+          const linkedCompany = await linkCompanyToOpportunity(
+            company.CompanyID,
+            selectedDeal.id,
+            role,
+          );
+          onCompanyUpdated?.(linkedCompany);
+        } catch {
+          // Stakeholder write succeeded; company link is best-effort.
+        }
+      }
       setAssignOpen(false);
       setSelectedDealId("");
       setDealQuery("");

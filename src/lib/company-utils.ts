@@ -6,7 +6,21 @@ export function getLinkedPipelines(
   pipelines: PipelineRow[],
 ): PipelineRow[] {
   const linked = new Set(company.pipelineIds);
-  return pipelines.filter((pipeline) => linked.has(pipeline.id));
+  const contactIds = new Set(
+    (company.contacts ?? [])
+      .map((contact) => contact.ContactID?.trim())
+      .filter((id): id is string => Boolean(id)),
+  );
+
+  return pipelines.filter((pipeline) => {
+    if (linked.has(pipeline.id)) return true;
+    // If a company contact sits on the opportunity roster, the company is in play.
+    return Boolean(
+      pipeline.team?.some(
+        (member) => member.contactId && contactIds.has(member.contactId),
+      ),
+    );
+  });
 }
 
 export function getCompanySmartDocs(

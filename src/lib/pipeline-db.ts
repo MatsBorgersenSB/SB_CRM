@@ -484,6 +484,57 @@ export async function updatePipeline(
   return updated;
 }
 
+/** Attach an existing opportunity to a company (JSON portfolio + Prisma when available). */
+export async function linkCompanyToPipeline(
+  companyId: string,
+  pipelineId: string,
+): Promise<Company> {
+  const database = await ensureDb();
+  const companyIndex = database.companies.findIndex(
+    (company) => company.CompanyID === companyId,
+  );
+  if (companyIndex === -1) {
+    throw new Error(`Company not found: ${companyId}`);
+  }
+
+  const pipeline = database.pipelines.find((row) => row.id === pipelineId);
+  if (!pipeline) {
+    // May exist only in Prisma — still try registry link below.
+  }
+
+  const company = database.companies[companyIndex];
+  if (!company.pipelineIds.includes(pipelineId)) {
+    database.companies[companyIndex] = {
+      ...company,
+      pipelineIds: [...company.pipelineIds, pipelineId],
+    };
+    await writeDb(database);
+  }
+
+  try {
+    const { findPrismaCompanyByRouteKey } = await import("@/lib/resolve-company-route");
+    const { withPrismaRetry } = await import("@/lib/prisma");
+    const prismaCompany = await findPrismaCompanyByRouteKey(companyId);
+    if (prismaCompany) {
+      await withPrismaRetry((prisma) =>
+        prisma.opportunity.updateMany({
+          where: {
+            OR: [{ id: pipelineId }, { code: pipelineId }],
+          },
+          data: { companyId: prismaCompany.id },
+        }),
+      );
+    }
+  } catch (error) {
+    console.warn(
+      "[pipeline-db] Prisma company↔opportunity link skipped:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+
+  return database.companies[companyIndex];
+}
+
 export async function createPipeline(
   input: CreateOpportunityInput,
 ): Promise<PipelineRow> {
