@@ -331,6 +331,17 @@ export function Company360LivingWorkspace({
             onContactReassign={onContactReassign}
             onContactArchive={onContactArchive}
             createRequestId={createRequestId}
+            canCreateOpportunity={
+              canCreateOpportunity(role) &&
+              Boolean(onCreateOpportunity) &&
+              isOpportunityEligibleCompany(company)
+            }
+            canManageOpportunityStakeholders={canManageOpportunityStakeholders(
+              role,
+            )}
+            onCreateOpportunity={onCreateOpportunity}
+            onAssignOpportunityStakeholder={onAssignOpportunityStakeholder}
+            onCompanyUpdated={onCompanyUpdated}
           />
         </>
       ) : null}

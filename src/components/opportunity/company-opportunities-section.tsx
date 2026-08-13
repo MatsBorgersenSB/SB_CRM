@@ -59,6 +59,10 @@ export function CompanyOpportunitiesSection({
   onAssignStakeholder,
   onCompanyUpdated,
   createRequestId = 0,
+  /** Overview: create CTA/form only — no table, empty copy, or link-existing. */
+  createOnly = false,
+  /** When false, parent owns the Create Opportunity trigger (e.g. panel header). */
+  showCreateTrigger = true,
 }: {
   deals: PipelineRow[];
   allPipelines?: PipelineRow[];
@@ -74,6 +78,8 @@ export function CompanyOpportunitiesSection({
   ) => Promise<PipelineRow>;
   onCompanyUpdated?: (company: Company) => void;
   createRequestId?: number;
+  createOnly?: boolean;
+  showCreateTrigger?: boolean;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -250,31 +256,53 @@ export function CompanyOpportunitiesSection({
     }
   };
 
+  const createTrigger = (emphasis: "primary" | "secondary") =>
+    showCreateTrigger && canCreate && !createOpen && !createdDeal ? (
+      <button
+        type="button"
+        onClick={openCreate}
+        className={
+          emphasis === "primary"
+            ? "inline-flex w-fit items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+            : "inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+        }
+      >
+        <SmartCRMIcon name="add" size="xs" />
+        Create Opportunity
+      </button>
+    ) : null;
+
+  const linkTrigger =
+    !createOnly && canManageStakeholders && !linkOpen ? (
+      <button
+        type="button"
+        onClick={() => setLinkOpen(true)}
+        className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+      >
+        Link existing opportunity
+      </button>
+    ) : null;
+
+  if (createOnly && !showCreateTrigger && !createOpen && !createdDeal) {
+    return null;
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      {deals.length === 0 && !createdDeal ? (
+    <div
+      className={
+        createOnly && (createOpen || createdDeal)
+          ? "mt-3 flex flex-col gap-4"
+          : "flex flex-col gap-4"
+      }
+    >
+      {createOnly ? (
+        createTrigger(deals.length === 0 ? "primary" : "secondary")
+      ) : deals.length === 0 && !createdDeal ? (
         <div className="flex flex-col gap-3 py-1">
           <p className="text-sm text-carbon-blue/45">No opportunities yet.</p>
           <div className="flex flex-wrap gap-2">
-            {canCreate && !createOpen ? (
-              <button
-                type="button"
-                onClick={openCreate}
-                className="inline-flex w-fit items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
-              >
-                <SmartCRMIcon name="add" size="xs" />
-                Create Opportunity
-              </button>
-            ) : null}
-            {canManageStakeholders && !linkOpen ? (
-              <button
-                type="button"
-                onClick={() => setLinkOpen(true)}
-                className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-              >
-                Link existing opportunity
-              </button>
-            ) : null}
+            {createTrigger("primary")}
+            {linkTrigger}
           </div>
         </div>
       ) : (
@@ -286,30 +314,13 @@ export function CompanyOpportunitiesSection({
             commercialPackages={commercialPackages}
           />
           <div className="flex flex-wrap gap-2">
-            {canCreate && !createOpen && !createdDeal ? (
-              <button
-                type="button"
-                onClick={openCreate}
-                className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-              >
-                <SmartCRMIcon name="add" size="xs" />
-                Create Opportunity
-              </button>
-            ) : null}
-            {canManageStakeholders && !linkOpen ? (
-              <button
-                type="button"
-                onClick={() => setLinkOpen(true)}
-                className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-              >
-                Link existing opportunity
-              </button>
-            ) : null}
+            {createTrigger("secondary")}
+            {linkTrigger}
           </div>
         </>
       )}
 
-      {linkOpen && canManageStakeholders ? (
+      {!createOnly && linkOpen && canManageStakeholders ? (
         <div className="border border-dashed border-carbon-blue/15 bg-white p-3">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
             Link existing opportunity to {company.Title}
