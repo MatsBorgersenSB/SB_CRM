@@ -1472,6 +1472,76 @@ export async function createCompanySmartDocLibraryRecord(
   return record;
 }
 
+/**
+ * Register a project-owned SmartDoc. Does not invent a deal/pipeline.
+ * Files target /Projects/{Name} (or /Projects/{Company}/{Name}) when Graph is on.
+ */
+export async function createProjectSmartDocLibraryRecord(
+  projectId: string,
+  input: CreateSmartDocInput,
+): Promise<SmartDocLibraryRecord> {
+  const database = await ensureDb();
+  const { readProjectById } = await import("@/lib/project-db");
+  const project = await readProjectById(projectId);
+  if (!project) {
+    throw new Error(`Project not found: ${projectId}`);
+  }
+
+  if (input.DocumentSetID?.trim()) {
+    throw new Error(
+      "Project-owned SmartDocs cannot join opportunity Document Sets (PI/BQ/FQ). Leave DocumentSetID empty.",
+    );
+  }
+
+  let company: Company | undefined;
+  if (project.linkedCompanyId?.trim()) {
+    company = await resolveCompanyForSmartDocs(project.linkedCompanyId);
+  }
+
+  const { buildProjectDocumentContext, buildProjectSmartDocLibraryRecord } =
+    await import("@/lib/smartdoc-library-engine");
+
+  const nextId =
+    database.smartDocsLibrary.reduce((max, record) => Math.max(max, record.id), 0) + 1;
+
+  const context = buildProjectDocumentContext(project, company);
+  const draft = buildProjectSmartDocLibraryRecord(
+    context,
+    database.smartDocsLibrary,
+    {
+      ...input,
+      LinkedProjectId: project.id,
+      LinkedDealId: input.LinkedDealId ?? project.linkedDealId,
+    },
+  );
+
+  const record: SmartDocLibraryRecord = {
+    ...draft,
+    id: nextId,
+  };
+
+  database.smartDocsLibrary.push(record);
+  await writeDb(database);
+  return record;
+}
+
+export async function readSmartDocsForProject(
+  projectId: string,
+): Promise<SmartDocLibraryRecord[]> {
+  const library = await readSmartDocsLibrary();
+  const key = projectId.trim().toLowerCase();
+  return library.filter((record) => {
+    if (record.LinkedProjectId?.trim().toLowerCase() === key) return true;
+    if (
+      record.Ownership === "project" &&
+      record.PlNumber?.trim().toLowerCase() === key
+    ) {
+      return true;
+    }
+    return false;
+  });
+}
+
 export async function updateSmartDocLibraryRecord(
   smartDocId: string,
   patch: Partial<Omit<SmartDocLibraryRecord, "id" | "SmartDocID">>,

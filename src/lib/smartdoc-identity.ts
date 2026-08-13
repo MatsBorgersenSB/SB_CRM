@@ -49,13 +49,13 @@ export const SMARTDOC_IDENTITY_TYPE_CODES: Record<string, string> = {
   Correspondence: "COR",
 };
 
-/** PL-… (opportunity) or CO-… (company) owner prefix + category + type + sequence. */
-const IDENTITY_PATTERN = /^((?:PL|CO)-[A-Z0-9]+)-([A-Z])-([A-Z]{3})-(\d{4})$/i;
+/** PL-… (opportunity), CO-… (company), or PRJ-… (project) owner prefix + category + type + sequence. */
+const IDENTITY_PATTERN = /^((?:PL|CO|PRJ)-[A-Z0-9]+)-([A-Z])-([A-Z]{3})-(\d{4})$/i;
 
-const OWNER_CODE_PATTERN = /^(PL|CO)-[A-Z0-9]+$/i;
+const OWNER_CODE_PATTERN = /^(PL|CO|PRJ)-[A-Z0-9]+$/i;
 
 export const SMARTDOC_IDENTITY_EXPLANATION =
-  "SmartDoc IDs encode ownership context: PL number for deal-outbound docs, or CO number for company-owned docs (e.g. supplier quotations), plus document category (e.g. S = Sales & Marketing), document type (e.g. SUQ = Supplier Quotation), and a unique sequence. IDs are assigned automatically — never edited manually. SharePoint manages file version history.";
+  "SmartDoc IDs encode ownership context: PL for deal docs, CO for company-owned docs, or PRJ for project docs, plus document category (e.g. S = Sales & Marketing), document type (e.g. SUQ = Supplier Quotation), and a unique sequence. IDs are assigned automatically — never edited manually. SharePoint manages file version history.";
 
 export type { SmartDocIdentityPreview, SmartDocNameSuggestions };
 
@@ -109,7 +109,7 @@ export function normalizeSmartDocOwnerCode(ownerCode: string): string {
   const trimmed = ownerCode.trim().toUpperCase();
   if (!OWNER_CODE_PATTERN.test(trimmed)) {
     throw new Error(
-      `SmartDoc owner code must be PL-… or CO-… (received: ${ownerCode})`,
+      `SmartDoc owner code must be PL-…, CO-…, or PRJ-… (received: ${ownerCode})`,
     );
   }
   return trimmed;
@@ -230,6 +230,21 @@ export function buildCompanySmartDocIdentityPreview(
   };
 }
 
+/** Project-owned identity (PRJ-…-…), e.g. PRJ-BIO4METAL-L-VAG-0001. */
+export function buildProjectSmartDocIdentityPreview(
+  projectCode: string,
+  projectName: string,
+  category: SmartDocCategory,
+  docType: string,
+  existingIds: string[],
+): SmartDocIdentityPreview {
+  const identity = buildDocumentIdentity(projectCode, category, docType, existingIds);
+  return {
+    ...identity,
+    suggestedName: suggestDocumentName(projectName, docType),
+  };
+}
+
 export function isSmartDocIdentityId(value: string): boolean {
   return IDENTITY_PATTERN.test(value.trim());
 }
@@ -242,6 +257,11 @@ export function isCompanySmartDocIdentityId(value: string): boolean {
 export function isOpportunitySmartDocIdentityId(value: string): boolean {
   const match = value.trim().match(IDENTITY_PATTERN);
   return Boolean(match?.[1]?.toUpperCase().startsWith("PL-"));
+}
+
+export function isProjectSmartDocIdentityId(value: string): boolean {
+  const match = value.trim().match(IDENTITY_PATTERN);
+  return Boolean(match?.[1]?.toUpperCase().startsWith("PRJ-"));
 }
 
 export type SmartDocIdentityBreakdown = {
