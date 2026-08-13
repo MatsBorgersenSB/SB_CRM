@@ -90,8 +90,9 @@ export function company360Href(
   const base = `/companies/${encodeURIComponent(raw)}`;
   if (!section) return base;
   // Prefer Mission Control ?view= over hash so one surface loads at a time.
+  // Contacts live on Overview (People tab retired).
   const viewBySection: Record<Company360Section, string> = {
-    contacts: "people",
+    contacts: "overview",
     opportunities: "work",
     activities: "actions",
     documents: "actions",

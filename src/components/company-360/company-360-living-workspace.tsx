@@ -8,7 +8,6 @@ import {
   companyWebsiteHref,
 } from "@/lib/company-identity";
 import { getActivitiesForCompany } from "@/lib/activity-utils";
-import { CompanyContactsTable } from "@/components/company-360/company-contacts-table";
 import { CompanyWorkspaceHeader } from "@/components/company-360/company-workspace-header";
 import { CompanyMissionControlTabBar } from "@/components/company-360/company-mission-control-tab-bar";
 import {
@@ -55,7 +54,8 @@ import {
 } from "@/types/company-mission-control";
 
 /**
- * Company 360 Mission Control — Overview · People · Work · Actions.
+ * Company 360 Mission Control — Overview · Work · Actions.
+ * People (contacts) live on Overview.
  */
 export function Company360LivingWorkspace({
   snapshot,
@@ -150,14 +150,18 @@ export function Company360LivingWorkspace({
 
   useEffect(() => {
     const hash = typeof window !== "undefined" ? window.location.hash : "";
-    setActiveView(
-      resolveCompanyMissionControlView(
-        searchParams.get("view"),
-        hash,
-        searchParams.get("tab"),
-      ),
-    );
-  }, [searchParams]);
+    const viewParam = searchParams.get("view");
+    const tabParam = searchParams.get("tab");
+    const resolved = resolveCompanyMissionControlView(viewParam, hash, tabParam);
+    setActiveView(resolved);
+
+    // Retire ?view=people / ?view=contacts → Overview People strip
+    if (viewParam === "people" || viewParam === "contacts") {
+      router.replace(`${companyMissionControlHref(routeKey)}#contacts`, {
+        scroll: false,
+      });
+    }
+  }, [searchParams, routeKey, router]);
 
   const navigateView = useCallback(
     (view: CompanyMissionControlView) => {
@@ -170,13 +174,11 @@ export function Company360LivingWorkspace({
   const viewCounts = useMemo(
     () => ({
       overview: visibleAttentionItems.length,
-      people: company.contacts.length,
       work: linkedPipelines.length + linkedProjects.length,
       actions: companyActivities.length + documentCount,
     }),
     [
       visibleAttentionItems.length,
-      company.contacts.length,
       linkedPipelines.length,
       linkedProjects.length,
       companyActivities.length,
@@ -199,7 +201,15 @@ export function Company360LivingWorkspace({
   const handleNewContact = () => {
     setActiveTool(null);
     setCreateRequestId((value) => value + 1);
-    navigateView("people");
+    navigateView("overview");
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        document.getElementById("contacts")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
   };
 
   const handleRunWebsiteDiscovery = (url: string) => {
@@ -306,25 +316,14 @@ export function Company360LivingWorkspace({
 
           <Company360OverviewStrips
             company={company}
+            companies={companies}
+            role={role}
             activities={scopedActivities}
             deals={linkedPipelines}
             commercialPackages={commercialPackages}
             projects={linkedProjects}
-            onOpenPeople={() => navigateView("people")}
+            allProjects={projects}
             onOpenWork={() => navigateView("work")}
-          />
-        </>
-      ) : null}
-
-      {activeView === "people" ? (
-        <WorkspacePanel title="Contacts" id="contacts" count={company.contacts.length}>
-          <CompanyContactsTable
-            contacts={company.contacts}
-            companyId={company.CompanyID}
-            companies={companies}
-            role={role}
-            activities={scopedActivities}
-            projects={projects}
             onCreateContact={onCreateContact}
             onContactUpdate={onContactUpdate}
             onContactDelete={onContactDelete}
@@ -332,7 +331,7 @@ export function Company360LivingWorkspace({
             onContactArchive={onContactArchive}
             createRequestId={createRequestId}
           />
-        </WorkspacePanel>
+        </>
       ) : null}
 
       {activeView === "work" ? (

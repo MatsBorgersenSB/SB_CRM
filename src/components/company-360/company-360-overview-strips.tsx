@@ -4,28 +4,23 @@ import { useMemo } from "react";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
-import type { Contact } from "@/types/contact";
-import { getContactDisplayName } from "@/types/contact";
+import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
 import type { PipelineRow } from "@/types/pipeline";
 import { formatDealValue } from "@/types/pipeline";
 import type { Project } from "@/types/project";
 import { PROJECT_STAGE_LABELS } from "@/types/project";
-import {
-  getActivitiesForContact,
-  getActivitiesForDeal,
-} from "@/lib/activity-utils";
-import { formatRelativeTime } from "@/lib/relative-time";
+import type { UserRole } from "@/types/auth";
+import { getActivitiesForDeal } from "@/lib/activity-utils";
 import { computeOpportunityMomentum } from "@/lib/opportunity-intelligence-engine";
 import { opportunityStageLabel } from "@/lib/opportunity-overview";
 import { OpportunityMomentumBadge } from "@/components/opportunity/opportunity-intelligence-display";
+import { CompanyContactsTable } from "@/components/company-360/company-contacts-table";
 import {
-  ContactLink,
   DealLink,
   ProjectLink,
 } from "@/components/relationship/relationship-links";
 import { WorkspacePanel, HealthStatusIcon } from "@/components/ui/smartcrm-icon";
 
-const PEOPLE_TEASER_LIMIT = 5;
 const DEAL_TEASER_LIMIT = 5;
 const PROJECT_TEASER_LIMIT = 5;
 
@@ -51,79 +46,51 @@ function StripEmpty({ children }: { children: string }) {
   return <p className="text-[13px] text-carbon-blue/45">{children}</p>;
 }
 
-function contactRoleLabel(contact: Contact): string {
-  const title = (contact.JobTitle ?? "").trim();
-  const role = (contact.Role ?? "").trim();
-  if (title && !/<\/?[a-z]/i.test(title)) return title;
-  if (role && !/<\/?[a-z]/i.test(role)) return role;
-  return "—";
-}
-
 function PeopleOverviewStrip({
   company,
+  companies,
+  role,
   activities,
-  onViewAll,
+  allProjects,
+  onCreateContact,
+  onContactUpdate,
+  onContactDelete,
+  onContactReassign,
+  onContactArchive,
+  createRequestId,
 }: {
   company: Company;
+  companies: Company[];
+  role: UserRole;
   activities: Activity[];
-  onViewAll: () => void;
+  allProjects: Project[];
+  onCreateContact?: (input: CreateContactInput) => Promise<void>;
+  onContactUpdate?: (contactId: string, patch: UpdateContactInput) => Promise<void>;
+  onContactDelete?: (contactId: string) => Promise<void>;
+  onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
+  onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
+  createRequestId?: number;
 }) {
-  const rows = useMemo(() => {
-    const scored = company.contacts.map((contact) => {
-      const contactActivities = getActivitiesForContact(
-        activities,
-        contact.ContactID,
-        contact,
-      );
-      const last = contactActivities[0];
-      const lastMs = last
-        ? new Date(last.ActivityDate).getTime()
-        : Number.NEGATIVE_INFINITY;
-      return {
-        contact,
-        lastTouch: last ? formatRelativeTime(last.ActivityDate) : "No interaction",
-        lastMs,
-      };
-    });
-    return scored
-      .sort((a, b) => b.lastMs - a.lastMs || getContactDisplayName(a.contact).localeCompare(getContactDisplayName(b.contact)))
-      .slice(0, PEOPLE_TEASER_LIMIT);
-  }, [company.contacts, activities]);
-
   return (
     <WorkspacePanel
       title="People"
-      id="overview-people"
+      id="contacts"
       count={company.contacts.length}
-      headerTrailing={<ViewAllButton label="View all →" onClick={onViewAll} />}
     >
-      {rows.length === 0 ? (
-        <StripEmpty>No people on this company yet.</StripEmpty>
-      ) : (
-        <ul className="divide-y divide-carbon-blue/6">
-          {rows.map(({ contact, lastTouch }) => (
-            <li
-              key={contact.ContactID}
-              className="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
-            >
-              <div className="min-w-0 flex-1">
-                <ContactLink
-                  contactId={contact.ContactID}
-                  companyId={company.CompanyID}
-                  showIcon={false}
-                  className="truncate text-[13px] font-semibold text-carbon-blue hover:text-upcycle-orange"
-                >
-                  {getContactDisplayName(contact)}
-                </ContactLink>
-                <p className="mt-0.5 truncate text-[12px] text-carbon-blue/55">
-                  {contactRoleLabel(contact)}
-                </p>
-              </div>
-              <span className="shrink-0 text-[12px] text-carbon-blue/45">{lastTouch}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <CompanyContactsTable
+        contacts={company.contacts}
+        companyId={company.CompanyID}
+        companies={companies}
+        role={role}
+        activities={activities}
+        projects={allProjects}
+        onCreateContact={onCreateContact}
+        onContactUpdate={onContactUpdate}
+        onContactDelete={onContactDelete}
+        onContactReassign={onContactReassign}
+        onContactArchive={onContactArchive}
+        createRequestId={createRequestId}
+      />
     </WorkspacePanel>
   );
 }
@@ -263,32 +230,58 @@ function ProjectsOverviewStrip({
 }
 
 /**
- * Overview teaser strips — People · Opportunities · Projects.
- * Read-only density; full tables stay on People / Work tabs.
+ * Overview strips — People (full contacts) · Opportunities · Projects teasers.
+ * Contact management lives on Overview; Work tab holds full opportunity/project tables.
  */
 export function Company360OverviewStrips({
   company,
+  companies,
+  role,
   activities,
   deals,
   commercialPackages,
   projects,
-  onOpenPeople,
+  allProjects,
   onOpenWork,
+  onCreateContact,
+  onContactUpdate,
+  onContactDelete,
+  onContactReassign,
+  onContactArchive,
+  createRequestId,
 }: {
   company: Company;
+  companies: Company[];
+  role: UserRole;
   activities: Activity[];
   deals: PipelineRow[];
   commercialPackages: CommercialPackage[];
+  /** Linked projects for the Projects teaser. */
   projects: Project[];
-  onOpenPeople: () => void;
+  /** Full project list for contact project-role labels. */
+  allProjects: Project[];
   onOpenWork: () => void;
+  onCreateContact?: (input: CreateContactInput) => Promise<void>;
+  onContactUpdate?: (contactId: string, patch: UpdateContactInput) => Promise<void>;
+  onContactDelete?: (contactId: string) => Promise<void>;
+  onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
+  onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
+  createRequestId?: number;
 }) {
   return (
     <>
       <PeopleOverviewStrip
         company={company}
+        companies={companies}
+        role={role}
         activities={activities}
-        onViewAll={onOpenPeople}
+        allProjects={allProjects}
+        onCreateContact={onCreateContact}
+        onContactUpdate={onContactUpdate}
+        onContactDelete={onContactDelete}
+        onContactReassign={onContactReassign}
+        onContactArchive={onContactArchive}
+        createRequestId={createRequestId}
       />
       <OpportunitiesOverviewStrip
         deals={deals}
