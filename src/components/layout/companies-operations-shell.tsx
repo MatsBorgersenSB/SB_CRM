@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { BulkImportPanel } from "@/components/companies/bulk-import-panel";
@@ -79,6 +79,10 @@ export function CompaniesOperationsShell({
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("all");
   const [activeTool, setActiveTool] = useState<CompaniesWorkspaceTool>(null);
+
+  useEffect(() => {
+    setCompanyRows(companies);
+  }, [companies]);
 
   const applyBridge = useCallback(
     (patch: { filters?: WorkspaceFilterValues; search?: string; owner?: string }) => {

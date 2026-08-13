@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { CompaniesActionBar } from "@/components/companies/companies-action-bar";
@@ -29,6 +29,10 @@ export function CompaniesShell({
   const router = useRouter();
   const { user } = useAuth();
   const [companyRows, setCompanyRows] = useState(companies);
+
+  useEffect(() => {
+    setCompanyRows(companies);
+  }, [companies]);
 
   const visibleCompanies = useMemo(
     () => filterCompaniesForUser(companyRows, user),

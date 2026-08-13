@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { addOutlookContact } from "@/lib/m365/outlook-add-contact";
 import { m365Error } from "@/lib/m365/api-response";
@@ -43,6 +44,11 @@ export async function POST(request: Request) {
       skipAutoCompanyMatch: body.skipAutoCompanyMatch,
       enrichment: body.enrichment,
     });
+
+    revalidatePath("/contacts");
+    revalidatePath("/companies");
+    revalidatePath(`/contacts/${result.contactId}`);
+    revalidatePath(`/companies/${result.companyId}`);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

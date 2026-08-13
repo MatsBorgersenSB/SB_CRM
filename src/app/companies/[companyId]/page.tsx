@@ -11,11 +11,37 @@ import {
   readLivePortfolio,
 } from "@/lib/prisma-data";
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
+import type { Company } from "@/types/company";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type Company360PageProps = {
   /** Next.js 15 — dynamic route params are async. */
   params: Promise<EntityRouteParams>;
 };
+
+function mergeCompanyIntoPortfolio(
+  companies: Company[],
+  company: Company,
+): Company[] {
+  const exists = companies.some(
+    (row) =>
+      row.CompanyID === company.CompanyID ||
+      row.code === company.code ||
+      row.code === company.CompanyID,
+  );
+  if (exists) {
+    return companies.map((row) =>
+      row.CompanyID === company.CompanyID ||
+      row.code === company.code ||
+      row.code === company.CompanyID
+        ? company
+        : row,
+    );
+  }
+  return [...companies, company];
+}
 
 export default async function Company360Page({ params }: Company360PageProps) {
   const resolvedParams = await params;
@@ -58,11 +84,13 @@ export default async function Company360Page({ params }: Company360PageProps) {
     notFound();
   }
 
+  const shellCompanies = mergeCompanyIntoPortfolio(companies, company);
+
   return (
     <Suspense fallback={null}>
       <Company360Shell
         initialCompany={company}
-        companies={companies}
+        companies={shellCompanies}
         pipelines={pipelines}
         activities={activities}
         inventory={inventory}
