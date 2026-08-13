@@ -9,6 +9,7 @@ import {
 } from "@/lib/mock-ai-parser";
 import {
   buildCompanySmartDocIdentityPreview,
+  buildProjectSmartDocIdentityPreview,
   buildSmartDocIdentityPreview,
   suggestDocumentNames,
 } from "@/lib/smartdoc-identity";
@@ -169,13 +170,24 @@ export function WorkspaceDocumentsPanel({
 
   useEffect(() => {
     setTableQuery(defaultDocumentTableQuery());
-  }, [context.scope, context.companyId, context.contactId, context.dealId]);
+  }, [context.scope, context.companyId, context.contactId, context.dealId, context.projectId]);
 
   useEffect(() => {
     onDocumentCountChange?.(rows.length);
   }, [onDocumentCountChange, rows.length]);
 
+  const isProjectScope = context.scope === "project" && Boolean(context.projectId);
+
   const identityPreview = useMemo(() => {
+    if (isProjectScope && context.projectId) {
+      return buildProjectSmartDocIdentityPreview(
+        context.projectId.toUpperCase(),
+        context.projectName || context.projectId,
+        preset.category,
+        preset.type,
+        library.map((record) => record.SmartDocID),
+      );
+    }
     if (useCompanyOwnership && ownerCompany) {
       const companyCode =
         (ownerCompany.code?.trim() || ownerCompany.CompanyID).toUpperCase();
@@ -196,12 +208,45 @@ export function WorkspaceDocumentsPanel({
       preset.type,
       library.map((record) => record.SmartDocID),
     );
-  }, [useCompanyOwnership, ownerCompany, targetPipeline, preset, library]);
+  }, [
+    isProjectScope,
+    context.projectId,
+    context.projectName,
+    useCompanyOwnership,
+    ownerCompany,
+    targetPipeline,
+    preset,
+    library,
+  ]);
 
   const importIdentityIds = useMemo(() => {
     const ids = library.map((record) => record.SmartDocID);
     const provisional: Array<string | null> = [];
     const known = [...ids];
+
+    if (isProjectScope && context.projectId) {
+      const projectCode = context.projectId.toUpperCase();
+      const projectName = context.projectName || context.projectId;
+      for (const item of importQueue) {
+        if (item.status === "done" && item.result?.SmartDocID) {
+          provisional.push(item.result.SmartDocID);
+          if (!known.includes(item.result.SmartDocID)) {
+            known.push(item.result.SmartDocID);
+          }
+          continue;
+        }
+        const preview = buildProjectSmartDocIdentityPreview(
+          projectCode,
+          projectName,
+          item.DocCategory,
+          item.DocType,
+          known,
+        );
+        provisional.push(preview.documentId);
+        known.push(preview.documentId);
+      }
+      return provisional;
+    }
 
     if (useCompanyOwnership && ownerCompany) {
       const companyCode =
@@ -249,9 +294,26 @@ export function WorkspaceDocumentsPanel({
       known.push(preview.documentId);
     }
     return provisional;
-  }, [importQueue, library, targetPipeline, useCompanyOwnership, ownerCompany]);
+  }, [
+    importQueue,
+    library,
+    targetPipeline,
+    useCompanyOwnership,
+    ownerCompany,
+    isProjectScope,
+    context.projectId,
+    context.projectName,
+  ]);
 
   const nameSuggestions = useMemo(() => {
+    if (isProjectScope && context.projectId) {
+      return suggestDocumentNames(
+        context.projectId.toUpperCase(),
+        context.projectName || context.projectId,
+        context.companyName || context.projectName || context.projectId,
+        preset.type,
+      );
+    }
     if (useCompanyOwnership && ownerCompany) {
       const companyCode =
         (ownerCompany.code?.trim() || ownerCompany.CompanyID).toUpperCase();
@@ -270,7 +332,17 @@ export function WorkspaceDocumentsPanel({
       company?.Title ?? targetPipeline.companyRole,
       preset.type,
     );
-  }, [useCompanyOwnership, ownerCompany, targetPipeline, preset.type, companies]);
+  }, [
+    isProjectScope,
+    context.projectId,
+    context.projectName,
+    context.companyName,
+    useCompanyOwnership,
+    ownerCompany,
+    targetPipeline,
+    preset.type,
+    companies,
+  ]);
 
   const loadLibrary = useCallback(async () => {
     setLoading(true);
@@ -307,15 +379,22 @@ export function WorkspaceDocumentsPanel({
   }, [nameSuggestions, documentName, mode]);
 
   const canSubmitDocuments =
-    !readOnly && (useCompanyOwnership ? Boolean(context.companyId) : Boolean(resolvedDealId));
+    !readOnly &&
+    (isProjectScope
+      ? Boolean(context.projectId)
+      : useCompanyOwnership
+        ? Boolean(context.companyId)
+        : Boolean(resolvedDealId));
 
   const postSmartDoc = async (
     payload: CreateSmartDocInput,
     file?: File | null,
   ): Promise<SmartDocLibraryRecord> => {
-    const endpoint = useCompanyOwnership
-      ? `/api/companies/${encodeURIComponent(context.companyId!)}/smartdocs`
-      : `/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`;
+    const endpoint = isProjectScope
+      ? `/api/projects/${encodeURIComponent(context.projectId!)}/smartdocs`
+      : useCompanyOwnership
+        ? `/api/companies/${encodeURIComponent(context.companyId!)}/smartdocs`
+        : `/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`;
 
     let response: Response;
     if (file) {
@@ -326,7 +405,7 @@ export function WorkspaceDocumentsPanel({
       if (payload.originalFileName) {
         form.append("originalFileName", payload.originalFileName);
       }
-      if (payload.DocumentSetID && !useCompanyOwnership) {
+      if (payload.DocumentSetID && !useCompanyOwnership && !isProjectScope) {
         form.append("DocumentSetID", payload.DocumentSetID);
       }
       if (payload.Origin) {
@@ -334,6 +413,9 @@ export function WorkspaceDocumentsPanel({
       }
       if (payload.Counterparty) {
         form.append("Counterparty", payload.Counterparty);
+      }
+      if (isProjectScope && context.projectId) {
+        form.append("LinkedProjectId", context.projectId);
       }
       form.append("file", file, file.name);
       response = await fetch(endpoint, {
@@ -344,7 +426,12 @@ export function WorkspaceDocumentsPanel({
       response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          ...(isProjectScope && context.projectId
+            ? { LinkedProjectId: context.projectId }
+            : {}),
+        }),
       });
     }
     const body = await response.json();
@@ -689,7 +776,13 @@ export function WorkspaceDocumentsPanel({
 
       {mode === "create" && !readOnly ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
-          {companyOwnedEnabled ? (
+          {isProjectScope ? (
+            <p className="mb-3 text-[11px] text-carbon-blue/55">
+              Project documents use PRJ-… identity and file under SharePoint{" "}
+              <span className="font-mono">/Projects/{context.projectName || "…"}</span>.
+            </p>
+          ) : null}
+          {companyOwnedEnabled && !isProjectScope ? (
             <label className="mb-3 block">
               <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
                 Ownership
@@ -716,6 +809,7 @@ export function WorkspaceDocumentsPanel({
           ) : null}
 
           {!useCompanyOwnership &&
+          !isProjectScope &&
           context.scope !== "opportunity" &&
           dealOptions.length > 1 ? (
             <label className="mb-3 block">
@@ -787,16 +881,24 @@ export function WorkspaceDocumentsPanel({
             {saving ? "Creating…" : "Create SmartDoc"}
           </button>
           <p className="mt-2 text-[11px] text-carbon-blue/45">
-            {useCompanyOwnership
-              ? "Company-owned documents use CO-… identity and do not invent opportunities."
-              : "Created documents are marked as Standard Bio origin."}
+            {isProjectScope
+              ? "Project documents use PRJ-… identity. The Projects folder is created in SharePoint on first import."
+              : useCompanyOwnership
+                ? "Company-owned documents use CO-… identity and do not invent opportunities."
+                : "Created documents are marked as Standard Bio origin."}
           </p>
         </div>
       ) : null}
 
       {mode === "import" && !readOnly ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
-          {companyOwnedEnabled ? (
+          {isProjectScope ? (
+            <p className="mb-3 text-[11px] text-carbon-blue/55">
+              Files import to this project and SharePoint{" "}
+              <span className="font-mono">/Projects/{context.projectName || "…"}</span>.
+            </p>
+          ) : null}
+          {companyOwnedEnabled && !isProjectScope ? (
             <label className="mb-3 block">
               <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
                 Ownership

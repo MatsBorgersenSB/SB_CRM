@@ -5,16 +5,19 @@ import { getGraphAccessToken } from "@/lib/m365/get-graph-access-token";
 import {
   ensureCompanyDocumentsSharePointFolder,
   ensureOpportunitySharePointFolder,
+  ensureProjectSharePointFolder,
   uploadFileToSharePointFolder,
 } from "@/lib/m365/graph-client";
 import { linkOpportunitySharePointFolder } from "@/lib/m365/provision-opportunity-folder";
 import {
   createCompanySmartDocLibraryRecord,
+  createProjectSmartDocLibraryRecord,
   createSmartDocLibraryRecord,
   resolveCompanyForSmartDocs,
   resolvePipelineForSmartDocs,
   updateSmartDocLibraryRecord,
 } from "@/lib/pipeline-db";
+import { readProjectById } from "@/lib/project-db";
 import { isGraphTransport } from "@/services/sharepoint/config/environment";
 import type {
   CreateSmartDocInput,
@@ -28,6 +31,12 @@ export type ImportedOpportunitySmartDoc = {
 };
 
 export type ImportedCompanySmartDoc = {
+  libraryRecord: SmartDocLibraryRecord;
+  documentRecordId: string | null;
+  sharepointWebUrl: string | null;
+};
+
+export type ImportedProjectSmartDoc = {
   libraryRecord: SmartDocLibraryRecord;
   documentRecordId: string | null;
   sharepointWebUrl: string | null;
@@ -283,6 +292,145 @@ export async function importCompanySmartDoc(input: {
   } catch (error) {
     console.warn(
       "[Company SmartDocs import] DocumentRecord create failed:",
+      error instanceof Error ? error.message : error,
+    );
+    return {
+      libraryRecord,
+      documentRecordId: null,
+      sharepointWebUrl,
+    };
+  }
+}
+
+/**
+ * Project-owned SmartDoc import.
+ * Never invents a deal. Files target /Projects/{Name} (or /Projects/{Company}/{Name}) when Graph is on.
+ */
+export async function importProjectSmartDoc(input: {
+  projectId: string;
+  metadata: CreateSmartDocInput;
+  file?: {
+    bytes: Buffer;
+    mimeType: string | null;
+    originalFileName: string;
+  };
+}): Promise<ImportedProjectSmartDoc> {
+  const project = await readProjectById(input.projectId);
+  if (!project) {
+    throw new Error(`Project not found: ${input.projectId}`);
+  }
+
+  const metadata: CreateSmartDocInput = {
+    ...input.metadata,
+    originalFileName:
+      input.metadata.originalFileName ??
+      input.file?.originalFileName ??
+      undefined,
+    LinkedProjectId: project.id,
+    LinkedDealId: input.metadata.LinkedDealId ?? project.linkedDealId,
+  };
+
+  let libraryRecord = await createProjectSmartDocLibraryRecord(
+    project.id,
+    metadata,
+  );
+
+  if (!input.file?.bytes?.length) {
+    return {
+      libraryRecord,
+      documentRecordId: null,
+      sharepointWebUrl: null,
+    };
+  }
+
+  const fileName =
+    libraryRecord.FileLeafRef?.trim() ||
+    input.file.originalFileName ||
+    libraryRecord.DocumentName;
+
+  let sharepointItemId: string | null = null;
+  let sharepointWebUrl: string | null = null;
+  let contentBase64: string | null = input.file.bytes.toString("base64");
+
+  if (isGraphTransport()) {
+    const siteId = process.env.SHAREPOINT_SITE_ID?.trim();
+    if (siteId) {
+      try {
+        const accessToken = await getGraphAccessToken();
+        let companyName: string | undefined;
+        if (project.linkedCompanyId?.trim()) {
+          const company = await resolveCompanyForSmartDocs(
+            project.linkedCompanyId,
+          ).catch(() => undefined);
+          companyName = company?.Title;
+        }
+
+        const folder = await ensureProjectSharePointFolder(
+          accessToken,
+          siteId,
+          project.name,
+          companyName,
+        );
+        const uploaded = await uploadFileToSharePointFolder({
+          accessToken,
+          siteId,
+          folderId: folder.folderId,
+          fileName,
+          contentType: input.file.mimeType || "application/octet-stream",
+          bytes: input.file.bytes,
+        });
+        sharepointItemId = uploaded.itemId;
+        sharepointWebUrl = uploaded.webUrl;
+        contentBase64 = null;
+
+        libraryRecord = await updateSmartDocLibraryRecord(libraryRecord.SmartDocID, {
+          SharePointFolderPath: folder.path,
+          SharePointWebUrl: sharepointWebUrl,
+        });
+      } catch (error) {
+        console.warn(
+          "[Project SmartDocs import] SharePoint upload failed — keeping library record:",
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+  }
+
+  try {
+    const prisma = getPrisma();
+    let companyId: string | undefined;
+    if (project.linkedCompanyId?.trim()) {
+      const { findPrismaCompanyByRouteKey } = await import(
+        "@/lib/resolve-company-route"
+      );
+      const prismaCompany = await findPrismaCompanyByRouteKey(
+        project.linkedCompanyId,
+      );
+      companyId = prismaCompany?.id;
+    }
+
+    const document = await prisma.documentRecord.create({
+      data: {
+        name: fileName,
+        mimeType: input.file.mimeType,
+        sizeBytes: input.file.bytes.length,
+        source: "upload",
+        contentBase64,
+        sharepointItemId,
+        sharepointWebUrl,
+        opportunityId: null,
+        ...(companyId ? { companyId } : {}),
+      },
+    });
+
+    return {
+      libraryRecord,
+      documentRecordId: document.id,
+      sharepointWebUrl: document.sharepointWebUrl ?? sharepointWebUrl,
+    };
+  } catch (error) {
+    console.warn(
+      "[Project SmartDocs import] DocumentRecord create failed:",
       error instanceof Error ? error.message : error,
     );
     return {

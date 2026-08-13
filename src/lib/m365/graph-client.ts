@@ -2,7 +2,10 @@
  * Microsoft Graph helpers for SharePoint Online document provisioning.
  * SharePoint Online is the single source of truth for opportunity documents.
  *
- * Hierarchy: /Opportunities/{CompanyName}/{OpportunityTitle}
+ * Hierarchy:
+ *   /Opportunities/{CompanyName}/{OpportunityTitle}
+ *   /Companies/{CompanyName}/Documents
+ *   /Projects/{ProjectName}  (or /Projects/{CompanyName}/{ProjectName})
  */
 
 const GRAPH_BASE =
@@ -296,6 +299,60 @@ export async function ensureCompanyDocumentsSharePointFolder(
   } catch (error) {
     console.error(
       "[SharePoint Graph Error]: Failed to ensure company Documents folder",
+      { path, error },
+    );
+    throw error;
+  }
+}
+
+export type ProjectSharePointFolder = {
+  folderId: string;
+  webUrl: string;
+  name: string;
+  /** Drive-relative path, e.g. Projects/Bio4Metal or Projects/Acme/Bio4Metal */
+  path: string;
+};
+
+/**
+ * Ensures hierarchical SharePoint folder for a project:
+ * /Projects/{ProjectName}
+ * or, when a company is linked: /Projects/{CompanyName}/{ProjectName}
+ *
+ * Creates the root `Projects` folder on first use (mirrors Opportunities / Companies).
+ */
+export async function ensureProjectSharePointFolder(
+  accessToken: string,
+  siteId: string,
+  projectName: string,
+  companyName?: string | null,
+): Promise<ProjectSharePointFolder> {
+  if (!accessToken?.trim()) {
+    throw new Error("Graph access token is required to ensure project folder");
+  }
+  if (!siteId?.trim()) {
+    throw new Error("SHAREPOINT_SITE_ID is required to ensure project folder");
+  }
+
+  const safeProject = sanitizeSharePointName(projectName || "Untitled Project");
+  const safeCompany = companyName?.trim()
+    ? sanitizeSharePointName(companyName)
+    : null;
+  const segments = safeCompany
+    ? ["Projects", safeCompany, safeProject]
+    : ["Projects", safeProject];
+  const path = segments.join("/");
+
+  try {
+    const item = await ensureFolderPath(accessToken, siteId, segments);
+    return {
+      folderId: item.id!,
+      webUrl: item.webUrl!,
+      name: item.name ?? safeProject,
+      path,
+    };
+  } catch (error) {
+    console.error(
+      "[SharePoint Graph Error]: Failed to ensure project folder",
       { path, error },
     );
     throw error;

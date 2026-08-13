@@ -1,7 +1,7 @@
 /** SmartDocs library row — SharePoint SmartDocs list shape. */
 
 /** Who owns the SmartDoc in SmartCRM (file SoT may still be SharePoint). */
-export type SmartDocOwnership = "company" | "opportunity";
+export type SmartDocOwnership = "company" | "opportunity" | "project";
 
 export type SmartDocLibraryRecord = {
   id: number;
@@ -152,6 +152,17 @@ export type CompanyDocumentContext = {
   createdAt: string;
 };
 
+/** Project document context — project-owned SmartDocs. */
+export type ProjectDocumentContext = {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  companyId?: string;
+  companyName?: string;
+  sharePointFolderPath: string;
+  createdAt: string;
+};
+
 export type SmartDocNameSuggestions = {
   primary: string;
   alternatives: string[];
@@ -200,10 +211,39 @@ export function companyDocumentsSharePointPath(companyName: string): string {
   return `/Companies/${safe}/Documents`;
 }
 
+/** SharePoint SoT path for project documents. */
+export function projectDocumentsSharePointPath(
+  projectName: string,
+  companyName?: string | null,
+): string {
+  const safeProject = projectName.trim() || "Untitled Project";
+  const safeCompany = companyName?.trim();
+  if (safeCompany) {
+    return `/Projects/${safeCompany}/${safeProject}`;
+  }
+  return `/Projects/${safeProject}`;
+}
+
 export function isCompanyOwnedSmartDoc(
   record: Pick<SmartDocLibraryRecord, "Ownership" | "DealId" | "OwnerCompanyId">,
 ): boolean {
   if (record.Ownership === "company") return true;
-  if (record.Ownership === "opportunity") return false;
+  if (record.Ownership === "opportunity" || record.Ownership === "project") {
+    return false;
+  }
   return Boolean(record.OwnerCompanyId && !record.DealId);
+}
+
+export function isProjectOwnedSmartDoc(
+  record: Pick<
+    SmartDocLibraryRecord,
+    "Ownership" | "DealId" | "LinkedProjectId" | "PlNumber"
+  >,
+): boolean {
+  if (record.Ownership === "project") return true;
+  return Boolean(
+    record.LinkedProjectId &&
+      !record.DealId &&
+      record.PlNumber?.toUpperCase().startsWith("PRJ-"),
+  );
 }

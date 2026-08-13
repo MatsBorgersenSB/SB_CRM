@@ -9,9 +9,13 @@ import type { PipelineRow } from "@/types/pipeline";
 import type {
   CompanyDocumentContext,
   CreateSmartDocInput,
+  ProjectDocumentContext,
   SmartDocLibraryRecord,
 } from "@/types/smartdoc-library";
-import { companyDocumentsSharePointPath } from "@/types/smartdoc-library";
+import {
+  companyDocumentsSharePointPath,
+  projectDocumentsSharePointPath,
+} from "@/types/smartdoc-library";
 
 /**
  * SharePoint file name = SmartDoc identity + display name + extension
@@ -131,6 +135,61 @@ export function buildCompanySmartDocLibraryRecord(
   };
 }
 
+/**
+ * Project-owned SmartDoc — no DealId required.
+ * e.g. PRJ-BIO4METAL-L-VAG-0001 Cambi Terms.pdf
+ */
+export function buildProjectSmartDocLibraryRecord(
+  context: ProjectDocumentContext,
+  existing: SmartDocLibraryRecord[],
+  input: CreateSmartDocInput,
+): Omit<SmartDocLibraryRecord, "id"> {
+  const originalFileName = input.originalFileName ?? `${input.DocumentName}.pdf`;
+  const existingIds = existing.map((record) => record.SmartDocID);
+  const identity = buildDocumentIdentity(
+    context.projectCode,
+    input.DocCategory,
+    input.DocType,
+    existingIds,
+  );
+
+  const fileLeafRef = buildIdentitySmartDocsFileLeafRef({
+    documentId: identity.documentId,
+    documentName: input.DocumentName,
+    originalFileName,
+  });
+
+  const origin = input.Origin ?? "unknown";
+  const counterparty =
+    origin === "external" ? input.Counterparty?.trim() || undefined : undefined;
+
+  const folderPath =
+    context.sharePointFolderPath ||
+    projectDocumentsSharePointPath(context.projectName, context.companyName);
+
+  return {
+    SmartDocID: identity.documentId,
+    DealId: null,
+    OwnerCompanyId: context.companyId,
+    Ownership: "project",
+    PlNumber: context.projectCode,
+    ClientName: context.companyName || context.projectName,
+    DealName: context.projectName,
+    CommercialStage: "",
+    CreatedAt: context.createdAt,
+    DocCategory: input.DocCategory,
+    DocType: input.DocType,
+    DocumentName: input.DocumentName.trim(),
+    Revision: "01",
+    FileLeafRef: fileLeafRef,
+    Origin: origin,
+    Counterparty: counterparty,
+    SharePointFolderPath: folderPath,
+    LinkedDealId: input.LinkedDealId?.trim() || null,
+    LinkedProjectId: context.projectId,
+  };
+}
+
 export function buildCompanyDocumentContext(
   company: Company,
   now = new Date().toISOString(),
@@ -154,6 +213,31 @@ export function buildCompanyDocumentContext(
     companyCode,
     companyName: company.Title,
     sharePointFolderPath: companyDocumentsSharePointPath(company.Title),
+    createdAt: now,
+  };
+}
+
+export function buildProjectDocumentContext(
+  project: { id: string; name: string; linkedCompanyId?: string },
+  company?: Company | null,
+  now = new Date().toISOString(),
+): ProjectDocumentContext {
+  const projectCode = project.id.trim().toUpperCase();
+  if (!/^PRJ-[A-Z0-9]+$/i.test(projectCode)) {
+    throw new Error(
+      `Project ${project.name} is missing a PRJ-… id required for project SmartDocs`,
+    );
+  }
+
+  const companyName = company?.Title?.trim() || undefined;
+
+  return {
+    projectId: project.id,
+    projectCode,
+    projectName: project.name,
+    companyId: company?.CompanyID || project.linkedCompanyId,
+    companyName,
+    sharePointFolderPath: projectDocumentsSharePointPath(project.name, companyName),
     createdAt: now,
   };
 }

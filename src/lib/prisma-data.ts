@@ -60,8 +60,18 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
     );
 
     if (companies.length === 0 && opportunities.length === 0) {
-      // Empty registry — only then fall back to seed JSON. Never replace a
-      // non-empty Prisma result; Outlook creates would vanish from lists.
+      // Empty registry — local/dev may use seed JSON. Production must keep the
+      // Prisma surface empty rather than mask Outlook creates behind seed data.
+      const registryConfigured = Boolean(
+        process.env.DATABASE_URL || process.env.DIRECT_URL,
+      );
+      if (registryConfigured && process.env.NODE_ENV === "production") {
+        console.warn(
+          "[prisma-data] Prisma registry empty in production — returning empty portfolio (no JSON fallback)",
+        );
+        return { companies: [], pipelines: [], source: "prisma" };
+      }
+
       const [jsonCompanies, jsonPipelines] = await Promise.all([
         readJsonCompanies(),
         readJsonPipelines(),

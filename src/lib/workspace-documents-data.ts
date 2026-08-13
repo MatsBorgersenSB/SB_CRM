@@ -9,14 +9,16 @@ import type {
 } from "@/types/smartdoc-library";
 import {
   isCompanyOwnedSmartDoc,
+  isProjectOwnedSmartDoc,
   normalizeSmartDocOrigin,
   SMARTDOC_ORIGIN_LABELS,
 } from "@/types/smartdoc-library";
 import { company360Href } from "@/types/company-360";
 import { deal360Href, documentHref, contact360Href } from "@/types/relationship-navigation";
+import { project360Href } from "@/types/relationship-navigation";
 import { formatRelativeTime } from "@/lib/relative-time";
 
-export type WorkspaceDocumentsScope = "company" | "contact" | "opportunity";
+export type WorkspaceDocumentsScope = "company" | "contact" | "opportunity" | "project";
 
 export type WorkspaceDocumentsContext = {
   scope: WorkspaceDocumentsScope;
@@ -26,6 +28,8 @@ export type WorkspaceDocumentsContext = {
   contactName?: string;
   dealId?: string;
   dealName?: string;
+  projectId?: string;
+  projectName?: string;
   pipelineIds: string[];
 };
 
@@ -121,6 +125,18 @@ function recordMatchesCompanyContext(
   context: WorkspaceDocumentsContext,
   pipelineSet: Set<string>,
 ): boolean {
+  if (context.scope === "project" && context.projectId) {
+    const projectKey = context.projectId.trim().toLowerCase();
+    if (record.LinkedProjectId?.trim().toLowerCase() === projectKey) return true;
+    if (
+      isProjectOwnedSmartDoc(record) &&
+      record.PlNumber?.trim().toLowerCase() === projectKey
+    ) {
+      return true;
+    }
+    return false;
+  }
+
   if (context.scope === "opportunity" && context.dealId) {
     return (
       record.DealId === context.dealId ||
@@ -162,16 +178,26 @@ export function buildWorkspaceDocumentRows(
     seen.add(record.SmartDocID);
 
     const companyOwned = isCompanyOwnedSmartDoc(record);
-    const related = companyOwned
+    const projectOwned = isProjectOwnedSmartDoc(record);
+    const related = projectOwned
       ? {
-          label: record.ClientName || context.companyName || "Company",
-          href: context.companyId
-            ? company360Href(context.companyId, "documents")
-            : record.OwnerCompanyId
-              ? company360Href(record.OwnerCompanyId, "documents")
+          label: record.DealName || context.projectName || "Project",
+          href: context.projectId
+            ? `${project360Href(context.projectId, { view: "actions" })}&action=documents`
+            : record.LinkedProjectId
+              ? `${project360Href(record.LinkedProjectId, { view: "actions" })}&action=documents`
               : undefined,
         }
-      : relatedObjectForDeal(record.DealId ?? "", pipelines, companies);
+      : companyOwned
+        ? {
+            label: record.ClientName || context.companyName || "Company",
+            href: context.companyId
+              ? company360Href(context.companyId, "documents")
+              : record.OwnerCompanyId
+                ? company360Href(record.OwnerCompanyId, "documents")
+                : undefined,
+          }
+        : relatedObjectForDeal(record.DealId ?? "", pipelines, companies);
 
     const origin = normalizeSmartDocOrigin(record.Origin);
     rows.push({
@@ -183,16 +209,20 @@ export function buildWorkspaceDocumentRows(
       originLabel: SMARTDOC_ORIGIN_LABELS[origin],
       counterparty: record.Counterparty,
       version: record.Revision ? `Rev ${record.Revision}` : "—",
-      status: companyOwned
-        ? "Company"
-        : record.DocumentSetID
-          ? `In ${record.DocumentSetID}`
-          : "Library",
-      statusKind: companyOwned
-        ? "company"
-        : record.DocumentSetID
-          ? "in_set"
-          : "library",
+      status: projectOwned
+        ? "Project"
+        : companyOwned
+          ? "Company"
+          : record.DocumentSetID
+            ? `In ${record.DocumentSetID}`
+            : "Library",
+      statusKind: projectOwned
+        ? "library"
+        : companyOwned
+          ? "company"
+          : record.DocumentSetID
+            ? "in_set"
+            : "library",
       relatedObjectLabel: related.label,
       relatedObjectHref: related.href,
       modifiedLabel: formatModifiedDate(record.CreatedAt),
@@ -255,6 +285,8 @@ export function workspaceDocumentsLinkSummary(context: WorkspaceDocumentsContext
       return `Documents are linked to ${context.contactName ?? "this contact"} and ${context.companyName ?? "company"}.`;
     case "opportunity":
       return `Documents are linked to ${context.dealName ?? "this opportunity"} and ${context.companyName ?? "company"}.`;
+    case "project":
+      return `Documents are owned by ${context.projectName ?? "this project"}. SharePoint: /Projects/{Name}.`;
     default:
       return "Documents use SmartDocs identity, classification, and version management.";
   }
@@ -330,18 +362,18 @@ export function workspaceDocumentsContextFromProject(
   pipeline?: PipelineRow,
   company?: Company,
 ): WorkspaceDocumentsContext {
-  if (pipeline) {
-    return workspaceDocumentsContextFromOpportunity(pipeline, company);
-  }
-
-  if (company) {
-    return workspaceDocumentsContextFromCompany(company);
-  }
-
   return {
-    scope: "opportunity",
-    dealId: project.id,
-    dealName: project.name,
-    pipelineIds: [],
+    scope: "project",
+    projectId: project.id,
+    projectName: project.name,
+    companyId: company?.CompanyID ?? project.linkedCompanyId,
+    companyName: company?.Title,
+    dealId: pipeline?.id ?? project.linkedDealId,
+    dealName: pipeline?.assetName,
+    pipelineIds: pipeline?.id
+      ? [pipeline.id]
+      : project.linkedDealId
+        ? [project.linkedDealId]
+        : [],
   };
 }
