@@ -11,15 +11,18 @@ import type { ContactProjectRole } from "@/lib/project-team-utils";
 import {
   buildStakeholderRoleOptions,
   createStakeholderId,
+  ensureCompanyLinkedToProject,
   getProjectRelatedOrganizations,
   getProjectStakeholders,
 } from "@/lib/project-relationship-utils";
 import { findCompanyByProjectRef } from "@/lib/project-stakeholder-contacts";
-import { syncProjectStakeholders } from "@/lib/sync-project";
+import { syncProjectRecord } from "@/lib/sync-project";
 import { canManageProjectStakeholders } from "@/lib/permissions";
 import { ProjectLink } from "@/components/relationship/relationship-links";
 import { HealthStatusIcon, IconLabel } from "@/components/ui/smartcrm-icon";
 import { project360Href } from "@/types/relationship-navigation";
+import { getCompanyRelationshipPosture } from "@/lib/company-classification";
+import type { ProjectOrganizationType } from "@/types/project-relationships";
 
 const INFLUENCE_OPTIONS: StakeholderInfluence[] = ["High", "Medium", "Low"];
 const DEFAULT_ROLE = "Decision Maker";
@@ -94,14 +97,15 @@ export function ContactProjectRolesTable({
     [stakeholderRole],
   );
 
-  const resolveOrganizationId = (project: Project) => {
-    const orgs = getProjectRelatedOrganizations(project);
-    const matchedOrg = orgs.find((org) => {
-      const matched = findCompanyByProjectRef(companies, org.companyId);
-      return matched?.CompanyID === company.CompanyID || org.companyId === company.CompanyID;
-    });
-    // Persist company id when the project has no matching related org yet.
-    return matchedOrg?.id ?? company.CompanyID;
+  const resolveOrganizationType = (): ProjectOrganizationType => {
+    const posture = getCompanyRelationshipPosture(company);
+    if (posture === "sell_to") return "customer";
+    if (posture === "buy_from") return "supplier";
+    if (posture === "collaborate") return "partner";
+    if (posture === "fund") return "investor";
+    if (posture === "internal") return "internal";
+    // watch / unclassified — never invent customer
+    return "other";
   };
 
   const handleAdd = async () => {
@@ -115,14 +119,20 @@ export function ContactProjectRolesTable({
       return;
     }
 
+    // Adding a company contact to a project also links the company (Reality First).
+    const ensured = ensureCompanyLinkedToProject(selectedProject, company.CompanyID, {
+      organizationType: resolveOrganizationType(),
+      label: company.Title,
+    });
+
     const nextStakeholders = [
-      ...getProjectStakeholders(selectedProject),
+      ...getProjectStakeholders(ensured.project),
       {
         id: createStakeholderId(),
         role: stakeholderRole.trim(),
         name: getContactDisplayName(contact),
         contactId: contact.ContactID,
-        organizationId: resolveOrganizationId(selectedProject),
+        organizationId: ensured.organizationId,
         influence,
       },
     ];
@@ -134,11 +144,15 @@ export function ContactProjectRolesTable({
 
     setBusy(true);
     try {
-      const updated = await syncProjectStakeholders(
+      const updated = await syncProjectRecord(
         selectedProject.id,
-        nextStakeholders,
+        {
+          projectStakeholders: nextStakeholders,
+          relatedOrganizations: ensured.project.relatedOrganizations,
+          linkedCompanyId: ensured.project.linkedCompanyId,
+          removedStakeholders,
+        },
         role,
-        removedStakeholders,
       );
       onProjectUpdated?.(updated);
       setAssignOpen(false);

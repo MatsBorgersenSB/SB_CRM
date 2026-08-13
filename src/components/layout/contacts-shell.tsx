@@ -20,6 +20,7 @@ import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
+import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
 import { buildContactOperationsSummary } from "@/lib/contact-operations-data";
 import type { Company, Contact } from "@/lib/companies-data";
@@ -65,6 +66,9 @@ export function ContactsShell({
   const [owner, setOwner] = useState("all");
   const [activeTool, setActiveTool] = useState<ContactsWorkspaceTool>(null);
   const [showArchived, setShowArchived] = useState(false);
+
+  const closeActiveTool = useCallback(() => setActiveTool(null), []);
+  useEscapeKey(Boolean(activeTool), closeActiveTool);
 
   useEffect(() => {
     setCompanyRows(companies);

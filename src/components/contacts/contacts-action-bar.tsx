@@ -103,14 +103,28 @@ export function ContactsActionBar({
             companyId={companyId}
             onCompanyChange={setCompanyId}
           />
-          <button
-            type="button"
-            disabled={saving || !companyId || !isContactFormValid(form)}
-            onClick={() => void handleCreate()}
-            className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1.5 text-xs font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-upcycle-orange/40 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Create Contact"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={saving || !companyId || !isContactFormValid(form)}
+              onClick={() => void handleCreate()}
+              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1.5 text-xs font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-upcycle-orange/40 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Create Contact"}
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => {
+                setForm(emptyContactForm());
+                setCreateOpen(false);
+              }}
+              className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-xs font-semibold text-carbon-blue/70 transition-colors hover:border-carbon-blue/25 hover:text-carbon-blue focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-upcycle-orange/40 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <span className="text-[10px] text-carbon-blue/40">Esc</span>
+          </div>
         </div>
       ) : null}
     </section>

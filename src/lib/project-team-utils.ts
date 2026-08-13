@@ -211,36 +211,68 @@ export function getContactProjectRoles(
 
 /**
  * Company 360 → Projects membership.
- * Only projects with an explicit relatedOrganizations.companyId match.
- * Stakeholder company strings / contact registry company are not enough.
+ * Explicit relatedOrganizations link, or people from this company already on the roster.
  */
-export function getProjectsForCompany(companyId: string, projects: Project[]): Project[] {
+export function getProjectsForCompany(
+  companyId: string,
+  projects: Project[],
+  options?: { contactIds?: Iterable<string> },
+): Project[] {
+  const contactIds = new Set(
+    Array.from(options?.contactIds ?? []).map((id) => id.trim()).filter(Boolean),
+  );
+
   return projects
-    .filter((project) => isCompanyExplicitlyLinkedToProject(companyId, project))
+    .filter((project) => {
+      if (isCompanyExplicitlyLinkedToProject(companyId, project)) return true;
+
+      for (const member of getProjectStakeholders(project)) {
+        if (member.organizationId === companyId) return true;
+        if (member.contactId && contactIds.has(member.contactId)) return true;
+      }
+      return false;
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function getCompanyProjectParticipants(
   companyId: string,
   projects: Project[],
+  options?: { contactIds?: Iterable<string> },
 ): Array<{ project: Project; member: ProjectStakeholderRecord }> {
+  const contactIds = new Set(
+    Array.from(options?.contactIds ?? []).map((id) => id.trim()).filter(Boolean),
+  );
   const rows: Array<{ project: Project; member: ProjectStakeholderRecord }> = [];
 
   for (const project of projects) {
-    if (!isCompanyExplicitlyLinkedToProject(companyId, project)) continue;
     const organizations = getProjectRelatedOrganizations(project);
+    const companyOnProject =
+      isCompanyExplicitlyLinkedToProject(companyId, project) ||
+      getProjectStakeholders(project).some(
+        (member) =>
+          member.organizationId === companyId ||
+          Boolean(member.contactId && contactIds.has(member.contactId)),
+      );
+    if (!companyOnProject) continue;
+
     for (const member of getProjectStakeholders(project)) {
       if (
         member.organizationId === INTERNAL_ORGANIZATION_ID ||
         member.organizationId === UNASSIGNED_ORGANIZATION_ID
       ) {
-        continue;
+        // Still include if this contact belongs to the company.
+        if (!(member.contactId && contactIds.has(member.contactId))) continue;
+      } else {
+        const org = organizations.find((entry) => entry.id === member.organizationId);
+        const matchesOrg =
+          org?.companyId === companyId || member.organizationId === companyId;
+        const matchesContact = Boolean(
+          member.contactId && contactIds.has(member.contactId),
+        );
+        if (!matchesOrg && !matchesContact) continue;
       }
-      const org = organizations.find((entry) => entry.id === member.organizationId);
-      // Only people whose project org row is this company — not every external stakeholder.
-      if (org?.companyId === companyId) {
-        rows.push({ project, member });
-      }
+      rows.push({ project, member });
     }
   }
 

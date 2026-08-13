@@ -55,10 +55,15 @@ export function Company360Shell({
   const [companyRows, setCompanyRows] = useState(companies);
   const [company, setCompany] = useState(initialCompany);
   const [pipelineRows, setPipelineRows] = useState(pipelines);
+  const [projectRows, setProjectRows] = useState(projects);
 
   useEffect(() => {
     setPipelineRows(pipelines);
   }, [pipelines]);
+
+  useEffect(() => {
+    setProjectRows(projects);
+  }, [projects]);
 
   useEffect(() => {
     setCompanyRows(companies);
@@ -257,6 +262,14 @@ export function Company360Shell({
     );
   }, []);
 
+  const handleProjectUpdated = useCallback((updated: Project) => {
+    setProjectRows((current) => {
+      const exists = current.some((row) => row.id === updated.id);
+      if (!exists) return [...current, updated];
+      return current.map((row) => (row.id === updated.id ? updated : row));
+    });
+  }, []);
+
   const handleCreateOpportunity = useCallback(
     async (input: CreateOpportunityInput) => {
       if (!canCreateOpportunity(user.role)) {
@@ -325,7 +338,9 @@ export function Company360Shell({
             onContactReassign={handleContactReassign}
             onContactArchive={handleContactArchive}
             onCompanyUpdated={handleCompanyUpdated}
-            projects={projects}
+            projects={projectRows}
+            onProjectUpdated={handleProjectUpdated}
+            allPipelines={visiblePipelines}
             onCreateOpportunity={handleCreateOpportunity}
             onAssignOpportunityStakeholder={handleAssignOpportunityStakeholder}
           />
