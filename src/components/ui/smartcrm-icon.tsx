@@ -207,6 +207,7 @@ export function WorkspacePanel({
   defaultCollapsed = false,
   count,
   collapseStorageKey,
+  headerTrailing,
 }: {
   title: string;
   children: ReactNode;
@@ -217,6 +218,8 @@ export function WorkspacePanel({
   defaultCollapsed?: boolean;
   count?: number;
   collapseStorageKey?: string;
+  /** Optional action on the right of the section label (e.g. View all →). */
+  headerTrailing?: ReactNode;
 }) {
   const sectionIcon = icon ?? HUB_SECTION_ICONS[title];
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
@@ -283,16 +286,22 @@ export function WorkspacePanel({
     >
       <header className={WORKSPACE_PANEL_HEADER_WRAPPER}>
         {collapsible ? (
-          <button
-            type="button"
-            onClick={toggle}
-            className={`${WORKSPACE_PANEL_HEADER_CLASS} w-full cursor-pointer text-left transition-colors hover:text-carbon-blue`}
-            aria-expanded={expanded}
-          >
-            {headerContent}
-          </button>
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={toggle}
+              className={`${WORKSPACE_PANEL_HEADER_CLASS} min-w-0 flex-1 cursor-pointer text-left transition-colors hover:text-carbon-blue`}
+              aria-expanded={expanded}
+            >
+              {headerContent}
+            </button>
+            {headerTrailing}
+          </div>
         ) : (
-          <h2 className={WORKSPACE_PANEL_HEADER_CLASS}>{headerContent}</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className={`${WORKSPACE_PANEL_HEADER_CLASS} min-w-0`}>{headerContent}</h2>
+            {headerTrailing}
+          </div>
         )}
       </header>
       <div className={`${WORKSPACE_PANEL_COLLAPSE_WRAPPER} ${collapseClass}`}>
