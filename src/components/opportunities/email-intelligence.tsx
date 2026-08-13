@@ -385,10 +385,14 @@ export function EmailIntelligence({
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
             New mail · tagged to {scopeTagLabel}
           </p>
+          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
+            Decide first · opens tagged Outlook draft
+          </p>
           <p className="mt-1 text-[12px] text-carbon-blue/55">
             Opens an Outlook draft with the SmartCRM category for{" "}
             {scopeKind === "project" ? "this project" : "this opportunity"}. Sync
-            keeps the link after you send.
+            keeps the link after you send. Already writing in Outlook? Use Assign
+            mail on the compose ribbon.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <label className="block text-[11px] font-semibold text-carbon-blue/55">

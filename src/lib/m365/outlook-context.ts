@@ -85,13 +85,117 @@ export type OutlookOpenMessageSeed = {
   subject: string;
   senderEmail: string;
   sentAt: string;
+  /** True when the open item is an outbound draft / send we are composing. */
+  isOutbound?: boolean;
+  recipientEmails?: string[];
 };
+
+export type OutlookComposeRecipient = {
+  email: string;
+  displayName: string;
+};
+
+function getRecipientsAsync(
+  source: { getAsync: (callback: (result: Office.AsyncResult<Office.EmailAddressDetails[]>) => void) => void } | undefined,
+): Promise<OutlookComposeRecipient[]> {
+  if (!source?.getAsync) return Promise.resolve([]);
+  return new Promise((resolve) => {
+    source.getAsync((result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded || !result.value) {
+        resolve([]);
+        return;
+      }
+      resolve(
+        result.value
+          .map((entry) => ({
+            email: entry.emailAddress?.trim().toLowerCase() ?? "",
+            displayName: entry.displayName?.trim() ?? "",
+          }))
+          .filter((entry) => Boolean(entry.email)),
+      );
+    });
+  });
+}
+
+/**
+ * Resolve To (+ Cc) recipients on a compose item.
+ * Excludes the mailbox owner. Reality First — only addresses Outlook provides.
+ */
+export async function resolveOutlookComposeRecipients(): Promise<OutlookComposeRecipient[]> {
+  if (typeof window === "undefined") return [];
+
+  const office = await whenOfficeReady();
+  if (!office) return [];
+
+  try {
+    const mailbox = office.context.mailbox;
+    const item = mailbox?.item;
+    if (!item) return [];
+
+    const selfEmail = mailbox?.userProfile?.emailAddress?.trim().toLowerCase() ?? "";
+    const [to, cc] = await Promise.all([
+      getRecipientsAsync(item.to),
+      getRecipientsAsync(item.cc),
+    ]);
+
+    const seen = new Set<string>();
+    const recipients: OutlookComposeRecipient[] = [];
+    for (const entry of [...to, ...cc]) {
+      if (!entry.email || entry.email === selfEmail || seen.has(entry.email)) continue;
+      seen.add(entry.email);
+      recipients.push(entry);
+    }
+    return recipients;
+  } catch {
+    return [];
+  }
+}
+
+async function saveComposeItemAsync(): Promise<boolean> {
+  const office = await whenOfficeReady();
+  const item = office?.context.mailbox?.item;
+  if (!item?.saveAsync) return false;
+
+  return await new Promise((resolve) => {
+    item.saveAsync!((result) => {
+      resolve(result.status === Office.AsyncResultStatus.Succeeded);
+    });
+  });
+}
+
+/**
+ * Ensure compose draft has itemId + conversationId (saveAsync when needed).
+ * Returns null if Outlook cannot provide identity yet.
+ */
+export async function ensureOutlookComposeSeed(input?: {
+  primaryRecipientEmail?: string;
+}): Promise<OutlookOpenMessageSeed | null> {
+  let seed = await resolveOutlookOpenMessageSeed({
+    preferOutbound: true,
+    primaryRecipientEmail: input?.primaryRecipientEmail,
+  });
+  if (seed) return seed;
+
+  const saved = await saveComposeItemAsync();
+  if (!saved) return null;
+
+  // Brief pause so hosts populate itemId / conversationId after save.
+  await new Promise((resolve) => window.setTimeout(resolve, 250));
+  seed = await resolveOutlookOpenMessageSeed({
+    preferOutbound: true,
+    primaryRecipientEmail: input?.primaryRecipientEmail,
+  });
+  return seed;
+}
 
 /**
  * Snapshot of the open Outlook item for intentional tagging when mail sync
  * has not yet ingested the conversation.
  */
-export async function resolveOutlookOpenMessageSeed(): Promise<OutlookOpenMessageSeed | null> {
+export async function resolveOutlookOpenMessageSeed(options?: {
+  preferOutbound?: boolean;
+  primaryRecipientEmail?: string;
+}): Promise<OutlookOpenMessageSeed | null> {
   if (typeof window === "undefined") {
     return null;
   }
@@ -101,21 +205,7 @@ export async function resolveOutlookOpenMessageSeed(): Promise<OutlookOpenMessag
 
   try {
     const mailbox = office.context.mailbox;
-    const item = mailbox?.item as
-      | {
-          itemId?: string;
-          conversationId?: string;
-          subject?: string;
-          dateTimeCreated?: Date | string;
-          from?: { emailAddress?: string };
-          getConversationIdAsync?: (
-            callback: (result: {
-              status: Office.AsyncResultStatus;
-              value?: string;
-            }) => void,
-          ) => void;
-        }
-      | undefined;
+    const item = mailbox?.item;
     if (!item) return null;
 
     let conversationId = item.conversationId?.trim() || "";
@@ -143,7 +233,6 @@ export async function resolveOutlookOpenMessageSeed(): Promise<OutlookOpenMessag
         }
       ).convertToRestId;
       if (typeof convert === "function") {
-        // Office.MailboxEnums.RestVersion.v2_0 === "v2.0" (avoid Office namespace typing gaps).
         const restId = convert.call(mailbox, ewsOrRestId, "v2.0")?.trim();
         if (restId) externalMessageId = restId;
       }
@@ -154,19 +243,33 @@ export async function resolveOutlookOpenMessageSeed(): Promise<OutlookOpenMessag
     const created = item.dateTimeCreated
       ? new Date(item.dateTimeCreated)
       : new Date();
-    const senderEmail =
-      item.from?.emailAddress?.trim().toLowerCase() ||
-      mailbox?.userProfile?.emailAddress?.trim().toLowerCase() ||
-      "";
+    const selfEmail =
+      mailbox?.userProfile?.emailAddress?.trim().toLowerCase() || "";
+    const fromEmail = item.from?.emailAddress?.trim().toLowerCase() || "";
+    const isOutbound =
+      Boolean(options?.preferOutbound) ||
+      !fromEmail ||
+      fromEmail === selfEmail;
+
+    const recipients = await resolveOutlookComposeRecipients().catch(() => []);
+    const recipientEmails = recipients.map((entry) => entry.email);
+    if (
+      options?.primaryRecipientEmail &&
+      !recipientEmails.includes(options.primaryRecipientEmail.trim().toLowerCase())
+    ) {
+      recipientEmails.unshift(options.primaryRecipientEmail.trim().toLowerCase());
+    }
 
     return {
       conversationId,
       externalMessageId,
       subject: item.subject?.trim() || "(no subject)",
-      senderEmail,
+      senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail || selfEmail,
       sentAt: Number.isNaN(created.getTime())
         ? new Date().toISOString()
         : created.toISOString(),
+      isOutbound,
+      recipientEmails,
     };
   } catch {
     return null;

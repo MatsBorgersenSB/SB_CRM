@@ -147,7 +147,9 @@ export function OutlookMailTagPanel({
             externalMessageId: seed.externalMessageId,
             subject: seed.subject,
             senderEmail: seed.senderEmail || email,
+            recipientEmails: seed.recipientEmails,
             sentAt: seed.sentAt,
+            isOutbound: seed.isOutbound === true,
           },
         }),
       });

@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SmartCRM for Outlook v1.4.1.0 — 2026-08-11
+  SmartCRM for Outlook v1.5.0.0 — 2026-08-13
   Source of truth for sideload / central deploy.
   Host MUST be https://sb-crm-seven.vercel.app — never smart-crm-outlook-plugin-phi.
-  Changes vs 1.4.0:
-  - Version bump to force re-sideload after retired phi host incidents
-  Changes vs 1.3.2:
-  - Nested VersionOverridesV1_1 (required pattern for modern Outlook Web / new Outlook)
-  - SupportsPinning on message-read task panes
-  - Correct icon pixel sizes (16/32/64/80/128)
-  - AppDomains for Office Dialog Microsoft login
+  Changes vs 1.4.1:
+  - MessageComposeCommandSurface (Assign mail while writing)
+  - Permissions ReadWriteItem (saveAsync + categories on compose)
+  - Compose task pane URL ?mode=compose
+  - Version bump to force re-sideload
 -->
 <OfficeApp
   xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
@@ -18,16 +16,14 @@
   xsi:type="MailApp"
 >
   <Id>6f3c8b2a-9d4e-4a1c-b7e2-a1b2c3d4e5f6</Id>
-  <Version>1.4.1.0</Version>
+  <Version>1.5.0.0</Version>
   <ProviderName>SmartCRM</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="SmartCRM for Outlook" />
-  <Description DefaultValue="Relationship intelligence, meeting briefings, and create contact, company, or opportunity from Outlook." />
+  <Description DefaultValue="Assign mail to opportunities, create contacts and companies, and relationship intelligence in Outlook." />
   <IconUrl DefaultValue="https://sb-crm-seven.vercel.app/assets/icon-64.png" />
   <HighResolutionIconUrl DefaultValue="https://sb-crm-seven.vercel.app/assets/icon-128.png" />
   <SupportUrl DefaultValue="https://sb-crm-seven.vercel.app" />
-  <!-- Do not list the add-in host domain here; it is allowed via SourceLocation.
-       Include identity hosts used by Office Dialog sign-in. -->
   <AppDomains>
     <AppDomain>https://login.microsoftonline.com</AppDomain>
     <AppDomain>https://login.windows.net</AppDomain>
@@ -47,14 +43,20 @@
         <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
+    <Form xsi:type="ItemEdit">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://sb-crm-seven.vercel.app/outlook-addin?mode=compose" />
+        <RequestedHeight>450</RequestedHeight>
+      </DesktopSettings>
+    </Form>
   </FormSettings>
-  <Permissions>ReadItem</Permissions>
+  <Permissions>ReadWriteItem</Permissions>
   <Rule xsi:type="RuleCollection" Mode="Or">
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read" />
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit" />
     <Rule xsi:type="ItemIs" ItemType="Appointment" FormType="Read" />
   </Rule>
 
-  <!-- V1_0 parent: classic clients. V1_1 child: Outlook Web + new Outlook (no inheritance). -->
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
     <Requirements>
       <bt:Sets DefaultMinVersion="1.5">
@@ -96,6 +98,28 @@
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="briefUrl" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+          <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="SmartCRM.MsgComposeGroup">
+                <Label resid="groupLabel" />
+                <Control xsi:type="Button" id="SmartCRM.BtnAssignCompose">
+                  <Label resid="assignLabel" />
+                  <Supertip>
+                    <Title resid="assignLabel" />
+                    <Description resid="assignTip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="icon16" />
+                    <bt:Image size="32" resid="icon32" />
+                    <bt:Image size="80" resid="icon80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="composeUrl" />
                   </Action>
                 </Control>
               </Group>
@@ -156,20 +180,22 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="relCardUrl" DefaultValue="https://sb-crm-seven.vercel.app/outlook-addin" />
+        <bt:Url id="composeUrl" DefaultValue="https://sb-crm-seven.vercel.app/outlook-addin?mode=compose" />
         <bt:Url id="briefUrl" DefaultValue="https://sb-crm-seven.vercel.app/outlook/meeting-briefing" />
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="groupLabel" DefaultValue="SmartCRM" />
         <bt:String id="relCardLabel" DefaultValue="Relationship Card" />
+        <bt:String id="assignLabel" DefaultValue="Assign mail" />
         <bt:String id="briefLabel" DefaultValue="Meeting Briefing" />
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="relCardTip" DefaultValue="Relationship health, next action, and create contact, company, or opportunity from this email." />
+        <bt:String id="assignTip" DefaultValue="Assign this draft to an opportunity or project, or add the recipient to SmartCRM." />
         <bt:String id="briefTip" DefaultValue="Prepare for your meeting in under 30 seconds — objective, risks, and action." />
       </bt:LongStrings>
     </Resources>
 
-    <!-- Nested V1_1: used by Outlook on the web and new Outlook. Must duplicate hosts/resources. -->
     <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
       <Requirements>
         <bt:Sets DefaultMinVersion="1.5">
@@ -212,6 +238,29 @@
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="briefUrl" />
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="SmartCRM.MsgComposeGroup">
+                  <Label resid="groupLabel" />
+                  <Control xsi:type="Button" id="SmartCRM.BtnAssignCompose">
+                    <Label resid="assignLabel" />
+                    <Supertip>
+                      <Title resid="assignLabel" />
+                      <Description resid="assignTip" />
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="icon16" />
+                      <bt:Image size="32" resid="icon32" />
+                      <bt:Image size="80" resid="icon80" />
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="composeUrl" />
                       <SupportsPinning>true</SupportsPinning>
                     </Action>
                   </Control>
@@ -273,20 +322,21 @@
         </bt:Images>
         <bt:Urls>
           <bt:Url id="relCardUrl" DefaultValue="https://sb-crm-seven.vercel.app/outlook-addin" />
+          <bt:Url id="composeUrl" DefaultValue="https://sb-crm-seven.vercel.app/outlook-addin?mode=compose" />
           <bt:Url id="briefUrl" DefaultValue="https://sb-crm-seven.vercel.app/outlook/meeting-briefing" />
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="SmartCRM" />
           <bt:String id="relCardLabel" DefaultValue="Relationship Card" />
+          <bt:String id="assignLabel" DefaultValue="Assign mail" />
           <bt:String id="briefLabel" DefaultValue="Meeting Briefing" />
         </bt:ShortStrings>
         <bt:LongStrings>
           <bt:String id="relCardTip" DefaultValue="Relationship health, next action, and create contact, company, or opportunity from this email." />
+          <bt:String id="assignTip" DefaultValue="Assign this draft to an opportunity or project, or add the recipient to SmartCRM." />
           <bt:String id="briefTip" DefaultValue="Prepare for your meeting in under 30 seconds — objective, risks, and action." />
         </bt:LongStrings>
       </Resources>
-      <!-- WebApplicationInfo omitted: SmartCRM uses Office Dialog + NextAuth, not manifest SSO.
-           Add only after Entra app exposes api://sb-crm-seven.vercel.app/{clientId}/access_as_user. -->
     </VersionOverrides>
   </VersionOverrides>
 </OfficeApp>

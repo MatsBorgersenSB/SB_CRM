@@ -37,6 +37,7 @@ import {
   OpenSharePointFolderControl,
   useOpportunitySharePointFolder,
 } from "@/components/opportunity/open-sharepoint-folder-control";
+import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 
 function formatTimelineDate(value: string | undefined): string {
   if (!value) return "—";
@@ -100,6 +101,10 @@ export function OpportunityWorkspaceHeader({
   );
   const folderUrl =
     pipeline.sharepointFolderUrl?.trim() || sharePointFolder.sharepointFolderUrl;
+  const draftToEmail =
+    company?.contacts.find((contact) => contact.Email?.trim())?.Email?.trim() ||
+    company?.Email?.trim() ||
+    "";
 
   return (
     <header aria-label="Opportunity context" className={`${ATTIO_SURFACE} overflow-hidden`}>
@@ -167,6 +172,17 @@ export function OpportunityWorkspaceHeader({
                 opportunityTitle={pipeline.assetName}
                 onProvisioned={() => sharePointFolder.refresh()}
               />
+              {draftToEmail ? (
+                <DraftInOutlookButton
+                  toEmail={draftToEmail}
+                  subject={`Re: ${pipeline.assetName}`}
+                  bodyHtml="<p>Hi,</p><p></p><p>Best regards</p>"
+                  opportunityId={pipeline.id}
+                  role={role}
+                  label="New mail in Outlook"
+                  className="inline-flex items-center border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-upcycle-orange hover:text-upcycle-orange dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                />
+              ) : null}
             </div>
           </div>
         </div>

@@ -567,6 +567,7 @@ export async function setConversationLinksForContact(
       sentAt?: string;
       bodyPreview?: string;
       webLink?: string;
+      isOutbound?: boolean;
     };
   },
 ): Promise<{
@@ -670,10 +671,16 @@ export async function setConversationLinksForContact(
   if (!anyInConversation && options?.seedMessage?.externalMessageId?.trim()) {
     const seed = options.seedMessage;
     const externalMessageId = seed.externalMessageId.trim();
+    const isOutbound = Boolean(seed.isOutbound);
     const senderEmail =
       seed.senderEmail?.trim().toLowerCase() ||
-      addresses[0] ||
+      (isOutbound ? "" : addresses[0]) ||
       "";
+    const recipientEmails = seed.recipientEmails?.length
+      ? seed.recipientEmails.map((address) => address.trim().toLowerCase()).filter(Boolean)
+      : isOutbound
+        ? addresses
+        : addresses.filter((address) => address !== senderEmail);
     const sentAt = seed.sentAt ? new Date(seed.sentAt) : new Date();
     await prisma.emailMessageRecord.upsert({
       where: { externalMessageId },
@@ -684,16 +691,14 @@ export async function setConversationLinksForContact(
         subject: seed.subject?.trim() || "(no subject)",
         bodyPreview: seed.bodyPreview?.slice(0, 2000) ?? null,
         webLink: seed.webLink?.trim() || null,
-        senderEmail,
-        recipientEmails: seed.recipientEmails?.length
-          ? seed.recipientEmails
-          : addresses.filter((address) => address !== senderEmail),
+        senderEmail: senderEmail || addresses[0] || "unknown@smartcrm.local",
+        recipientEmails,
         sentAt: Number.isNaN(sentAt.getTime()) ? new Date() : sentAt,
         sentiment: gradeEmailSentiment(
           seed.subject?.trim() || "(no subject)",
           seed.bodyPreview,
         ),
-        isOutbound: false,
+        isOutbound,
         opportunityId: data.opportunityId ?? null,
         projectId: data.projectId ?? null,
         projectName: data.projectName ?? null,
@@ -703,6 +708,8 @@ export async function setConversationLinksForContact(
         contactId: contact.id,
         ...(seed.subject?.trim() ? { subject: seed.subject.trim() } : {}),
         ...(senderEmail ? { senderEmail } : {}),
+        ...(recipientEmails.length > 0 ? { recipientEmails } : {}),
+        isOutbound,
         ...data,
       },
     });

@@ -150,6 +150,7 @@ export async function PATCH(request: Request) {
         sentAt?: string;
         bodyPreview?: string;
         webLink?: string;
+        isOutbound?: boolean;
       };
     };
 
@@ -200,6 +201,7 @@ export async function PATCH(request: Request) {
               sentAt: body.message?.sentAt,
               bodyPreview: body.message?.bodyPreview,
               webLink: body.message?.webLink,
+              isOutbound: body.message?.isOutbound === true,
             },
           }
         : undefined,
