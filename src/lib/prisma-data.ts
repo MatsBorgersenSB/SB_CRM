@@ -60,12 +60,19 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
     );
 
     if (companies.length === 0 && opportunities.length === 0) {
-      // Empty registry — local/dev may use seed JSON. Production must keep the
-      // Prisma surface empty rather than mask Outlook creates behind seed data.
+      // Empty registry — local/dev and CI builds may use seed JSON.
+      // Live production should not mask an empty Prisma registry with seed data.
       const registryConfigured = Boolean(
         process.env.DATABASE_URL || process.env.DIRECT_URL,
       );
-      if (registryConfigured && process.env.NODE_ENV === "production") {
+      const isBuildOrCi =
+        process.env.NEXT_PHASE === "phase-production-build" ||
+        process.env.CI === "true";
+      if (
+        registryConfigured &&
+        process.env.NODE_ENV === "production" &&
+        !isBuildOrCi
+      ) {
         console.warn(
           "[prisma-data] Prisma registry empty in production — returning empty portfolio (no JSON fallback)",
         );
@@ -91,23 +98,13 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
     const hint = isPrismaConnectionError(error)
       ? " (DB connection closed — ensure `npx prisma dev` is running, then refresh)"
       : "";
-    console.warn(
+    // Always fall back on hard failures so CI/prerender and brief outages stay available.
+    // List durability for Outlook creates is handled by force-dynamic + revalidatePath,
+    // not by taking down the whole app when Postgres is unreachable.
+    console.error(
       `[prisma-data] Falling back to JSON portfolio${hint}:`,
       error instanceof Error ? error.message : error,
     );
-
-    // Production / Vercel: seed JSON must not replace the Prisma registry.
-    // Outlook creates (CO-/CT-) live only in Postgres — a silent JSON fallback
-    // makes brand-new contacts/companies disappear from list pages.
-    const registryConfigured = Boolean(
-      process.env.DATABASE_URL || process.env.DIRECT_URL,
-    );
-    if (registryConfigured && process.env.NODE_ENV === "production") {
-      throw error instanceof Error
-        ? error
-        : new Error("Failed to load live portfolio from Prisma");
-    }
-
     const [companies, pipelines] = await Promise.all([
       readJsonCompanies(),
       readJsonPipelines(),

@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { PROJECTS } from "@/data/projects-data";
-import { getPrisma } from "@/lib/prisma";
+import { getPrisma, isPrismaConnectionError } from "@/lib/prisma";
 import {
   detachCompanyFromProject,
   normalizeProjectRelationships,
@@ -139,40 +139,68 @@ async function repairFalseProjectCompanyLinks(): Promise<void> {
  * survive the move off ephemeral /tmp filesystem storage.
  */
 async function ensureSeeded(): Promise<void> {
-  const prisma = getPrisma();
-  const count = await prisma.projectWorkspace.count();
-  if (count === 0) {
-    const projects = await loadBundledSeedProjects();
-    if (projects.length > 0) {
-      await prisma.projectWorkspace.createMany({
-        data: projects.map((project) => ({
-          id: project.id,
-          name: project.name,
-          kind: project.kind,
-          data: project as unknown as Prisma.InputJsonValue,
-        })),
-        skipDuplicates: true,
-      });
+  try {
+    const prisma = getPrisma();
+    const count = await prisma.projectWorkspace.count();
+    if (count === 0) {
+      const projects = await loadBundledSeedProjects();
+      if (projects.length > 0) {
+        await prisma.projectWorkspace.createMany({
+          data: projects.map((project) => ({
+            id: project.id,
+            name: project.name,
+            kind: project.kind,
+            data: project as unknown as Prisma.InputJsonValue,
+          })),
+          skipDuplicates: true,
+        });
+      }
     }
-  }
 
-  await repairFalseProjectCompanyLinks();
+    await repairFalseProjectCompanyLinks();
+  } catch (error) {
+    if (isPrismaConnectionError(error)) {
+      console.warn(
+        "[project-db] ensureSeeded skipped — database unreachable:",
+        error instanceof Error ? error.message : error,
+      );
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function readProjects(): Promise<Project[]> {
-  await ensureSeeded();
-  const rows = await getPrisma().projectWorkspace.findMany({
-    orderBy: { name: "asc" },
-  });
-  return rows.map(rowToProject);
+  try {
+    await ensureSeeded();
+    const rows = await getPrisma().projectWorkspace.findMany({
+      orderBy: { name: "asc" },
+    });
+    return rows.map(rowToProject);
+  } catch (error) {
+    console.warn(
+      "[project-db] Falling back to bundled project seed:",
+      error instanceof Error ? error.message : error,
+    );
+    return loadBundledSeedProjects();
+  }
 }
 
 export async function readProjectById(projectId: string): Promise<Project | null> {
-  await ensureSeeded();
-  const row = await getPrisma().projectWorkspace.findUnique({
-    where: { id: projectId },
-  });
-  return row ? rowToProject(row) : null;
+  try {
+    await ensureSeeded();
+    const row = await getPrisma().projectWorkspace.findUnique({
+      where: { id: projectId },
+    });
+    return row ? rowToProject(row) : null;
+  } catch (error) {
+    console.warn(
+      "[project-db] Project lookup falling back to bundled seed:",
+      error instanceof Error ? error.message : error,
+    );
+    const projects = await loadBundledSeedProjects();
+    return projects.find((project) => project.id === projectId) ?? null;
+  }
 }
 
 export async function updateProject(projectId: string, patch: ProjectPatch): Promise<Project> {
