@@ -40,10 +40,15 @@ export function AttentionQueueTable({
   items,
   emptyMessage = "No open attention items — this account is on track.",
   onDraftEmail,
+  onVisibleCountChange,
+  onItemDismissed,
 }: {
   items: AttentionItem[];
   emptyMessage?: string;
   onDraftEmail?: (item: AttentionItem) => void;
+  /** Fires when the visible (non-dismissed) count changes — keep panel badges honest. */
+  onVisibleCountChange?: (count: number) => void;
+  onItemDismissed?: (item: AttentionItem) => void;
 }) {
   const [dismissTick, setDismissTick] = useState(0);
   const [hydrated, setHydrated] = useState(false);
@@ -56,10 +61,18 @@ export function AttentionQueueTable({
     return hydrated ? filterDismissedAttentionItems(sorted) : sorted;
   }, [items, dismissTick, hydrated]);
 
-  const handleNoAction = useCallback((item: AttentionItem) => {
-    dismissAttentionItem(item.id);
-    setDismissTick((value) => value + 1);
-  }, []);
+  useEffect(() => {
+    onVisibleCountChange?.(visible.length);
+  }, [visible.length, onVisibleCountChange]);
+
+  const handleNoAction = useCallback(
+    (item: AttentionItem) => {
+      dismissAttentionItem(item.id);
+      setDismissTick((value) => value + 1);
+      onItemDismissed?.(item);
+    },
+    [onItemDismissed],
+  );
 
   if (visible.length === 0) {
     return <p className="text-sm text-carbon-blue/45">{emptyMessage}</p>;

@@ -103,6 +103,8 @@ export function Company360LivingWorkspace({
   const [documentCount, setDocumentCount] = useState(0);
   const [activeTool, setActiveTool] = useState<Company360ActiveTool>(null);
   const [createRequestId, setCreateRequestId] = useState(0);
+  /** null until AttentionQueueTable reports visible (non-dismissed) count */
+  const [openAttentionCount, setOpenAttentionCount] = useState<number | null>(null);
   const [discoveryUrl, setDiscoveryUrl] = useState(
     company.Domain ? companyWebsiteHref(company.Domain) : "",
   );
@@ -113,6 +115,10 @@ export function Company360LivingWorkspace({
       searchParams.get("tab"),
     ),
   );
+
+  useEffect(() => {
+    setOpenAttentionCount(null);
+  }, [attentionItems]);
 
   const companyActivities = useMemo(
     () => getActivitiesForCompany(scopedActivities, company),
@@ -150,13 +156,13 @@ export function Company360LivingWorkspace({
 
   const viewCounts = useMemo(
     () => ({
-      overview: attentionItems.length,
+      overview: openAttentionCount ?? 0,
       people: company.contacts.length,
       work: linkedPipelines.length + linkedProjects.length,
       actions: companyActivities.length + documentCount,
     }),
     [
-      attentionItems.length,
+      openAttentionCount,
       company.contacts.length,
       linkedPipelines.length,
       linkedProjects.length,
@@ -204,60 +210,84 @@ export function Company360LivingWorkspace({
 
       {activeView === "overview" ? (
         <>
-          <WorkspacePanel title="Company Details">
-            <Company360ActionsBar
-              role={role}
-              activeTool={activeTool}
-              onToolChange={setActiveTool}
-              onNewContact={handleNewContact}
-            />
-
-            {activeTool === "quick-import" ? (
-              <div className="mt-3">
-                <QuickImportPanel
-                  role={role}
-                  embedded
-                  companies={companies}
-                  contextCompanyId={company.CompanyID}
-                  onImported={handleImported}
-                  onRunWebsiteDiscovery={handleRunWebsiteDiscovery}
-                />
-              </div>
-            ) : null}
-
-            {activeTool === "website-discovery" ? (
-              <div className="mt-3">
-                <WebsiteDiscoveryPanel
-                  role={role}
-                  embedded
-                  companies={companies}
-                  context="company"
-                  initialUrl={discoveryUrl}
-                  onImported={handleImported}
-                />
-              </div>
-            ) : null}
-
-            {activeTool === "edit-company" ? (
-              <div className="mt-4">
-                <CompanyInlineEditPanel
+          <section className="dashboard-card overflow-hidden">
+            <div className="px-6 py-5">
+              {activeTool === "edit-company" ? (
+                <div>
+                  <div className="mb-3 flex justify-end">
+                    <Company360ActionsBar
+                      role={role}
+                      activeTool={activeTool}
+                      onToolChange={setActiveTool}
+                      onNewContact={handleNewContact}
+                    />
+                  </div>
+                  <CompanyInlineEditPanel
+                    company={company}
+                    companies={companies}
+                    onSave={handleSaveCompany}
+                    onCancel={() => setActiveTool(null)}
+                  />
+                </div>
+              ) : (
+                <CompanyWorkspaceHeader
+                  header={header}
+                  identity={identity}
                   company={company}
-                  companies={companies}
-                  onSave={handleSaveCompany}
-                  onCancel={() => setActiveTool(null)}
+                  trailing={
+                    <Company360ActionsBar
+                      role={role}
+                      activeTool={activeTool}
+                      onToolChange={setActiveTool}
+                      onNewContact={handleNewContact}
+                    />
+                  }
                 />
-              </div>
-            ) : (
-              <CompanyWorkspaceHeader header={header} identity={identity} company={company} />
-            )}
-          </WorkspacePanel>
+              )}
+
+              {activeTool === "quick-import" ? (
+                <div className="mt-4 border-t border-carbon-blue/8 pt-4">
+                  <QuickImportPanel
+                    role={role}
+                    embedded
+                    companies={companies}
+                    contextCompanyId={company.CompanyID}
+                    onImported={handleImported}
+                    onRunWebsiteDiscovery={handleRunWebsiteDiscovery}
+                  />
+                </div>
+              ) : null}
+
+              {activeTool === "website-discovery" ? (
+                <div className="mt-4 border-t border-carbon-blue/8 pt-4">
+                  <WebsiteDiscoveryPanel
+                    role={role}
+                    embedded
+                    companies={companies}
+                    context="company"
+                    initialUrl={discoveryUrl}
+                    onImported={handleImported}
+                  />
+                </div>
+              ) : null}
+            </div>
+          </section>
 
           <SmartAssistCopilotHost companyName={company.Title} />
 
-          <WorkspacePanel title="Attention" id="attention" count={attentionItems.length}>
+          <WorkspacePanel
+            title="Attention"
+            id="attention"
+            count={
+              openAttentionCount != null && openAttentionCount > 0
+                ? openAttentionCount
+                : undefined
+            }
+          >
             <AttentionQueueTable
               items={attentionItems}
               emptyMessage="No open attention for this company."
+              onVisibleCountChange={setOpenAttentionCount}
             />
           </WorkspacePanel>
         </>
