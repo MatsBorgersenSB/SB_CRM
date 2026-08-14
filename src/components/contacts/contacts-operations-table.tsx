@@ -42,16 +42,17 @@ export function ContactsOperationsTable({
 
   return (
     <div className="w-full overflow-x-auto">
-      <WorkspaceTable className="min-w-[72rem]">
+      <WorkspaceTable className="min-w-[80rem]">
         <colgroup>
-          <col className="min-w-[10rem] w-[14%]" />
-          <col className="min-w-[8rem] w-[11%]" />
           <col className="min-w-[10rem] w-[13%]" />
-          <col className="min-w-[14rem] w-[18%]" />
+          <col className="min-w-[8rem] w-[10%]" />
           <col className="min-w-[9rem] w-[12%]" />
-          <col className="min-w-[7rem] w-[10%]" />
-          <col className="min-w-[6rem] w-[9%]" />
-          <col className="min-w-[8rem] w-[13%]" />
+          <col className="min-w-[10rem] w-[12%]" />
+          <col className="min-w-[14rem] w-[16%]" />
+          <col className="min-w-[9rem] w-[11%]" />
+          <col className="min-w-[7rem] w-[9%]" />
+          <col className="min-w-[6rem] w-[8%]" />
+          <col className="min-w-[8rem] w-[9%]" />
         </colgroup>
         <WorkspaceTableHead>
           <WorkspaceTableHeadRow>
@@ -61,6 +62,7 @@ export function ContactsOperationsTable({
               </IconLabel>
             </WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell className="min-w-[8rem]">Role</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell className="min-w-[9rem]">Buying role</WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell className="min-w-[10rem]">Company</WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell className="min-w-[14rem]">
               <IconLabel icon="email" iconSize="xs">
@@ -106,6 +108,17 @@ export function ContactsOperationsTable({
                   <span className={textTruncate} title={role}>
                     {role}
                   </span>
+                </WorkspaceTableBodyCell>
+                <WorkspaceTableBodyCell className={cellTruncate}>
+                  {record.contact.buyingRole ? (
+                    <span className={`${textTruncate} text-carbon-blue/70`}>
+                      {record.contact.buyingRole}
+                    </span>
+                  ) : (
+                    <span className={`${textTruncate} font-medium text-upcycle-orange`}>
+                      Unknown
+                    </span>
+                  )}
                 </WorkspaceTableBodyCell>
                 <WorkspaceTableBodyCell className={cellTruncate}>
                   <CompanyLink

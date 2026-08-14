@@ -37,7 +37,7 @@ function contactToForm(
     LinkedInURL: contact.LinkedInURL,
     Status: contact.Status,
     RelationshipLevel: contact.RelationshipLevel,
-    buyingRole: contact.buyingRole ?? "Champion",
+    buyingRole: contact.buyingRole,
     sentiment: contact.sentiment ?? "Neutral",
     influenceLevel: contact.influenceLevel ?? "Medium",
     reportsToId: contact.reportsToId ?? "",
