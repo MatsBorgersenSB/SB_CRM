@@ -119,6 +119,24 @@ export async function executeCoPilotProposal(
   if (kind === "propose_record_update") {
     const companyId = payload.recordUpdate?.companyId?.trim();
     const fieldLabel = payload.recordUpdate?.fieldLabel ?? "";
+    const sectorPatch = payload.recordUpdate?.companyPatch?.Sectors;
+
+    if (companyId && Array.isArray(sectorPatch) && /sector/i.test(fieldLabel)) {
+      const { normalizeCompanySectors } = await import("@/lib/company-sectors");
+      const next = normalizeCompanySectors(sectorPatch);
+      const { getServerSharePointServices } = await import(
+        "@/services/sharepoint/factory"
+      );
+      const { companies } = getServerSharePointServices();
+      await companies.update(companyId, { Sectors: next });
+      return {
+        mode: "applied",
+        message:
+          next.length > 0
+            ? `Assigned sector: ${next.join(", ")}.`
+            : "Cleared sector tags.",
+      };
+    }
 
     // Assign signed-in user as Account Owner on Approve (user decided).
     if (companyId && /account owner/i.test(fieldLabel)) {

@@ -95,6 +95,8 @@ export type M365RelationshipCardPayload = {
   companyId: string;
   /** Ecosystem role label — Supplier, Prospect, Unclassified, etc. */
   relationshipRoleLabel: string;
+  /** Assigned go-to-market sectors. Empty until a person tags the company. */
+  sectors: string[];
   /**
    * Reality First — true only for sell-to roles (Customer / Prospect / Offtaker).
    * Outlook must not nag "Create opportunity" for suppliers, consultants, or unclassified.

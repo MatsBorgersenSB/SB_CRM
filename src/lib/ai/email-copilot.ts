@@ -1,7 +1,4 @@
-/**
- * FS-012 — Email Copilot
- * Deterministic, context-aware draft generation (no invented facts).
- */
+import { formatSectorRoiHint, sectorDraftParagraph } from "@/lib/company-sectors";
 
 export type EmailDraftTone = "professional" | "warm" | "direct" | "formal";
 
@@ -13,6 +10,8 @@ export type GenerateEmailDraftInput = {
   tone?: EmailDraftTone;
   companyName?: string | null;
   objective?: string | null;
+  /** Assigned company sectors — drafts and ROI language must follow these. */
+  sectors?: string[] | null;
 };
 
 export type EmailDraftResult = {
@@ -60,12 +59,15 @@ export function generateEmailDraft(input: GenerateEmailDraftInput): EmailDraftRe
   const stage = input.dealStage?.trim() || null;
   const company = input.companyName?.trim() || null;
   const objective = input.objective?.trim() || null;
+  const sectorParagraph = sectorDraftParagraph(input.sectors);
+  const roiHint = formatSectorRoiHint(input.sectors);
 
   let confidence = 45;
   if (context.length > 40) confidence += 20;
   if (stage) confidence += 10;
   if (company) confidence += 8;
   if (objective) confidence += 12;
+  if (sectorParagraph) confidence += 8;
   if (input.contactName.trim().length > 1) confidence += 5;
 
   const stageClause = stage
@@ -80,6 +82,8 @@ export function generateEmailDraft(input: GenerateEmailDraftInput): EmailDraftRe
   const objectiveParagraph = objective
     ? `\n\nOur focus remains: ${objective}`
     : "";
+
+  const sectorBlock = sectorParagraph ? `\n\n${sectorParagraph}` : "";
 
   const subjectParts = [
     stage ? `${stage}:` : null,
@@ -97,7 +101,7 @@ export function generateEmailDraft(input: GenerateEmailDraftInput): EmailDraftRe
     "",
     TONE_OPENERS[tone],
     "",
-    `${stageClause} ${contextParagraph}${objectiveParagraph}`,
+    `${stageClause} ${contextParagraph}${objectiveParagraph}${sectorBlock}`,
     "",
     TONE_CLOSERS[tone],
     "",
@@ -108,6 +112,7 @@ export function generateEmailDraft(input: GenerateEmailDraftInput): EmailDraftRe
     context ? "Draft grounded in provided context." : "Limited context — generic follow-up used.",
     stage ? `Stage-aware (${stage}).` : null,
     objective ? "Objective reflected in subject/body." : null,
+    roiHint || null,
   ]
     .filter(Boolean)
     .join(" ");

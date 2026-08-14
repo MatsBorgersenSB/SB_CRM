@@ -257,6 +257,7 @@ export function Company360LivingWorkspace({
                   header={header}
                   identity={identity}
                   company={company}
+                  onCompanyUpdated={onCompanyUpdated}
                   trailing={
                     <Company360ActionsBar
                       role={role}

@@ -1,5 +1,6 @@
 import type { Company, CompanyIndustry, CompanyStatus } from "@/types/company";
 import { resolveCompanyIndustry } from "@/types/company";
+import { normalizeCompanySectors } from "@/lib/company-sectors";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType } from "@/types/company-type";
 import { STANDARD_BIO_USERS } from "@/types/bio-user";
@@ -263,6 +264,7 @@ export function mapPrismaCompanyToApp(company: PrismaCompanyWithRelations): Comp
       : null,
     Domain: company.website?.replace(/^https?:\/\//, "").split("/")[0] ?? "",
     Industry: mapIndustry(company.industry),
+    Sectors: normalizeCompanySectors(company.sectors),
     CompanyTypes: mapCompanyTypes(company.types ?? []),
     companyType: company.companyType ?? undefined,
     Status: mapCompanyStatus(company.status, company.types),

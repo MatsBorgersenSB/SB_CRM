@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { Building2 } from "lucide-react";
 import type { M365HealthBlock } from "@/types/m365";
 import { HealthRing } from "@/components/m365/health-ring";
+import { SectorTagManager } from "@/components/companies/sector-tag-manager";
 import {
   RelationshipHealthBadge,
   RelationshipTrendBadge,
@@ -10,15 +13,20 @@ import type { RelationshipHealthStatus, RelationshipTrend } from "@/lib/relation
 
 export function RelationshipHeader({
   companyName,
+  companyId,
   relationshipRoleLabel,
+  sectors,
   health,
   lastContactLabel,
   deepLink,
   hideHealthRing = false,
 }: {
   companyName: string;
+  /** When set, sector tags can be edited in place. */
+  companyId?: string;
   /** Ecosystem role — Supplier, Prospect, Unclassified, etc. */
   relationshipRoleLabel?: string;
+  sectors?: string[];
   health?: M365HealthBlock;
   lastContactLabel?: string;
   deepLink?: string;
@@ -47,6 +55,15 @@ export function RelationshipHeader({
         )}
         {relationshipRoleLabel ? (
           <p className="mt-1 text-[11px] font-medium text-carbon-blue/55">{relationshipRoleLabel}</p>
+        ) : null}
+        {companyId ? (
+          <div className="mt-1.5">
+            <SectorTagManager
+              companyId={companyId}
+              sectors={sectors}
+              density="outlook"
+            />
+          </div>
         ) : null}
         {lastContactLabel ? (
           <p className="mt-0.5 text-[11px] text-carbon-blue/45">

@@ -5,6 +5,7 @@ import type { ActivityMissionControl, ActivityFocusItem } from "@/lib/activity-m
 import { buildCustomerMeeting } from "@/lib/smartassist-meeting-engine";
 import type { SmartAssistMeeting } from "@/types/smartassist-meeting";
 import { formatDueDate } from "@/lib/activity-utils";
+import { sectorDraftParagraph } from "@/lib/company-sectors";
 
 export type ActivityExecutionContext = {
   mission: ActivityMissionControl;
@@ -75,7 +76,11 @@ function focusItems(ctx: ActivityExecutionContext): ActivityFocusItem[] {
 export function prepareFollowUpEmail(ctx: ActivityExecutionContext): PreparedFollowUpEmail {
   const focus = ctx.mission.todayFocus ?? focusItems(ctx)[0];
   const activity = focus?.activity;
-  const company = activity?.Company?.Title ?? "your team";
+  const companyTitle = activity?.Company?.Title ?? "your team";
+  const companyRecord = activity?.Company?.Title
+    ? ctx.companies.find((row) => row.Title === activity.Company?.Title)
+    : undefined;
+  const sectorLine = sectorDraftParagraph(companyRecord?.Sectors);
   const subject = activity?.Deal?.Title
     ? `Following up on ${activity.Deal.Title}`
     : `Following up — ${activity?.Subject ?? "next steps"}`;
@@ -87,9 +92,10 @@ export function prepareFollowUpEmail(ctx: ActivityExecutionContext): PreparedFol
   const body = [
     `Hi ${greeting(activity ?? ({} as Activity))},`,
     "",
-    `I wanted to follow up on ${activity?.Subject ?? "our recent conversation"} with ${company}.`,
+    `I wanted to follow up on ${activity?.Subject ?? "our recent conversation"} with ${companyTitle}.`,
     "",
     focus ? focus.whyItMatters : "Keeping momentum on our open items.",
+    ...(sectorLine ? ["", sectorLine] : []),
     "",
     "Could you help with the following:",
     ...(questions.length > 0 ? questions : ["• Confirm timing for the next step"]),

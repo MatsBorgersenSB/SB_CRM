@@ -88,6 +88,11 @@ export type Company = {
   ParentCompany: SharePointLookup | null;
   Domain: string;
   Industry: CompanyIndustry;
+  /**
+   * Go-to-market sector tags (multi). Empty until assigned.
+   * Presets live in `COMPANY_SECTOR_PRESETS` — never auto-defaulted.
+   */
+  Sectors?: string[];
   /** Ecosystem roles — multiple classifications supported (Phase 6H) */
   CompanyTypes?: CompanyType[];
   /** @deprecated Prefer CompanyTypes[]. Kept for backward compatibility on read. */
@@ -117,6 +122,9 @@ export type Company = {
   /** Comma-friendly classification tags */
   Tags?: string[];
 };
+
+export { COMPANY_SECTOR_PRESETS } from "@/lib/company-sectors";
+export type { CompanySectorPreset } from "@/lib/company-sectors";
 
 export type {
   Contact,

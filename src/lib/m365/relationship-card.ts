@@ -24,6 +24,7 @@ import type { Company } from "@/types/company";
 import type { M365RelationshipCardPayload } from "@/types/m365";
 import { M365_BUDGETS } from "@/types/m365";
 import { company360Href } from "@/types/company-360";
+import { normalizeCompanySectors } from "@/lib/company-sectors";
 
 export type BuildM365RelationshipCardOptions = {
   correspondence?: CompanyCorrespondenceEvidence | null;
@@ -171,6 +172,7 @@ export function buildM365RelationshipCard(
     companyName: header.companyName,
     companyId: company.CompanyID,
     relationshipRoleLabel,
+    sectors: normalizeCompanySectors(company.Sectors),
     opportunityEligible: shouldOfferCreateOpportunity(company, correspondence),
     health: {
       score: header.healthScore,

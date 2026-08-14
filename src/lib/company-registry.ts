@@ -18,6 +18,7 @@ import type { UpdateCompanyPatch } from "@/lib/pipeline-db";
 import { readCompanies } from "@/lib/pipeline-db";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
+import { normalizeCompanySectors } from "@/lib/company-sectors";
 
 async function prismaRegistryAvailable(): Promise<boolean> {
   try {
@@ -131,6 +132,7 @@ export async function createRegistryCompany(
         name: input.Title.trim(),
         website: domain ? `https://${domain}` : null,
         industry: input.Industry || "Other",
+        sectors: normalizeCompanySectors(input.Sectors),
         types: storedTypes,
         companyType: storedTypes[0] ?? "Unclassified",
         status: "active",
@@ -201,6 +203,7 @@ export async function updateRegistryCompany(
           name: (patch.Title ?? jsonCompany.Title).trim(),
           website: domain ? `https://${domain}` : null,
           industry: patch.Industry ?? jsonCompany.Industry ?? "Other",
+          sectors: normalizeCompanySectors(patch.Sectors ?? jsonCompany.Sectors),
           types: toPrismaCompanyTypes(patch.CompanyTypes ?? jsonCompany.CompanyTypes),
           companyType:
             toPrismaCompanyTypes(patch.CompanyTypes ?? jsonCompany.CompanyTypes)[0] ??
@@ -261,6 +264,7 @@ export async function updateRegistryCompany(
   if (patch.Title !== undefined) data.name = patch.Title.trim();
   if (domain !== undefined) data.website = websiteFromDomain(domain, existing.website);
   if (patch.Industry !== undefined) data.industry = patch.Industry;
+  if (patch.Sectors !== undefined) data.sectors = normalizeCompanySectors(patch.Sectors);
   if (patch.CompanyTypes !== undefined) {
     const storedTypes = toPrismaCompanyTypes(patch.CompanyTypes);
     data.types = storedTypes;

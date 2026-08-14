@@ -3,6 +3,7 @@ import type { CommercialPackage } from "@/types/commercial-package";
 import { isQuotationKind } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import { normalizeCompanyTypes } from "@/lib/company-classification";
+import { formatSectorRoiHint, normalizeCompanySectors } from "@/lib/company-sectors";
 import {
   computeOpportunityIntelligence,
   findCompanyForDeal,
@@ -130,6 +131,7 @@ function scoreBusinessCase(
   deal: PipelineRow,
   winProbability: number,
   packages: CommercialPackage[],
+  company?: Company,
 ): Scored {
   let score = winProbability * 0.5;
   const criteria: string[] = [];
@@ -151,11 +153,24 @@ function scoreBusinessCase(
   }
   if (winProbability >= 45) criteria.push("IRR");
 
+  const sectorHint = formatSectorRoiHint(company?.Sectors);
+  if (sectorHint) {
+    criteria.push("Sector ROI");
+    signals.push(sectorHint);
+    score += 4;
+  }
+
+  const sectorLabels = normalizeCompanySectors(company?.Sectors);
+  const roiImpact =
+    sectorLabels.length > 0
+      ? `ROI must be argued in ${sectorLabels.join(" / ")} terms — ${sectorHint || "sector-specific economics"}`
+      : "Does this project make economic sense? — ROI and payback must be explicit";
+
   return {
     score: clampScore(score),
     summary: signals[0] ?? "Business case not yet quantified — develop CAPEX/OPEX/ROI model",
     impact: [
-      "Does this project make economic sense? — ROI and payback must be explicit",
+      roiImpact,
       winProbability >= 40 ? "Economic case progressing" : "Build business case before engineering investment",
     ],
     criteria: criteria.length > 0 ? criteria : ["CAPEX", "OPEX", "ROI", "Payback", "NPV", "IRR"],
@@ -683,7 +698,7 @@ export function computeCommercialViability(
 
   const baseDimensions: CommercialViabilityDimension[] = [
     buildDimension("buying_drivers", buying.scored),
-    buildDimension("business_case_strength", scoreBusinessCase(deal, intel.winProbability, packages)),
+    buildDimension("business_case_strength", scoreBusinessCase(deal, intel.winProbability, packages, company)),
     buildDimension("financial_readiness", scoreFinancialReadiness(deal, packages, company)),
     buildDimension("feedstock_readiness", scoreFeedstockReadiness(deal)),
     buildDimension("project_readiness", scoreProjectReadiness(deal)),

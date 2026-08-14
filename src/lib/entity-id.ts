@@ -92,5 +92,6 @@ export type NewCompanyInput = Pick<
   Notes?: string;
   ParentCompany?: Company["ParentCompany"];
   CompanyTypes?: CompanyType[];
+  Sectors?: string[];
   AccountOwner?: SharePointPerson;
 };

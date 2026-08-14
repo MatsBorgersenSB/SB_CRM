@@ -17,6 +17,11 @@ import {
   isMisclassifiedCommercialTarget,
   type CompanyCorrespondenceEvidence,
 } from "@/lib/company-correspondence";
+import {
+  companyHasSectors,
+  detectSectorsFromText,
+  formatSectorsLabel,
+} from "@/lib/company-sectors";
 import { buildCoPilotSuppressionKey } from "@/lib/smartassist-copilot-keys";
 import { company360Href } from "@/types/company-360";
 import type { Activity } from "@/types/activity";
@@ -210,6 +215,54 @@ export function proposalsFromLivingRecords(
           },
         },
       });
+    }
+
+    if (!companyHasSectors(company) && correspondence?.mailKeywordHaystack) {
+      const detected = detectSectorsFromText(correspondence.mailKeywordHaystack);
+      const top = detected[0];
+      if (top) {
+        const id = `copilot-sector-${company.CompanyID}`;
+        const kind = "propose_record_update" as const;
+        const others = detected.slice(1).map((entry) => entry.sector);
+        const extra =
+          others.length > 0
+            ? ` Also mentioned: ${formatSectorsLabel(others)}.`
+            : "";
+        proposals.push({
+          id,
+          kind,
+          status: "pending",
+          title: `Propose sector tag — ${top.sector}`,
+          reason: `Email threads mention ${top.sector.toLowerCase()} language.${extra} Assign the tag so drafts and ROI stay sector-specific.`,
+          impact:
+            "Untagged companies get generic messaging — sector tags keep follow-ups and economics relevant.",
+          observedChange: `No sector on "${company.Title}" — mail matches ${top.sector}`,
+          sourceType: "email",
+          severity: "needs_attention",
+          companyId: company.CompanyID,
+          companyName: company.Title,
+          objectName: company.Title,
+          href: company360Href(company.CompanyID),
+          suppressionKey: buildCoPilotSuppressionKey({
+            id,
+            kind,
+            companyId: company.CompanyID,
+            ruleId: "propose_sector_tag",
+          }),
+          payload: {
+            recordUpdate: {
+              companyId: company.CompanyID,
+              fieldLabel: "Sector",
+              companyPatch: { Sectors: [top.sector] },
+            },
+            prefill: {
+              companyId: company.CompanyID,
+              focus: "sector",
+              suggestedSector: top.sector,
+            },
+          },
+        });
+      }
     }
 
     // Knowledge before questions — Outlook / project mail means this is not first contact.

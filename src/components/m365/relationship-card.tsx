@@ -169,7 +169,9 @@ export function RelationshipCard({
             <div className="min-w-0 flex-1">
               <RelationshipHeader
                 companyName={payload.companyName}
+                companyId={payload.companyId}
                 relationshipRoleLabel={payload.relationshipRoleLabel}
+                sectors={payload.sectors}
                 health={payload.health}
                 hideHealthRing={outlookHost}
                 deepLink={outlookHost ? undefined : payload.deepLink}
