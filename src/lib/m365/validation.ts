@@ -268,7 +268,7 @@ export function validateMeetingBriefing(
         label: "Seven sections (North Star)",
         status: "pass",
         detail:
-          "Relationship Summary · Primary Objective · What Changed · Opportunities · Risks · Topics · NBA",
+          "Who · Relationship · Objective · NBA · What Changed · Opportunities · Top Risk · Topics",
       },
       {
         label: "Relationship summary present",

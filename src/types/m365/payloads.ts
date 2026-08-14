@@ -128,6 +128,10 @@ export type M365MeetingBriefingPayload = {
   kind: "meeting-briefing";
   meta: M365IntelligenceMeta;
   companyName: string;
+  /** Person in the meeting / email — Reality First when known. */
+  counterpartyName: string | null;
+  counterpartyRole: string | null;
+  counterpartyEmail: string | null;
   meetingObjective: string;
   relationshipSummary: string;
   whatChanged: string[];
