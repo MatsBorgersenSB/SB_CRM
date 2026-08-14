@@ -89,15 +89,15 @@ export function suggestContactListRoleFromTitle(
   if (/decision.?maker|owner|board/.test(title)) return "Decision Maker";
   if (/plant manager/.test(title)) return "Plant Manager";
   if (/operations manager|ops manager/.test(title)) return "Operations Manager";
-  if (/project manager|\bpm\b/.test(title)) return "Project Manager";
+  if (/project manager|\bpm\b|prosjektleder/.test(title)) return "Project Manager";
   if (/technical lead|tech lead|cto|chief technology/.test(title)) return "Technical Lead";
-  if (/engineer|technician/.test(title)) return "Engineer";
+  if (/engineer|technician|ingeniør|ingenior/.test(title)) return "Engineer";
   if (/compliance|permit|hse|environment/.test(title)) return "Compliance Officer";
   if (/sustainab|esg|climate|carbon/.test(title)) return "Sustainability / ESG";
   if (/procure|buyer|purchasing|supply chain/.test(title)) return "Procurement";
   if (/\bcfo\b|finance|controller|treasury/.test(title)) return "Finance / CFO";
   if (/legal|counsel|attorney|lawyer/.test(title)) return "Legal Counsel";
-  if (/business development|\bbd\b|sales|commercial/.test(title)) {
+  if (/business development|\bbd\b|sales|salg|commercial/.test(title)) {
     return "Business Development";
   }
   if (/\bit\b|digital|cio|information systems/.test(title)) return "IT / Digital";

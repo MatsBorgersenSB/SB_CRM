@@ -109,6 +109,14 @@ export function OutlookNoContactState({
         setCompanyName(data.companyName);
         setPickedCompanyId(data.companyId);
         setCreateNewCompany(false);
+        const titleHint = data.enrichment.suggestions.find((item) => item.id === "jobTitle")
+          ?.value;
+        if (titleHint) {
+          const matchedRole =
+            suggestContactListRoleFromTitle(titleHint) ||
+            resolveContactListRole(titleHint);
+          if (matchedRole) setRole(matchedRole);
+        }
         setPhase("propose");
       } catch {
         if (!active) return;
@@ -365,6 +373,19 @@ export function OutlookNoContactState({
               {proposal.displayName || email}
             </p>
             <p className="mt-0.5 text-[10px] text-carbon-blue/40">{proposal.email}</p>
+            {proposal.enrichment.suggestions.length > 0 ? (
+              <dl className="mt-3 space-y-1 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                  Found in this email
+                </p>
+                {proposal.enrichment.suggestions.map((item) => (
+                  <div key={item.id} className="flex gap-2 text-[11px] text-carbon-blue/75">
+                    <dt className="shrink-0 font-semibold text-carbon-blue/45">{item.label}</dt>
+                    <dd className="min-w-0 whitespace-pre-wrap break-words">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
             <p className="mt-3 text-[11px] text-carbon-blue/70">
               {proposal.companyResolved
                 ? `Company already in SmartCRM: ${proposal.companyName}`
