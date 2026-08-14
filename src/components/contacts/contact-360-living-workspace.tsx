@@ -260,18 +260,32 @@ export function Contact360LivingWorkspace({
     onContactTransferred(contact, targetCompanyId);
   };
 
+  const contactTools = (
+    <ContactLifecycleActionsBar
+      contact={contact}
+      role={role}
+      editing={contactEditOpen}
+      onWizardOpen={setWizardMode}
+      onArchiveOpen={() => setArchiveOpen(true)}
+      onEditOpen={toggleContactEdit}
+    />
+  );
+
   return (
     <WorkspaceStack>
       {contactEditOpen ? (
-        <Contact360EditPanel
-          record={record}
-          companies={companies}
-          canDelete={canManage}
-          onCancel={() => setContactEditOpen(false)}
-          onContactUpdate={onContactUpdate}
-          onContactDelete={onContactDelete}
-          onCompanyChange={handleCompanyChange}
-        />
+        <div>
+          <div className="mb-3 flex justify-end">{contactTools}</div>
+          <Contact360EditPanel
+            record={record}
+            companies={companies}
+            canDelete={canManage}
+            onCancel={() => setContactEditOpen(false)}
+            onContactUpdate={onContactUpdate}
+            onContactDelete={onContactDelete}
+            onCompanyChange={handleCompanyChange}
+          />
+        </div>
       ) : (
         <Contact360Header
           contact={contact}
@@ -281,17 +295,9 @@ export function Contact360LivingWorkspace({
           healthStatus={relationshipSummary.healthStatus}
           employmentBusy={employmentBusy}
           onEmploymentStatusChange={(status) => void handleEmploymentStatusChange(status)}
+          trailing={contactTools}
         />
       )}
-
-      <ContactLifecycleActionsBar
-        contact={contact}
-        role={role}
-        editing={contactEditOpen}
-        onWizardOpen={setWizardMode}
-        onArchiveOpen={() => setArchiveOpen(true)}
-        onEditOpen={toggleContactEdit}
-      />
 
       {contact.IsArchived ? (
         <p className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-3 py-2 text-[11px] text-carbon-blue/55">

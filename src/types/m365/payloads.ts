@@ -86,6 +86,14 @@ export type M365KnowledgeRiskBlock = {
   href: string;
 };
 
+/** Open NextAction shown under the relationship header — not a sixth intelligence block. */
+export type M365PendingCommitment = {
+  activityId: string;
+  title: string;
+  dueDate: string;
+  overdue: boolean;
+};
+
 /** Outlook Relationship Card — exactly 5 blocks, no scroll. */
 export type M365RelationshipCardPayload = {
   kind: "relationship-card";
@@ -97,6 +105,11 @@ export type M365RelationshipCardPayload = {
   relationshipRoleLabel: string;
   /** Assigned go-to-market sectors. Empty until a person tags the company. */
   sectors: string[];
+  /**
+   * Header chrome — the open/overdue commitment the user owes this relationship.
+   * Render under SectorTagManager; do not count toward the 5-block budget.
+   */
+  pendingCommitment: M365PendingCommitment | null;
   /**
    * Reality First — true only for sell-to roles (Customer / Prospect / Offtaker).
    * Outlook must not nag "Create opportunity" for suppliers, consultants, or unclassified.

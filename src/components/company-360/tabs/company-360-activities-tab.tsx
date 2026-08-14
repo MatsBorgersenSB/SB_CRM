@@ -2,12 +2,20 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { Activity } from "@/types/activity";
 import { ActivityTimeline } from "@/components/activities/activity-timeline";
+import { CompleteCommitmentCard } from "@/components/commitments/complete-commitment-card";
+import {
+  pickPendingCommitment,
+  toPendingCommitmentView,
+} from "@/lib/complete-commitment";
 
 export function Company360ActivitiesTab({
   activities,
 }: {
   activities: Activity[];
 }) {
+  const pending = pickPendingCommitment(activities);
+  const pendingCommitment = pending ? toPendingCommitmentView(pending) : null;
+
   return (
     <section className="dashboard-card">
       <header className="flex items-center justify-between border-b border-carbon-blue/8 px-5 py-4">
@@ -27,6 +35,13 @@ export function Company360ActivitiesTab({
       </header>
 
       <div className="px-5 py-5">
+        {pendingCommitment ? (
+          <CompleteCommitmentCard
+            key={pendingCommitment.activityId}
+            className="mb-4"
+            commitment={pendingCommitment}
+          />
+        ) : null}
         <ActivityTimeline
           activities={activities}
           emptyMessage="No interactions recorded for this company yet. Start the timeline with your first activity."

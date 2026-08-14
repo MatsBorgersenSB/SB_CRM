@@ -192,6 +192,13 @@ export function validateRelationshipCard(
         detail: "Health · Top Risk · NBA · Opportunities · Commitments",
       },
       {
+        label: "Pending commitment is header chrome",
+        status: "pass",
+        detail: payload.pendingCommitment
+          ? "Shown under relationship header — not a sixth block"
+          : "None open",
+      },
+      {
         label: "No scroll budget enforced",
         status: "pass",
         detail: "Designed for single-pane Outlook host — validate visually",

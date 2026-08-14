@@ -42,7 +42,14 @@ function CardActions({
     ? { target: "_blank" as const, rel: "noopener noreferrer" as const }
     : {};
   const proposal = payload.nextBestAction.activeAssistProposal;
-  const canApproveInPlace = Boolean(outlookHost && proposal && showApprove);
+  const pendingActivityId = payload.pendingCommitment?.activityId;
+  const proposalDuplicatesCard =
+    proposal?.kind === "complete_commitment" &&
+    Boolean(pendingActivityId) &&
+    proposal.payload.activityId === pendingActivityId;
+  const canApproveInPlace = Boolean(
+    outlookHost && proposal && showApprove && !proposalDuplicatesCard,
+  );
 
   return (
     <div className="mt-3 flex flex-col gap-2">
@@ -149,7 +156,7 @@ export function RelationshipCard({
   return (
     <article className={shellClass}>
       <div
-        className={`space-y-3 ${outlookHost ? "min-h-0 flex-1 overflow-hidden px-4 py-3" : "px-5 py-5"}`}
+        className={`space-y-3 ${outlookHost ? "min-h-0 flex-1 overflow-y-auto px-4 py-3" : "px-5 py-5"}`}
       >
         {outlookHost ? (
           <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
@@ -172,9 +179,16 @@ export function RelationshipCard({
                 companyId={payload.companyId}
                 relationshipRoleLabel={payload.relationshipRoleLabel}
                 sectors={payload.sectors}
+                pendingCommitment={payload.pendingCommitment}
                 health={payload.health}
                 hideHealthRing={outlookHost}
                 deepLink={outlookHost ? undefined : payload.deepLink}
+                onCommitmentCompleted={() => {
+                  if (proposal?.kind === "complete_commitment") {
+                    setActionCleared(true);
+                  }
+                  onActiveAssistApplied?.();
+                }}
               />
             </div>
           </div>

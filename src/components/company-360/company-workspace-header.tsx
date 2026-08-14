@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/smartcrm-icon";
 import type { ReactNode } from "react";
 import { SectorTagManager } from "@/components/companies/sector-tag-manager";
+import { CompleteCommitmentCard } from "@/components/commitments/complete-commitment-card";
+import type { PendingCommitmentView } from "@/lib/complete-commitment";
 
 /**
  * One prose status story — not a pill cluster of type / health / stage / industry.
@@ -52,14 +54,18 @@ export function CompanyWorkspaceHeader({
   identity,
   company,
   trailing,
+  pendingCommitment,
   onCompanyUpdated,
+  onCommitmentChanged,
 }: {
   header: Company360Header;
   identity: CompanyHeroIdentityView;
   company: Company;
   /** Secondary overflow (account tools) — not equal primary buttons */
   trailing?: ReactNode;
+  pendingCommitment?: PendingCommitmentView | null;
   onCompanyUpdated?: (company: Company) => void;
+  onCommitmentChanged?: () => void;
 }) {
   const websiteHref = identity.website
     ? identity.website.startsWith("http")
@@ -94,6 +100,16 @@ export function CompanyWorkspaceHeader({
           onUpdated={onCompanyUpdated}
         />
       </div>
+
+      {pendingCommitment ? (
+        <CompleteCommitmentCard
+          key={pendingCommitment.activityId}
+          commitment={pendingCommitment}
+          className="mt-3"
+          onCompleted={onCommitmentChanged}
+          onRescheduled={onCommitmentChanged}
+        />
+      ) : null}
 
       <div className="mt-3 border-l-2 border-upcycle-orange/50 pl-3">
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
