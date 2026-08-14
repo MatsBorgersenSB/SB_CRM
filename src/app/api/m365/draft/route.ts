@@ -5,6 +5,7 @@ import {
   generateOutlookDeepLink,
   getAccessTokenForIntegration,
   getActiveM365AccessToken,
+  outlookDraftComposeHref,
 } from "@/lib/m365-client";
 import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
 import { getPrisma } from "@/lib/prisma";
@@ -91,11 +92,15 @@ export async function POST(request: Request) {
         projectName,
       });
 
+      const composeHref = outlookDraftComposeHref(draft.draftId);
+
       return NextResponse.json({
         success: true,
         mode: "graph_draft",
         draftId: draft.draftId,
-        webLink: draft.webLink,
+        // Always open compose — never Graph read webLink (pencil tax).
+        webLink: composeHref,
+        deepLink: composeHref,
         opportunityId,
         projectId,
       });

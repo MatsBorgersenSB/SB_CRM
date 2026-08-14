@@ -727,8 +727,18 @@ export async function createM365DraftEmail(
 
   return {
     draftId: created.id,
-    webLink: created.webLink ?? null,
+    // Prefer compose deeplink — Graph webLink opens read/preview and forces the pencil.
+    webLink: outlookDraftComposeHref(created.id),
   };
+}
+
+/**
+ * Open a Graph-created draft in editable compose mode (not read/preview).
+ * Graph `webLink` uses `/mail/deeplink/read` and requires the pencil — fails Reply UX.
+ */
+export function outlookDraftComposeHref(draftId: string): string {
+  const id = encodeURIComponent(draftId.trim());
+  return `https://outlook.office.com/mail/deeplink/compose/${id}?ItemID=${id}&exvsurl=1`;
 }
 
 /**
