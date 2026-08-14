@@ -12,6 +12,10 @@ import {
 } from "@/lib/company-correspondence";
 import { sumPipelineValue, buildPipelineImpactLines } from "@/lib/impact-context";
 import { isFollowUpOpen, isFollowUpOverdue } from "@/lib/activity-utils";
+import {
+  pickPendingCommitment,
+  toPendingCommitmentView,
+} from "@/lib/complete-commitment";
 import { buildM365Meta } from "@/lib/m365/meta";
 import {
   toM365Action,
@@ -161,6 +165,9 @@ export function buildM365RelationshipCard(
       ? formatRelationshipPostureLabel(posture)
       : formatCompanyTypesLabel(companyTypes, { max: 2 });
 
+  const pending = pickPendingCommitment(openActions);
+  const pendingCommitment = pending ? toPendingCommitmentView(pending) : null;
+
   return {
     kind: "relationship-card",
     meta: buildM365Meta({
@@ -173,6 +180,7 @@ export function buildM365RelationshipCard(
     companyId: company.CompanyID,
     relationshipRoleLabel,
     sectors: normalizeCompanySectors(company.Sectors),
+    pendingCommitment,
     opportunityEligible: shouldOfferCreateOpportunity(company, correspondence),
     health: {
       score: header.healthScore,

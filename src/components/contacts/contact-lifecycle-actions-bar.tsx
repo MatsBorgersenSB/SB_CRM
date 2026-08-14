@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { Contact } from "@/types/contact";
 import type { UserRole } from "@/types/auth";
 import { canDeleteContact } from "@/lib/permissions";
@@ -22,53 +23,96 @@ export function ContactLifecycleActionsBar({
   editing?: boolean;
 }) {
   const canManage = canDeleteContact(role);
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const run = (action: () => void) => {
+    setOpen(false);
+    action();
+  };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border border-carbon-blue/10 bg-white px-3 py-2">
+    <div ref={rootRef} className="relative shrink-0">
       <button
         type="button"
-        onClick={onEditOpen}
-        className={`border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
-          editing
-            ? "border-upcycle-orange/40 bg-upcycle-orange/10 text-upcycle-orange"
-            : "border-carbon-blue/15 text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-        }`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Contact tools"
+        title="Contact tools"
+        onClick={() => setOpen((value) => !value)}
+        className="inline-flex items-center border border-carbon-blue/12 px-2 py-1 text-[11px] font-semibold tracking-wider text-carbon-blue/50 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
       >
-        {editing ? "Editing…" : "Edit contact"}
+        ···
       </button>
 
-      {canManage ? (
-        <>
-          <button
-            type="button"
-            onClick={() => onWizardOpen("transfer")}
-            className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-          >
-            Change company
-          </button>
-          <button
-            type="button"
-            onClick={() => onWizardOpen("position")}
-            className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-          >
-            Change position
-          </button>
-          <button
-            type="button"
-            onClick={() => onWizardOpen("merge")}
-            className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-          >
-            Merge duplicates
-          </button>
-          <button
-            type="button"
-            onClick={onArchiveOpen}
-            className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-          >
-            {contact.IsArchived ? "Restore contact" : "Archive contact"}
-          </button>
-        </>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-40 mt-1 min-w-[11.5rem] border border-carbon-blue/15 bg-white py-1 shadow-lg"
+        >
+          <OverflowItem
+            label={editing ? "Close Edit Contact" : "Edit Contact"}
+            onClick={() => run(onEditOpen)}
+          />
+          {canManage ? (
+            <>
+              <OverflowItem
+                label="Change Company"
+                onClick={() => run(() => onWizardOpen("transfer"))}
+              />
+              <OverflowItem
+                label="Change Position"
+                onClick={() => run(() => onWizardOpen("position"))}
+              />
+              <OverflowItem
+                label="Merge Duplicates"
+                onClick={() => run(() => onWizardOpen("merge"))}
+              />
+              <OverflowItem
+                label={contact.IsArchived ? "Restore Contact" : "Archive Contact"}
+                onClick={() => run(onArchiveOpen)}
+              />
+            </>
+          ) : null}
+        </div>
       ) : null}
     </div>
+  );
+}
+
+function OverflowItem({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className="block w-full px-3 py-1.5 text-left text-[11px] text-carbon-blue/75 hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange"
+    >
+      {label}
+    </button>
   );
 }

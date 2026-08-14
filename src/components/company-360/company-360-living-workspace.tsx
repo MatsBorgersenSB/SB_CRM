@@ -8,6 +8,10 @@ import {
   companyWebsiteHref,
 } from "@/lib/company-identity";
 import { getActivitiesForCompany } from "@/lib/activity-utils";
+import {
+  pickPendingCommitment,
+  toPendingCommitmentView,
+} from "@/lib/complete-commitment";
 import { CompanyWorkspaceHeader } from "@/components/company-360/company-workspace-header";
 import { CompanyMissionControlTabBar } from "@/components/company-360/company-mission-control-tab-bar";
 import {
@@ -23,6 +27,7 @@ import { Company360OverviewStrips } from "@/components/company-360/company-360-o
 import { CompanyOpportunitiesSection } from "@/components/opportunity/company-opportunities-section";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
+import { CompleteCommitmentCard } from "@/components/commitments/complete-commitment-card";
 import { workspaceDocumentsContextFromCompany } from "@/lib/workspace-documents-data";
 import type { Company360Snapshot } from "@/lib/company-360-data";
 import type { Company } from "@/types/company";
@@ -131,6 +136,11 @@ export function Company360LivingWorkspace({
     () => getActivitiesForCompany(scopedActivities, company),
     [scopedActivities, company],
   );
+
+  const pendingCommitment = useMemo(() => {
+    const pending = pickPendingCommitment(companyActivities);
+    return pending ? toPendingCommitmentView(pending) : null;
+  }, [companyActivities]);
 
   const linkedProjects = useMemo(
     () =>
@@ -257,7 +267,9 @@ export function Company360LivingWorkspace({
                   header={header}
                   identity={identity}
                   company={company}
+                  pendingCommitment={pendingCommitment}
                   onCompanyUpdated={onCompanyUpdated}
+                  onCommitmentChanged={() => router.refresh()}
                   trailing={
                     <Company360ActionsBar
                       role={role}
@@ -388,6 +400,15 @@ export function Company360LivingWorkspace({
       {activeView === "actions" ? (
         <>
           <WorkspacePanel title="Activities" id="activities" count={companyActivities.length}>
+            {pendingCommitment ? (
+              <CompleteCommitmentCard
+                key={pendingCommitment.activityId}
+                className="mb-4"
+                commitment={pendingCommitment}
+                onCompleted={() => router.refresh()}
+                onRescheduled={() => router.refresh()}
+              />
+            ) : null}
             <SmartActivityWorkspace
               activities={companyActivities}
               companies={companies}

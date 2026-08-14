@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Building2 } from "lucide-react";
-import type { M365HealthBlock } from "@/types/m365";
+import type { M365HealthBlock, M365PendingCommitment } from "@/types/m365";
 import { HealthRing } from "@/components/m365/health-ring";
 import { SectorTagManager } from "@/components/companies/sector-tag-manager";
+import { CompleteCommitmentCard } from "@/components/commitments/complete-commitment-card";
 import {
   RelationshipHealthBadge,
   RelationshipTrendBadge,
@@ -16,10 +17,12 @@ export function RelationshipHeader({
   companyId,
   relationshipRoleLabel,
   sectors,
+  pendingCommitment,
   health,
   lastContactLabel,
   deepLink,
   hideHealthRing = false,
+  onCommitmentCompleted,
 }: {
   companyName: string;
   /** When set, sector tags can be edited in place. */
@@ -27,10 +30,13 @@ export function RelationshipHeader({
   /** Ecosystem role — Supplier, Prospect, Unclassified, etc. */
   relationshipRoleLabel?: string;
   sectors?: string[];
+  /** Open NextAction — header chrome, not a sixth intelligence block. */
+  pendingCommitment?: M365PendingCommitment | null;
   health?: M365HealthBlock;
   lastContactLabel?: string;
   deepLink?: string;
   hideHealthRing?: boolean;
+  onCommitmentCompleted?: () => void;
 }) {
   return (
     <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -64,6 +70,16 @@ export function RelationshipHeader({
               density="outlook"
             />
           </div>
+        ) : null}
+        {pendingCommitment ? (
+          <CompleteCommitmentCard
+            key={pendingCommitment.activityId}
+            commitment={pendingCommitment}
+            density={hideHealthRing ? "outlook" : "default"}
+            className="mt-2"
+            onCompleted={onCommitmentCompleted}
+            onRescheduled={onCommitmentCompleted}
+          />
         ) : null}
         {lastContactLabel ? (
           <p className="mt-0.5 text-[11px] text-carbon-blue/45">

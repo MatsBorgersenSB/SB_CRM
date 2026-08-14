@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { Contact } from "@/types/contact";
 import { getContactDisplayName } from "@/types/contact";
@@ -57,6 +58,7 @@ export function Contact360Header({
   employmentBusy,
   onEmploymentStatusChange,
   editing = false,
+  trailing,
 }: {
   contact: Contact;
   companyId: string;
@@ -66,6 +68,8 @@ export function Contact360Header({
   employmentBusy?: boolean;
   onEmploymentStatusChange: (status: EmploymentStatus) => void;
   editing?: boolean;
+  /** Secondary overflow (contact tools) — same ··· strategy as Company 360. */
+  trailing?: ReactNode;
 }) {
   const displayName = getContactDisplayName(contact);
   const position = contact.JobTitle || contact.Role || "—";
@@ -85,15 +89,18 @@ export function Contact360Header({
   return (
     <div className="flex flex-col gap-4 border border-carbon-blue/10 bg-white p-4 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0 flex-1">
-        <h1 className="flex items-center gap-2.5 text-2xl font-semibold tracking-tight text-carbon-blue xl:text-[1.85rem]">
-          <SmartCRMIcon name="contact" size="lg" label="Contact" />
-          <span className="truncate">{displayName}</span>
-          {contact.IsArchived ? (
-            <span className="shrink-0 border border-carbon-blue/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/45">
-              Archived
-            </span>
-          ) : null}
-        </h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="flex min-w-0 items-center gap-2.5 text-2xl font-semibold tracking-tight text-carbon-blue xl:text-[1.85rem]">
+            <SmartCRMIcon name="contact" size="lg" label="Contact" />
+            <span className="truncate">{displayName}</span>
+            {contact.IsArchived ? (
+              <span className="shrink-0 border border-carbon-blue/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                Archived
+              </span>
+            ) : null}
+          </h1>
+          {trailing ? <div className="shrink-0 pt-1">{trailing}</div> : null}
+        </div>
 
         <p className="mt-2 text-sm text-carbon-blue/65">{position}</p>
 

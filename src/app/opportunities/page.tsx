@@ -6,6 +6,9 @@ import {
   readLivePortfolio,
 } from "@/lib/prisma-data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function OpportunitiesPage() {
   const [{ companies, pipelines }, activities, commercialPackages] = await Promise.all([
     readLivePortfolio(),
