@@ -34,7 +34,7 @@ const SUGGESTION_ORDER: SignatureFieldId[] = [
 ];
 
 const TITLE_KEYWORDS =
-  /\b(manager|director|engineer|officer|lead|head|vp|president|specialist|coordinator|supervisor|analyst|consultant|chief|executive|sponsor|procurement|compliance|founder|co-founder|cofounder|ceo|cto|cfo|coo|partner|owner|ambassador|director\s+general|marketing|ansvarlig|prosjekt|prosjektleder|miljø|miljo|leder|sjef|ingeniør|ingenior|rådgiver|radgiver|direktør|direktor|daglig|salgssjef|markedssjef)\b/i;
+  /\b(manager|director|engineer|officer|lead|head|vp|president|specialist|coordinator|supervisor|analyst|consultant|chief|executive|sponsor|procurement|compliance|founder|co-founder|cofounder|ceo|cto|cfo|coo|partner|owner|ambassador|director\s+general|marketing|prosjekt|prosjektleder|miljø|miljo|leder|sjef|ingeniør|ingenior|rådgiver|radgiver|direktør|direktor|daglig|salgssjef|markedssjef|salgsansvarlig|systemingeniør|systemingenior)\b|ansvarlig\b/i;
 
 const ROLE_COMPANY_PATTERN = /^(.+?)\s+(?:de|del|d'|at|@|for|en|bei|von)\s+(.+)$/i;
 
@@ -44,6 +44,7 @@ const COMPANY_SUFFIX =
 const PHONE_PATTERN = /(\+?\d[\d\s().-]{6,}\d)/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const WEBSITE_PATTERN = /((?:https?:\/\/|www\.)[\w.-]+\.[a-z]{2,}(?:\/[\w./%-]*)?)/i;
+const BARE_DOMAIN_PATTERN = /^(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i;
 const POSTAL_CITY_PATTERN = /^\d{4,6}\s+[A-Za-zÀ-ÿ]/;
 
 const COUNTRY_PATTERN =
@@ -60,20 +61,54 @@ function normalizeLines(text: string): string[] {
     .filter(Boolean);
 }
 
-export function stripHtmlToText(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
+function decodeHtmlEntities(value: string): string {
+  return value
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
-    .trim();
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    );
 }
 
-export function extractSignatureBlock(messageBody: string): string {
+function collectHrefValues(html: string, scheme: "tel" | "mailto"): string[] {
+  const values: string[] = [];
+  const pattern = new RegExp(`href=["']${scheme}:([^"'\\s]+)["']`, "gi");
+  for (const match of html.matchAll(pattern)) {
+    const raw = decodeURIComponent(match[1] ?? "").trim();
+    if (raw) values.push(raw.replace(/^\/\//, ""));
+  }
+  return values;
+}
+
+export function stripHtmlToText(html: string): string {
+  const telHrefs = collectHrefValues(html, "tel");
+  const mailHrefs = collectHrefValues(html, "mailto");
+
+  const text = decodeHtmlEntities(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<\/(p|div|tr|li|h[1-6]|table|blockquote|section)>/gi, "\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/t[dh]>/gi, "\n")
+      .replace(/<[^>]+>/g, " "),
+  )
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+
+  const extras = [...telHrefs, ...mailHrefs].join("\n");
+  return extras ? `${text}\n${extras}` : text;
+}
+
+export function extractSignatureBlock(messageBody: string, senderEmail?: string): string {
   const text = messageBody.includes("<") ? stripHtmlToText(messageBody) : messageBody;
   const normalized = text.replace(/\r/g, "");
+  const lines = normalizeLines(normalized);
 
   const dashSplit = normalized.split(/\n--\s*\n/);
   if (dashSplit.length > 1) {
@@ -85,9 +120,8 @@ export function extractSignatureBlock(messageBody: string): string {
     return underscoreSplit[underscoreSplit.length - 1]!.trim();
   }
 
-  const lines = normalizeLines(normalized);
   const signatureStart = lines.findIndex((line) =>
-    /^(best regards|kind regards|regards|thanks|thank you|sincerely|cheers|saludos|atentamente)/i.test(
+    /^(best regards|kind regards|regards|thanks|thank you|sincerely|cheers|saludos|atentamente|med vennlig hilsen|mvh|vennlig hilsen)\s*,?$/i.test(
       line,
     ),
   );
@@ -96,8 +130,23 @@ export function extractSignatureBlock(messageBody: string): string {
     return lines.slice(signatureStart + 1).join("\n");
   }
 
+  const emailNeedle = senderEmail?.trim().toLowerCase();
+  if (emailNeedle) {
+    const emailIndex = lines.findIndex((line) => line.toLowerCase().includes(emailNeedle));
+    if (emailIndex >= 0) {
+      const from = Math.max(0, emailIndex - 6);
+      return lines.slice(from, emailIndex + 8).join("\n");
+    }
+  }
+
+  const phoneIndex = lines.findIndex((line) => isLikelyPhoneValue(line));
+  if (phoneIndex >= 0) {
+    const from = Math.max(0, phoneIndex - 8);
+    return lines.slice(from, phoneIndex + 6).join("\n");
+  }
+
   if (lines.length > 8) {
-    return lines.slice(-12).join("\n");
+    return lines.slice(-16).join("\n");
   }
 
   return normalized.trim();
@@ -131,12 +180,31 @@ function labeledValueOrNextLine(
   return null;
 }
 
+function countDigits(value: string): number {
+  return (value.match(/\d/g) ?? []).length;
+}
+
 function isLikelyPhoneValue(value: string): boolean {
-  return PHONE_PATTERN.test(value.trim());
+  const trimmed = value.trim();
+  if (countDigits(trimmed) < 8) return false;
+  if (/\b20\d{2}\b/.test(trimmed) && countDigits(trimmed) <= 8) return false;
+  return PHONE_PATTERN.test(trimmed);
+}
+
+function extractPhoneFromLine(line: string): string | null {
+  if (line.includes("@")) return null;
+  const match = line.match(PHONE_PATTERN);
+  if (match?.[1] && isLikelyPhoneValue(match[1])) {
+    return normalizePhoneNumber(match[1]);
+  }
+  if (isLikelyPhoneValue(line)) {
+    return normalizePhoneNumber(line);
+  }
+  return null;
 }
 
 function isLikelyPhoneLine(line: string): boolean {
-  return isLikelyPhoneValue(line);
+  return extractPhoneFromLine(line) !== null;
 }
 
 function looksLikeRole(text: string): boolean {
@@ -258,21 +326,25 @@ export function parseSignaturePersonName(
 ): string | null {
   if (!messageBody.trim()) return null;
 
-  const lines = normalizeLines(extractSignatureBlock(messageBody));
+  const lines = normalizeLines(extractSignatureBlock(messageBody, senderEmail));
   const first = lines[0];
   if (!first) return null;
 
   if (senderEmail && first.toLowerCase().includes(senderEmail.toLowerCase())) return null;
-  if (!isLikelyPersonName(first)) return null;
+  if (!isLikelyPersonName(first)) {
+    const stripped = first.replace(/\s*\([^)]*\)\s*$/, "").trim();
+    if (stripped !== first && isLikelyPersonName(stripped)) return stripped;
+    return null;
+  }
 
-  return first;
+  return first.replace(/\s*\([^)]*\)\s*$/, "").trim() || first;
 }
 
 function orderedSuggestions(
   values: Partial<Record<SignatureFieldId, string>>,
 ): SignatureSuggestion[] {
   const labels: Record<SignatureFieldId, string> = {
-    jobTitle: "Role",
+    jobTitle: "Position",
     company: "Company",
     email: "Email",
     mobile: "Mobile",
@@ -296,7 +368,7 @@ export function parseSignatureIntelligence(
     return { suggestions: [] };
   }
 
-  const block = extractSignatureBlock(messageBody);
+  const block = extractSignatureBlock(messageBody, senderEmail);
   const lines = normalizeLines(block);
   const found: Partial<Record<SignatureFieldId, string>> = {};
   const consumed = new Set<number>();
@@ -354,6 +426,8 @@ export function parseSignatureIntelligence(
       "tel",
       "telephone",
       "office",
+      "tlf",
+      "telefon",
       "t",
     ]);
     if (phoneLabel && isLikelyPhoneValue(phoneLabel) && !found.phone) {
@@ -405,6 +479,12 @@ export function parseSignatureIntelligence(
     const websiteMatch = line.match(WEBSITE_PATTERN);
     if (!found.website && websiteMatch?.[1]) {
       found.website = websiteMatch[1];
+      consumed.add(i);
+      continue;
+    }
+
+    if (!found.website && BARE_DOMAIN_PATTERN.test(line) && !line.includes("@")) {
+      found.website = line.replace(/^https?:\/\//i, "");
       consumed.add(i);
     }
   }
@@ -502,13 +582,29 @@ export function parseSignatureIntelligence(
     for (let i = 0; i < lines.length; i++) {
       if (consumed.has(i)) continue;
       const line = lines[i]!;
-      if (line.includes("@") || found.mobile === normalizePhoneNumber(line)) continue;
-      if (!isLikelyPhoneLine(line)) continue;
-      const match = line.match(PHONE_PATTERN);
-      if (match?.[1]) {
-        found.phone = normalizePhoneNumber(match[1]);
-        consumed.add(i);
-        break;
+      const extracted = extractPhoneFromLine(line);
+      if (!extracted || found.mobile === extracted) continue;
+      found.phone = extracted;
+      consumed.add(i);
+      break;
+    }
+  }
+
+  if (!found.jobTitle || (!found.phone && !found.mobile)) {
+    const fullText = messageBody.includes("<") ? stripHtmlToText(messageBody) : messageBody;
+    const allLines = normalizeLines(fullText);
+    for (const line of allLines) {
+      if (!found.jobTitle && looksLikeRole(line) && !line.includes("@") && line.length < 100) {
+        const split = extractRoleCompanyFromLine(line);
+        found.jobTitle = split?.role ?? line;
+        if (split && !found.company) found.company = split.company;
+      }
+      if (!found.phone && !found.mobile) {
+        const extracted = extractPhoneFromLine(line);
+        if (extracted) found.phone = extracted;
+      }
+      if (!found.website && BARE_DOMAIN_PATTERN.test(line) && !line.includes("@")) {
+        found.website = line.replace(/^https?:\/\//i, "");
       }
     }
   }

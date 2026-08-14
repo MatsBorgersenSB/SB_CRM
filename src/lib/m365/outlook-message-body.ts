@@ -1,6 +1,7 @@
 /** Read Outlook message body for signature parsing (client-only). */
 
 import { stripHtmlToText } from "@/lib/m365/signature-intelligence";
+import { whenOfficeReady } from "@/lib/outlook-office";
 
 function readBodyAsync(
   body: Office.Body,
@@ -18,53 +19,33 @@ function readBodyAsync(
   });
 }
 
+function mergeMessageBodies(textBody: string | null, htmlBody: string | null): string | null {
+  const fromHtml = htmlBody ? stripHtmlToText(htmlBody).trim() : "";
+  const fromText = textBody?.trim() ?? "";
+  if (!fromHtml && !fromText) return null;
+  if (!fromHtml) return fromText;
+  if (!fromText) return fromHtml;
+  if (fromHtml === fromText) return fromHtml;
+  return `${fromText}\n${fromHtml}`;
+}
+
 export async function resolveOutlookMessageBody(): Promise<string | null> {
-  if (typeof window === "undefined" || typeof Office === "undefined") {
+  const office = await whenOfficeReady();
+  if (!office) return null;
+
+  try {
+    const body = office.context.mailbox?.item?.body;
+    if (!body?.getAsync) return null;
+
+    const [textBody, htmlBody] = await Promise.all([
+      readBodyAsync(body, Office.CoercionType.Text),
+      readBodyAsync(body, Office.CoercionType.Html),
+    ]);
+
+    return mergeMessageBodies(textBody, htmlBody);
+  } catch {
     return null;
   }
-
-  return new Promise((resolve) => {
-    let settled = false;
-
-    const finish = (value: string | null) => {
-      if (settled) return;
-      settled = true;
-      resolve(value);
-    };
-
-    try {
-      Office.onReady(() => {
-        void (async () => {
-          try {
-            const body = Office.context.mailbox?.item?.body;
-            if (!body?.getAsync) {
-              finish(null);
-              return;
-            }
-
-            const textBody = await readBodyAsync(body, Office.CoercionType.Text);
-            if (textBody) {
-              finish(textBody);
-              return;
-            }
-
-            const htmlBody = await readBodyAsync(body, Office.CoercionType.Html);
-            if (htmlBody) {
-              const plain = stripHtmlToText(htmlBody);
-              finish(plain.trim() ? plain : null);
-              return;
-            }
-
-            finish(null);
-          } catch {
-            finish(null);
-          }
-        })();
-      });
-    } catch {
-      finish(null);
-    }
-  });
 }
 
 export function resolveDevMessageBody(searchParams: URLSearchParams): string | null {
