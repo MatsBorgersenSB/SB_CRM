@@ -1,4 +1,5 @@
 import type { SignatureEnrichment } from "@/lib/m365/signature-intelligence";
+import type { OutlookCompanyOption } from "@/lib/m365/company-resolution";
 
 export type OutlookContactEnrichment = {
   jobTitle?: string;
@@ -20,6 +21,8 @@ export type OutlookSenderPrepopulation = {
   companyName: string;
   companyHint: string;
   enrichment: SignatureEnrichment;
+  /** Existing companies so the user can link a contact instead of creating a duplicate. */
+  companyOptions: OutlookCompanyOption[];
 };
 
 export type OutlookAddContactInput = {

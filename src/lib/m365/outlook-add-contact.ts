@@ -30,6 +30,7 @@ import { normalizePhoneNumber } from "@/lib/m365/phone-normalization";
 import { parseCompanyAddressInput } from "@/lib/company-identity";
 import {
   buildOutlookCompanyDisplay,
+  listOutlookCompanyOptions,
   resolveCompanyForEmail,
   titleForNewCompanyCreation,
 } from "@/lib/m365/company-resolution";
@@ -129,6 +130,7 @@ export async function buildOutlookSenderPrepopulation(input: {
     companyName: companyDisplay.companyName,
     companyHint: companyDisplay.companyHint,
     enrichment: { suggestions: filteredSuggestions },
+    companyOptions: listOutlookCompanyOptions(companies),
   };
 
   logOutlookImport("SENDER-CONTEXT RESPONSE", prepopulation);

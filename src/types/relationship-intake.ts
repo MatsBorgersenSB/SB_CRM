@@ -5,6 +5,7 @@
 
 import type { SignatureEnrichment } from "@/lib/m365/signature-intelligence";
 import type { OutlookAddContactResult, OutlookContactEnrichment } from "@/lib/m365/outlook-sender-types";
+import type { OutlookCompanyOption } from "@/lib/m365/company-resolution";
 
 export type RelationshipIntakeConfidence = "high" | "medium" | "low" | "none";
 
@@ -38,6 +39,7 @@ export type RelationshipIntakeProposal = {
   enrichment: SignatureEnrichment;
   opportunityOptions: RelationshipIntakeLinkOption[];
   projectOptions: RelationshipIntakeLinkOption[];
+  companyOptions: OutlookCompanyOption[];
 };
 
 export type RelationshipIntakeApproveInput = {
