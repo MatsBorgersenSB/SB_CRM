@@ -1,36 +1,36 @@
 import { NextResponse } from "next/server";
 import { buildUniversalSearchIndex } from "@/lib/universal-search-index";
-import {
-  readActivities,
-  readCommercialPackages,
-  readCompanies,
-  readInventory,
-  readPipelines,
-  readResearchReports,
-} from "@/lib/pipeline-db";
+import { readLiveFocusContext } from "@/lib/prisma-data";
+import { readInventory, readResearchReports } from "@/lib/pipeline-db";
 
+/**
+ * Global Search / Ask index — same live portfolio as Contacts / Company 360.
+ * Never build from JSON seed alone when Prisma holds the registry (Halvor bug).
+ */
 export async function GET() {
-  const [companies, pipelines, activities, inventory, commercialPackages, researchReports] =
-    await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
+  const [focus, inventory, researchReports] = await Promise.all([
+    readLiveFocusContext(),
     readInventory(),
-    readCommercialPackages(),
     readResearchReports(),
   ]);
 
   const index = buildUniversalSearchIndex(
-    companies,
-    pipelines,
-    activities,
+    focus.companies,
+    focus.pipelines,
+    focus.activities,
     inventory,
-    commercialPackages,
+    focus.commercialPackages,
     researchReports,
   );
 
   return NextResponse.json({
     index,
-    meta: { companies, pipelines, activities, commercialPackages },
+    meta: {
+      companies: focus.companies,
+      pipelines: focus.pipelines,
+      activities: focus.activities,
+      commercialPackages: focus.commercialPackages,
+      source: focus.source,
+    },
   });
 }

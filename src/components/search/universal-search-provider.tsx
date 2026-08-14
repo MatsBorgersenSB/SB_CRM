@@ -26,7 +26,6 @@ export function UniversalSearchProvider({ children }: { children: ReactNode }) {
   const [pipelines, setPipelines] = useState<PipelineRow[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [commercialPackages, setCommercialPackages] = useState<CommercialPackage[]>([]);
-  const [loaded, setLoaded] = useState(false);
 
   const loadIndex = useCallback(async () => {
     try {
@@ -38,7 +37,6 @@ export function UniversalSearchProvider({ children }: { children: ReactNode }) {
       setPipelines(data.meta.pipelines);
       setActivities(data.meta.activities ?? []);
       setCommercialPackages(data.meta.commercialPackages ?? []);
-      setLoaded(true);
     } catch {
       // Search remains usable with empty index
     }
@@ -48,9 +46,10 @@ export function UniversalSearchProvider({ children }: { children: ReactNode }) {
     void loadIndex();
   }, [loadIndex]);
 
+  // Refresh when opening so newly created contacts (e.g. Halvor) appear immediately.
   useEffect(() => {
-    if (open && !loaded) void loadIndex();
-  }, [open, loaded, loadIndex]);
+    if (open) void loadIndex();
+  }, [open, loadIndex]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
