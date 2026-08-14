@@ -174,10 +174,14 @@ export async function getCompanyById(
   const fromPrisma = await mapPrismaOrNull(cleanId);
   if (fromPrisma) return fromPrisma;
 
-  const seeds =
-    seedCompanies ??
-    (await readCompanies().catch(() => [] as Company[]));
+  if (seedCompanies) {
+    return findCompanyInPortfolio(seedCompanies, cleanId) ?? null;
+  }
 
+  const { shouldFallbackToJsonPortfolio } = await import("@/lib/prisma-data");
+  if (!shouldFallbackToJsonPortfolio()) return null;
+
+  const seeds = await readCompanies().catch(() => [] as Company[]);
   return findCompanyInPortfolio(seeds, cleanId) ?? null;
 }
 
