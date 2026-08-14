@@ -161,11 +161,12 @@ export function buildM365MeetingBriefing(
 /** Never show sentinel 999 / multi-year day counts in human briefing copy. */
 export function sanitizeBriefingCopy(text: string): string {
   return text
-    .replace(/\b999\s*days?\b/gi, "no recorded activity")
-    .replace(/\bno activity in 999\+?\s*days?\b/gi, "no deal activity recorded")
+    .replace(/\bno activity in \d{3,}\+?\s*days?\b/gi, "no deal activity recorded")
     .replace(/\b\d{3,}\s*days without deal activity\b/gi, "no deal activity recorded")
     .replace(/\b\d{3,}\s*days without (?:deal )?activity\b/gi, "no activity recorded")
     .replace(/\b\d{3,}\s*days without contact\b/gi, "no recent contact recorded")
+    .replace(/\b999\s*days?\b/gi, "no recorded activity")
+    .replace(/\sno recorded activity without deal activity\b/gi, " no deal activity recorded")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
