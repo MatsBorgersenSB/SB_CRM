@@ -22,7 +22,7 @@ import {
   readDatabase,
   updateCompany,
 } from "@/lib/pipeline-db";
-import { readLiveCompanies } from "@/lib/prisma-data";
+import { readLiveCompanies, shouldFallbackToJsonPortfolio } from "@/lib/prisma-data";
 
 export type UpdateCompanyInput = Partial<
   Omit<Company, "id" | "CompanyID" | "pipelineIds" | "contacts">
@@ -35,7 +35,8 @@ export class LocalCompaniesRepository
     try {
       const companies = await readLiveCompanies();
       return paginateArray(companies, page);
-    } catch {
+    } catch (error) {
+      if (!shouldFallbackToJsonPortfolio()) throw error;
       const companies = await readCompanies();
       return paginateArray(companies, page);
     }
@@ -44,6 +45,10 @@ export class LocalCompaniesRepository
   async getById(id: string | number): Promise<Company> {
     const fromRegistry = await getRegistryCompanyById(id);
     if (fromRegistry) return fromRegistry;
+
+    if (!shouldFallbackToJsonPortfolio()) {
+      throw SharePointServiceError.notFound("Company", id);
+    }
 
     const companies = await readCompanies();
     const company = companies.find(
