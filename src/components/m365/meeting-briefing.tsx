@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { M365MeetingBriefingPayload, M365RiskBlock } from "@/types/m365";
 import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
 import { ImpactContext } from "@/components/m365/impact-context";
-import { outlookComposeHref } from "@/lib/compose-actions";
+import { openOutlookDraft } from "@/components/opportunities/draft-in-outlook-button";
+import {
+  MEETING_REPLY_LANGUAGES,
+  buildMeetingBriefingReplyDraft,
+  type MeetingReplyLanguageCode,
+} from "@/lib/m365/meeting-briefing-reply";
 
 function BlockLabel({ children }: { children: string }) {
   return (
@@ -16,7 +21,7 @@ function BlockLabel({ children }: { children: string }) {
 }
 
 const PRIMARY_BTN =
-  "inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90";
+  "inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50";
 
 const SECONDARY_BTN =
   "inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/45 hover:text-upcycle-orange";
@@ -86,20 +91,40 @@ export function MeetingBriefing({
     : "dashboard-card overflow-hidden";
 
   const [moreRisksOpen, setMoreRisksOpen] = useState(false);
+  const [replyLanguage, setReplyLanguage] = useState<MeetingReplyLanguageCode>("en");
+  const [replyBusy, setReplyBusy] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
+  const [showDraftPreview, setShowDraftPreview] = useState(false);
+
   const primaryRisk = payload.topRisks[0] ?? null;
   const moreRisks = payload.topRisks.slice(1);
   const primaryOpp = payload.openOpportunities[0] ?? null;
-  const replyHref = payload.counterpartyEmail
-    ? outlookComposeHref(
-        payload.counterpartyEmail,
-        `Re: ${payload.openOpportunities[0]?.label ?? payload.companyName}`,
-        `Hi${payload.counterpartyName ? ` ${payload.counterpartyName.split(" ")[0]}` : ""},\n\n`,
-      )
-    : null;
+
+  const replyDraft = useMemo(
+    () => buildMeetingBriefingReplyDraft(payload, replyLanguage),
+    [payload, replyLanguage],
+  );
 
   const whoLine = payload.counterpartyName
     ? `${payload.counterpartyName}${payload.counterpartyRole ? ` · ${payload.counterpartyRole}` : ""}`
     : null;
+
+  const prepareReply = async () => {
+    if (!payload.counterpartyEmail?.trim()) return;
+    setReplyBusy(true);
+    setReplyError(null);
+    try {
+      await openOutlookDraft({
+        toEmail: payload.counterpartyEmail.trim(),
+        subject: replyDraft.subject,
+        bodyHtml: replyDraft.bodyHtml,
+      });
+    } catch (error) {
+      setReplyError(error instanceof Error ? error.message : "Could not open Outlook draft");
+    } finally {
+      setReplyBusy(false);
+    }
+  };
 
   return (
     <article className={shellClass}>
@@ -147,17 +172,54 @@ export function MeetingBriefing({
             {payload.nextBestAction.action}
           </p>
           <ImpactContext items={payload.nextBestAction.impact} />
-          <div className="mt-3 flex flex-col gap-2">
-            {replyHref ? (
-              <a
-                href={replyHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={PRIMARY_BTN}
+
+          {payload.counterpartyEmail ? (
+            <div className="mt-3 space-y-2 border-t border-upcycle-orange/20 pt-3">
+              <label className="block">
+                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/45">
+                  Reply language
+                </span>
+                <select
+                  value={replyLanguage}
+                  onChange={(event) =>
+                    setReplyLanguage(event.target.value as MeetingReplyLanguageCode)
+                  }
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue outline-none focus:border-upcycle-orange"
+                >
+                  {MEETING_REPLY_LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                disabled={replyBusy}
+                onClick={() => void prepareReply()}
+                className={`w-full ${PRIMARY_BTN}`}
               >
-                Prepare reply
-              </a>
-            ) : null}
+                {replyBusy ? "Opening draft…" : "Prepare reply"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDraftPreview((open) => !open)}
+                className="w-full text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
+              >
+                {showDraftPreview ? "Hide draft preview" : "Preview draft"}
+              </button>
+              {showDraftPreview ? (
+                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap border border-carbon-blue/10 bg-white px-2.5 py-2 font-sans text-[11px] leading-relaxed text-carbon-blue/75">
+                  {replyDraft.bodyPlain}
+                </pre>
+              ) : null}
+              {replyError ? (
+                <p className="text-[10px] text-thermal-red">{replyError}</p>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="mt-3 flex flex-col gap-2">
             {primaryOpp ? (
               <SmartCrmLink
                 href={primaryOpp.href}
@@ -170,7 +232,7 @@ export function MeetingBriefing({
                 href={payload.nextBestAction.href || payload.deepLink}
                 label="Open in SmartCRM"
                 outlookHost={outlookHost}
-                className={replyHref ? SECONDARY_BTN : PRIMARY_BTN}
+                className={PRIMARY_BTN}
               />
             )}
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-0.5">
@@ -221,7 +283,7 @@ export function MeetingBriefing({
                       outlookHost={outlookHost}
                       className="text-[13px] font-semibold text-carbon-blue hover:text-upcycle-orange"
                     />
-                    <span className="shrink-0 text-[11px] tabular-nums font-medium text-carbon-blue/55">
+                    <span className="shrink-0 text-[11px] font-medium tabular-nums text-carbon-blue/55">
                       {opp.valueLabel}
                     </span>
                   </div>
