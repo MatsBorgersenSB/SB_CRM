@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
-import type { Contact, CreateContactInput, UpdateContactInput } from "@/types/contact";
+import type { Contact, CreateContactInput, UpdateContactInput, BuyingRole } from "@/types/contact";
 import type { Project } from "@/types/project";
 import { getContactDisplayName } from "@/types/contact";
 import { getContactProjectRolesOnCompany } from "@/lib/project-team-utils";
@@ -18,6 +18,7 @@ import {
   PhoneActionMenu,
 } from "@/components/relationship/relationship-links";
 import {
+  BuyingRoleSelect,
   ContactFormFields,
   emptyContactForm,
   isContactFormValid,
@@ -238,6 +239,56 @@ function ContactRowActions({
   );
 }
 
+function BuyingRoleCell({
+  contact,
+  onContactUpdate,
+}: {
+  contact: Contact;
+  onContactUpdate?: (contactId: string, patch: UpdateContactInput) => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const buyingRole = contact.buyingRole;
+
+  const persist = async (next: BuyingRole | undefined) => {
+    if (!onContactUpdate) return;
+    setBusy(true);
+    try {
+      await onContactUpdate(contact.ContactID, {
+        buyingRole: (next ?? "") as BuyingRole,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!onContactUpdate) {
+    return (
+      <span
+        className={
+          buyingRole
+            ? "text-[12px] text-carbon-blue/70"
+            : "text-[12px] font-medium text-upcycle-orange"
+        }
+      >
+        {buyingRole ?? "Unknown"}
+      </span>
+    );
+  }
+
+  return (
+    <BuyingRoleSelect
+      value={buyingRole}
+      disabled={busy}
+      onChange={(next) => void persist(next)}
+      className={`w-full min-w-0 border bg-white px-1.5 py-1 text-[12px] outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 ${
+        buyingRole
+          ? "border-carbon-blue/15 text-carbon-blue"
+          : "border-upcycle-orange/35 text-upcycle-orange"
+      }`}
+    />
+  );
+}
+
 function ContactTableRow({
   contact,
   companyId,
@@ -307,6 +358,9 @@ function ContactTableRow({
         </div>
       </td>
       <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/60">{roleLabel}</td>
+      <td className="px-3 py-2.5">
+        <BuyingRoleCell contact={contact} onContactUpdate={onContactUpdate} />
+      </td>
       <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/55" title={projectRoleLabel}>
         {projectRoleLabel}
       </td>
@@ -392,6 +446,17 @@ export function CompanyContactsTable({
     Company: { CompanyID: companyId },
   }));
   const canManage = canDeleteContact(role);
+  const sortedContacts = useMemo(
+    () =>
+      [...contacts].sort((a, b) => {
+        const aKnown = a.buyingRole ? 1 : 0;
+        const bKnown = b.buyingRole ? 1 : 0;
+        if (aKnown !== bKnown) return aKnown - bKnown;
+        return getContactDisplayName(a).localeCompare(getContactDisplayName(b));
+      }),
+    [contacts],
+  );
+  const unknownBuyingRoleCount = contacts.filter((contact) => !contact.buyingRole).length;
 
   useEffect(() => {
     if (createRequestId > 0) {
@@ -426,16 +491,25 @@ export function CompanyContactsTable({
 
   return (
     <div className="flex min-h-0 flex-col">
-      {contacts.length > 0 ? (
+      {unknownBuyingRoleCount > 0 ? (
+        <p className="mb-2 text-[12px] text-upcycle-orange">
+          {unknownBuyingRoleCount === 1
+            ? "1 person has no buying role."
+            : `${unknownBuyingRoleCount} people have no buying role.`}{" "}
+          Unknown stays unknown until you assign it.
+        </p>
+      ) : null}
+      {sortedContacts.length > 0 ? (
         <table className="w-full table-fixed border-collapse text-left">
           <colgroup>
-            <col className="w-[18%]" />
-            <col className="w-[12%]" />
             <col className="w-[16%]" />
-            <col className="w-[18%]" />
+            <col className="w-[11%]" />
             <col className="w-[14%]" />
-            <col className="w-[14%]" />
-            {canManage ? <col className="w-[8%]" /> : null}
+            <col className="w-[13%]" />
+            <col className="w-[16%]" />
+            <col className="w-[12%]" />
+            <col className="w-[12%]" />
+            {canManage ? <col className="w-[6%]" /> : null}
           </colgroup>
           <thead>
             <tr className="border-b border-carbon-blue/8 bg-carbon-blue/[0.03]">
@@ -446,6 +520,9 @@ export function CompanyContactsTable({
               </th>
               <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
                 Role
+              </th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                Buying role
               </th>
               <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
                 Project roles
@@ -473,7 +550,7 @@ export function CompanyContactsTable({
             </tr>
           </thead>
           <tbody>
-            {contacts.map((contact) => (
+            {sortedContacts.map((contact) => (
               <ContactTableRow
                 key={contact.ContactID}
                 contact={contact}

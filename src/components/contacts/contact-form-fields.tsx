@@ -27,7 +27,7 @@ export const emptyContactForm = (): CreateContactInput => ({
   Status: "Active",
   RelationshipLevel: "Operational",
   EmploymentStatus: "Active",
-  buyingRole: "Champion",
+  buyingRole: undefined,
   sentiment: "Neutral",
   influenceLevel: "Medium",
   reportsToId: "",
@@ -67,6 +67,37 @@ const FIELD_CLASS =
   "mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40";
 
 const LABEL_CLASS = "text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40";
+
+export function BuyingRoleSelect({
+  value,
+  onChange,
+  className = FIELD_CLASS,
+  disabled = false,
+}: {
+  value?: CreateContactInput["buyingRole"];
+  onChange: (buyingRole: CreateContactInput["buyingRole"] | undefined) => void;
+  className?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <select
+      value={value ?? ""}
+      disabled={disabled}
+      onChange={(event) => {
+        const next = event.target.value;
+        onChange(next ? (next as CreateContactInput["buyingRole"]) : undefined);
+      }}
+      className={className}
+    >
+      <option value="">Unknown</option>
+      {BUYING_ROLES.map((role) => (
+        <option key={role} value={role}>
+          {role}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 function inferTimezoneFromCountry(country: string): string {
   const normalized = country.trim().toLowerCase();
@@ -292,19 +323,11 @@ export function ContactFormFields({
         <div className="grid gap-2 md:grid-cols-3">
           <label className="block">
             <span className={LABEL_CLASS}>Buying Role</span>
-            <select
-              value={form.buyingRole ?? "Champion"}
-              onChange={(event) =>
-                onChange({ ...form, buyingRole: event.target.value as CreateContactInput["buyingRole"] })
-              }
+            <BuyingRoleSelect
+              value={form.buyingRole}
+              onChange={(buyingRole) => onChange({ ...form, buyingRole })}
               className={FIELD_CLASS}
-            >
-              {BUYING_ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           <label className="block">
             <span className={LABEL_CLASS}>Sentiment</span>
