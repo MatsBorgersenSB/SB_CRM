@@ -23,6 +23,7 @@ import type { SignatureSuggestion } from "@/lib/m365/signature-intelligence";
 import type { OutlookAddContactResult } from "@/lib/m365/outlook-sender-types";
 import { IndustrySelect } from "@/components/ui/industry-select";
 import { ContactRoleSelect } from "@/components/ui/contact-role-select";
+import { CompanyCombobox } from "@/components/companies/company-combobox";
 import type { CompanyIndustry } from "@/types/company";
 import {
   resolveContactListRole,
@@ -65,7 +66,8 @@ export function OutlookNoContactState({
   const [industry, setIndustry] = useState<CompanyIndustry | "">("");
   const [companyType, setCompanyType] = useState<CompanyType | "">("");
   const [companyName, setCompanyName] = useState("");
-  const [companyOverride, setCompanyOverride] = useState(false);
+  const [pickedCompanyId, setPickedCompanyId] = useState<string | null>(null);
+  const [createNewCompany, setCreateNewCompany] = useState(false);
   const [linkKind, setLinkKind] = useState<"none" | "opportunity" | "project">("none");
   const [selectedLinkId, setSelectedLinkId] = useState("");
   const [enrichmentDismissed, setEnrichmentDismissed] = useState(false);
@@ -105,6 +107,8 @@ export function OutlookNoContactState({
         if (!active) return;
         setProposal(data);
         setCompanyName(data.companyName);
+        setPickedCompanyId(data.companyId);
+        setCreateNewCompany(false);
         setPhase("propose");
       } catch {
         if (!active) return;
@@ -121,8 +125,7 @@ export function OutlookNoContactState({
   const opportunityEligible =
     created?.relationshipCard?.opportunityEligible === true;
 
-  const showMatchedCompany =
-    Boolean(proposal?.companyResolved && proposal.companyId && !companyOverride);
+  const showMatchedCompany = Boolean(pickedCompanyId) && !createNewCompany;
 
   const showEnrichment =
     proposal &&
@@ -135,7 +138,7 @@ export function OutlookNoContactState({
     setAcceptedSuggestions(suggestions);
     setEnrichmentDismissed(false);
     const fields = acceptedEnrichmentToContactFields(suggestions);
-    if (fields.companyName && !(proposal?.companyResolved && proposal.companyId && !companyOverride)) {
+    if (fields.companyName && !pickedCompanyId) {
       setCompanyName(fields.companyName);
     }
     if (fields.jobTitle) {
@@ -190,7 +193,10 @@ export function OutlookNoContactState({
           email: proposal.email,
           firstName: proposal.firstName,
           lastName: proposal.lastName,
-          companyName: showMatchedCompany ? proposal.companyName : companyName,
+          companyName: showMatchedCompany
+            ? proposal.companyOptions.find((item) => item.id === pickedCompanyId)?.name ??
+              companyName
+            : companyName,
           role,
           industry: showMatchedCompany ? undefined : industry || undefined,
           companyTypes: showMatchedCompany
@@ -198,9 +204,8 @@ export function OutlookNoContactState({
             : companyType
               ? [companyType]
               : undefined,
-          matchedCompanyId: showMatchedCompany ? proposal.companyId : undefined,
-          skipAutoCompanyMatch:
-            proposal.companyResolved && companyOverride ? true : undefined,
+          matchedCompanyId: showMatchedCompany ? pickedCompanyId ?? undefined : undefined,
+          skipAutoCompanyMatch: createNewCompany ? true : undefined,
           enrichment: enrichmentFields
             ? {
                 jobTitle: enrichmentFields.jobTitle || undefined,
@@ -448,65 +453,96 @@ export function OutlookNoContactState({
                 </span>
                 <div className="mt-1 flex items-center justify-between gap-2 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
                   <p className="text-[12px] font-medium text-carbon-blue">
-                    {proposal.companyName}
+                    {proposal.companyOptions?.find((item) => item.id === pickedCompanyId)
+                      ?.name ?? proposal.companyName}
                   </p>
                   <button
                     type="button"
-                    onClick={() => setCompanyOverride(true)}
+                    onClick={() => {
+                      setPickedCompanyId(null);
+                      setCreateNewCompany(false);
+                    }}
                     className="shrink-0 border border-carbon-blue/15 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/60"
                   >
                     Change
                   </button>
                 </div>
+                <p className="mt-1 text-[10px] text-carbon-blue/45">
+                  Existing company — this contact will be added here.
+                </p>
               </div>
             ) : (
               <>
-                <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
-                    Create company
-                  </span>
-                  <input
-                    type="text"
-                    value={companyName}
-                    onChange={(event) => setCompanyName(event.target.value)}
-                    className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
-                    Relationship type
-                  </span>
-                  <select
-                    value={companyType}
-                    onChange={(event) =>
-                      setCompanyType(event.target.value as CompanyType | "")
+                <CompanyCombobox
+                  companies={proposal.companyOptions ?? []}
+                  selectedCompanyId={pickedCompanyId}
+                  draftName={companyName}
+                  label="Company"
+                  placeholder="Search existing company or type a new name…"
+                  onSelectCompany={(company) => {
+                    if (!company) {
+                      setPickedCompanyId(null);
+                      return;
                     }
-                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                  >
-                    <option value="">What kind of company?…</option>
-                    {COMPANY_TYPE_SELECT_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
-                    Industry
-                  </span>
-                  <IndustrySelect
-                    value={industry}
-                    onChange={(value) => setIndustry(value)}
-                    allowEmpty
-                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
-                  />
-                </label>
+                    setPickedCompanyId(company.id);
+                    setCompanyName(company.name);
+                    setCreateNewCompany(false);
+                  }}
+                  onCreateNewCompany={(typedName) => {
+                    setPickedCompanyId(null);
+                    setCompanyName(typedName);
+                    setCreateNewCompany(true);
+                  }}
+                />
+                {createNewCompany ? (
+                  <p className="-mt-1 text-[10px] text-carbon-blue/45">
+                    A new company named “{companyName}” will be created.
+                  </p>
+                ) : (
+                  <p className="-mt-1 text-[10px] text-carbon-blue/45">
+                    Pick the existing company when it is already in SmartCRM.
+                  </p>
+                )}
+                {createNewCompany ? (
+                  <>
+                    <label className="block">
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                        Relationship type
+                      </span>
+                      <select
+                        value={companyType}
+                        onChange={(event) =>
+                          setCompanyType(event.target.value as CompanyType | "")
+                        }
+                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                      >
+                        <option value="">What kind of company?…</option>
+                        {COMPANY_TYPE_SELECT_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                        Industry
+                      </span>
+                      <IndustrySelect
+                        value={industry}
+                        onChange={(value) => setIndustry(value)}
+                        allowEmpty
+                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                      />
+                    </label>
+                  </>
+                ) : null}
               </>
             )}
 
-            {(proposal.opportunityOptions.length > 0 ||
-              proposal.projectOptions.length > 0) && (
+            {showMatchedCompany &&
+            (proposal.opportunityOptions.length > 0 ||
+              proposal.projectOptions.length > 0) ? (
               <div className="space-y-2 border-t border-carbon-blue/8 pt-3">
                 <label className="block">
                   <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
@@ -567,7 +603,7 @@ export function OutlookNoContactState({
                   </p>
                 ) : null}
               </div>
-            )}
+            ) : null}
 
             {showEnrichment ? (
               <OutlookEnrichmentPanel
@@ -584,7 +620,8 @@ export function OutlookNoContactState({
               disabled={
                 busy ||
                 !role ||
-                (!showMatchedCompany && (!industry || !companyType || !companyName.trim()))
+                (!showMatchedCompany &&
+                  (!createNewCompany || !industry || !companyType || !companyName.trim()))
               }
               onClick={() => void handleCreate()}
               className="w-full border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"

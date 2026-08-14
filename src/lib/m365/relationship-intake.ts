@@ -65,19 +65,22 @@ async function loadLinkOptions(companyId: string | null): Promise<{
   }
 
   const projects = await readProjects().catch(() => []);
-  const projectOptions: RelationshipIntakeLinkOption[] = projects
-    .filter((project) =>
-      companyId ? !project.linkedCompanyId || project.linkedCompanyId === companyId : true,
-    )
-    .slice(0, 40)
-    .map((project) => ({
-      id: project.id,
-      name: project.name,
-      label: project.linkedCompanyId
-        ? `${project.name} · ${project.linkedCompanyId}`
-        : project.name,
-      kind: "project" as const,
-    }));
+  const projectOptions: RelationshipIntakeLinkOption[] = companyId
+    ? projects
+        .filter(
+          (project) =>
+            !project.linkedCompanyId || project.linkedCompanyId === companyId,
+        )
+        .slice(0, 40)
+        .map((project) => ({
+          id: project.id,
+          name: project.name,
+          label: project.linkedCompanyId
+            ? `${project.name} · ${project.linkedCompanyId}`
+            : project.name,
+          kind: "project" as const,
+        }))
+    : [];
 
   return { opportunityOptions, projectOptions };
 }
@@ -168,6 +171,7 @@ export async function buildRelationshipIntakeProposal(input: {
     enrichment: prepopulation.enrichment,
     opportunityOptions,
     projectOptions,
+    companyOptions: prepopulation.companyOptions,
   };
 }
 
