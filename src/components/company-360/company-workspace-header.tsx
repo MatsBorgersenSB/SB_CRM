@@ -12,6 +12,7 @@ import {
   SmartCRMIcon,
 } from "@/components/ui/smartcrm-icon";
 import type { ReactNode } from "react";
+import { SectorTagManager } from "@/components/companies/sector-tag-manager";
 
 /**
  * One prose status story — not a pill cluster of type / health / stage / industry.
@@ -51,12 +52,14 @@ export function CompanyWorkspaceHeader({
   identity,
   company,
   trailing,
+  onCompanyUpdated,
 }: {
   header: Company360Header;
   identity: CompanyHeroIdentityView;
   company: Company;
   /** Secondary overflow (account tools) — not equal primary buttons */
   trailing?: ReactNode;
+  onCompanyUpdated?: (company: Company) => void;
 }) {
   const websiteHref = identity.website
     ? identity.website.startsWith("http")
@@ -83,6 +86,14 @@ export function CompanyWorkspaceHeader({
         <HealthStatusIcon status={header.healthStatus} size="sm" />
         <span>{statusStory}</span>
       </p>
+
+      <div className="mt-2">
+        <SectorTagManager
+          companyId={company.CompanyID}
+          sectors={company.Sectors}
+          onUpdated={onCompanyUpdated}
+        />
+      </div>
 
       <div className="mt-3 border-l-2 border-upcycle-orange/50 pl-3">
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">

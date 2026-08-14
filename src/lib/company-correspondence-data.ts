@@ -135,6 +135,7 @@ export async function loadCorrespondenceEvidenceByCompanyId(
         actionAsks: current.actionAsks,
         proposalFollowUps: current.proposalFollowUps,
         openPromises: current.openPromises,
+        mailKeywordHaystack: current.mailKeywordHaystack,
       });
 
       const list = snippetsByCompany.get(companyId) ?? [];
@@ -151,6 +152,11 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       actionAsks: signals.actionAsks,
       proposalFollowUps: signals.proposalFollowUps,
       openPromises: signals.openPromises,
+      mailKeywordHaystack: snippets
+        .slice(0, 40)
+        .map((snippet) => `${snippet.subject}\n${snippet.bodyPreview ?? ""}`)
+        .join("\n")
+        .slice(0, 8000),
     });
   }
 

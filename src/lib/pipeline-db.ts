@@ -16,6 +16,7 @@ import { initialPipelines } from "@/lib/pipelines-data";
 import type { AnalyticsDb } from "@/lib/analytics-data";
 import type { Company } from "@/lib/companies-data";
 import { resolveAccountOwner } from "@/lib/company-owner";
+import { normalizeCompanySectors } from "@/lib/company-sectors";
 import { buildContactTitle } from "@/types/contact";
 import type { Contact } from "@/types/contact";
 import type { EmploymentStatus, TransferContactInput } from "@/types/contact-lifecycle";
@@ -726,6 +727,7 @@ export type UpdateCompanyPatch = Partial<
     | "organizationNumber"
     | "vatNumber"
     | "Industry"
+    | "Sectors"
     | "Status"
     | "ParentCompany"
     | "CompanyTypes"
@@ -788,6 +790,7 @@ export async function createCompany(input: NewCompanyInput): Promise<Company> {
     ParentCompany: input.ParentCompany ?? null,
     Domain: input.Domain,
     Industry: input.Industry,
+    Sectors: normalizeCompanySectors(input.Sectors),
     CompanyTypes: input.CompanyTypes ?? (input.Status === "Prospecting" ? ["Prospect"] : ["Unclassified"]),
     Status: input.Status,
     AccountOwner: accountOwner,

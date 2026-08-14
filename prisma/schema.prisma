@@ -34,6 +34,8 @@ model Company {
   vatNumber          String?
   website            String?
   industry           String?
+  /// Go-to-market sector tags (multi). Empty until assigned — never auto-defaulted.
+  sectors            String[]      @default([])
   size               CompanySize   @default(unknown)
   /// Multi-select company categories (display labels). Legacy enum values are normalized on read.
   types              String[]      @default(["Prospect"])

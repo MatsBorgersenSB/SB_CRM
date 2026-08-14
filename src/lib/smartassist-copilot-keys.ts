@@ -45,5 +45,9 @@ export function buildCoPilotSuppressionKey(input: {
     return `create_activity:mail_promise:${companyId}:${input.id}`;
   }
 
+  if (input.ruleId === "propose_sector_tag" && companyId) {
+    return `propose_record_update:sector:${companyId}`;
+  }
+
   return input.id;
 }

@@ -25,6 +25,8 @@ export type CompanyCorrespondenceEvidence = {
   proposalFollowUps: CorrespondenceProposalFollowUp[];
   /** Outbound promises we made that still need follow-through. */
   openPromises: CorrespondenceOpenPromise[];
+  /** Subject + preview from recent threads — keyword detection only, never displayed. */
+  mailKeywordHaystack: string;
 };
 
 export const EMPTY_CORRESPONDENCE: CompanyCorrespondenceEvidence = {
@@ -35,6 +37,7 @@ export const EMPTY_CORRESPONDENCE: CompanyCorrespondenceEvidence = {
   actionAsks: [],
   proposalFollowUps: [],
   openPromises: [],
+  mailKeywordHaystack: "",
 };
 
 export function hasCorrespondence(
@@ -115,5 +118,6 @@ export function mergeLiveMailIntoEvidence(
     actionAsks: base.actionAsks ?? [],
     proposalFollowUps: base.proposalFollowUps ?? [],
     openPromises: base.openPromises ?? [],
+    mailKeywordHaystack: base.mailKeywordHaystack ?? "",
   };
 }

@@ -42,6 +42,7 @@ export const companyMapper: ListItemMapper<CompanyFields, Company> = {
       ),
       Domain: fields.Domain ?? "",
       Industry: fields.Industry as Company["Industry"],
+      Sectors: [],
       Status: fields.Status as Company["Status"],
       AccountOwner: readLookup(
         fields.AccountOwnerLookupId,

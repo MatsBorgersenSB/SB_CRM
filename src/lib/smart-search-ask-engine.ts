@@ -27,6 +27,7 @@ import type { AskSearchResult, SearchCommand, SearchIndexItem } from "@/types/un
 import { ASK_SUGGESTED_QUESTIONS, SEARCH_COMMANDS } from "@/types/universal-search";
 import { deal360Href } from "@/types/relationship-navigation";
 import { company360Href } from "@/types/company-360";
+import { formatSectorsLabel } from "@/lib/company-sectors";
 
 export type SmartSearchContext = {
   companies: Company[];
@@ -440,7 +441,7 @@ function buildCompaniesByTypeAnswer(
       entityType: "company",
       name: company.Title,
       typeLabel: types.join(" · "),
-      contextPreview: `${company.Status} · ${company.Industry}`,
+      contextPreview: `${company.Status} · ${formatSectorsLabel(company.Sectors) || company.Industry}`,
       lastActivityLabel: "Company classification",
       lastActivityAt: "",
       href: company360Href(company.CompanyID),

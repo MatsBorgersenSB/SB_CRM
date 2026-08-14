@@ -12,6 +12,7 @@ import {
 } from "@/lib/opportunity-understanding-model";
 import type { PipelineRow } from "@/types/pipeline";
 import { formatDealValue } from "@/types/pipeline";
+import { formatSectorsLabel, normalizeCompanySectors, sectorRoiHint } from "@/lib/company-sectors";
 import { UNDERSTANDING_FIELD_BY_ID, isUnderstandingFieldId } from "@/types/opportunity-understanding";
 
 export type ConfidenceLevel = "high" | "medium" | "low";
@@ -149,12 +150,14 @@ function inferClientObjective(
   pipeline: PipelineRow,
   company: Company | undefined,
 ): ClientObjective {
+  const sectors = normalizeCompanySectors(company?.Sectors);
   const corpus = [
     pipeline.assetName,
     pipeline.targetFeedstock,
     pipeline.currentMilestone,
     pipeline.companyRole,
     company?.Industry ?? "",
+    ...sectors,
   ]
     .join(" ")
     .toLowerCase();
@@ -177,6 +180,14 @@ function inferClientObjective(
     "Off-take Partner": "Secure reliable offtake for end products",
     "Infrastructure Partner": "Develop energy or infrastructure capacity",
   };
+
+  if (sectors.length > 0) {
+    return {
+      statement: `Achieve a commercially viable outcome in ${formatSectorsLabel(sectors).toLowerCase()}, grounded in ${sectors.map(sectorRoiHint).join("; ")}`,
+      confidence: "medium",
+      confidenceReason: `Company sector tag${sectors.length === 1 ? "" : "s"} assigned: ${formatSectorsLabel(sectors)}.`,
+    };
+  }
 
   return {
     statement: roleObjectives[pipeline.companyRole] ?? "Achieve a commercially viable processing outcome",

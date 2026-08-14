@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       objective?: string;
       entityType?: string;
       entityId?: string;
+      sectors?: string[];
     };
 
     const contactName = body.contactName?.trim();
@@ -39,6 +40,22 @@ export async function POST(request: Request) {
       );
     }
 
+    let sectors = Array.isArray(body.sectors) ? body.sectors : [];
+    if (sectors.length === 0 && (body.companyName?.trim() || body.entityId?.trim())) {
+      const { readLiveCompanies } = await import("@/lib/prisma-data");
+      const { normalizeCompanySectors } = await import("@/lib/company-sectors");
+      const companies = await readLiveCompanies();
+      const companyName = body.companyName?.trim().toLowerCase();
+      const entityId = body.entityId?.trim();
+      const company = companies.find(
+        (row) =>
+          (entityId &&
+            (row.CompanyID === entityId || String(row.id) === entityId)) ||
+          (companyName && row.Title.trim().toLowerCase() === companyName),
+      );
+      sectors = normalizeCompanySectors(company?.Sectors);
+    }
+
     const draft = generateEmailDraft({
       context,
       contactName,
@@ -46,6 +63,7 @@ export async function POST(request: Request) {
       tone: body.tone,
       companyName: body.companyName,
       objective: body.objective,
+      sectors,
     });
 
     const actor = resolveAuditActor(request, role);

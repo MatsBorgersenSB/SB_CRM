@@ -148,6 +148,7 @@ function buildCompanyItems(
         company.Domain,
         company.Phone,
         company.Industry,
+        ...(company.Sectors ?? []),
         ...companyTypeSearchKeywords(companyTypes),
       ],
       smartMeta: {

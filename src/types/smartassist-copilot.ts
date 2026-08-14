@@ -32,6 +32,7 @@ export type CoPilotRecordUpdatePatch = {
   companyPatch?: {
     Status?: string;
     CompanyTypes?: string[];
+    Sectors?: string[];
     AccountOwner?: { Id: number; Title: string } | null;
   };
 };

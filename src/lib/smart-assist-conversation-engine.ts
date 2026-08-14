@@ -32,6 +32,7 @@ import {
   relationshipRiskToBusinessImpact,
 } from "@/lib/smart-assist-business-impact";
 import { SMARTASSIST_BUSINESS_IMPACT } from "@/lib/smart-assist-config";
+import { formatSectorRoiHint, formatSectorsLabel } from "@/lib/company-sectors";
 
 export type SmartAssistConversationContext = {
   companies: Company[];
@@ -463,7 +464,14 @@ function pageContextNote(ctx: SmartAssistConversationContext): string | null {
   const page = parsePageContext(ctx.pathname);
   if (page.page === "company" && page.companyId) {
     const company = ctx.companies.find((c) => c.CompanyID === page.companyId);
-    if (company) return `Context: You are viewing ${company.Title}.`;
+    if (company) {
+      const sectors = formatSectorsLabel(company.Sectors);
+      const roi = formatSectorRoiHint(company.Sectors);
+      const sectorNote = sectors
+        ? ` Sectors: ${sectors}.${roi ? ` ${roi}` : ""} Tailor drafts and ROI to these sectors.`
+        : " No sector tags assigned — do not invent a sector.";
+      return `Context: You are viewing ${company.Title}.${sectorNote}`;
+    }
   }
   if (page.page === "opportunity" && page.dealId) {
     const deal = ctx.pipelines.find((p) => p.id === page.dealId);
