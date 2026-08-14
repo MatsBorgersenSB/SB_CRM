@@ -6,10 +6,10 @@ export const M365_BUDGETS = {
     scroll: false,
   },
   meetingBriefing: {
-    maxOpportunities: 3,
+    maxOpportunities: 2,
     maxRisks: 3,
-    maxDiscussionTopics: 5,
-    maxWhatChanged: 3,
+    maxDiscussionTopics: 3,
+    maxWhatChanged: 2,
   },
   dailyFocus: {
     maxActions: 3,

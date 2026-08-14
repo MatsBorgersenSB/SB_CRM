@@ -25,7 +25,12 @@ export async function GET(request: Request) {
       return m365Error("No matching account found for this context", 404);
     }
 
-    return m365Json(buildM365MeetingBriefing(resolved.company, ctx));
+    return m365Json(
+      buildM365MeetingBriefing(resolved.company, ctx, {
+        contact: resolved.contact,
+        counterpartyEmail: email,
+      }),
+    );
   } catch {
     return m365Error("Failed to build meeting briefing intelligence", 500);
   }
