@@ -9,6 +9,7 @@ import type {
 export type ContactListRole = string;
 
 export type BuyingRole =
+  | "No Buying Role"
   | "Economic Buyer"
   | "Champion"
   | "Technical Evaluator"
@@ -27,7 +28,9 @@ export type EngagementCadence =
   | "Weekly"
   | "Bi-weekly"
   | "Monthly"
-  | "Quarterly";
+  | "Quarterly"
+  | "Yearly"
+  | "When needed";
 
 export type ContactStatus = "Active" | "Inactive" | "Prospecting" | "Archived";
 
@@ -109,6 +112,7 @@ export function suggestContactListRoleFromTitle(
 }
 
 export const BUYING_ROLES: BuyingRole[] = [
+  "No Buying Role",
   "Economic Buyer",
   "Champion",
   "Technical Evaluator",
@@ -116,6 +120,13 @@ export const BUYING_ROLES: BuyingRole[] = [
   "End User",
   "Legal/Procurement",
 ];
+
+/** Empty means unclassified — distinct from an explicit “No Buying Role”. */
+export function isBuyingRoleUnknown(
+  role: BuyingRole | string | null | undefined,
+): boolean {
+  return !(role ?? "").trim();
+}
 
 export const CONTACT_SENTIMENTS: ContactSentiment[] = [
   "Champion / Promoter",
@@ -130,6 +141,8 @@ export const ENGAGEMENT_CADENCES: EngagementCadence[] = [
   "Bi-weekly",
   "Monthly",
   "Quarterly",
+  "Yearly",
+  "When needed",
 ];
 
 export const CONTACT_STATUSES: ContactStatus[] = [

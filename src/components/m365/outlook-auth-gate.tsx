@@ -23,12 +23,23 @@ type GateState =
   | { status: "wrong-host"; host: string }
   | { status: "error"; message: string };
 
-/** Abort hung session probes so the pane never sticks on "Connecting…". */
-const SESSION_FETCH_TIMEOUT_MS = 1_500;
+/** Soft probe — keep Sign In reachable if the session endpoint hangs. */
+const SESSION_FETCH_TIMEOUT_MS = 3_000;
+/** After Office Dialog claim, allow a slightly longer first probe. */
+const SESSION_FETCH_TIMEOUT_HARD_MS = 5_000;
 /** Absolute ceiling — always surface Sign In if still checking. */
-const CHECKING_FALLBACK_MS = 1_500;
+const CHECKING_FALLBACK_MS = 6_000;
 /** Do not block Sign In dialog on a long Office.onReady wait. */
 const SIGN_IN_OFFICE_READY_MS = 1_500;
+/**
+ * Office DialogEventReceived 12006 (closed) can race ahead of DialogMessageReceived.
+ * Wait briefly so a late bridge token can still be claimed.
+ */
+const DIALOG_CLOSE_GRACE_MS = 1_000;
+/** Dialog closed by user / host. */
+const OFFICE_DIALOG_CLOSED = 12006;
+/** User dismissed the dialog open prompt. */
+const OFFICE_DIALOG_IGNORED = 12009;
 
 function appOrigin(): string {
   if (typeof window !== "undefined") return window.location.origin;
@@ -86,6 +97,14 @@ function parseDialogMessage(raw: string): {
   return { authenticated: false };
 }
 
+function dialogEventErrorCode(arg: unknown): number | null {
+  if (typeof arg === "object" && arg && "error" in arg) {
+    const code = Number((arg as { error: number }).error);
+    return Number.isFinite(code) ? code : null;
+  }
+  return null;
+}
+
 /**
  * Working Outlook Dialog SSO URL.
  * There is no `/login` route — `/auth/signin` + auth-complete bridge is required
@@ -135,13 +154,20 @@ export async function openOutlookSignInDialog(onComplete: () => void): Promise<v
           }
           const dialog = result.value;
           let settled = false;
+          let receivedBridgeToken: string | undefined;
+          let closeTimer: number | undefined;
 
           const finish = async (bridgeToken?: string) => {
             if (settled) return;
             settled = true;
+            if (closeTimer !== undefined) {
+              window.clearTimeout(closeTimer);
+              closeTimer = undefined;
+            }
+            const token = bridgeToken?.trim() || receivedBridgeToken?.trim() || "";
             try {
-              if (bridgeToken) {
-                await claimBridgeToken(bridgeToken);
+              if (token) {
+                await claimBridgeToken(token);
               }
             } catch {
               /* checkSession will surface failure */
@@ -164,13 +190,30 @@ export async function openOutlookSignInDialog(onComplete: () => void): Promise<v
                     ? arg
                     : "";
               const parsed = parseDialogMessage(message);
-              if (parsed.authenticated) {
-                void finish(parsed.bridgeToken);
+              if (!parsed.authenticated) return;
+              if (parsed.bridgeToken?.trim()) {
+                receivedBridgeToken = parsed.bridgeToken.trim();
               }
+              void finish(parsed.bridgeToken);
             },
           );
-          dialog.addEventHandler(Office.EventType.DialogEventReceived, () => {
-            void finish();
+
+          /**
+           * Do NOT finish on every DialogEventReceived — OAuth redirects inside
+           * the dialog can emit 12002/other codes before auth-complete runs.
+           * Finishing early without a bridge token is the colleague sign-in loop:
+           * Microsoft succeeds, task pane never claims a session, Sign In returns.
+           */
+          dialog.addEventHandler(Office.EventType.DialogEventReceived, (arg) => {
+            const code = dialogEventErrorCode(arg);
+            if (code !== OFFICE_DIALOG_CLOSED && code !== OFFICE_DIALOG_IGNORED) {
+              return;
+            }
+            if (settled) return;
+            if (closeTimer !== undefined) return;
+            closeTimer = window.setTimeout(() => {
+              void finish(receivedBridgeToken);
+            }, DIALOG_CLOSE_GRACE_MS);
           });
         },
       );
@@ -227,14 +270,10 @@ function SignInToSmartCrmCard({
         >
           Sign In to SmartCRM
         </button>
-        <a
-          href={signInUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 block text-center text-[10px] font-medium text-carbon-blue/60 underline-offset-2 hover:underline"
-        >
-          Open sign-in in browser
-        </a>
+        <p className="mt-3 text-[10px] leading-relaxed text-carbon-blue/45">
+          Use the button above inside Outlook. Opening sign-in in a separate browser tab
+          cannot pass the session into this pane.
+        </p>
       </div>
     </div>
   );
@@ -295,51 +334,68 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
     }
     setProbePending(true);
 
+    const timeoutMs =
+      mode === "hard" ? SESSION_FETCH_TIMEOUT_HARD_MS : SESSION_FETCH_TIMEOUT_MS;
+    const attempts = mode === "hard" ? 3 : 1;
+
     try {
       if (typeof window !== "undefined" && isRetiredOutlookHost(window.location.host)) {
         setState({ status: "wrong-host", host: window.location.host });
         return;
       }
 
-      const controller = new AbortController();
-      const abortTimer = window.setTimeout(
-        () => controller.abort(),
-        SESSION_FETCH_TIMEOUT_MS,
-      );
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        const controller = new AbortController();
+        const abortTimer = window.setTimeout(() => controller.abort(), timeoutMs);
 
-      let response: Response;
-      try {
-        response = await fetch("/api/auth/session", {
-          credentials: "include",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-      } finally {
-        window.clearTimeout(abortTimer);
-      }
+        let response: Response;
+        try {
+          response = await fetch("/api/auth/session", {
+            credentials: "include",
+            cache: "no-store",
+            signal: controller.signal,
+          });
+        } finally {
+          window.clearTimeout(abortTimer);
+        }
 
-      // Unauthenticated / forbidden / non-OK → friendly sign-in, never an unhandled error
-      if (response.status === 401 || response.status === 403 || !response.ok) {
+        // Unauthenticated / forbidden / non-OK → retry on hard, else Sign In
+        if (response.status === 401 || response.status === 403 || !response.ok) {
+          if (attempt < attempts - 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 350 * (attempt + 1)));
+            continue;
+          }
+          setState({ status: "needs-sign-in" });
+          return;
+        }
+
+        const raw = await response.text();
+        type SessionProbe = { user?: { email?: string | null } | null };
+        let session: SessionProbe | null = null;
+        try {
+          session = raw ? (JSON.parse(raw) as SessionProbe) : null;
+        } catch {
+          if (attempt < attempts - 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 350 * (attempt + 1)));
+            continue;
+          }
+          // HTML / non-JSON (e.g. unexpected middleware) → Sign In, never SyntaxError
+          setState({ status: "needs-sign-in" });
+          return;
+        }
+
+        if (session?.user?.email) {
+          setState({ status: "authenticated" });
+          return;
+        }
+
+        if (attempt < attempts - 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 350 * (attempt + 1)));
+          continue;
+        }
         setState({ status: "needs-sign-in" });
         return;
       }
-
-      const raw = await response.text();
-      type SessionProbe = { user?: { email?: string | null } | null };
-      let session: SessionProbe | null = null;
-      try {
-        session = raw ? (JSON.parse(raw) as SessionProbe) : null;
-      } catch {
-        // HTML / non-JSON (e.g. unexpected middleware) → Sign In, never SyntaxError
-        setState({ status: "needs-sign-in" });
-        return;
-      }
-
-      if (session?.user?.email) {
-        setState({ status: "authenticated" });
-        return;
-      }
-      setState({ status: "needs-sign-in" });
     } catch {
       // Network / abort / parse failures: treat as signed out so the pane stays usable
       setState({ status: "needs-sign-in" });

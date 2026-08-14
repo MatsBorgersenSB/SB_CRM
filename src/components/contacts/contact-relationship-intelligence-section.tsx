@@ -5,6 +5,7 @@ import { ContactRecentOutlook } from "@/components/contacts/contact-recent-outlo
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
+import { getContactDisplayName } from "@/types/contact";
 import type { PipelineRow } from "@/types/pipeline";
 
 /**
@@ -44,6 +45,8 @@ export function ContactRelationshipIntelligenceSection({
       <ContactRecentOutlook
         contactId={contact.ContactID}
         contactEmail={contact.Email || undefined}
+        contactName={getContactDisplayName(contact)}
+        contactPhone={contact.Mobile || contact.Phone || undefined}
       />
     </div>
   );

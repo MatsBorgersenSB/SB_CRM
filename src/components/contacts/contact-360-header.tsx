@@ -19,12 +19,21 @@ function sentimentIcon(sentiment: string | undefined): string {
 }
 
 function cadenceHealth(cadence: string | undefined, lastInteractionDate?: string): "Warm" | "Cooling Off" | "Cold / At Risk" {
+  if (cadence === "When needed") return "Warm";
   if (!lastInteractionDate) return "Cold / At Risk";
   const last = new Date(lastInteractionDate).getTime();
   if (!Number.isFinite(last)) return "Cold / At Risk";
   const days = Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24));
   const cadenceDays =
-    cadence === "Weekly" ? 7 : cadence === "Bi-weekly" ? 14 : cadence === "Quarterly" ? 90 : 30;
+    cadence === "Weekly"
+      ? 7
+      : cadence === "Bi-weekly"
+        ? 14
+        : cadence === "Quarterly"
+          ? 90
+          : cadence === "Yearly"
+            ? 365
+            : 30;
   if (days <= cadenceDays) return "Warm";
   if (days <= cadenceDays * 2) return "Cooling Off";
   return "Cold / At Risk";
@@ -132,7 +141,7 @@ export function Contact360Header({
             🕒 Local Time: {localTimeString(contact.timezone, clockNow)}
           </span>
           <span className="border border-upcycle-orange/20 bg-upcycle-orange/[0.08] px-2.5 py-1 text-[11px] font-medium text-upcycle-orange">
-            🎯 Buying Role: {contact.buyingRole ?? "Unassigned"} {sentimentIcon(contact.sentiment)}
+            🎯 Buying Role: {contact.buyingRole ?? "Unknown"} {sentimentIcon(contact.sentiment)}
           </span>
           <span className="border border-carbon-blue/12 bg-white px-2.5 py-1 text-[11px] font-medium text-carbon-blue/70">
             💚 Cadence Health: {cadence}

@@ -15,6 +15,8 @@ import type {
   RelationshipLevel,
 } from "@/types/contact";
 import {
+  BUYING_ROLES,
+  ENGAGEMENT_CADENCES,
   resolveContactListRole,
   suggestContactListRoleFromTitle,
 } from "@/types/contact";
@@ -137,16 +139,8 @@ function mapRelationshipLevel(jobTitle: string | null | undefined): Relationship
 }
 
 function mapBuyingRole(value: string | null | undefined): BuyingRole | undefined {
-  if (!value) return undefined;
-  const allowed: BuyingRole[] = [
-    "Economic Buyer",
-    "Champion",
-    "Technical Evaluator",
-    "Blocker",
-    "End User",
-    "Legal/Procurement",
-  ];
-  return allowed.includes(value as BuyingRole) ? (value as BuyingRole) : undefined;
+  if (!value?.trim()) return undefined;
+  return BUYING_ROLES.includes(value as BuyingRole) ? (value as BuyingRole) : undefined;
 }
 
 function mapSentiment(value: string | null | undefined): ContactSentiment | undefined {
@@ -166,9 +160,8 @@ function mapInfluenceLevel(value: string | null | undefined): InfluenceLevel | u
 }
 
 function mapEngagementCadence(value: string | null | undefined): EngagementCadence | undefined {
-  if (!value) return undefined;
-  const allowed: EngagementCadence[] = ["Weekly", "Bi-weekly", "Monthly", "Quarterly"];
-  return allowed.includes(value as EngagementCadence)
+  if (!value?.trim()) return undefined;
+  return ENGAGEMENT_CADENCES.includes(value as EngagementCadence)
     ? (value as EngagementCadence)
     : undefined;
 }

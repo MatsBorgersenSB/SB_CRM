@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     email: typeof bridge.email === "string" ? bridge.email : null,
     cookieName,
     sameSite: authCookieOptions(secure).sameSite,
+    partitioned: Boolean(authCookieOptions(secure).partitioned),
   });
 
   return response;

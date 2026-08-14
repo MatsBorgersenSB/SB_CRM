@@ -31,6 +31,8 @@ export type EmailMessageIntelligenceDto = {
   projectName: string | null;
   contactId: string | null;
   contactName: string | null;
+  /** Primary phone from linked contact — empty when unknown (Reality First). */
+  contactPhone: string | null;
   subject: string;
   bodyPreview: string | null;
   webLink: string | null;
@@ -94,9 +96,28 @@ function toAttachmentDto(doc: {
   };
 }
 
+function contactPrimaryPhone(phoneNumbers: unknown): string | null {
+  if (!Array.isArray(phoneNumbers) || phoneNumbers.length === 0) return null;
+  const typed = phoneNumbers.filter(
+    (entry): entry is { number?: string; type?: string; isPrimary?: boolean } =>
+      Boolean(entry && typeof entry === "object"),
+  );
+  const mobile = typed.find((entry) => /mobile|cell/i.test(entry.type ?? ""));
+  if (mobile?.number?.trim()) return mobile.number.trim();
+  const primary = typed.find((entry) => entry.isPrimary);
+  if (primary?.number?.trim()) return primary.number.trim();
+  const first = typed[0]?.number?.trim();
+  return first || null;
+}
+
 const emailMessageInclude = {
   contact: {
-    select: { fullName: true, firstName: true, lastName: true },
+    select: {
+      fullName: true,
+      firstName: true,
+      lastName: true,
+      phoneNumbers: true,
+    },
   },
   opportunity: {
     select: { id: true, name: true, code: true },
@@ -138,6 +159,7 @@ function toEmailDto(message: {
     fullName: string | null;
     firstName: string | null;
     lastName: string | null;
+    phoneNumbers: unknown;
   } | null;
   opportunity: {
     id: string;
@@ -176,6 +198,7 @@ function toEmailDto(message: {
     projectName: message.projectName,
     contactId: message.contactId,
     contactName: contactDisplayName(message.contact),
+    contactPhone: contactPrimaryPhone(message.contact?.phoneNumbers),
     subject: message.subject,
     bodyPreview: message.bodyPreview,
     webLink: message.webLink,

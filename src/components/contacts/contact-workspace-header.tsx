@@ -73,7 +73,7 @@ export function ContactWorkspaceHeader({
             🕒 {localTimeString(contact.timezone, clockNow)}
           </span>
           <span className="border border-upcycle-orange/20 bg-upcycle-orange/[0.08] px-2.5 py-1 text-[12px] font-medium text-upcycle-orange">
-            🎯 {contact.buyingRole ?? "Unassigned"} {sentimentIcon(contact.sentiment)}
+            🎯 {contact.buyingRole ?? "Unknown"} {sentimentIcon(contact.sentiment)}
           </span>
         </div>
       </div>
