@@ -22,7 +22,7 @@ type DraftApiResponse = {
 };
 
 /**
- * Opens a Graph draft (webLink) or Outlook compose deepLink in a new tab.
+ * Opens a Graph draft in Outlook compose (editable) or compose deepLink fallback.
  * When opportunityId or projectId is set, the draft receives intentional SmartCRM categories.
  */
 export async function openOutlookDraft(
@@ -49,7 +49,8 @@ export async function openOutlookDraft(
     throw new Error(payload.detail || payload.error || "Could not open Outlook draft");
   }
 
-  const href = payload.webLink || payload.deepLink;
+  // Prefer deepLink (compose) over legacy Graph read webLink.
+  const href = payload.deepLink || payload.webLink;
   if (!href) {
     throw new Error("Draft API returned no webLink or deepLink");
   }
