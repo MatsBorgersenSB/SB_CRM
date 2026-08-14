@@ -8,6 +8,7 @@ import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
 import type { SentimentGrade } from "@/generated/prisma";
 import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
+import { EmailMessageActions } from "@/components/emails/email-message-actions";
 import { projectEmailsHref } from "@/types/relationship-navigation";
 
 type ContactEmailMessage = {
@@ -70,10 +71,14 @@ function dealEmailsHref(dealId: string): string {
 export function ContactRecentOutlook({
   contactId,
   contactEmail,
+  contactName,
+  contactPhone,
   role = "superuser",
 }: {
   contactId: string;
   contactEmail?: string;
+  contactName?: string;
+  contactPhone?: string;
   role?: UserRole;
 }) {
   const [threads, setThreads] = useState<ContactEmailThread[]>([]);
@@ -484,6 +489,23 @@ export function ContactRecentOutlook({
                 role={role}
                 compact
               />
+              {!latest.isDeletedInSource ? (
+                <EmailMessageActions
+                  toEmail={
+                    latest.isOutbound
+                      ? contactEmail?.trim() || latest.senderEmail
+                      : latest.senderEmail
+                  }
+                  subject={latest.subject}
+                  bodyPreview={latest.bodyPreview}
+                  contactId={contactId}
+                  contactName={contactName ?? null}
+                  contactPhone={contactPhone ?? null}
+                  opportunityId={dealId || undefined}
+                  projectId={projectId || undefined}
+                  role={role}
+                />
+              ) : null}
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {dealId && (latest.opportunityCode || latest.opportunityName) ? (
                   <span className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] text-carbon-blue/55">

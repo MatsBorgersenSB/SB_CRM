@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
+import { EmailMessageActions } from "@/components/emails/email-message-actions";
 import { ATTIO_GROUP_ACTIONS } from "@/lib/attio-workspace-surfaces";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
@@ -31,6 +32,7 @@ export type EmailIntelligenceItem = {
   projectName?: string | null;
   contactId: string | null;
   contactName: string | null;
+  contactPhone?: string | null;
   subject: string;
   bodyPreview: string | null;
   webLink?: string | null;
@@ -109,22 +111,6 @@ function formatFileSize(bytes: number | null): string {
 function replyDraftTarget(message: EmailIntelligenceItem): string {
   if (!message.isOutbound) return message.senderEmail;
   return message.recipientEmails[0] ?? message.senderEmail;
-}
-
-function replyDraftSubject(subject: string): string {
-  return /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`;
-}
-
-function replyDraftHtml(message: EmailIntelligenceItem): string {
-  const preview = message.bodyPreview
-    ? `<blockquote style="border-left:3px solid #ccc;padding-left:8px;color:#555">${message.bodyPreview}</blockquote>`
-    : "";
-  return [
-    `<p>Hi,</p>`,
-    `<p>Thank you for your note. Following up on the points below and confirming next steps.</p>`,
-    preview,
-    `<p>Best regards</p>`,
-  ].join("");
 }
 
 function threadFollowUpHtml(summary: {
@@ -711,6 +697,20 @@ export function EmailIntelligence({
                                 webLink={message.webLink}
                                 role={role}
                               />
+                              {!readOnly && !message.isDeletedInSource ? (
+                                <EmailMessageActions
+                                  toEmail={replyDraftTarget(message)}
+                                  subject={message.subject}
+                                  bodyPreview={message.bodyPreview}
+                                  contactId={message.contactId}
+                                  contactName={message.contactName}
+                                  contactPhone={message.contactPhone}
+                                  opportunityId={opportunityId}
+                                  projectId={projectId}
+                                  role={role}
+                                  disabled={busy}
+                                />
+                              ) : null}
                               {message.attachments?.length ? (
                                 <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Attachments">
                                   {message.attachments.map((attachment) => (
@@ -742,20 +742,6 @@ export function EmailIntelligence({
                               </p>
                               {!readOnly ? (
                                 <div className={`mt-2.5 flex flex-wrap items-center gap-2 ${ATTIO_GROUP_ACTIONS.replace("group-hover:", "group-hover/msg:")}`}>
-                                  {(message.sentiment === "cautious" ||
-                                    message.sentiment === "negative" ||
-                                    !message.isOutbound) &&
-                                  !message.isDeletedInSource ? (
-                                    <DraftInOutlookButton
-                                      toEmail={replyDraftTarget(message)}
-                                      subject={replyDraftSubject(message.subject)}
-                                      bodyHtml={replyDraftHtml(message)}
-                                      opportunityId={opportunityId}
-                                      projectId={projectId}
-                                      role={role}
-                                      disabled={busy}
-                                    />
-                                  ) : null}
                                   <button
                                     type="button"
                                     disabled={busy}

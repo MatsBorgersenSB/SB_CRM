@@ -5,7 +5,7 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { Contact, CreateContactInput, UpdateContactInput, BuyingRole } from "@/types/contact";
 import type { Project } from "@/types/project";
-import { getContactDisplayName } from "@/types/contact";
+import { getContactDisplayName, isBuyingRoleUnknown } from "@/types/contact";
 import { getContactProjectRolesOnCompany } from "@/lib/project-team-utils";
 import { getActivitiesForContact } from "@/lib/activity-utils";
 import { decodePhoneForDisplay } from "@/lib/company-identity";
@@ -265,9 +265,9 @@ function BuyingRoleCell({
     return (
       <span
         className={
-          buyingRole
-            ? "text-[12px] text-carbon-blue/70"
-            : "text-[12px] font-medium text-upcycle-orange"
+          isBuyingRoleUnknown(buyingRole)
+            ? "text-[12px] font-medium text-upcycle-orange"
+            : "text-[12px] text-carbon-blue/70"
         }
       >
         {buyingRole ?? "Unknown"}
@@ -281,7 +281,7 @@ function BuyingRoleCell({
       disabled={busy}
       onChange={(next) => void persist(next)}
       className={`w-full min-w-0 border bg-white px-1.5 py-1 text-[12px] outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 ${
-        buyingRole
+        buyingRole && !isBuyingRoleUnknown(buyingRole)
           ? "border-carbon-blue/15 text-carbon-blue"
           : "border-upcycle-orange/35 text-upcycle-orange"
       }`}
@@ -449,14 +449,16 @@ export function CompanyContactsTable({
   const sortedContacts = useMemo(
     () =>
       [...contacts].sort((a, b) => {
-        const aKnown = a.buyingRole ? 1 : 0;
-        const bKnown = b.buyingRole ? 1 : 0;
+        const aKnown = isBuyingRoleUnknown(a.buyingRole) ? 0 : 1;
+        const bKnown = isBuyingRoleUnknown(b.buyingRole) ? 0 : 1;
         if (aKnown !== bKnown) return aKnown - bKnown;
         return getContactDisplayName(a).localeCompare(getContactDisplayName(b));
       }),
     [contacts],
   );
-  const unknownBuyingRoleCount = contacts.filter((contact) => !contact.buyingRole).length;
+  const unknownBuyingRoleCount = contacts.filter((contact) =>
+    isBuyingRoleUnknown(contact.buyingRole),
+  ).length;
 
   useEffect(() => {
     if (createRequestId > 0) {
@@ -494,9 +496,9 @@ export function CompanyContactsTable({
       {unknownBuyingRoleCount > 0 ? (
         <p className="mb-2 text-[12px] text-upcycle-orange">
           {unknownBuyingRoleCount === 1
-            ? "1 person has no buying role."
-            : `${unknownBuyingRoleCount} people have no buying role.`}{" "}
-          Unknown stays unknown until you assign it.
+            ? "1 person's buying role is unknown."
+            : `${unknownBuyingRoleCount} people's buying roles are unknown.`}{" "}
+          Unknown stays unknown until you classify it. Use No Buying Role when they are not in the buying center.
         </p>
       ) : null}
       {sortedContacts.length > 0 ? (

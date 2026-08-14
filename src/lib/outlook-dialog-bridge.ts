@@ -22,6 +22,10 @@ export function useSecureAuthCookies(): boolean {
  * Cookie options for Outlook Web task panes (cross-site iframe).
  * SameSite=Lax cookies set in the Office Dialog are invisible to the
  * task-pane iframe on outlook.office.com — SameSite=None; Secure is required.
+ *
+ * Partitioned (CHIPS) is required when Chrome/Edge block third-party cookies:
+ * without it, Set-Cookie from the claim route is dropped in the Outlook iframe
+ * and the user bounces straight back to Sign In after a successful Microsoft SSO.
  */
 export function authCookieOptions(secure: boolean) {
   return {
@@ -29,6 +33,7 @@ export function authCookieOptions(secure: boolean) {
     sameSite: (secure ? "none" : "lax") as "none" | "lax",
     path: "/",
     secure,
+    ...(secure ? { partitioned: true as const } : {}),
   };
 }
 
