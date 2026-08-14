@@ -7,8 +7,11 @@ import { telHref, teamsMeetingComposeHref } from "@/lib/compose-actions";
 import { stashSmartAssistPrefill } from "@/lib/smart-assist-prefill";
 import type { UserRole } from "@/types/auth";
 
-const ACTION_LINK_CLASS =
-  "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange disabled:opacity-50";
+const PRIMARY_ACTION_CLASS =
+  "inline-flex items-center border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50";
+
+const SECONDARY_ACTION_CLASS =
+  "inline-flex items-center border border-carbon-blue/20 bg-white px-2.5 py-1 text-[11px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange/50 hover:text-upcycle-orange disabled:opacity-50";
 
 function replySubject(subject: string): string {
   return /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`;
@@ -119,18 +122,18 @@ export function EmailMessageActions({
   };
 
   return (
-    <div className="mt-1.5">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+    <div className="mt-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <button
           type="button"
           disabled={disabled || replyBusy || !toEmail.trim()}
           onClick={() => void reply()}
-          className={ACTION_LINK_CLASS}
+          className={PRIMARY_ACTION_CLASS}
         >
           {replyBusy ? "Opening…" : "Reply"}
         </button>
         {phone ? (
-          <a href={telHref(phone)} className={ACTION_LINK_CLASS}>
+          <a href={telHref(phone)} className={SECONDARY_ACTION_CLASS}>
             Call
           </a>
         ) : (
@@ -138,7 +141,7 @@ export function EmailMessageActions({
             type="button"
             disabled={disabled}
             onClick={planCall}
-            className={ACTION_LINK_CLASS}
+            className={SECONDARY_ACTION_CLASS}
             title="No phone on file — plan a call in Activities"
           >
             Call
@@ -148,7 +151,7 @@ export function EmailMessageActions({
           type="button"
           disabled={disabled}
           onClick={planMeeting}
-          className={ACTION_LINK_CLASS}
+          className={SECONDARY_ACTION_CLASS}
         >
           Plan meeting
         </button>
@@ -156,7 +159,7 @@ export function EmailMessageActions({
           href={teamsMeetingComposeHref(title, meetingBody(subject, bodyPreview))}
           target="_blank"
           rel="noopener noreferrer"
-          className={ACTION_LINK_CLASS}
+          className={SECONDARY_ACTION_CLASS}
         >
           Create meeting
         </a>

@@ -112,12 +112,12 @@ export function SyncedMailPreview({
 
       {error ? <p className="mt-1 text-[11px] text-red-700/80">{error}</p> : null}
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         <button
           type="button"
           disabled={loading}
           onClick={() => void togglePreview()}
-          className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange disabled:opacity-50"
+          className="inline-flex items-center border border-carbon-blue/15 bg-white px-2.5 py-1 text-[11px] font-semibold text-carbon-blue/75 transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
         >
           {expanded ? "Hide preview" : "Preview in SmartCRM"}
         </button>
@@ -125,7 +125,7 @@ export function SyncedMailPreview({
           type="button"
           disabled={loading}
           onClick={() => void openInOutlook()}
-          className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange disabled:opacity-50"
+          className="inline-flex items-center border border-carbon-blue/15 bg-white px-2.5 py-1 text-[11px] font-semibold text-carbon-blue/75 transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
         >
           {loading ? "Opening…" : "Open in Outlook"}
         </button>
