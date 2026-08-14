@@ -195,9 +195,14 @@ function buildContactItem(
     href: contact360Href(contact.ContactID, company.CompanyID),
     keywords: [
       contact.ContactID,
+      contact.FirstName,
+      contact.LastName,
+      contact.Title,
+      contact.JobTitle,
       contact.Email,
       contact.Phone,
       contact.Mobile,
+      contact.Role,
       company.Title,
     ],
     smartMeta: {
