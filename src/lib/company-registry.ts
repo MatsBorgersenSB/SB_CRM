@@ -180,7 +180,11 @@ export async function updateRegistryCompany(
 
   // Portfolio may still serve JSON-seeded CO-… records while Prisma is empty.
   // Promote that row into the registry on first save so edits are durable on Vercel.
+  // Never promote seed companies in live production.
   if (!existing) {
+    const { shouldFallbackToJsonPortfolio } = await import("@/lib/prisma-data");
+    if (!shouldFallbackToJsonPortfolio()) return null;
+
     const jsonCompanies = await readCompanies();
     const jsonCompany = jsonCompanies.find(
       (row) => row.CompanyID === String(id) || String(row.id) === String(id),

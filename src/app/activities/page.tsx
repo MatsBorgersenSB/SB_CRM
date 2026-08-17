@@ -1,12 +1,19 @@
 import { ActivitiesShell } from "@/components/layout/activities-shell";
-import { readActivities, readCompanies, readPipelines } from "@/lib/pipeline-db";
+import {
+  readLiveActivities,
+  readLiveCompanies,
+  readLivePipelines,
+} from "@/lib/prisma-data";
 import { readAssignableStandardBioUsers } from "@/lib/standard-bio-users-server";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function ActivitiesPage() {
   const [activities, companies, pipelines, assignableUsers] = await Promise.all([
-    readActivities(),
-    readCompanies(),
-    readPipelines(),
+    readLiveActivities(),
+    readLiveCompanies(),
+    readLivePipelines(),
     readAssignableStandardBioUsers(),
   ]);
 

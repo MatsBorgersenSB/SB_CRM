@@ -12,10 +12,10 @@ import { normalizePhoneNumber } from "@/lib/m365/phone-normalization";
 import {
   createCompany,
   createCompanyContact,
-  readCompanies,
   updateCompany,
   updateCompanyContact,
 } from "@/lib/pipeline-db";
+import { readLiveCompanies } from "@/lib/prisma-data";
 import { resolveAccountOwner } from "@/lib/company-owner";
 import { emailsIncludeAddress } from "@/lib/entity-route-utils";
 import { isInternalEmail } from "@/lib/domain-rules";
@@ -459,7 +459,7 @@ async function upsertCompanyFromDiscoveryJson(
 ): Promise<CompanyUpsertFromDiscoveryResult> {
   const prepared = prepareDiscoveryForImport(discovery);
   await enrichPreparedCompanyGeoWithOSM(prepared, discovery.company.address);
-  const companies = await readCompanies();
+  const companies = await readLiveCompanies();
   const domain = normalizeCompanyDomain(prepared.company.domain);
 
   let company =
@@ -520,7 +520,7 @@ async function importContactJson(
   companyId: string,
   discovered: DiscoveredContact,
 ): Promise<SingleContactImportResult> {
-  const companies = await readCompanies();
+  const companies = await readLiveCompanies();
   const company = companies.find((record) => record.CompanyID === companyId);
   if (!company) {
     return { status: "skipped", reason: "Company not found" };
@@ -650,7 +650,7 @@ export async function importWebsiteDiscovery(
   }
 
   const refreshed =
-    (await readCompanies()).find(
+    (await readLiveCompanies()).find(
       (record) => record.CompanyID === company.CompanyID || record.code === company.code,
     ) ?? company;
 

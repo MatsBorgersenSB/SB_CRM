@@ -18,10 +18,10 @@ import {
 import {
   createCompany,
   createCompanyContact,
-  readCompanies,
   updateCompany,
   updateCompanyContact,
 } from "@/lib/pipeline-db";
+import { readLiveCompanies } from "@/lib/prisma-data";
 import { resolveAccountOwner } from "@/lib/company-owner";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { Contact, ContactListRole } from "@/types/contact";
@@ -493,7 +493,7 @@ export async function analyzeQuickImport(
   text: string,
   contextCompanyId?: string,
 ): Promise<QuickImportPreview> {
-  const companies = await readCompanies();
+  const companies = await readLiveCompanies();
   const extracted = extractQuickImportFields(text);
 
   const hasCompanyData = Boolean(
@@ -567,7 +567,7 @@ async function upsertCompanyFromQuickImport(
       };
 
   if (companyPreview.action === "skip" && companyPreview.companyId) {
-    const companies = await readCompanies();
+    const companies = await readLiveCompanies();
     const existing = companies.find((record) => record.CompanyID === companyPreview.companyId)!;
     return {
       company: existing,
@@ -578,7 +578,7 @@ async function upsertCompanyFromQuickImport(
   }
 
   if (companyPreview.companyId) {
-    const companies = await readCompanies();
+    const companies = await readLiveCompanies();
     const existing = companies.find((record) => record.CompanyID === companyPreview.companyId)!;
     const patch: Parameters<typeof updateCompany>[1] = {};
 
@@ -665,7 +665,7 @@ async function upsertContactFromQuickImport(
   const { extracted, contact: contactPreview } = preview;
 
   if (contactPreview.action === "skip") {
-    const companies = await readCompanies();
+    const companies = await readLiveCompanies();
     const company = companies.find((record) => record.CompanyID === companyId);
     const existing =
       contactPreview.contactId
@@ -723,7 +723,7 @@ export async function importQuickImport(
   if (preview.hasCompanyData && preview.company.action !== "skip") {
     companyResult = await upsertCompanyFromQuickImport(preview, options);
   } else if (preview.company.companyId) {
-    const companies = await readCompanies();
+    const companies = await readLiveCompanies();
     companyResult.company =
       companies.find((record) => record.CompanyID === preview.company.companyId) ?? null;
     companyResult.websiteLinked = Boolean(companyResult.company?.Domain);
@@ -752,7 +752,7 @@ export async function importQuickImport(
     }
   }
 
-  const refreshed = (await readCompanies()).find(
+  const refreshed = (await readLiveCompanies()).find(
     (record) => record.CompanyID === companyResult.company!.CompanyID,
   )!;
 

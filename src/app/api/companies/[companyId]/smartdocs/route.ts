@@ -5,10 +5,12 @@ import {
 } from "@/lib/smartdoc-identity";
 import { canUploadSmartDocs } from "@/lib/permissions";
 import {
-  readSmartDocsForCompany,
-  readSmartDocsLibrary,
   resolveCompanyForSmartDocs,
 } from "@/lib/pipeline-db";
+import {
+  readLiveSmartDocsForCompany,
+  readLiveSmartDocsLibrary,
+} from "@/lib/prisma-data";
 import { buildCompanyDocumentContext } from "@/lib/smartdoc-library-engine";
 import { importCompanySmartDoc } from "@/lib/smartdoc-import";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
@@ -114,8 +116,8 @@ export async function GET(
   try {
     const [company, documents, library] = await Promise.all([
       resolveCompanyForSmartDocs(companyId),
-      readSmartDocsForCompany(companyId),
-      readSmartDocsLibrary(),
+      readLiveSmartDocsForCompany(companyId),
+      readLiveSmartDocsLibrary(),
     ]);
 
     if (!company) {
@@ -208,7 +210,7 @@ export async function POST(
 
     const [company, documents] = await Promise.all([
       resolveCompanyForSmartDocs(companyId),
-      readSmartDocsForCompany(companyId),
+      readLiveSmartDocsForCompany(companyId),
     ]);
 
     if (!company) {
@@ -223,7 +225,7 @@ export async function POST(
       documents,
       documentRecordId: imported.documentRecordId,
       sharepointWebUrl: imported.sharepointWebUrl,
-      existingIdentityIds: (await readSmartDocsLibrary()).map((row) => row.SmartDocID),
+      existingIdentityIds: (await readLiveSmartDocsLibrary()).map((row) => row.SmartDocID),
     });
   } catch (error) {
     return sharePointErrorResponse(error);

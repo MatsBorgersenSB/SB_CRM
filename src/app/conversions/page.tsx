@@ -4,31 +4,37 @@ import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import {
   conversionBatches,
   conversionMetrics,
+  emptyConversionMetrics,
   monthlyConversions,
 } from "@/lib/conversions-data";
-
-const metricCards = [
-  {
-    label: "Total Polymer Processed",
-    value: conversionMetrics.totalPolymerProcessed,
-  },
-  {
-    label: "Total Oil/Char Yield %",
-    value: conversionMetrics.oilCharYield,
-  },
-  {
-    label: "System Uptime",
-    value: conversionMetrics.systemUptime,
-  },
-] as const;
+import { shouldFallbackToJsonPortfolio } from "@/lib/prisma-data";
 
 export default function ConversionsPage() {
+  const useSeed = shouldFallbackToJsonPortfolio();
+  const metrics = useSeed ? conversionMetrics : emptyConversionMetrics;
+  const batches = useSeed ? conversionBatches : [];
+  const monthly = useSeed ? monthlyConversions : [];
+
+  const metricCards = [
+    {
+      label: "Total Polymer Processed",
+      value: metrics.totalPolymerProcessed,
+    },
+    {
+      label: "Total Oil/Char Yield %",
+      value: metrics.oilCharYield,
+    },
+    {
+      label: "System Uptime",
+      value: metrics.systemUptime,
+    },
+  ] as const;
   return (
     <WorkspaceChrome>
         <header className="flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/15 bg-white px-4">
           <h1 className="text-sm font-semibold text-carbon-blue">Conversions</h1>
           <span className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-upcycle-orange">
-            {conversionBatches.length}
+            {batches.length}
           </span>
         </header>
 
@@ -50,9 +56,9 @@ export default function ConversionsPage() {
               ))}
             </div>
 
-            <ConversionGrid data={monthlyConversions} />
+            <ConversionGrid data={monthly} />
 
-            <ConversionBatchTable batches={conversionBatches} />
+            <ConversionBatchTable batches={batches} />
           </div>
         </main>
     </WorkspaceChrome>

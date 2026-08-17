@@ -3,9 +3,9 @@ import { resolveRequestRole } from "@/lib/api-auth";
 import { buildProjectSmartDocIdentityPreview } from "@/lib/smartdoc-identity";
 import { canUploadSmartDocs } from "@/lib/permissions";
 import {
-  readSmartDocsForProject,
-  readSmartDocsLibrary,
-} from "@/lib/pipeline-db";
+  readLiveSmartDocsForProject,
+  readLiveSmartDocsLibrary,
+} from "@/lib/prisma-data";
 import { readProjectById } from "@/lib/project-db";
 import { buildProjectDocumentContext } from "@/lib/smartdoc-library-engine";
 import { importProjectSmartDoc } from "@/lib/smartdoc-import";
@@ -109,8 +109,8 @@ export async function GET(
   try {
     const [project, documents, library] = await Promise.all([
       readProjectById(projectId),
-      readSmartDocsForProject(projectId),
-      readSmartDocsLibrary(),
+      readLiveSmartDocsForProject(projectId),
+      readLiveSmartDocsLibrary(),
     ]);
 
     if (!project) {
@@ -205,7 +205,7 @@ export async function POST(
 
     const [project, documents] = await Promise.all([
       readProjectById(projectId),
-      readSmartDocsForProject(projectId),
+      readLiveSmartDocsForProject(projectId),
     ]);
 
     if (!project) {

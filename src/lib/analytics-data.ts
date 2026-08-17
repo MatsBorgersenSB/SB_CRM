@@ -15,6 +15,16 @@ export type AnalyticsDb = {
   feedstockStreams: FeedstockStream[];
 };
 
+/** Production-safe empty analytics — JSON seed ledgers are local/CI only. */
+export const emptyAnalytics: AnalyticsDb = {
+  insights: {
+    systemYieldEfficiency: "—",
+    facilityConversionRate: "—",
+    aiMetadataMatchRate: "—",
+  },
+  feedstockStreams: [],
+};
+
 export const defaultAnalytics: AnalyticsDb = {
   insights: {
     systemYieldEfficiency: "91.8% Average",

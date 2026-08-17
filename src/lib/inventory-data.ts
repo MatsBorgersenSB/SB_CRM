@@ -32,6 +32,17 @@ export type InventoryDb = {
   ledger: InventoryLedgerRow[];
 };
 
+/** Production-safe empty inventory — JSON seed telemetry is local/CI only. */
+export const emptyInventory: InventoryDb = {
+  metrics: {
+    bioOilReserves: { value: "—" },
+    biocharSilos: { value: "—" },
+    unprocessedFeedstock: { value: "—" },
+    globalCapacityUtilized: { value: "—" },
+  },
+  ledger: [],
+};
+
 export const defaultInventory: InventoryDb = {
   metrics: {
     bioOilReserves: { value: "142,400 L", velocity: "+3.4%/hr" },

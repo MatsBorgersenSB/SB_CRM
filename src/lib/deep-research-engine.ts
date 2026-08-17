@@ -659,7 +659,7 @@ function buildTechnologyBriefing(query: string, subject: string): DeepResearchBr
     },
     opportunities: [
       { label: "Paid feasibility product", detail: "Entry before machinery sale" },
-      { label: "Reference project reuse", detail: "Nordic Polymers and Legacy Materials CRM knowledge" },
+      { label: "Reference project reuse", detail: "Existing CRM knowledge and quotation library" },
     ],
     recommendedActions: [
       "Search CRM reference projects for similar feedstock",
@@ -713,9 +713,7 @@ export function buildDeepResearchBriefing(
 }
 
 export const DEEP_RESEARCH_EXAMPLE_QUERIES = [
-  "Deep dive Nordic Polymers",
   "Research PYREG",
-  "Analyze John Smith",
   "Tell me everything about this customer",
   "Deep dive Swedish biochar market",
 ] as const;

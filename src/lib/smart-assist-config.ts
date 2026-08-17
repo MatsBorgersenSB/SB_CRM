@@ -391,7 +391,6 @@ export const SMARTASSIST_CONVERSATION = {
   neverFail: "A partial useful answer is always better than failure.",
   exampleQuestions: [
     "What should I focus on today?",
-    "Deep dive Nordic Polymers",
     "Research PYREG",
     "What is blocking this contract?",
     "Deep dive Swedish biochar market",
@@ -483,9 +482,8 @@ export const SMARTASSIST_DEEP_RESEARCH = {
     "Knowledge navigator",
   ],
   exampleQueries: [
-    "Deep dive Nordic Polymers",
     "Research PYREG",
-    "Analyze John Smith",
+    "What is blocking this contract?",
     "Analyze Norske Skog",
     "Tell me everything about this customer",
     "Research this competitor",

@@ -3,15 +3,18 @@ import { ActivityDetailKnowledge } from "@/components/activities/activity-detail
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import {
-  readActivities,
-  readCompanies,
-  readPipelines,
-  readSmartDocsLibrary,
-  readCommercialPackages,
-  getActivityById,
-} from "@/lib/pipeline-db";
+  getLiveActivityById,
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLiveCompanies,
+  readLivePipelines,
+  readLiveSmartDocsLibrary,
+} from "@/lib/prisma-data";
 import { readAssignableStandardBioUsers } from "@/lib/standard-bio-users-server";
 import { notFound } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function ActivityDetailPage({
   params,
@@ -28,12 +31,12 @@ export default async function ActivityDetailPage({
     commercialPackages,
     assignableUsers,
   ] = await Promise.all([
-    getActivityById(id),
-    readActivities(),
-    readCompanies(),
-    readPipelines(),
-    readSmartDocsLibrary(),
-    readCommercialPackages(),
+    getLiveActivityById(id),
+    readLiveActivities(),
+    readLiveCompanies(),
+    readLivePipelines(),
+    readLiveSmartDocsLibrary(),
+    readLiveCommercialPackages(),
     readAssignableStandardBioUsers(),
   ]);
 

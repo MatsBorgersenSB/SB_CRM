@@ -259,7 +259,7 @@
       "trend": "growing",
       "summary": "Landfill diversion and waste hierarchy regulations drive CAPEX budgets. Highest machinery ticket size.",
       "opportunityCount": 3,
-      "impact": ["Aligns with Legacy Materials and Nordic pipeline", "Paid feasibility entry before machinery sale"]
+      "impact": ["Aligns with municipal waste CAPEX budgets", "Paid feasibility entry before machinery sale"]
     },
     {
       "id": "seg-agri-residue",
@@ -281,7 +281,7 @@
       "trend": "growing",
       "summary": "Industrial sites seeking waste valorization and energy co-generation pathways.",
       "opportunityCount": 1,
-      "impact": ["Reclaim Industries pipeline fit", "Engineering services attach high"]
+      "impact": ["Industrial waste valorization pipeline fit", "Engineering services attach high"]
     }
   ],
   "marketingChannels": [

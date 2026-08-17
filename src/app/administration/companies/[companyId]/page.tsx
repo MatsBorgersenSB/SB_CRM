@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { CompanyMasterDataShell } from "@/components/administration/company-master-data-shell";
 import { getCompanyById } from "@/lib/data/companies";
-import { readCompanies } from "@/lib/pipeline-db";
+import { readLiveCompanies } from "@/lib/prisma-data";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type CompanyMasterDataPageProps = {
   params: Promise<{ companyId: string; id?: string }>;
@@ -23,7 +26,7 @@ export default async function CompanyMasterDataPage({
     notFound();
   }
 
-  const companies = await readCompanies();
+  const companies = await readLiveCompanies();
   const company = await getCompanyById(cleanId, companies);
 
   if (!company) {

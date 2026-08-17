@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 import { CompetitorIntelligenceWorkspaceView } from "@/components/growth-intelligence/competitor-intelligence-workspace";
 import { getCompetitorProfile, listCompetitorIds } from "@/lib/growth-competitive-intelligence-engine";
-import { readCompanies, readPipelines } from "@/lib/pipeline-db";
+import { readLiveCompanies, readLivePipelines } from "@/lib/prisma-data";
 
 type CompetitorIntelligencePageProps = {
   params: Promise<{ companyId: string }>;
 };
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export function generateStaticParams() {
   return listCompetitorIds().map((companyId) => ({ companyId }));
@@ -18,7 +21,10 @@ export default async function CompetitorIntelligencePage({ params }: CompetitorI
     notFound();
   }
 
-  const [companies, pipelines] = await Promise.all([readCompanies(), readPipelines()]);
+  const [companies, pipelines] = await Promise.all([
+    readLiveCompanies(),
+    readLivePipelines(),
+  ]);
 
   return (
     <CompetitorIntelligenceWorkspaceView

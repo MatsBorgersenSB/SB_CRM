@@ -2,18 +2,21 @@ import { WorkspaceArchitectShell } from "@/components/administration/workspace-a
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { buildConfigurationSnapshot } from "@/lib/assisted-configuration-engine";
 import {
-  readActivities,
-  readCommercialPackages,
-  readCompanies,
-  readPipelines,
-} from "@/lib/pipeline-db";
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLiveCompanies,
+  readLivePipelines,
+} from "@/lib/prisma-data";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function WorkspaceArchitectPage() {
   const [companies, pipelines, activities, commercialPackages] = await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
-    readCommercialPackages(),
+    readLiveCompanies(),
+    readLivePipelines(),
+    readLiveActivities(),
+    readLiveCommercialPackages(),
   ]);
 
   const baselineSnapshot = buildConfigurationSnapshot({

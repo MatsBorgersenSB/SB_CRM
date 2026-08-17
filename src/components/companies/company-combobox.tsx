@@ -14,6 +14,8 @@ type CompanyComboboxProps = {
   selectedCompanyId: string | null;
   onSelectCompany: (company: CompanyComboboxOption | null) => void;
   onCreateNewCompany: (typedName: string) => void | Promise<void>;
+  /** Typed name when creating a company that is not yet in the list. */
+  draftName?: string | null;
   /** Called as the user types so a new name can become “create company”. */
   onTypedNameChange?: (name: string) => void;
   /** Show “Create company …” when typed name has no exact match. Default true. */

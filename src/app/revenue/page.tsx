@@ -1,18 +1,21 @@
 import { RevenueIntelligenceChrome } from "@/components/revenue-intelligence/revenue-intelligence-chrome";
 import { RevenueIntelligenceDashboard } from "@/components/revenue-intelligence/revenue-dashboard";
 import {
-  readActivities,
-  readCommercialPackages,
-  readCompanies,
-  readPipelines,
-} from "@/lib/pipeline-db";
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLiveCompanies,
+  readLivePipelines,
+} from "@/lib/prisma-data";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function RevenueIntelligencePage() {
   const [companies, pipelines, activities, commercialPackages] = await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
-    readCommercialPackages(),
+    readLiveCompanies(),
+    readLivePipelines(),
+    readLiveActivities(),
+    readLiveCommercialPackages(),
   ]);
 
   return (

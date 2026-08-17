@@ -1,6 +1,5 @@
 import {
   createCompanyContact,
-  readCompanies,
   updateCompany,
 } from "@/lib/pipeline-db";
 import { createRegistryCompany, loadMappedPrismaCompany } from "@/lib/company-registry";
@@ -16,7 +15,7 @@ import {
   resolveContactListRole,
   suggestContactListRoleFromTitle,
 } from "@/types/contact";
-import type { CompanyIndustry } from "@/types/company";
+import type { Company, CompanyIndustry } from "@/types/company";
 import { resolveCompanyIndustry } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType, COMPANY_TYPE_SELECT_OPTIONS } from "@/types/company-type";
@@ -99,7 +98,7 @@ export async function buildOutlookSenderPrepopulation(input: {
   const signatureName = parseSignaturePersonName(messageBody, email);
   const parsed = parsePersonName(input.displayName ?? signatureName ?? "", email);
   const domain = extractEmailDomain(email);
-  const companies = await readLiveCompanies().catch(() => readCompanies());
+  const companies = await readLiveCompanies().catch(() => [] as Company[]);
 
   const enrichment = parseSignatureIntelligence(messageBody, email);
   const signatureCompany = enrichment.suggestions.find((item) => item.id === "company")?.value;
@@ -150,7 +149,7 @@ export async function addOutlookContact(
   const email = input.email.trim().toLowerCase();
   assertExternalContactEmail(email);
   const domain = extractEmailDomain(email);
-  const companies = await readLiveCompanies().catch(() => readCompanies());
+  const companies = await readLiveCompanies().catch(() => [] as Company[]);
 
   logOutlookImport("ADD-CONTACT REQUEST", {
     email,

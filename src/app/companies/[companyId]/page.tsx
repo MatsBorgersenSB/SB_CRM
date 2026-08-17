@@ -4,10 +4,10 @@ import { Company360Shell } from "@/components/company-360/company-360-shell";
 import { getCompanyById } from "@/lib/data/companies";
 import { pickEntityRouteParam } from "@/lib/entity-route-utils";
 import { readProjects } from "@/lib/project-db";
-import { readInventory } from "@/lib/pipeline-db";
 import {
   readLiveActivities,
   readLiveCommercialPackages,
+  readLiveInventory,
   readLivePortfolio,
 } from "@/lib/prisma-data";
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
@@ -72,7 +72,7 @@ export default async function Company360Page({ params }: Company360PageProps) {
   ] = await Promise.all([
     readLivePortfolio(),
     readLiveActivities(),
-    readInventory(),
+    readLiveInventory(),
     readLiveCommercialPackages(),
     readProjects(),
   ]);

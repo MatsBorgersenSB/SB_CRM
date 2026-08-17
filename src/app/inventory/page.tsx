@@ -1,10 +1,13 @@
 import { InventoryLedgerTable } from "@/components/inventory/inventory-ledger-table";
 import { InventoryMetricCards } from "@/components/inventory/inventory-metric-cards";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
-import { readInventory } from "@/lib/pipeline-db";
+import { readLiveInventory } from "@/lib/prisma-data";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function InventoryPage() {
-  const inventory = await readInventory();
+  const inventory = await readLiveInventory();
 
   const metricCards = [
     {

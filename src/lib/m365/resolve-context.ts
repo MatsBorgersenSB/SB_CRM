@@ -2,10 +2,10 @@ import type { Company, Contact } from "@/types/company";
 import type { Activity } from "@/types/activity";
 import type { PipelineRow } from "@/types/pipeline";
 import { filterActivitiesToLiveEntities } from "@/lib/activity-utils";
-import { readInventory } from "@/lib/pipeline-db";
 import {
   readLiveActivities,
   readLiveCompanies,
+  readLiveInventory,
   readLivePipelines,
 } from "@/lib/prisma-data";
 import { getContactDisplayName } from "@/types/contact";
@@ -15,7 +15,7 @@ export type M365DataContext = {
   companies: Company[];
   pipelines: PipelineRow[];
   activities: Activity[];
-  inventory: Awaited<ReturnType<typeof readInventory>>;
+  inventory: Awaited<ReturnType<typeof readLiveInventory>>;
 };
 
 export async function loadM365DataContext(): Promise<M365DataContext> {
@@ -23,7 +23,7 @@ export async function loadM365DataContext(): Promise<M365DataContext> {
     readLiveCompanies(),
     readLivePipelines(),
     readLiveActivities(),
-    readInventory(),
+    readLiveInventory(),
   ]);
 
   return {

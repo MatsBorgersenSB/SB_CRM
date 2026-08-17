@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { buildDealCommercialBaselineView } from "@/lib/commercial-baseline-engine";
 import {
-  readActivities,
-  readCommercialPackages,
-  readCompanies,
-  readPipelines,
-} from "@/lib/pipeline-db";
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLiveCompanies,
+  readLivePipelines,
+} from "@/lib/prisma-data";
 
 export async function GET(
   _request: Request,
@@ -14,10 +14,10 @@ export async function GET(
   const { id } = await params;
 
   const [pipelines, packages, activities, companies] = await Promise.all([
-    readPipelines(),
-    readCommercialPackages(),
-    readActivities(),
-    readCompanies(),
+    readLivePipelines(),
+    readLiveCommercialPackages(),
+    readLiveActivities(),
+    readLiveCompanies(),
   ]);
 
   const pipeline = pipelines.find((row) => row.id === id);

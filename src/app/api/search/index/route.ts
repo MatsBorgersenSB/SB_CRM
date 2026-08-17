@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildUniversalSearchIndex } from "@/lib/universal-search-index";
-import { readLiveFocusContext } from "@/lib/prisma-data";
-import { readInventory, readResearchReports } from "@/lib/pipeline-db";
+import { readLiveFocusContext, readLiveInventory, readLiveResearchReports } from "@/lib/prisma-data";
 
 /**
  * Global Search / Ask index — same live portfolio as Contacts / Company 360.
@@ -10,8 +9,8 @@ import { readInventory, readResearchReports } from "@/lib/pipeline-db";
 export async function GET() {
   const [focus, inventory, researchReports] = await Promise.all([
     readLiveFocusContext(),
-    readInventory(),
-    readResearchReports(),
+    readLiveInventory(),
+    readLiveResearchReports(),
   ]);
 
   const index = buildUniversalSearchIndex(
