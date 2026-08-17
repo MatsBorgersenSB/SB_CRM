@@ -11,7 +11,8 @@ export type RelationshipIntakeConfidence = "high" | "medium" | "low" | "none";
 
 export type RelationshipIntakeResolutionKind =
   | "company_match"
-  | "new_company";
+  | "new_company"
+  | "internal_colleague";
 
 export type RelationshipIntakeLinkOption = {
   id: string;
@@ -40,6 +41,14 @@ export type RelationshipIntakeProposal = {
   opportunityOptions: RelationshipIntakeLinkOption[];
   projectOptions: RelationshipIntakeLinkOption[];
   companyOptions: OutlookCompanyOption[];
+  colleague?: {
+    email: string;
+    knownUser: boolean;
+    displayName: string;
+    userId: string | null;
+    team: string | null;
+    role: string | null;
+  } | null;
 };
 
 export type RelationshipIntakeApproveInput = {

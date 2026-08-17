@@ -14,6 +14,7 @@ import { EMPLOYMENT_STATUSES } from "@/types/contact-lifecycle";
 import { CountryContinentFields } from "@/components/companies/country-continent-fields";
 import { findCountryEntry } from "@/lib/geo/country-continent";
 import { ContactRoleSelect } from "@/components/ui/contact-role-select";
+import { isInternalEmail } from "@/lib/domain-rules";
 
 export const emptyContactForm = (): CreateContactInput => ({
   FirstName: "",
@@ -285,6 +286,11 @@ export function ContactFormFields({
               onChange={(event) => onChange({ ...form, Email: event.target.value })}
               className={`${FIELD_CLASS} font-mono`}
             />
+            {isInternalEmail(form.Email) ? (
+              <p className="mt-1 text-[10px] text-thermal-red">
+                Standard Bio colleagues are users, not contacts. Add them in Users & Access.
+              </p>
+            ) : null}
           </label>
           <label className="block">
             <span className={LABEL_CLASS}>Direct Phone</span>
@@ -621,5 +627,10 @@ export function ContactFormFields({
 }
 
 export function isContactFormValid(form: CreateContactInput): boolean {
-  return Boolean(form.FirstName.trim() && form.LastName.trim() && form.Email.trim());
+  return Boolean(
+    form.FirstName.trim() &&
+      form.LastName.trim() &&
+      form.Email.trim() &&
+      !isInternalEmail(form.Email),
+  );
 }

@@ -85,6 +85,14 @@ Not Allowed:
 
 AI suggestions require user approval.
 
+### Internal colleagues are not contacts
+
+Standard Bio staff (`@standard.bio` and other internal domains) are **users**, not Contact Registry people.
+
+- Outlook Add Contact and Relationship Intake shall refuse internal addresses.
+- Every contact-create path (web, API, website import, JSON fallback) shall refuse the same addresses.
+- If they need SmartCRM access, add them in Users & Access. Never invent a contact for a colleague.
+
 ## Business Goals
 
 ### BG-01

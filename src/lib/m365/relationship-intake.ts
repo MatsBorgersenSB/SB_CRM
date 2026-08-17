@@ -4,6 +4,7 @@
  */
 
 import { addOutlookContact, buildOutlookSenderPrepopulation } from "@/lib/m365/outlook-add-contact";
+import { assertExternalContactEmail } from "@/lib/internal-colleague";
 import { setConversationLinksForContact } from "@/lib/email-intelligence-data";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
@@ -125,6 +126,39 @@ export async function buildRelationshipIntakeProposal(input: {
   messageBody?: string;
 }): Promise<RelationshipIntakeProposal> {
   const prepopulation = await buildOutlookSenderPrepopulation(input);
+
+  if (prepopulation.colleague) {
+    const colleague = prepopulation.colleague;
+    return {
+      email: prepopulation.email,
+      displayName: colleague.knownUser
+        ? colleague.displayName
+        : prepopulation.displayName,
+      firstName: prepopulation.firstName,
+      lastName: prepopulation.lastName,
+      domain: prepopulation.domain,
+      resolutionKind: "internal_colleague",
+      confidence: "high",
+      companyResolved: false,
+      companyId: null,
+      companyName: "",
+      companyHint: "",
+      decisionQuestion: colleague.knownUser
+        ? `${colleague.displayName} is a Standard Bio colleague — a SmartCRM user, not a contact.`
+        : "This Standard Bio address is a colleague, not a customer contact.",
+      decisionImpact: colleague.knownUser
+        ? "They already have a user record. Do not add them to the Contact Registry."
+        : "If they need SmartCRM access, add them in Users & Access. Never as a contact.",
+      requiresCompanyType: false,
+      requiresIndustry: false,
+      enrichment: { suggestions: [] },
+      opportunityOptions: [],
+      projectOptions: [],
+      companyOptions: [],
+      colleague,
+    };
+  }
+
   const personal = domainIsPersonal(prepopulation.domain);
 
   let confidence: RelationshipIntakeConfidence = "none";
@@ -172,6 +206,7 @@ export async function buildRelationshipIntakeProposal(input: {
     opportunityOptions,
     projectOptions,
     companyOptions: prepopulation.companyOptions,
+    colleague: null,
   };
 }
 
@@ -181,6 +216,7 @@ export async function buildRelationshipIntakeProposal(input: {
 export async function approveRelationshipIntake(
   input: RelationshipIntakeApproveInput,
 ): Promise<RelationshipIntakeApproveResult> {
+  assertExternalContactEmail(input.email);
   const created = await addOutlookContact({
     email: input.email,
     firstName: input.firstName,

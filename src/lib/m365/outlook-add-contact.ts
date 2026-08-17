@@ -35,6 +35,10 @@ import {
   titleForNewCompanyCreation,
 } from "@/lib/m365/company-resolution";
 import { logOutlookImport } from "@/lib/m365/outlook-import-diagnostics";
+import {
+  assertExternalContactEmail,
+  resolveInternalColleague,
+} from "@/lib/internal-colleague";
 
 export type { OutlookSenderPrepopulation } from "@/lib/m365/outlook-sender-types";
 
@@ -118,6 +122,7 @@ export async function buildOutlookSenderPrepopulation(input: {
   });
 
   const companyDisplay = buildOutlookCompanyDisplay(matched, signatureCompany, domain);
+  const colleague = await resolveInternalColleague(email);
 
   const prepopulation: OutlookSenderPrepopulation = {
     email,
@@ -125,12 +130,13 @@ export async function buildOutlookSenderPrepopulation(input: {
     firstName: parsed.firstName,
     lastName: parsed.lastName,
     domain,
-    companyResolved: companyDisplay.companyResolved,
-    companyId: companyDisplay.companyId,
-    companyName: companyDisplay.companyName,
-    companyHint: companyDisplay.companyHint,
-    enrichment: { suggestions: filteredSuggestions },
-    companyOptions: listOutlookCompanyOptions(companies),
+    companyResolved: colleague ? false : companyDisplay.companyResolved,
+    companyId: colleague ? null : companyDisplay.companyId,
+    companyName: colleague ? "" : companyDisplay.companyName,
+    companyHint: colleague ? "" : companyDisplay.companyHint,
+    enrichment: { suggestions: colleague ? [] : filteredSuggestions },
+    companyOptions: colleague ? [] : listOutlookCompanyOptions(companies),
+    colleague,
   };
 
   logOutlookImport("SENDER-CONTEXT RESPONSE", prepopulation);
@@ -142,6 +148,7 @@ export async function addOutlookContact(
   input: OutlookAddContactInput,
 ): Promise<OutlookAddContactResult> {
   const email = input.email.trim().toLowerCase();
+  assertExternalContactEmail(email);
   const domain = extractEmailDomain(email);
   const companies = await readLiveCompanies().catch(() => readCompanies());
 

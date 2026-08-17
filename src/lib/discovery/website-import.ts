@@ -18,6 +18,7 @@ import {
 } from "@/lib/pipeline-db";
 import { resolveAccountOwner } from "@/lib/company-owner";
 import { emailsIncludeAddress } from "@/lib/entity-route-utils";
+import { isInternalEmail } from "@/lib/domain-rules";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import { allocateNextCompanyCode, companyDetailInclude } from "@/lib/data/companies";
 import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
@@ -279,6 +280,10 @@ async function upsertCompanyFromDiscoveryPrisma(
         };
 
         for (const discovered of selectedContacts) {
+          if (isInternalEmail(discovered.email)) {
+            contactsSkipped += 1;
+            continue;
+          }
           const prior = contactAlreadyExists(existingContacts, discovered);
           if (prior) {
             const jobTitle = discovered.jobTitle.trim();
@@ -304,9 +309,12 @@ async function upsertCompanyFromDiscoveryPrisma(
       } else {
         created = true;
         const code = await allocateNextCompanyCode(tx);
-        const contactCreates = selectedContacts.map((discovered) =>
-          buildContactCreateData(discovered),
-        );
+        contactsSkipped += selectedContacts.filter((discovered) =>
+          isInternalEmail(discovered.email),
+        ).length;
+        const contactCreates = selectedContacts
+          .filter((discovered) => !isInternalEmail(discovered.email))
+          .map((discovered) => buildContactCreateData(discovered));
         const createdCompany = await tx.company.create({
           data: {
             code,
@@ -367,6 +375,10 @@ async function importContactPrisma(
   const prismaCompany = await findPrismaCompanyByRouteKey(companyRouteId);
   if (!prismaCompany) {
     return { status: "skipped", reason: "Company not found" };
+  }
+
+  if (isInternalEmail(discovered.email)) {
+    return { status: "skipped", reason: "Internal colleague — not a CRM contact" };
   }
 
   const contacts = await withPrismaRetry((prisma) =>
@@ -515,6 +527,9 @@ async function importContactJson(
   }
 
   const email = discovered.email.trim().toLowerCase();
+  if (isInternalEmail(email)) {
+    return { status: "skipped", reason: "Internal colleague — not a CRM contact" };
+  }
   const existing = company.contacts.find(
     (contact) =>
       contact.Email.trim().toLowerCase() === email ||

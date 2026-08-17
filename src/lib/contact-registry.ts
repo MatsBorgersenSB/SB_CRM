@@ -8,6 +8,7 @@ import {
   stableNumericId,
   toContactTrackingId,
 } from "@/lib/prisma-mappers";
+import { assertExternalContactEmail } from "@/lib/internal-colleague";
 import { readCompanies } from "@/lib/pipeline-db";
 import { buildContactTitle } from "@/types/contact";
 import type {
@@ -161,6 +162,7 @@ export async function getRegistryContactById(
 export async function createRegistryContact(
   input: CreateContactInput,
 ): Promise<Contact | null> {
+  assertExternalContactEmail(input.Email);
   if (!(await prismaRegistryAvailable())) return null;
 
   const companyRef =

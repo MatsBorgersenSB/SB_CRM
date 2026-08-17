@@ -23,6 +23,15 @@ export type OutlookSenderPrepopulation = {
   enrichment: SignatureEnrichment;
   /** Existing companies so the user can link a contact instead of creating a duplicate. */
   companyOptions: OutlookCompanyOption[];
+  /** Present when the address is Standard Bio (or another internal domain). */
+  colleague?: {
+    email: string;
+    knownUser: boolean;
+    displayName: string;
+    userId: string | null;
+    team: string | null;
+    role: string | null;
+  } | null;
 };
 
 export type OutlookAddContactInput = {

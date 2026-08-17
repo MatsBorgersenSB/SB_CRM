@@ -3,6 +3,7 @@ import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import type { IListRepository } from "@/services/sharepoint/client/types";
 import type { Contact, CreateContactInput, UpdateContactInput } from "@/types/contact";
 import { contactFromStoredRecord } from "@/services/sharepoint/mappers/contact.mapper";
+import { assertExternalContactEmail } from "@/lib/internal-colleague";
 import {
   createRegistryContact,
   deleteRegistryContact,
@@ -51,6 +52,7 @@ export class LocalContactsRepository
   }
 
   async create(input: CreateContactInput): Promise<Contact> {
+    assertExternalContactEmail(input.Email);
     const created = await createRegistryContact(input);
     if (created) return created;
 

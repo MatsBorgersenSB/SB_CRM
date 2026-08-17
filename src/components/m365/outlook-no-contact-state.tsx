@@ -284,6 +284,48 @@ export function OutlookNoContactState({
           </>
         ) : null}
 
+        {phase === "propose" && proposal?.resolutionKind === "internal_colleague" ? (
+          <>
+            <p className="mt-2 text-sm font-semibold text-carbon-blue">Standard Bio colleague</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+              {proposal.decisionQuestion}
+            </p>
+            <p className="mt-3 text-[12px] font-medium text-carbon-blue">
+              {proposal.colleague?.displayName || proposal.displayName || email}
+            </p>
+            <p className="mt-0.5 text-[10px] text-carbon-blue/40">{proposal.email}</p>
+            {proposal.colleague?.knownUser ? (
+              <p className="mt-3 text-[11px] text-carbon-blue/70">
+                Already a SmartCRM user
+                {proposal.colleague.team ? ` · ${proposal.colleague.team}` : ""}
+                {proposal.colleague.userId ? ` · ${proposal.colleague.userId}` : ""}
+              </p>
+            ) : (
+              <p className="mt-3 text-[11px] text-carbon-blue/70">
+                Not in Users & Access yet.
+              </p>
+            )}
+            <p className="mt-2 text-[10px] leading-relaxed text-carbon-blue/45">
+              {proposal.decisionImpact}
+            </p>
+            <a
+              href={buildSmartCrmUrl("/administration/users-access")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+            >
+              Open Users & Access
+            </a>
+            <button
+              type="button"
+              onClick={onContactCreated}
+              className="mt-3 border border-carbon-blue/15 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+            >
+              Continue in Outlook
+            </button>
+          </>
+        ) : null}
+
         {phase === "dismissed" ? (
           <>
             <p className="mt-2 text-sm font-semibold text-carbon-blue">Left unchanged</p>
@@ -350,7 +392,9 @@ export function OutlookNoContactState({
           </>
         ) : null}
 
-        {phase === "propose" && proposal ? (
+        {phase === "propose" &&
+        proposal &&
+        proposal.resolutionKind !== "internal_colleague" ? (
           <>
             <p className="mt-2 text-sm font-semibold text-carbon-blue">
               {proposal.companyResolved ? "Add contact?" : "New relationship"}
