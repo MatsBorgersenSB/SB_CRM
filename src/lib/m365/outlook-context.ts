@@ -4,6 +4,7 @@
 
 import { whenOfficeReady } from "@/lib/outlook-office";
 import { resolvePublicAppOrigin } from "@/lib/smartcrm-origin";
+import { buildOutlookReadDeeplink } from "@/lib/m365/outlook-deeplink";
 
 export type OutlookSenderDetails = {
   email: string;
@@ -88,6 +89,8 @@ export type OutlookOpenMessageSeed = {
   /** True when the open item is an outbound draft / send we are composing. */
   isOutbound?: boolean;
   recipientEmails?: string[];
+  bodyPreview?: string;
+  webLink?: string;
 };
 
 export type OutlookComposeRecipient = {
@@ -331,6 +334,9 @@ export async function resolveOutlookOpenMessageSeed(options?: {
       recipientEmails.unshift(options.primaryRecipientEmail.trim().toLowerCase());
     }
 
+    const bodyPreview = await readOutlookItemBodyPreview(item, office);
+    const webLink = buildOutlookReadDeeplink(externalMessageId) ?? undefined;
+
     return {
       conversationId,
       externalMessageId,
@@ -341,14 +347,39 @@ export async function resolveOutlookOpenMessageSeed(options?: {
         : created.toISOString(),
       isOutbound,
       recipientEmails,
+      bodyPreview,
+      webLink,
     };
   } catch {
     return null;
   }
 }
 
+function readOutlookItemBodyPreview(
+  item: Office.MailboxItem,
+  office: NonNullable<typeof Office>,
+): Promise<string | undefined> {
+  if (!item.body?.getAsync) return Promise.resolve(undefined);
+  const coercion = office.CoercionType?.Text ?? "text";
+  return new Promise((resolve) => {
+    try {
+      item.body!.getAsync(coercion, (result) => {
+        if (!isOfficeAsyncSuccess(result.status) || !result.value) {
+          resolve(undefined);
+          return;
+        }
+        const text = result.value.replace(/\s+/g, " ").trim().slice(0, 2000);
+        resolve(text || undefined);
+      });
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
+
 /**
  * Apply SmartCRM categories on the open Outlook item (client-side fallback).
+ * Never call masterCategories — that requires ReadWriteMailbox; this add-in is ReadWriteItem.
  */
 export async function applyOutlookItemSmartCrmCategories(input: {
   opportunityName?: string;
@@ -358,54 +389,45 @@ export async function applyOutlookItemSmartCrmCategories(input: {
   const office = await whenOfficeReady();
   if (!office) return false;
 
-  const item = office.context.mailbox?.item as
-    | {
-        categories?: {
-          addAsync: (
-            categories: string[],
-            callback: (result: { status: Office.AsyncResultStatus; error?: { message?: string } }) => void,
-          ) => void;
-        };
+  try {
+    const item = office.context.mailbox?.item as
+      | {
+          categories?: {
+            addAsync: (
+              categories: string[],
+              callback: (result: {
+                status: Office.AsyncResultStatus;
+                error?: { message?: string };
+              }) => void,
+            ) => void;
+          };
+        }
+      | undefined;
+    if (!item?.categories?.addAsync) return false;
+
+    const master = "SmartCRM";
+    const opportunityName = input.opportunityName?.trim();
+    const projectName = input.projectName?.trim();
+    const deal = opportunityName
+      ? `${master} / ${opportunityName.replace(/[^\w\s\-./]/g, "").trim().slice(0, 80) || "Opportunity"}`
+      : projectName
+        ? `${master} / Project · ${projectName.replace(/[^\w\s\-./]/g, "").trim().slice(0, 70) || "Project"}`
+        : null;
+
+    const toAdd = [master, ...(deal ? [deal] : [])];
+
+    return await new Promise((resolve) => {
+      try {
+        item.categories!.addAsync(toAdd, (result) => {
+          resolve(isOfficeAsyncSuccess(result.status));
+        });
+      } catch {
+        resolve(false);
       }
-    | undefined;
-  const mailbox = office.context.mailbox as
-    | {
-        masterCategories?: {
-          addAsync: (
-            categories: Array<{ displayName: string; color?: string }>,
-            callback: (result: { status: Office.AsyncResultStatus }) => void,
-          ) => void;
-        };
-      }
-    | undefined;
-
-  if (!item?.categories?.addAsync) return false;
-
-  const master = "SmartCRM";
-  const opportunityName = input.opportunityName?.trim();
-  const projectName = input.projectName?.trim();
-  const deal = opportunityName
-    ? `${master} / ${opportunityName.replace(/[^\w\s\-./]/g, "").trim().slice(0, 80) || "Opportunity"}`
-    : projectName
-      ? `${master} / Project · ${projectName.replace(/[^\w\s\-./]/g, "").trim().slice(0, 70) || "Project"}`
-      : null;
-
-  if (mailbox?.masterCategories?.addAsync) {
-    await new Promise<void>((resolve) => {
-      mailbox.masterCategories!.addAsync(
-        [{ displayName: master, color: "Preset0" }],
-        () => resolve(),
-      );
     });
+  } catch {
+    return false;
   }
-
-  const toAdd = [master, ...(deal ? [deal] : [])];
-
-  return await new Promise((resolve) => {
-    item.categories!.addAsync(toAdd, (result) => {
-      resolve(isOfficeAsyncSuccess(result.status));
-    });
-  });
 }
 
 export function resolveDevEmail(searchParams: URLSearchParams): string | null {

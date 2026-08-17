@@ -287,6 +287,10 @@ async function upsertSeededOutlookMessage(
       conversationId,
       contactId: contact.id,
       ...(seed.subject?.trim() ? { subject: seed.subject.trim() } : {}),
+      ...(seed.bodyPreview?.trim()
+        ? { bodyPreview: seed.bodyPreview.trim().slice(0, 2000) }
+        : {}),
+      ...(seed.webLink?.trim() ? { webLink: seed.webLink.trim() } : {}),
       ...(senderEmail ? { senderEmail } : {}),
       ...(recipientEmails.length > 0 ? { recipientEmails } : {}),
       isOutbound,

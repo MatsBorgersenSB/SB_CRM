@@ -128,6 +128,8 @@ export function OutlookMailTagPanel({
             senderEmail: seed.senderEmail || email,
             recipientEmails: seed.recipientEmails,
             sentAt: seed.sentAt,
+            bodyPreview: seed.bodyPreview,
+            webLink: seed.webLink,
             isOutbound: seed.isOutbound === true,
           },
         }),
@@ -140,11 +142,16 @@ export function OutlookMailTagPanel({
         throw new Error(payload.detail || payload.error || "Could not save this mail in SmartCRM");
       }
 
-      const categoryOk = await applyOutlookItemSmartCrmCategories({});
+      let categoryOk = false;
+      try {
+        categoryOk = await applyOutlookItemSmartCrmCategories({});
+      } catch {
+        categoryOk = false;
+      }
       setStatus(
         categoryOk
           ? `Saved on ${context.companyName} in SmartCRM and marked in Outlook.`
-          : `Saved on ${context.companyName} in SmartCRM. Outlook could not apply the SmartCRM category on this item — reopen the contact to see the mail.`,
+          : `Saved on ${context.companyName} in SmartCRM. Open the contact to read the mail.`,
       );
     } catch (markError) {
       setError(markError instanceof Error ? markError.message : "Could not mark mail");
@@ -176,6 +183,8 @@ export function OutlookMailTagPanel({
             senderEmail: seed.senderEmail || email,
             recipientEmails: seed.recipientEmails,
             sentAt: seed.sentAt,
+            bodyPreview: seed.bodyPreview,
+            webLink: seed.webLink,
             isOutbound: seed.isOutbound === true,
           },
         }),
@@ -191,11 +200,15 @@ export function OutlookMailTagPanel({
       }
 
       const selectedName = options.find((row) => row.id === selectedId)?.name;
-      await applyOutlookItemSmartCrmCategories(
-        linkKind === "project"
-          ? { projectName: payload.projectName || selectedName }
-          : { opportunityName: payload.opportunityName || selectedName },
-      );
+      try {
+        await applyOutlookItemSmartCrmCategories(
+          linkKind === "project"
+            ? { projectName: payload.projectName || selectedName }
+            : { opportunityName: payload.opportunityName || selectedName },
+        );
+      } catch {
+        // Category is optional — mail is already in SmartCRM.
+      }
 
       setStatus(
         linkKind === "project"
