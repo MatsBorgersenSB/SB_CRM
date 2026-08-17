@@ -163,6 +163,142 @@ export type SharePointUploadedFile = {
   name: string;
 };
 
+/** Classification written onto the SharePoint document library item. */
+export type SmartDocSharePointFields = {
+  DocCategory: string;
+  DocType: string;
+};
+
+const SMARTDOC_LIBRARY_COLUMNS: Array<{
+  name: keyof SmartDocSharePointFields;
+  displayName: string;
+}> = [
+  { name: "DocCategory", displayName: "Doc Category" },
+  { name: "DocType", displayName: "Doc Type" },
+];
+
+const ensuredSmartDocColumns = new Set<string>();
+
+type GraphColumn = { name?: string; displayName?: string };
+
+async function listDriveColumns(
+  accessToken: string,
+  siteId: string,
+): Promise<GraphColumn[]> {
+  const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/columns?$select=name,displayName&$top=200`;
+  const res = await fetch(endpoint, {
+    method: "GET",
+    headers: authHeaders(accessToken),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Graph list columns failed (${res.status}): ${err}`);
+  }
+  const body = (await res.json()) as { value?: GraphColumn[] };
+  return body.value ?? [];
+}
+
+async function createDriveTextColumn(
+  accessToken: string,
+  siteId: string,
+  name: string,
+  displayName: string,
+): Promise<void> {
+  const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/columns`;
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({
+      name,
+      displayName,
+      text: { allowMultipleLines: false, maxLength: 255 },
+    }),
+  });
+  if (res.ok || res.status === 409) return;
+  const err = await res.text();
+  if (/already exists|nameAlreadyExists/i.test(err)) return;
+  throw new Error(`Graph create column ${name} failed (${res.status}): ${err}`);
+}
+
+async function ensureSmartDocLibraryColumns(
+  accessToken: string,
+  siteId: string,
+): Promise<void> {
+  if (ensuredSmartDocColumns.has(siteId)) return;
+
+  const existing = await listDriveColumns(accessToken, siteId);
+  const names = new Set(
+    existing
+      .map((column) => column.name?.trim())
+      .filter((name): name is string => Boolean(name)),
+  );
+
+  for (const column of SMARTDOC_LIBRARY_COLUMNS) {
+    if (names.has(column.name)) continue;
+    await createDriveTextColumn(
+      accessToken,
+      siteId,
+      column.name,
+      column.displayName,
+    );
+  }
+
+  ensuredSmartDocColumns.add(siteId);
+}
+
+async function patchDriveItemFields(
+  accessToken: string,
+  siteId: string,
+  itemId: string,
+  fields: SmartDocSharePointFields,
+): Promise<void> {
+  const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/items/${encodeURIComponent(itemId)}/listItem/fields`;
+  const res = await fetch(endpoint, {
+    method: "PATCH",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({
+      DocCategory: fields.DocCategory,
+      DocType: fields.DocType,
+    }),
+  });
+  if (res.ok) return;
+  const err = await res.text();
+  throw new Error(`Graph field patch failed (${res.status}): ${err}`);
+}
+
+/**
+ * Write SmartDoc Doc Category and Doc Type onto the SharePoint library item
+ * so views and filters inherit the confirmed classification.
+ */
+export async function applySmartDocFieldsToDriveItem(input: {
+  accessToken: string;
+  siteId: string;
+  itemId: string;
+  fields: SmartDocSharePointFields;
+}): Promise<void> {
+  const category = input.fields.DocCategory.trim();
+  const type = input.fields.DocType.trim();
+  if (!category || !type) return;
+
+  await ensureSmartDocLibraryColumns(input.accessToken, input.siteId);
+
+  try {
+    await patchDriveItemFields(input.accessToken, input.siteId, input.itemId, {
+      DocCategory: category,
+      DocType: type,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const retryable = /404|not found|listItem/i.test(message);
+    if (!retryable) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await patchDriveItemFields(input.accessToken, input.siteId, input.itemId, {
+      DocCategory: category,
+      DocType: type,
+    });
+  }
+}
+
 /**
  * Upload (or replace) a file into an existing drive folder by folder item id.
  * SharePoint Online remains the document source of truth.
@@ -174,6 +310,7 @@ export async function uploadFileToSharePointFolder(input: {
   fileName: string;
   contentType?: string;
   bytes: ArrayBuffer | Uint8Array | Buffer;
+  fields?: SmartDocSharePointFields;
 }): Promise<SharePointUploadedFile> {
   const { accessToken, siteId, folderId } = input;
   if (!accessToken?.trim()) throw new Error("Graph access token is required");
@@ -210,6 +347,22 @@ export async function uploadFileToSharePointFolder(input: {
   const item = (await res.json()) as DriveItem & { id?: string; webUrl?: string };
   if (!item.id || !item.webUrl) {
     throw new Error("Graph upload returned an incomplete drive item");
+  }
+
+  if (input.fields) {
+    try {
+      await applySmartDocFieldsToDriveItem({
+        accessToken,
+        siteId,
+        itemId: item.id,
+        fields: input.fields,
+      });
+    } catch (error) {
+      console.warn(
+        "[SharePoint] File uploaded but Doc Category / Doc Type were not written:",
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   return {

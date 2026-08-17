@@ -126,6 +126,10 @@ export async function importOpportunitySmartDoc(input: {
             fileName,
             contentType: input.file.mimeType || "application/octet-stream",
             bytes: input.file.bytes,
+            fields: {
+              DocCategory: libraryRecord.DocCategory,
+              DocType: libraryRecord.DocType,
+            },
           });
 
           sharepointItemId = uploaded.itemId;
@@ -245,6 +249,10 @@ export async function importCompanySmartDoc(input: {
           fileName,
           contentType: input.file.mimeType || "application/octet-stream",
           bytes: input.file.bytes,
+          fields: {
+            DocCategory: libraryRecord.DocCategory,
+            DocType: libraryRecord.DocType,
+          },
         });
         sharepointItemId = uploaded.itemId;
         sharepointWebUrl = uploaded.webUrl;
@@ -378,6 +386,10 @@ export async function importProjectSmartDoc(input: {
           fileName,
           contentType: input.file.mimeType || "application/octet-stream",
           bytes: input.file.bytes,
+          fields: {
+            DocCategory: libraryRecord.DocCategory,
+            DocType: libraryRecord.DocType,
+          },
         });
         sharepointItemId = uploaded.itemId;
         sharepointWebUrl = uploaded.webUrl;

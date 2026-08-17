@@ -120,6 +120,71 @@ function relatedObjectForDeal(
   return { label: dealId };
 }
 
+function relatedObjectForLibraryRecord(
+  record: SmartDocLibraryRecord,
+  pipelines: PipelineRow[],
+  companies: Company[],
+): { label: string; href?: string } {
+  if (isProjectOwnedSmartDoc(record)) {
+    return {
+      label: record.DealName || "Project",
+      href: record.LinkedProjectId
+        ? `${project360Href(record.LinkedProjectId, { view: "actions" })}&action=documents`
+        : undefined,
+    };
+  }
+  if (isCompanyOwnedSmartDoc(record)) {
+    return {
+      label: record.ClientName || "Company",
+      href: record.OwnerCompanyId
+        ? company360Href(record.OwnerCompanyId, "documents")
+        : undefined,
+    };
+  }
+  return relatedObjectForDeal(record.DealId ?? "", pipelines, companies);
+}
+
+function workspaceDocumentRowFromLibraryRecord(
+  record: SmartDocLibraryRecord,
+  pipelines: PipelineRow[],
+  companies: Company[],
+): WorkspaceDocumentRow {
+  const companyOwned = isCompanyOwnedSmartDoc(record);
+  const projectOwned = isProjectOwnedSmartDoc(record);
+  const related = relatedObjectForLibraryRecord(record, pipelines, companies);
+  const origin = normalizeSmartDocOrigin(record.Origin);
+
+  return {
+    id: record.SmartDocID,
+    name: record.DocumentName || record.FileLeafRef,
+    docType: record.DocType,
+    docCategory: record.DocCategory,
+    origin,
+    originLabel: SMARTDOC_ORIGIN_LABELS[origin],
+    counterparty: record.Counterparty,
+    version: record.Revision ? `Rev ${record.Revision}` : "—",
+    status: projectOwned
+      ? "Project"
+      : companyOwned
+        ? "Company"
+        : record.DocumentSetID
+          ? `In ${record.DocumentSetID}`
+          : "Library",
+    statusKind: projectOwned
+      ? "library"
+      : companyOwned
+        ? "company"
+        : record.DocumentSetID
+          ? "in_set"
+          : "library",
+    relatedObjectLabel: related.label,
+    relatedObjectHref: related.href,
+    modifiedLabel: formatModifiedDate(record.CreatedAt),
+    modifiedAt: record.CreatedAt,
+    href: documentHref(record.SmartDocID),
+  };
+}
+
 function recordMatchesCompanyContext(
   record: SmartDocLibraryRecord,
   context: WorkspaceDocumentsContext,
@@ -176,59 +241,7 @@ export function buildWorkspaceDocumentRows(
     if (!recordMatchesCompanyContext(record, context, pipelineSet)) continue;
     if (seen.has(record.SmartDocID)) continue;
     seen.add(record.SmartDocID);
-
-    const companyOwned = isCompanyOwnedSmartDoc(record);
-    const projectOwned = isProjectOwnedSmartDoc(record);
-    const related = projectOwned
-      ? {
-          label: record.DealName || context.projectName || "Project",
-          href: context.projectId
-            ? `${project360Href(context.projectId, { view: "actions" })}&action=documents`
-            : record.LinkedProjectId
-              ? `${project360Href(record.LinkedProjectId, { view: "actions" })}&action=documents`
-              : undefined,
-        }
-      : companyOwned
-        ? {
-            label: record.ClientName || context.companyName || "Company",
-            href: context.companyId
-              ? company360Href(context.companyId, "documents")
-              : record.OwnerCompanyId
-                ? company360Href(record.OwnerCompanyId, "documents")
-                : undefined,
-          }
-        : relatedObjectForDeal(record.DealId ?? "", pipelines, companies);
-
-    const origin = normalizeSmartDocOrigin(record.Origin);
-    rows.push({
-      id: record.SmartDocID,
-      name: record.DocumentName || record.FileLeafRef,
-      docType: record.DocType,
-      docCategory: record.DocCategory,
-      origin,
-      originLabel: SMARTDOC_ORIGIN_LABELS[origin],
-      counterparty: record.Counterparty,
-      version: record.Revision ? `Rev ${record.Revision}` : "—",
-      status: projectOwned
-        ? "Project"
-        : companyOwned
-          ? "Company"
-          : record.DocumentSetID
-            ? `In ${record.DocumentSetID}`
-            : "Library",
-      statusKind: projectOwned
-        ? "library"
-        : companyOwned
-          ? "company"
-          : record.DocumentSetID
-            ? "in_set"
-            : "library",
-      relatedObjectLabel: related.label,
-      relatedObjectHref: related.href,
-      modifiedLabel: formatModifiedDate(record.CreatedAt),
-      modifiedAt: record.CreatedAt,
-      href: documentHref(record.SmartDocID),
-    });
+    rows.push(workspaceDocumentRowFromLibraryRecord(record, pipelines, companies));
   }
 
   if (context.scope === "contact" && context.contactId) {
@@ -270,6 +283,26 @@ export function buildWorkspaceDocumentRows(
         });
       }
     }
+  }
+
+  return rows.sort(
+    (a, b) => new Date(b.modifiedAt || 0).getTime() - new Date(a.modifiedAt || 0).getTime(),
+  );
+}
+
+/** Organizational SmartDocs home — every library record, no workspace filter. */
+export function buildAllWorkspaceDocumentRows(
+  library: SmartDocLibraryRecord[],
+  pipelines: PipelineRow[],
+  companies: Company[],
+): WorkspaceDocumentRow[] {
+  const rows: WorkspaceDocumentRow[] = [];
+  const seen = new Set<string>();
+
+  for (const record of library) {
+    if (seen.has(record.SmartDocID)) continue;
+    seen.add(record.SmartDocID);
+    rows.push(workspaceDocumentRowFromLibraryRecord(record, pipelines, companies));
   }
 
   return rows.sort(
