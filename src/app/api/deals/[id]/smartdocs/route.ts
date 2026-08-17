@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestRole } from "@/lib/api-auth";
+import { resolveRequestRole } from "@/lib/api-auth";
 import { buildDealDocumentContext } from "@/lib/deal-document-context";
 import { buildSmartDocIdentityPreview } from "@/lib/smartdoc-identity";
 import { canUploadSmartDocs } from "@/lib/permissions";
@@ -153,7 +153,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const role = getRequestRole(request);
+  const role = await resolveRequestRole(request);
 
   if (!canUploadSmartDocs(role)) {
     return sharePointErrorResponse(

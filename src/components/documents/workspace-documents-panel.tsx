@@ -46,9 +46,12 @@ import {
   toggleDocumentSort,
 } from "@/lib/workspace-documents-table";
 import { WorkspaceDocumentsBrowseTable } from "@/components/documents/workspace-documents-browse-table";
+import { ViewInSharePointButton } from "@/components/documents/view-in-sharepoint-button";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { WORKSPACE_PANEL_SURFACE } from "@/lib/workspace-design-system";
 import { WorkspaceModeNav } from "@/components/ui/workspace-mode-nav";
+import { useAuth } from "@/context/auth-context";
+import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 
 type DocumentsMode = "browse" | "create" | "import";
 
@@ -69,6 +72,27 @@ type ImportQueueItem = {
 
 function newImportItemId(): string {
   return `imp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function parseSmartDocApiBody(
+  raw: string,
+  status: number,
+): { document?: SmartDocLibraryRecord; error?: string } {
+  if (!raw.trim()) {
+    return { error: `Import failed (${status})` };
+  }
+  try {
+    const body = JSON.parse(raw) as {
+      document?: SmartDocLibraryRecord;
+      error?: unknown;
+    };
+    if (typeof body.error === "string" && body.error.trim()) {
+      return { document: body.document, error: body.error };
+    }
+    return { document: body.document };
+  } catch {
+    return { error: raw.replace(/\s+/g, " ").trim().slice(0, 280) };
+  }
 }
 
 function classifyFileToQueueItem(file: File, dealName: string): ImportQueueItem {
@@ -109,6 +133,7 @@ export function WorkspaceDocumentsPanel({
   readOnly = false,
   onDocumentCountChange,
 }: WorkspaceDocumentsPanelProps) {
+  const { user } = useAuth();
   const [mode, setMode] = useState<DocumentsMode>("browse");
   const [library, setLibrary] = useState<SmartDocLibraryRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,7 +167,7 @@ export function WorkspaceDocumentsPanel({
     (ownershipMode === "company" || !resolvedDealId || dealOptions.length === 0);
 
   const documentPresets =
-    useCompanyOwnership && context.scope === "company"
+    useCompanyOwnership
       ? WORKSPACE_COMPANY_DOCUMENT_PRESETS
       : WORKSPACE_CREATE_DOCUMENT_PRESETS;
   const preset = documentPresets[presetIndex] ?? documentPresets[0]!;
@@ -366,8 +391,8 @@ export function WorkspaceDocumentsPanel({
   useEffect(() => {
     const initial = defaultTargetDealId(context, pipelines);
     if (initial) setTargetDealId(initial);
-    if (context.scope === "company") {
-      // Prefer company ownership so supplier docs don't invent deals.
+    if (context.scope === "company" || context.scope === "contact") {
+      // Prefer company ownership so supplier/order docs don't invent deals.
       setOwnershipMode("company");
     }
   }, [context, pipelines]);
@@ -386,15 +411,38 @@ export function WorkspaceDocumentsPanel({
         ? Boolean(context.companyId)
         : Boolean(resolvedDealId));
 
+  const submitBlockedReason = readOnly
+    ? "You cannot import documents in this view."
+    : isProjectScope && !context.projectId
+      ? "This project has no identity to file documents under."
+      : useCompanyOwnership && !context.companyId
+        ? "This contact is not linked to a company, so documents cannot be filed."
+        : !useCompanyOwnership && !resolvedDealId
+          ? "Choose an opportunity, or file this as a company document."
+          : null;
+
   const postSmartDoc = async (
     payload: CreateSmartDocInput,
     file?: File | null,
   ): Promise<SmartDocLibraryRecord> => {
+    const ownerId = useCompanyOwnership ? context.companyId?.trim() : "";
+    const dealId = resolvedDealId.trim();
     const endpoint = isProjectScope
       ? `/api/projects/${encodeURIComponent(context.projectId!)}/smartdocs`
       : useCompanyOwnership
-        ? `/api/companies/${encodeURIComponent(context.companyId!)}/smartdocs`
-        : `/api/deals/${encodeURIComponent(resolvedDealId)}/smartdocs`;
+        ? `/api/companies/${encodeURIComponent(ownerId)}/smartdocs`
+        : `/api/deals/${encodeURIComponent(dealId)}/smartdocs`;
+
+    if (useCompanyOwnership && !ownerId) {
+      throw new Error("This contact is not linked to a company, so documents cannot be filed.");
+    }
+    if (!isProjectScope && !useCompanyOwnership && !dealId) {
+      throw new Error("Choose an opportunity, or file this as a company document.");
+    }
+
+    const authHeaders: HeadersInit = {
+      [AUTH_ROLE_HEADER]: user.role,
+    };
 
     let response: Response;
     if (file) {
@@ -420,12 +468,18 @@ export function WorkspaceDocumentsPanel({
       form.append("file", file, file.name);
       response = await fetch(endpoint, {
         method: "POST",
+        credentials: "include",
+        headers: authHeaders,
         body: form,
       });
     } else {
       response = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: {
+          ...authHeaders,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           ...payload,
           ...(isProjectScope && context.projectId
@@ -434,13 +488,23 @@ export function WorkspaceDocumentsPanel({
         }),
       });
     }
-    const body = await response.json();
-    if (!response.ok) throw new Error(body.error ?? "Failed to create document");
-    return body.document as SmartDocLibraryRecord;
+
+    const raw = await response.text();
+    const parsed = parseSmartDocApiBody(raw, response.status);
+    if (!response.ok) {
+      throw new Error(parsed.error ?? "Failed to create document");
+    }
+    if (!parsed.document) {
+      throw new Error(parsed.error ?? "Import succeeded but no document was returned");
+    }
+    return parsed.document;
   };
 
   const handleCreate = async () => {
-    if (!canSubmitDocuments) return;
+    if (!canSubmitDocuments) {
+      setError(submitBlockedReason ?? "Cannot create this document yet.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -472,7 +536,10 @@ export function WorkspaceDocumentsPanel({
   };
 
   const handleImportAll = async () => {
-    if (!canSubmitDocuments) return;
+    if (!canSubmitDocuments) {
+      setError(submitBlockedReason ?? "Cannot import this document yet.");
+      return;
+    }
     const pending = importQueue.filter(
       (item) => item.status === "ready" || item.status === "error",
     );
@@ -642,9 +709,31 @@ export function WorkspaceDocumentsPanel({
       (item.status === "ready" || item.status === "error") && item.DocumentName.trim(),
   ).length;
 
+  const importedSharePointUrl = createdDocuments.find((doc) =>
+    Boolean(doc.SharePointWebUrl?.trim()),
+  )?.SharePointWebUrl;
+
+  const sharePointCompanyId =
+    useCompanyOwnership || context.scope === "company" || context.scope === "contact"
+      ? context.companyId
+      : undefined;
+  const sharePointDealId =
+    !sharePointCompanyId && context.scope === "opportunity"
+      ? context.dealId || resolvedDealId
+      : undefined;
+
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[12px] text-carbon-blue/60">{workspaceDocumentsLinkSummary(context)}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="text-[12px] text-carbon-blue/60">{workspaceDocumentsLinkSummary(context)}</p>
+        <ViewInSharePointButton
+          fileUrl={importedSharePointUrl}
+          companyId={sharePointCompanyId}
+          dealId={sharePointDealId}
+          dealName={context.dealName || targetPipeline?.assetName}
+          companyName={context.companyName || ownerCompany?.Title}
+        />
+      </div>
 
       <WorkspaceModeNav
         ariaLabel="Documents"
@@ -673,6 +762,19 @@ export function WorkspaceDocumentsPanel({
               </Link>
               . SmartDoc ID{" "}
               <span className="font-mono">{createdDocuments[0]!.SmartDocID}</span>
+              {createdDocuments[0]?.SharePointWebUrl ? (
+                <>
+                  {" · "}
+                  <a
+                    href={createdDocuments[0].SharePointWebUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-[#0284c7] hover:underline"
+                  >
+                    View in SharePoint
+                  </a>
+                </>
+              ) : null}
             </>
           ) : (
             <>
@@ -896,6 +998,14 @@ export function WorkspaceDocumentsPanel({
             <p className="mb-3 text-[11px] text-carbon-blue/55">
               Files import to this project and SharePoint{" "}
               <span className="font-mono">/Projects/{context.projectName || "…"}</span>.
+            </p>
+          ) : useCompanyOwnership ? (
+            <p className="mb-3 text-[11px] text-carbon-blue/55">
+              Files import to {context.companyName || "this company"} and SharePoint{" "}
+              <span className="font-mono">
+                /Companies/{context.companyName || "…"}/Documents/
+              </span>
+              . No opportunity required.
             </p>
           ) : null}
           {companyOwnedEnabled && !isProjectScope ? (
@@ -1148,10 +1258,15 @@ export function WorkspaceDocumentsPanel({
                 );
               })}
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   disabled={saving || !canSubmitDocuments || readyImportCount === 0}
+                  title={
+                    !canSubmitDocuments
+                      ? (submitBlockedReason ?? undefined)
+                      : undefined
+                  }
                   onClick={() => void handleImportAll()}
                   className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold text-white disabled:opacity-50"
                 >
@@ -1170,6 +1285,9 @@ export function WorkspaceDocumentsPanel({
                   Clear all
                 </button>
               </div>
+              {!canSubmitDocuments && submitBlockedReason ? (
+                <p className="mt-2 text-[12px] text-thermal-red">{submitBlockedReason}</p>
+              ) : null}
             </div>
           ) : null}
         </div>

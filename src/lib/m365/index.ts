@@ -20,6 +20,7 @@ export {
   provisionOpportunitySharePointFolder,
   linkOpportunitySharePointFolder,
 } from "./provision-opportunity-folder";
+export { provisionCompanyDocumentsSharePointFolder } from "./provision-company-folder";
 export {
   resolveOutlookCounterpartyEmail,
   resolveOutlookConversationId,
