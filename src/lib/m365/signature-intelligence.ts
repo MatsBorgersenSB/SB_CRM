@@ -45,6 +45,20 @@ const PHONE_PATTERN = /(\+?\d[\d\s().-]{6,}\d)/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const WEBSITE_PATTERN = /((?:https?:\/\/|www\.)[\w.-]+\.[a-z]{2,}(?:\/[\w./%-]*)?)/i;
 const BARE_DOMAIN_PATTERN = /^(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i;
+const MEETING_OR_APP_HOST =
+  /(^|\.)(teams\.microsoft\.com|meet\.google\.com|zoom\.us|zoom\.com|outlook\.office\.com|outlook\.office365\.com|login\.microsoftonline\.com)$/i;
+
+function isCompanyWebsite(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  try {
+    const url = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
+    const host = new URL(url).hostname.toLowerCase();
+    return !MEETING_OR_APP_HOST.test(host);
+  } catch {
+    return !/teams\.microsoft|meet\.google|zoom\.(us|com)/i.test(trimmed);
+  }
+}
 const POSTAL_CITY_PATTERN = /^\d{4,6}\s+[A-Za-zÀ-ÿ]/;
 
 const COUNTRY_PATTERN =
@@ -477,13 +491,18 @@ export function parseSignatureIntelligence(
     }
 
     const websiteMatch = line.match(WEBSITE_PATTERN);
-    if (!found.website && websiteMatch?.[1]) {
+    if (!found.website && websiteMatch?.[1] && isCompanyWebsite(websiteMatch[1])) {
       found.website = websiteMatch[1];
       consumed.add(i);
       continue;
     }
 
-    if (!found.website && BARE_DOMAIN_PATTERN.test(line) && !line.includes("@")) {
+    if (
+      !found.website &&
+      BARE_DOMAIN_PATTERN.test(line) &&
+      !line.includes("@") &&
+      isCompanyWebsite(line)
+    ) {
       found.website = line.replace(/^https?:\/\//i, "");
       consumed.add(i);
     }
@@ -603,7 +622,12 @@ export function parseSignatureIntelligence(
         const extracted = extractPhoneFromLine(line);
         if (extracted) found.phone = extracted;
       }
-      if (!found.website && BARE_DOMAIN_PATTERN.test(line) && !line.includes("@")) {
+      if (
+        !found.website &&
+        BARE_DOMAIN_PATTERN.test(line) &&
+        !line.includes("@") &&
+        isCompanyWebsite(line)
+      ) {
         found.website = line.replace(/^https?:\/\//i, "");
       }
     }

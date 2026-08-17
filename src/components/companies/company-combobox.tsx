@@ -14,8 +14,8 @@ type CompanyComboboxProps = {
   selectedCompanyId: string | null;
   onSelectCompany: (company: CompanyComboboxOption | null) => void;
   onCreateNewCompany: (typedName: string) => void | Promise<void>;
-  /** Keep / show this name when creating a new company (no selection yet). */
-  draftName?: string | null;
+  /** Called as the user types so a new name can become “create company”. */
+  onTypedNameChange?: (name: string) => void;
   /** Show “Create company …” when typed name has no exact match. Default true. */
   allowCreate?: boolean;
   disabled?: boolean;
@@ -34,6 +34,7 @@ export function CompanyCombobox({
   onSelectCompany,
   onCreateNewCompany,
   draftName = null,
+  onTypedNameChange,
   allowCreate = true,
   disabled = false,
   label = "Company Name",
@@ -131,6 +132,7 @@ export function CompanyCombobox({
             const next = event.target.value;
             setQuery(next);
             setIsOpen(true);
+            onTypedNameChange?.(next);
             if (selected && next.trim() !== selected.name) {
               onSelectCompany(null);
             }
