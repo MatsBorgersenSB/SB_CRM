@@ -1,6 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { m365Error } from "@/lib/m365/api-response";
+import { INTERNAL_CONTACT_REFUSED } from "@/lib/internal-colleague";
+import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import {
   approveRelationshipIntake,
   buildRelationshipIntakeProposal,
@@ -95,6 +97,12 @@ export async function POST(request: Request) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Relationship intake failed";
-    return m365Error(message, 500);
+    const status =
+      error instanceof SharePointServiceError && error.statusCode === 400
+        ? 400
+        : message === INTERNAL_CONTACT_REFUSED
+          ? 400
+          : 500;
+    return m365Error(message, status);
   }
 }

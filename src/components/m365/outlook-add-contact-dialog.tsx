@@ -160,7 +160,7 @@ export function OutlookAddContactDialog({
   };
 
   const handleSubmit = async () => {
-    if (!prepopulation || !role) return;
+    if (!prepopulation || !role || prepopulation.colleague) return;
     const useMatchedCompany = Boolean(
       showMatchedCompany && prepopulation.companyId,
     );
@@ -241,16 +241,33 @@ export function OutlookAddContactDialog({
             id="outlook-add-contact-title"
             className="text-sm font-semibold text-carbon-blue"
           >
-            Add to SmartCRM
+            {prepopulation?.colleague ? "Standard Bio colleague" : "Add to SmartCRM"}
           </p>
           <p className="mt-1 text-[11px] text-carbon-blue/50">
-            Confirm contact and company — nothing is created until you say so.
+            {prepopulation?.colleague
+              ? "Colleagues are SmartCRM users, not contacts."
+              : "Confirm contact and company — nothing is created until you say so."}
           </p>
         </div>
 
         <div className="max-h-[70dvh] space-y-3 overflow-y-auto px-4 py-4">
           {loading && !prepopulation ? (
             <p className="text-[11px] text-carbon-blue/50">Preparing contact details…</p>
+          ) : prepopulation?.colleague ? (
+            <>
+              <p className="text-[12px] font-medium text-carbon-blue">
+                {prepopulation.colleague.knownUser
+                  ? prepopulation.colleague.displayName
+                  : prepopulation.displayName}
+              </p>
+              <p className="text-[10px] text-carbon-blue/40">{prepopulation.email}</p>
+              <p className="text-[11px] leading-relaxed text-carbon-blue/60">
+                {prepopulation.colleague.knownUser
+                  ? "They already have a user record. Do not add them to the Contact Registry."
+                  : "If they need SmartCRM access, add them in Users & Access. Never as a contact."}
+              </p>
+              {error ? <p className="text-[11px] text-thermal-red">{error}</p> : null}
+            </>
           ) : (
             <>
               <label className="block">
@@ -391,8 +408,9 @@ export function OutlookAddContactDialog({
             disabled={loading}
             className="flex-1 border border-carbon-blue/15 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
           >
-            Cancel
+            {prepopulation?.colleague ? "Close" : "Cancel"}
           </button>
+          {prepopulation?.colleague ? null : (
           <button
             type="button"
             onClick={() => void handleSubmit()}
@@ -412,6 +430,7 @@ export function OutlookAddContactDialog({
                 ? "Create contact"
                 : "Create contact + company"}
           </button>
+          )}
         </div>
       </div>
     </div>

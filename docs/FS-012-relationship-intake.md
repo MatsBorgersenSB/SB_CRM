@@ -47,9 +47,11 @@ On Outlook relationship pane for an unknown sender email, SmartAssist shall:
 
 1. Search Contact Registry by exact email.
 2. If no contact: search Company Registry by exact domain (then known company name from signature if present).
-3. Classify resolution as: **company_match** | **new_company** | (contact already exists → show relationship card, not intake).
+3. Classify resolution as: **company_match** | **new_company** | **internal_colleague** | (contact already exists → show relationship card, not intake).
 
 Hard rule: **unknown contact never opens the Relationship Card.** Company-domain match without a Contact Registry hit must open Relationship Intake (“Add this contact?”). Missing company must open intake for company + contact.
+
+**Internal colleagues are users, not contacts.** `@standard.bio` (and other internal domains) must never open Add Contact. Outlook shows the person as a SmartCRM user (Users & Access) or as a colleague who can be added there — never as a Contact Registry record.
 
 Confidence:
 
@@ -198,6 +200,7 @@ Single source of truth: no duplicate contact/company rows across JSON and Prisma
 5. Optional opportunity/project link works when conversation context exists.
 6. Create Opportunity CTA absent for Supplier / unclassified after create.
 7. User never leaves Outlook to complete create + optional thread link.
+8. Internal Standard Bio addresses never create a contact — Outlook treats them as users (Users & Access).
 
 ---
 

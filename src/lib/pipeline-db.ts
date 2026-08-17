@@ -16,6 +16,7 @@ import { initialPipelines } from "@/lib/pipelines-data";
 import type { AnalyticsDb } from "@/lib/analytics-data";
 import type { Company } from "@/lib/companies-data";
 import { resolveAccountOwner } from "@/lib/company-owner";
+import { assertExternalContactEmail } from "@/lib/internal-colleague";
 import { normalizeCompanySectors } from "@/lib/company-sectors";
 import { buildContactTitle } from "@/types/contact";
 import type { Contact } from "@/types/contact";
@@ -1134,6 +1135,7 @@ export async function createCompanyContact(
   companyId: string,
   input: NewContactInput,
 ): Promise<Contact> {
+  assertExternalContactEmail(input.Email);
   const database = await ensureDb();
   const companyIndex = database.companies.findIndex(
     (company) => company.CompanyID === companyId,
