@@ -308,11 +308,18 @@ export function defaultTargetDealId(
   return active[0]?.id ?? context.pipelineIds[0] ?? null;
 }
 
-/** Company scope may file without a deal (FS-006). */
+/**
+ * Company and contact workspaces may file without a deal (FS-006).
+ * Order confirmations, supplier quotes, and other company knowledge must not
+ * invent an opportunity — Contact 360 Import uses the linked company.
+ */
 export function canCreateCompanyOwnedDocuments(
   context: WorkspaceDocumentsContext,
 ): boolean {
-  return context.scope === "company" && Boolean(context.companyId?.trim());
+  return (
+    (context.scope === "company" || context.scope === "contact") &&
+    Boolean(context.companyId?.trim())
+  );
 }
 
 export function workspaceDocumentsContextFromCompany(
