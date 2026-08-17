@@ -440,7 +440,8 @@ export function ContactRecentOutlook({
             {contactEmail ? ` (${contactEmail})` : ""}.
           </p>
           <p>
-            Connect Microsoft 365 and sync, then reopen this contact.
+            Save the open mail from the Outlook add-in, or connect Microsoft 365 and
+            sync, then refresh.
           </p>
         </div>
       ) : null}

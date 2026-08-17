@@ -108,16 +108,43 @@ export function OutlookMailTagPanel({
   const conversationId = seed?.conversationId ?? null;
 
   const markRelationshipInOutlook = async () => {
+    if (!context?.contactId || !seed) return;
     setBusy(true);
     setError(null);
     setStatus(null);
     try {
-      const ok = await applyOutlookItemSmartCrmCategories({});
-      if (!ok) {
-        throw new Error("Could not apply SmartCRM category on this mail item.");
+      const response = await fetch("/api/m365/outlook/mail-tag", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          [AUTH_ROLE_HEADER]: role,
+        },
+        body: JSON.stringify({
+          contactId: context.contactId,
+          conversationId: seed.conversationId,
+          message: {
+            externalMessageId: seed.externalMessageId,
+            subject: seed.subject,
+            senderEmail: seed.senderEmail || email,
+            recipientEmails: seed.recipientEmails,
+            sentAt: seed.sentAt,
+            isOutbound: seed.isOutbound === true,
+          },
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        detail?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.error || "Could not save this mail in SmartCRM");
       }
+
+      const categoryOk = await applyOutlookItemSmartCrmCategories({});
       setStatus(
-        `Marked as SmartCRM relationship mail for ${context?.companyName ?? "this company"} — no opportunity or project link.`,
+        categoryOk
+          ? `Saved on ${context.companyName} in SmartCRM and marked in Outlook.`
+          : `Saved on ${context.companyName} in SmartCRM. Outlook could not apply the SmartCRM category on this item — reopen the contact to see the mail.`,
       );
     } catch (markError) {
       setError(markError instanceof Error ? markError.message : "Could not mark mail");
@@ -206,7 +233,7 @@ export function OutlookMailTagPanel({
         </p>
         <p className="mt-1 text-[11px] leading-snug text-carbon-blue/60">
           {context.companyName} is a supplier / service relationship — not linked to an
-          opportunity or project. Mail can stay on the company without commercial tags.
+          opportunity or project. Mark this mail so it appears on the contact in SmartCRM.
         </p>
         {seed ? (
           <button
@@ -215,7 +242,7 @@ export function OutlookMailTagPanel({
             onClick={() => void markRelationshipInOutlook()}
             className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
           >
-            {busy ? "Marking…" : "Mark in Outlook (SmartCRM)"}
+            {busy ? "Saving…" : "Save mail in SmartCRM"}
           </button>
         ) : (
           <p className="mt-2 text-[10px] text-carbon-blue/45">
