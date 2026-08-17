@@ -5,7 +5,6 @@ import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outloo
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
 import {
-  applyOutlookItemSmartCrmCategories,
   resolveOutlookOpenMessageSeed,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
@@ -142,17 +141,7 @@ export function OutlookMailTagPanel({
         throw new Error(payload.detail || payload.error || "Could not save this mail in SmartCRM");
       }
 
-      let categoryOk = false;
-      try {
-        categoryOk = await applyOutlookItemSmartCrmCategories({});
-      } catch {
-        categoryOk = false;
-      }
-      setStatus(
-        categoryOk
-          ? `Saved on ${context.companyName} in SmartCRM and marked in Outlook.`
-          : `Saved on ${context.companyName} in SmartCRM. Open the contact to read the mail.`,
-      );
+      setStatus(`Saved on ${context.companyName} in SmartCRM. Open the contact to read the mail.`);
     } catch (markError) {
       setError(markError instanceof Error ? markError.message : "Could not mark mail");
     } finally {
@@ -197,17 +186,6 @@ export function OutlookMailTagPanel({
       };
       if (!response.ok) {
         throw new Error(payload.detail || payload.error || "Could not tag mail");
-      }
-
-      const selectedName = options.find((row) => row.id === selectedId)?.name;
-      try {
-        await applyOutlookItemSmartCrmCategories(
-          linkKind === "project"
-            ? { projectName: payload.projectName || selectedName }
-            : { opportunityName: payload.opportunityName || selectedName },
-        );
-      } catch {
-        // Category is optional — mail is already in SmartCRM.
       }
 
       setStatus(

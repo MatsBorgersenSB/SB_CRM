@@ -1,6 +1,7 @@
 import { ConversionBatchTable } from "@/components/conversions/conversion-batch-table";
 import { ConversionGrid } from "@/components/conversions/conversion-grid";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import {
   conversionBatches,
   conversionMetrics,
@@ -33,9 +34,12 @@ export default function ConversionsPage() {
     <WorkspaceChrome>
         <header className="flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/15 bg-white px-4">
           <h1 className="text-sm font-semibold text-carbon-blue">Conversions</h1>
-          <span className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-upcycle-orange">
-            {batches.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-upcycle-orange">
+              {batches.length}
+            </span>
+            <ThemeToggle />
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto p-3">

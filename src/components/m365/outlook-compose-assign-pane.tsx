@@ -11,7 +11,6 @@ import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
 import {
-  applyOutlookItemSmartCrmCategories,
   ensureOutlookComposeSeed,
   resolveOutlookComposeRecipients,
   subscribeOutlookComposeRecipientsChanged,
@@ -335,13 +334,6 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
         throw new Error(payload.detail || payload.error || "Could not assign mail");
       }
 
-      const selectedName = options.find((row) => row.id === selectedId)?.name;
-      await applyOutlookItemSmartCrmCategories(
-        linkKind === "project"
-          ? { projectName: payload.projectName || selectedName }
-          : { opportunityName: payload.opportunityName || selectedName },
-      );
-
       setStatus(
         linkKind === "project"
           ? "Assigned to project in SmartCRM."
@@ -362,10 +354,6 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       await ensureOutlookComposeSeed({
         primaryRecipientEmail: selectedEmail || undefined,
       });
-      const ok = await applyOutlookItemSmartCrmCategories({});
-      if (!ok) {
-        throw new Error("Could not apply SmartCRM category on this draft.");
-      }
       setStatus("Marked as SmartCRM relationship mail — no opportunity or project link.");
     } catch (markError) {
       setError(markError instanceof Error ? markError.message : "Could not mark mail");

@@ -9,10 +9,10 @@ import { useAuth } from "@/context/auth-context";
 import type { NotificationDto } from "@/lib/notifications/notification-service";
 
 const TYPE_STYLES: Record<string, string> = {
-  INFO: "border-sky-500/30 bg-sky-500/10 text-sky-700",
-  ALERT: "border-amber-500/35 bg-amber-500/10 text-amber-800",
-  APPROVAL: "border-violet-500/30 bg-violet-500/10 text-violet-700",
-  DEAL_WIN: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700",
+  INFO: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  ALERT: "border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  APPROVAL: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+  DEAL_WIN: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
 };
 
 function formatWhen(iso: string): string {

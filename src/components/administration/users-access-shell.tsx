@@ -10,6 +10,7 @@ import { UsersTable } from "@/components/administration/users-table";
 import { IntelligenceLead } from "@/components/ui/intelligence-lead";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
 import { withAuthRoleHeaders } from "@/lib/api-auth";
@@ -83,7 +84,7 @@ export function UsersAccessShell({
 
   return (
     <>
-      <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
+      <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
         <div className="flex min-w-0 items-center gap-2 text-[11px] text-carbon-blue/55">
           <Link href="/administration" className="font-semibold hover:text-upcycle-orange">
             Administration
@@ -92,6 +93,7 @@ export function UsersAccessShell({
           <SmartCRMIcon name="edit" size="xs" />
           <span className="truncate font-semibold text-carbon-blue">Users & Access</span>
         </div>
+        <ThemeToggle />
       </header>
 
       <WorkspaceMain>

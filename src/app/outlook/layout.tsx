@@ -20,7 +20,7 @@ export default function OutlookLayout({ children }: { children: ReactNode }) {
       <OutlookHistoryPolyfillScript />
       <OutlookHydrationWatchdog />
       <OutlookStaticSignInFallback />
-      <div className="h-[100dvh] overflow-hidden bg-white text-carbon-blue">{children}</div>
+      <div className="h-[100dvh] overflow-hidden bg-background text-carbon-blue">{children}</div>
     </>
   );
 }

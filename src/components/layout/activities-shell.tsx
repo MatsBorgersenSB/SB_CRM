@@ -2,6 +2,7 @@
 
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
@@ -23,11 +24,14 @@ export function ActivitiesShell({
 }: ActivitiesShellProps) {
   return (
     <WorkspaceChrome>
-      <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <h1 className="text-sm font-semibold text-carbon-blue">Activities</h1>
-        <span className="ml-2 hidden text-[11px] text-carbon-blue/40 sm:inline">
-          Tasks and business development attention
-        </span>
+      <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
+        <div className="min-w-0">
+          <h1 className="text-sm font-semibold text-carbon-blue">Activities</h1>
+          <span className="hidden text-[11px] text-carbon-blue/40 sm:inline">
+            Tasks and business development attention
+          </span>
+        </div>
+        <ThemeToggle />
       </header>
 
       <WorkspaceMain>
