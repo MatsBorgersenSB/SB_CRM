@@ -378,56 +378,17 @@ function readOutlookItemBodyPreview(
 }
 
 /**
- * Apply SmartCRM categories on the open Outlook item (client-side fallback).
- * Never call masterCategories — that requires ReadWriteMailbox; this add-in is ReadWriteItem.
+ * Outlook item categories require the category to exist in the mailbox master
+ * list. Creating a master category needs ReadWriteMailbox; this add-in is
+ * ReadWriteItem. Calling addAsync for "SmartCRM" therefore throws:
+ * "Elevated permission is required to call the method: 'masterCategories.addAsync'".
+ * Capture mail in SmartCRM instead; Graph can tag when Mail.ReadWrite is connected.
  */
-export async function applyOutlookItemSmartCrmCategories(input: {
+export async function applyOutlookItemSmartCrmCategories(_input: {
   opportunityName?: string;
   projectName?: string;
 }): Promise<boolean> {
-  if (typeof window === "undefined") return false;
-  const office = await whenOfficeReady();
-  if (!office) return false;
-
-  try {
-    const item = office.context.mailbox?.item as
-      | {
-          categories?: {
-            addAsync: (
-              categories: string[],
-              callback: (result: {
-                status: Office.AsyncResultStatus;
-                error?: { message?: string };
-              }) => void,
-            ) => void;
-          };
-        }
-      | undefined;
-    if (!item?.categories?.addAsync) return false;
-
-    const master = "SmartCRM";
-    const opportunityName = input.opportunityName?.trim();
-    const projectName = input.projectName?.trim();
-    const deal = opportunityName
-      ? `${master} / ${opportunityName.replace(/[^\w\s\-./]/g, "").trim().slice(0, 80) || "Opportunity"}`
-      : projectName
-        ? `${master} / Project · ${projectName.replace(/[^\w\s\-./]/g, "").trim().slice(0, 70) || "Project"}`
-        : null;
-
-    const toAdd = [master, ...(deal ? [deal] : [])];
-
-    return await new Promise((resolve) => {
-      try {
-        item.categories!.addAsync(toAdd, (result) => {
-          resolve(isOfficeAsyncSuccess(result.status));
-        });
-      } catch {
-        resolve(false);
-      }
-    });
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 export function resolveDevEmail(searchParams: URLSearchParams): string | null {

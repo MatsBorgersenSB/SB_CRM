@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Contact360LivingWorkspace } from "@/components/contacts/contact-360-living-workspace";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/lib/companies-data";
@@ -272,6 +273,7 @@ export function Contact360PageShell({
             </span>
           ) : null}
         </div>
+        <ThemeToggle />
       </header>
 
       <WorkspaceMain>

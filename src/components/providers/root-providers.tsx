@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
 import { AuthProvider } from "@/context/auth-context";
+import { ThemeProvider } from "@/context/theme-context";
 import { SmartAssistProvider } from "@/context/smart-assist-context";
 import { UniversalSearchProvider } from "@/components/search/universal-search-provider";
 
@@ -33,16 +34,18 @@ export function RootProviders({ children }: { children: ReactNode }) {
   // Outlook task panes / dialogs + auth: no SessionProvider, SmartAssist, or search index.
   // Auth is owned by OutlookAuthGate + dialog-bridge instead.
   if (isLiteShellPath(pathname)) {
-    return <>{children}</>;
+    return <ThemeProvider>{children}</ThemeProvider>;
   }
 
   return (
-    <SessionProvider basePath="/api/auth" refetchOnWindowFocus={false}>
-      <AuthProvider>
-        <SmartAssistProvider>
-          <UniversalSearchProvider>{children}</UniversalSearchProvider>
-        </SmartAssistProvider>
-      </AuthProvider>
-    </SessionProvider>
+    <ThemeProvider>
+      <SessionProvider basePath="/api/auth" refetchOnWindowFocus={false}>
+        <AuthProvider>
+          <SmartAssistProvider>
+            <UniversalSearchProvider>{children}</UniversalSearchProvider>
+          </SmartAssistProvider>
+        </AuthProvider>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }

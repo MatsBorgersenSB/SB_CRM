@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
+/* Class-based dark: follows the header switch, not only the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f3f3f3;
   --foreground: #1f1c24;
+  --carbon-blue: #1f1c24;
+  --light-grey: #f3f3f3;
+  --carbon-blue-solid: #1f1c24;
   --dashboard-bg: #f7f7f8;
   --dashboard-surface: #ffffff;
   --dashboard-card: #ffffff;
@@ -16,31 +22,15 @@
   --command-hover: rgba(230, 81, 37, 0.08);
   --command-text: #1f1c24;
   --command-shadow: 0 24px 80px -12px rgba(31, 28, 36, 0.35);
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #121014;
-    --foreground: #f3f3f3;
-    --dashboard-bg: #0c0b0d;
-    --dashboard-surface: #161418;
-    --dashboard-card: #1a181c;
-    --dashboard-card-border: rgba(255, 255, 255, 0.08);
-    --dashboard-muted: rgba(243, 243, 243, 0.5);
-    --command-overlay: rgba(0, 0, 0, 0.72);
-    --command-surface: #1a181c;
-    --command-border: rgba(255, 255, 255, 0.1);
-    --command-muted: rgba(243, 243, 243, 0.45);
-    --command-subtle: rgba(255, 255, 255, 0.04);
-    --command-hover: rgba(230, 81, 37, 0.14);
-    --command-text: #f3f3f3;
-    --command-shadow: 0 24px 80px -12px rgba(0, 0, 0, 0.65);
-  }
-}
-
-.dark {
+html.dark {
   --background: #121014;
-  --foreground: #f3f3f3;
+  --foreground: #eceaee;
+  --carbon-blue: #eceaee;
+  --light-grey: #c8c5cc;
+  --carbon-blue-solid: #0e0d10;
   --dashboard-bg: #0c0b0d;
   --dashboard-surface: #161418;
   --dashboard-card: #1a181c;
@@ -52,8 +42,9 @@
   --command-muted: rgba(243, 243, 243, 0.45);
   --command-subtle: rgba(255, 255, 255, 0.04);
   --command-hover: rgba(230, 81, 37, 0.14);
-  --command-text: #f3f3f3;
+  --command-text: #eceaee;
   --command-shadow: 0 24px 80px -12px rgba(0, 0, 0, 0.65);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -61,13 +52,30 @@
   --color-foreground: var(--foreground);
 
   --color-upcycle-orange: #e65125;
-  --color-carbon-blue: #1f1c24;
+  --color-carbon-blue: var(--carbon-blue);
   --color-thermal-red: #801712;
   --color-flame: #fad491;
-  --color-light-grey: #f3f3f3;
+  --color-light-grey: var(--light-grey);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/*
+ * Most screens use bg-white + text-carbon-blue. Dark mode remaps carbon-blue
+ * for type and borders, then restores filled chrome and white surfaces.
+ * text-white on brand buttons stays white — do not remap --color-white.
+ */
+html.dark :where(.bg-white, .bg-white\/95, .bg-white\/80, .bg-white\/60) {
+  background-color: var(--dashboard-card);
+}
+
+html.dark :where(.bg-carbon-blue) {
+  background-color: var(--carbon-blue-solid);
+}
+
+html.dark :where(.bg-light-grey) {
+  background-color: var(--dashboard-card);
 }
 
 body {

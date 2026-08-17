@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 /**
  * Adaptive workspace chrome — orients the user in one glance:
@@ -26,7 +27,7 @@ export function WorkspaceHeader({
           <div className="hidden truncate text-[10px] text-carbon-blue/45 sm:block">{context}</div>
         ) : null}
       </div>
-      {actions ? <div className="shrink-0">{actions}</div> : null}
+      <div className="shrink-0">{actions ?? <ThemeToggle />}</div>
     </header>
   );
 }
