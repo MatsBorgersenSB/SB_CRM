@@ -5,6 +5,7 @@ import {
   fetchGraphMailMessageView,
   getActiveM365AccessToken,
 } from "@/lib/m365-client";
+import { buildOutlookReadDeeplink } from "@/lib/m365/outlook-deeplink";
 
 export type EmailMessageViewDto = {
   id: string;
@@ -81,6 +82,18 @@ export async function readEmailMessageView(
         "[email-message-view] Graph enrich failed:",
         error instanceof Error ? error.message : error,
       );
+    }
+  }
+
+  if (!webLink && message.externalMessageId) {
+    webLink = buildOutlookReadDeeplink(message.externalMessageId);
+    if (webLink) {
+      await prisma.emailMessageRecord
+        .update({
+          where: { id: message.id },
+          data: { webLink },
+        })
+        .catch(() => undefined);
     }
   }
 
