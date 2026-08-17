@@ -108,7 +108,7 @@ export function OutlookNoContactState({
         setProposal(data);
         setCompanyName(data.companyName);
         setPickedCompanyId(data.companyId);
-        setCreateNewCompany(false);
+        setCreateNewCompany(!data.companyId && Boolean(data.companyName.trim()));
         const titleHint = data.enrichment.suggestions.find((item) => item.id === "jobTitle")
           ?.value;
         if (titleHint) {
@@ -160,6 +160,9 @@ export function OutlookNoContactState({
   const handleYes = () => {
     setPhase("confirm");
     setError(null);
+    if (!pickedCompanyId && companyName.trim()) {
+      setCreateNewCompany(true);
+    }
     if (proposal?.enrichment.suggestions.length) {
       applyEnrichmentSuggestions(proposal.enrichment.suggestions);
     }
@@ -553,6 +556,20 @@ export function OutlookNoContactState({
                     setCompanyName(company.name);
                     setCreateNewCompany(false);
                   }}
+                  onTypedNameChange={(name) => {
+                    const trimmed = name.trim();
+                    setCompanyName(name);
+                    if (!trimmed) {
+                      setCreateNewCompany(false);
+                      return;
+                    }
+                    const exact = (proposal.companyOptions ?? []).some(
+                      (item) => item.name.toLowerCase() === trimmed.toLowerCase(),
+                    );
+                    if (exact) return;
+                    setPickedCompanyId(null);
+                    setCreateNewCompany(true);
+                  }}
                   onCreateNewCompany={(typedName) => {
                     setPickedCompanyId(null);
                     setCompanyName(typedName);
@@ -561,7 +578,7 @@ export function OutlookNoContactState({
                 />
                 {createNewCompany ? (
                   <p className="-mt-1 text-[10px] text-carbon-blue/45">
-                    A new company named “{companyName}” will be created.
+                    A new company named “{companyName.trim()}” will be created.
                   </p>
                 ) : (
                   <p className="-mt-1 text-[10px] text-carbon-blue/45">
@@ -679,6 +696,12 @@ export function OutlookNoContactState({
             ) : null}
 
             {error ? <p className="text-[11px] text-red-600">{error}</p> : null}
+
+            {!showMatchedCompany && createNewCompany && (!industry || !companyType) ? (
+              <p className="text-[11px] text-carbon-blue/55">
+                Choose relationship type and industry, then create.
+              </p>
+            ) : null}
 
             <button
               type="button"
