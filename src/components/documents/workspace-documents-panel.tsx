@@ -425,20 +425,25 @@ export function WorkspaceDocumentsPanel({
     payload: CreateSmartDocInput,
     file?: File | null,
   ): Promise<SmartDocLibraryRecord> => {
-    const ownerId = useCompanyOwnership ? context.companyId?.trim() : "";
+    const ownerId = (useCompanyOwnership ? context.companyId?.trim() : "") ?? "";
     const dealId = resolvedDealId.trim();
-    const endpoint = isProjectScope
-      ? `/api/projects/${encodeURIComponent(context.projectId!)}/smartdocs`
-      : useCompanyOwnership
-        ? `/api/companies/${encodeURIComponent(ownerId)}/smartdocs`
-        : `/api/deals/${encodeURIComponent(dealId)}/smartdocs`;
+    const projectId = context.projectId?.trim() ?? "";
 
+    if (isProjectScope && !projectId) {
+      throw new Error("This project has no identity to file documents under.");
+    }
     if (useCompanyOwnership && !ownerId) {
       throw new Error("This contact is not linked to a company, so documents cannot be filed.");
     }
     if (!isProjectScope && !useCompanyOwnership && !dealId) {
       throw new Error("Choose an opportunity, or file this as a company document.");
     }
+
+    const endpoint = isProjectScope
+      ? `/api/projects/${encodeURIComponent(projectId)}/smartdocs`
+      : useCompanyOwnership
+        ? `/api/companies/${encodeURIComponent(ownerId)}/smartdocs`
+        : `/api/deals/${encodeURIComponent(dealId)}/smartdocs`;
 
     const authHeaders: HeadersInit = {
       [AUTH_ROLE_HEADER]: user.role,
