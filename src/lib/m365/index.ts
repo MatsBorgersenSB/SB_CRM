@@ -9,10 +9,12 @@ export {
   ensureCompanyDocumentsSharePointFolder,
   sanitizeSharePointName,
   sanitizeSharePointFolderName,
+  applySmartDocFieldsToDriveItem,
 } from "./graph-client";
 export type {
   OpportunitySharePointFolder,
   CompanyDocumentsSharePointFolder,
+  SmartDocSharePointFields,
 } from "./graph-client";
 export { getGraphAccessToken } from "./get-graph-access-token";
 export {

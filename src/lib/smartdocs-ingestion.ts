@@ -6,6 +6,7 @@ import {
   uploadFileToSharePointFolder,
 } from "@/lib/m365/graph-client";
 import { linkOpportunitySharePointFolder } from "@/lib/m365/provision-opportunity-folder";
+import { classifyByFileName } from "@/lib/mock-ai-parser";
 import { isGraphTransport } from "@/services/sharepoint/config/environment";
 
 export type IngestedSmartDoc = {
@@ -102,6 +103,7 @@ async function fileAttachmentToSharePoint(input: {
     }
 
     const bytes = Buffer.from(input.contentBase64, "base64");
+    const classified = classifyByFileName(input.fileName);
     const uploaded = await uploadFileToSharePointFolder({
       accessToken,
       siteId,
@@ -109,6 +111,10 @@ async function fileAttachmentToSharePoint(input: {
       fileName: input.fileName,
       contentType: input.mimeType || "application/octet-stream",
       bytes,
+      fields: {
+        DocCategory: classified.DocCategory,
+        DocType: classified.DocType,
+      },
     });
 
     await prisma.documentRecord.update({

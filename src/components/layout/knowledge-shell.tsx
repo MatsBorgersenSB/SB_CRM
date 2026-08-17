@@ -3,16 +3,27 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
-import { IntelligenceCenterGraph } from "@/components/intelligence-center/intelligence-center-graph";
-import { IntelligenceCenterKnowledgeRisks } from "@/components/intelligence-center/intelligence-center-knowledge-risks";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { WorkspaceDocumentsBrowseTable } from "@/components/documents/workspace-documents-browse-table";
+import { MissingCriticalDocumentRow } from "@/components/smartdocs/smartdocs-intelligence-row";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { IntelligenceLead } from "@/components/ui/intelligence-lead";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
+import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
+import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
+import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
 import { buildSmartDocsIntelligence } from "@/lib/smartdocs-intelligence-data";
-import { buildRelationshipGraphIntelligence } from "@/lib/relationship-graph-intelligence-data";
+import {
+  buildAllWorkspaceDocumentRows,
+} from "@/lib/workspace-documents-data";
+import {
+  applyWorkspaceDocumentTableQuery,
+  buildWorkspaceDocumentFilterDefinitions,
+  defaultDocumentTableQuery,
+  toggleDocumentSort,
+} from "@/lib/workspace-documents-table";
+import { WORKSPACE_PANEL_SURFACE } from "@/lib/workspace-design-system";
 import {
   filterCompaniesForUser,
   filterPipelinesForUser,
@@ -20,44 +31,39 @@ import {
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
-import type { FilterDefinition, WorkspaceFilterValues } from "@/types/workspace-filters";
-import { normalizeSingleFilter } from "@/types/workspace-filters";
-import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
+import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import type { WorkspaceFilterValues } from "@/types/workspace-filters";
 
-const SMARTDOCS_FILTER_KEYS = ["risk", "impact", "category", "deal"] as const;
-
-const DEFAULT_SMARTDOCS_FILTERS: WorkspaceFilterValues = {
-  risk: "all",
-  impact: "all",
-  category: "all",
-  deal: "all",
-};
+const DOCUMENT_FILTER_KEYS = ["origin", "category", "type", "status", "recency"];
 
 type KnowledgeShellProps = {
   companies: Company[];
   pipelines: PipelineRow[];
   activities: Activity[];
+  library: SmartDocLibraryRecord[];
 };
 
 export function KnowledgeShell({
   companies,
   pipelines,
   activities,
+  library,
 }: KnowledgeShellProps) {
   const { user } = useAuth();
-  const [toolbarFilters, setToolbarFilters] =
-    useState<WorkspaceFilterValues>(DEFAULT_SMARTDOCS_FILTERS);
-  const [search, setSearch] = useState("");
+  const [tableQuery, setTableQuery] = useState(defaultDocumentTableQuery);
 
   const applyBridge = useCallback(
     (patch: { filters?: WorkspaceFilterValues; search?: string }) => {
-      if (patch.filters) setToolbarFilters((current) => ({ ...current, ...patch.filters }));
-      if (patch.search !== undefined) setSearch(patch.search);
+      setTableQuery((current) => ({
+        ...current,
+        filters: patch.filters ? { ...current.filters, ...patch.filters } : current.filters,
+        search: patch.search ?? current.search,
+      }));
     },
     [],
   );
 
-  useWorkspaceFilterBridge("smartdocs", [...SMARTDOCS_FILTER_KEYS], applyBridge);
+  useWorkspaceFilterBridge("smartdocs", DOCUMENT_FILTER_KEYS, applyBridge);
 
   const scopedCompanies = useMemo(
     () => filterCompaniesForUser(companies, user),
@@ -69,210 +75,177 @@ export function KnowledgeShell({
     [pipelines, user, companies],
   );
 
+  const rows = useMemo(
+    () => buildAllWorkspaceDocumentRows(library, scopedPipelines, scopedCompanies),
+    [library, scopedPipelines, scopedCompanies],
+  );
+
   const smartDocs = useMemo(
-    () => buildSmartDocsIntelligence(scopedPipelines, scopedCompanies, activities),
-    [activities, scopedCompanies, scopedPipelines],
+    () =>
+      buildSmartDocsIntelligence(
+        scopedPipelines,
+        scopedCompanies,
+        activities,
+        library,
+      ),
+    [activities, library, scopedCompanies, scopedPipelines],
   );
 
-  const graphIntel = useMemo(
-    () => buildRelationshipGraphIntelligence(scopedCompanies, scopedPipelines, activities),
-    [activities, scopedCompanies, scopedPipelines],
+  const missing = smartDocs.missingCriticalDocuments;
+  const topMissing = missing[0];
+  const topRisk = smartDocs.knowledgeAtRisk[0];
+  const hasAttention = missing.length > 0 || Boolean(topRisk);
+
+  const filterDefinitions = useMemo(
+    () => buildWorkspaceDocumentFilterDefinitions(rows),
+    [rows],
   );
 
-  const { overview, knowledgeAtRisk } = smartDocs;
-  const topRisk = knowledgeAtRisk[0];
-  const hasGaps = overview.knowledgeAtRiskCount > 0;
-
-  const filterDefinitions = useMemo<FilterDefinition[]>(
-    () => [
-      {
-        id: "risk",
-        label: "Risk",
-        mode: "single",
-        emptyValue: "all",
-        options: [
-          { value: "all", label: "All Risk" },
-          { value: "at_risk", label: "At Risk" },
-          { value: "missing", label: "Missing Critical" },
-        ],
-      },
-      {
-        id: "impact",
-        label: "Impact",
-        mode: "single",
-        emptyValue: "all",
-        options: [
-          { value: "all", label: "All Impact" },
-          { value: "high", label: "High Impact" },
-          { value: "medium", label: "Medium Impact" },
-        ],
-      },
-      {
-        id: "category",
-        label: "Category",
-        mode: "single",
-        emptyValue: "all",
-        options: [
-          { value: "all", label: "All Categories" },
-          { value: "certificate", label: "Certificates" },
-          { value: "technical", label: "Technical" },
-          { value: "commercial", label: "Commercial" },
-        ],
-      },
-      {
-        id: "deal",
-        label: "Deal",
-        mode: "single",
-        emptyValue: "all",
-        options: [
-          { value: "all", label: "All Deals" },
-          ...scopedPipelines.slice(0, 12).map((deal) => ({
-            value: deal.id,
-            label: deal.assetName ?? deal.id,
-          })),
-        ],
-      },
-    ],
-    [scopedPipelines],
+  const displayedRows = useMemo(
+    () => applyWorkspaceDocumentTableQuery(rows, tableQuery),
+    [rows, tableQuery],
   );
-
-  const filteredSmartDocs = useMemo(() => {
-    const risk = normalizeSingleFilter(toolbarFilters.risk, "all");
-    const impact = normalizeSingleFilter(toolbarFilters.impact, "all");
-    const category = normalizeSingleFilter(toolbarFilters.category, "all");
-    const deal = normalizeSingleFilter(toolbarFilters.deal, "all");
-    const q = search.trim().toLowerCase();
-
-    const filteredRisk = knowledgeAtRisk.filter((item) => {
-      if (deal !== "all" && item.document.pipelineId !== deal) return false;
-      if (impact === "high" && item.insights.businessImpactLevel !== "High") return false;
-      if (impact === "medium" && item.insights.businessImpactLevel !== "Medium") return false;
-      if (category === "certificate" && !item.document.docCategory.toLowerCase().includes("cert")) {
-        return false;
-      }
-      if (category === "technical" && !item.document.docCategory.toLowerCase().includes("tech")) {
-        return false;
-      }
-      if (category === "commercial" && !item.document.docCategory.toLowerCase().includes("comm")) {
-        return false;
-      }
-      if (!q) return true;
-      return (
-        item.document.displayName.toLowerCase().includes(q) ||
-        item.summary.toLowerCase().includes(q)
-      );
-    });
-
-    const filteredMissing =
-      risk === "at_risk"
-        ? []
-        : smartDocs.missingCriticalDocuments.filter((item) => {
-            if (deal !== "all" && !item.id.includes(deal)) return false;
-            if (!q) return true;
-            return item.label.toLowerCase().includes(q);
-          });
-
-    return {
-      ...smartDocs,
-      knowledgeAtRisk: risk === "missing" ? [] : filteredRisk,
-      missingCriticalDocuments:
-        risk === "at_risk" ? [] : risk === "missing" ? smartDocs.missingCriticalDocuments : filteredMissing,
-    };
-  }, [smartDocs, knowledgeAtRisk, toolbarFilters, search]);
-
-  const totalKnowledgeCount =
-    knowledgeAtRisk.length + smartDocs.missingCriticalDocuments.length;
-  const filteredKnowledgeCount =
-    filteredSmartDocs.knowledgeAtRisk.length +
-    filteredSmartDocs.missingCriticalDocuments.length;
 
   const handleClearAllFilters = useCallback(() => {
-    setToolbarFilters(DEFAULT_SMARTDOCS_FILTERS);
-    setSearch("");
+    setTableQuery(defaultDocumentTableQuery());
   }, []);
+
+  const hero = useMemo(() => {
+    if (topMissing) {
+      return {
+        title: `Missing on ${topMissing.entityName}`,
+        summary: topMissing.detail,
+        actionHref: topMissing.href,
+        actionLabel: "File the document",
+      };
+    }
+    if (topRisk) {
+      return {
+        title: topRisk.document.displayName,
+        summary: topRisk.summary,
+        actionHref: topRisk.href,
+        actionLabel: "Open document",
+      };
+    }
+    if (rows.length === 0) {
+      return {
+        title: "No SmartDocs in the library yet",
+        summary:
+          "File documents on a company, contact, opportunity, or project. SharePoint keeps the file; SmartCRM keeps category, type, and identity.",
+        actionHref: "/companies",
+        actionLabel: "Open a company to import",
+      };
+    }
+    return {
+      title: `${rows.length} document${rows.length === 1 ? "" : "s"} in the library`,
+      summary:
+        "Open a file for detail and SharePoint, or go to a company or opportunity to import.",
+      actionHref: undefined,
+      actionLabel: undefined,
+    };
+  }, [rows.length, topMissing, topRisk]);
 
   return (
     <WorkspaceChrome>
-        <WorkspaceHeader
-          scope="Knowledge workspace"
-          title="SmartDocs"
-          context="Documents that breathe with your deals and accounts"
-          actions={<RoleSwitcher companies={scopedCompanies} />}
-        />
+      <WorkspaceHeader
+        scope="Knowledge workspace"
+        title="SmartDocs"
+        context="Find, file, and act on organizational documents"
+        actions={<RoleSwitcher companies={scopedCompanies} />}
+      />
 
-        <main className="flex-1 overflow-auto">
-          <div className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
-            <IntelligenceLead
-              eyebrow="Living knowledge record"
-              title={
-                hasGaps
-                  ? `${overview.knowledgeAtRiskCount} knowledge gap${overview.knowledgeAtRiskCount === 1 ? "" : "s"} need attention`
-                  : "Your document library is healthy"
-              }
-              summary={
-                topRisk
-                  ? `${topRisk.document.displayName} — ${topRisk.summary}`
-                  : `${overview.totalDocuments} documents tracked · average health ${overview.averageHealthScore}`
-              }
-              vitals={[
-                { label: "Tracked", value: String(overview.totalDocuments) },
-                {
-                  label: "At risk",
-                  value: String(overview.atRiskCount),
-                  highlight: overview.atRiskCount > 0,
-                },
-                { label: "Review queue", value: String(overview.reviewQueueCount) },
-                {
-                  label: "Missing critical",
-                  value: String(overview.criticalMissingCount),
-                  highlight: overview.criticalMissingCount > 0,
-                },
-              ]}
-              action={
-                topRisk ? (
-                  <Link
-                    href={topRisk.href}
-                    className="text-sm font-semibold text-upcycle-orange hover:underline"
-                  >
-                    Review {topRisk.document.displayName} →
-                  </Link>
-                ) : undefined
-              }
-            />
+      <WorkspaceMain>
+        <WorkspaceStack>
+          <IntelligenceLead
+            eyebrow="Attention"
+            title={hero.title}
+            summary={hero.summary}
+            vitals={[
+              { label: "Documents", value: String(rows.length) },
+              {
+                label: "Missing",
+                value: String(missing.length),
+                highlight: missing.length > 0,
+              },
+              {
+                label: "At risk",
+                value: String(smartDocs.overview.atRiskCount),
+                highlight: smartDocs.overview.atRiskCount > 0,
+              },
+            ]}
+            action={
+              hero.actionHref ? (
+                <Link
+                  href={hero.actionHref}
+                  className="inline-flex border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold text-white hover:bg-upcycle-orange/90"
+                >
+                  {hero.actionLabel}
+                </Link>
+              ) : undefined
+            }
+          />
 
-            {hasGaps ? (
-              <>
-                <div className="-mx-4 border-y border-carbon-blue/10 bg-carbon-blue/[0.02] px-4 sm:-mx-8 sm:px-8">
-                  <FilterToolbar
-                    filters={filterDefinitions}
-                    values={toolbarFilters}
-                    onChange={(id, value) =>
-                      setToolbarFilters((current) => ({ ...current, [id]: value }))
+          {hasAttention && missing.length > 0 ? (
+            <WorkspacePanel title="Needs a document" count={missing.length}>
+              <div className="-mx-6 -my-5">
+                {missing.slice(0, 3).map((item) => (
+                  <MissingCriticalDocumentRow key={item.id} item={item} />
+                ))}
+              </div>
+            </WorkspacePanel>
+          ) : null}
+
+          <WorkspacePanel title="Documents" count={displayedRows.length}>
+            <div className="flex flex-col gap-4">
+              <div className={`-mx-6 -mt-5 ${WORKSPACE_PANEL_SURFACE} rounded-none border-x-0 border-t-0`}>
+                <FilterToolbar
+                  filters={filterDefinitions}
+                  values={tableQuery.filters}
+                  onChange={(id, value) =>
+                    setTableQuery((current) => ({
+                      ...current,
+                      filters: { ...current.filters, [id]: value },
+                    }))
+                  }
+                  search={tableQuery.search}
+                  onSearchChange={(search) =>
+                    setTableQuery((current) => ({ ...current, search }))
+                  }
+                  searchPlaceholder="Search documents…"
+                  className="border-b-0 bg-transparent px-0"
+                  entityLabel="Documents"
+                  totalCount={rows.length}
+                  filteredCount={displayedRows.length}
+                  defaultValues={defaultDocumentTableQuery().filters}
+                  onClearAll={handleClearAllFilters}
+                />
+              </div>
+
+              {rows.length === 0 ? (
+                <p className="px-1 py-8 text-center text-sm text-carbon-blue/45">
+                  Nothing filed yet. Import from a company, contact, opportunity, or project
+                  workspace.
+                </p>
+              ) : displayedRows.length === 0 ? (
+                <p className="px-1 py-8 text-center text-sm text-carbon-blue/45">
+                  No documents match your filters. Try clearing search or filters.
+                </p>
+              ) : (
+                <div className="-mx-6 -mb-5">
+                  <WorkspaceDocumentsBrowseTable
+                    rows={displayedRows}
+                    sortKey={tableQuery.sortKey}
+                    sortDir={tableQuery.sortDir}
+                    onSort={(column) =>
+                      setTableQuery((current) => toggleDocumentSort(current, column))
                     }
-                    search={search}
-                    onSearchChange={setSearch}
-                    searchPlaceholder="Search documents…"
-                    className="border-b-0 bg-transparent px-0"
-                    entityLabel="SmartDocs"
-                    totalCount={totalKnowledgeCount}
-                    filteredCount={filteredKnowledgeCount}
-                    defaultValues={DEFAULT_SMARTDOCS_FILTERS}
-                    onClearAll={handleClearAllFilters}
                   />
                 </div>
-                <IntelligenceCenterKnowledgeRisks smartDocs={filteredSmartDocs} compact />
-              </>
-            ) : null}
-
-            <CollapsibleSection
-              title="Relationship network"
-              description="How documents connect across accounts"
-              tier="expert"
-            >
-              <IntelligenceCenterGraph graphIntel={graphIntel} />
-            </CollapsibleSection>
-          </div>
-        </main>
+              )}
+            </div>
+          </WorkspacePanel>
+        </WorkspaceStack>
+      </WorkspaceMain>
     </WorkspaceChrome>
   );
 }

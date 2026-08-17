@@ -8,6 +8,8 @@ import {
 } from "@/lib/document-intelligence-engine";
 import { buildSmartDocRegistry } from "@/lib/smartdoc-registry";
 import { isKnowledgeAtRisk } from "@/lib/smartdoc-timeline";
+import { deal360Href } from "@/types/relationship-navigation";
+import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 
 export type SmartDocsIntelligenceItem = DocumentIntelligence & {
   href: string;
@@ -60,8 +62,9 @@ export function buildSmartDocsIntelligence(
   pipelines: PipelineRow[],
   companies: Company[],
   activities: Activity[],
+  library: SmartDocLibraryRecord[] = [],
 ): SmartDocsIntelligenceSnapshot {
-  const documents = buildSmartDocRegistry(pipelines, activities);
+  const documents = buildSmartDocRegistry(pipelines, activities, library);
   const intelligences = computeAllDocumentIntelligence(
     pipelines,
     companies,
@@ -121,16 +124,13 @@ export function buildSmartDocsIntelligence(
         deal.status,
       )
     ) {
-      const company = companies.find((c) => c.pipelineIds.includes(deal.id));
       missingCritical.push({
         id: `missing-${deal.id}-legal`,
         entityName: deal.assetName,
         entityKind: "deal",
         label: "Critical document missing",
-        detail: `${deal.status} requires Legal/Compliance documentation`,
-        href: company
-          ? `/companies/${company.CompanyID}#opportunities`
-          : "/deals",
+        detail: `${deal.status} requires Legal/Compliance documentation. Impact: approval and close can stall without it.`,
+        href: deal360Href(deal.id, "documents"),
       });
     }
   }

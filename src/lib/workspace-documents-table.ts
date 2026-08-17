@@ -147,6 +147,9 @@ export function buildWorkspaceDocumentFilterDefinitions(
     { value: "all", label: "All statuses" },
     { value: "in_set", label: "In document set" },
     { value: "library", label: "In library" },
+    ...(rows.some((row) => row.statusKind === "company")
+      ? [{ value: "company", label: "Company owned" }]
+      : []),
     ...(rows.some((row) => row.statusKind === "activity_link")
       ? [{ value: "activity_link", label: "Activity links" }]
       : []),
