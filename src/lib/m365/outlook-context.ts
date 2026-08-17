@@ -363,11 +363,22 @@ export async function applyOutlookItemSmartCrmCategories(input: {
         categories?: {
           addAsync: (
             categories: string[],
+            callback: (result: { status: Office.AsyncResultStatus; error?: { message?: string } }) => void,
+          ) => void;
+        };
+      }
+    | undefined;
+  const mailbox = office.context.mailbox as
+    | {
+        masterCategories?: {
+          addAsync: (
+            categories: Array<{ displayName: string; color?: string }>,
             callback: (result: { status: Office.AsyncResultStatus }) => void,
           ) => void;
         };
       }
     | undefined;
+
   if (!item?.categories?.addAsync) return false;
 
   const master = "SmartCRM";
@@ -378,6 +389,15 @@ export async function applyOutlookItemSmartCrmCategories(input: {
     : projectName
       ? `${master} / Project · ${projectName.replace(/[^\w\s\-./]/g, "").trim().slice(0, 70) || "Project"}`
       : null;
+
+  if (mailbox?.masterCategories?.addAsync) {
+    await new Promise<void>((resolve) => {
+      mailbox.masterCategories!.addAsync(
+        [{ displayName: master, color: "Preset0" }],
+        () => resolve(),
+      );
+    });
+  }
 
   const toAdd = [master, ...(deal ? [deal] : [])];
 

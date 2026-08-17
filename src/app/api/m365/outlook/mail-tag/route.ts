@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestRole, resolveRequestRole } from "@/lib/api-auth";
 import {
+  captureOutlookMessageForContact,
   setConversationLinksForContact,
 } from "@/lib/email-intelligence-data";
 import {
@@ -22,7 +23,8 @@ type LinkOption = {
 /**
  * Outlook add-in helpers for intentional opportunity/project mail tagging.
  * GET  ?email=&conversationId?  → contact + link options (+ current links)
- * PATCH { contactId, conversationId, opportunityId?, projectId? }
+ * PATCH { contactId, conversationId, message?, opportunityId?, projectId? }
+ * Omit opportunity/project to capture relationship mail onto the contact.
  */
 export async function GET(request: Request) {
   const role = getRequestRole(request);
@@ -163,11 +165,50 @@ export async function PATCH(request: Request) {
       );
     }
 
-    if (body.opportunityId === undefined && body.projectId === undefined) {
-      return NextResponse.json(
-        { error: "opportunityId or projectId is required" },
-        { status: 400 },
+    const seedExternalId = body.message?.externalMessageId?.trim();
+    const seedMessage = seedExternalId
+      ? {
+          externalMessageId: seedExternalId,
+          subject: body.message?.subject,
+          senderEmail: body.message?.senderEmail,
+          recipientEmails: body.message?.recipientEmails,
+          sentAt: body.message?.sentAt,
+          bodyPreview: body.message?.bodyPreview,
+          webLink: body.message?.webLink,
+          isOutbound: body.message?.isOutbound === true,
+        }
+      : undefined;
+
+    const hasLinkIntent =
+      body.opportunityId !== undefined || body.projectId !== undefined;
+
+    if (!hasLinkIntent) {
+      if (!seedMessage) {
+        return NextResponse.json(
+          { error: "Open the mail in Outlook and try Mark in Outlook again." },
+          { status: 400 },
+        );
+      }
+      const captured = await captureOutlookMessageForContact(
+        contactId,
+        conversationId,
+        seedMessage,
       );
+      if (!captured.captured) {
+        return NextResponse.json(
+          {
+            error:
+              "Could not save this mail for the matched contact. Confirm the sender is linked, then try again.",
+          },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        capture: true,
+        conversationId,
+        ...captured,
+      });
     }
 
     const opportunityId =
@@ -183,7 +224,6 @@ export async function PATCH(request: Request) {
           ? body.projectId.trim()
           : null;
 
-    const seedExternalId = body.message?.externalMessageId?.trim();
     const result = await setConversationLinksForContact(
       contactId,
       conversationId,
@@ -191,20 +231,7 @@ export async function PATCH(request: Request) {
         opportunityId,
         projectId,
       },
-      seedExternalId
-        ? {
-            seedMessage: {
-              externalMessageId: seedExternalId,
-              subject: body.message?.subject,
-              senderEmail: body.message?.senderEmail,
-              recipientEmails: body.message?.recipientEmails,
-              sentAt: body.message?.sentAt,
-              bodyPreview: body.message?.bodyPreview,
-              webLink: body.message?.webLink,
-              isOutbound: body.message?.isOutbound === true,
-            },
-          }
-        : undefined,
+      seedMessage ? { seedMessage } : undefined,
     );
 
     if (result.updated === 0) {

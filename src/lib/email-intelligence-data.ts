@@ -222,6 +222,85 @@ function toEmailDto(message: {
   };
 }
 
+export type OutlookMessageSeedInput = {
+  externalMessageId: string;
+  subject?: string;
+  senderEmail?: string;
+  recipientEmails?: string[];
+  sentAt?: string;
+  bodyPreview?: string;
+  webLink?: string;
+  isOutbound?: boolean;
+};
+
+async function upsertSeededOutlookMessage(
+  contact: { id: string; emails: unknown },
+  conversationId: string,
+  seed: OutlookMessageSeedInput,
+  links?: {
+    opportunityId?: string | null;
+    projectId?: string | null;
+    projectName?: string | null;
+    m365CategoryName?: string | null;
+  },
+): Promise<boolean> {
+  const prisma = getPrisma();
+  const addresses = contactEmailsFromJson(contact.emails);
+  const externalMessageId = seed.externalMessageId.trim();
+  if (!externalMessageId || !conversationId.trim()) return false;
+
+  const isOutbound = Boolean(seed.isOutbound);
+  const senderEmail =
+    seed.senderEmail?.trim().toLowerCase() ||
+    (isOutbound ? "" : addresses[0]) ||
+    "";
+  const recipientEmails = seed.recipientEmails?.length
+    ? seed.recipientEmails.map((address) => address.trim().toLowerCase()).filter(Boolean)
+    : isOutbound
+      ? addresses
+      : addresses.filter((address) => address !== senderEmail);
+  const sentAt = seed.sentAt ? new Date(seed.sentAt) : new Date();
+
+  await prisma.emailMessageRecord.upsert({
+    where: { externalMessageId },
+    create: {
+      externalMessageId,
+      conversationId,
+      contactId: contact.id,
+      subject: seed.subject?.trim() || "(no subject)",
+      bodyPreview: seed.bodyPreview?.slice(0, 2000) ?? null,
+      webLink: seed.webLink?.trim() || null,
+      senderEmail: senderEmail || addresses[0] || "unknown@smartcrm.local",
+      recipientEmails,
+      sentAt: Number.isNaN(sentAt.getTime()) ? new Date() : sentAt,
+      sentiment: gradeEmailSentiment(
+        seed.subject?.trim() || "(no subject)",
+        seed.bodyPreview,
+      ),
+      isOutbound,
+      opportunityId: links?.opportunityId ?? null,
+      projectId: links?.projectId ?? null,
+      projectName: links?.projectName ?? null,
+      m365CategoryName: links?.m365CategoryName ?? null,
+    },
+    update: {
+      conversationId,
+      contactId: contact.id,
+      ...(seed.subject?.trim() ? { subject: seed.subject.trim() } : {}),
+      ...(senderEmail ? { senderEmail } : {}),
+      ...(recipientEmails.length > 0 ? { recipientEmails } : {}),
+      isOutbound,
+      ...(links?.opportunityId !== undefined ? { opportunityId: links.opportunityId } : {}),
+      ...(links?.projectId !== undefined ? { projectId: links.projectId } : {}),
+      ...(links?.projectName !== undefined ? { projectName: links.projectName } : {}),
+      ...(links?.m365CategoryName !== undefined
+        ? { m365CategoryName: links.m365CategoryName }
+        : {}),
+    },
+  });
+  return true;
+}
+
 function contactEmailsFromJson(emails: unknown): string[] {
   if (!Array.isArray(emails)) return [];
   return [
@@ -692,51 +771,16 @@ export async function setConversationLinksForContact(
     select: { id: true },
   });
   if (!anyInConversation && options?.seedMessage?.externalMessageId?.trim()) {
-    const seed = options.seedMessage;
-    const externalMessageId = seed.externalMessageId.trim();
-    const isOutbound = Boolean(seed.isOutbound);
-    const senderEmail =
-      seed.senderEmail?.trim().toLowerCase() ||
-      (isOutbound ? "" : addresses[0]) ||
-      "";
-    const recipientEmails = seed.recipientEmails?.length
-      ? seed.recipientEmails.map((address) => address.trim().toLowerCase()).filter(Boolean)
-      : isOutbound
-        ? addresses
-        : addresses.filter((address) => address !== senderEmail);
-    const sentAt = seed.sentAt ? new Date(seed.sentAt) : new Date();
-    await prisma.emailMessageRecord.upsert({
-      where: { externalMessageId },
-      create: {
-        externalMessageId,
-        conversationId,
-        contactId: contact.id,
-        subject: seed.subject?.trim() || "(no subject)",
-        bodyPreview: seed.bodyPreview?.slice(0, 2000) ?? null,
-        webLink: seed.webLink?.trim() || null,
-        senderEmail: senderEmail || addresses[0] || "unknown@smartcrm.local",
-        recipientEmails,
-        sentAt: Number.isNaN(sentAt.getTime()) ? new Date() : sentAt,
-        sentiment: gradeEmailSentiment(
-          seed.subject?.trim() || "(no subject)",
-          seed.bodyPreview,
-        ),
-        isOutbound,
+    seeded = await upsertSeededOutlookMessage(
+      contact,
+      conversationId,
+      options.seedMessage,
+      {
         opportunityId: data.opportunityId ?? null,
         projectId: data.projectId ?? null,
         projectName: data.projectName ?? null,
       },
-      update: {
-        conversationId,
-        contactId: contact.id,
-        ...(seed.subject?.trim() ? { subject: seed.subject.trim() } : {}),
-        ...(senderEmail ? { senderEmail } : {}),
-        ...(recipientEmails.length > 0 ? { recipientEmails } : {}),
-        isOutbound,
-        ...data,
-      },
-    });
-    seeded = true;
+    );
   }
 
   // Authorize: contact must appear on at least one message in this conversation.
@@ -849,6 +893,61 @@ export async function setConversationLinksForContact(
     projectName: finalProjectName,
     seeded,
   };
+}
+
+/**
+ * Save the open Outlook item onto a contact without requiring an opportunity or project.
+ * Category writes are best-effort — CRM capture must succeed even if Outlook tagging fails.
+ */
+export async function captureOutlookMessageForContact(
+  contactKey: string,
+  conversationId: string,
+  seed: OutlookMessageSeedInput,
+): Promise<{ captured: boolean; seeded: boolean }> {
+  const prisma = getPrisma();
+  const contact = await findPrismaContactByIdOrEmail(contactKey);
+  if (!contact || !conversationId.trim() || !seed.externalMessageId?.trim()) {
+    return { captured: false, seeded: false };
+  }
+
+  const { toIntentionalCategoryLabel, SMARTCRM_MASTER_CATEGORY } = await import(
+    "@/lib/m365-client"
+  );
+  const storedCategoryName = toIntentionalCategoryLabel(SMARTCRM_MASTER_CATEGORY);
+
+  const seeded = await upsertSeededOutlookMessage(contact, conversationId, seed, {
+    m365CategoryName: storedCategoryName,
+  });
+
+  const stored = await prisma.emailMessageRecord.findFirst({
+    where: {
+      OR: [
+        { externalMessageId: seed.externalMessageId.trim() },
+        { conversationId, contactId: contact.id },
+      ],
+    },
+    select: { id: true, externalMessageId: true },
+  });
+  if (!stored) {
+    return { captured: false, seeded };
+  }
+
+  try {
+    const { applySmartCrmCategories, getActiveM365AccessToken } = await import(
+      "@/lib/m365-client"
+    );
+    const token = await getActiveM365AccessToken();
+    if (token) {
+      await applySmartCrmCategories(token.accessToken, stored.externalMessageId);
+    }
+  } catch (error) {
+    console.warn(
+      "[email-intelligence] Relationship Outlook category sync failed:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+
+  return { captured: true, seeded };
 }
 
 /** @deprecated Prefer setConversationLinksForContact */
