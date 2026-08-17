@@ -1,17 +1,20 @@
 import { KnowledgeShell } from "@/components/layout/knowledge-shell";
 import {
-  readActivities,
-  readCompanies,
-  readPipelines,
-  readSmartDocsLibrary,
-} from "@/lib/pipeline-db";
+  readLiveActivities,
+  readLiveCompanies,
+  readLivePipelines,
+  readLiveSmartDocsLibrary,
+} from "@/lib/prisma-data";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function KnowledgePage() {
   const [pipelines, companies, activities, library] = await Promise.all([
-    readPipelines(),
-    readCompanies(),
-    readActivities(),
-    readSmartDocsLibrary(),
+    readLivePipelines(),
+    readLiveCompanies(),
+    readLiveActivities(),
+    readLiveSmartDocsLibrary(),
   ]);
 
   return (

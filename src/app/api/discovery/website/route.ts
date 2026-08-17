@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { discoverWebsite } from "@/lib/discovery/website-discovery";
-import { readCompanies } from "@/lib/pipeline-db";
+import { readLiveCompanies } from "@/lib/prisma-data";
 
 export async function POST(request: Request) {
   let body: { url?: string };
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const companies = await readCompanies();
+    const companies = await readLiveCompanies();
     const result = await discoverWebsite(url, companies);
     return NextResponse.json(result);
   } catch (error) {

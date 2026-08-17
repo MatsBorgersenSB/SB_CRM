@@ -3,19 +3,19 @@ import {
   completeWorkspaceArchitectSession,
 } from "@/lib/workspace-architect-engine";
 import {
-  readActivities,
-  readCommercialPackages,
-  readCompanies,
-  readPipelines,
-} from "@/lib/pipeline-db";
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLiveCompanies,
+  readLivePipelines,
+} from "@/lib/prisma-data";
 import type { WorkspaceArchitectSession } from "@/types/workspace-architect";
 
 async function loadCrmData() {
   const [companies, pipelines, activities, commercialPackages] = await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
-    readCommercialPackages(),
+    readLiveCompanies(),
+    readLivePipelines(),
+    readLiveActivities(),
+    readLiveCommercialPackages(),
   ]);
   return { companies, pipelines, activities, commercialPackages };
 }

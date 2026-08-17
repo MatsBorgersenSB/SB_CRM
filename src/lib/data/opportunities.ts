@@ -37,7 +37,11 @@ export async function allocateNextOpportunityCode(
     }),
     seedPipelines.length > 0
       ? Promise.resolve(seedPipelines)
-      : readPipelines().catch(() => [] as PipelineRow[]),
+      : (async () => {
+          const { shouldFallbackToJsonPortfolio } = await import("@/lib/prisma-data");
+          if (!shouldFallbackToJsonPortfolio()) return [] as PipelineRow[];
+          return readPipelines().catch(() => [] as PipelineRow[]);
+        })(),
   ]);
 
   const synthetic: Array<{ id: string; code?: string | null }> = [

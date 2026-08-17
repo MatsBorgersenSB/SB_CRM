@@ -17,6 +17,13 @@ export type MonthlyConversion = {
   facilities: MonthlyFacilityLoad[];
 };
 
+/** Production-safe empty conversions — hardcoded facility loads are local/CI only. */
+export const emptyConversionMetrics = {
+  totalPolymerProcessed: "—",
+  oilCharYield: "—",
+  systemUptime: "—",
+} as const;
+
 export const conversionMetrics = {
   totalPolymerProcessed: "4,762 metric tons",
   oilCharYield: "88.4% Average",

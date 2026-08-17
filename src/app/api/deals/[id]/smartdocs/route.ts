@@ -3,13 +3,13 @@ import { resolveRequestRole } from "@/lib/api-auth";
 import { buildDealDocumentContext } from "@/lib/deal-document-context";
 import { buildSmartDocIdentityPreview } from "@/lib/smartdoc-identity";
 import { canUploadSmartDocs } from "@/lib/permissions";
+import { resolvePipelineForSmartDocs } from "@/lib/pipeline-db";
 import {
-  readCommercialPackages,
-  readCompanies,
-  readSmartDocsLibrary,
-  readSmartDocsForDeal,
-  resolvePipelineForSmartDocs,
-} from "@/lib/pipeline-db";
+  readLiveCommercialPackages,
+  readLiveCompanies,
+  readLiveSmartDocsForDeal,
+  readLiveSmartDocsLibrary,
+} from "@/lib/prisma-data";
 import { importOpportunitySmartDoc } from "@/lib/smartdoc-import";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
@@ -110,10 +110,10 @@ export async function GET(
   try {
     const [pipeline, companies, packages, documents, library] = await Promise.all([
       resolvePipelineForSmartDocs(id),
-      readCompanies(),
-      readCommercialPackages(),
-      readSmartDocsForDeal(id),
-      readSmartDocsLibrary(),
+      readLiveCompanies(),
+      readLiveCommercialPackages(),
+      readLiveSmartDocsForDeal(id),
+      readLiveSmartDocsLibrary(),
     ]);
 
     if (!pipeline) {
@@ -192,9 +192,9 @@ export async function POST(
 
     const [pipeline, companies, packages, documents] = await Promise.all([
       resolvePipelineForSmartDocs(id),
-      readCompanies(),
-      readCommercialPackages(),
-      readSmartDocsForDeal(id),
+      readLiveCompanies(),
+      readLiveCommercialPackages(),
+      readLiveSmartDocsForDeal(id),
     ]);
 
     if (!pipeline) {
@@ -209,7 +209,7 @@ export async function POST(
       documents,
       documentRecordId: imported.documentRecordId,
       sharepointWebUrl: imported.sharepointWebUrl,
-      existingIdentityIds: (await readSmartDocsLibrary()).map((row) => row.SmartDocID),
+      existingIdentityIds: (await readLiveSmartDocsLibrary()).map((row) => row.SmartDocID),
     });
   } catch (error) {
     return sharePointErrorResponse(error);

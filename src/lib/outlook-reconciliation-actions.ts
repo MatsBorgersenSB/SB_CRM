@@ -12,14 +12,18 @@ import {
 /** Server-only Outlook reconciliation mutations — uses fs-backed stores. */
 
 export async function loadReconciliationContext(): Promise<ReconciliationContext> {
-  const { readActivities, readCompanies, readOutlookEvidence, readPipelines } =
-    await import("@/lib/pipeline-db");
+  const {
+    readLiveActivities,
+    readLiveCompanies,
+    readLiveOutlookEvidence,
+    readLivePipelines,
+  } = await import("@/lib/prisma-data");
 
   const [companies, pipelines, activities, outlookEvidence] = await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
-    readOutlookEvidence(),
+    readLiveCompanies(),
+    readLivePipelines(),
+    readLiveActivities(),
+    readLiveOutlookEvidence(),
   ]);
 
   return {

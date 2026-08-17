@@ -6,16 +6,23 @@ import { CompanyClassificationReport } from "@/components/companies/company-clas
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { buildCompanyClassificationReport } from "@/lib/company-classification";
-import { readAnalytics, readCompanies, readPipelines } from "@/lib/pipeline-db";
+import {
+  readLiveAnalytics,
+  readLiveCompanies,
+  readLivePipelines,
+} from "@/lib/prisma-data";
 
 /**
  * FS-014 — Advanced Reporting & Analytics Workspace
  */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AnalyticsPage() {
   const [analytics, pipelines, companies] = await Promise.all([
-    readAnalytics(),
-    readPipelines(),
-    readCompanies(),
+    readLiveAnalytics(),
+    readLivePipelines(),
+    readLiveCompanies(),
   ]);
 
   const smartDocsTransactions = pipelines.filter(

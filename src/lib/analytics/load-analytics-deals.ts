@@ -53,6 +53,10 @@ export async function loadAnalyticsDeals(): Promise<{
     );
 
     if (opportunities.length === 0) {
+      const { shouldFallbackToJsonPortfolio } = await import("@/lib/prisma-data");
+      if (!shouldFallbackToJsonPortfolio()) {
+        return { deals: [], source: "prisma" };
+      }
       const pipelines = await readPipelines();
       return {
         deals: pipelines.map(pipelineRowToAnalyticsDeal),
@@ -93,6 +97,14 @@ export async function loadAnalyticsDeals(): Promise<{
 
     return { deals, source: "prisma" };
   } catch (error) {
+    const { shouldFallbackToJsonPortfolio } = await import("@/lib/prisma-data");
+    if (!shouldFallbackToJsonPortfolio()) {
+      console.error(
+        "[analytics] Prisma query failed in production — not using JSON seed:",
+        error instanceof Error ? error.message : error,
+      );
+      throw error;
+    }
     console.warn(
       "[analytics] Falling back to JSON pipelines:",
       error instanceof Error ? error.message : error,

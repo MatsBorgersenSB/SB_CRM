@@ -226,8 +226,11 @@ export async function updateRegistryContact(
 
   let existing = await findPrismaContactByIdOrEmail(String(id));
 
-  // Promote JSON-seeded CT-… contacts into Prisma on first save.
+  // Promote JSON-seeded CT-… contacts into Prisma on first save (local/CI only).
   if (!existing) {
+    const { shouldFallbackToJsonPortfolio } = await import("@/lib/prisma-data");
+    if (!shouldFallbackToJsonPortfolio()) return null;
+
     const companies = await readCompanies();
     let jsonContact: Contact | null = null;
     let jsonCompanyId = "";

@@ -257,7 +257,7 @@ export function executeSmartAssistAsk(
     return {
       intent: "deep_research",
       summary:
-        "I could not match that research target. Try a company name (e.g. Nordic Polymers), contact, competitor (PYREG), or market topic (Swedish biochar market).",
+        "I could not match that research target. Try a company name, contact, competitor (PYREG), or market topic (Swedish biochar market).",
       actionLabel: "Browse companies",
       href: "/companies",
     };

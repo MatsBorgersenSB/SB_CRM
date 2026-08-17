@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { createResearchReport, readResearchReports } from "@/lib/pipeline-db";
+import { createResearchReport } from "@/lib/pipeline-db";
+import { readLiveResearchReports } from "@/lib/prisma-data";
 import type { DeepResearchBriefing } from "@/types/deep-research";
 
 export async function GET() {
-  const reports = await readResearchReports();
+  const reports = await readLiveResearchReports();
   return NextResponse.json({ reports });
 }
 

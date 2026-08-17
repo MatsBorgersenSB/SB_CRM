@@ -6,11 +6,11 @@ import { assertCommercialPackageActionAllowed } from "@/lib/permissions";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import type { AcceptTransmissionInput } from "@/types/commercial-package-input";
 import {
-  readActivities,
-  readCommercialPackages,
-  readCompanies,
-  readPipelines,
-} from "@/lib/pipeline-db";
+  readLiveActivities,
+  readLiveCommercialPackages,
+  readLiveCompanies,
+  readLivePipelines,
+} from "@/lib/prisma-data";
 
 export async function POST(
   request: Request,
@@ -26,10 +26,10 @@ export async function POST(
     await acceptTransmissionPackage(id, body.transmissionPackageId);
 
     const [pipelines, packages, activities, companies] = await Promise.all([
-      readPipelines(),
-      readCommercialPackages(),
-      readActivities(),
-      readCompanies(),
+      readLivePipelines(),
+      readLiveCommercialPackages(),
+      readLiveActivities(),
+      readLiveCompanies(),
     ]);
 
     const pipeline = pipelines.find((row) => row.id === id);

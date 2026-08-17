@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { readSmartDocsLibrary } from "@/lib/pipeline-db";
+import { readLiveSmartDocsLibrary } from "@/lib/prisma-data";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const library = await readSmartDocsLibrary();
+  const library = await readLiveSmartDocsLibrary();
   return NextResponse.json({ library });
 }

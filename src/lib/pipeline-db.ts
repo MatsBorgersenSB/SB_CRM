@@ -1312,14 +1312,17 @@ export async function resolveCompanyForSmartDocs(
   const key = companyId.trim();
   if (!key) return undefined;
 
-  const database = await ensureDb();
-  const fromJson = database.companies.find(
-    (row) =>
-      row.CompanyID === key ||
-      row.code?.trim().toLowerCase() === key.toLowerCase() ||
-      String(row.id) === key,
-  );
-  if (fromJson) return fromJson;
+  const { shouldFallbackToJsonPortfolio } = await import("@/lib/prisma-data");
+  if (shouldFallbackToJsonPortfolio()) {
+    const database = await ensureDb();
+    const fromJson = database.companies.find(
+      (row) =>
+        row.CompanyID === key ||
+        row.code?.trim().toLowerCase() === key.toLowerCase() ||
+        String(row.id) === key,
+    );
+    if (fromJson) return fromJson;
+  }
 
   try {
     const { findPrismaCompanyByRouteKey } = await import(
@@ -1345,13 +1348,16 @@ export async function resolvePipelineForSmartDocs(
   const key = dealId.trim();
   if (!key) return undefined;
 
-  const database = await ensureDb();
-  const fromJson = database.pipelines.find(
-    (row) =>
-      row.id === key ||
-      row.code?.trim().toLowerCase() === key.toLowerCase(),
-  );
-  if (fromJson) return fromJson;
+  const { shouldFallbackToJsonPortfolio } = await import("@/lib/prisma-data");
+  if (shouldFallbackToJsonPortfolio()) {
+    const database = await ensureDb();
+    const fromJson = database.pipelines.find(
+      (row) =>
+        row.id === key ||
+        row.code?.trim().toLowerCase() === key.toLowerCase(),
+    );
+    if (fromJson) return fromJson;
+  }
 
   try {
     const { findPrismaOpportunityByRouteKey } = await import(
