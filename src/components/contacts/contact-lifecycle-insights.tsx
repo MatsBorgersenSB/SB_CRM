@@ -36,6 +36,8 @@ export function ContactLifecycleInsights({
     [contact, companyId, companyName, companies, pipelines, activities],
   );
 
+  if (!showBanner && audit.insights.length === 0) return null;
+
   return (
     <div className="flex flex-col gap-3">
       {showBanner ? (
@@ -48,14 +50,14 @@ export function ContactLifecycleInsights({
             {CONTACT_RELATIONSHIP_INTELLIGENCE.mantra}
           </p>
         </div>
-      ) : audit.summary ? (
-        <p className="text-[11px] leading-relaxed text-carbon-blue/65">{audit.summary}</p>
       ) : null}
 
       {audit.insights.length === 0 ? (
-        <p className="px-1 text-xs text-carbon-blue/50">
-          No lifecycle signals detected — relationship appears stable.
-        </p>
+        showBanner ? (
+          <p className="px-1 text-xs text-carbon-blue/50">
+            No lifecycle signals detected — relationship appears stable.
+          </p>
+        ) : null
       ) : (
         audit.insights.map((insight) => (
           <AssistantRecommendationCard

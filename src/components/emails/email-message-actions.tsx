@@ -59,6 +59,7 @@ export function EmailMessageActions({
   projectId,
   role = "superuser",
   disabled = false,
+  compact = false,
 }: {
   toEmail: string;
   subject: string;
@@ -70,6 +71,8 @@ export function EmailMessageActions({
   projectId?: string;
   role?: UserRole;
   disabled?: boolean;
+  /** Reply only — Call / meeting live on the contact header. */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [replyBusy, setReplyBusy] = useState(false);
@@ -132,37 +135,41 @@ export function EmailMessageActions({
         >
           {replyBusy ? "Opening…" : "Reply"}
         </button>
-        {phone ? (
-          <a href={telHref(phone)} className={SECONDARY_ACTION_CLASS}>
-            Call
-          </a>
-        ) : (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={planCall}
-            className={SECONDARY_ACTION_CLASS}
-            title="No phone on file — plan a call in Activities"
-          >
-            Call
-          </button>
+        {compact ? null : (
+          <>
+            {phone ? (
+              <a href={telHref(phone)} className={SECONDARY_ACTION_CLASS}>
+                Call
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={planCall}
+                className={SECONDARY_ACTION_CLASS}
+                title="No phone on file — plan a call in Activities"
+              >
+                Call
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={planMeeting}
+              className={SECONDARY_ACTION_CLASS}
+            >
+              Plan meeting
+            </button>
+            <a
+              href={teamsMeetingComposeHref(title, meetingBody(subject, bodyPreview))}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={SECONDARY_ACTION_CLASS}
+            >
+              Create meeting
+            </a>
+          </>
         )}
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={planMeeting}
-          className={SECONDARY_ACTION_CLASS}
-        >
-          Plan meeting
-        </button>
-        <a
-          href={teamsMeetingComposeHref(title, meetingBody(subject, bodyPreview))}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={SECONDARY_ACTION_CLASS}
-        >
-          Create meeting
-        </a>
       </div>
       {replyError ? <p className="mt-1 text-[10px] text-thermal-red">{replyError}</p> : null}
     </div>

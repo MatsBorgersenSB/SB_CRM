@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Contact } from "@/types/contact";
 import { getContactDisplayName } from "@/types/contact";
 import { CompanyLink } from "@/components/relationship/relationship-links";
@@ -10,37 +10,10 @@ import { ActionableField, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { Contact360StatusPanel } from "@/components/contacts/contact-360-status-panel";
 import type { EmploymentStatus } from "@/types/contact-lifecycle";
 import type { RelationshipHealthStatus } from "@/lib/relationship-intelligence";
+import type { Contact360Verdict } from "@/lib/contact-360-verdict";
 
-function sentimentIcon(sentiment: string | undefined): string {
-  if (!sentiment) return "🟡";
-  if (sentiment.toLowerCase().includes("champion")) return "🟢";
-  if (sentiment.toLowerCase().includes("detractor")) return "🔴";
-  return "🟡";
-}
-
-function cadenceHealth(cadence: string | undefined, lastInteractionDate?: string): "Warm" | "Cooling Off" | "Cold / At Risk" {
-  if (cadence === "When needed") return "Warm";
-  if (!lastInteractionDate) return "Cold / At Risk";
-  const last = new Date(lastInteractionDate).getTime();
-  if (!Number.isFinite(last)) return "Cold / At Risk";
-  const days = Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24));
-  const cadenceDays =
-    cadence === "Weekly"
-      ? 7
-      : cadence === "Bi-weekly"
-        ? 14
-        : cadence === "Quarterly"
-          ? 90
-          : cadence === "Yearly"
-            ? 365
-            : 30;
-  if (days <= cadenceDays) return "Warm";
-  if (days <= cadenceDays * 2) return "Cooling Off";
-  return "Cold / At Risk";
-}
-
-function localTimeString(timezone: string | undefined, now: Date): string {
-  if (!timezone?.trim()) return "Unknown timezone";
+function localTimeString(timezone: string | undefined, now: Date): string | null {
+  if (!timezone?.trim()) return null;
   try {
     return new Intl.DateTimeFormat("en-GB", {
       hour: "2-digit",
@@ -51,12 +24,12 @@ function localTimeString(timezone: string | undefined, now: Date): string {
       timeZone: timezone,
     }).format(now);
   } catch {
-    return "Invalid timezone";
+    return null;
   }
 }
 
 /**
- * Contact 360 hero — identity and reachability on the left, status on the upper-right (Phase 1.28B).
+ * Contact 360 hero — who, what matters, what next.
  */
 export function Contact360Header({
   contact,
@@ -68,6 +41,7 @@ export function Contact360Header({
   onEmploymentStatusChange,
   editing = false,
   trailing,
+  verdict,
 }: {
   contact: Contact;
   companyId: string;
@@ -77,8 +51,8 @@ export function Contact360Header({
   employmentBusy?: boolean;
   onEmploymentStatusChange: (status: EmploymentStatus) => void;
   editing?: boolean;
-  /** Secondary overflow (contact tools) — same ··· strategy as Company 360. */
   trailing?: ReactNode;
+  verdict?: Contact360Verdict;
 }) {
   const displayName = getContactDisplayName(contact);
   const position = contact.JobTitle || contact.Role || "—";
@@ -90,10 +64,7 @@ export function Contact360Header({
     return () => clearInterval(timer);
   }, []);
 
-  const cadence = useMemo(
-    () => cadenceHealth(contact.engagementCadence, lastInteractionDate),
-    [contact.engagementCadence, lastInteractionDate],
-  );
+  const localTime = localTimeString(contact.timezone, clockNow);
 
   return (
     <div className="flex flex-col gap-4 border border-carbon-blue/10 bg-white p-4 lg:flex-row lg:items-start lg:justify-between">
@@ -136,22 +107,33 @@ export function Contact360Header({
           )}
         </div>
 
+        {verdict ? (
+          <div className="mt-3 max-w-xl">
+            <p className="text-[15px] leading-snug text-carbon-blue">{verdict.summary}</p>
+            <p className="mt-1 text-[13px] leading-snug text-carbon-blue/70">
+              <span className="font-medium text-upcycle-orange">Next </span>
+              {verdict.nextAction}
+            </p>
+          </div>
+        ) : null}
+
         <div className="mt-3 flex flex-wrap gap-2">
+          {localTime ? (
+            <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[11px] font-medium text-carbon-blue/70">
+              Local time {localTime}
+            </span>
+          ) : null}
           <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[11px] font-medium text-carbon-blue/70">
-            🕒 Local Time: {localTimeString(contact.timezone, clockNow)}
-          </span>
-          <span className="border border-upcycle-orange/20 bg-upcycle-orange/[0.08] px-2.5 py-1 text-[11px] font-medium text-upcycle-orange">
-            🎯 Buying Role: {contact.buyingRole ?? "Unknown"} {sentimentIcon(contact.sentiment)}
-          </span>
-          <span className="border border-carbon-blue/12 bg-white px-2.5 py-1 text-[11px] font-medium text-carbon-blue/70">
-            💚 Cadence Health: {cadence}
+            Buying role {contact.buyingRole ?? "Unknown"}
           </span>
         </div>
       </div>
 
       <Contact360StatusPanel
         contact={contact}
+        companyName={companyName}
         lastInteractionDate={lastInteractionDate}
+        lastInteractionSource={verdict?.lastInteractionSource ?? null}
         healthStatus={healthStatus}
         employmentBusy={employmentBusy}
         onEmploymentStatusChange={onEmploymentStatusChange}

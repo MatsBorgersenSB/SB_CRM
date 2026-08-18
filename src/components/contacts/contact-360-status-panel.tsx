@@ -8,6 +8,7 @@ import {
   type EmploymentStatus,
 } from "@/types/contact-lifecycle";
 import type { RelationshipHealthStatus } from "@/lib/relationship-intelligence";
+import type { ContactLastTouchSource } from "@/lib/contact-360-verdict";
 import { HealthStatusIcon } from "@/components/ui/smartcrm-icon";
 
 /**
@@ -15,14 +16,18 @@ import { HealthStatusIcon } from "@/components/ui/smartcrm-icon";
  */
 export function Contact360StatusPanel({
   contact,
+  companyName,
   lastInteractionDate,
+  lastInteractionSource,
   healthStatus,
   employmentBusy,
   onEmploymentStatusChange,
   editing = false,
 }: {
   contact: Contact;
+  companyName?: string;
   lastInteractionDate?: string;
+  lastInteractionSource?: ContactLastTouchSource | null;
   healthStatus: RelationshipHealthStatus;
   employmentBusy?: boolean;
   onEmploymentStatusChange: (status: EmploymentStatus) => void;
@@ -68,18 +73,30 @@ export function Contact360StatusPanel({
             Last interaction
           </dt>
           <dd className="mt-1 text-[13px] font-medium text-carbon-blue">
-            {lastInteractionDate ? formatRelativeTime(lastInteractionDate) : "Never recorded"}
+            {lastInteractionDate ? (
+              <>
+                {formatRelativeTime(lastInteractionDate)}
+                {lastInteractionSource === "outlook" ? (
+                  <span className="font-normal text-carbon-blue/50"> · Outlook</span>
+                ) : null}
+              </>
+            ) : (
+              "Never recorded"
+            )}
           </dd>
         </div>
 
         <div>
           <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
-            Relationship health
+            Company health
           </dt>
           <dd className="mt-1">
             <span className="inline-flex items-center gap-1.5 border border-carbon-blue/10 bg-white px-2.5 py-1 text-[12px] font-medium text-carbon-blue">
               <HealthStatusIcon status={healthStatus} />
               {healthStatus}
+              {companyName ? (
+                <span className="font-normal text-carbon-blue/45"> · {companyName}</span>
+              ) : null}
             </span>
           </dd>
         </div>
