@@ -34,7 +34,7 @@ const SUGGESTION_ORDER: SignatureFieldId[] = [
 ];
 
 const TITLE_KEYWORDS =
-  /\b(manager|director|engineer|officer|lead|head|vp|president|specialist|coordinator|supervisor|analyst|consultant|chief|executive|sponsor|procurement|compliance|founder|co-founder|cofounder|ceo|cto|cfo|coo|partner|owner|ambassador|director\s+general|marketing|prosjekt|prosjektleder|miljø|miljo|leder|sjef|ingeniør|ingenior|rådgiver|radgiver|direktør|direktor|daglig|salgssjef|markedssjef|salgsansvarlig|systemingeniør|systemingenior)\b|ansvarlig\b/i;
+  /\b(manager|director|engineer|officer|lead|head|vp|president|specialist|coordinator|supervisor|analyst|consultant|chief|executive|sponsor|procurement|compliance|founder|co-founder|cofounder|ceo|cto|cfo|coo|partner|owner|ambassador|director\s+general|marketing|prosjekt|prosjektleder|miljø|miljo|leder|sjef|ingeniør|ingenior|salgsingeniør|salgsingenior|markedsingeniør|markedsingenior|lagersjef|markedsfører|markedsforer|rådgiver|radgiver|direktør|direktor|daglig|salgssjef|markedssjef|salgsansvarlig|systemingeniør|systemingenior)\b|ansvarlig\b|\w*ingeni[øo]r\b/i;
 
 const ROLE_COMPANY_PATTERN = /^(.+?)\s+(?:de|del|d'|at|@|for|en|bei|von)\s+(.+)$/i;
 
@@ -65,7 +65,7 @@ const COUNTRY_PATTERN =
   /^(norway|sweden|denmark|finland|germany|spain|france|netherlands|belgium|austria|switzerland|portugal|italy|poland|uk|united kingdom|usa|united states|canada|ireland)$/i;
 
 const LABEL_ONLY_PATTERN =
-  /^(role|title|position|job title|cargo|puesto|company|organization|organisation|empresa|mobile|mob|móvil|movil|cell|phone|tel|telephone|office|email|e-mail)\s*:?\s*$/i;
+  /^(role|title|position|job title|stilling|stillingstittel|tittel|cargo|puesto|company|organization|organisation|empresa|mobile|mob|mobil|móvil|movil|cell|phone|tel|telephone|tlf|telefon|office|email|e-mail|e-post|epost)\s*:?\s*$/i;
 
 function normalizeLines(text: string): string[] {
   return text
@@ -239,7 +239,7 @@ function extractRoleCompanyFromLine(line: string): { role: string; company: stri
 
 function looksLikePersonNameStandalone(line: string): boolean {
   if (line.includes("@") || isLikelyPhoneLine(line)) return false;
-  if (labeledValue(line, ["tel", "phone", "mobile", "mob", "email", "e-mail", "role", "title"])) {
+  if (labeledValue(line, ["tel", "phone", "mobile", "mob", "mobil", "email", "e-mail", "e-post", "epost", "role", "title"])) {
     return false;
   }
   if (LABEL_ONLY_PATTERN.test(line)) return false;
@@ -254,7 +254,7 @@ function looksLikePersonNameStandalone(line: string): boolean {
 
 function isLikelyPersonName(line: string): boolean {
   if (line.includes("@") || isLikelyPhoneLine(line)) return false;
-  if (labeledValue(line, ["tel", "phone", "mobile", "mob", "email", "e-mail", "role", "title"])) {
+  if (labeledValue(line, ["tel", "phone", "mobile", "mob", "mobil", "email", "e-mail", "e-post", "epost", "role", "title"])) {
     return false;
   }
   if (LABEL_ONLY_PATTERN.test(line)) return false;
@@ -283,7 +283,7 @@ function looksLikeCompanyStandalone(line: string): boolean {
 
 function isAddressLine(line: string): boolean {
   if (line.includes("@") || WEBSITE_PATTERN.test(line)) return false;
-  if (labeledValue(line, ["phone", "tel", "telephone", "mobile", "mob", "email", "e-mail"])) {
+  if (labeledValue(line, ["phone", "tel", "telephone", "mobile", "mob", "mobil", "email", "e-mail", "e-post", "epost"])) {
     return false;
   }
   if (LABEL_ONLY_PATTERN.test(line)) return false;
@@ -302,7 +302,7 @@ function isConsumedFieldLine(line: string): boolean {
   if (looksLikeRole(line) || looksLikeCompanyStandalone(line) || isLikelyPersonName(line)) {
     return true;
   }
-  if (labeledValue(line, ["phone", "tel", "telephone", "mobile", "mob", "email", "e-mail"])) {
+  if (labeledValue(line, ["phone", "tel", "telephone", "mobile", "mob", "mobil", "email", "e-mail", "e-post", "epost"])) {
     return true;
   }
   if (LABEL_ONLY_PATTERN.test(line)) return true;
@@ -395,6 +395,9 @@ export function parseSignatureIntelligence(
       "title",
       "position",
       "job title",
+      "stilling",
+      "stillingstittel",
+      "tittel",
       "cargo",
       "puesto",
     ]);
@@ -425,6 +428,7 @@ export function parseSignatureIntelligence(
     const mobileLabel = labeledValueOrNextLine(lines, i, [
       "mobile",
       "mob",
+      "mobil",
       "móvil",
       "movil",
       "cell",
@@ -456,7 +460,13 @@ export function parseSignatureIntelligence(
       consumed.add(i);
     }
 
-    const emailLabel = labeledValueOrNextLine(lines, i, ["email", "e-mail"]);
+    const emailLabel = labeledValueOrNextLine(lines, i, [
+      "email",
+      "e-mail",
+      "e-post",
+      "epost",
+      "mail",
+    ]);
     if (emailLabel && EMAIL_PATTERN.test(emailLabel) && !found.email) {
       found.email = emailLabel.toLowerCase();
       consumed.add(i);
@@ -488,6 +498,14 @@ export function parseSignatureIntelligence(
       found.email = line.toLowerCase();
       consumed.add(i);
       continue;
+    }
+    if (!found.email) {
+      const embeddedEmail = line.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
+      if (embeddedEmail?.[0]) {
+        found.email = embeddedEmail[0].toLowerCase();
+        consumed.add(i);
+        continue;
+      }
     }
 
     const websiteMatch = line.match(WEBSITE_PATTERN);
