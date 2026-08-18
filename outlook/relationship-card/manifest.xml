@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SmartCRM for Outlook v1.5.4.0 — 2026-08-18
+  SmartCRM for Outlook v1.5.5.0 — 2026-08-18
   Source of truth for sideload / central deploy.
   Host MUST be https://sb-crm-seven.vercel.app — never smart-crm-outlook-plugin-phi.
   1.5.4.0: Item multi-select — save several read mails into SmartCRM in one action.
+  1.5.5.0: Version bump so M365 Admin Center will accept the update (must exceed deployed).
   Requires ReadWriteMailbox + SupportsMultiSelect on Message Read.
 -->
 <OfficeApp
@@ -13,7 +14,7 @@
   xsi:type="MailApp"
 >
   <Id>6f3c8b2a-9d4e-4a1c-b7e2-a1b2c3d4e5f6</Id>
-  <Version>1.5.4.0</Version>
+  <Version>1.5.5.0</Version>
   <ProviderName>SmartCRM</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="SmartCRM for Outlook" />
