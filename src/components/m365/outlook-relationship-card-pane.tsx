@@ -7,7 +7,7 @@ import { OutlookMailTagPanel } from "@/components/m365/outlook-mail-tag-panel";
 import { OutlookReconciliationCard } from "@/components/m365/outlook-reconciliation-card";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
 import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
-import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
+import { buildSmartCrmUrl, isAutomatedMailboxEmail } from "@/lib/m365/outlook-context";
 import { analyzeOutlookReconciliation } from "@/lib/outlook-reconciliation-engine";
 import { useOutlookM365PaneLoad } from "@/hooks/use-outlook-m365-pane-load";
 import type { M365RelationshipCardPayload } from "@/types/m365";
@@ -17,7 +17,7 @@ export function OutlookRelationshipCardPane() {
     useOutlookM365PaneLoad<M365RelationshipCardPayload>({
       apiPath: "/api/m365/relationship-card",
       expectedKind: "relationship-card",
-      emptyMessage: "Select one or more emails with a known contact to see relationship intelligence.",
+      emptyMessage: "Select emails from a person in SmartCRM. Signing-service mail (Adobe Sign) is skipped.",
       errorMessage: "Unable to load relationship intelligence.",
       unexpectedPayloadMessage: "Unexpected intelligence payload.",
     });
@@ -102,6 +102,20 @@ export function OutlookRelationshipCardPane() {
   }
 
   if (state.status === "not-found" && resolvedEmail) {
+    if (isAutomatedMailboxEmail(resolvedEmail)) {
+      return (
+        <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+            SmartCRM
+          </p>
+          <p className="mt-2 text-sm font-semibold text-carbon-blue">Not a person</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+            This address is a signing service, not a contact. Select mails from the
+            person, then save them here.
+          </p>
+        </div>
+      );
+    }
     return (
       <OutlookNoContactState
         email={resolvedEmail}
