@@ -5,7 +5,8 @@ import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outloo
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
 import {
-  resolveOutlookOpenMessageSeed,
+  resolveOutlookSelectedMessageSeeds,
+  subscribeOutlookSelectedItemsChanged,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
 import type { UserRole } from "@/types/auth";
@@ -47,10 +48,24 @@ export function OutlookMailTagPanel({
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [seed, setSeed] = useState<OutlookOpenMessageSeed | null>(null);
+  const [seeds, setSeeds] = useState<OutlookOpenMessageSeed[]>([]);
   const [context, setContext] = useState<TagContextPayload | null>(null);
   const [linkKind, setLinkKind] = useState<"opportunity" | "project">("opportunity");
   const [selectedId, setSelectedId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectionTick, setSelectionTick] = useState(0);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    void subscribeOutlookSelectedItemsChanged(() => {
+      setSelectionTick((value) => value + 1);
+    }).then((fn) => {
+      unsubscribe = fn;
+    });
+    return () => {
+      unsubscribe?.();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,13 +73,14 @@ export function OutlookMailTagPanel({
       setLoading(true);
       setError(null);
       try {
-        const openSeed = await resolveOutlookOpenMessageSeed();
+        const openSeeds = await resolveOutlookSelectedMessageSeeds();
         if (cancelled) return;
-        setSeed(openSeed);
+        setSeeds(openSeeds);
+        setSeed(openSeeds[0] ?? null);
 
         const params = new URLSearchParams({ email });
-        if (openSeed?.conversationId) {
-          params.set("conversationId", openSeed.conversationId);
+        if (openSeeds[0]?.conversationId) {
+          params.set("conversationId", openSeeds[0].conversationId);
         }
         const response = await fetch(`/api/m365/outlook/mail-tag?${params}`, {
           headers: { [AUTH_ROLE_HEADER]: role },
@@ -98,106 +114,88 @@ export function OutlookMailTagPanel({
     return () => {
       cancelled = true;
     };
-  }, [email, role]);
+  }, [email, role, selectionTick]);
 
   const commercialTagging =
     opportunityEligible ?? context?.opportunityEligible ?? true;
   const options =
     linkKind === "project" ? context?.projectOptions ?? [] : context?.opportunityOptions ?? [];
-  const conversationId = seed?.conversationId ?? null;
+  const selectedCount = seeds.length;
 
-  const markRelationshipInOutlook = async () => {
-    if (!context?.contactId || !seed) return;
+  const saveSelectedMails = async (link?: {
+    opportunityId?: string | null;
+    projectId?: string | null;
+  }) => {
+    if (!context?.contactId || seeds.length === 0) return;
     setBusy(true);
     setError(null);
     setStatus(null);
     try {
       const response = await fetch("/api/m365/outlook/mail-tag", {
-        method: "PATCH",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           [AUTH_ROLE_HEADER]: role,
         },
         body: JSON.stringify({
           contactId: context.contactId,
-          conversationId: seed.conversationId,
-          message: {
-            externalMessageId: seed.externalMessageId,
-            subject: seed.subject,
-            senderEmail: seed.senderEmail || email,
-            recipientEmails: seed.recipientEmails,
-            sentAt: seed.sentAt,
-            bodyPreview: seed.bodyPreview,
-            webLink: seed.webLink,
-            isOutbound: seed.isOutbound === true,
-          },
+          ...(link?.opportunityId !== undefined ? { opportunityId: link.opportunityId } : {}),
+          ...(link?.projectId !== undefined ? { projectId: link.projectId } : {}),
+          messages: seeds.map((row) => ({
+            conversationId: row.conversationId,
+            message: {
+              externalMessageId: row.externalMessageId,
+              subject: row.subject,
+              senderEmail: row.senderEmail || email,
+              recipientEmails: row.recipientEmails,
+              ...(row.sentAt ? { sentAt: row.sentAt } : {}),
+              bodyPreview: row.bodyPreview,
+              webLink: row.webLink,
+              isOutbound: row.isOutbound === true,
+            },
+          })),
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
         error?: string;
         detail?: string;
+        saved?: number;
+        failed?: number;
+        total?: number;
       };
       if (!response.ok) {
-        throw new Error(payload.detail || payload.error || "Could not save this mail in SmartCRM");
+        throw new Error(payload.detail || payload.error || "Could not save mail in SmartCRM");
       }
-
-      setStatus(`Saved on ${context.companyName} in SmartCRM. Open the contact to read the mail.`);
-    } catch (markError) {
-      setError(markError instanceof Error ? markError.message : "Could not mark mail");
+      const saved = payload.saved ?? 0;
+      const failed = payload.failed ?? 0;
+      if (saved === 0) {
+        throw new Error("Could not save these mails for the matched contact.");
+      }
+      setStatus(
+        failed > 0
+          ? `Saved ${saved} of ${payload.total ?? seeds.length} mails on ${context.companyName}.`
+          : saved === 1
+            ? `Saved on ${context.companyName} in SmartCRM.`
+            : `Saved ${saved} mails on ${context.companyName} in SmartCRM.`,
+      );
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Could not save mail");
     } finally {
       setBusy(false);
     }
   };
 
-  const applyTag = async () => {
-    if (!context?.contactId || !conversationId || !selectedId || !seed) return;
-    setBusy(true);
-    setError(null);
-    setStatus(null);
-    try {
-      const response = await fetch("/api/m365/outlook/mail-tag", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          [AUTH_ROLE_HEADER]: role,
-        },
-        body: JSON.stringify({
-          contactId: context.contactId,
-          conversationId,
-          opportunityId: linkKind === "opportunity" ? selectedId : null,
-          projectId: linkKind === "project" ? selectedId : null,
-          message: {
-            externalMessageId: seed.externalMessageId,
-            subject: seed.subject,
-            senderEmail: seed.senderEmail || email,
-            recipientEmails: seed.recipientEmails,
-            sentAt: seed.sentAt,
-            bodyPreview: seed.bodyPreview,
-            webLink: seed.webLink,
-            isOutbound: seed.isOutbound === true,
-          },
-        }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        detail?: string;
-        projectName?: string | null;
-        opportunityName?: string | null;
-      };
-      if (!response.ok) {
-        throw new Error(payload.detail || payload.error || "Could not tag mail");
-      }
+  const markRelationshipInOutlook = async () => {
+    await saveSelectedMails();
+  };
 
-      setStatus(
-        linkKind === "project"
-          ? "Thread tagged to project in SmartCRM."
-          : "Thread tagged to opportunity in SmartCRM.",
-      );
-    } catch (tagError) {
-      setError(tagError instanceof Error ? tagError.message : "Could not tag mail");
-    } finally {
-      setBusy(false);
-    }
+  const applyTag = async () => {
+    if (!selectedId) return;
+    await saveSelectedMails(
+      linkKind === "project"
+        ? { projectId: selectedId }
+        : { opportunityId: selectedId },
+    );
   };
 
   if (loading) {
@@ -223,9 +221,11 @@ export function OutlookMailTagPanel({
           Relationship mail
         </p>
         <p className="mt-1 text-[11px] leading-snug text-carbon-blue/60">
-          {context.companyName} is a supplier / service relationship — not linked to an
-          opportunity or project. Mark this mail so it appears on the contact in SmartCRM.
+          {selectedCount > 1
+            ? `${selectedCount} mails selected — save them onto ${context.companyName} in SmartCRM.`
+            : `${context.companyName} is a supplier / service relationship — not linked to an opportunity or project. Mark this mail so it appears on the contact in SmartCRM.`}
         </p>
+        <SelectedMailSubjects seeds={seeds} />
         {seed ? (
           <button
             type="button"
@@ -233,11 +233,15 @@ export function OutlookMailTagPanel({
             onClick={() => void markRelationshipInOutlook()}
             className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
           >
-            {busy ? "Saving…" : "Save mail in SmartCRM"}
+            {busy
+              ? "Saving…"
+              : selectedCount > 1
+                ? `Save ${selectedCount} mails in SmartCRM`
+                : "Save mail in SmartCRM"}
           </button>
         ) : (
           <p className="mt-2 text-[10px] text-carbon-blue/45">
-            Open a mail item to mark it with the SmartCRM category.
+            Select one or more mails in Outlook, then save them here.
           </p>
         )}
         {status ? <p className="mt-1.5 text-[10px] text-emerald-700">{status}</p> : null}
@@ -252,8 +256,11 @@ export function OutlookMailTagPanel({
         Tag mail
       </p>
       <p className="mt-1 text-[11px] leading-snug text-carbon-blue/55">
-        Choose opportunity or project. Applies intentional SmartCRM Outlook categories.
+        {selectedCount > 1
+          ? `${selectedCount} mails selected. Save them onto this contact, or tag all to one opportunity or project.`
+          : "Save this mail onto the contact, or tag the thread to an opportunity or project."}
       </p>
+      <SelectedMailSubjects seeds={seeds} />
 
       <div className="mt-2 flex gap-1">
         {(["opportunity", "project"] as const).map((kind) => (
@@ -293,18 +300,36 @@ export function OutlookMailTagPanel({
       </label>
 
       <div className="mt-2 flex flex-col gap-1.5">
-        {conversationId && seed ? (
-          <button
-            type="button"
-            disabled={!selectedId || busy}
-            onClick={() => void applyTag()}
-            className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-          >
-            {busy ? "Tagging…" : "Tag this thread"}
-          </button>
+        {seed ? (
+          <>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void markRelationshipInOutlook()}
+              className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
+            >
+              {busy
+                ? "Saving…"
+                : selectedCount > 1
+                  ? `Save ${selectedCount} mails in SmartCRM`
+                  : "Save mail in SmartCRM"}
+            </button>
+            <button
+              type="button"
+              disabled={!selectedId || busy}
+              onClick={() => void applyTag()}
+              className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+            >
+              {busy
+                ? "Tagging…"
+                : selectedCount > 1
+                  ? `Tag ${selectedCount} threads`
+                  : "Tag this thread"}
+            </button>
+          </>
         ) : (
           <p className="text-[10px] text-carbon-blue/45">
-            Open a mail item to tag this thread, or start a tagged draft below.
+            Select one or more mails in Outlook, then save them here.
           </p>
         )}
 
@@ -321,12 +346,25 @@ export function OutlookMailTagPanel({
           role={role}
           disabled={!selectedId}
           label="New tagged mail"
-          className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
+          className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
         />
       </div>
 
       {status ? <p className="mt-1.5 text-[10px] text-emerald-700">{status}</p> : null}
       {error ? <p className="mt-1.5 text-[10px] text-thermal-red">{error}</p> : null}
     </div>
+  );
+}
+
+function SelectedMailSubjects({ seeds }: { seeds: OutlookOpenMessageSeed[] }) {
+  if (seeds.length <= 1) return null;
+  return (
+    <ul className="mt-2 max-h-28 overflow-auto text-[11px] leading-snug text-carbon-blue/60">
+      {seeds.slice(0, 8).map((row) => (
+        <li key={row.externalMessageId} className="truncate">
+          {row.subject}
+        </li>
+      ))}
+    </ul>
   );
 }

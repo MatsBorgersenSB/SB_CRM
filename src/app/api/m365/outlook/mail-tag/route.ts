@@ -257,3 +257,111 @@ export async function PATCH(request: Request) {
     );
   }
 }
+
+/**
+ * Save several Outlook messages onto one contact in one action.
+ * POST { contactId, opportunityId?, projectId?, messages: [{ conversationId, message }] }
+ */
+export async function POST(request: Request) {
+  const role = await resolveRequestRole(request);
+  if (role === "client_lead") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const body = (await request.json().catch(() => ({}))) as {
+      contactId?: string;
+      opportunityId?: string | null;
+      projectId?: string | null;
+      messages?: Array<{
+        conversationId?: string;
+        message?: {
+          externalMessageId?: string;
+          subject?: string;
+          senderEmail?: string;
+          recipientEmails?: string[];
+          sentAt?: string;
+          bodyPreview?: string;
+          webLink?: string;
+          isOutbound?: boolean;
+        };
+      }>;
+    };
+
+    const contactId = body.contactId?.trim();
+    const messages = Array.isArray(body.messages) ? body.messages.slice(0, 50) : [];
+    if (!contactId || messages.length === 0) {
+      return NextResponse.json(
+        { error: "contactId and messages are required" },
+        { status: 400 },
+      );
+    }
+
+    const opportunityId =
+      typeof body.opportunityId === "string" && body.opportunityId.trim()
+        ? body.opportunityId.trim()
+        : undefined;
+    const projectId =
+      typeof body.projectId === "string" && body.projectId.trim()
+        ? body.projectId.trim()
+        : undefined;
+
+    let saved = 0;
+    let failed = 0;
+
+    for (const row of messages) {
+      const conversationId = row.conversationId?.trim();
+      const externalMessageId = row.message?.externalMessageId?.trim();
+      if (!conversationId || !externalMessageId) {
+        failed += 1;
+        continue;
+      }
+      const seedMessage = {
+        externalMessageId,
+        subject: row.message?.subject,
+        senderEmail: row.message?.senderEmail,
+        recipientEmails: row.message?.recipientEmails,
+        sentAt: row.message?.sentAt,
+        bodyPreview: row.message?.bodyPreview,
+        webLink: row.message?.webLink,
+        isOutbound: row.message?.isOutbound === true,
+      };
+
+      if (opportunityId !== undefined || projectId !== undefined) {
+        const result = await setConversationLinksForContact(
+          contactId,
+          conversationId,
+          { opportunityId: opportunityId ?? null, projectId: projectId ?? null },
+          { seedMessage },
+        );
+        if (result.updated > 0) saved += 1;
+        else failed += 1;
+        continue;
+      }
+
+      const captured = await captureOutlookMessageForContact(
+        contactId,
+        conversationId,
+        seedMessage,
+      );
+      if (captured.captured) saved += 1;
+      else failed += 1;
+    }
+
+    return NextResponse.json({
+      ok: saved > 0,
+      saved,
+      failed,
+      total: messages.length,
+    });
+  } catch (error) {
+    console.error("[m365 outlook mail-tag POST]", error);
+    return NextResponse.json(
+      {
+        error: "Failed to save mail",
+        detail: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
