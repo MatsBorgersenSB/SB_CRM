@@ -17,7 +17,7 @@ export function OutlookRelationshipCardPane() {
     useOutlookM365PaneLoad<M365RelationshipCardPayload>({
       apiPath: "/api/m365/relationship-card",
       expectedKind: "relationship-card",
-      emptyMessage: "Open an email with a known contact to see relationship intelligence.",
+      emptyMessage: "Select one or more emails with a known contact to see relationship intelligence.",
       errorMessage: "Unable to load relationship intelligence.",
       unexpectedPayloadMessage: "Unexpected intelligence payload.",
     });
