@@ -111,6 +111,11 @@ function parseActivityDate(value: string): Date {
   return new Date(normalized);
 }
 
+function formatDealSilence(days: number): string {
+  if (!Number.isFinite(days) || days >= 900) return "no deal activity recorded";
+  return `${days} days since last activity`;
+}
+
 function companyActivities(ctx: NextBestActionContext): Activity[] {
   return getActivitiesForCompany(ctx.activities, ctx.company);
 }
@@ -340,7 +345,7 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
       return {
         id: `nba-proposal-${deal.dealId}`,
         action: "Follow Up Proposal",
-        reason: `${deal.dealName} is in Contract Negotiation with ${deal.momentum.toLowerCase()} momentum — ${deal.daysSinceLastActivity} days since last activity.`,
+        reason: `${deal.dealName} is in Contract Negotiation with ${deal.momentum.toLowerCase()} momentum — ${formatDealSilence(deal.daysSinceLastActivity)}.`,
         priority: "High",
         confidenceScore: deal.momentum === "Cold" ? 91 : 87,
         ruleId: "follow_up_proposal",
@@ -360,7 +365,7 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
       return {
         id: `nba-spec-${deal.dealId}`,
         action: "Request Specification",
-        reason: `${deal.dealName} needs feedstock specification to advance from Feedstock Analysis — no activity in ${deal.daysSinceLastActivity} days.`,
+        reason: `${deal.dealName} needs feedstock specification to advance from Feedstock Analysis — ${formatDealSilence(deal.daysSinceLastActivity)}.`,
         priority: "Medium",
         confidenceScore: 84,
         ruleId: "request_specification",
@@ -380,7 +385,7 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
       return {
         id: `nba-review-${deal.dealId}`,
         action: "Schedule Review Meeting",
-        reason: `${deal.dealName} at ${deal.stage} — align stakeholders on project progress (${deal.daysSinceLastActivity} days since last touch).`,
+        reason: `${deal.dealName} at ${deal.stage} — align stakeholders on project progress (${formatDealSilence(deal.daysSinceLastActivity)}).`,
         priority: "Medium",
         confidenceScore: 82,
         ruleId: "schedule_review_meeting",
@@ -397,10 +402,15 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
           (d.momentum === "Stalled" || d.momentum === "Cold"),
       );
       if (!deal) return null;
+      const silence =
+        !Number.isFinite(deal.daysSinceLastActivity) ||
+        deal.daysSinceLastActivity >= 900
+          ? "no deal activity recorded"
+          : `${deal.daysSinceLastActivity} days without deal activity`;
       return {
         id: `nba-stalled-${deal.dealId}`,
         action: "Re-engage Stalled Opportunity",
-        reason: `${deal.dealName} (${deal.stage}) has ${deal.momentum.toLowerCase()} momentum — ${deal.daysSinceLastActivity} days without deal activity.`,
+        reason: `${deal.dealName} (${deal.stage}) has ${deal.momentum.toLowerCase()} momentum — ${silence}.`,
         priority: deal.momentum === "Cold" ? "High" : "Medium",
         confidenceScore: deal.momentum === "Cold" ? 88 : 80,
         ruleId: "reengage_stalled_opportunity",

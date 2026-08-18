@@ -8,6 +8,7 @@ import type { Project } from "@/types/project";
 import { getContactDisplayName, isBuyingRoleUnknown } from "@/types/contact";
 import { getContactProjectRolesOnCompany } from "@/lib/project-team-utils";
 import { getActivitiesForContact } from "@/lib/activity-utils";
+import { laterIso } from "@/lib/contact-360-verdict";
 import { decodePhoneForDisplay } from "@/lib/company-identity";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { canDeleteContact } from "@/lib/permissions";
@@ -302,6 +303,7 @@ function ContactTableRow({
   onContactDelete,
   onContactReassign,
   onContactArchive,
+  lastMailAt,
 }: {
   contact: Contact;
   companyId: string;
@@ -315,6 +317,7 @@ function ContactTableRow({
   onContactDelete?: (contactId: string) => Promise<void>;
   onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
+  lastMailAt?: string | null;
 }) {
   const roleLabel =
     sanitizeContactDisplayField(contact.JobTitle) ||
@@ -322,7 +325,12 @@ function ContactTableRow({
     "—";
   const phone = decodePhoneForDisplay(contact.Mobile || contact.Phone);
   const contactActivities = getActivitiesForContact(activities, contact.ContactID, contact);
-  const lastInteraction = contactActivities[0];
+  const lastInteractionAt = laterIso(
+    contactActivities[0]?.ActivityDate,
+    lastMailAt,
+  );
+  const lastTouchIsOutlook =
+    Boolean(lastMailAt) && lastInteractionAt === lastMailAt;
   const canManage = canDeleteContact(role);
   const projectRoles = getContactProjectRolesOnCompany(
     contact.ContactID,
@@ -379,8 +387,15 @@ function ContactTableRow({
         )}
       </td>
       <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/50">
-        {lastInteraction
-          ? formatRelativeTime(lastInteraction.ActivityDate)
+        {lastInteractionAt
+          ? (
+            <>
+              {formatRelativeTime(lastInteractionAt)}
+              {lastTouchIsOutlook ? (
+                <span className="text-carbon-blue/40"> · Outlook</span>
+              ) : null}
+            </>
+          )
           : "No interaction"}
         {contact.EmploymentStatus && contact.EmploymentStatus !== "Active" ? (
           <span className="ml-2 border border-carbon-blue/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/45">
@@ -424,6 +439,7 @@ export function CompanyContactsTable({
   onContactReassign,
   onContactArchive,
   createRequestId = 0,
+  lastMailByContactId = {},
 }: {
   contacts: Contact[];
   companyId: string;
@@ -437,6 +453,7 @@ export function CompanyContactsTable({
   onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
   createRequestId?: number;
+  lastMailByContactId?: Record<string, string>;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
@@ -567,6 +584,7 @@ export function CompanyContactsTable({
                 onContactDelete={onContactDelete}
                 onContactReassign={onContactReassign}
                 onContactArchive={onContactArchive}
+                lastMailAt={lastMailByContactId[contact.ContactID] ?? null}
               />
             ))}
           </tbody>

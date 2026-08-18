@@ -1,6 +1,6 @@
 /**
- * Company 360 Mission Control — one view at a time (Michelin).
- * Overview · Work · Actions (People lives on Overview).
+ * Company 360 — single living page (not Overview / Work / Actions).
+ * `view` query params are ignored; href still accepts them for old bookmarks.
  */
 
 export const COMPANY_MISSION_CONTROL_VIEWS = [
@@ -21,7 +21,7 @@ export function isCompanyMissionControlView(
   return COMPANY_MISSION_CONTROL_VIEWS.some((view) => view.id === value);
 }
 
-/** Retired People tab and hash sections → Mission Control view. */
+/** Retired People tab and hash sections → living page anchors. */
 const LEGACY_SECTION_TO_VIEW: Record<string, CompanyMissionControlView> = {
   attention: "overview",
   contacts: "overview",
@@ -67,12 +67,20 @@ export function resolveCompanyMissionControlView(
 
 export function companyMissionControlHref(
   companyId: string,
-  view?: CompanyMissionControlView,
+  _view?: CompanyMissionControlView,
 ): string {
-  const params = new URLSearchParams();
-  if (view && view !== DEFAULT_COMPANY_MISSION_CONTROL_VIEW) {
-    params.set("view", view);
-  }
-  const query = params.toString();
-  return `/companies/${encodeURIComponent(companyId)}${query ? `?${query}` : ""}`;
+  return `/companies/${encodeURIComponent(companyId)}`;
+}
+
+/** Map legacy ?view= to an in-page section id. */
+export function companyLivingPageSection(
+  viewParam: string | null | undefined,
+  hash?: string | null,
+): string | null {
+  const fromHash = hash?.replace(/^#/, "").trim().toLowerCase();
+  if (fromHash) return fromHash;
+  if (viewParam === "work") return "opportunities";
+  if (viewParam === "actions") return "activities";
+  if (viewParam === "people" || viewParam === "contacts") return "contacts";
+  return null;
 }

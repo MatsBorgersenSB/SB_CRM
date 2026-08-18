@@ -89,19 +89,6 @@ export function company360Href(
     typeof companyOrId === "string" ? companyOrId.trim() : companyRouteKey(companyOrId);
   const base = `/companies/${encodeURIComponent(raw)}`;
   if (!section) return base;
-  // Prefer Mission Control ?view= over hash so one surface loads at a time.
-  // Contacts live on Overview (People tab retired).
-  const viewBySection: Record<Company360Section, string> = {
-    contacts: "overview",
-    opportunities: "work",
-    activities: "actions",
-    documents: "actions",
-    attention: "overview",
-  };
-  const view = viewBySection[section];
-  if (view && view !== "overview") {
-    return `${base}?view=${encodeURIComponent(view)}`;
-  }
   return `${base}#${section}`;
 }
 

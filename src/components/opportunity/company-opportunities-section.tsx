@@ -63,6 +63,7 @@ export function CompanyOpportunitiesSection({
   createOnly = false,
   /** When false, parent owns the Create Opportunity trigger (e.g. panel header). */
   showCreateTrigger = true,
+  hideTable = false,
 }: {
   deals: PipelineRow[];
   allPipelines?: PipelineRow[];
@@ -80,6 +81,8 @@ export function CompanyOpportunitiesSection({
   createRequestId?: number;
   createOnly?: boolean;
   showCreateTrigger?: boolean;
+  /** Parent already lists deals — keep create/link only. */
+  hideTable?: boolean;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -295,7 +298,12 @@ export function CompanyOpportunitiesSection({
           : "flex flex-col gap-4"
       }
     >
-      {createOnly ? (
+      {hideTable ? (
+        <div className="flex flex-wrap gap-2">
+          {createTrigger(deals.length === 0 ? "primary" : "secondary")}
+          {linkTrigger}
+        </div>
+      ) : createOnly ? (
         createTrigger(deals.length === 0 ? "primary" : "secondary")
       ) : deals.length === 0 && !createdDeal ? (
         <div className="flex flex-col gap-3 py-1">
