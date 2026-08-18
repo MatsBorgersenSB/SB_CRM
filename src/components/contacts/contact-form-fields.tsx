@@ -15,6 +15,7 @@ import { CountryContinentFields } from "@/components/companies/country-continent
 import { findCountryEntry } from "@/lib/geo/country-continent";
 import { ContactRoleSelect } from "@/components/ui/contact-role-select";
 import { isInternalEmail } from "@/lib/domain-rules";
+import { fillContactFormFromPastedText } from "@/lib/contact-paste";
 
 export const emptyContactForm = (): CreateContactInput => ({
   FirstName: "",
@@ -151,6 +152,18 @@ export function ContactFormFields({
 
   const [geoFilling, setGeoFilling] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [pasteText, setPasteText] = useState("");
+  const [pasteFilled, setPasteFilled] = useState<string[]>([]);
+  const [pasteError, setPasteError] = useState<string | null>(null);
+
+  const applyPastedContact = (raw: string) => {
+    const result = fillContactFormFromPastedText(form, raw);
+    setPasteError(result.error);
+    setPasteFilled(result.filled);
+    if (result.filled.length > 0) {
+      onChange(result.next);
+    }
+  };
 
   const handleAutoFillLocation = async () => {
     setGeoFilling(true);
@@ -207,6 +220,43 @@ export function ContactFormFields({
 
   return (
     <div className="space-y-4">
+      <section className="border border-upcycle-orange/20 bg-white p-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/45">
+          Paste to fill
+        </p>
+        <p className="mt-0.5 text-[11px] text-carbon-blue/50">
+          Copy a person from a website or signature. SmartAssist fills name, title, email, and
+          phone — nothing else.
+        </p>
+        <textarea
+          value={pasteText}
+          onChange={(event) => setPasteText(event.target.value)}
+          onPaste={(event) => {
+            const pasted = event.clipboardData.getData("text");
+            if (!pasted.trim()) return;
+            setPasteText(pasted);
+            applyPastedContact(pasted);
+          }}
+          rows={4}
+          placeholder={"Per Egil Strand\nSenior salgsingeniør\nMobil: 913 02 266\nE-post: peregil@tormatic.no"}
+          className={`${FIELD_CLASS} min-h-[88px] resize-y`}
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => applyPastedContact(pasteText)}
+            disabled={!pasteText.trim()}
+            className="border border-upcycle-orange/30 bg-upcycle-orange px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
+          >
+            Read paste
+          </button>
+          {pasteFilled.length > 0 ? (
+            <p className="text-[11px] text-carbon-blue/55">Filled: {pasteFilled.join(", ")}</p>
+          ) : null}
+          {pasteError ? <p className="text-[11px] text-thermal-red">{pasteError}</p> : null}
+        </div>
+      </section>
+
       <section className="border border-carbon-blue/10 bg-white p-3">
         <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/45">
           Identity & Organization
