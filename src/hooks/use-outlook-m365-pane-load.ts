@@ -3,6 +3,7 @@ import { useSearchParams } from "next/navigation";
 import {
   resolveDevDisplayName,
   resolveOutlookSenderDetails,
+  subscribeOutlookSelectedItemsChanged,
 } from "@/lib/m365/outlook-context";
 
 export type OutlookPaneLoadState<T> =
@@ -52,6 +53,25 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    let timer: number | undefined;
+    const startedAt = Date.now();
+    void subscribeOutlookSelectedItemsChanged(() => {
+      if (Date.now() - startedAt < 400) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        setReloadKey((current) => current + 1);
+      }, 350);
+    }).then((fn) => {
+      unsubscribe = fn;
+    });
+    return () => {
+      window.clearTimeout(timer);
+      unsubscribe?.();
     };
   }, []);
 

@@ -2,6 +2,7 @@
  * Outlook sender resolution — email, display name, and dev query-param fallbacks.
  */
 
+import { extractEmailDomain } from "@/lib/domain-rules";
 import { whenOfficeReady } from "@/lib/outlook-office";
 import { resolvePublicAppOrigin } from "@/lib/smartcrm-origin";
 import { buildOutlookReadDeeplink } from "@/lib/m365/outlook-deeplink";
@@ -10,6 +11,61 @@ export type OutlookSenderDetails = {
   email: string;
   displayName: string;
 };
+
+const AUTOMATED_MAIL_DOMAINS = new Set([
+  "adobesign.com",
+  "echosign.com",
+  "docusign.com",
+  "docusign.net",
+]);
+
+export function isAutomatedMailboxEmail(email: string): boolean {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+  const domain = extractEmailDomain(normalized);
+  if (
+    AUTOMATED_MAIL_DOMAINS.has(domain) ||
+    domain.endsWith(".adobesign.com") ||
+    domain.endsWith(".docusign.net")
+  ) {
+    return true;
+  }
+  const local = normalized.slice(0, Math.max(0, normalized.indexOf("@")));
+  return /^(noreply|no-reply|donotreply|do-not-reply|mailer-daemon|notifications?)$/i.test(
+    local,
+  );
+}
+
+function isUsableCounterpartyEmail(email: string, selfEmail?: string): boolean {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized || normalized === selfEmail) return false;
+  return !isAutomatedMailboxEmail(normalized);
+}
+
+function pickBestCounterpartyFromSeeds(
+  seeds: OutlookOpenMessageSeed[],
+  selfEmail?: string,
+): OutlookSenderDetails | null {
+  const counts = new Map<string, { count: number; displayName: string }>();
+  for (const seed of seeds) {
+    const email = seed.senderEmail.trim().toLowerCase();
+    if (!isUsableCounterpartyEmail(email, selfEmail)) continue;
+    const previous = counts.get(email);
+    counts.set(email, {
+      count: (previous?.count ?? 0) + 1,
+      displayName: previous?.displayName || seed.senderDisplayName || "",
+    });
+  }
+
+  let best: { email: string; count: number; displayName: string } | null = null;
+  for (const [email, row] of counts) {
+    if (!best || row.count > best.count) {
+      best = { email, count: row.count, displayName: row.displayName };
+    }
+  }
+  if (!best) return null;
+  return { email: best.email, displayName: best.displayName };
+}
 
 export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetails | null> {
   if (typeof window === "undefined") {
@@ -26,8 +82,15 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
       ?.trim()
       .toLowerCase();
 
+    // Multi-select: mailbox.item is the last opened mail (often Adobe Sign),
+    // not the checked set. Always resolve from the selection.
+    const selectedSeeds = await resolveOutlookSelectedMessageSeeds();
+    if (selectedSeeds.length > 1) {
+      return pickBestCounterpartyFromSeeds(selectedSeeds, selfEmail);
+    }
+
     const fromEmail = item?.from?.emailAddress?.trim().toLowerCase();
-    if (fromEmail && fromEmail !== selfEmail) {
+    if (fromEmail && isUsableCounterpartyEmail(fromEmail, selfEmail)) {
       return {
         email: fromEmail,
         displayName: item?.from?.displayName?.trim() ?? "",
@@ -44,8 +107,8 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
           }
 
           const match = result.value?.find((entry) => {
-            const email = entry.emailAddress?.trim().toLowerCase();
-            return email && email !== selfEmail;
+            const email = entry.emailAddress?.trim().toLowerCase() ?? "";
+            return isUsableCounterpartyEmail(email, selfEmail);
           });
 
           if (!match?.emailAddress) {
@@ -62,19 +125,7 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
       if (fromAttendees) return fromAttendees;
     }
 
-    const seeds = await resolveOutlookSelectedMessageSeeds({ limit: 1 });
-    const seed = seeds.find((row) => {
-      const email = row.senderEmail.trim().toLowerCase();
-      return email && email !== selfEmail;
-    }) ?? seeds[0];
-    if (seed?.senderEmail) {
-      return {
-        email: seed.senderEmail.trim().toLowerCase(),
-        displayName: "",
-      };
-    }
-
-    return null;
+    return pickBestCounterpartyFromSeeds(selectedSeeds, selfEmail);
   } catch {
     return null;
   }
@@ -99,6 +150,7 @@ export type OutlookOpenMessageSeed = {
   externalMessageId: string;
   subject: string;
   senderEmail: string;
+  senderDisplayName?: string;
   sentAt: string;
   /** True when the open item is an outbound draft / send we are composing. */
   isOutbound?: boolean;
@@ -476,6 +528,7 @@ async function seedFromLoadedItem(
     externalMessageId,
     subject: item.subject?.trim() || selected.subject?.trim() || "(no subject)",
     senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail || selfEmail,
+    senderDisplayName: item.from?.displayName?.trim() || "",
     sentAt: Number.isNaN(created.getTime())
       ? new Date().toISOString()
       : created.toISOString(),
@@ -543,6 +596,7 @@ async function seedFromOpenMailboxItem(
       externalMessageId,
       subject: item.subject?.trim() || "(no subject)",
       senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail || selfEmail,
+      senderDisplayName: item.from?.displayName?.trim() || "",
       sentAt: Number.isNaN(created.getTime())
         ? new Date().toISOString()
         : created.toISOString(),
@@ -554,6 +608,20 @@ async function seedFromOpenMailboxItem(
   } catch {
     return null;
   }
+}
+
+let selectedSeedCache: { key: string; seeds: OutlookOpenMessageSeed[] } | null = null;
+
+function selectionCacheKey(
+  selected: OutlookSelectedItemLite[],
+  options?: { preferOutbound?: boolean; primaryRecipientEmail?: string; limit?: number },
+): string {
+  return [
+    selected.map((row) => row.itemId ?? "").join(","),
+    String(options?.limit ?? "all"),
+    options?.preferOutbound ? "out" : "in",
+    options?.primaryRecipientEmail ?? "",
+  ].join("|");
 }
 
 /**
@@ -575,6 +643,16 @@ export async function resolveOutlookSelectedMessageSeeds(options?: {
 
   const limit = Math.max(1, Math.min(options?.limit ?? MAX_SELECTED_MAILS, MAX_SELECTED_MAILS));
   const selected = (await getSelectedItemsLite(mailbox)).slice(0, limit);
+  const cacheKey = selectionCacheKey(selected, options);
+  if (selectedSeedCache?.key === cacheKey) {
+    return selectedSeedCache.seeds;
+  }
+
+  const remember = (seeds: OutlookOpenMessageSeed[]) => {
+    selectedSeedCache = { key: cacheKey, seeds };
+    return seeds;
+  };
+
   const canLoadById = mailboxSupports(office, "1.15");
 
   if (selected.length > 1) {
@@ -598,7 +676,7 @@ export async function resolveOutlookSelectedMessageSeeds(options?: {
       const lite = seedFromSelectedLite(mailbox, row);
       if (lite) seeds.push(lite);
     }
-    if (seeds.length > 0) return seeds;
+    if (seeds.length > 0) return remember(seeds);
   }
 
   if (selected.length === 1 && canLoadById && selected[0]?.itemId) {
@@ -612,7 +690,7 @@ export async function resolveOutlookSelectedMessageSeeds(options?: {
           selected[0],
           options,
         );
-        if (seed) return [seed];
+        if (seed) return remember([seed]);
       } finally {
         await unloadMailboxItem(loaded);
       }
@@ -620,7 +698,7 @@ export async function resolveOutlookSelectedMessageSeeds(options?: {
   }
 
   const open = await seedFromOpenMailboxItem(office, options);
-  return open ? [open] : [];
+  return remember(open ? [open] : []);
 }
 
 type MailboxSelectionEvents = {
