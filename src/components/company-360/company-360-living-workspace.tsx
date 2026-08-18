@@ -2,18 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   buildCompanyHeroIdentity,
   companyHeroQuickEditToPatch,
   companyWebsiteHref,
 } from "@/lib/company-identity";
-import { getActivitiesForCompany } from "@/lib/activity-utils";
+import { getActivitiesForCompany, getActivitiesForDeal } from "@/lib/activity-utils";
 import {
   pickPendingCommitment,
   toPendingCommitmentView,
 } from "@/lib/complete-commitment";
 import { CompanyWorkspaceHeader } from "@/components/company-360/company-workspace-header";
-import { CompanyMissionControlTabBar } from "@/components/company-360/company-mission-control-tab-bar";
 import {
   Company360ActionsBar,
   type Company360ActiveTool,
@@ -22,12 +22,10 @@ import { CompanyInlineEditPanel } from "@/components/company-360/company-inline-
 import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WebsiteDiscoveryPanel } from "@/components/companies/website-discovery-panel";
 import { AttentionQueueTable } from "@/components/attention/attention-queue-table";
-import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 import { Company360OverviewStrips } from "@/components/company-360/company-360-overview-strips";
-import { CompanyOpportunitiesSection } from "@/components/opportunity/company-opportunities-section";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
-import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
-import { CompleteCommitmentCard } from "@/components/commitments/complete-commitment-card";
+import { CompanyRecentOutlook } from "@/components/company-360/company-recent-outlook";
+import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
 import { workspaceDocumentsContextFromCompany } from "@/lib/workspace-documents-data";
 import type { Company360Snapshot } from "@/lib/company-360-data";
 import type { Company } from "@/types/company";
@@ -53,14 +51,18 @@ import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 import { filterDismissedAttentionItems } from "@/lib/attention-dismiss-store";
 import { companyRouteKey } from "@/types/company-360";
 import {
+  companyLivingPageSection,
   companyMissionControlHref,
-  resolveCompanyMissionControlView,
-  type CompanyMissionControlView,
 } from "@/types/company-mission-control";
+import {
+  buildCompany360Verdict,
+  pickEngageContact,
+} from "@/lib/company-360-verdict";
+import { computeOpportunityMomentum } from "@/lib/opportunity-intelligence-engine";
+import { opportunityStageLabel } from "@/lib/opportunity-overview";
 
 /**
- * Company 360 Mission Control — Overview · Work · Actions.
- * People (contacts) live on Overview.
+ * Company 360 — one living page: identity, next action, mail, people, work.
  */
 export function Company360LivingWorkspace({
   snapshot,
@@ -95,7 +97,6 @@ export function Company360LivingWorkspace({
   onCompanyUpdated: (company: Company) => void;
   projects: Project[];
   onProjectUpdated?: (project: Project) => void;
-  /** Full pipeline list for “link existing opportunity” (not only linked deals). */
   allPipelines: PipelineRow[];
   onCreateOpportunity?: (input: CreateOpportunityInput) => Promise<PipelineRow>;
   onAssignOpportunityStakeholder?: (
@@ -116,12 +117,9 @@ export function Company360LivingWorkspace({
   const [discoveryUrl, setDiscoveryUrl] = useState(
     company.Domain ? companyWebsiteHref(company.Domain) : "",
   );
-  const [activeView, setActiveView] = useState<CompanyMissionControlView>(() =>
-    resolveCompanyMissionControlView(
-      searchParams.get("view"),
-      null,
-      searchParams.get("tab"),
-    ),
+  const [lastMailAt, setLastMailAt] = useState<string | null>(null);
+  const [lastMailByContactId, setLastMailByContactId] = useState<Record<string, string>>(
+    {},
   );
 
   useEffect(() => {
@@ -162,37 +160,53 @@ export function Company360LivingWorkspace({
     const hash = typeof window !== "undefined" ? window.location.hash : "";
     const viewParam = searchParams.get("view");
     const tabParam = searchParams.get("tab");
-    const resolved = resolveCompanyMissionControlView(viewParam, hash, tabParam);
-    setActiveView(resolved);
+    const section = companyLivingPageSection(viewParam ?? tabParam, hash);
 
-    // Retire ?view=people / ?view=contacts → Overview People strip
-    if (viewParam === "people" || viewParam === "contacts") {
-      router.replace(`${companyMissionControlHref(routeKey)}#contacts`, {
-        scroll: false,
+    if (viewParam || (tabParam && tabParam !== "overview")) {
+      const href = companyMissionControlHref(routeKey);
+      router.replace(section ? `${href}#${section}` : href, { scroll: false });
+    }
+
+    if (section && typeof document !== "undefined") {
+      window.requestAnimationFrame(() => {
+        document.getElementById(section)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       });
     }
   }, [searchParams, routeKey, router]);
 
-  const navigateView = useCallback(
-    (view: CompanyMissionControlView) => {
-      setActiveView(view);
-      router.replace(companyMissionControlHref(routeKey, view), { scroll: false });
-    },
-    [routeKey, router],
-  );
+  const stalledDeal = useMemo(() => {
+    return linkedPipelines.find((deal) => {
+      const dealActivities = getActivitiesForDeal(scopedActivities, deal.id);
+      return computeOpportunityMomentum(dealActivities) === "Stalled";
+    });
+  }, [linkedPipelines, scopedActivities]);
 
-  const viewCounts = useMemo(
-    () => ({
-      overview: visibleAttentionItems.length,
-      work: linkedPipelines.length + linkedProjects.length,
-      actions: companyActivities.length + documentCount,
-    }),
+  const verdict = useMemo(
+    () =>
+      buildCompany360Verdict({
+        engineAction:
+          "action" in header.recommendedAction && header.recommendedAction.action
+            ? header.recommendedAction.action
+            : header.recommendedAction.title ?? "Review this account",
+        engineReason: header.recommendedAction.reason,
+        lastActivityAt: companyActivities[0]?.ActivityDate ?? null,
+        lastMailAt,
+        stalledDealName: stalledDeal?.assetName ?? null,
+        stalledDealStage: stalledDeal
+          ? opportunityStageLabel(stalledDeal, commercialPackages)
+          : null,
+        engageContact: pickEngageContact(company.contacts),
+      }),
     [
-      visibleAttentionItems.length,
-      linkedPipelines.length,
-      linkedProjects.length,
-      companyActivities.length,
-      documentCount,
+      header.recommendedAction,
+      companyActivities,
+      lastMailAt,
+      stalledDeal,
+      commercialPackages,
+      company.contacts,
     ],
   );
 
@@ -208,10 +222,9 @@ export function Company360LivingWorkspace({
     setActiveTool(null);
   };
 
-  const handleNewContact = () => {
+  const handleNewContact = useCallback(() => {
     setActiveTool(null);
     setCreateRequestId((value) => value + 1);
-    navigateView("overview");
     if (typeof window !== "undefined") {
       window.requestAnimationFrame(() => {
         document.getElementById("contacts")?.scrollIntoView({
@@ -220,218 +233,185 @@ export function Company360LivingWorkspace({
         });
       });
     }
-  };
+  }, []);
 
   const handleRunWebsiteDiscovery = (url: string) => {
     setDiscoveryUrl(url);
     setActiveTool("website-discovery");
   };
 
+  const canCreateOpp =
+    canCreateOpportunity(role) &&
+    Boolean(onCreateOpportunity) &&
+    isOpportunityEligibleCompany(company);
+
   return (
     <WorkspaceStack>
-      <CompanyMissionControlTabBar
-        active={activeView}
-        onChange={navigateView}
-        activityContext={{
-          companyId: company.CompanyID,
-          companyName: company.Title,
-        }}
-        companies={companies}
-        pipelines={linkedPipelines}
-        counts={viewCounts}
-      />
-
-      {activeView === "overview" ? (
-        <>
-          <section className="dashboard-card overflow-hidden">
-            <div className="px-6 py-5">
-              {activeTool === "edit-company" ? (
-                <div>
-                  <div className="mb-3 flex justify-end">
-                    <Company360ActionsBar
-                      role={role}
-                      activeTool={activeTool}
-                      onToolChange={setActiveTool}
-                      onNewContact={handleNewContact}
-                    />
-                  </div>
-                  <CompanyInlineEditPanel
-                    company={company}
-                    companies={companies}
-                    onSave={handleSaveCompany}
-                    onCancel={() => setActiveTool(null)}
-                  />
-                </div>
-              ) : (
-                <CompanyWorkspaceHeader
-                  header={header}
-                  identity={identity}
-                  company={company}
-                  pendingCommitment={pendingCommitment}
-                  onCompanyUpdated={onCompanyUpdated}
-                  onCommitmentChanged={() => router.refresh()}
-                  trailing={
-                    <Company360ActionsBar
-                      role={role}
-                      activeTool={activeTool}
-                      onToolChange={setActiveTool}
-                      onNewContact={handleNewContact}
-                    />
-                  }
+      <section className="dashboard-card overflow-hidden">
+        <div className="px-6 py-5">
+          {activeTool === "edit-company" ? (
+            <div>
+              <div className="mb-3 flex justify-end">
+                <Company360ActionsBar
+                  role={role}
+                  activeTool={activeTool}
+                  onToolChange={setActiveTool}
+                  onNewContact={handleNewContact}
                 />
-              )}
-
-              {activeTool === "quick-import" ? (
-                <div className="mt-4 border-t border-carbon-blue/8 pt-4">
-                  <QuickImportPanel
-                    role={role}
-                    embedded
-                    companies={companies}
-                    contextCompanyId={company.CompanyID}
-                    onImported={handleImported}
-                    onRunWebsiteDiscovery={handleRunWebsiteDiscovery}
-                  />
-                </div>
-              ) : null}
-
-              {activeTool === "website-discovery" ? (
-                <div className="mt-4 border-t border-carbon-blue/8 pt-4">
-                  <WebsiteDiscoveryPanel
-                    role={role}
-                    embedded
-                    companies={companies}
-                    context="company"
-                    initialUrl={discoveryUrl}
-                    onImported={handleImported}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </section>
-
-          <SmartAssistCopilotHost companyName={company.Title} />
-
-          {visibleAttentionItems.length > 0 ? (
-            <WorkspacePanel
-              title="Attention"
-              id="attention"
-              count={visibleAttentionItems.length}
-            >
-              <AttentionQueueTable
-                items={attentionItems}
-                emptyMessage="No open attention for this company."
-                onItemDismissed={() =>
-                  setAttentionDismissTick((value) => value + 1)
-                }
+              </div>
+              <CompanyInlineEditPanel
+                company={company}
+                companies={companies}
+                onSave={handleSaveCompany}
+                onCancel={() => setActiveTool(null)}
               />
-            </WorkspacePanel>
+            </div>
+          ) : (
+            <CompanyWorkspaceHeader
+              header={header}
+              identity={identity}
+              company={company}
+              pendingCommitment={pendingCommitment}
+              onCompanyUpdated={onCompanyUpdated}
+              onCommitmentChanged={() => router.refresh()}
+              verdict={verdict}
+              trailing={
+                <Company360ActionsBar
+                  role={role}
+                  activeTool={activeTool}
+                  onToolChange={setActiveTool}
+                  onNewContact={handleNewContact}
+                />
+              }
+            />
+          )}
+
+          {activeTool === "quick-import" ? (
+            <div className="mt-4 border-t border-carbon-blue/8 pt-4">
+              <QuickImportPanel
+                role={role}
+                embedded
+                companies={companies}
+                contextCompanyId={company.CompanyID}
+                onImported={handleImported}
+                onRunWebsiteDiscovery={handleRunWebsiteDiscovery}
+              />
+            </div>
           ) : null}
 
-          <Company360OverviewStrips
-            company={company}
-            companies={companies}
-            role={role}
-            activities={scopedActivities}
-            deals={linkedPipelines}
-            pipelines={allPipelines}
-            commercialPackages={commercialPackages}
-            projects={linkedProjects}
-            allProjects={projects}
-            onOpenWork={() => navigateView("work")}
-            onCreateContact={onCreateContact}
-            onContactUpdate={onContactUpdate}
-            onContactDelete={onContactDelete}
-            onContactReassign={onContactReassign}
-            onContactArchive={onContactArchive}
-            createRequestId={createRequestId}
-            canCreateOpportunity={
-              canCreateOpportunity(role) &&
-              Boolean(onCreateOpportunity) &&
-              isOpportunityEligibleCompany(company)
-            }
-            canManageOpportunityStakeholders={canManageOpportunityStakeholders(
-              role,
-            )}
-            onCreateOpportunity={onCreateOpportunity}
-            onAssignOpportunityStakeholder={onAssignOpportunityStakeholder}
-            onCompanyUpdated={onCompanyUpdated}
-          />
-        </>
-      ) : null}
-
-      {activeView === "work" ? (
-        <>
-          <WorkspacePanel
-            title="Opportunities"
-            id="opportunities"
-            count={linkedPipelines.length}
-          >
-            <CompanyOpportunitiesSection
-              deals={linkedPipelines}
-              allPipelines={allPipelines}
-              commercialPackages={commercialPackages}
-              company={company}
-              canCreate={
-                canCreateOpportunity(role) &&
-                Boolean(onCreateOpportunity) &&
-                isOpportunityEligibleCompany(company)
-              }
-              canManageStakeholders={canManageOpportunityStakeholders(role)}
-              onCreateOpportunity={onCreateOpportunity}
-              onAssignStakeholder={onAssignOpportunityStakeholder}
-              onCompanyUpdated={onCompanyUpdated}
-            />
-          </WorkspacePanel>
-
-          <WorkspacePanel title="Projects" id="projects" count={linkedProjects.length}>
-            <CompanyProjectsTable
-              projects={linkedProjects}
-              companyId={company.CompanyID}
-              company={company}
-              allProjects={projects}
-              companies={companies}
-              role={role}
-              onProjectUpdated={onProjectUpdated}
-            />
-          </WorkspacePanel>
-        </>
-      ) : null}
-
-      {activeView === "actions" ? (
-        <>
-          <WorkspacePanel title="Activities" id="activities" count={companyActivities.length}>
-            {pendingCommitment ? (
-              <CompleteCommitmentCard
-                key={pendingCommitment.activityId}
-                className="mb-4"
-                commitment={pendingCommitment}
-                onCompleted={() => router.refresh()}
-                onRescheduled={() => router.refresh()}
+          {activeTool === "website-discovery" ? (
+            <div className="mt-4 border-t border-carbon-blue/8 pt-4">
+              <WebsiteDiscoveryPanel
+                role={role}
+                embedded
+                companies={companies}
+                context="company"
+                initialUrl={discoveryUrl}
+                onImported={handleImported}
               />
-            ) : null}
-            <SmartActivityWorkspace
-              activities={companyActivities}
-              companies={companies}
-              pipelines={linkedPipelines}
-              attentionItems={attentionItems}
-              context={{
-                companyId: company.CompanyID,
-                companyName: company.Title,
-              }}
-            />
-          </WorkspacePanel>
+            </div>
+          ) : null}
+        </div>
+      </section>
 
-          <WorkspacePanel title="Documents" id="documents" count={documentCount}>
-            <WorkspaceDocumentsPanel
-              context={workspaceDocumentsContextFromCompany(company)}
-              pipelines={linkedPipelines}
-              companies={companies}
-              activities={scopedActivities}
-              onDocumentCountChange={setDocumentCount}
-            />
-          </WorkspacePanel>
-        </>
+      <div className="flex justify-end">
+        <EntityNewActivityButton
+          context={{
+            companyId: company.CompanyID,
+            companyName: company.Title,
+          }}
+          companies={companies}
+          pipelines={linkedPipelines}
+          showNewTask={false}
+        />
+      </div>
+
+      <Company360OverviewStrips
+        company={company}
+        companies={companies}
+        role={role}
+        activities={scopedActivities}
+        deals={linkedPipelines}
+        pipelines={allPipelines}
+        commercialPackages={commercialPackages}
+        allProjects={projects}
+        onCreateContact={onCreateContact}
+        onContactUpdate={onContactUpdate}
+        onContactDelete={onContactDelete}
+        onContactReassign={onContactReassign}
+        onContactArchive={onContactArchive}
+        createRequestId={createRequestId}
+        lastMailByContactId={lastMailByContactId}
+        canCreateOpportunity={canCreateOpp}
+        canManageOpportunityStakeholders={canManageOpportunityStakeholders(role)}
+        onCreateOpportunity={onCreateOpportunity}
+        onAssignOpportunityStakeholder={onAssignOpportunityStakeholder}
+        onCompanyUpdated={onCompanyUpdated}
+      />
+
+      <WorkspacePanel title="Projects" id="projects" count={linkedProjects.length}>
+        <CompanyProjectsTable
+          projects={linkedProjects}
+          companyId={company.CompanyID}
+          company={company}
+          allProjects={projects}
+          companies={companies}
+          role={role}
+          onProjectUpdated={onProjectUpdated}
+        />
+      </WorkspacePanel>
+
+      <WorkspacePanel title="Recent Outlook" id="outlook" icon="email">
+        <CompanyRecentOutlook
+          companyId={company.CompanyID}
+          contacts={company.contacts}
+          role={role}
+          onLatestMailAt={setLastMailAt}
+          onContactLastMail={setLastMailByContactId}
+        />
+      </WorkspacePanel>
+
+      {visibleAttentionItems.length > 0 ? (
+        <WorkspacePanel
+          title="Attention"
+          id="attention"
+          count={visibleAttentionItems.length}
+        >
+          <AttentionQueueTable
+            items={attentionItems}
+            emptyMessage="No open attention for this company."
+            onItemDismissed={() =>
+              setAttentionDismissTick((value) => value + 1)
+            }
+          />
+        </WorkspacePanel>
       ) : null}
+
+      <p id="activities" className="px-1 text-[12px] text-carbon-blue/50">
+        {companyActivities.length === 0
+          ? "No CRM activities yet. Outlook mail still counts as last touch."
+          : `${companyActivities.length} logged ${companyActivities.length === 1 ? "activity" : "activities"}.`}{" "}
+        <Link href="/activities" className="font-semibold text-upcycle-orange hover:underline">
+          Open activities
+        </Link>
+      </p>
+
+      <WorkspacePanel
+        title="Documents"
+        id="documents"
+        count={documentCount}
+        collapsible
+        defaultCollapsed
+        collapseStorageKey={`company-${company.CompanyID}-documents`}
+      >
+        <WorkspaceDocumentsPanel
+          context={workspaceDocumentsContextFromCompany(company)}
+          pipelines={linkedPipelines}
+          companies={companies}
+          activities={scopedActivities}
+          onDocumentCountChange={setDocumentCount}
+        />
+      </WorkspacePanel>
     </WorkspaceStack>
   );
 }

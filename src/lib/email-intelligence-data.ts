@@ -527,6 +527,66 @@ export async function readEmailsForContact(
 }
 
 /**
+ * Load EmailMessageRecord rows for a company (people + company-linked mail).
+ */
+export async function readEmailsForCompany(
+  companyKey: string,
+): Promise<EmailMessageIntelligenceDto[]> {
+  const cleanId = companyKey.trim();
+  if (!cleanId) return [];
+
+  const prisma = getPrisma();
+  const company = await prisma.company.findFirst({
+    where: {
+      OR: [
+        { id: cleanId },
+        { code: cleanId },
+        { code: cleanId.toUpperCase() },
+      ],
+    },
+    select: {
+      id: true,
+      contacts: {
+        where: { status: "active" },
+        select: { id: true, emails: true },
+      },
+    },
+  });
+  if (!company) return [];
+
+  const contactIds = company.contacts.map((row) => row.id);
+  const addresses = company.contacts.flatMap((row) =>
+    contactEmailsFromJson(row.emails),
+  );
+  const orClauses: Array<Record<string, unknown>> = [{ companyId: company.id }];
+  if (contactIds.length > 0) {
+    orClauses.push({ contactId: { in: contactIds } });
+  }
+  if (addresses.length > 0) {
+    orClauses.push({ senderEmail: { in: addresses } });
+    orClauses.push({ recipientEmails: { hasSome: addresses } });
+  }
+
+  const messages = await prisma.emailMessageRecord.findMany({
+    where: {
+      isDeletedInSource: false,
+      OR: orClauses,
+    },
+    include: emailMessageInclude,
+    orderBy: [{ sentAt: "desc" }],
+    take: 80,
+  });
+
+  return [...messages]
+    .sort((a, b) => {
+      const conv = a.conversationId.localeCompare(b.conversationId);
+      if (conv !== 0) return conv;
+      return a.sentAt.getTime() - b.sentAt.getTime();
+    })
+    .map(toEmailDto);
+}
+
+/**
  * Soft-tombstone when Outlook reports the message removed.
  */
 export async function markEmailDeletedInSource(

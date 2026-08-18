@@ -130,8 +130,7 @@ export function CompanyProjectsTable({
     <div className="flex flex-col gap-6">
       {projects.length === 0 ? (
         <p className="text-sm text-carbon-blue/45">
-          No linked projects yet. Link this company to a project, or add one of its
-          contacts to a project — the company follows automatically.
+          No linked projects yet.
         </p>
       ) : (
         projects.map((project) => {

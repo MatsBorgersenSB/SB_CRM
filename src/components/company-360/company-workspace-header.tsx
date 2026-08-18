@@ -15,6 +15,8 @@ import type { ReactNode } from "react";
 import { SectorTagManager } from "@/components/companies/sector-tag-manager";
 import { CompleteCommitmentCard } from "@/components/commitments/complete-commitment-card";
 import type { PendingCommitmentView } from "@/lib/complete-commitment";
+import type { Company360Verdict } from "@/lib/company-360-verdict";
+import { formatRelativeTime } from "@/lib/relative-time";
 
 /**
  * One prose status story — not a pill cluster of type / health / stage / industry.
@@ -27,14 +29,6 @@ function buildRelationshipStatusStory(header: Company360Header): string {
   }
 
   parts.push(`${header.healthStatus} relationship`);
-
-  if (header.status) {
-    parts.push(String(header.status));
-  }
-
-  if (header.industry && String(header.industry).trim() && header.industry !== "—") {
-    parts.push(String(header.industry));
-  }
 
   return parts.join(" · ");
 }
@@ -57,6 +51,7 @@ export function CompanyWorkspaceHeader({
   pendingCommitment,
   onCompanyUpdated,
   onCommitmentChanged,
+  verdict,
 }: {
   header: Company360Header;
   identity: CompanyHeroIdentityView;
@@ -66,6 +61,7 @@ export function CompanyWorkspaceHeader({
   pendingCommitment?: PendingCommitmentView | null;
   onCompanyUpdated?: (company: Company) => void;
   onCommitmentChanged?: () => void;
+  verdict?: Company360Verdict | null;
 }) {
   const websiteHref = identity.website
     ? identity.website.startsWith("http")
@@ -75,8 +71,8 @@ export function CompanyWorkspaceHeader({
 
   const ownerAssigned = hasCompanyOwner(company);
   const statusStory = buildRelationshipStatusStory(header);
-  const nextLabel = nextActionLabel(header);
-  const nextReason = header.recommendedAction.reason;
+  const nextLabel = verdict?.nextAction ?? nextActionLabel(header);
+  const nextReason = verdict?.nextReason ?? header.recommendedAction.reason;
 
   return (
     <div className="min-w-0 flex-1">
@@ -133,6 +129,15 @@ export function CompanyWorkspaceHeader({
             ? `Owner ${header.accountOwner}`
             : "Owner incomplete — assign an account owner"}
         </span>
+
+        {verdict?.lastInteractionAt ? (
+          <span>
+            Last touch {formatRelativeTime(verdict.lastInteractionAt)}
+            {verdict.lastInteractionSource === "outlook" ? " · Outlook" : ""}
+          </span>
+        ) : (
+          <span>No recorded touch yet</span>
+        )}
 
         {header.location !== "—" ? (
           <ActionableField icon="location" className="text-[12px] text-carbon-blue/60">

@@ -9,7 +9,6 @@ import type { CreateOpportunityInput } from "@/types/deal";
 import type { PipelineRow } from "@/types/pipeline";
 import { formatDealValue } from "@/types/pipeline";
 import type { Project } from "@/types/project";
-import { PROJECT_STAGE_LABELS } from "@/types/project";
 import type { UserRole } from "@/types/auth";
 import { getActivitiesForDeal } from "@/lib/activity-utils";
 import { computeOpportunityMomentum } from "@/lib/opportunity-intelligence-engine";
@@ -24,15 +23,8 @@ import { OpportunityMomentumBadge } from "@/components/opportunity/opportunity-i
 import { OpportunityProbabilityPill } from "@/components/opportunity/opportunity-probability-pill";
 import { CompanyOpportunitiesSection } from "@/components/opportunity/company-opportunities-section";
 import { CompanyContactsTable } from "@/components/company-360/company-contacts-table";
-import {
-  DealLink,
-  ProjectLink,
-} from "@/components/relationship/relationship-links";
-import {
-  WorkspacePanel,
-  HealthStatusIcon,
-  SmartCRMIcon,
-} from "@/components/ui/smartcrm-icon";
+import { DealLink } from "@/components/relationship/relationship-links";
+import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 
 function formatCloseDate(value: string | undefined): string {
   if (!value) return "—";
@@ -62,27 +54,6 @@ function OpportunityKeyAttribute({
   );
 }
 
-const DEAL_TEASER_LIMIT = 5;
-const PROJECT_TEASER_LIMIT = 5;
-
-function ViewAllButton({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="shrink-0 text-[11px] font-semibold text-upcycle-orange transition-colors hover:text-carbon-blue"
-    >
-      {label}
-    </button>
-  );
-}
-
 function StripEmpty({ children }: { children: string }) {
   return <p className="text-[13px] text-carbon-blue/45">{children}</p>;
 }
@@ -99,6 +70,7 @@ function PeopleOverviewStrip({
   onContactReassign,
   onContactArchive,
   createRequestId,
+  lastMailByContactId,
 }: {
   company: Company;
   companies: Company[];
@@ -111,6 +83,7 @@ function PeopleOverviewStrip({
   onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
   createRequestId?: number;
+  lastMailByContactId?: Record<string, string>;
 }) {
   return (
     <WorkspacePanel
@@ -131,6 +104,7 @@ function PeopleOverviewStrip({
         onContactReassign={onContactReassign}
         onContactArchive={onContactArchive}
         createRequestId={createRequestId}
+        lastMailByContactId={lastMailByContactId}
       />
     </WorkspacePanel>
   );
@@ -148,7 +122,6 @@ function OpportunitiesOverviewStrip({
   onCreateOpportunity,
   onAssignStakeholder,
   onCompanyUpdated,
-  onViewAll,
 }: {
   company: Company;
   companies: Company[];
@@ -166,7 +139,6 @@ function OpportunitiesOverviewStrip({
     projectRole: string,
   ) => Promise<PipelineRow>;
   onCompanyUpdated?: (company: Company) => void;
-  onViewAll: () => void;
 }) {
   const [createRequestId, setCreateRequestId] = useState(0);
 
@@ -175,7 +147,7 @@ function OpportunitiesOverviewStrip({
       if (b.salesValue !== a.salesValue) return b.salesValue - a.salesValue;
       return a.assetName.localeCompare(b.assetName);
     });
-    return sorted.slice(0, DEAL_TEASER_LIMIT).map((deal, index) => {
+    return sorted.map((deal, index) => {
       const dealActivities = getActivitiesForDeal(activities, deal.id);
       return {
         deal,
@@ -195,22 +167,19 @@ function OpportunitiesOverviewStrip({
   return (
     <WorkspacePanel
       title="Opportunities"
-      id="overview-opportunities"
+      id="opportunities"
       count={deals.length}
       headerTrailing={
-        <div className="flex shrink-0 items-center gap-3">
-          {canCreate ? (
-            <button
-              type="button"
-              onClick={() => setCreateRequestId((value) => value + 1)}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-upcycle-orange transition-colors hover:text-carbon-blue"
-            >
-              <SmartCRMIcon name="add" size="xs" />
-              Create Opportunity
-            </button>
-          ) : null}
-          <ViewAllButton label="View all →" onClick={onViewAll} />
-        </div>
+        canCreate ? (
+          <button
+            type="button"
+            onClick={() => setCreateRequestId((value) => value + 1)}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-upcycle-orange transition-colors hover:text-carbon-blue"
+          >
+            <SmartCRMIcon name="add" size="xs" />
+            Create Opportunity
+          </button>
+        ) : undefined
       }
     >
       {rows.length === 0 ? (
@@ -287,9 +256,10 @@ function OpportunitiesOverviewStrip({
         </ul>
       )}
 
-      {canCreate && onCreateOpportunity ? (
+      {canCreate || canManageStakeholders ? (
         <CompanyOpportunitiesSection
           deals={deals}
+          allPipelines={pipelines}
           commercialPackages={commercialPackages}
           company={company}
           canCreate={canCreate}
@@ -298,7 +268,7 @@ function OpportunitiesOverviewStrip({
           onAssignStakeholder={onAssignStakeholder}
           onCompanyUpdated={onCompanyUpdated}
           createRequestId={createRequestId}
-          createOnly
+          hideTable
           showCreateTrigger={false}
         />
       ) : null}
@@ -306,70 +276,9 @@ function OpportunitiesOverviewStrip({
   );
 }
 
-function ProjectsOverviewStrip({
-  projects,
-  onViewAll,
-}: {
-  projects: Project[];
-  onViewAll: () => void;
-}) {
-  const rows = useMemo(
-    () =>
-      [...projects]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .slice(0, PROJECT_TEASER_LIMIT),
-    [projects],
-  );
-
-  return (
-    <WorkspacePanel
-      title="Projects"
-      id="overview-projects"
-      count={projects.length > 0 ? projects.length : undefined}
-      headerTrailing={<ViewAllButton label="View all →" onClick={onViewAll} />}
-    >
-      {rows.length === 0 ? (
-        <StripEmpty>No linked projects.</StripEmpty>
-      ) : (
-        <ul className="divide-y divide-carbon-blue/6">
-          {rows.map((project) => {
-            const stageLabel = project.stage
-              ? PROJECT_STAGE_LABELS[project.stage]
-              : project.status;
-            return (
-              <li
-                key={project.id}
-                className="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <ProjectLink
-                    projectId={project.id}
-                    showIcon={false}
-                    className="truncate text-[13px] font-semibold text-carbon-blue hover:text-upcycle-orange"
-                  >
-                    {project.name}
-                  </ProjectLink>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-carbon-blue/55">
-                    <span className="inline-flex items-center gap-1">
-                      <HealthStatusIcon status={project.health} size="xs" />
-                      {project.status}
-                    </span>
-                    <span aria-hidden>·</span>
-                    <span>{stageLabel}</span>
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </WorkspacePanel>
-  );
-}
-
 /**
- * Overview strips — People (full contacts) · Opportunities · Projects teasers.
- * Contact management lives on Overview; Work tab holds full opportunity/project tables.
+ * Overview strips — People and one opportunity list (engine win chance).
+ * Projects live beside this as the full company project table.
  */
 export function Company360OverviewStrips({
   company,
@@ -379,15 +288,14 @@ export function Company360OverviewStrips({
   deals,
   pipelines,
   commercialPackages,
-  projects,
   allProjects,
-  onOpenWork,
   onCreateContact,
   onContactUpdate,
   onContactDelete,
   onContactReassign,
   onContactArchive,
   createRequestId,
+  lastMailByContactId,
   canCreateOpportunity: canCreateOpp = false,
   canManageOpportunityStakeholders: canManageStakeholders = false,
   onCreateOpportunity,
@@ -399,20 +307,16 @@ export function Company360OverviewStrips({
   role: UserRole;
   activities: Activity[];
   deals: PipelineRow[];
-  /** Full pipeline list for probability context; defaults to linked deals. */
   pipelines?: PipelineRow[];
   commercialPackages: CommercialPackage[];
-  /** Linked projects for the Projects teaser. */
-  projects: Project[];
-  /** Full project list for contact project-role labels. */
   allProjects: Project[];
-  onOpenWork: () => void;
   onCreateContact?: (input: CreateContactInput) => Promise<void>;
   onContactUpdate?: (contactId: string, patch: UpdateContactInput) => Promise<void>;
   onContactDelete?: (contactId: string) => Promise<void>;
   onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
   createRequestId?: number;
+  lastMailByContactId?: Record<string, string>;
   canCreateOpportunity?: boolean;
   canManageOpportunityStakeholders?: boolean;
   onCreateOpportunity?: (input: CreateOpportunityInput) => Promise<PipelineRow>;
@@ -437,6 +341,7 @@ export function Company360OverviewStrips({
         onContactReassign={onContactReassign}
         onContactArchive={onContactArchive}
         createRequestId={createRequestId}
+        lastMailByContactId={lastMailByContactId}
       />
       <OpportunitiesOverviewStrip
         company={company}
@@ -450,9 +355,7 @@ export function Company360OverviewStrips({
         onCreateOpportunity={onCreateOpportunity}
         onAssignStakeholder={onAssignOpportunityStakeholder}
         onCompanyUpdated={onCompanyUpdated}
-        onViewAll={onOpenWork}
       />
-      <ProjectsOverviewStrip projects={projects} onViewAll={onOpenWork} />
     </>
   );
 }
