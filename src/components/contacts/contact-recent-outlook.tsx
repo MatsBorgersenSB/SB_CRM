@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
@@ -64,6 +64,11 @@ function dealEmailsHref(dealId: string): string {
   return `/deals/${encodeURIComponent(dealId)}?view=emails`;
 }
 
+export type ContactMailWorkLink = {
+  id: string;
+  name: string;
+};
+
 /**
  * Compact person-lens Outlook threads for Contact 360.
  * User sets opportunity and/or project relationship; no silent auto-link.
@@ -74,12 +79,19 @@ export function ContactRecentOutlook({
   contactName,
   contactPhone,
   role = "superuser",
+  onLatestMailAt,
+  onLinkedWork,
 }: {
   contactId: string;
   contactEmail?: string;
   contactName?: string;
   contactPhone?: string;
   role?: UserRole;
+  onLatestMailAt?: (iso: string | null) => void;
+  onLinkedWork?: (links: {
+    opportunities: ContactMailWorkLink[];
+    projects: ContactMailWorkLink[];
+  }) => void;
 }) {
   const [threads, setThreads] = useState<ContactEmailThread[]>([]);
   const [opportunityOptions, setOpportunityOptions] = useState<LinkOption[]>([]);
@@ -136,6 +148,44 @@ export function ContactRecentOutlook({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const onLatestMailAtRef = useRef(onLatestMailAt);
+  onLatestMailAtRef.current = onLatestMailAt;
+  const onLinkedWorkRef = useRef(onLinkedWork);
+  onLinkedWorkRef.current = onLinkedWork;
+
+  useEffect(() => {
+    const stamps = threads.flatMap((thread) =>
+      thread.messages
+        .map((message) => message.sentAt)
+        .concat(thread.summary?.latestSentAt ? [thread.summary.latestSentAt] : []),
+    );
+    let latest: string | null = null;
+    for (const stamp of stamps) {
+      if (!latest || Date.parse(stamp) > Date.parse(latest)) latest = stamp;
+    }
+    onLatestMailAtRef.current?.(latest);
+
+    const opportunities = new Map<string, string>();
+    const projects = new Map<string, string>();
+    for (const thread of threads) {
+      for (const message of thread.messages) {
+        if (message.opportunityId) {
+          opportunities.set(
+            message.opportunityId,
+            message.opportunityName || message.opportunityCode || message.opportunityId,
+          );
+        }
+        if (message.projectId) {
+          projects.set(message.projectId, message.projectName || message.projectId);
+        }
+      }
+    }
+    onLinkedWorkRef.current?.({
+      opportunities: [...opportunities.entries()].map(([id, name]) => ({ id, name })),
+      projects: [...projects.entries()].map(([id, name]) => ({ id, name })),
+    });
+  }, [threads]);
 
   const applyLinksToConversation = async (
     conversationId: string,
@@ -305,6 +355,11 @@ export function ContactRecentOutlook({
       .slice(0, 8);
   }, [threads, domainFilter]);
 
+  const hasInternalMail = useMemo(
+    () => threads.some((thread) => thread.messages.every((message) => message.isInternalOnly)),
+    [threads],
+  );
+
   const filterChips = useMemo((): FilterSummaryChip[] => {
     if (domainFilter === "all") return [];
     return [
@@ -318,26 +373,30 @@ export function ContactRecentOutlook({
   }, [domainFilter]);
 
   return (
-    <div className="border-t border-carbon-blue/10 pt-4">
+    <div>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
           Recent Outlook
         </p>
         <div className="flex items-center gap-2">
-          <label className="sr-only" htmlFor={`contact-mail-domain-${contactId}`}>
-            Domain filter
-          </label>
-          <select
-            id={`contact-mail-domain-${contactId}`}
-            value={domainFilter}
-            onChange={(event) =>
-              setDomainFilter(event.target.value as "all" | "external")
-            }
-            className="border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] text-carbon-blue"
-          >
-            <option value="external">External (default)</option>
-            <option value="all">All domains</option>
-          </select>
+          {hasInternalMail ? (
+            <>
+              <label className="sr-only" htmlFor={`contact-mail-domain-${contactId}`}>
+                Domain filter
+              </label>
+              <select
+                id={`contact-mail-domain-${contactId}`}
+                value={domainFilter}
+                onChange={(event) =>
+                  setDomainFilter(event.target.value as "all" | "external")
+                }
+                className="border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] text-carbon-blue"
+              >
+                <option value="external">External (default)</option>
+                <option value="all">All domains</option>
+              </select>
+            </>
+          ) : null}
           <button
             type="button"
             onClick={() => void load()}
@@ -348,24 +407,18 @@ export function ContactRecentOutlook({
         </div>
       </div>
 
-      <p className="mb-2 text-[11px] leading-relaxed text-carbon-blue/50">
-        Link each thread to the correct opportunity and/or project — or choose Not
-        linked. Sync will not override your choice. Remove private or irrelevant mail
-        from SmartCRM.
-      </p>
-
-      {!loading && threads.length > 0 ? (
+      {!loading && threads.length > 1 && filterChips.length > 0 ? (
         <FilterTransparencyBar
           entityLabel="threads"
           filteredCount={visibleThreads.length}
           totalCount={threads.length}
           activeFilters={filterChips}
-          onClearAll={() => setDomainFilter("external")}
+          onClearAll={() => setDomainFilter("all")}
           className="mb-2 border border-carbon-blue/10 px-2 py-1.5 sm:px-2"
         />
       ) : null}
 
-      {!loading && visibleThreads.length > 0 ? (
+      {!loading && visibleThreads.length > 1 ? (
         <div className="mb-2 flex flex-wrap items-end gap-2 border border-carbon-blue/10 bg-white px-2 py-2">
           <p className="w-full text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
             Apply to all shown threads
@@ -505,6 +558,7 @@ export function ContactRecentOutlook({
                   opportunityId={dealId || undefined}
                   projectId={projectId || undefined}
                   role={role}
+                  compact
                 />
               ) : null}
               <div className="mt-1 flex flex-wrap gap-1.5">

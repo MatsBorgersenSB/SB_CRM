@@ -1,6 +1,6 @@
 /**
- * Contact 360 Mission Control — one view at a time (Michelin).
- * Aligns with Project / Opportunity workspace navigation.
+ * Contact 360 — single living page (not Company-style Overview / Work / Actions).
+ * `view` query params are ignored; href still accepts them for old bookmarks.
  */
 
 export const CONTACT_MISSION_CONTROL_VIEWS = [
