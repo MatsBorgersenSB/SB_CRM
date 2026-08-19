@@ -15,6 +15,20 @@ jobs:
     name: Lint-free build checks
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: smartcrm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U postgres
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       # Prisma generate / Next build do not require a live DB; placeholder URL is enough.
@@ -41,6 +55,12 @@ jobs:
 
       - name: TypeScript check
         run: npx tsc --noEmit
+
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy
+
+      - name: SmartDocs attachment filing harness (FK safety)
+        run: npx tsx scripts/smartdocs-attachment-filing-harness.ts
 
       - name: Build Next.js (standalone)
         run: npm run build

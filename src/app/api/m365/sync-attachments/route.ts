@@ -10,6 +10,7 @@ import {
   ingestEmailAttachmentToSmartDocs,
 } from "@/lib/smartdocs-ingestion";
 import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
+import { resolveOpportunityRelationId } from "@/lib/smartdocs-resolve-opportunity-relation-id";
 import { readProjectById } from "@/lib/project-db";
 
 /**
@@ -115,6 +116,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Selected project not found" }, { status: 400 });
     }
 
+    const projectMappedOpportunityId = await resolveOpportunityRelationId(
+      forcedProject?.linkedDealId ?? null,
+    );
+
     const forcedCompany = forcedCompanyId
       ? await prisma.company.findUnique({
           where: { id: forcedCompanyId },
@@ -159,10 +164,14 @@ export async function POST(request: Request) {
       // If opportunityId exists, we file docs under the opportunity folder.
       // Otherwise (FS-006 phase 1), we file under the company documents folder.
       for (const attachment of emailAttachments) {
+        const emailOpportunityId = await resolveOpportunityRelationId(
+          email.opportunityId ?? null,
+        );
         const relationOpportunityId =
           forcedOpportunityId ??
-          (forcedProject?.linkedDealId?.trim() || undefined) ??
-          (email.opportunityId || undefined);
+          projectMappedOpportunityId ??
+          emailOpportunityId ??
+          undefined;
         const hasForcedCompany = Boolean(forcedCompany?.id);
         if (relationOpportunityId && !hasForcedCompany) {
           const doc = await ingestEmailAttachmentToSmartDocs({
@@ -208,7 +217,7 @@ export async function POST(request: Request) {
         companyId: forcedCompany?.id ?? null,
         opportunityId:
           forcedOpportunityId ??
-          (forcedProject?.linkedDealId?.trim() || null) ??
+          projectMappedOpportunityId ??
           null,
         projectId: forcedProject?.id ?? null,
       },
