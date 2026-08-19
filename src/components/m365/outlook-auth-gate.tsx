@@ -4,6 +4,7 @@ import {
   Component,
   useCallback,
   useEffect,
+  useMemo,
   useState,
   type ErrorInfo,
   type ReactNode,
@@ -121,6 +122,11 @@ export function buildOutlookSignInUrl(origin = appOrigin()): string {
   return `${origin}/auth/signin?callbackUrl=${encodeURIComponent(completeUrl)}`;
 }
 
+function traceLine(label: string, detail?: string): string {
+  const timestamp = new Date().toISOString().slice(11, 23);
+  return detail ? `${timestamp} ${label}: ${detail}` : `${timestamp} ${label}`;
+}
+
 function openSignInInBrowser(signInUrl: string): void {
   try {
     const popup = window.open(signInUrl, "smartcrm-signin", "width=520,height=720");
@@ -137,11 +143,16 @@ function openSignInInBrowser(signInUrl: string): void {
  * task pane can receive a session via dialog-bridge (iframe-safe).
  * Never throws — always falls back to a browser window.
  */
-export async function openOutlookSignInDialog(onComplete: () => void): Promise<void> {
+export async function openOutlookSignInDialog(
+  onComplete: () => void,
+  onTrace?: (line: string) => void,
+): Promise<void> {
   const signInUrl = buildOutlookSignInUrl();
+  onTrace?.(traceLine("dialog.start", signInUrl));
 
   try {
     const office = await whenOfficeReady(SIGN_IN_OFFICE_READY_MS);
+    onTrace?.(traceLine("office.ready", office ? "ok" : "timeout/null"));
     const displayDialog = office?.context?.ui?.displayDialogAsync;
 
     if (typeof displayDialog === "function" && office) {
@@ -155,9 +166,16 @@ export async function openOutlookSignInDialog(onComplete: () => void): Promise<v
         },
         (result) => {
           if (result.status !== Office.AsyncResultStatus.Succeeded || !result.value) {
+            onTrace?.(
+              traceLine(
+                "dialog.open.failed",
+                typeof result.status === "string" ? result.status : String(result.status),
+              ),
+            );
             openSignInInBrowser(signInUrl);
             return;
           }
+          onTrace?.(traceLine("dialog.open.ok"));
           const dialog = result.value;
           let settled = false;
           let receivedBridgeToken: string | undefined;
@@ -173,9 +191,14 @@ export async function openOutlookSignInDialog(onComplete: () => void): Promise<v
             const token = bridgeToken?.trim() || receivedBridgeToken?.trim() || "";
             try {
               if (token) {
-                await claimBridgeToken(token);
+                onTrace?.(traceLine("bridge.claim.start"));
+                const claimed = await claimBridgeToken(token);
+                onTrace?.(traceLine("bridge.claim.done", claimed ? "ok" : "failed"));
+              } else {
+                onTrace?.(traceLine("bridge.claim.skip", "missing token"));
               }
             } catch {
+              onTrace?.(traceLine("bridge.claim.error"));
               /* checkSession will surface failure */
             }
             try {
@@ -199,6 +222,9 @@ export async function openOutlookSignInDialog(onComplete: () => void): Promise<v
               if (!parsed.authenticated) return;
               if (parsed.bridgeToken?.trim()) {
                 receivedBridgeToken = parsed.bridgeToken.trim();
+                onTrace?.(traceLine("dialog.message.token", "received"));
+              } else {
+                onTrace?.(traceLine("dialog.message.auth", "no token"));
               }
               void finish(parsed.bridgeToken);
             },
@@ -212,6 +238,7 @@ export async function openOutlookSignInDialog(onComplete: () => void): Promise<v
            */
           dialog.addEventHandler(Office.EventType.DialogEventReceived, (arg) => {
             const code = dialogEventErrorCode(arg);
+            onTrace?.(traceLine("dialog.event", code == null ? "unknown" : String(code)));
             if (code !== OFFICE_DIALOG_CLOSED && code !== OFFICE_DIALOG_IGNORED) {
               return;
             }
@@ -226,11 +253,14 @@ export async function openOutlookSignInDialog(onComplete: () => void): Promise<v
       return;
     }
   } catch {
+    onTrace?.(traceLine("dialog.exception"));
     /* fall through to browser open */
   }
 
+  onTrace?.(traceLine("dialog.fallback.popup"));
   const popup = window.open(signInUrl, "smartcrm-signin", "width=520,height=720");
   if (!popup) {
+    onTrace?.(traceLine("dialog.fallback.new-tab"));
     window.open(signInUrl, "_blank", "noopener,noreferrer");
     return;
   }
@@ -244,12 +274,18 @@ export async function openOutlookSignInDialog(onComplete: () => void): Promise<v
 
 function SignInToSmartCrmCard({
   onSignedIn,
+  onTrace,
   verifying = false,
+  traceLines = [],
 }: {
   onSignedIn: () => void;
+  onTrace?: (line: string) => void;
   verifying?: boolean;
+  traceLines?: string[];
 }) {
   const signInUrl = buildOutlookSignInUrl();
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const traceText = useMemo(() => traceLines.join("\n"), [traceLines]);
 
   return (
     <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
@@ -268,7 +304,7 @@ function SignInToSmartCrmCard({
         <button
           type="button"
           onClick={() => {
-            void openOutlookSignInDialog(onSignedIn).catch(() => {
+            void openOutlookSignInDialog(onSignedIn, onTrace).catch(() => {
               openSignInInBrowser(signInUrl);
             });
           }}
@@ -280,6 +316,38 @@ function SignInToSmartCrmCard({
           Use the button above inside Outlook. Opening sign-in in a separate browser tab
           cannot pass the session into this pane.
         </p>
+        {traceLines.length > 0 ? (
+          <div className="mt-3 border border-carbon-blue/10 bg-white/60 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/50">
+                Temporary auth trace
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  void navigator.clipboard
+                    .writeText(traceText)
+                    .then(() => {
+                      setCopyState("copied");
+                    })
+                    .catch(() => {
+                      setCopyState("failed");
+                    });
+                }}
+                className="text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange"
+              >
+                {copyState === "copied"
+                  ? "Copied"
+                  : copyState === "failed"
+                    ? "Copy failed"
+                    : "Copy trace"}
+              </button>
+            </div>
+            <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap text-[9px] leading-relaxed text-carbon-blue/55">
+              {traceText}
+            </pre>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -333,8 +401,16 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
   // Session probe upgrades to authenticated when a session exists.
   const [state, setState] = useState<GateState>({ status: "needs-sign-in" });
   const [probePending, setProbePending] = useState(true);
+  const [traceLines, setTraceLines] = useState<string[]>([]);
+  const pushTrace = useCallback((line: string) => {
+    setTraceLines((current) => {
+      const next = [...current, line];
+      return next.length > 60 ? next.slice(next.length - 60) : next;
+    });
+  }, []);
 
   const checkSession = useCallback(async (mode: "soft" | "hard" = "soft") => {
+    pushTrace(traceLine("session.check.start", mode));
     if (mode === "hard") {
       setState({ status: "checking" });
     }
@@ -346,6 +422,7 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
 
     try {
       if (typeof window !== "undefined" && isUnsupportedOutlookHost(window.location.host)) {
+        pushTrace(traceLine("session.host.unsupported", window.location.host));
         setState({ status: "wrong-host", host: window.location.host });
         return;
       }
@@ -367,6 +444,7 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
 
         // Unauthenticated / forbidden / non-OK → retry on hard, else Sign In
         if (response.status === 401 || response.status === 403 || !response.ok) {
+          pushTrace(traceLine("session.http", String(response.status)));
           if (attempt < attempts - 1) {
             await new Promise((resolve) => window.setTimeout(resolve, 350 * (attempt + 1)));
             continue;
@@ -391,6 +469,7 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
         }
 
         if (session?.user?.email) {
+          pushTrace(traceLine("session.ok", session.user.email ?? "user"));
           setState({ status: "authenticated" });
           return;
         }
@@ -400,21 +479,27 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
           continue;
         }
         setState({ status: "needs-sign-in" });
+        pushTrace(traceLine("session.empty"));
         return;
       }
     } catch {
+      pushTrace(traceLine("session.error"));
       // Network / abort / parse failures: treat as signed out so the pane stays usable
       setState({ status: "needs-sign-in" });
     } finally {
       setProbePending(false);
     }
-  }, []);
+  }, [pushTrace]);
 
   // Office.onReady must run on mount regardless of authentication status
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      pushTrace(traceLine("pane.host", window.location.host));
+      pushTrace(traceLine("signin.url", buildOutlookSignInUrl()));
+    }
     markOutlookPaneReady();
     void whenOfficeReady().catch(() => null);
-  }, []);
+  }, [pushTrace]);
 
   useEffect(() => {
     void checkSession("soft");
@@ -498,7 +583,9 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
     return (
       <SignInToSmartCrmCard
         onSignedIn={() => void checkSession("hard")}
+        onTrace={pushTrace}
         verifying={probePending}
+        traceLines={traceLines}
       />
     );
   }
