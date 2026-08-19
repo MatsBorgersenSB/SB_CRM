@@ -66,6 +66,28 @@ export async function GET(request: Request) {
           take: 50,
         })
       : [];
+    const companyRows = await prisma.company.findMany({
+      select: { id: true, name: true, code: true },
+      orderBy: { updatedAt: "desc" },
+      take: 120,
+    });
+    const dedupCompanyIds = new Set<string>();
+    const companyOptions: LinkOption[] = [];
+    const pushCompany = (row: { id: string; name: string; code: string | null }) => {
+      if (dedupCompanyIds.has(row.id)) return;
+      dedupCompanyIds.add(row.id);
+      companyOptions.push({
+        id: row.id,
+        name: row.name,
+        code: row.code,
+        label: row.code ? `${row.code} · ${row.name}` : row.name,
+      });
+    };
+    if (prismaCompanyId) {
+      const current = companyRows.find((row) => row.id === prismaCompanyId);
+      if (current) pushCompany(current);
+    }
+    for (const row of companyRows) pushCompany(row);
     const broader = await prisma.opportunity.findMany({
       where: {
         status: "open",
@@ -103,6 +125,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       contactId,
       companyId,
+      selectedCompanyId: prismaCompanyId,
       companyName: resolved.company.Title,
       contactName: resolved.contact.Title,
       conversationId: conversationId || null,
@@ -110,6 +133,7 @@ export async function GET(request: Request) {
       currentProjectId,
       relationshipPosture: getCompanyRelationshipPosture(resolved.company),
       opportunityEligible: isOpportunityEligibleCompany(resolved.company),
+      companyOptions,
       opportunityOptions: opportunityRows.map(
         (row): LinkOption => ({
           id: row.id,

@@ -262,6 +262,7 @@ export async function ingestEmailAttachmentToSmartDocs(input: {
 export async function ingestEmailAttachmentToCompanySmartDocs(input: {
   companyId: string;
   companyName: string;
+  opportunityId?: string | null;
   emailMessageId: string;
   attachment: Pick<
     M365AttachmentMeta,
@@ -277,7 +278,7 @@ export async function ingestEmailAttachmentToCompanySmartDocs(input: {
     source: "m365_email",
     externalAttachmentId: input.attachment.id,
     contentBase64: input.attachment.contentBytes ?? null,
-    opportunityId: null,
+    opportunityId: input.opportunityId ?? null,
     companyId: input.companyId,
     emailMessageId: input.emailMessageId,
   };

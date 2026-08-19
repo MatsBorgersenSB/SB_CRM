@@ -20,7 +20,9 @@ type LinkOption = {
 type TagContextPayload = {
   contactId: string;
   companyId?: string;
+  selectedCompanyId?: string | null;
   companyName: string;
+  companyOptions?: LinkOption[];
   currentOpportunityId: string | null;
   currentProjectId: string | null;
   opportunityOptions: LinkOption[];
@@ -57,6 +59,14 @@ export function OutlookMailTagPanel({
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [attachmentTarget, setAttachmentTarget] = useState<"company" | "opportunity" | "project">(
+    "company",
+  );
+  const [attachmentCompanyId, setAttachmentCompanyId] = useState("");
+  const [attachmentRelationKind, setAttachmentRelationKind] = useState<
+    "none" | "opportunity" | "project"
+  >("none");
+  const [attachmentRelationId, setAttachmentRelationId] = useState("");
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -106,6 +116,9 @@ export function OutlookMailTagPanel({
         } else {
           setSelectedId("");
         }
+        setAttachmentCompanyId(payload.selectedCompanyId ?? "");
+        setAttachmentRelationKind("none");
+        setAttachmentRelationId("");
       } catch (loadError) {
         if (!cancelled) {
           setError(loadError instanceof Error ? loadError.message : "Unable to load tags");
@@ -119,11 +132,58 @@ export function OutlookMailTagPanel({
     };
   }, [email, role, selectionTick]);
 
+  useEffect(() => {
+    // Keep filing destination valid when no opportunity/project is selected.
+    if ((attachmentTarget === "opportunity" || attachmentTarget === "project") && !selectedId) {
+      setAttachmentTarget("company");
+    }
+  }, [attachmentTarget, selectedId]);
+
   const commercialTagging =
     opportunityEligible ?? context?.opportunityEligible ?? true;
   const options =
     linkKind === "project" ? context?.projectOptions ?? [] : context?.opportunityOptions ?? [];
   const selectedCount = seeds.length;
+  const companyOptions = context?.companyOptions ?? [];
+  const selectedCompanyLabel =
+    companyOptions.find((row) => row.id === attachmentCompanyId)?.label ??
+    context?.companyName ??
+    "selected company";
+  const selectedTagLabel = options.find((row) => row.id === selectedId)?.label ?? "";
+  const relationOptions =
+    attachmentRelationKind === "project"
+      ? context?.projectOptions ?? []
+      : context?.opportunityOptions ?? [];
+  const relationLabel = relationOptions.find((row) => row.id === attachmentRelationId)?.label ?? "";
+  const canFileAttachments =
+    seed != null &&
+    !busy &&
+    !syncBusy &&
+    !(
+      (attachmentTarget === "company" && !attachmentCompanyId) ||
+      ((attachmentTarget === "opportunity" || attachmentTarget === "project") && !selectedId) ||
+      (attachmentTarget === "company" &&
+        attachmentRelationKind !== "none" &&
+        !attachmentRelationId)
+    );
+  const attachmentBlockingReason =
+    attachmentTarget === "company" && !attachmentCompanyId
+      ? "Select a company for filing."
+      : (attachmentTarget === "opportunity" || attachmentTarget === "project") && !selectedId
+        ? `Select a ${attachmentTarget} in the Tag mail section first.`
+        : attachmentTarget === "company" &&
+            attachmentRelationKind !== "none" &&
+            !attachmentRelationId
+          ? `Select the related ${attachmentRelationKind}.`
+          : null;
+  const destinationSummary =
+    attachmentTarget === "company"
+      ? attachmentRelationKind === "none" || !relationLabel
+        ? `Attachments will be stored under ${selectedCompanyLabel}.`
+        : `Attachments will be stored under ${selectedCompanyLabel} and related to ${relationLabel}.`
+      : selectedTagLabel
+        ? `Attachments will be stored under ${selectedTagLabel}.`
+        : `Select a ${attachmentTarget} in Tag mail to file attachments there.`;
 
   const saveSelectedMails = async (link?: {
     opportunityId?: string | null;
@@ -221,7 +281,26 @@ export function OutlookMailTagPanel({
           [AUTH_ROLE_HEADER]: role,
         },
         credentials: "include",
-        body: JSON.stringify({ emailExternalMessageIds }),
+        body: JSON.stringify({
+          emailExternalMessageIds,
+          ...(attachmentTarget === "company" && attachmentCompanyId
+            ? { companyId: attachmentCompanyId }
+            : {}),
+          ...(attachmentTarget === "opportunity" && selectedId
+            ? { opportunityId: selectedId }
+            : {}),
+          ...(attachmentTarget === "project" && selectedId ? { projectId: selectedId } : {}),
+          ...(attachmentTarget === "company" &&
+          attachmentRelationKind === "opportunity" &&
+          attachmentRelationId
+            ? { opportunityId: attachmentRelationId }
+            : {}),
+          ...(attachmentTarget === "company" &&
+          attachmentRelationKind === "project" &&
+          attachmentRelationId
+            ? { projectId: attachmentRelationId }
+            : {}),
+        }),
       });
 
       const payload = (await response.json().catch(() => ({}))) as {
@@ -239,7 +318,7 @@ export function OutlookMailTagPanel({
       const fetched = payload.fetchedAttachments ?? 0;
       setSyncStatus(
         saved > 0
-          ? `Filed ${saved} attachment(s) into SmartDocs (${fetched} fetched).`
+          ? `${destinationSummary} Filed ${saved} attachment(s) into SmartDocs (${fetched} fetched).`
           : `No attachments were filed into SmartDocs (${fetched} fetched).`,
       );
     } catch (syncErr) {
@@ -298,14 +377,36 @@ export function OutlookMailTagPanel({
           </p>
         )}
         {seed ? (
-          <button
-            type="button"
-            disabled={busy || syncBusy}
-            onClick={() => void syncAttachmentsToSmartDocs()}
-            className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-          >
-            {syncBusy ? "Filing attachments…" : "File attachments to SmartDocs"}
-          </button>
+          <>
+            <AttachmentFilingControls
+              attachmentTarget={attachmentTarget}
+              setAttachmentTarget={setAttachmentTarget}
+              attachmentCompanyId={attachmentCompanyId}
+              setAttachmentCompanyId={setAttachmentCompanyId}
+              attachmentRelationKind={attachmentRelationKind}
+              setAttachmentRelationKind={setAttachmentRelationKind}
+              attachmentRelationId={attachmentRelationId}
+              setAttachmentRelationId={setAttachmentRelationId}
+              selectedId={selectedId}
+              linkKind={linkKind}
+              selectedTagLabel={selectedTagLabel}
+              destinationSummary={destinationSummary}
+              companyOptions={companyOptions}
+              opportunityOptions={context.opportunityOptions}
+              projectOptions={context.projectOptions}
+            />
+            <button
+              type="button"
+              disabled={!canFileAttachments}
+              onClick={() => void syncAttachmentsToSmartDocs()}
+              className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+            >
+              {syncBusy ? "Filing attachments…" : "File attachments to SmartDocs"}
+            </button>
+            {attachmentBlockingReason ? (
+              <p className="mt-1 text-[10px] text-carbon-blue/45">{attachmentBlockingReason}</p>
+            ) : null}
+          </>
         ) : null}
         {status ? <p className="mt-1.5 text-[10px] text-emerald-700">{status}</p> : null}
         {syncStatus ? <p className="mt-1.5 text-[10px] text-emerald-700">{syncStatus}</p> : null}
@@ -399,14 +500,36 @@ export function OutlookMailTagPanel({
         )}
 
         {seed ? (
-          <button
-            type="button"
-            disabled={busy || syncBusy}
-            onClick={() => void syncAttachmentsToSmartDocs()}
-            className="inline-flex items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-          >
-            {syncBusy ? "Filing attachments…" : `File attachments (${selectedCount})`}
-          </button>
+          <>
+            <AttachmentFilingControls
+              attachmentTarget={attachmentTarget}
+              setAttachmentTarget={setAttachmentTarget}
+              attachmentCompanyId={attachmentCompanyId}
+              setAttachmentCompanyId={setAttachmentCompanyId}
+              attachmentRelationKind={attachmentRelationKind}
+              setAttachmentRelationKind={setAttachmentRelationKind}
+              attachmentRelationId={attachmentRelationId}
+              setAttachmentRelationId={setAttachmentRelationId}
+              selectedId={selectedId}
+              linkKind={linkKind}
+              selectedTagLabel={selectedTagLabel}
+              destinationSummary={destinationSummary}
+              companyOptions={companyOptions}
+              opportunityOptions={context.opportunityOptions}
+              projectOptions={context.projectOptions}
+            />
+            <button
+              type="button"
+              disabled={!canFileAttachments}
+              onClick={() => void syncAttachmentsToSmartDocs()}
+              className="inline-flex items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+            >
+              {syncBusy ? "Filing attachments…" : `File attachments (${selectedCount})`}
+            </button>
+            {attachmentBlockingReason ? (
+              <p className="mt-1 text-[10px] text-carbon-blue/45">{attachmentBlockingReason}</p>
+            ) : null}
+          </>
         ) : null}
 
         <DraftInOutlookButton
@@ -444,5 +567,145 @@ function SelectedMailSubjects({ seeds }: { seeds: OutlookOpenMessageSeed[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function AttachmentFilingControls({
+  attachmentTarget,
+  setAttachmentTarget,
+  attachmentCompanyId,
+  setAttachmentCompanyId,
+  attachmentRelationKind,
+  setAttachmentRelationKind,
+  attachmentRelationId,
+  setAttachmentRelationId,
+  selectedId,
+  linkKind,
+  selectedTagLabel,
+  destinationSummary,
+  companyOptions,
+  opportunityOptions,
+  projectOptions,
+}: {
+  attachmentTarget: "company" | "opportunity" | "project";
+  setAttachmentTarget: (value: "company" | "opportunity" | "project") => void;
+  attachmentCompanyId: string;
+  setAttachmentCompanyId: (value: string) => void;
+  attachmentRelationKind: "none" | "opportunity" | "project";
+  setAttachmentRelationKind: (value: "none" | "opportunity" | "project") => void;
+  attachmentRelationId: string;
+  setAttachmentRelationId: (value: string) => void;
+  selectedId: string;
+  linkKind: "opportunity" | "project";
+  selectedTagLabel: string;
+  destinationSummary: string;
+  companyOptions: LinkOption[];
+  opportunityOptions: LinkOption[];
+  projectOptions: LinkOption[];
+}) {
+  const relationOptions = attachmentRelationKind === "project" ? projectOptions : opportunityOptions;
+  const canUseCurrentTag = selectedId.length > 0;
+  return (
+    <div className="mt-2 border border-carbon-blue/10 bg-white px-2 py-2">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/45">
+        Attachment filing
+      </p>
+      <p className="mt-1 text-[10px] leading-snug text-carbon-blue/70 font-semibold">
+        {destinationSummary}
+      </p>
+      <label className="mt-1 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        Where to store
+        <select
+          value={attachmentTarget}
+          onChange={(event) =>
+            setAttachmentTarget(event.target.value as "company" | "opportunity" | "project")
+          }
+          className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+        >
+          <option value="company">Company</option>
+          <option value="opportunity">Opportunity</option>
+          <option value="project">Project</option>
+        </select>
+      </label>
+      <div className="mt-1 flex gap-1">
+        <button
+          type="button"
+          onClick={() => setAttachmentTarget("company")}
+          className="flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange"
+        >
+          Store under company
+        </button>
+        <button
+          type="button"
+          disabled={!canUseCurrentTag}
+          onClick={() => setAttachmentTarget(linkKind)}
+          className="flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+        >
+          Use selected {linkKind === "opportunity" ? "opportunity" : "project"}
+        </button>
+      </div>
+      {attachmentTarget === "company" ? (
+        <>
+          <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            Company
+            <select
+              value={attachmentCompanyId}
+              onChange={(event) => setAttachmentCompanyId(event.target.value)}
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            >
+              <option value="">Select company…</option>
+              {companyOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            Related to (optional)
+            <select
+              value={attachmentRelationKind}
+              onChange={(event) => {
+                setAttachmentRelationKind(
+                  event.target.value as "none" | "opportunity" | "project",
+                );
+                setAttachmentRelationId("");
+              }}
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            >
+              <option value="none">No relation</option>
+              <option value="opportunity">Opportunity</option>
+              <option value="project">Project</option>
+            </select>
+          </label>
+          {attachmentRelationKind !== "none" ? (
+            <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              {attachmentRelationKind === "project" ? "Project" : "Opportunity"}
+              <select
+                value={attachmentRelationId}
+                onChange={(event) => setAttachmentRelationId(event.target.value)}
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+              >
+                <option value="">Select…</option>
+                {relationOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </>
+      ) : (
+        <p className="mt-2 text-[10px] text-carbon-blue/50">
+          Will use the selected {attachmentTarget} from the Tag mail section.
+          {!selectedId
+            ? " Select one first."
+            : selectedTagLabel
+              ? ` Current: ${selectedTagLabel}.`
+              : ""}
+        </p>
+      )}
+    </div>
   );
 }

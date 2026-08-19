@@ -10,6 +10,7 @@ import {
   ingestEmailAttachmentToSmartDocs,
 } from "@/lib/smartdocs-ingestion";
 import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
+import { readProjectById } from "@/lib/project-db";
 
 /**
  * POST /api/m365/sync-attachments
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
       emailMessageId?: string;
       emailExternalMessageIds?: string[];
       integrationId?: string;
+      companyId?: string | null;
+      opportunityId?: string | null;
+      projectId?: string | null;
     };
 
     const emailMessageId = body.emailMessageId?.trim();
@@ -42,6 +46,19 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    const forcedCompanyId =
+      typeof body.companyId === "string" && body.companyId.trim()
+        ? body.companyId.trim()
+        : undefined;
+    const forcedOpportunityId =
+      typeof body.opportunityId === "string" && body.opportunityId.trim()
+        ? body.opportunityId.trim()
+        : undefined;
+    const forcedProjectId =
+      typeof body.projectId === "string" && body.projectId.trim()
+        ? body.projectId.trim()
+        : undefined;
 
     const prisma = getPrisma();
     const emails =
@@ -83,6 +100,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No email messages found" }, { status: 404 });
     }
 
+    const forcedOpportunity = forcedOpportunityId
+      ? await prisma.opportunity.findUnique({
+          where: { id: forcedOpportunityId },
+          select: { id: true },
+        })
+      : null;
+    if (forcedOpportunityId && !forcedOpportunity) {
+      return NextResponse.json({ error: "Selected opportunity not found" }, { status: 400 });
+    }
+
+    const forcedProject = forcedProjectId ? await readProjectById(forcedProjectId) : null;
+    if (forcedProjectId && !forcedProject) {
+      return NextResponse.json({ error: "Selected project not found" }, { status: 400 });
+    }
+
+    const forcedCompany = forcedCompanyId
+      ? await prisma.company.findUnique({
+          where: { id: forcedCompanyId },
+          select: { id: true, name: true },
+        })
+      : null;
+    if (forcedCompanyId && !forcedCompany) {
+      return NextResponse.json({ error: "Selected company not found" }, { status: 400 });
+    }
+
     let integrationId = body.integrationId?.trim() || null;
     if (!integrationId) {
       const oid = await getSessionAzureOid();
@@ -117,9 +159,14 @@ export async function POST(request: Request) {
       // If opportunityId exists, we file docs under the opportunity folder.
       // Otherwise (FS-006 phase 1), we file under the company documents folder.
       for (const attachment of emailAttachments) {
-        if (email.opportunityId) {
+        const relationOpportunityId =
+          forcedOpportunityId ??
+          (forcedProject?.linkedDealId?.trim() || undefined) ??
+          (email.opportunityId || undefined);
+        const hasForcedCompany = Boolean(forcedCompany?.id);
+        if (relationOpportunityId && !hasForcedCompany) {
           const doc = await ingestEmailAttachmentToSmartDocs({
-            opportunityId: email.opportunityId,
+            opportunityId: relationOpportunityId,
             emailMessageId: email.id,
             attachment,
           });
@@ -128,8 +175,12 @@ export async function POST(request: Request) {
           continue;
         }
 
-        const companyId = email.contact?.companyId ?? email.contact?.company?.id ?? null;
-        const companyName = email.contact?.company?.name ?? null;
+        const companyId =
+          forcedCompany?.id ??
+          email.contact?.companyId ??
+          email.contact?.company?.id ??
+          null;
+        const companyName = forcedCompany?.name ?? email.contact?.company?.name ?? null;
         if (!companyId || !companyName) {
           skippedEmailCount += 1;
           continue;
@@ -138,6 +189,7 @@ export async function POST(request: Request) {
         const doc = await ingestEmailAttachmentToCompanySmartDocs({
           companyId,
           companyName,
+          opportunityId: relationOpportunityId ?? null,
           emailMessageId: email.id,
           attachment,
         });
@@ -152,6 +204,14 @@ export async function POST(request: Request) {
       fetchedAttachments,
       documentsSaved,
       skippedEmailCount,
+      linkContext: {
+        companyId: forcedCompany?.id ?? null,
+        opportunityId:
+          forcedOpportunityId ??
+          (forcedProject?.linkedDealId?.trim() || null) ??
+          null,
+        projectId: forcedProject?.id ?? null,
+      },
     });
   } catch (error) {
     console.error("[m365 sync-attachments]", error);
