@@ -30,12 +30,17 @@ const SESSION_FETCH_TIMEOUT_HARD_MS = 5_000;
 /** Absolute ceiling — always surface Sign In if still checking. */
 const CHECKING_FALLBACK_MS = 6_000;
 /** Do not block Sign In dialog on a long Office.onReady wait. */
-const SIGN_IN_OFFICE_READY_MS = 1_500;
+// Some environments load Office.js slowly; if this times out we fall back to a
+// popup-based sign-in which cannot reliably bridge session cookies into the
+// Outlook iframe (causes Sign In loops).
+const SIGN_IN_OFFICE_READY_MS = 4_000;
 /**
  * Office DialogEventReceived 12006 (closed) can race ahead of DialogMessageReceived.
  * Wait briefly so a late bridge token can still be claimed.
  */
-const DIALOG_CLOSE_GRACE_MS = 1_000;
+// Extended to reduce the “Microsoft succeeded, but task pane never received
+// the bridge token” failure mode (sign-in loop).
+const DIALOG_CLOSE_GRACE_MS = 2_500;
 /** Dialog closed by user / host. */
 const OFFICE_DIALOG_CLOSED = 12006;
 /** User dismissed the dialog open prompt. */
