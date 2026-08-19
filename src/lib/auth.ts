@@ -10,6 +10,11 @@ import {
   logAuthEnvPresence,
   resolveAuthSecret,
 } from "@/lib/auth-env";
+import {
+  SMARTCRM_PRODUCTION_HOST,
+  SMARTCRM_PRODUCTION_ORIGIN,
+  resolvePublicAppOrigin,
+} from "@/lib/smartcrm-origin";
 
 /** Domains that receive elevated SmartCRM access (not a sign-in allowlist). */
 const STANDARD_BIO_DOMAINS = [
@@ -69,6 +74,38 @@ function resolveAccessRole(email: string | null | undefined): UserRole {
     return "superuser";
   }
   return "commercial";
+}
+
+function normalizeAuthBaseUrl(baseUrl: string): string {
+  const preferred = resolvePublicAppOrigin();
+  const vercelRuntime = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+
+  try {
+    const parsedBase = new URL(baseUrl);
+    const preferredUrl = new URL(preferred);
+
+    if (parsedBase.origin === preferredUrl.origin) {
+      return parsedBase.origin;
+    }
+
+    const baseIsPreviewVercel =
+      parsedBase.hostname.endsWith(".vercel.app") &&
+      parsedBase.hostname !== SMARTCRM_PRODUCTION_HOST;
+    if (vercelRuntime && baseIsPreviewVercel) {
+      console.warn(
+        `[NextAuth] Redirect base host ${parsedBase.hostname} is preview/legacy on production runtime; forcing ${SMARTCRM_PRODUCTION_ORIGIN}.`,
+      );
+      return SMARTCRM_PRODUCTION_ORIGIN;
+    }
+
+    if (vercelRuntime && preferredUrl.hostname === SMARTCRM_PRODUCTION_HOST) {
+      return preferredUrl.origin;
+    }
+
+    return parsedBase.origin;
+  } catch {
+    return preferred;
+  }
 }
 
 /**
@@ -366,6 +403,7 @@ export const authOptions: NextAuthConfig = {
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
+      const safeBaseUrl = normalizeAuthBaseUrl(baseUrl);
       console.log(
         "[SmartCRM AuthTrace]",
         JSON.stringify({
@@ -373,16 +411,17 @@ export const authOptions: NextAuthConfig = {
           at: new Date().toISOString(),
           url,
           baseUrl,
+          safeBaseUrl,
         }),
       );
       try {
-        if (url.startsWith("/")) return `${baseUrl}${url}`;
+        if (url.startsWith("/")) return `${safeBaseUrl}${url}`;
         const target = new URL(url);
-        if (target.origin === baseUrl) return url;
+        if (target.origin === safeBaseUrl) return url;
       } catch {
         /* fall through */
       }
-      return baseUrl;
+      return safeBaseUrl;
     },
 
     async signIn({ user, account, profile }) {
