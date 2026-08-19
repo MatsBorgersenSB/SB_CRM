@@ -11,8 +11,9 @@ import {
 import { whenOfficeReady } from "@/lib/outlook-office";
 import { markOutlookPaneReady } from "@/lib/outlook-addin-shell";
 import {
-  isRetiredOutlookHost,
+  isUnsupportedOutlookHost,
   resolvePublicAppOrigin,
+  SMARTCRM_PRODUCTION_HOST,
   SMARTCRM_PRODUCTION_ORIGIN,
 } from "@/lib/smartcrm-origin";
 
@@ -344,7 +345,7 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
     const attempts = mode === "hard" ? 3 : 1;
 
     try {
-      if (typeof window !== "undefined" && isRetiredOutlookHost(window.location.host)) {
+      if (typeof window !== "undefined" && isUnsupportedOutlookHost(window.location.host)) {
         setState({ status: "wrong-host", host: window.location.host });
         return;
       }
@@ -459,11 +460,14 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
         <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
           This task pane is loading from{" "}
           <span className="font-medium text-carbon-blue">{state.host}</span>, which is
-          retired. Remove the old SmartCRM add-in, then sideload{" "}
+          not supported for Outlook sign-in. Remove older/preview add-ins, then
+          sideload{" "}
           <span className="font-medium text-carbon-blue">
             outlook/relationship-card/manifest.xml
           </span>{" "}
-          so SourceLocation is{" "}
+          so SourceLocation host is{" "}
+          <span className="font-medium text-carbon-blue">{SMARTCRM_PRODUCTION_HOST}</span>{" "}
+          and origin is{" "}
           <span className="font-medium text-carbon-blue">{SMARTCRM_PRODUCTION_ORIGIN}</span>
           .
         </p>
