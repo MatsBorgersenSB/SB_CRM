@@ -54,6 +54,9 @@ export function OutlookMailTagPanel({
   const [selectedId, setSelectedId] = useState("");
   const [busy, setBusy] = useState(false);
   const [selectionTick, setSelectionTick] = useState(0);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -198,6 +201,56 @@ export function OutlookMailTagPanel({
     );
   };
 
+  const syncAttachmentsToSmartDocs = async () => {
+    if (seeds.length === 0) return;
+    setSyncBusy(true);
+    setSyncError(null);
+    setSyncStatus(null);
+    try {
+      const emailExternalMessageIds = seeds
+        .map((row) => row.externalMessageId?.trim())
+        .filter(Boolean) as string[];
+      if (emailExternalMessageIds.length === 0) {
+        throw new Error("No message ids to sync attachments.");
+      }
+
+      const response = await fetch("/api/m365/sync-attachments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          [AUTH_ROLE_HEADER]: role,
+        },
+        credentials: "include",
+        body: JSON.stringify({ emailExternalMessageIds }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        detail?: string;
+        documentsSaved?: number;
+        fetchedAttachments?: number;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.error || "Could not sync attachments");
+      }
+
+      const saved = payload.documentsSaved ?? 0;
+      const fetched = payload.fetchedAttachments ?? 0;
+      setSyncStatus(
+        saved > 0
+          ? `Filed ${saved} attachment(s) into SmartDocs (${fetched} fetched).`
+          : `No attachments were filed into SmartDocs (${fetched} fetched).`,
+      );
+    } catch (syncErr) {
+      setSyncError(
+        syncErr instanceof Error ? syncErr.message : "Could not file attachments",
+      );
+    } finally {
+      setSyncBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="border border-carbon-blue/10 bg-white px-3 py-2.5">
@@ -244,8 +297,20 @@ export function OutlookMailTagPanel({
             Select one or more mails in Outlook, then save them here.
           </p>
         )}
+        {seed ? (
+          <button
+            type="button"
+            disabled={busy || syncBusy}
+            onClick={() => void syncAttachmentsToSmartDocs()}
+            className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+          >
+            {syncBusy ? "Filing attachments…" : "File attachments to SmartDocs"}
+          </button>
+        ) : null}
         {status ? <p className="mt-1.5 text-[10px] text-emerald-700">{status}</p> : null}
+        {syncStatus ? <p className="mt-1.5 text-[10px] text-emerald-700">{syncStatus}</p> : null}
         {error ? <p className="mt-1.5 text-[10px] text-thermal-red">{error}</p> : null}
+        {syncError ? <p className="mt-1.5 text-[10px] text-thermal-red">{syncError}</p> : null}
       </div>
     );
   }
@@ -333,6 +398,17 @@ export function OutlookMailTagPanel({
           </p>
         )}
 
+        {seed ? (
+          <button
+            type="button"
+            disabled={busy || syncBusy}
+            onClick={() => void syncAttachmentsToSmartDocs()}
+            className="inline-flex items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+          >
+            {syncBusy ? "Filing attachments…" : `File attachments (${selectedCount})`}
+          </button>
+        ) : null}
+
         <DraftInOutlookButton
           toEmail={email}
           subject={
@@ -351,7 +427,9 @@ export function OutlookMailTagPanel({
       </div>
 
       {status ? <p className="mt-1.5 text-[10px] text-emerald-700">{status}</p> : null}
+      {syncStatus ? <p className="mt-1.5 text-[10px] text-emerald-700">{syncStatus}</p> : null}
       {error ? <p className="mt-1.5 text-[10px] text-thermal-red">{error}</p> : null}
+      {syncError ? <p className="mt-1.5 text-[10px] text-thermal-red">{syncError}</p> : null}
     </div>
   );
 }

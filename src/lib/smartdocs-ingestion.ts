@@ -2,6 +2,7 @@ import { getPrisma } from "@/lib/prisma";
 import type { M365AttachmentMeta } from "@/lib/m365-client";
 import { getGraphAccessToken } from "@/lib/m365/get-graph-access-token";
 import {
+  ensureCompanyDocumentsSharePointFolder,
   ensureOpportunitySharePointFolder,
   uploadFileToSharePointFolder,
 } from "@/lib/m365/graph-client";
@@ -137,6 +138,63 @@ async function fileAttachmentToSharePoint(input: {
   }
 }
 
+async function fileAttachmentToSharePointCompany(input: {
+  companyId: string;
+  companyName: string;
+  documentId: string;
+  fileName: string;
+  mimeType: string | null;
+  contentBase64: string | null;
+}): Promise<{ sharepointItemId: string; sharepointWebUrl: string } | null> {
+  if (!isGraphTransport() || !input.contentBase64) return null;
+
+  const siteId = process.env.SHAREPOINT_SITE_ID?.trim();
+  if (!siteId) return null;
+
+  const prisma = getPrisma();
+  try {
+    const accessToken = await getGraphAccessToken();
+    const folder = await ensureCompanyDocumentsSharePointFolder(
+      accessToken,
+      siteId,
+      input.companyName,
+    );
+
+    const bytes = Buffer.from(input.contentBase64, "base64");
+    const classified = classifyByFileName(input.fileName);
+    const uploaded = await uploadFileToSharePointFolder({
+      accessToken,
+      siteId,
+      folderId: folder.folderId,
+      fileName: input.fileName,
+      contentType: input.mimeType || "application/octet-stream",
+      bytes,
+      fields: {
+        DocCategory: classified.DocCategory,
+        DocType: classified.DocType,
+      },
+    });
+
+    await prisma.documentRecord.update({
+      where: { id: input.documentId },
+      data: {
+        sharepointItemId: uploaded.itemId,
+        sharepointWebUrl: uploaded.webUrl,
+        // SharePoint is the document source of truth — drop local blob after success.
+        contentBase64: null,
+      },
+    });
+
+    return {
+      sharepointItemId: uploaded.itemId,
+      sharepointWebUrl: uploaded.webUrl,
+    };
+  } catch (error) {
+    console.warn("[SmartDocs SharePoint file skipped]", error);
+    return null;
+  }
+}
+
 /**
  * Upsert a DocumentRecord (SmartDocs) linked to Opportunity + EmailMessage.
  * source defaults to "m365_email". When Graph SharePoint is configured, files
@@ -179,6 +237,68 @@ export async function ingestEmailAttachmentToSmartDocs(input: {
 
   const filed = await fileAttachmentToSharePoint({
     opportunityId: input.opportunityId,
+    documentId: record.id,
+    fileName: record.name,
+    mimeType: record.mimeType,
+    contentBase64: record.contentBase64,
+  });
+
+  if (filed) {
+    record = await prisma.documentRecord.findUniqueOrThrow({
+      where: { id: record.id },
+    });
+  }
+
+  return toDto(record);
+}
+
+/**
+ * Upsert a DocumentRecord (SmartDocs) linked to Company + EmailMessage.
+ * FS-006 Phase 1 — Company owns the SmartDoc; Opportunity is optional (and may be empty).
+ *
+ * When Graph SharePoint is configured, files into:
+ *   `/Companies/{CompanyName}/Documents`
+ */
+export async function ingestEmailAttachmentToCompanySmartDocs(input: {
+  companyId: string;
+  companyName: string;
+  emailMessageId: string;
+  attachment: Pick<
+    M365AttachmentMeta,
+    "id" | "name" | "contentType" | "size" | "contentBytes"
+  >;
+}): Promise<IngestedSmartDoc> {
+  const prisma = getPrisma();
+
+  const data = {
+    name: input.attachment.name,
+    mimeType: input.attachment.contentType || null,
+    sizeBytes: input.attachment.size ?? null,
+    source: "m365_email",
+    externalAttachmentId: input.attachment.id,
+    contentBase64: input.attachment.contentBytes ?? null,
+    opportunityId: null,
+    companyId: input.companyId,
+    emailMessageId: input.emailMessageId,
+  };
+
+  const existing = await prisma.documentRecord.findFirst({
+    where: {
+      emailMessageId: input.emailMessageId,
+      externalAttachmentId: input.attachment.id,
+    },
+  });
+
+  let record = existing
+    ? await prisma.documentRecord.update({
+        where: { id: existing.id },
+        data,
+      })
+    : await prisma.documentRecord.create({ data: { ...data } });
+
+  const filed = await fileAttachmentToSharePointCompany({
+    companyId: input.companyId,
+    companyName: input.companyName,
     documentId: record.id,
     fileName: record.name,
     mimeType: record.mimeType,

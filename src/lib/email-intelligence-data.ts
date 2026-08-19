@@ -808,6 +808,22 @@ export async function setConversationLinksForContact(
       projectName = project.name;
       data.projectId = project.id;
       data.projectName = project.name;
+
+      // Project → Opportunity mapping for attachment filing.
+      // Attachment sync currently stores SmartDocs under the Opportunity folder.
+      // When the user selects a Project without explicitly selecting the Opportunity,
+      // links.opportunityId is often null — so we derive opportunityId from project.
+      if (!data.opportunityId && project.linkedDealId) {
+        const opportunity = await prisma.opportunity.findUnique({
+          where: { id: project.linkedDealId },
+          select: { id: true, name: true, code: true },
+        });
+        if (opportunity) {
+          opportunityName = opportunity.name;
+          opportunityCode = opportunity.code;
+          data.opportunityId = opportunity.id;
+        }
+      }
     } else {
       data.projectId = null;
       data.projectName = null;
@@ -866,10 +882,10 @@ export async function setConversationLinksForContact(
   if (!participates) {
     return {
       updated: 0,
-      opportunityId: links.opportunityId,
+      opportunityId: data.opportunityId ?? links.opportunityId,
       opportunityName,
       opportunityCode,
-      projectId: links.projectId,
+      projectId: data.projectId ?? links.projectId,
       projectName,
       seeded,
     };
@@ -894,6 +910,9 @@ export async function setConversationLinksForContact(
   });
   const finalOpportunityName = sample?.opportunity?.name ?? opportunityName;
   const finalProjectName = sample?.projectName ?? projectName;
+  const finalOpportunityId =
+    sample?.opportunityId ?? data.opportunityId ?? links.opportunityId ?? null;
+  const finalProjectId = sample?.projectId ?? data.projectId ?? links.projectId ?? null;
   const {
     buildOpportunityCategoryName,
     buildProjectCategoryName,
@@ -950,10 +969,10 @@ export async function setConversationLinksForContact(
 
   return {
     updated: result.count,
-    opportunityId: links.opportunityId,
+    opportunityId: finalOpportunityId,
     opportunityName: finalOpportunityName,
     opportunityCode,
-    projectId: links.projectId,
+    projectId: finalProjectId,
     projectName: finalProjectName,
     seeded,
   };

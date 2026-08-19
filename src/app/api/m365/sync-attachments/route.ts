@@ -5,7 +5,10 @@ import {
   fetchM365MessageAttachments,
   getActiveM365AccessToken,
 } from "@/lib/m365-client";
-import { ingestEmailAttachmentToSmartDocs } from "@/lib/smartdocs-ingestion";
+import {
+  ingestEmailAttachmentToCompanySmartDocs,
+  ingestEmailAttachmentToSmartDocs,
+} from "@/lib/smartdocs-ingestion";
 import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
 
 /**
@@ -24,32 +27,60 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       emailMessageId?: string;
+      emailExternalMessageIds?: string[];
       integrationId?: string;
     };
 
     const emailMessageId = body.emailMessageId?.trim();
-    if (!emailMessageId) {
-      return NextResponse.json({ error: "emailMessageId is required" }, { status: 400 });
+    const emailExternalMessageIds = Array.isArray(body.emailExternalMessageIds)
+      ? body.emailExternalMessageIds.map((id) => id?.trim()).filter(Boolean)
+      : [];
+
+    if (!emailMessageId && emailExternalMessageIds.length === 0) {
+      return NextResponse.json(
+        { error: "emailMessageId or emailExternalMessageIds are required" },
+        { status: 400 },
+      );
     }
 
     const prisma = getPrisma();
-    const email = await prisma.emailMessageRecord.findUnique({
-      where: { id: emailMessageId },
-      select: {
-        id: true,
-        externalMessageId: true,
-        opportunityId: true,
-      },
-    });
+    const emails =
+      emailMessageId != null
+        ? await prisma.emailMessageRecord.findMany({
+            where: { id: emailMessageId },
+            select: {
+              id: true,
+              externalMessageId: true,
+              opportunityId: true,
+              contact: {
+                select: {
+                  companyId: true,
+                  company: {
+                    select: { id: true, name: true },
+                  },
+                },
+              },
+            },
+          })
+        : await prisma.emailMessageRecord.findMany({
+            where: { externalMessageId: { in: emailExternalMessageIds } },
+            select: {
+              id: true,
+              externalMessageId: true,
+              opportunityId: true,
+              contact: {
+                select: {
+                  companyId: true,
+                  company: {
+                    select: { id: true, name: true },
+                  },
+                },
+              },
+            },
+          });
 
-    if (!email) {
-      return NextResponse.json({ error: "Email message not found" }, { status: 404 });
-    }
-    if (!email.opportunityId) {
-      return NextResponse.json(
-        { error: "Email is not linked to an opportunity" },
-        { status: 400 },
-      );
+    if (!emails || emails.length === 0) {
+      return NextResponse.json({ error: "No email messages found" }, { status: 404 });
     }
 
     let integrationId = body.integrationId?.trim() || null;
@@ -65,28 +96,62 @@ export async function POST(request: Request) {
       );
     }
 
-    const attachments = await fetchM365MessageAttachments({
-      integrationId,
-      messageId: email.externalMessageId,
-    });
+    let fetchedAttachments = 0;
+    let documentsSaved = 0;
+    let skippedEmailCount = 0;
 
-    const ingested = [];
-    for (const attachment of attachments) {
-      ingested.push(
-        await ingestEmailAttachmentToSmartDocs({
-          opportunityId: email.opportunityId,
+    const ingestedDocuments: unknown[] = [];
+    for (const email of emails) {
+      const messageId = email.externalMessageId;
+      if (!messageId) {
+        skippedEmailCount += 1;
+        continue;
+      }
+
+      const emailAttachments = await fetchM365MessageAttachments({
+        integrationId,
+        messageId,
+      });
+      fetchedAttachments += emailAttachments.length;
+
+      // If opportunityId exists, we file docs under the opportunity folder.
+      // Otherwise (FS-006 phase 1), we file under the company documents folder.
+      for (const attachment of emailAttachments) {
+        if (email.opportunityId) {
+          const doc = await ingestEmailAttachmentToSmartDocs({
+            opportunityId: email.opportunityId,
+            emailMessageId: email.id,
+            attachment,
+          });
+          documentsSaved += 1;
+          ingestedDocuments.push(doc);
+          continue;
+        }
+
+        const companyId = email.contact?.companyId ?? email.contact?.company?.id ?? null;
+        const companyName = email.contact?.company?.name ?? null;
+        if (!companyId || !companyName) {
+          skippedEmailCount += 1;
+          continue;
+        }
+
+        const doc = await ingestEmailAttachmentToCompanySmartDocs({
+          companyId,
+          companyName,
           emailMessageId: email.id,
           attachment,
-        }),
-      );
+        });
+        documentsSaved += 1;
+        ingestedDocuments.push(doc);
+      }
     }
 
     return NextResponse.json({
       success: true,
-      emailMessageId: email.id,
-      opportunityId: email.opportunityId,
-      fetched: attachments.length,
-      documents: ingested,
+      emailCount: emails.length,
+      fetchedAttachments,
+      documentsSaved,
+      skippedEmailCount,
     });
   } catch (error) {
     console.error("[m365 sync-attachments]", error);
