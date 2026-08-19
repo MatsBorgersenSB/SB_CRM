@@ -13,6 +13,27 @@ function escapeHtmlAttr(value: string): string {
     .replace(/>/g, "&gt;");
 }
 
+function normalizeCallbackUrl(rawCallbackUrl: string | null, requestOrigin: string): string {
+  const fallback = "/";
+  const value = rawCallbackUrl?.trim();
+  if (!value) return fallback;
+  if (value.startsWith("/") && !value.startsWith("//")) {
+    return value;
+  }
+
+  try {
+    const requestBase = new URL(requestOrigin);
+    const absolute = new URL(value, requestBase.origin);
+    if (absolute.origin !== requestBase.origin) {
+      return fallback;
+    }
+    const path = `${absolute.pathname}${absolute.search}${absolute.hash}`;
+    return path || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * Server-side Azure AD sign-in start (outside /api/auth catch-all).
  *
@@ -21,7 +42,10 @@ function escapeHtmlAttr(value: string): string {
  * following that 307 to login.microsoftonline.com causes CORS errors.
  */
 export async function GET(req: NextRequest) {
-  const callbackUrl = req.nextUrl.searchParams.get("callbackUrl") || "/";
+  const callbackUrl = normalizeCallbackUrl(
+    req.nextUrl.searchParams.get("callbackUrl"),
+    req.nextUrl.origin,
+  );
   authTrace("azure-start.get", {
     callbackUrl,
     host: req.headers.get("host"),
