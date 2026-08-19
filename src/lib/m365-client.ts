@@ -588,6 +588,7 @@ const COMMERCIAL_ATTACHMENT_EXTENSIONS = new Set([
   ".xlsx",
   ".pptx",
   ".png",
+  ".zip",
 ]);
 
 export type M365AttachmentMeta = {

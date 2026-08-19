@@ -4,6 +4,7 @@ import { getPrisma } from "@/lib/prisma";
 import {
   fetchM365MessageAttachments,
   getActiveM365AccessToken,
+  type M365AttachmentMeta,
 } from "@/lib/m365-client";
 import {
   ingestEmailAttachmentToCompanySmartDocs,
@@ -12,6 +13,51 @@ import {
 import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
 import { resolveOpportunityRelationId } from "@/lib/smartdocs-resolve-opportunity-relation-id";
 import { readProjectById } from "@/lib/project-db";
+import JSZip from "jszip";
+
+const ZIP_EXTENSIONS = new Set([".zip"]);
+const EXTRACTABLE_EXTENSIONS = new Set([".pdf", ".docx", ".xlsx", ".pptx", ".png"]);
+const MAX_ZIP_ENTRIES = 40;
+
+function fileExtension(name: string): string {
+  const idx = name.lastIndexOf(".");
+  return idx >= 0 ? name.slice(idx).toLowerCase() : "";
+}
+
+function guessContentType(fileName: string): string {
+  const ext = fileExtension(fileName);
+  if (ext === ".pdf") return "application/pdf";
+  if (ext === ".docx")
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (ext === ".xlsx")
+    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (ext === ".pptx")
+    return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  if (ext === ".png") return "image/png";
+  return "application/octet-stream";
+}
+
+async function extractSupportedZipAttachments(
+  attachment: M365AttachmentMeta,
+): Promise<M365AttachmentMeta[]> {
+  if (!ZIP_EXTENSIONS.has(fileExtension(attachment.name)) || !attachment.contentBytes) return [];
+  const zip = await JSZip.loadAsync(Buffer.from(attachment.contentBytes, "base64"));
+  const extracted: M365AttachmentMeta[] = [];
+  for (const [entryPath, entry] of Object.entries(zip.files)) {
+    if (entry.dir) continue;
+    if (!EXTRACTABLE_EXTENSIONS.has(fileExtension(entry.name))) continue;
+    const bytes = await entry.async("uint8array");
+    extracted.push({
+      id: `${attachment.id}::${entryPath}`,
+      name: entry.name.split("/").pop() || entry.name,
+      contentType: guessContentType(entry.name),
+      size: bytes.byteLength,
+      contentBytes: Buffer.from(bytes).toString("base64"),
+    });
+    if (extracted.length >= MAX_ZIP_ENTRIES) break;
+  }
+  return extracted;
+}
 
 /**
  * POST /api/m365/sync-attachments
@@ -146,6 +192,8 @@ export async function POST(request: Request) {
     let fetchedAttachments = 0;
     let documentsSaved = 0;
     let skippedEmailCount = 0;
+    let zipArchivesDetected = 0;
+    let zipFilesExtracted = 0;
 
     const ingestedDocuments: unknown[] = [];
     for (const email of emails) {
@@ -164,6 +212,15 @@ export async function POST(request: Request) {
       // If opportunityId exists, we file docs under the opportunity folder.
       // Otherwise (FS-006 phase 1), we file under the company documents folder.
       for (const attachment of emailAttachments) {
+        let expandedAttachments: M365AttachmentMeta[] = [attachment];
+        if (ZIP_EXTENSIONS.has(fileExtension(attachment.name))) {
+          zipArchivesDetected += 1;
+          const extracted = await extractSupportedZipAttachments(attachment);
+          zipFilesExtracted += extracted.length;
+          expandedAttachments = [attachment, ...extracted];
+        }
+
+        for (const expandedAttachment of expandedAttachments) {
         const emailOpportunityId = await resolveOpportunityRelationId(
           email.opportunityId ?? null,
         );
@@ -177,7 +234,7 @@ export async function POST(request: Request) {
           const doc = await ingestEmailAttachmentToSmartDocs({
             opportunityId: relationOpportunityId,
             emailMessageId: email.id,
-            attachment,
+            attachment: expandedAttachment,
           });
           documentsSaved += 1;
           ingestedDocuments.push(doc);
@@ -200,10 +257,11 @@ export async function POST(request: Request) {
           companyName,
           opportunityId: relationOpportunityId ?? null,
           emailMessageId: email.id,
-          attachment,
+          attachment: expandedAttachment,
         });
         documentsSaved += 1;
         ingestedDocuments.push(doc);
+      }
       }
     }
 
@@ -213,6 +271,8 @@ export async function POST(request: Request) {
       fetchedAttachments,
       documentsSaved,
       skippedEmailCount,
+      zipArchivesDetected,
+      zipFilesExtracted,
       linkContext: {
         companyId: forcedCompany?.id ?? null,
         opportunityId:
