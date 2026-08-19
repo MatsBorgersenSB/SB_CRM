@@ -17,7 +17,7 @@ export function OutlookRelationshipCardPane() {
     useOutlookM365PaneLoad<M365RelationshipCardPayload>({
       apiPath: "/api/m365/relationship-card",
       expectedKind: "relationship-card",
-      emptyMessage: "Select emails from a person in SmartCRM. Signing-service mail (Adobe Sign) is skipped.",
+      emptyMessage: "Select mail with someone in SmartCRM — including mail you sent. Signing-service mail (Adobe Sign) is skipped.",
       errorMessage: "Unable to load relationship intelligence.",
       unexpectedPayloadMessage: "Unexpected intelligence payload.",
     });

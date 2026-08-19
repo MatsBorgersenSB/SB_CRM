@@ -42,19 +42,35 @@ function isUsableCounterpartyEmail(email: string, selfEmail?: string): boolean {
   return !isAutomatedMailboxEmail(normalized);
 }
 
+function bumpCounterpartyCount(
+  counts: Map<string, { count: number; displayName: string }>,
+  email: string,
+  displayName: string,
+) {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return;
+  const previous = counts.get(normalized);
+  counts.set(normalized, {
+    count: (previous?.count ?? 0) + 1,
+    displayName: previous?.displayName || displayName.trim(),
+  });
+}
+
 function pickBestCounterpartyFromSeeds(
   seeds: OutlookOpenMessageSeed[],
   selfEmail?: string,
 ): OutlookSenderDetails | null {
   const counts = new Map<string, { count: number; displayName: string }>();
   for (const seed of seeds) {
-    const email = seed.senderEmail.trim().toLowerCase();
-    if (!isUsableCounterpartyEmail(email, selfEmail)) continue;
-    const previous = counts.get(email);
-    counts.set(email, {
-      count: (previous?.count ?? 0) + 1,
-      displayName: previous?.displayName || seed.senderDisplayName || "",
-    });
+    const sender = seed.senderEmail.trim().toLowerCase();
+    if (isUsableCounterpartyEmail(sender, selfEmail)) {
+      bumpCounterpartyCount(counts, sender, seed.senderDisplayName || "");
+    }
+    for (const recipient of seed.recipientEmails ?? []) {
+      if (isUsableCounterpartyEmail(recipient, selfEmail)) {
+        bumpCounterpartyCount(counts, recipient, "");
+      }
+    }
   }
 
   let best: { email: string; count: number; displayName: string } | null = null;
@@ -65,6 +81,21 @@ function pickBestCounterpartyFromSeeds(
   }
   if (!best) return null;
   return { email: best.email, displayName: best.displayName };
+}
+
+function pickFirstCounterpartyFromRecipients(
+  recipients: OutlookComposeRecipient[],
+  selfEmail?: string,
+): OutlookSenderDetails | null {
+  for (const entry of recipients) {
+    const email = entry.email.trim().toLowerCase();
+    if (!isUsableCounterpartyEmail(email, selfEmail)) continue;
+    return {
+      email,
+      displayName: entry.displayName.trim(),
+    };
+  }
+  return null;
 }
 
 export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetails | null> {
@@ -86,43 +117,32 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
     // not the checked set. Always resolve from the selection.
     const selectedSeeds = await resolveOutlookSelectedMessageSeeds();
     if (selectedSeeds.length > 1) {
-      return pickBestCounterpartyFromSeeds(selectedSeeds, selfEmail);
+      const fromSeeds = pickBestCounterpartyFromSeeds(selectedSeeds, selfEmail);
+      if (fromSeeds) return fromSeeds;
     }
 
     const fromEmail = item?.from?.emailAddress?.trim().toLowerCase();
+    const fromIsSelf = Boolean(fromEmail && fromEmail === selfEmail);
+
+    // Sent mail (and Mac read panes) often expose the mailbox owner as From.
+    // Resolve To/Cc with retries before treating the sender as the counterparty.
+    if (!fromEmail || fromIsSelf || !isUsableCounterpartyEmail(fromEmail, selfEmail)) {
+      const fromRecipients = await resolveOutlookReadRecipients({
+        attempts: 5,
+        delayMs: 400,
+      });
+      const fromReadRecipients = pickFirstCounterpartyFromRecipients(
+        fromRecipients,
+        selfEmail,
+      );
+      if (fromReadRecipients) return fromReadRecipients;
+    }
+
     if (fromEmail && isUsableCounterpartyEmail(fromEmail, selfEmail)) {
       return {
         email: fromEmail,
         displayName: item?.from?.displayName?.trim() ?? "",
       };
-    }
-
-    const attendeeSource = item?.requiredAttendees ?? item?.optionalAttendees ?? item?.to;
-    if (attendeeSource) {
-      const fromAttendees = await new Promise<OutlookSenderDetails | null>((resolve) => {
-        attendeeSource.getAsync((result) => {
-          if (!isOfficeAsyncSuccess(result.status)) {
-            resolve(null);
-            return;
-          }
-
-          const match = result.value?.find((entry) => {
-            const email = entry.emailAddress?.trim().toLowerCase() ?? "";
-            return isUsableCounterpartyEmail(email, selfEmail);
-          });
-
-          if (!match?.emailAddress) {
-            resolve(null);
-            return;
-          }
-
-          resolve({
-            email: match.emailAddress.trim().toLowerCase(),
-            displayName: match.displayName?.trim() ?? "",
-          });
-        });
-      });
-      if (fromAttendees) return fromAttendees;
     }
 
     return pickBestCounterpartyFromSeeds(selectedSeeds, selfEmail);
@@ -204,11 +224,11 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Resolve To (+ Cc/Bcc) recipients on a compose item.
+ * Resolve To (+ Cc/Bcc) on the open read or compose item.
  * Excludes the mailbox owner. Reality First — only addresses Outlook provides.
- * Retries briefly — New Outlook often resolves recipients after the pane opens.
+ * Retries briefly — Outlook for Mac often resolves recipients after the pane opens.
  */
-export async function resolveOutlookComposeRecipients(options?: {
+export async function resolveOutlookReadRecipients(options?: {
   attempts?: number;
   delayMs?: number;
 }): Promise<OutlookComposeRecipient[]> {
@@ -250,6 +270,23 @@ export async function resolveOutlookComposeRecipients(options?: {
   } catch {
     return [];
   }
+}
+
+/**
+ * Resolve To (+ Cc/Bcc) recipients on a compose item.
+ * Excludes the mailbox owner. Reality First — only addresses Outlook provides.
+ * Retries briefly — New Outlook often resolves recipients after the pane opens.
+ */
+export async function resolveOutlookComposeRecipients(options?: {
+  attempts?: number;
+  delayMs?: number;
+}): Promise<OutlookComposeRecipient[]> {
+  if (typeof window === "undefined") return [];
+
+  const office = await whenOfficeReady();
+  if (!office) return [];
+
+  return resolveOutlookReadRecipients(options);
 }
 
 /**
@@ -577,9 +614,9 @@ async function seedFromOpenMailboxItem(
       !fromEmail ||
       fromEmail === selfEmail;
 
-    const recipients = await resolveOutlookComposeRecipients({
-      attempts: 1,
-      delayMs: 0,
+    const recipients = await resolveOutlookReadRecipients({
+      attempts: 3,
+      delayMs: 200,
     }).catch(() => []);
     const recipientEmails = recipients.map((entry) => entry.email);
     if (

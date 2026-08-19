@@ -104,6 +104,14 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
         displayName = displayName ?? sender?.displayName ?? null;
       }
 
+      // Outlook for Mac often populates To/Cc shortly after the pane opens.
+      if (!email) {
+        await new Promise((resolve) => window.setTimeout(resolve, 600));
+        const retrySender = await resolveOutlookSenderDetails();
+        email = retrySender?.email ?? null;
+        displayName = displayName ?? retrySender?.displayName ?? null;
+      }
+
       safeSetSender(email, displayName);
 
       if (!email) {

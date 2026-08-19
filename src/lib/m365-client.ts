@@ -5,6 +5,7 @@ import {
   getAzureAdClientSecret,
   getAzureAdTenantId,
 } from "@/lib/auth-env";
+import { Buffer } from "buffer";
 
 const GRAPH_BASE =
   process.env.MICROSOFT_GRAPH_BASE_URL?.replace(/\/$/, "") ||
@@ -587,6 +588,7 @@ const COMMERCIAL_ATTACHMENT_EXTENSIONS = new Set([
   ".xlsx",
   ".pptx",
   ".png",
+  ".zip",
 ]);
 
 export type M365AttachmentMeta = {
@@ -635,7 +637,7 @@ export async function fetchM365MessageAttachments(input: {
     `/me/messages/${encodeURIComponent(input.messageId)}/attachments`,
   );
 
-  return (payload.value ?? [])
+  const items = (payload.value ?? [])
     .filter((item) => {
       if (!item.id || !item.name) return false;
       // File attachments only (skip itemAttachment / referenceAttachment without bytes).
@@ -654,6 +656,30 @@ export async function fetchM365MessageAttachments(input: {
       size: typeof item.size === "number" ? item.size : 0,
       contentBytes: item.contentBytes ?? null,
     }));
+
+  // Graph often omits `contentBytes` on larger attachments. When that happens,
+  // our SharePoint upload is skipped (it needs bytes). Re-fetch bytes via
+  // `/$value` so filing still lands in SharePoint.
+  const needsFill = items.some((row) => !row.contentBytes);
+  if (!needsFill) return items;
+
+  const fillMissingContentBytes = async (
+    row: (typeof items)[number],
+  ): Promise<(typeof items)[number]> => {
+    if (row.contentBytes) return row;
+    const url = `${GRAPH_BASE}/me/messages/${encodeURIComponent(
+      input.messageId,
+    )}/attachments/${encodeURIComponent(row.id)}/$value`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return row;
+    const bytes = await response.arrayBuffer();
+    const base64 = Buffer.from(bytes).toString("base64");
+    return { ...row, contentBytes: base64 };
+  };
+
+  return Promise.all(items.map((row) => fillMissingContentBytes(row)));
 }
 
 export type CreateM365DraftInput = {
