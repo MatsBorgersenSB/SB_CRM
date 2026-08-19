@@ -153,6 +153,11 @@ function extractReferenceNumber(fileName: string): string | undefined {
   return undefined;
 }
 
+function fileExtension(fileName: string): string {
+  const idx = fileName.lastIndexOf(".");
+  return idx >= 0 ? fileName.slice(idx).toLowerCase() : "";
+}
+
 /** Parse `fra_MJØRUD_AS` / `from ACME` style counterparty hints from filenames. */
 export function extractCounterpartyHint(fileName: string): string | undefined {
   const patterns = [
@@ -196,6 +201,20 @@ export function classifyByFileName(fileName: string): DocIntelligenceResult {
   const normalized = fileName.toLowerCase().replace(/[_\-\s]+/g, " ");
   const referenceNumber = extractReferenceNumber(fileName);
   const counterparty = extractCounterpartyHint(fileName);
+  const ext = fileExtension(fileName);
+
+  // Explicit image handling so extracted ZIP pictures do not fall back to
+  // "Unclassified Document". SCADA/screenshots are usually technical context.
+  if ([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff"].includes(ext)) {
+    return {
+      DocCategory: "Technical",
+      DocType: "Technical Datasheet",
+      Origin: "unknown",
+      Counterparty: counterparty,
+      referenceNumber,
+      reason: "Image attachment classified as technical reference material",
+    };
+  }
 
   for (const rule of KEYWORD_RULES) {
     if (rule.keywords.some((keyword) => normalized.includes(keyword.replace(/[_\-\s]+/g, " ")))) {

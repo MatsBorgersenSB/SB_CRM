@@ -9,6 +9,11 @@ import {
   subscribeOutlookSelectedItemsChanged,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
+import {
+  SMARTDOC_CATEGORIES,
+  SMARTDOC_TYPES_BY_CATEGORY,
+  type SmartDocCategory,
+} from "@/types/smartdoc-library";
 import type { UserRole } from "@/types/auth";
 
 type LinkOption = {
@@ -30,6 +35,13 @@ type TagContextPayload = {
   relationshipPosture?: CompanyRelationshipPosture;
   opportunityEligible?: boolean;
   error?: string;
+};
+
+type FiledDocumentReview = {
+  id: string;
+  name: string;
+  docCategory: SmartDocCategory;
+  docType: string;
 };
 
 /**
@@ -59,6 +71,10 @@ export function OutlookMailTagPanel({
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewDocs, setReviewDocs] = useState<FiledDocumentReview[]>([]);
   const [attachmentTarget, setAttachmentTarget] = useState<"company" | "opportunity" | "project">(
     "company",
   );
@@ -266,6 +282,8 @@ export function OutlookMailTagPanel({
     setSyncBusy(true);
     setSyncError(null);
     setSyncStatus(null);
+    setReviewStatus(null);
+    setReviewError(null);
     try {
       const emailExternalMessageIds = seeds
         .map((row) => row.externalMessageId?.trim())
@@ -308,6 +326,12 @@ export function OutlookMailTagPanel({
         detail?: string;
         documentsSaved?: number;
         fetchedAttachments?: number;
+        documents?: Array<{
+          id: string;
+          name: string;
+          docCategory: SmartDocCategory;
+          docType: string;
+        }>;
       };
 
       if (!response.ok) {
@@ -321,12 +345,57 @@ export function OutlookMailTagPanel({
           ? `${destinationSummary} Filed ${saved} attachment(s) into SmartDocs (${fetched} fetched).`
           : `No attachments were filed into SmartDocs (${fetched} fetched).`,
       );
+      setReviewDocs(Array.isArray(payload.documents) ? payload.documents.slice(0, 20) : []);
     } catch (syncErr) {
       setSyncError(
         syncErr instanceof Error ? syncErr.message : "Could not file attachments",
       );
     } finally {
       setSyncBusy(false);
+    }
+  };
+
+  const saveReviewClassification = async () => {
+    if (reviewDocs.length === 0) return;
+    setReviewBusy(true);
+    setReviewError(null);
+    setReviewStatus(null);
+    try {
+      const response = await fetch("/api/m365/sync-attachments/classification", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          [AUTH_ROLE_HEADER]: role,
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          updates: reviewDocs.map((doc) => ({
+            documentId: doc.id,
+            docCategory: doc.docCategory,
+            docType: doc.docType,
+          })),
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        detail?: string;
+        updated?: number;
+        failed?: number;
+      };
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.error || "Could not update classification");
+      }
+      setReviewStatus(
+        payload.failed && payload.failed > 0
+          ? `Updated ${payload.updated ?? 0} file(s); ${payload.failed} failed.`
+          : `Updated classification for ${payload.updated ?? reviewDocs.length} file(s).`,
+      );
+    } catch (err) {
+      setReviewError(
+        err instanceof Error ? err.message : "Could not update category and type",
+      );
+    } finally {
+      setReviewBusy(false);
     }
   };
 
@@ -410,6 +479,16 @@ export function OutlookMailTagPanel({
         ) : null}
         {status ? <p className="mt-1.5 text-[10px] text-emerald-700">{status}</p> : null}
         {syncStatus ? <p className="mt-1.5 text-[10px] text-emerald-700">{syncStatus}</p> : null}
+        {reviewDocs.length > 0 ? (
+          <FiledDocumentsReviewPanel
+            docs={reviewDocs}
+            setDocs={setReviewDocs}
+            onSave={saveReviewClassification}
+            busy={reviewBusy}
+            status={reviewStatus}
+            error={reviewError}
+          />
+        ) : null}
         {error ? <p className="mt-1.5 text-[10px] text-thermal-red">{error}</p> : null}
         {syncError ? <p className="mt-1.5 text-[10px] text-thermal-red">{syncError}</p> : null}
       </div>
@@ -551,8 +630,112 @@ export function OutlookMailTagPanel({
 
       {status ? <p className="mt-1.5 text-[10px] text-emerald-700">{status}</p> : null}
       {syncStatus ? <p className="mt-1.5 text-[10px] text-emerald-700">{syncStatus}</p> : null}
+      {reviewDocs.length > 0 ? (
+        <FiledDocumentsReviewPanel
+          docs={reviewDocs}
+          setDocs={setReviewDocs}
+          onSave={saveReviewClassification}
+          busy={reviewBusy}
+          status={reviewStatus}
+          error={reviewError}
+        />
+      ) : null}
       {error ? <p className="mt-1.5 text-[10px] text-thermal-red">{error}</p> : null}
       {syncError ? <p className="mt-1.5 text-[10px] text-thermal-red">{syncError}</p> : null}
+    </div>
+  );
+}
+
+function FiledDocumentsReviewPanel({
+  docs,
+  setDocs,
+  onSave,
+  busy,
+  status,
+  error,
+}: {
+  docs: FiledDocumentReview[];
+  setDocs: React.Dispatch<React.SetStateAction<FiledDocumentReview[]>>;
+  onSave: () => Promise<void>;
+  busy: boolean;
+  status: string | null;
+  error: string | null;
+}) {
+  return (
+    <div className="mt-2 border border-carbon-blue/10 bg-white px-2 py-2">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/45">
+        Review category and type
+      </p>
+      <p className="mt-1 text-[10px] text-carbon-blue/55">
+        SmartAssist suggested values. Adjust if needed, then save.
+      </p>
+      <div className="mt-2 max-h-56 space-y-2 overflow-auto">
+        {docs.map((doc) => {
+          const types = SMARTDOC_TYPES_BY_CATEGORY[doc.docCategory];
+          return (
+            <div key={doc.id} className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-2">
+              <p className="truncate text-[10px] font-medium text-carbon-blue/70">{doc.name}</p>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                <select
+                  value={doc.docCategory}
+                  onChange={(event) => {
+                    const nextCategory = event.target.value as SmartDocCategory;
+                    const nextTypes = SMARTDOC_TYPES_BY_CATEGORY[nextCategory];
+                    setDocs((current) =>
+                      current.map((row) =>
+                        row.id === doc.id
+                          ? {
+                              ...row,
+                              docCategory: nextCategory,
+                              docType: nextTypes.includes(row.docType)
+                                ? row.docType
+                                : nextTypes[0] ?? row.docType,
+                            }
+                          : row,
+                      ),
+                    );
+                  }}
+                  className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue"
+                >
+                  {SMARTDOC_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={doc.docType}
+                  onChange={(event) => {
+                    const nextType = event.target.value;
+                    setDocs((current) =>
+                      current.map((row) =>
+                        row.id === doc.id ? { ...row, docType: nextType } : row,
+                      ),
+                    );
+                  }}
+                  className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue"
+                >
+                  {types.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void onSave()}
+        className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+      >
+        {busy ? "Saving classification…" : "Save category and type"}
+      </button>
+      {status ? <p className="mt-1 text-[10px] text-emerald-700">{status}</p> : null}
+      {error ? <p className="mt-1 text-[10px] text-thermal-red">{error}</p> : null}
     </div>
   );
 }

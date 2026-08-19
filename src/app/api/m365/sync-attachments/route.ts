@@ -13,6 +13,7 @@ import {
 import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
 import { resolveOpportunityRelationId } from "@/lib/smartdocs-resolve-opportunity-relation-id";
 import { readProjectById } from "@/lib/project-db";
+import { classifyByFileName } from "@/lib/mock-ai-parser";
 import JSZip from "jszip";
 
 const ZIP_EXTENSIONS = new Set([".zip"]);
@@ -195,7 +196,7 @@ export async function POST(request: Request) {
     let zipArchivesDetected = 0;
     let zipFilesExtracted = 0;
 
-    const ingestedDocuments: unknown[] = [];
+    const ingestedDocuments: Array<{ id: string; name: string }> = [];
     for (const email of emails) {
       const messageId = email.externalMessageId;
       if (!messageId) {
@@ -237,7 +238,7 @@ export async function POST(request: Request) {
             attachment: expandedAttachment,
           });
           documentsSaved += 1;
-          ingestedDocuments.push(doc);
+          ingestedDocuments.push({ id: doc.id, name: doc.name });
           continue;
         }
 
@@ -260,7 +261,7 @@ export async function POST(request: Request) {
           attachment: expandedAttachment,
         });
         documentsSaved += 1;
-        ingestedDocuments.push(doc);
+        ingestedDocuments.push({ id: doc.id, name: doc.name });
       }
       }
     }
@@ -273,6 +274,15 @@ export async function POST(request: Request) {
       skippedEmailCount,
       zipArchivesDetected,
       zipFilesExtracted,
+      documents: ingestedDocuments.slice(0, 80).map((doc) => {
+        const classified = classifyByFileName(doc.name);
+        return {
+          id: doc.id,
+          name: doc.name,
+          docCategory: classified.DocCategory,
+          docType: classified.DocType,
+        };
+      }),
       linkContext: {
         companyId: forcedCompany?.id ?? null,
         opportunityId:
