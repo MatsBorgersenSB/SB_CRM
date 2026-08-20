@@ -892,16 +892,3 @@ function AttachmentFilingControls({
     </div>
   );
 }
-
-function SelectedMailSubjects({ seeds }: { seeds: OutlookOpenMessageSeed[] }) {
-  if (seeds.length <= 1) return null;
-  return (
-    <ul className="mt-2 max-h-28 overflow-auto text-[11px] leading-snug text-carbon-blue/60">
-      {seeds.slice(0, 8).map((row) => (
-        <li key={row.externalMessageId} className="truncate">
-          {row.subject}
-        </li>
-      ))}
-    </ul>
-  );
-}
