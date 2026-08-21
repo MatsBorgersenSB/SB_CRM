@@ -13,8 +13,10 @@ import {
   createRegistryCompany,
   deleteRegistryCompany,
   getRegistryCompanyById,
+  loadMappedPrismaCompany,
   updateRegistryCompany,
 } from "@/lib/company-registry";
+import { findPrismaCompanyByRouteKey } from "@/lib/data/companies";
 import {
   createCompany,
   deleteCompany,
@@ -23,6 +25,7 @@ import {
   updateCompany,
 } from "@/lib/pipeline-db";
 import { readLiveCompanies, shouldFallbackToJsonPortfolio } from "@/lib/prisma-data";
+import { company360Href, companyRouteKey } from "@/types/company-360";
 
 export type UpdateCompanyInput = Partial<
   Omit<Company, "id" | "CompanyID" | "pipelineIds" | "contacts">
@@ -59,9 +62,50 @@ export class LocalCompaniesRepository
   }
 
   async create(input: NewCompanyInput): Promise<Company> {
-    const created = await createRegistryCompany(input);
-    if (created) return created;
-    return createCompany(input);
+    const organizationNumber = input.organizationNumber?.trim() || "";
+    if (organizationNumber) {
+      const existingRow = await findPrismaCompanyByRouteKey(organizationNumber);
+      if (
+        existingRow?.organizationNumber?.trim().toLowerCase() ===
+        organizationNumber.toLowerCase()
+      ) {
+        const existing = await loadMappedPrismaCompany(existingRow.id);
+        const key = companyRouteKey(existing);
+        throw SharePointServiceError.conflict(
+          `Registration number ${organizationNumber} is already used by ${existing.Title}. Open that company instead of creating a duplicate.`,
+          {
+            organizationNumber,
+            companyId: key,
+            title: existing.Title,
+            href: company360Href(existing),
+          },
+        );
+      }
+    }
+
+    try {
+      const created = await createRegistryCompany(input);
+      if (created) return created;
+      return createCompany(input);
+    } catch (error) {
+      if (isOrganizationNumberUniqueConflict(error) && organizationNumber) {
+        const existingRow = await findPrismaCompanyByRouteKey(organizationNumber);
+        if (existingRow) {
+          const existing = await loadMappedPrismaCompany(existingRow.id);
+          const key = companyRouteKey(existing);
+          throw SharePointServiceError.conflict(
+            `Registration number ${organizationNumber} is already used by ${existing.Title}. Open that company instead of creating a duplicate.`,
+            {
+              organizationNumber,
+              companyId: key,
+              title: existing.Title,
+              href: company360Href(existing),
+            },
+          );
+        }
+      }
+      throw error;
+    }
   }
 
   async update(id: string | number, patch: UpdateCompanyInput): Promise<Company> {
@@ -96,4 +140,18 @@ export class LocalCompaniesRepository
 
     await deleteCompany(current.CompanyID);
   }
+}
+
+function isOrganizationNumberUniqueConflict(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? String((error as { code?: unknown }).code ?? "") : "";
+  if (code === "P2002") {
+    const target = (error as { meta?: { target?: unknown } }).meta?.target;
+    if (Array.isArray(target) && target.includes("organizationNumber")) return true;
+    if (typeof target === "string" && target.includes("organizationNumber")) return true;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  return /Unique constraint failed on the fields:\s*\(`?organizationNumber`?\)/i.test(
+    message,
+  );
 }
