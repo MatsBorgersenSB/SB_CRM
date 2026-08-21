@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createCompanyRecord } from "@/lib/sync-company";
 import { resolveParentCompanyLookup } from "@/lib/company-identity";
 import { authUserToAccountOwner, resolveOwnerById } from "@/lib/company-owner";
@@ -20,7 +20,27 @@ import type { UnifiedEuropeanCompany } from "@/lib/integrations/company-register
 import type { UserRole } from "@/types/auth";
 import { findCountryEntry } from "@/lib/geo/country-continent";
 import { STANDARD_BIO_USERS } from "@/types/bio-user";
+import { company360Href, companyRouteKey } from "@/types/company-360";
+import {
+  isSharePointServiceError,
+} from "@/services/sharepoint/client/errors";
+import Link from "next/link";
 
+function normalizeOrganizationNumber(value: string): string {
+  return value.trim().toLowerCase().replace(/[\s.-]/g, "");
+}
+
+function findCompanyByOrganizationNumber(
+  companies: Company[],
+  organizationNumber: string,
+): Company | undefined {
+  const needle = normalizeOrganizationNumber(organizationNumber);
+  if (!needle) return undefined;
+  return companies.find(
+    (company) =>
+      normalizeOrganizationNumber(company.organizationNumber ?? "") === needle,
+  );
+}
 /** Minimum to create an account — everything else is optional enrichment. */
 function missingCreateFields(form: {
   Title: string;
@@ -55,6 +75,7 @@ export function CompaniesActionBar({
   const setCreateOpen = onOpenChange ?? setInternalOpen;
   const [saving, setSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createErrorHref, setCreateErrorHref] = useState<string | null>(null);
   const defaultOwner =
     authUserToAccountOwner(user).Id > 0
       ? authUserToAccountOwner(user)
@@ -94,6 +115,10 @@ export function CompaniesActionBar({
 
   const missingRequired = missingCreateFields(form);
   const canCreate = missingRequired.length === 0;
+  const existingByOrgNumber = useMemo(
+    () => findCompanyByOrganizationNumber(companies, form.organizationNumber),
+    [companies, form.organizationNumber],
+  );
 
   const applyRegistryResult = (company: UnifiedEuropeanCompany) => {
     const geo =
@@ -139,6 +164,19 @@ export function CompaniesActionBar({
   const handleCreate = async () => {
     if (!canCreate) {
       setCreateError(`Required: ${missingRequired.join(", ")}`);
+      setCreateErrorHref(null);
+      return;
+    }
+
+    const duplicate = findCompanyByOrganizationNumber(
+      companies,
+      form.organizationNumber,
+    );
+    if (duplicate) {
+      setCreateError(
+        `Registration number ${form.organizationNumber.trim()} is already used by ${duplicate.Title}. Open that company instead of creating a duplicate.`,
+      );
+      setCreateErrorHref(company360Href(duplicate));
       return;
     }
 
@@ -147,6 +185,7 @@ export function CompaniesActionBar({
 
     setSaving(true);
     setCreateError(null);
+    setCreateErrorHref(null);
 
     try {
       const company = await createCompanyRecord(
@@ -200,6 +239,19 @@ export function CompaniesActionBar({
           ? error.message
           : "Unable to create company. Please try again.";
       setCreateError(message);
+      let href: string | null = null;
+      if (isSharePointServiceError(error)) {
+        const details = error.details as
+          | { details?: { href?: unknown }; href?: unknown }
+          | null
+          | undefined;
+        const candidate =
+          (typeof details?.details?.href === "string" && details.details.href) ||
+          (typeof details?.href === "string" && details.href) ||
+          null;
+        href = candidate;
+      }
+      setCreateErrorHref(href);
     } finally {
       setSaving(false);
     }
@@ -281,6 +333,21 @@ export function CompaniesActionBar({
               }
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             />
+            {existingByOrgNumber ? (
+              <p className="mt-1 text-[11px] text-carbon-blue/70">
+                Already in SmartCRM as{" "}
+                <Link
+                  href={company360Href(existingByOrgNumber)}
+                  className="font-semibold text-upcycle-orange hover:underline"
+                >
+                  {existingByOrgNumber.Title}
+                  {companyRouteKey(existingByOrgNumber)
+                    ? ` (${companyRouteKey(existingByOrgNumber)})`
+                    : ""}
+                </Link>
+                . Open that company instead of creating a duplicate.
+              </p>
+            ) : null}
           </label>
           <label className="block">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
@@ -474,9 +541,17 @@ export function CompaniesActionBar({
             </p>
           ) : null}
           {createError ? (
-            <p className="sm:col-span-2 text-[11px] font-medium text-thermal-red" role="alert">
-              {createError}
-            </p>
+            <div className="sm:col-span-2 text-[11px] font-medium text-thermal-red" role="alert">
+              <p>{createError}</p>
+              {createErrorHref ? (
+                <Link
+                  href={createErrorHref}
+                  className="mt-1 inline-block font-semibold text-upcycle-orange hover:underline"
+                >
+                  Open existing company
+                </Link>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ) : null}
