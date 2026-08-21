@@ -125,11 +125,12 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
     const fromIsSelf = Boolean(fromEmail && fromEmail === selfEmail);
 
     // Sent mail (and Mac read panes) often expose the mailbox owner as From.
-    // Resolve To/Cc with retries before treating the sender as the counterparty.
+    // Resolve To/Cc before treating the sender as the counterparty.
+    // Always try recipients when From is self — Sent Items are the common case.
     if (!fromEmail || fromIsSelf || !isUsableCounterpartyEmail(fromEmail, selfEmail)) {
       const fromRecipients = await resolveOutlookReadRecipients({
-        attempts: 5,
-        delayMs: 400,
+        attempts: fromIsSelf ? 6 : 3,
+        delayMs: fromIsSelf ? 350 : 250,
       });
       const fromReadRecipients = pickFirstCounterpartyFromRecipients(
         fromRecipients,
@@ -193,25 +194,48 @@ function isOfficeAsyncSuccess(status: unknown): boolean {
   }
 }
 
-function getRecipientsAsync(
-  source: { getAsync: (callback: (result: Office.AsyncResult<Office.EmailAddressDetails[]>) => void) => void } | undefined,
-): Promise<OutlookComposeRecipient[]> {
-  if (!source?.getAsync) return Promise.resolve([]);
+function mapEmailAddressDetails(
+  entries: Array<{ emailAddress?: string; displayName?: string }> | null | undefined,
+): OutlookComposeRecipient[] {
+  if (!entries?.length) return [];
+  return entries
+    .map((entry) => ({
+      email: entry.emailAddress?.trim().toLowerCase() ?? "",
+      displayName: entry.displayName?.trim() ?? "",
+    }))
+    .filter((entry) => Boolean(entry.email));
+}
+
+/**
+ * Read To/Cc/Bcc from either:
+ * - Message Read / Sent Items: synchronous EmailAddressDetails[]
+ * - Message Compose: Recipients.getAsync(...)
+ */
+function getRecipientsAsync(source: unknown): Promise<OutlookComposeRecipient[]> {
+  if (!source) return Promise.resolve([]);
+
+  // Read mode (including Sent Items): item.to / item.cc are arrays.
+  if (Array.isArray(source)) {
+    return Promise.resolve(mapEmailAddressDetails(source));
+  }
+
+  const withGetAsync = source as {
+    getAsync?: (
+      callback: (result: Office.AsyncResult<Office.EmailAddressDetails[]>) => void,
+    ) => void;
+  };
+  if (typeof withGetAsync.getAsync !== "function") {
+    return Promise.resolve([]);
+  }
+
   return new Promise((resolve) => {
     try {
-      source.getAsync((result) => {
+      withGetAsync.getAsync!((result) => {
         if (!isOfficeAsyncSuccess(result.status) || !result.value) {
           resolve([]);
           return;
         }
-        resolve(
-          result.value
-            .map((entry) => ({
-              email: entry.emailAddress?.trim().toLowerCase() ?? "",
-              displayName: entry.displayName?.trim() ?? "",
-            }))
-            .filter((entry) => Boolean(entry.email)),
-        );
+        resolve(mapEmailAddressDetails(result.value));
       });
     } catch {
       resolve([]);
