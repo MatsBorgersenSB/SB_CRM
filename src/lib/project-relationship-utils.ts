@@ -294,11 +294,17 @@ export function detachCompanyFromProject(
 }
 
 export function buildStakeholderRoleOptions(customRoles: string[]): string[] {
-  const roles = new Set<string>(DEFAULT_PROJECT_STAKEHOLDER_ROLES);
+  const defaults = [...DEFAULT_PROJECT_STAKEHOLDER_ROLES];
+  const seen = new Set<string>(defaults);
+  const extras: string[] = [];
   for (const role of customRoles) {
-    if (role.trim()) roles.add(role.trim());
+    const trimmed = role.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    extras.push(trimmed);
   }
-  return Array.from(roles).sort((a, b) => a.localeCompare(b));
+  extras.sort((a, b) => a.localeCompare(b));
+  return [...defaults, ...extras];
 }
 
 export function upsertProjectManagerStakeholder(

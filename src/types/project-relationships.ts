@@ -72,15 +72,17 @@ export const PROJECT_ORGANIZATION_TYPES: ProjectOrganizationType[] = [
   "other",
 ];
 
+/** Phase 2.2A default roles — ordered for pickers (not alphabetical). */
 export const DEFAULT_PROJECT_STAKEHOLDER_ROLES = [
   "Project Manager",
   "Commercial Lead",
   "Technical Lead",
+  "Engineering Lead",
   "Decision Maker",
   "Executive Sponsor",
   "Project Sponsor",
+  "Technical Buyer",
   "Supplier",
-  "Integrator",
   "Consultant",
   "EIC",
   "Procurement",
@@ -114,12 +116,21 @@ export type ProjectStakeholderInfluenceNode = {
   responsibilities?: string;
 };
 
+export type ProjectStakeholderRoleSummary = {
+  stakeholderId: string;
+  name: string;
+  role: string;
+  organizationName: string;
+};
+
 export type ProjectStakeholderIntelligence = {
   coverageScore: number;
   coverageLabel: string;
   relationshipHealth: "Healthy" | "Needs Attention" | "At Risk";
   missingRoles: ProjectStakeholderGap[];
   influenceMap: ProjectStakeholderInfluenceNode[];
+  /** Phase 2.2A — every assigned role on the roster */
+  roles: ProjectStakeholderRoleSummary[];
   responsibilities: Array<{
     stakeholderId: string;
     name: string;
