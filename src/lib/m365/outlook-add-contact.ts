@@ -20,6 +20,7 @@ import { resolveCompanyIndustry } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType, COMPANY_TYPE_SELECT_OPTIONS } from "@/types/company-type";
 import { extractEmailDomain, parsePersonName } from "@/lib/m365/outlook-sender-utils";
+import { isInternalEmail } from "@/lib/domain-rules";
 import {
   parseSignatureIntelligence,
   parseSignaturePersonName,
@@ -101,15 +102,28 @@ export async function buildOutlookSenderPrepopulation(input: {
   const companies = await readLiveCompanies().catch(() => [] as Company[]);
 
   const enrichment = parseSignatureIntelligence(messageBody, email);
+  const colleague = await resolveInternalColleague(email);
   const signatureCompany = enrichment.suggestions.find((item) => item.id === "company")?.value;
+  const usableSignatureCompany =
+    colleague || (signatureCompany && /standard\s*bio/i.test(signatureCompany) && !isInternalEmail(email))
+      ? undefined
+      : signatureCompany;
 
   const matched = resolveCompanyForEmail(companies, email, {
-    companyName: signatureCompany,
+    companyName: usableSignatureCompany,
   });
 
-  const filteredSuggestions = enrichment.suggestions.filter(
-    (item) => !(matched && item.id === "company"),
-  );
+  const filteredSuggestions = enrichment.suggestions.filter((item) => {
+    if (colleague) return false;
+    if (matched && item.id === "company") return false;
+    if (isInternalEmail(email)) return true;
+    if (item.id === "email" && isInternalEmail(item.value)) return false;
+    if (item.id === "website" && /standard\.bio|standardbio\.(com|no)/i.test(item.value)) {
+      return false;
+    }
+    if (item.id === "company" && /standard\s*bio/i.test(item.value)) return false;
+    return true;
+  });
 
   logOutlookImport("EXTRACTED FIELDS", {
     signatureName,
@@ -120,8 +134,7 @@ export async function buildOutlookSenderPrepopulation(input: {
     matchedCompanyTitle: matched?.Title ?? null,
   });
 
-  const companyDisplay = buildOutlookCompanyDisplay(matched, signatureCompany, domain);
-  const colleague = await resolveInternalColleague(email);
+  const companyDisplay = buildOutlookCompanyDisplay(matched, usableSignatureCompany, domain);
 
   const prepopulation: OutlookSenderPrepopulation = {
     email,

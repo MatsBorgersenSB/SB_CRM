@@ -25,8 +25,8 @@ function mergeMessageBodies(textBody: string | null, htmlBody: string | null): s
   if (!fromHtml && !fromText) return null;
   if (!fromHtml) return fromText;
   if (!fromText) return fromHtml;
-  if (fromHtml === fromText) return fromHtml;
-  return `${fromText}\n${fromHtml}`;
+  // Prefer HTML (tel: links) — concatenating both mixes recipient mailto chrome into the signature.
+  return fromHtml;
 }
 
 export async function resolveOutlookMessageBody(): Promise<string | null> {
