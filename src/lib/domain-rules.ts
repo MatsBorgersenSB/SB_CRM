@@ -25,18 +25,18 @@ export function extractEmailDomain(email: string): string {
 
 /**
  * Enterprise internal mail domains from INTERNAL_DOMAINS (comma-separated).
- * Defaults: standardbio.com, standardbio.no, example.com
+ * Always includes Standard Bio defaults (standard.bio, standardbio.com, standardbio.no).
  */
 export function getInternalDomains(): string[] {
   const raw = process.env.INTERNAL_DOMAINS?.trim();
-  if (!raw) {
-    return [...DEFAULT_INTERNAL_DOMAINS];
-  }
   const parsed = raw
-    .split(",")
-    .map((part) => normalizeDomain(part))
-    .filter(Boolean);
-  return parsed.length > 0 ? parsed : [...DEFAULT_INTERNAL_DOMAINS];
+    ? raw
+        .split(",")
+        .map((part) => normalizeDomain(part))
+        .filter(Boolean)
+    : [];
+  // Always keep Standard Bio defaults — env may omit standard.bio (docker-compose).
+  return [...new Set([...DEFAULT_INTERNAL_DOMAINS, ...parsed])];
 }
 
 function domainMatchesInternal(emailDomain: string, internalDomain: string): boolean {

@@ -1,5 +1,6 @@
 /** Rule-based signature extraction — detected text only, no inference. */
 
+import { isInternalEmail } from "@/lib/domain-rules";
 import { normalizePhoneNumber } from "@/lib/m365/phone-normalization";
 
 export type SignatureFieldId =
@@ -99,7 +100,6 @@ function collectHrefValues(html: string, scheme: "tel" | "mailto"): string[] {
 
 export function stripHtmlToText(html: string): string {
   const telHrefs = collectHrefValues(html, "tel");
-  const mailHrefs = collectHrefValues(html, "mailto");
 
   const text = decodeHtmlEntities(
     html
@@ -115,13 +115,46 @@ export function stripHtmlToText(html: string): string {
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 
-  const extras = [...telHrefs, ...mailHrefs].join("\n");
+  const extras = telHrefs.join("\n");
   return extras ? `${text}\n${extras}` : text;
+}
+
+export function stripQuotedReply(text: string): string {
+  const normalized = text.replace(/\r/g, "");
+  const cutPatterns = [
+    /\n-{2,}\s*Original Message\s*-{2,}/i,
+    /\n-{2,}\s*Opprinnelig melding\s*-{2,}/i,
+    /\n-{2,}\s*Ursprüngliche Nachricht\s*-{2,}/i,
+    /\nFrom:\s.+\nSent:\s/i,
+    /\nFrån:\s.+\nSkickat:\s/i,
+    /\nFra:\s.+\nSendt:\s/i,
+    /\nOn .+ wrote:\s*$/im,
+    /\nDen .+ skrev\s.+:\s*$/im,
+  ];
+
+  let earliest = -1;
+  for (const pattern of cutPatterns) {
+    const match = normalized.search(pattern);
+    if (match >= 0 && (earliest < 0 || match < earliest)) {
+      earliest = match;
+    }
+  }
+
+  if (earliest > 40) {
+    return normalized.slice(0, earliest).trim();
+  }
+  return normalized.trim();
+}
+
+function isMessageHeaderLine(line: string): boolean {
+  return /^(from|to|cc|bcc|sent|date|subject|skickat|sendt|från|fra|till|til|ämne|emne)\s*:/i.test(
+    line,
+  );
 }
 
 export function extractSignatureBlock(messageBody: string, senderEmail?: string): string {
   const text = messageBody.includes("<") ? stripHtmlToText(messageBody) : messageBody;
-  const normalized = text.replace(/\r/g, "");
+  const normalized = stripQuotedReply(text.replace(/\r/g, ""));
   const lines = normalizeLines(normalized);
 
   const dashSplit = normalized.split(/\n--\s*\n/);
@@ -135,7 +168,7 @@ export function extractSignatureBlock(messageBody: string, senderEmail?: string)
   }
 
   const signatureStart = lines.findIndex((line) =>
-    /^(best regards|kind regards|regards|thanks|thank you|sincerely|cheers|saludos|atentamente|med vennlig hilsen|mvh|vennlig hilsen)\s*,?$/i.test(
+    /^(best regards|kind regards|regards|thanks|thank you|sincerely|cheers|saludos|atentamente|med vennlig hilsen|mvh|vennlig hilsen|med vänlig hälsning|vänliga hälsningar|hälsningar)\s*,?$/i.test(
       line,
     ),
   );
@@ -146,7 +179,10 @@ export function extractSignatureBlock(messageBody: string, senderEmail?: string)
 
   const emailNeedle = senderEmail?.trim().toLowerCase();
   if (emailNeedle) {
-    const emailIndex = lines.findIndex((line) => line.toLowerCase().includes(emailNeedle));
+    const emailIndex = lines.findIndex(
+      (line) =>
+        line.toLowerCase().includes(emailNeedle) && !isMessageHeaderLine(line),
+    );
     if (emailIndex >= 0) {
       const from = Math.max(0, emailIndex - 6);
       return lines.slice(from, emailIndex + 8).join("\n");
@@ -651,8 +687,20 @@ export function parseSignatureIntelligence(
     }
   }
 
-  if (found.email && senderEmail && found.email.toLowerCase() === senderEmail.toLowerCase()) {
+  if (senderEmail) {
     delete found.email;
+  }
+
+  if (senderEmail && !isInternalEmail(senderEmail)) {
+    if (found.email && isInternalEmail(found.email)) {
+      delete found.email;
+    }
+    if (found.website && hostLooksInternal(found.website)) {
+      delete found.website;
+    }
+    if (found.company && /standard\s*bio/i.test(found.company)) {
+      delete found.company;
+    }
   }
 
   if (senderEmail) {
@@ -666,6 +714,16 @@ export function parseSignatureIntelligence(
   }
 
   return { suggestions: orderedSuggestions(found) };
+}
+
+function hostLooksInternal(value: string): boolean {
+  try {
+    const url = value.trim().startsWith("http") ? value.trim() : `https://${value.trim()}`;
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    return isInternalEmail(`probe@${host}`);
+  } catch {
+    return /standard\.bio|standardbio\.(com|no)/i.test(value);
+  }
 }
 
 export function parseSignatureAddress(address: string): {

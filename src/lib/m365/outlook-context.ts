@@ -6,6 +6,11 @@ import { extractEmailDomain } from "@/lib/domain-rules";
 import { whenOfficeReady } from "@/lib/outlook-office";
 import { resolvePublicAppOrigin } from "@/lib/smartcrm-origin";
 import { buildOutlookReadDeeplink } from "@/lib/m365/outlook-deeplink";
+import {
+  isMailboxOwnerEmail,
+  isUsableCounterpartyEmail,
+  pickOutlookCounterparty,
+} from "@/lib/m365/outlook-counterparty";
 
 export type OutlookSenderDetails = {
   email: string;
@@ -36,10 +41,11 @@ export function isAutomatedMailboxEmail(email: string): boolean {
   );
 }
 
-function isUsableCounterpartyEmail(email: string, selfEmail?: string): boolean {
-  const normalized = email.trim().toLowerCase();
-  if (!normalized || normalized === selfEmail) return false;
-  return !isAutomatedMailboxEmail(normalized);
+function mailboxSelfEmails(mailbox: Office.Mailbox | undefined): string[] {
+  const emails: string[] = [];
+  const profile = mailbox?.userProfile?.emailAddress?.trim().toLowerCase();
+  if (profile) emails.push(profile);
+  return emails;
 }
 
 function bumpCounterpartyCount(
@@ -58,16 +64,16 @@ function bumpCounterpartyCount(
 
 function pickBestCounterpartyFromSeeds(
   seeds: OutlookOpenMessageSeed[],
-  selfEmail?: string,
+  selfEmails: readonly string[],
 ): OutlookSenderDetails | null {
   const counts = new Map<string, { count: number; displayName: string }>();
   for (const seed of seeds) {
     const sender = seed.senderEmail.trim().toLowerCase();
-    if (isUsableCounterpartyEmail(sender, selfEmail)) {
+    if (isUsableCounterpartyEmail(sender, selfEmails)) {
       bumpCounterpartyCount(counts, sender, seed.senderDisplayName || "");
     }
     for (const recipient of seed.recipientEmails ?? []) {
-      if (isUsableCounterpartyEmail(recipient, selfEmail)) {
+      if (isUsableCounterpartyEmail(recipient, selfEmails)) {
         bumpCounterpartyCount(counts, recipient, "");
       }
     }
@@ -83,21 +89,6 @@ function pickBestCounterpartyFromSeeds(
   return { email: best.email, displayName: best.displayName };
 }
 
-function pickFirstCounterpartyFromRecipients(
-  recipients: OutlookComposeRecipient[],
-  selfEmail?: string,
-): OutlookSenderDetails | null {
-  for (const entry of recipients) {
-    const email = entry.email.trim().toLowerCase();
-    if (!isUsableCounterpartyEmail(email, selfEmail)) continue;
-    return {
-      email,
-      displayName: entry.displayName.trim(),
-    };
-  }
-  return null;
-}
-
 export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetails | null> {
   if (typeof window === "undefined") {
     return null;
@@ -109,44 +100,50 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
   try {
     const mailbox = office.context.mailbox;
     const item = mailbox?.item;
-    const selfEmail = mailbox?.userProfile?.emailAddress
-      ?.trim()
-      .toLowerCase();
+    const selfEmails = mailboxSelfEmails(mailbox);
 
     // Multi-select: mailbox.item is the last opened mail (often Adobe Sign),
     // not the checked set. Always resolve from the selection.
     const selectedSeeds = await resolveOutlookSelectedMessageSeeds();
     if (selectedSeeds.length > 1) {
-      const fromSeeds = pickBestCounterpartyFromSeeds(selectedSeeds, selfEmail);
+      const fromSeeds = pickBestCounterpartyFromSeeds(selectedSeeds, selfEmails);
       if (fromSeeds) return fromSeeds;
     }
 
-    const fromEmail = item?.from?.emailAddress?.trim().toLowerCase();
-    const fromIsSelf = Boolean(fromEmail && fromEmail === selfEmail);
+    const fromEmail = item?.from?.emailAddress?.trim().toLowerCase() ?? "";
+    const senderEmail =
+      (
+        item as { sender?: { emailAddress?: string; displayName?: string } } | undefined
+      )?.sender?.emailAddress?.trim().toLowerCase() ?? "";
+    const fromIsSelfOrInternal =
+      Boolean(fromEmail) && !isUsableCounterpartyEmail(fromEmail, selfEmails);
 
-    // Sent mail (and Mac read panes) often expose the mailbox owner as From.
-    // Resolve To/Cc before treating the sender as the counterparty.
-    // Always try recipients when From is self — Sent Items are the common case.
-    if (!fromEmail || fromIsSelf || !isUsableCounterpartyEmail(fromEmail, selfEmail)) {
-      const fromRecipients = await resolveOutlookReadRecipients({
-        attempts: fromIsSelf ? 6 : 3,
-        delayMs: fromIsSelf ? 350 : 250,
-      });
-      const fromReadRecipients = pickFirstCounterpartyFromRecipients(
-        fromRecipients,
-        selfEmail,
-      );
-      if (fromReadRecipients) return fromReadRecipients;
+    const recipients = await resolveOutlookReadRecipients({
+      attempts: fromIsSelfOrInternal || !fromEmail ? 6 : 3,
+      delayMs: fromIsSelfOrInternal || !fromEmail ? 350 : 250,
+    });
+
+    const picked = pickOutlookCounterparty({
+      from: fromEmail
+        ? { email: fromEmail, displayName: item?.from?.displayName?.trim() ?? "" }
+        : null,
+      sender: senderEmail
+        ? {
+            email: senderEmail,
+            displayName:
+              (
+                item as { sender?: { displayName?: string } } | undefined
+              )?.sender?.displayName?.trim() ?? "",
+          }
+        : null,
+      recipients,
+      selfEmails,
+    });
+    if (picked) {
+      return { email: picked.email, displayName: picked.displayName ?? "" };
     }
 
-    if (fromEmail && isUsableCounterpartyEmail(fromEmail, selfEmail)) {
-      return {
-        email: fromEmail,
-        displayName: item?.from?.displayName?.trim() ?? "",
-      };
-    }
-
-    return pickBestCounterpartyFromSeeds(selectedSeeds, selfEmail);
+    return pickBestCounterpartyFromSeeds(selectedSeeds, selfEmails);
   } catch {
     return null;
   }
@@ -269,7 +266,7 @@ export async function resolveOutlookReadRecipients(options?: {
     const item = mailbox?.item;
     if (!item) return [];
 
-    const selfEmail = mailbox?.userProfile?.emailAddress?.trim().toLowerCase() ?? "";
+    const selfEmails = mailboxSelfEmails(mailbox);
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       const [to, cc, bcc] = await Promise.all([
@@ -281,7 +278,8 @@ export async function resolveOutlookReadRecipients(options?: {
       const seen = new Set<string>();
       const recipients: OutlookComposeRecipient[] = [];
       for (const entry of [...to, ...cc, ...bcc]) {
-        if (!entry.email || entry.email === selfEmail || seen.has(entry.email)) continue;
+        if (!entry.email || seen.has(entry.email)) continue;
+        if (isMailboxOwnerEmail(entry.email, selfEmails)) continue;
         seen.add(entry.email);
         recipients.push(entry);
       }
@@ -567,8 +565,9 @@ async function seedFromLoadedItem(
     : new Date();
   const selfEmail = mailbox.userProfile?.emailAddress?.trim().toLowerCase() || "";
   const fromEmail = item.from?.emailAddress?.trim().toLowerCase() || "";
+  const fromIsMailboxOwner = Boolean(fromEmail) && isMailboxOwnerEmail(fromEmail, [selfEmail]);
   const isOutbound =
-    Boolean(options?.preferOutbound) || !fromEmail || fromEmail === selfEmail;
+    Boolean(options?.preferOutbound) || fromIsMailboxOwner;
 
   const to = await getRecipientsAsync(item.to);
   const cc = await getRecipientsAsync(item.cc);
@@ -588,7 +587,7 @@ async function seedFromLoadedItem(
     conversationId,
     externalMessageId,
     subject: item.subject?.trim() || selected.subject?.trim() || "(no subject)",
-    senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail || selfEmail,
+    senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail,
     senderDisplayName: item.from?.displayName?.trim() || "",
     sentAt: Number.isNaN(created.getTime())
       ? new Date().toISOString()
@@ -633,10 +632,9 @@ async function seedFromOpenMailboxItem(
     const selfEmail =
       mailbox?.userProfile?.emailAddress?.trim().toLowerCase() || "";
     const fromEmail = item.from?.emailAddress?.trim().toLowerCase() || "";
+    const fromIsMailboxOwner = Boolean(fromEmail) && isMailboxOwnerEmail(fromEmail, [selfEmail]);
     const isOutbound =
-      Boolean(options?.preferOutbound) ||
-      !fromEmail ||
-      fromEmail === selfEmail;
+      Boolean(options?.preferOutbound) || fromIsMailboxOwner;
 
     const recipients = await resolveOutlookReadRecipients({
       attempts: 3,
@@ -656,7 +654,7 @@ async function seedFromOpenMailboxItem(
       conversationId,
       externalMessageId,
       subject: item.subject?.trim() || "(no subject)",
-      senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail || selfEmail,
+      senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail,
       senderDisplayName: item.from?.displayName?.trim() || "",
       sentAt: Number.isNaN(created.getTime())
         ? new Date().toISOString()
