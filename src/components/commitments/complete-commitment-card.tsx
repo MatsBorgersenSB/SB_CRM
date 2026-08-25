@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
 import { Calendar, Check, X, Zap } from "lucide-react";
 import { formatDueDate } from "@/lib/activity-utils";
 import {
@@ -40,7 +39,6 @@ export function CompleteCommitmentCard({
   onRescheduled,
   onDismissed,
 }: CompleteCommitmentCardProps) {
-  const router = useRouter();
   const dateRef = useRef<HTMLInputElement>(null);
   const dismissed = useSyncExternalStore(
     subscribeCommitmentDismissals,
@@ -72,7 +70,6 @@ export function CompleteCommitmentCard({
         mode: "complete",
       });
       dismissCommitmentInView(commitment.activityId);
-      router.refresh();
       onCompleted?.();
     } catch (err) {
       setCompleted(false);
@@ -96,7 +93,6 @@ export function CompleteCommitmentCard({
         nextActionDate,
       });
       setShowDatePicker(false);
-      router.refresh();
       onRescheduled?.(nextActionDate);
     } catch (err) {
       setRescheduledDate(previous);

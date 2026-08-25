@@ -112,7 +112,7 @@ export function GrowthIntelligenceWorkspace({
         <AccountHealthIndexCard record={featuredHealth} all={data.healthRecords} />
       ) : (
         <p className={`${ATTIO_SURFACE_MUTED} px-4 py-6 text-[13px] text-slate-500`}>
-          No Account Health Index records yet. Run the FS-010 seed to populate Acme Renewables.
+          No Account Health Index records yet. Health appears after real relationship activity is captured.
         </p>
       )}
 
@@ -326,7 +326,10 @@ function WhitespaceMatrixOverview({
       </div>
 
       {byCompany.length === 0 ? (
-        <p className="px-4 py-6 text-[13px] text-slate-500">No accounts in matrix scope.</p>
+        <p className="px-4 py-6 text-[13px] text-slate-500">
+          Whitespace only includes classified commercial targets (Customer, Prospect, Offtaker).
+          Classify companies first — suppliers and unclassified accounts are not sales whitespace.
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[36rem] border-collapse text-left text-[12px]">

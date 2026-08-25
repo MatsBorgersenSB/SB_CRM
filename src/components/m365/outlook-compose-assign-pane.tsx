@@ -5,7 +5,7 @@
  * Blocks: (1) recipient (2) assign target (3) Assign / Add to SmartCRM.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
 import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
@@ -95,6 +95,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
   const [status, setStatus] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [manualEmail, setManualEmail] = useState("");
+  const recipientKeyRef = useRef("");
 
   const reload = useCallback(() => {
     setReloadKey((key) => key + 1);
@@ -162,6 +163,10 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       });
       if (cancelled) return;
       setRecipients(list);
+      recipientKeyRef.current = list
+        .map((entry) => entry.email)
+        .sort()
+        .join(",");
 
       if (list.length === 0) {
         setSelectedEmail("");
@@ -218,7 +223,16 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
         if (!active) return;
         window.clearTimeout(timer);
         timer = window.setTimeout(() => {
-          if (active) reload();
+          void resolveOutlookComposeRecipients({ attempts: 1, delayMs: 0 }).then((list) => {
+            if (!active) return;
+            const key = list
+              .map((entry) => entry.email)
+              .sort()
+              .join(",");
+            if (key === recipientKeyRef.current) return;
+            recipientKeyRef.current = key;
+            reload();
+          });
         }, 400);
       });
     })();

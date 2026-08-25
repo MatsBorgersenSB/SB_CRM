@@ -38,12 +38,39 @@ import type {
   OpportunityStatus as PrismaOpportunityStatus,
 } from "@/generated/prisma";
 
+/** Contact row for list/sidebar maps — notes and address trees are optional. */
+export type PrismaContactListRow = Pick<
+  PrismaContact,
+  "id" | "firstName" | "lastName" | "fullName" | "jobTitle" | "emails" | "phoneNumbers" | "status"
+> &
+  Partial<PrismaContact>;
+
 type PrismaCompanyWithRelations = PrismaCompany & {
-  contacts: PrismaContact[];
+  contacts: PrismaContactListRow[];
   opportunities: Array<Pick<PrismaOpportunity, "id">>;
 };
 
-type PrismaOpportunityWithCompany = PrismaOpportunity & {
+type PrismaOpportunityWithCompany = Pick<
+  PrismaOpportunity,
+  | "id"
+  | "code"
+  | "name"
+  | "currency"
+  | "companyRole"
+  | "nextStep"
+  | "stage"
+  | "status"
+  | "value"
+  | "probability"
+  | "expectedCloseDate"
+  | "ownerId"
+  | "offeringIds"
+  | "team"
+> & {
+  understanding?: PrismaOpportunity["understanding"];
+  sharepointFolderId?: string | null;
+  sharepointFolderUrl?: string | null;
+  sharepointFolderPath?: string | null;
   company?: Pick<PrismaCompany, "id" | "name"> | null;
 };
 
@@ -172,10 +199,6 @@ function mapOwnerPerson(ownerId: string | null | undefined): {
   Title: string;
 } | null {
   if (!ownerId) return null;
-  // Seed owner aligns with the default demo auth user so "My Opportunities" shows live rows.
-  if (ownerId === "seed-owner-commercial-01") {
-    return { Id: 1, Title: "Mats Borgersen" };
-  }
 
   const numeric = Number(ownerId);
   if (Number.isFinite(numeric) && numeric > 0) {
@@ -192,7 +215,7 @@ function mapOwnerPerson(ownerId: string | null | undefined): {
 }
 
 export function mapPrismaContactToApp(
-  contact: PrismaContact,
+  contact: PrismaContactListRow,
   companyLookup: { Id: number; Title: string },
 ): Contact {
   const firstName = contact.firstName?.trim() || "";

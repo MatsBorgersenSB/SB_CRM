@@ -14,6 +14,7 @@ import {
 } from "@/lib/prisma-mappers";
 import { readCompanies } from "@/lib/pipeline-db";
 import { nextCompanyTrackingId } from "@/lib/entity-id";
+import { prismaDemoSeedCompanyWhere } from "@/lib/demo-seed-markers";
 
 /**
  * Match company in live/JSON portfolio — id, CompanyID/code, name, domain, email.
@@ -92,14 +93,19 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
     const byFields = await withPrismaRetry((prisma) =>
       prisma.company.findFirst({
         where: {
-          OR: [
-            { id: cleanId },
-            { code: cleanId },
-            { code: cleanId.toUpperCase() },
-            { organizationNumber: cleanId },
-            { organizationNumber: cleanId.toUpperCase() },
-            { name: { equals: cleanId, mode: "insensitive" } },
-            { alternativeNames: { has: cleanId } },
+          AND: [
+            {
+              OR: [
+                { id: cleanId },
+                { code: cleanId },
+                { code: cleanId.toUpperCase() },
+                { organizationNumber: cleanId },
+                { organizationNumber: cleanId.toUpperCase() },
+                { name: { equals: cleanId, mode: "insensitive" } },
+                { alternativeNames: { has: cleanId } },
+              ],
+            },
+            { NOT: prismaDemoSeedCompanyWhere },
           ],
         },
         include: companyDetailInclude,
@@ -110,7 +116,10 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
     if (cleanId.includes("@")) {
       const withEmails = await withPrismaRetry((prisma) =>
         prisma.company.findMany({
-          where: { status: { in: ["active", "archived"] } },
+          where: {
+            status: { in: ["active", "archived"] },
+            NOT: prismaDemoSeedCompanyWhere,
+          },
           include: companyDetailInclude,
         }),
       );
@@ -123,7 +132,10 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
     if (isCompanyTrackingCode(cleanId) || /^\d+$/.test(cleanId)) {
       const candidates = await withPrismaRetry((prisma) =>
         prisma.company.findMany({
-          where: { status: { in: ["active", "archived"] } },
+          where: {
+            status: { in: ["active", "archived"] },
+            NOT: prismaDemoSeedCompanyWhere,
+          },
           include: companyDetailInclude,
         }),
       );

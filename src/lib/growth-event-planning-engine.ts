@@ -10,13 +10,12 @@ import type {
   EventOutreachRecommendation,
   EventPlanningContact,
   EventPlanningMetrics,
-  EventPlanningProspectCompanySeed,
   EventPlanningSeed,
   EventPlanningWorkspace,
   EventSignalGroups,
 } from "@/types/event-planning";
 import { company360Href } from "@/types/company-360";
-import { companyHasType } from "@/lib/company-classification";
+import { companyHasType, isOpportunityEligibleCompany } from "@/lib/company-classification";
 import type { EventPlanningPersistedState } from "@/lib/event-planning-state";
 import {
   applySignalBudget,
@@ -75,21 +74,15 @@ function buildContactDiscovery(
   };
 }
 
-function buildProspectDiscovery(prospect: EventPlanningProspectCompanySeed): EventContactDiscovery {
-  return {
-    website: websiteFromDomain(prospect.domain),
-    contactPageUrl: prospect.contactPageUrl,
-    phone: prospect.phone,
-    source: "seed",
-  };
-}
-
 function scoreCrmCompany(
   company: Company,
   planningSeed: EventPlanningSeed,
   event: GrowthEvent,
 ): { score: number; reasons: string[] } {
   if (companyHasType(company, "Competitor")) {
+    return { score: 0, reasons: [] };
+  }
+  if (!isOpportunityEligibleCompany(company)) {
     return { score: 0, reasons: [] };
   }
 
@@ -242,48 +235,6 @@ export function buildEventPlanningWorkspace(
         status: persistedStatus,
         inCrm: true,
         priority: contactPriority(contactScoring.score),
-      });
-    }
-  }
-
-  for (const prospect of planningSeed.prospectCompanies) {
-    if (persisted.addedCompanyIds.includes(prospect.id)) continue;
-
-    workspaceCompanies.push({
-      id: prospect.id,
-      name: prospect.name,
-      industry: prospect.industry,
-      geography: prospect.geography,
-      relevanceScore: 78,
-      relevanceReasons: prospect.relevanceReasons,
-      discovery: buildProspectDiscovery(prospect),
-      inCrm: false,
-    });
-
-    for (const prospectContact of prospect.contacts) {
-      const contactTargetId = prospectContact.id;
-      const persistedStatus = persisted.contacts[contactTargetId]?.status ?? "identified";
-
-      workspaceContacts.push({
-        id: contactTargetId,
-        companyTargetId: prospect.id,
-        companyName: prospect.name,
-        name: prospectContact.name,
-        jobTitle: prospectContact.jobTitle,
-        role: prospectContact.role,
-        relevanceScore: 75,
-        whyRelevant: prospectContact.whyRelevant,
-        discussionTopics: prospectContact.discussionTopics,
-        discovery: {
-          ...buildProspectDiscovery(prospect),
-          email: prospectContact.email,
-          phone: prospectContact.phone,
-          linkedInUrl: prospectContact.linkedInUrl,
-          source: "seed",
-        },
-        status: persistedStatus,
-        inCrm: false,
-        priority: "high",
       });
     }
   }

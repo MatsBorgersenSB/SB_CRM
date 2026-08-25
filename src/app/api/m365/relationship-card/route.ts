@@ -1,11 +1,9 @@
 import {
   buildM365RelationshipCard,
-  loadM365DataContext,
-  resolveCompanyFromInput,
 } from "@/lib/m365";
 import { m365Error, m365Json } from "@/lib/m365/api-response";
 import { mergeLiveMailIntoEvidence } from "@/lib/company-correspondence";
-import { loadCorrespondenceEvidenceForCompany } from "@/lib/company-correspondence-data";
+import { loadM365PaneContext } from "@/lib/m365/pane-context";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { getProjectsForCompany } from "@/lib/project-team-utils";
@@ -21,11 +19,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const ctx = await loadM365DataContext();
-    const resolved = resolveCompanyFromInput(
-      ctx.companies,
-      companyId ? { companyId } : { email: email! },
-    );
+    const { ctx, resolved, correspondence: stored } = await loadM365PaneContext({
+      email,
+      companyId,
+    });
 
     if (!resolved) {
       return m365Error("No matching account found for this context", 404);
@@ -41,7 +38,6 @@ export async function GET(request: Request) {
       });
     }
 
-    const stored = await loadCorrespondenceEvidenceForCompany(resolved.company);
     let correspondence = mergeLiveMailIntoEvidence(stored, {
       liveCorrespondentEmail: email,
       liveProjectName: projectName,

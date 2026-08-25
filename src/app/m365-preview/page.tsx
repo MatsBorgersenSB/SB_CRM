@@ -5,8 +5,6 @@ import {
   readLivePortfolio,
 } from "@/lib/prisma-data";
 
-export const dynamic = "force-dynamic";
-
 export default async function M365PreviewPage() {
   const [{ companies, pipelines }, activities, outlookEvidence] = await Promise.all([
     readLivePortfolio(),

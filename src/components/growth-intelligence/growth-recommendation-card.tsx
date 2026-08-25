@@ -15,9 +15,6 @@ export function GrowthRecommendationCard({
           </p>
           <h3 className="mt-1 text-sm font-semibold text-carbon-blue">{recommendation.what}</h3>
         </div>
-        <span className="shrink-0 rounded-full bg-carbon-blue/5 px-2.5 py-1 text-[10px] font-bold tabular-nums text-carbon-blue/60">
-          {recommendation.confidencePercent}% confidence
-        </span>
       </header>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-2">

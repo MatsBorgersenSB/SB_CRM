@@ -39,7 +39,11 @@ export function RootProviders({ children }: { children: ReactNode }) {
 
   return (
     <ThemeProvider>
-      <SessionProvider basePath="/api/auth" refetchOnWindowFocus={false}>
+      <SessionProvider
+        basePath="/api/auth"
+        refetchOnWindowFocus={false}
+        refetchInterval={0}
+      >
         <AuthProvider>
           <SmartAssistProvider>
             <UniversalSearchProvider>{children}</UniversalSearchProvider>

@@ -28,14 +28,19 @@ export function OutlookRelationshipCardPane() {
   const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
 
   useEffect(() => {
+    if (!resolvedEmail) return;
+    let cancelled = false;
     void fetch("/api/m365/reconciliation")
       .then(async (response) => {
-        if (!response.ok) return;
+        if (!response.ok || cancelled) return;
         const audit = (await response.json()) as ReturnType<typeof analyzeOutlookReconciliation>;
-        setReconciliationAudit(audit);
+        if (!cancelled) setReconciliationAudit(audit);
       })
       .catch(() => undefined);
-  }, [state.status]);
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedEmail]);
 
   const emailTouchpoint = useMemo(() => {
     if (!resolvedEmail || !reconciliationAudit) return null;
@@ -156,7 +161,7 @@ export function OutlookRelationshipCardPane() {
           variant="outlook"
           onCreateOpportunity={() => setOpportunityDialogOpen(true)}
           onActiveAssistApplied={() => {
-            reload();
+            /* Optimistic — do not reload the company payload. */
           }}
         />
         <OutlookAddOpportunityDialog

@@ -21,13 +21,15 @@ import type { Company } from "@/types/company";
  */
 export async function loadCorrespondenceEvidenceForCompany(
   company: Company,
+  options?: { take?: number },
 ): Promise<CompanyCorrespondenceEvidence> {
-  const map = await loadCorrespondenceEvidenceByCompanyId([company]);
+  const map = await loadCorrespondenceEvidenceByCompanyId([company], options);
   return map.get(company.CompanyID) ?? EMPTY_CORRESPONDENCE;
 }
 
 export async function loadCorrespondenceEvidenceByCompanyId(
   companies: Company[],
+  options?: { take?: number },
 ): Promise<Map<string, CompanyCorrespondenceEvidence>> {
   const result = new Map<string, CompanyCorrespondenceEvidence>();
   if (companies.length === 0) return result;
@@ -86,7 +88,8 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       sentiment: true,
     },
     orderBy: { sentAt: "desc" },
-    take: Math.min(3000, Math.max(200, companies.length * 40)),
+    take:
+      options?.take ?? Math.min(250, Math.max(50, companies.length * 5)),
   });
 
   const snippetsByCompany = new Map<string, CorrespondenceMailSnippet[]>();

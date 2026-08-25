@@ -3,7 +3,7 @@ import { useSearchParams } from "next/navigation";
 import {
   resolveDevDisplayName,
   resolveOutlookSenderDetails,
-  subscribeOutlookSelectedItemsChanged,
+  subscribeOutlookMailboxItemChanged,
 } from "@/lib/m365/outlook-context";
 
 export type OutlookPaneLoadState<T> =
@@ -59,9 +59,7 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     let timer: number | undefined;
-    const startedAt = Date.now();
-    void subscribeOutlookSelectedItemsChanged(() => {
-      if (Date.now() - startedAt < 400) return;
+    void subscribeOutlookMailboxItemChanged(() => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         setReloadKey((current) => current + 1);
@@ -183,7 +181,6 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
     errorMessage,
     expectedKind,
     reloadKey,
-    searchParams,
     unexpectedPayloadMessage,
   ]);
 

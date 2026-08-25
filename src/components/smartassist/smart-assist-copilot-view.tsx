@@ -249,7 +249,7 @@ function CoPilotProposalCard({
 
 export function SmartAssistCopilotPanel({
   proposals,
-  onRefresh,
+  onRefresh: _onRefresh,
   onNavigate,
 }: {
   proposals: CoPilotActionProposal[];
@@ -260,13 +260,9 @@ export function SmartAssistCopilotPanel({
 
   const visible = proposals.filter((proposal) => !hiddenIds.has(proposal.id));
 
-  const handleHandled = useCallback(
-    (id: string) => {
-      setHiddenIds((prev) => new Set(prev).add(id));
-      onRefresh();
-    },
-    [onRefresh],
-  );
+  const handleHandled = useCallback((id: string) => {
+    setHiddenIds((prev) => new Set(prev).add(id));
+  }, []);
 
   if (visible.length === 0) return null;
 

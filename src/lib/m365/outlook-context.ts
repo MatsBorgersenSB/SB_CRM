@@ -773,6 +773,43 @@ type MailboxSelectionEvents = {
   ) => void;
 };
 
+export type OutlookMailboxItemKey = {
+  itemId: string | null;
+  conversationId: string | null;
+};
+
+export async function readOutlookMailboxItemKey(): Promise<OutlookMailboxItemKey> {
+  const office = await whenOfficeReady();
+  const item = office?.context.mailbox?.item;
+  return {
+    itemId: item?.itemId?.trim() || null,
+    conversationId: item?.conversationId?.trim() || null,
+  };
+}
+
+function mailboxItemFingerprint(key: OutlookMailboxItemKey): string {
+  return `${key.itemId ?? ""}::${key.conversationId ?? ""}`;
+}
+
+async function addMailboxHandler(
+  mailbox: MailboxSelectionEvents,
+  eventType: Office.EventType | string,
+  handler: () => void,
+): Promise<void> {
+  await new Promise<void>((resolve) => {
+    try {
+      mailbox.addHandlerAsync!(eventType, handler, () => resolve());
+    } catch {
+      resolve();
+    }
+  });
+}
+
+/**
+ * Subscribe to Outlook selection changes. Prefer
+ * {@link subscribeOutlookMailboxItemChanged} so API loads do not fire unless
+ * `item.itemId` actually changed.
+ */
 export async function subscribeOutlookSelectedItemsChanged(
   onChanged: () => void,
 ): Promise<() => void> {
@@ -792,19 +829,60 @@ export async function subscribeOutlookSelectedItemsChanged(
     onChanged();
   };
 
-  await new Promise<void>((resolve) => {
-    try {
-      mailbox.addHandlerAsync!(eventType, handler, () => resolve());
-    } catch {
-      resolve();
-    }
-  });
+  await addMailboxHandler(mailbox, eventType, handler);
 
   return () => {
     try {
       mailbox.removeHandlerAsync?.(eventType, { handler }, () => undefined);
     } catch {
       // ignore
+    }
+  };
+}
+
+/**
+ * Fires only when the open mailbox item identity changes (new email / context).
+ * Ignores focus, folder chrome, and duplicate SelectedItemsChanged noise.
+ */
+export async function subscribeOutlookMailboxItemChanged(
+  onChanged: (key: OutlookMailboxItemKey) => void,
+): Promise<() => void> {
+  const office = await whenOfficeReady();
+  const mailbox = office?.context.mailbox as MailboxSelectionEvents | undefined;
+  if (!mailbox?.addHandlerAsync) return () => undefined;
+
+  let last = mailboxItemFingerprint(await readOutlookMailboxItemKey());
+
+  const handler = () => {
+    void (async () => {
+      const next = await readOutlookMailboxItemKey();
+      const fingerprint = mailboxItemFingerprint(next);
+      if (fingerprint === last) return;
+      last = fingerprint;
+      onChanged(next);
+    })();
+  };
+
+  const eventTypes: Array<Office.EventType | string> = [];
+  if (office?.EventType?.ItemChanged) eventTypes.push(office.EventType.ItemChanged);
+  else eventTypes.push("itemChanged");
+  if (office?.EventType?.SelectedItemsChanged) {
+    eventTypes.push(office.EventType.SelectedItemsChanged);
+  } else {
+    eventTypes.push("selectedItemsChanged");
+  }
+
+  for (const eventType of eventTypes) {
+    await addMailboxHandler(mailbox, eventType, handler);
+  }
+
+  return () => {
+    for (const eventType of eventTypes) {
+      try {
+        mailbox.removeHandlerAsync?.(eventType, { handler }, () => undefined);
+      } catch {
+        // ignore
+      }
     }
   };
 }

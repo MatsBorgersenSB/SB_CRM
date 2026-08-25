@@ -77,15 +77,22 @@ export function CompetitiveLandscapeView({
 
             <section className={WORKSPACE_PANEL_SURFACE}>
               <p className={EDITORIAL_LABEL}>What is changing</p>
-              <div className="mt-4 space-y-3">
-                {landscape.landscapeShifts.map((shift) => (
-                  <article key={`${shift.change}-${shift.dateLabel}`} className="border-l-2 border-upcycle-orange/40 pl-3">
-                    <p className="text-[13px] font-medium text-carbon-blue">{shift.change}</p>
-                    <p className={`mt-1 ${EDITORIAL_META}`}>{shift.implication}</p>
-                    <p className={`mt-0.5 ${EDITORIAL_META}`}>{shift.dateLabel}</p>
-                  </article>
-                ))}
-              </div>
+              {landscape.landscapeShifts.length === 0 ? (
+                <p className={`mt-4 ${EDITORIAL_META}`}>
+                  No competitor movement is observed in the live registry. Strategy notes stay
+                  off this list until a company is classified as Competitor.
+                </p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {landscape.landscapeShifts.map((shift) => (
+                    <article key={`${shift.change}-${shift.dateLabel}`} className="border-l-2 border-upcycle-orange/40 pl-3">
+                      <p className="text-[13px] font-medium text-carbon-blue">{shift.change}</p>
+                      <p className={`mt-1 ${EDITORIAL_META}`}>{shift.implication}</p>
+                      <p className={`mt-0.5 ${EDITORIAL_META}`}>{shift.dateLabel}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
             </section>
 
             {landscape.primaryAction ? (
@@ -93,9 +100,6 @@ export function CompetitiveLandscapeView({
                 <p className={EDITORIAL_LABEL}>What should happen next</p>
                 <p className="mt-3 text-[16px] font-medium text-carbon-blue">{landscape.primaryAction.action}</p>
                 <p className={`mt-2 ${EDITORIAL_META}`}>{landscape.primaryAction.why}</p>
-                <div className="mt-2">
-                  <SmartAssistConfidenceLabel confidence={landscape.primaryAction.confidence} />
-                </div>
               </section>
             ) : null}
 

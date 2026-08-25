@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { GrowthIntelligenceSectionShell } from "@/components/growth-intelligence/growth-intelligence-section-shell";
-import { readLiveCompanies, readLivePipelines } from "@/lib/prisma-data";
+import { readLiveGrowthContext } from "@/lib/prisma-data";
 import { isGrowthSectionId, type GrowthIntelligenceSectionId } from "@/types/growth-intelligence";
 
 const SECTION_PAGES: Exclude<GrowthIntelligenceSectionId, "dashboard">[] = [
@@ -33,16 +33,18 @@ export default async function GrowthSectionPage({ params }: GrowthSectionPagePro
     notFound();
   }
 
-  const [companies, pipelines] = await Promise.all([
-    readLiveCompanies(),
-    readLivePipelines(),
-  ]);
+  const context = await readLiveGrowthContext();
 
   return (
     <GrowthIntelligenceSectionShell
       section={section}
-      companies={companies}
-      pipelines={pipelines}
+      companies={context.companies}
+      pipelines={context.pipelines}
+      extras={{
+        activities: context.activities,
+        growthDeals: context.growthDeals,
+        correspondence: context.correspondence,
+      }}
     />
   );
 }

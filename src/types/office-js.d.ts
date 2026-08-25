@@ -15,6 +15,8 @@ declare namespace Office {
     DialogMessageReceived = "dialogMessageReceived",
     DialogEventReceived = "dialogEventReceived",
     RecipientsChanged = "recipientsChanged",
+    ItemChanged = "itemChanged",
+    SelectedItemsChanged = "selectedItemsChanged",
   }
 
   interface AsyncResult<T> {
@@ -81,6 +83,16 @@ declare namespace Office {
     userProfile?: {
       emailAddress?: string;
     };
+    addHandlerAsync?: (
+      eventType: EventType | string,
+      handler: (args?: unknown) => void,
+      callback?: (result: AsyncResult<void>) => void,
+    ) => void;
+    removeHandlerAsync?: (
+      eventType: EventType | string,
+      options?: { handler?: (args?: unknown) => void },
+      callback?: (result: AsyncResult<void>) => void,
+    ) => void;
   }
 
   interface Dialog {

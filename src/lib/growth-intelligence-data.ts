@@ -1,7 +1,15 @@
 import growthSeed from "@/data/growth-intelligence.json";
+import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import { companyHasType, normalizeCompanyTypes } from "@/lib/company-classification";
+import { isEventPast, isEventUpcoming } from "@/lib/growth-event-timing";
+import {
+  buildGrowthOperatingLoop,
+  companyForDeal,
+  openSalesDeals,
+} from "@/lib/growth-operating-loop";
+import { buildGrowthSuperSkills, offerLabel } from "@/lib/growth-super-skills";
 import { buildAllCompetitorProfiles, buildCompetitiveLandscape } from "@/lib/growth-competitive-intelligence-engine";
 import { company360Href } from "@/types/company-360";
 import type {
@@ -14,7 +22,12 @@ import type {
   GrowthMembership,
   GrowthRecommendation,
   GrowthStrategicInitiative,
+  GrowthLiveDeal,
 } from "@/types/growth-intelligence";
+import type {
+  GrowthCorrespondenceSnippet,
+  GrowthDealRecord,
+} from "@/types/growth-super-skills";
 import { GROWTH_ECOSYSTEM_TYPES } from "@/types/company-type";
 import type { CompanyType } from "@/types/company-type";
 
@@ -177,30 +190,165 @@ function buildEmergingOpportunities(
   return [...fromPipeline, ...fromSegments];
 }
 
+function groundRecommendations(
+  recommendations: GrowthRecommendation[],
+  companies: Company[],
+  pipelines: PipelineRow[],
+  events: GrowthEvent[],
+): GrowthRecommendation[] {
+  const liveNames = openSalesDeals(pipelines)
+    .slice(0, 3)
+    .map((deal) => {
+      const company = companyForDeal(companies, deal);
+      return company ? `${deal.assetName} (${company.Title})` : deal.assetName;
+    });
+
+  return recommendations
+    .filter((rec) => {
+      const ifat = events.find((event) => /ifat/i.test(event.name));
+      if (ifat && isEventPast(ifat) && /ifat 2026/i.test(rec.what)) return false;
+      return true;
+    })
+    .map((rec) => {
+      if (rec.id === "rec-feasibility-product" && liveNames.length > 0) {
+        return {
+          ...rec,
+          where: liveNames.join("; "),
+          why: `${rec.why} Live deals in the registry: ${liveNames.join("; ")}.`,
+        };
+      }
+      return rec;
+    });
+}
+
+function buildLiveDeals(
+  companies: Company[],
+  pipelines: PipelineRow[],
+  offers: ReturnType<typeof buildGrowthSuperSkills>["offers"],
+): GrowthLiveDeal[] {
+  return openSalesDeals(pipelines).map((deal) => {
+    const company = companyForDeal(companies, deal);
+    const choice = offers.find((row) => row.dealId === deal.id);
+    return {
+      id: deal.id,
+      name: deal.assetName,
+      companyName: company?.Title ?? deal.ClientLookup?.trim() ?? "Unlinked company",
+      status: deal.status,
+      nextStep: deal.currentMilestone?.trim() || "Not captured",
+      href: `/deals/${encodeURIComponent(deal.id)}`,
+      offer: choice ? offerLabel(choice.offer) : undefined,
+      offerWhy: choice?.why,
+    };
+  });
+}
+
+const LIVE_INTEL_CATEGORY: Record<
+  string,
+  GrowthMarketIntelligenceItem["category"]
+> = {
+  demand: "trend",
+  pipeline: "funding",
+  unknown: "research",
+  regulation: "regulation",
+  funding: "funding",
+  competitor_activity: "competitor_activity",
+};
+
+export type GrowthIntelligenceExtras = {
+  activities?: Activity[];
+  growthDeals?: GrowthDealRecord[];
+  correspondence?: GrowthCorrespondenceSnippet[];
+};
+
 export function buildGrowthIntelligence(
   companies: Company[],
   pipelines: PipelineRow[],
+  extras: GrowthIntelligenceExtras = {},
 ): GrowthIntelligenceSnapshot {
   const seed = growthSeed as unknown as GrowthSeed;
   const competitors = buildCompetitorProfiles(companies);
   const competitiveLandscape = buildCompetitiveLandscape(companies, pipelines);
-  const events = seed.events;
-  const recommendations = seed.recommendations;
-  const eventsRequiringPlanning = events.filter((e) => e.planningStatus === "needs_planning");
+  const events = seed.events.map((event) =>
+    isEventPast(event)
+      ? { ...event, planningStatus: "completed" as const }
+      : event,
+  );
+  const dealSource = extras.growthDeals?.length ? extras.growthDeals : pipelines;
+  const superSkills = buildGrowthSuperSkills({
+    companies,
+    pipelines: dealSource,
+    events,
+    activities: extras.activities,
+    growthDeals: extras.growthDeals,
+    correspondence: extras.correspondence,
+  });
+  const recommendations = groundRecommendations(
+    seed.recommendations,
+    companies,
+    pipelines,
+    events,
+  );
+  const eventsRequiringPlanning = events.filter(
+    (event) =>
+      isEventUpcoming(event) &&
+      event.planningStatus === "needs_planning" &&
+      event.recommendation === "attend",
+  );
   const highPriorityRecommendations = recommendations.filter(
-    (r) => r.priority === "critical" || r.priority === "high",
+    (rec) => rec.priority === "critical" || rec.priority === "high",
   );
   const partnerEcosystem = buildPartnerEcosystem(companies);
   const emergingOpportunities = buildEmergingOpportunities(pipelines, seed.marketSegments);
+  const operatingLoop = buildGrowthOperatingLoop(
+    companies,
+    dealSource,
+    events,
+    new Date(),
+    superSkills,
+  );
+  const liveDeals = buildLiveDeals(companies, dealSource, superSkills.offers);
+  const attention = buildAttention(competitors, eventsRequiringPlanning, recommendations);
+  const liveMarketIntelligence: GrowthMarketIntelligenceItem[] = superSkills.marketIntel.map(
+    (card) => ({
+      id: card.id,
+      category: LIVE_INTEL_CATEGORY[card.category] ?? "research",
+      title: card.title,
+      summary: card.fact,
+      dateLabel: card.asOf,
+      relevance: card.evidence === "observed" ? "high" : "low",
+      impact: [card.offerWhy, card.nextAction],
+      evidence: card.evidence === "observed" ? "observed" : "hypothesis",
+    }),
+  );
+  const unverifiedMarketNotes = seed.marketIntelligence.map((item) => ({
+    ...item,
+    evidence: item.evidence ?? ("hypothesis" as const),
+  }));
 
-  const attention = buildAttention(competitors, events, recommendations);
+  if (unverifiedMarketNotes.length > 0) {
+    operatingLoop.watch = operatingLoop.watch.slice(0, 4);
+    if (!operatingLoop.watch.some((item) => item.id === "unsourced-intel")) {
+      operatingLoop.watch.push({
+        id: "unsourced-intel",
+        horizon: "watch",
+        title: "Unsourced market notes are not intelligence",
+        why: `${unverifiedMarketNotes.length} JSON cards have no source or date. They stay collapsed until evidenced.`,
+        next: "Open Market Intelligence for the live evidence librarian — ignore strategy notes in primary briefings.",
+        impact: "Stops landfill-directive essays from driving this week’s work.",
+        href: "/growth/market-intelligence",
+        evidence: "hypothesis",
+      });
+    }
+  }
 
   return {
     generatedAt: new Date().toISOString(),
+    operatingLoop,
+    liveDeals,
     attention,
     emergingOpportunities,
     activeCompetitors: competitors.filter(
-      (c) => c.threatLevel === "critical" || c.threatLevel === "high",
+      (competitor) => competitor.threatLevel === "critical" || competitor.threatLevel === "high",
     ),
     eventsRequiringPlanning,
     recommendations,
@@ -211,14 +359,16 @@ export function buildGrowthIntelligence(
     marketingChannels: seed.marketingChannels,
     partnerEcosystem,
     strategicInitiatives: seed.strategicInitiatives,
-    marketIntelligence: seed.marketIntelligence,
+    marketIntelligence: liveMarketIntelligence,
+    unverifiedMarketNotes,
+    superSkills,
     competitiveLandscape,
     metrics: {
       competitorCount: competitors.length,
       eventsNeedingPlanning: eventsRequiringPlanning.length,
       highPriorityRecommendations: highPriorityRecommendations.length,
       partnerCount: partnerEcosystem.length,
-      emergingOpportunityCount: emergingOpportunities.length,
+      emergingOpportunityCount: liveDeals.length,
     },
   };
 }

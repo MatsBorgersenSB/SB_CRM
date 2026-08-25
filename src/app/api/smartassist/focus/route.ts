@@ -8,8 +8,10 @@ export async function GET() {
   const { companies, pipelines, activities, commercialPackages } =
     await readLiveFocusContext();
 
-  const correspondenceByCompanyId =
-    await loadCorrespondenceEvidenceByCompanyId(companies);
+  const correspondenceByCompanyId = await loadCorrespondenceEvidenceByCompanyId(
+    companies,
+    { take: 100 },
+  );
 
   const focus = buildSmartAssistFocus(
     companies,

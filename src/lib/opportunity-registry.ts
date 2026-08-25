@@ -9,6 +9,7 @@ import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import { mapPrismaOpportunityToPipelineRow } from "@/lib/prisma-mappers";
 import { scheduleOpportunitySharePointFolderProvision } from "@/lib/m365/provision-opportunity-folder";
 import type { Prisma } from "@/generated/prisma";
+import { prismaDemoSeedOpportunityWhere } from "@/lib/demo-seed-markers";
 
 async function prismaRegistryAvailable(): Promise<boolean> {
   try {
@@ -125,7 +126,10 @@ export async function listRegistryOpportunities(): Promise<PipelineRow[] | null>
 
   const rows = await withPrismaRetry((prisma) =>
     prisma.opportunity.findMany({
-      where: { status: { in: ["open", "on_hold"] } },
+      where: {
+        status: { in: ["open", "on_hold"] },
+        NOT: prismaDemoSeedOpportunityWhere,
+      },
       include: opportunityInclude,
       orderBy: { updatedAt: "desc" },
     }),
