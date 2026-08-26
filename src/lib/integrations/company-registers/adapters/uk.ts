@@ -1,7 +1,9 @@
 import {
   cleanText,
+  decodeHtml,
   emptyCompany,
   fetchRegistryJson,
+  fetchRegistryText,
 } from "@/lib/integrations/company-registers/http";
 import type {
   RegistryAdapter,
@@ -19,7 +21,6 @@ type ChItem = {
     postal_code?: string;
     country?: string;
   };
-  date_of_creation?: string;
 };
 
 type ChSearchResponse = {
@@ -49,10 +50,63 @@ function mapCh(item: ChItem): UnifiedEuropeanCompany | null {
   });
 }
 
+const COMPANY_LINK_RE = /href="\/company\/([^"]+)"[\s\S]{0,400}?>([\s\S]*?)<\/a>/gi;
+const SKIP_LINK_NAME_RE = /^(view company|search result)/i;
+
+function parseCompaniesHouseHtml(html: string): UnifiedEuropeanCompany[] {
+  const hits: UnifiedEuropeanCompany[] = [];
+  const byNumber = new Map<string, UnifiedEuropeanCompany>();
+  COMPANY_LINK_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = COMPANY_LINK_RE.exec(html))) {
+    const registrationNumber = cleanText(match[1] ?? "").toUpperCase();
+    const legalName = decodeHtml(match[2] ?? "");
+    if (!legalName || !registrationNumber || SKIP_LINK_NAME_RE.test(legalName)) continue;
+    const existing = byNumber.get(registrationNumber);
+    if (existing) {
+      if (legalName.length > existing.legalName.length) existing.legalName = legalName;
+      continue;
+    }
+    const row = emptyCompany({
+      legalName,
+      registrationNumber,
+      country: "United Kingdom",
+      countryCode: "GB",
+      sourceRegistry: "Companies House (UK)",
+    });
+    byNumber.set(registrationNumber, row);
+    hits.push(row);
+    if (hits.length >= 8) break;
+  }
+  return hits;
+}
+
+async function searchCompaniesHouseApi(query: string): Promise<UnifiedEuropeanCompany[]> {
+  const apiKey = process.env.COMPANIES_HOUSE_API_KEY?.trim();
+  if (!apiKey) return [];
+
+  const auth = Buffer.from(`${apiKey}:`).toString("base64");
+  const url = `https://api.company-information.service.gov.uk/search/companies?q=${encodeURIComponent(query)}&items_per_page=8`;
+  const data = await fetchRegistryJson<ChSearchResponse>(url, {
+    headers: { Authorization: `Basic ${auth}` },
+  });
+
+  return (data?.items ?? [])
+    .map(mapCh)
+    .filter((row): row is UnifiedEuropeanCompany => Boolean(row));
+}
+
+async function searchCompaniesHouseHtml(query: string): Promise<UnifiedEuropeanCompany[]> {
+  const html = await fetchRegistryText(
+    `https://find-and-update.company-information.service.gov.uk/search/companies?q=${encodeURIComponent(query)}`,
+  );
+  if (!html) return [];
+  return parseCompaniesHouseHtml(html);
+}
+
 /**
- * Companies House search API.
- * Requires COMPANIES_HOUSE_API_KEY (HTTP Basic with key as username).
- * Returns [] when key is missing or the API errors.
+ * Companies House search API when COMPANIES_HOUSE_API_KEY is set.
+ * Keyless fallback parses the public find-and-update search page.
  */
 export const ukAdapter: RegistryAdapter = {
   id: "GB",
@@ -62,19 +116,9 @@ export const ukAdapter: RegistryAdapter = {
     const q = query.trim();
     if (!q) return [];
 
-    const apiKey = process.env.COMPANIES_HOUSE_API_KEY?.trim();
-    if (!apiKey) return [];
+    const apiHits = await searchCompaniesHouseApi(q);
+    if (apiHits.length > 0) return apiHits;
 
-    const auth = Buffer.from(`${apiKey}:`).toString("base64");
-    const url = `https://api.company-information.service.gov.uk/search/companies?q=${encodeURIComponent(q)}&items_per_page=8`;
-    const data = await fetchRegistryJson<ChSearchResponse>(url, {
-      headers: {
-        Authorization: `Basic ${auth}`,
-      },
-    });
-
-    return (data?.items ?? [])
-      .map(mapCh)
-      .filter((row): row is UnifiedEuropeanCompany => Boolean(row));
+    return searchCompaniesHouseHtml(q);
   },
 };

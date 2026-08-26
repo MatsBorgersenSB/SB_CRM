@@ -22,7 +22,7 @@ export function EuropeanRegistrySearch({
   domainHint,
   countryHint,
   label = "European Registry Search",
-  placeholder = "Search company name, orgnr, SIREN, CVR, VAT…",
+  placeholder = "Search name, VAT, orgnr, GmbH, Ltd, S.L., B.V.…",
   className = "",
 }: EuropeanRegistrySearchProps) {
   const listId = useId();
@@ -150,7 +150,9 @@ export function EuropeanRegistrySearch({
           className="absolute z-20 mt-1 max-h-56 w-full overflow-auto border border-carbon-blue/15 bg-white shadow-sm"
         >
           {results.length === 0 ? (
-            <li className="px-2 py-2 text-[11px] text-carbon-blue/45">No registry matches</li>
+            <li className="px-2 py-2 text-[11px] text-carbon-blue/45">
+              No registry matches. Try a national number, VAT, or a legal form (AB, GmbH, Ltd, S.L., B.V.).
+            </li>
           ) : (
             results.map((company) => (
               <li key={`${company.countryCode}-${company.registrationNumber}-${company.legalName}`}>

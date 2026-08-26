@@ -9,7 +9,7 @@ const cache = new Map<string, { expiresAt: number; value: UnifiedEuropeanCompany
 
 /**
  * GET /api/discovery/registry?q=...&country=NO&domain=example.no
- * Pan-European business registry lookup (Brønnøysund, CVR, PRH, FR, UK, DE, EE, VIES).
+ * Pan-European business registry lookup (Nordic, DE, AT, CH, Benelux, UK, ES, PT, IT, FR, EE, VIES).
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);

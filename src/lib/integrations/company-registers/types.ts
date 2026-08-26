@@ -22,10 +22,19 @@ export type UnifiedEuropeanCompany = {
 export type RegistryAdapterId =
   | "NO"
   | "DK"
+  | "SE"
   | "FI"
   | "FR"
   | "GB"
   | "DE"
+  | "AT"
+  | "CH"
+  | "BE"
+  | "NL"
+  | "LU"
+  | "ES"
+  | "PT"
+  | "IT"
   | "EE"
   | "VIES";
 
