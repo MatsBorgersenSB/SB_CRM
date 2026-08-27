@@ -6,10 +6,10 @@
 |----------|-------|
 | Specification ID | FS-018 |
 | Title | Microsoft Teams Integration |
-| Status | Approved |
+| Status | Approved — **v1 complete** (Phases 1–3 + Phase 4 foundation) |
 | Priority | High |
 | Category | SmartAssist & M365 Integrations |
-| Version | 1.0 |
+| Version | 1.2 |
 | Phase | 6 — Integrations |
 | Related | FS-012 Relationship Intake · FS-013 Active Operating Loop · FS-014 Post-Meeting Notes · FS-015 Project Relationships · FS-017 Outlook Integration · AD-001 Filter Transparency |
 | Governing standards | SmartCRM Constitution · SmartAssist Constitution · SmartCRM North Star · Michelin / Apple / 3-Second / Reality First |
@@ -278,11 +278,15 @@ One primary button. No widget sprawl.
 | Phase | Scope | Exit criteria |
 |-------|--------|----------------|
 | **1 — Presence** | Personal app: Daily Focus (4) + Meeting Briefing side panel | Seller can brief before a call without leaving Teams |
-| **1 status** | **Shipped in product** — `/teams/daily-focus`, `/teams/meeting-briefing`; package `teams/` | Sideload + Entra `webApplicationInfo` still required per tenant |
+| **1 status** | **Shipped** — `/teams/daily-focus`, `/teams/meeting-briefing` | Sideload + Entra still required |
 | **2 — Account room** | Channel tab Account Workspace (7) for company or project | Escalante-style channel shows living context |
-| **2 status** | **In progress in product** — `/teams/account-workspace` + config bind (companyId \| projectId); manifest v1.1.0 | Durable channel binding table deferred to Phase 4 |
+| **2 status** | **Shipped** — `/teams/account-workspace` + config; URL bind | |
 | **3 — Capture** | Message extension Assign + FS-014 transcript path from Teams | Message and meeting knowledge land with Approve |
+| **3 status** | **Shipped** — `/teams/assign-message`, `/teams/post-meeting`, composeExtensions + `/api/teams/bot` | Bot messaging endpoint must be registered in Entra |
 | **4 — Operating loop** | Channel binding + weekly attention Adaptive Card + Planner handoff | Project channel becomes attention cockpit |
+| **4 status** | **Foundation shipped** — `TeamsChannelBinding` + attention card JSON API; Planner create deferred | Weekly card posting via Flow/bot is ops wiring |
+
+**FS-018 v1 product complete** when Phases 1–3 ship and Phase 4 foundation (binding + card JSON) is available. Proactive weekly Adaptive Card delivery and Planner Graph create remain optional ops enhancements.
 
 Phases are sequential for quality; Phase 3 may reuse Phase 1 Graph permissions.
 
@@ -331,6 +335,8 @@ Phases are sequential for quality; Phase 3 may reuse Phase 1 Graph permissions.
 | M365 payloads | `/api/m365/*` relationship-card, briefing, daily-focus, account-workspace |
 | Teams Phase 1 hosts | `/teams/daily-focus`, `/teams/meeting-briefing` + `teams/manifest.json` |
 | Teams Phase 2 hosts | `/teams/account-workspace` (+ `/config` bind company or project) |
+| Teams Phase 3 hosts | `/teams/assign-message`, `/teams/post-meeting`, `/api/teams/bot` |
+| Teams Phase 4 foundation | `TeamsChannelBinding` + `/api/teams/channel-binding` + `/api/teams/attention-card` |
 | Outlook assign parity | Compose assign + mail-tag (Company / Project / Opportunity) |
 | Intake | FS-012 / Outlook no-contact state |
 | Post-meeting | FS-014 |

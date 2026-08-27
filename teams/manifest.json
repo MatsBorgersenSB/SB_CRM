@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
   "manifestVersion": "1.17",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "id": "6f3c8b2a-9d4e-4a1c-b7e2-a1b2c3d4e5f7",
   "developer": {
     "name": "Standard Bio",
@@ -14,8 +14,8 @@
     "full": "SmartCRM for Teams"
   },
   "description": {
-    "short": "Daily Focus, Meeting Briefing, and Account Workspace",
-    "full": "FS-018 Phase 1–2: Daily Focus, Meeting Briefing, and channel Account Workspace — decision intelligence without CRM iframes."
+    "short": "Focus, briefing, account workspace, assign & notes",
+    "full": "FS-018 complete v1: Daily Focus, Meeting Briefing, Account Workspace, message Assign, and post-meeting notes — without CRM iframes."
   },
   "icons": {
     "color": "color.png",
@@ -28,6 +28,20 @@
       "name": "Daily Focus",
       "contentUrl": "https://sb-crm-seven.vercel.app/teams/daily-focus",
       "websiteUrl": "https://sb-crm-seven.vercel.app/teams/daily-focus",
+      "scopes": ["personal"]
+    },
+    {
+      "entityId": "smartcrm.assignMessage",
+      "name": "Assign",
+      "contentUrl": "https://sb-crm-seven.vercel.app/teams/assign-message",
+      "websiteUrl": "https://sb-crm-seven.vercel.app/teams/assign-message",
+      "scopes": ["personal"]
+    },
+    {
+      "entityId": "smartcrm.postMeeting",
+      "name": "Post-meeting",
+      "contentUrl": "https://sb-crm-seven.vercel.app/teams/post-meeting",
+      "websiteUrl": "https://sb-crm-seven.vercel.app/teams/post-meeting",
       "scopes": ["personal"]
     }
   ],
@@ -45,8 +59,37 @@
       "context": ["channelTab", "privateChatTab"]
     }
   ],
-  "bots": [],
-  "composeExtensions": [],
+  "bots": [
+    {
+      "botId": "REPLACE_WITH_AZURE_AD_CLIENT_ID",
+      "scopes": ["personal", "team", "groupchat"],
+      "supportsFiles": false,
+      "isNotificationOnly": false
+    }
+  ],
+  "composeExtensions": [
+    {
+      "botId": "REPLACE_WITH_AZURE_AD_CLIENT_ID",
+      "commands": [
+        {
+          "id": "assignMessage",
+          "type": "action",
+          "title": "Assign to SmartCRM",
+          "description": "Link this message to a company, project, or opportunity",
+          "context": ["message"],
+          "fetchTask": true
+        },
+        {
+          "id": "postMeeting",
+          "type": "action",
+          "title": "Post-meeting notes",
+          "description": "Paste transcript and propose commitments (FS-014)",
+          "context": ["message", "commandBox"],
+          "fetchTask": true
+        }
+      ]
+    }
+  ],
   "permissions": ["identity", "messageTeamMembers"],
   "validDomains": [
     "sb-crm-seven.vercel.app",

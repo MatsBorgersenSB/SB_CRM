@@ -29,6 +29,8 @@ export type TeamsSdk = {
       user?: { userPrincipalName?: string; loginHint?: string };
       chat?: { id?: string };
       meeting?: { id?: string };
+      channel?: { id?: string };
+      team?: { internalId?: string; groupId?: string };
       page?: { frameContext?: string };
     }>;
   };
@@ -126,6 +128,23 @@ export async function resolveTeamsUserHint(): Promise<string | null> {
       context.user?.userPrincipalName?.trim().toLowerCase() ||
       null
     );
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveTeamsChannelContext(): Promise<{
+  teamId: string | null;
+  channelId: string | null;
+} | null> {
+  const teams = await whenTeamsReady();
+  if (!teams) return null;
+  try {
+    const context = await teams.app.getContext();
+    return {
+      teamId: context.team?.groupId || context.team?.internalId || null,
+      channelId: context.channel?.id || context.chat?.id || null,
+    };
   } catch {
     return null;
   }

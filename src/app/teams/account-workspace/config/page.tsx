@@ -107,19 +107,39 @@ export default function TeamsAccountWorkspaceConfigPage() {
           if (selected.kind === "project") params.set("projectId", selected.id);
           else params.set("companyId", selected.id);
           const contentUrl = `${origin}/teams/account-workspace?${params.toString()}`;
-          void config
-            .setConfig({
-              entityId: `smartcrm.accountWorkspace.${selected.kind}.${selected.id}`,
-              contentUrl,
-              websiteUrl: contentUrl,
-              suggestedDisplayName: selected.label.slice(0, 40),
-            })
-            .then(() => saveEvent.notifySuccess())
-            .catch((err: unknown) => {
+
+          void (async () => {
+            try {
+              const context = await teams.app.getContext();
+              const teamId =
+                context.team?.groupId || context.team?.internalId || "";
+              const channelId = context.channel?.id || context.chat?.id || "";
+              if (teamId && channelId) {
+                await fetch("/api/teams/channel-binding", {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    teamId,
+                    channelId,
+                    companyId: selected.kind === "company" ? selected.id : null,
+                    projectId: selected.kind === "project" ? selected.id : null,
+                  }),
+                });
+              }
+              await config.setConfig({
+                entityId: `smartcrm.accountWorkspace.${selected.kind}.${selected.id}`,
+                contentUrl,
+                websiteUrl: contentUrl,
+                suggestedDisplayName: selected.label.slice(0, 40),
+              });
+              saveEvent.notifySuccess();
+            } catch (err: unknown) {
               saveEvent.notifyFailure(
                 err instanceof Error ? err.message : "Could not save tab",
               );
-            });
+            }
+          })();
         });
       } catch {
         if (!cancelled) setTeamsReady(false);

@@ -29,8 +29,27 @@ export function TeamsAccountWorkspacePane() {
       const companyId = searchParams.get("companyId")?.trim() || "";
       const projectId = searchParams.get("projectId")?.trim() || "";
       const email = searchParams.get("email")?.trim().toLowerCase() || "";
+      const teamId = searchParams.get("teamId")?.trim() || "";
+      const channelId = searchParams.get("channelId")?.trim() || "";
 
-      if (!companyId && !projectId && !email) {
+      let resolvedCompanyId = companyId;
+      let resolvedProjectId = projectId;
+
+      if (!resolvedCompanyId && !resolvedProjectId && !email && teamId && channelId) {
+        const bindRes = await fetch(
+          `/api/teams/channel-binding?teamId=${encodeURIComponent(teamId)}&channelId=${encodeURIComponent(channelId)}`,
+          { credentials: "include", cache: "no-store" },
+        );
+        if (bindRes.ok) {
+          const body = (await bindRes.json()) as {
+            binding?: { companyId?: string | null; projectId?: string | null };
+          };
+          resolvedCompanyId = body.binding?.companyId?.trim() || "";
+          resolvedProjectId = body.binding?.projectId?.trim() || "";
+        }
+      }
+
+      if (!resolvedCompanyId && !resolvedProjectId && !email) {
         if (!cancelled) {
           setState({
             status: "empty",
@@ -43,8 +62,8 @@ export function TeamsAccountWorkspacePane() {
 
       try {
         const params = new URLSearchParams();
-        if (projectId) params.set("projectId", projectId);
-        else if (companyId) params.set("companyId", companyId);
+        if (resolvedProjectId) params.set("projectId", resolvedProjectId);
+        else if (resolvedCompanyId) params.set("companyId", resolvedCompanyId);
         else params.set("email", email);
 
         const response = await fetch(
