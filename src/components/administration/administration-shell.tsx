@@ -9,7 +9,7 @@ import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
-import { canAccessAssistedConfiguration, canAccessUsersAccess, canAccessWorkspaceArchitect, filterCompaniesForUser } from "@/lib/permissions";
+import { canAccessAssistedConfiguration, canAccessDuplicateManager, canAccessUsersAccess, canAccessWorkspaceArchitect, filterCompaniesForUser } from "@/lib/permissions";
 import { ASSISTED_CONFIGURATION, ASSISTED_EVERYTHING, SMARTCRM_PLATFORM_CONSTITUTION, USERS_ACCESS_MANAGEMENT, WORKSPACE_ARCHITECT } from "@/lib/smart-assist-config";
 import type { Company } from "@/types/company";
 
@@ -19,6 +19,7 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
   const showAssistedConfig = canAccessAssistedConfiguration(user.role);
   const showWorkspaceArchitect = canAccessWorkspaceArchitect(user.role);
   const showUsersAccess = canAccessUsersAccess(user.role);
+  const showDuplicateManager = canAccessDuplicateManager(user.role);
 
   return (
     <WorkspaceChrome>
@@ -94,6 +95,24 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
               </p>
               <WebhookChannelConfigCard />
             </WorkspacePanel>
+
+            {showDuplicateManager ? (
+              <WorkspacePanel title="Duplicate Manager">
+                <p className="mb-2 text-sm font-medium text-carbon-blue">
+                  Detect and resolve duplicate companies and contacts
+                </p>
+                <p className="mb-3 text-sm text-carbon-blue/55">
+                  Scored clusters with clear match reasons. SmartCRM recommends which
+                  record to keep — you confirm every merge. Nothing is auto-merged.
+                </p>
+                <Link
+                  href="/administration/duplicates"
+                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                >
+                  Open Duplicate Manager
+                </Link>
+              </WorkspacePanel>
+            ) : null}
 
             <WorkspacePanel title="Company Master Data">
               <p className="mb-4 text-sm text-carbon-blue/55">
