@@ -31,10 +31,24 @@ function TopRiskPanel({ risk }: { risk: M365RiskBlock | null }) {
 }
 
 /** Teams Account Workspace — max 7 sections (North Star budget). */
-export function AccountWorkspace({ payload }: { payload: M365AccountWorkspacePayload }) {
+export function AccountWorkspace({
+  payload,
+  variant = "default",
+}: {
+  payload: M365AccountWorkspacePayload;
+  variant?: "default" | "teams";
+}) {
+  const shell =
+    variant === "teams" ? "min-h-[100dvh] bg-white" : "dashboard-card overflow-hidden";
+
   return (
-    <article className="dashboard-card overflow-hidden">
+    <article className={shell}>
       <div className="space-y-4 px-5 py-5">
+        {variant === "teams" ? (
+          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+            SmartCRM · Account Workspace
+          </p>
+        ) : null}
         <M365IntelligenceMetaStrip meta={payload.meta} />
 
         <RelationshipHeader
