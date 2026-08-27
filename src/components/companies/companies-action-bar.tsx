@@ -238,18 +238,40 @@ export function CompaniesActionBar({
         error instanceof Error && error.message.trim()
           ? error.message
           : "Unable to create company. Please try again.";
-      setCreateError(message);
+      const friendlyDuplicate =
+        /organizationNumber|registration number .* already used/i.test(message);
+      setCreateError(
+        friendlyDuplicate && /Unique constraint failed/i.test(message)
+          ? `Registration number ${form.organizationNumber.trim()} is already used by another company. Open that company instead of creating a duplicate.`
+          : message,
+      );
       let href: string | null = null;
       if (isSharePointServiceError(error)) {
         const details = error.details as
-          | { details?: { href?: unknown }; href?: unknown }
+          | {
+              details?: { href?: unknown; companyId?: unknown };
+              href?: unknown;
+              companyId?: unknown;
+            }
           | null
           | undefined;
         const candidate =
           (typeof details?.details?.href === "string" && details.details.href) ||
           (typeof details?.href === "string" && details.href) ||
           null;
-        href = candidate;
+        const companyId =
+          (typeof details?.details?.companyId === "string" &&
+            details.details.companyId) ||
+          (typeof details?.companyId === "string" && details.companyId) ||
+          null;
+        href = candidate || (companyId ? company360Href(companyId) : null);
+      }
+      if (!href && form.organizationNumber.trim()) {
+        const existing = findCompanyByOrganizationNumber(
+          companies,
+          form.organizationNumber,
+        );
+        if (existing) href = company360Href(existing);
       }
       setCreateErrorHref(href);
     } finally {
