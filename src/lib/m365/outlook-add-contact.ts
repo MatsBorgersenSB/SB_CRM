@@ -2,15 +2,14 @@ import {
   createCompanyContact,
   updateCompany,
 } from "@/lib/pipeline-db";
-import { createRegistryCompany, loadMappedPrismaCompany } from "@/lib/company-registry";
+import { createRegistryCompany } from "@/lib/company-registry";
 import { createRegistryContact, getRegistryContactById } from "@/lib/contact-registry";
 import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
 import { mapPrismaContactToApp } from "@/lib/prisma-mappers";
 import { readLiveCompanies } from "@/lib/prisma-data";
-import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import { resolveAccountOwner } from "@/lib/company-owner";
 import { buildM365RelationshipCard } from "@/lib/m365/relationship-card";
-import { loadM365DataContext } from "@/lib/m365/resolve-context";
+import { loadM365PaneContext } from "@/lib/m365/pane-context";
 import type { M365RelationshipCardPayload } from "@/types/m365";
 import type { Contact, ContactListRole, ContactStatus, RelationshipLevel } from "@/types/contact";
 import { getContactDisplayName } from "@/types/contact";
@@ -351,19 +350,11 @@ export async function addOutlookContact(
     Country: company.Country,
   });
 
-  const ctx = await loadM365DataContext();
-  let refreshedCompany =
-    ctx.companies.find((item) => item.CompanyID === company!.CompanyID) ?? null;
-
-  if (!refreshedCompany) {
-    const prismaCompany = await findPrismaCompanyByRouteKey(company.CompanyID).catch(
-      () => null,
-    );
-    if (prismaCompany) {
-      refreshedCompany = await loadMappedPrismaCompany(prismaCompany.id).catch(() => null);
-    }
-  }
-  refreshedCompany = refreshedCompany ?? company;
+  const pane = await loadM365PaneContext({
+    companyId: company.CompanyID,
+    email,
+  });
+  let refreshedCompany = pane.resolved?.company ?? company;
 
   // Ensure the new contact is nested on the company for relationship-card build.
   const refreshedContact =
@@ -382,13 +373,9 @@ export async function addOutlookContact(
   let relationshipCard: M365RelationshipCardPayload | null = null;
   try {
     relationshipCard = buildM365RelationshipCard(refreshedCompany, {
-      ...ctx,
-      companies: ctx.companies.some((row) => row.CompanyID === refreshedCompany!.CompanyID)
-        ? ctx.companies.map((row) =>
-            row.CompanyID === refreshedCompany!.CompanyID ? refreshedCompany! : row,
-          )
-        : [...ctx.companies, refreshedCompany],
-    });
+      ...pane.ctx,
+      companies: [refreshedCompany],
+    }, { correspondence: pane.correspondence });
   } catch {
     relationshipCard = null;
   }
