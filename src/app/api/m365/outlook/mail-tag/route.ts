@@ -12,7 +12,7 @@ import { resolveM365PaneCompany } from "@/lib/m365/pane-context";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
-import { prismaDemoSeedCompanyWhere, prismaDemoSeedOpportunityWhere } from "@/lib/demo-seed-markers";
+import { prismaLiveCompanyWhere, prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
 
 type LinkOption = {
   id: string;
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
           where: {
             status: "open",
             companyId: prismaCompanyId,
-            NOT: prismaDemoSeedOpportunityWhere,
+            AND: prismaLiveOpportunityWhere.AND,
           },
           select: { id: true, name: true, code: true },
           orderBy: { updatedAt: "desc" },
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
         })
       : [];
     const companyRows = await prisma.company.findMany({
-      where: { NOT: prismaDemoSeedCompanyWhere },
+      where: prismaLiveCompanyWhere,
       select: { id: true, name: true, code: true },
       orderBy: { updatedAt: "desc" },
       take: 20,
@@ -96,7 +96,7 @@ export async function GET(request: Request) {
     const broader = await prisma.opportunity.findMany({
       where: {
         status: "open",
-        NOT: prismaDemoSeedOpportunityWhere,
+        AND: prismaLiveOpportunityWhere.AND,
         ...(companyScoped.length > 0
           ? { id: { notIn: companyScoped.map((row) => row.id) } }
           : {}),

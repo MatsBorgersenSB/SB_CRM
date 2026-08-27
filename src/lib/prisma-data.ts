@@ -34,9 +34,9 @@ import {
 } from "@/lib/pipeline-db";
 import { readProjects } from "@/lib/project-db";
 import {
-  DEMO_SEED_OWNER_ID,
-  prismaDemoSeedCompanyWhere,
-  prismaDemoSeedOpportunityWhere,
+  prismaLiveCompanyWhere,
+  prismaLiveContactWhere,
+  prismaLiveOpportunityWhere,
 } from "@/lib/demo-seed-markers";
 
 export type LivePortfolio = {
@@ -131,7 +131,7 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
     const [companies, opportunities] = await withPrismaRetry((prisma) =>
       Promise.all([
         prisma.company.findMany({
-          where: { status: "active", NOT: prismaDemoSeedCompanyWhere },
+          where: { status: "active", AND: prismaLiveCompanyWhere.AND },
           select: {
             id: true,
             code: true,
@@ -163,12 +163,7 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
             contacts: {
               where: {
                 status: "active",
-                NOT: {
-                  OR: [
-                    { ownerId: DEMO_SEED_OWNER_ID },
-                    { m365GraphId: { startsWith: "seed-m365-" } },
-                  ],
-                },
+                AND: prismaLiveContactWhere.AND,
               },
               select: CONTACT_LIST_SELECT,
             },
@@ -179,7 +174,7 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
         prisma.opportunity.findMany({
           where: {
             status: { in: ["open", "on_hold"] },
-            NOT: prismaDemoSeedOpportunityWhere,
+            AND: prismaLiveOpportunityWhere.AND,
           },
           select: OPPORTUNITY_LIST_SELECT,
           orderBy: { updatedAt: "desc" },
@@ -286,7 +281,7 @@ export async function readLiveGrowthContext(): Promise<LiveGrowthContext> {
         prisma.opportunity.findMany({
           where: {
             status: { in: ["open", "on_hold", "closed_won", "closed_lost"] },
-            NOT: prismaDemoSeedOpportunityWhere,
+            AND: prismaLiveOpportunityWhere.AND,
           },
           select: GROWTH_OPPORTUNITY_SELECT,
           orderBy: { updatedAt: "desc" },

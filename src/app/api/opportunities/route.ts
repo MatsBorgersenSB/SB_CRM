@@ -11,7 +11,7 @@ import { scheduleOpportunitySharePointFolderProvision } from "@/lib/m365/provisi
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import type { OpportunityStage } from "@/generated/prisma";
-import { prismaDemoSeedOpportunityWhere } from "@/lib/demo-seed-markers";
+import { prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
 
 const OPPORTUNITY_STAGES = new Set<string>([
   "prospecting",
@@ -150,7 +150,7 @@ export async function GET(request: Request) {
     const opportunities = await prisma.opportunity.findMany({
       where: {
         ...(companyId ? { companyId } : {}),
-        NOT: prismaDemoSeedOpportunityWhere,
+        AND: prismaLiveOpportunityWhere.AND,
       },
       orderBy: { updatedAt: "desc" },
       take,

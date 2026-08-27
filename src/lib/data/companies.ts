@@ -14,7 +14,7 @@ import {
 } from "@/lib/prisma-mappers";
 import { readCompanies } from "@/lib/pipeline-db";
 import { nextCompanyTrackingId } from "@/lib/entity-id";
-import { prismaDemoSeedCompanyWhere } from "@/lib/demo-seed-markers";
+import { prismaLiveCompanyWhere } from "@/lib/demo-seed-markers";
 
 /**
  * Match company in live/JSON portfolio — id, CompanyID/code, name, domain, email.
@@ -105,7 +105,7 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
                 { alternativeNames: { has: cleanId } },
               ],
             },
-            { NOT: prismaDemoSeedCompanyWhere },
+            prismaLiveCompanyWhere,
           ],
         },
         include: companyDetailInclude,
@@ -118,7 +118,7 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
         prisma.company.findMany({
           where: {
             status: { in: ["active", "archived"] },
-            NOT: prismaDemoSeedCompanyWhere,
+            AND: prismaLiveCompanyWhere.AND,
           },
           include: companyDetailInclude,
         }),
@@ -134,7 +134,7 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
         prisma.company.findMany({
           where: {
             status: { in: ["active", "archived"] },
-            NOT: prismaDemoSeedCompanyWhere,
+            AND: prismaLiveCompanyWhere.AND,
           },
           include: companyDetailInclude,
         }),
