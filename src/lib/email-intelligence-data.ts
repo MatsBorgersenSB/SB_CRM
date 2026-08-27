@@ -233,6 +233,24 @@ export type OutlookMessageSeedInput = {
   isOutbound?: boolean;
 };
 
+/** Office.js compose may pass subject as a non-string; never call .trim on it raw. */
+function coerceMailSubject(value: unknown): string {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || "(no subject)";
+  }
+  if (value == null) return "(no subject)";
+  if (typeof value === "object") return "(no subject)";
+  const asString = String(value).trim();
+  return asString || "(no subject)";
+}
+
+function coerceOptionalTrimmedString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
 async function upsertSeededOutlookMessage(
   contact: { id: string; emails: unknown },
   conversationId: string,
@@ -260,6 +278,9 @@ async function upsertSeededOutlookMessage(
       ? addresses
       : addresses.filter((address) => address !== senderEmail);
   const sentAt = seed.sentAt ? new Date(seed.sentAt) : new Date();
+  const subject = coerceMailSubject(seed.subject);
+  const bodyPreview = coerceOptionalTrimmedString(seed.bodyPreview);
+  const webLink = coerceOptionalTrimmedString(seed.webLink);
 
   await prisma.emailMessageRecord.upsert({
     where: { externalMessageId },
@@ -267,16 +288,13 @@ async function upsertSeededOutlookMessage(
       externalMessageId,
       conversationId,
       contactId: contact.id,
-      subject: seed.subject?.trim() || "(no subject)",
-      bodyPreview: seed.bodyPreview?.slice(0, 2000) ?? null,
-      webLink: seed.webLink?.trim() || null,
+      subject,
+      bodyPreview: bodyPreview ? bodyPreview.slice(0, 2000) : null,
+      webLink: webLink ?? null,
       senderEmail: senderEmail || addresses[0] || "unknown@smartcrm.local",
       recipientEmails,
       sentAt: Number.isNaN(sentAt.getTime()) ? new Date() : sentAt,
-      sentiment: gradeEmailSentiment(
-        seed.subject?.trim() || "(no subject)",
-        seed.bodyPreview,
-      ),
+      sentiment: gradeEmailSentiment(subject, bodyPreview),
       isOutbound,
       opportunityId: links?.opportunityId ?? null,
       projectId: links?.projectId ?? null,
@@ -286,11 +304,9 @@ async function upsertSeededOutlookMessage(
     update: {
       conversationId,
       contactId: contact.id,
-      ...(seed.subject?.trim() ? { subject: seed.subject.trim() } : {}),
-      ...(seed.bodyPreview?.trim()
-        ? { bodyPreview: seed.bodyPreview.trim().slice(0, 2000) }
-        : {}),
-      ...(seed.webLink?.trim() ? { webLink: seed.webLink.trim() } : {}),
+      ...(subject !== "(no subject)" ? { subject } : {}),
+      ...(bodyPreview ? { bodyPreview: bodyPreview.slice(0, 2000) } : {}),
+      ...(webLink ? { webLink } : {}),
       ...(senderEmail ? { senderEmail } : {}),
       ...(recipientEmails.length > 0 ? { recipientEmails } : {}),
       isOutbound,
@@ -714,6 +730,74 @@ export async function purgeConversationForContact(
 }
 
 /**
+ * Link the contact's company onto a project's related organizations when missing.
+ * Buy-from → supplier; collaborate → partner; sell-to → customer; else other.
+ * Reality First: only links an existing company id already on the contact.
+ */
+async function ensureContactCompanyOnProject(
+  prismaCompanyId: string,
+  projectId: string,
+): Promise<void> {
+  const { readProjectById, updateProject } = await import("@/lib/project-db");
+  const {
+    createOrganizationId,
+    getProjectRelatedOrganizations,
+  } = await import("@/lib/project-relationship-utils");
+  const { getCompanyRelationshipPosture } = await import(
+    "@/lib/company-classification"
+  );
+  const { loadMappedPrismaCompany } = await import("@/lib/company-registry");
+
+  const project = await readProjectById(projectId);
+  if (!project) return;
+
+  let company;
+  try {
+    company = await loadMappedPrismaCompany(prismaCompanyId);
+  } catch {
+    return;
+  }
+
+  const publicCompanyId = company.CompanyID;
+  const existing = getProjectRelatedOrganizations(project);
+  const alreadyLinked = existing.some(
+    (org) =>
+      org.companyId === publicCompanyId ||
+      org.companyId === prismaCompanyId ||
+      org.companyId === company.code,
+  );
+  if (alreadyLinked) return;
+
+  const posture = getCompanyRelationshipPosture(company);
+  const organizationType =
+    posture === "buy_from"
+      ? "supplier"
+      : posture === "collaborate"
+        ? "partner"
+        : posture === "sell_to"
+          ? "customer"
+          : "other";
+
+  await updateProject(projectId, {
+    relatedOrganizations: [
+      ...existing,
+      {
+        id: createOrganizationId(),
+        companyId: publicCompanyId,
+        organizationType,
+        label:
+          organizationType === "supplier"
+            ? "Supplier"
+            : organizationType === "partner"
+              ? "Partner"
+              : undefined,
+        isPrimary: false,
+      },
+    ],
+  });
+}
+
+/**
  * Set or clear opportunity / project links for every message in a contact conversation.
  * When the conversation is not yet synced, optionally seed from the open Outlook item.
  */
@@ -897,6 +981,19 @@ export async function setConversationLinksForContact(
     where: { conversationId },
     data,
   });
+
+  // When mail is tagged to a project, ensure the contact's company is a related
+  // organization (supplier for buy-from). User confirmed the project link.
+  if (data.projectId && contact.companyId) {
+    await ensureContactCompanyOnProject(contact.companyId, data.projectId).catch(
+      (error) => {
+        console.warn(
+          "[email-intelligence] Could not link company to project organizations:",
+          error instanceof Error ? error.message : error,
+        );
+      },
+    );
+  }
 
   // Resolve final link state for intentional Outlook category (user action only).
   const sample = await prisma.emailMessageRecord.findFirst({

@@ -403,7 +403,8 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       </p>
       <p className="mt-1 text-sm font-semibold text-carbon-blue">Assign this mail</p>
       <p className="mt-1 text-[11px] leading-snug text-carbon-blue/55">
-        Link this draft to the company, a project, or — when sell-to — an opportunity.
+        Link this draft to the company or a project. Opportunity only appears for sell-to
+        relationships (Customer / Prospect / Offtaker).
       </p>
 
       {phase.status === "loading" ? (
@@ -523,7 +524,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
               Saves this draft on {phase.context.companyName} without linking an
               opportunity or project.
               {!opportunityEligible
-                ? " Opportunity is hidden because this is not a sell-to relationship."
+                ? " Opportunity stays hidden for suppliers and partners — use Project to link Escalante-style work."
                 : ""}
             </p>
           ) : (
