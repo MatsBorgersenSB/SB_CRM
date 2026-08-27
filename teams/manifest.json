@@ -1,0 +1,56 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "6f3c8b2a-9d4e-4a1c-b7e2-a1b2c3d4e5f7",
+  "developer": {
+    "name": "Standard Bio",
+    "websiteUrl": "https://sb-crm-seven.vercel.app",
+    "privacyUrl": "https://sb-crm-seven.vercel.app",
+    "termsOfUseUrl": "https://sb-crm-seven.vercel.app"
+  },
+  "name": {
+    "short": "SmartCRM",
+    "full": "SmartCRM for Teams"
+  },
+  "description": {
+    "short": "Daily Focus and Meeting Briefing for SmartCRM",
+    "full": "FS-018 Phase 1: See what deserves attention today and prepare meetings with relationship intelligence — without leaving Teams. No CRM iframes."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#E85D04",
+  "staticTabs": [
+    {
+      "entityId": "smartcrm.dailyFocus",
+      "name": "Daily Focus",
+      "contentUrl": "https://sb-crm-seven.vercel.app/teams/daily-focus",
+      "websiteUrl": "https://sb-crm-seven.vercel.app/teams/daily-focus",
+      "scopes": ["personal"]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://sb-crm-seven.vercel.app/teams/meeting-briefing/config",
+      "canUpdateConfiguration": false,
+      "scopes": ["groupchat", "team"],
+      "context": ["meetingSidePanel", "meetingStage"],
+      "sharePointPreviewImage": "",
+      "supportedSharePointHosts": []
+    }
+  ],
+  "bots": [],
+  "composeExtensions": [],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": [
+    "sb-crm-seven.vercel.app",
+    "crm.standard.bio",
+    "login.microsoftonline.com"
+  ],
+  "webApplicationInfo": {
+    "id": "REPLACE_WITH_AZURE_AD_CLIENT_ID",
+    "resource": "api://sb-crm-seven.vercel.app/REPLACE_WITH_AZURE_AD_CLIENT_ID"
+  }
+}

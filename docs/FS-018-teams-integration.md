@@ -278,6 +278,7 @@ One primary button. No widget sprawl.
 | Phase | Scope | Exit criteria |
 |-------|--------|----------------|
 | **1 — Presence** | Personal app: Daily Focus (4) + Meeting Briefing side panel | Seller can brief before a call without leaving Teams |
+| **1 status** | **In progress in product** — hosts at `/teams/daily-focus` and `/teams/meeting-briefing`; package under `teams/` | Sideload + Entra `webApplicationInfo` still required per tenant |
 | **2 — Account room** | Channel tab Account Workspace (7) for company or project | Escalante-style channel shows living context |
 | **3 — Capture** | Message extension Assign + FS-014 transcript path from Teams | Message and meeting knowledge land with Approve |
 | **4 — Operating loop** | Channel binding + weekly attention Adaptive Card + Planner handoff | Project channel becomes attention cockpit |
@@ -327,10 +328,11 @@ Phases are sequential for quality; Phase 3 may reuse Phase 1 Graph permissions.
 | Capability | Existing / planned |
 |------------|-------------------|
 | M365 payloads | `/api/m365/*` relationship-card, briefing, daily-focus, account-workspace |
+| Teams Phase 1 hosts | `/teams/daily-focus`, `/teams/meeting-briefing` + `teams/manifest.json` |
 | Outlook assign parity | Compose assign + mail-tag (Company / Project / Opportunity) |
 | Intake | FS-012 / Outlook no-contact state |
 | Post-meeting | FS-014 |
-| UI kit | `@smartcrm/m365-ui` patterns in North Star |
+| UI kit | `src/components/m365` (local `@smartcrm/m365-ui` patterns) |
 
 ---
 

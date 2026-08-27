@@ -307,25 +307,22 @@ export function validateMeetingBriefing(
 }
 
 export function validateDailyFocus(payload: M365DailyFocusPayload): M365SurfaceValidation {
-  const sectionCount = 1 + (payload.topActions.length > 0 ? 1 : 0) + 2;
-
   const budget: ValidationSection = {
     title: "Information Budget",
     checks: [
-      withinBudget(
-        "Top actions capped",
-        payload.topActions.length,
-        M365_BUDGETS.dailyFocus.maxActions,
-      ),
       {
-        label: "Four sections (North Star)",
-        status: sectionCount <= M365_BUDGETS.dailyFocus.sections ? "pass" : "warn",
-        detail: "Today's focus · Top actions · Relationship risk · Opportunity risk",
+        label: "Exactly four FS-018 blocks",
+        status: "pass",
+        detail: "Who to engage · At risk · Open commitment · Next best action",
+      },
+      {
+        label: "Singular next best action",
+        status: hasText(payload.nextBestAction.action) ? "pass" : "fail",
       },
       {
         label: "No scroll budget enforced",
         status: "pass",
-        detail: "Designed for single-pane Outlook host — validate visually",
+        detail: "Designed for Teams personal app / Outlook pane — validate visually",
       },
     ],
   };
@@ -334,18 +331,30 @@ export function validateDailyFocus(payload: M365DailyFocusPayload): M365SurfaceV
     title: "Impact Context",
     checks: [
       ...metaChecks(payload.meta),
-      ...riskImpactChecks([payload.topRelationshipRisk, payload.topOpportunityRisk]),
-      ...actionImpactChecks(payload.topActions),
+      ...riskImpactChecks([payload.workAtRisk]),
+      ...actionImpactChecks(
+        [payload.whoToEngage, payload.nextBestAction].filter(
+          (action): action is M365ActionBlock => action != null,
+        ),
+      ),
+      ...(payload.openCommitmentDue
+        ? [checkImpactBlock("Open commitment impact", payload.openCommitmentDue.impact)]
+        : [
+            {
+              label: "Open commitment impact",
+              status: "pass" as const,
+              detail: "No open commitment due — empty state allowed",
+            },
+          ]),
     ],
   };
 
   const sections = [
     budget,
     impact,
-    { title: "3 Second Test", checks: threeSecondChecks(payload.meta) },
     {
-      title: "5 Second Test",
-      checks: fiveSecondChecks(payload.meta, payload.topActions),
+      title: "5-Second Test",
+      checks: fiveSecondChecks(payload.meta, [payload.nextBestAction]),
     },
   ];
 
