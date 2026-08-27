@@ -41,6 +41,8 @@ type TagContextPayload = {
   error?: string;
 };
 
+type AssignLinkKind = "company" | "project" | "opportunity";
+
 type Phase =
   | { status: "loading" }
   | { status: "auth-required" }
@@ -88,7 +90,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
   const [recipients, setRecipients] = useState<OutlookComposeRecipient[]>([]);
   const [selectedEmail, setSelectedEmail] = useState("");
   const [phase, setPhase] = useState<Phase>({ status: "loading" });
-  const [linkKind, setLinkKind] = useState<"opportunity" | "project">("opportunity");
+  const [linkKind, setLinkKind] = useState<AssignLinkKind>("company");
   const [selectedId, setSelectedId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,13 +105,15 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
 
   const applyReadyContext = (email: string, context: TagContextPayload) => {
     setPhase({ status: "ready", email, context });
+    const opportunityEligible = context.opportunityEligible ?? true;
     if (context.currentProjectId) {
       setLinkKind("project");
       setSelectedId(context.currentProjectId);
-    } else if (context.currentOpportunityId) {
+    } else if (context.currentOpportunityId && opportunityEligible) {
       setLinkKind("opportunity");
       setSelectedId(context.currentOpportunityId);
     } else {
+      setLinkKind("company");
       setSelectedId("");
     }
   };
@@ -287,7 +291,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEmail, recipients, role]);
 
-  const commercialTagging =
+  const opportunityEligible =
     phase.status === "ready"
       ? (phase.context.opportunityEligible ?? true)
       : true;
@@ -296,11 +300,15 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
     phase.status === "ready"
       ? linkKind === "project"
         ? phase.context.projectOptions
-        : phase.context.opportunityOptions
+        : linkKind === "opportunity"
+          ? phase.context.opportunityOptions
+          : []
       : [];
 
   const assignMail = async () => {
-    if (phase.status !== "ready" || !selectedId) return;
+    if (phase.status !== "ready") return;
+    if (linkKind !== "company" && !selectedId) return;
+
     setBusy(true);
     setError(null);
     setStatus(null);
@@ -323,8 +331,12 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
         body: JSON.stringify({
           contactId: phase.context.contactId,
           conversationId: seed.conversationId,
-          opportunityId: linkKind === "opportunity" ? selectedId : null,
-          projectId: linkKind === "project" ? selectedId : null,
+          ...(linkKind === "company"
+            ? {}
+            : {
+                opportunityId: linkKind === "opportunity" ? selectedId : null,
+                projectId: linkKind === "project" ? selectedId : null,
+              }),
           message: {
             externalMessageId: seed.externalMessageId,
             subject: seed.subject,
@@ -351,26 +363,12 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       setStatus(
         linkKind === "project"
           ? "Assigned to project in SmartCRM."
-          : "Assigned to opportunity in SmartCRM.",
+          : linkKind === "opportunity"
+            ? "Assigned to opportunity in SmartCRM."
+            : `Saved on ${phase.context.companyName} — no opportunity or project link.`,
       );
     } catch (assignError) {
       setError(assignError instanceof Error ? assignError.message : "Could not assign mail");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const markRelationshipOnly = async () => {
-    setBusy(true);
-    setError(null);
-    setStatus(null);
-    try {
-      await ensureOutlookComposeSeed({
-        primaryRecipientEmail: selectedEmail || undefined,
-      });
-      setStatus("Marked as SmartCRM relationship mail — no opportunity or project link.");
-    } catch (markError) {
-      setError(markError instanceof Error ? markError.message : "Could not mark mail");
     } finally {
       setBusy(false);
     }
@@ -419,7 +417,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       </p>
       <p className="mt-1 text-sm font-semibold text-carbon-blue">Assign this mail</p>
       <p className="mt-1 text-[11px] leading-snug text-carbon-blue/55">
-        Link the draft you are writing — opportunity, project, or relationship only.
+        Link this draft to the company, a project, or — when sell-to — an opportunity.
       </p>
 
       {phase.status === "loading" ? (
@@ -487,24 +485,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
         </label>
       ) : null}
 
-      {phase.status === "ready" && !commercialTagging ? (
-        <div className="mt-4 border border-carbon-blue/15 bg-carbon-blue/[0.02] px-3 py-2.5">
-          <p className="text-[11px] leading-snug text-carbon-blue/60">
-            {phase.context.companyName} is not a sell-to relationship — keep mail on the company
-            without an opportunity or project.
-          </p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void markRelationshipOnly()}
-            className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-          >
-            {busy ? "Marking…" : "Mark relationship mail"}
-          </button>
-        </div>
-      ) : null}
-
-      {phase.status === "ready" && commercialTagging ? (
+      {phase.status === "ready" ? (
         <div className="mt-4 space-y-2">
           <p className="text-[11px] text-carbon-blue/55">
             {phase.context.contactName
@@ -513,49 +494,81 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
           </p>
 
           <div className="flex gap-1">
-            {(["opportunity", "project"] as const).map((kind) => (
+            {(
+              [
+                { kind: "company" as const, label: "Company", enabled: true },
+                { kind: "project" as const, label: "Project", enabled: true },
+                {
+                  kind: "opportunity" as const,
+                  label: "Opportunity",
+                  enabled: opportunityEligible,
+                },
+              ] as const
+            ).map((entry) => (
               <button
-                key={kind}
+                key={entry.kind}
                 type="button"
+                disabled={!entry.enabled}
+                title={
+                  entry.enabled
+                    ? undefined
+                    : "Opportunities are only for sell-to relationships (Customer / Prospect / Offtaker)."
+                }
                 onClick={() => {
-                  setLinkKind(kind);
+                  if (!entry.enabled) return;
+                  setLinkKind(entry.kind);
                   setSelectedId("");
                   setStatus(null);
+                  setError(null);
                 }}
-                className={`flex-1 border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${
-                  linkKind === kind
+                className={`flex-1 border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-40 ${
+                  linkKind === entry.kind
                     ? "border-upcycle-orange/40 bg-upcycle-orange/10 text-upcycle-orange"
                     : "border-carbon-blue/15 bg-white text-carbon-blue/50"
                 }`}
               >
-                {kind === "opportunity" ? "Opportunity" : "Project"}
+                {entry.label}
               </button>
             ))}
           </div>
 
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-            {linkKind === "opportunity" ? "Opportunity" : "Project"}
-            <select
-              value={selectedId}
-              onChange={(event) => setSelectedId(event.target.value)}
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
-            >
-              <option value="">Select…</option>
-              {options.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {linkKind === "company" ? (
+            <p className="text-[11px] leading-snug text-carbon-blue/55">
+              Saves this draft on {phase.context.companyName} without linking an
+              opportunity or project.
+              {!opportunityEligible
+                ? " Opportunity is hidden because this is not a sell-to relationship."
+                : ""}
+            </p>
+          ) : (
+            <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              {linkKind === "opportunity" ? "Opportunity" : "Project"}
+              <select
+                value={selectedId}
+                onChange={(event) => setSelectedId(event.target.value)}
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+              >
+                <option value="">Select…</option>
+                {options.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <button
             type="button"
-            disabled={!selectedId || busy}
+            disabled={busy || (linkKind !== "company" && !selectedId)}
             onClick={() => void assignMail()}
             className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
           >
-            {busy ? "Assigning…" : "Assign this mail"}
+            {busy
+              ? "Assigning…"
+              : linkKind === "company"
+                ? "Save on company"
+                : "Assign this mail"}
           </button>
         </div>
       ) : null}

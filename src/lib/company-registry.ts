@@ -127,6 +127,48 @@ export async function createRegistryCompany(
   const ownerId = input.AccountOwner?.Id != null ? String(input.AccountOwner.Id) : null;
   const countryGeo = geoFromCountryTitle(countryTitle(input.Country));
   const storedTypes = toPrismaCompanyTypes(input.CompanyTypes);
+  const organizationNumber = input.organizationNumber?.trim() || null;
+
+  if (organizationNumber) {
+    const existingByOrg = await withPrismaRetry((prisma) =>
+      prisma.company.findFirst({
+        where: {
+          OR: [
+            { organizationNumber },
+            { organizationNumber: organizationNumber.toUpperCase() },
+            { organizationNumber: organizationNumber.toLowerCase() },
+          ],
+        },
+        select: { id: true, name: true },
+      }),
+    );
+    if (existingByOrg) {
+      throw new Error(
+        `Registration number ${organizationNumber} is already used by ${existingByOrg.name}. Open that company instead of creating a duplicate.`,
+      );
+    }
+  }
+
+  if (domain) {
+    const existingByDomain = await withPrismaRetry((prisma) =>
+      prisma.company.findFirst({
+        where: {
+          OR: [
+            { website: { equals: `https://${domain}`, mode: "insensitive" } },
+            { website: { equals: `http://${domain}`, mode: "insensitive" } },
+            { website: { equals: domain, mode: "insensitive" } },
+            { website: { endsWith: `://${domain}`, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true, name: true },
+      }),
+    );
+    if (existingByDomain) {
+      throw new Error(
+        `A company with domain ${domain} already exists (${existingByDomain.name}). Link to that company instead of creating a duplicate.`,
+      );
+    }
+  }
 
   const created = await withPrismaRetry(async (prisma) => {
     const code = await allocateNextCompanyCode(prisma);
@@ -146,7 +188,7 @@ export async function createRegistryCompany(
         country: countryGeo.country,
         countryCode: input.countryCode?.trim().toUpperCase() || countryGeo.countryCode,
         continent: input.continent?.trim() || countryGeo.continent,
-        organizationNumber: input.organizationNumber?.trim() || null,
+        organizationNumber,
         vatNumber: input.vatNumber?.trim() || null,
         ownerId,
         emails: input.Email

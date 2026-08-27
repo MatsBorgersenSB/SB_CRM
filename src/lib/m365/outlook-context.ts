@@ -245,6 +245,54 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * Subject is a string in read mode; in compose it is often a Subject object with getAsync.
+ */
+function coerceSubjectString(value: unknown): string {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || "(no subject)";
+  }
+  return "(no subject)";
+}
+
+async function readOutlookItemSubject(item: {
+  subject?: unknown;
+}): Promise<string> {
+  const subject = item.subject;
+  if (typeof subject === "string") {
+    return coerceSubjectString(subject);
+  }
+  if (
+    subject &&
+    typeof subject === "object" &&
+    "getAsync" in subject &&
+    typeof (subject as { getAsync?: unknown }).getAsync === "function"
+  ) {
+    const value = await new Promise<string>((resolve) => {
+      try {
+        (
+          subject as {
+            getAsync: (
+              callback: (result: Office.AsyncResult<string>) => void,
+            ) => void;
+          }
+        ).getAsync((result) => {
+          if (!isOfficeAsyncSuccess(result.status) || result.value == null) {
+            resolve("");
+            return;
+          }
+          resolve(String(result.value).trim());
+        });
+      } catch {
+        resolve("");
+      }
+    });
+    return value || "(no subject)";
+  }
+  return "(no subject)";
+}
+
+/**
  * Resolve To (+ Cc/Bcc) on the open read or compose item.
  * Excludes the mailbox owner. Reality First — only addresses Outlook provides.
  * Retries briefly — Outlook for Mac often resolves recipients after the pane opens.
@@ -528,7 +576,7 @@ function seedFromSelectedLite(
   return {
     conversationId,
     externalMessageId,
-    subject: selected.subject?.trim() || "(no subject)",
+    subject: coerceSubjectString(selected.subject),
     senderEmail: "",
     sentAt: "",
     isOutbound: false,
@@ -582,11 +630,13 @@ async function seedFromLoadedItem(
   const bodyPreview = item.body
     ? await readOutlookItemBodyPreview(item as Office.MailboxItem, office)
     : undefined;
+  const subject = await readOutlookItemSubject(item);
+  const fallbackSubject = coerceSubjectString(selected.subject);
 
   return {
     conversationId,
     externalMessageId,
-    subject: item.subject?.trim() || selected.subject?.trim() || "(no subject)",
+    subject: subject !== "(no subject)" ? subject : fallbackSubject,
     senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail,
     senderDisplayName: item.from?.displayName?.trim() || "",
     sentAt: Number.isNaN(created.getTime())
@@ -649,11 +699,12 @@ async function seedFromOpenMailboxItem(
     }
 
     const bodyPreview = await readOutlookItemBodyPreview(item, office);
+    const subject = await readOutlookItemSubject(item);
 
     return {
       conversationId,
       externalMessageId,
-      subject: item.subject?.trim() || "(no subject)",
+      subject,
       senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail,
       senderDisplayName: item.from?.displayName?.trim() || "",
       sentAt: Number.isNaN(created.getTime())

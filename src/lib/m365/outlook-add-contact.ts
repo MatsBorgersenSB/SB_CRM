@@ -4,12 +4,15 @@ import {
 } from "@/lib/pipeline-db";
 import { createRegistryCompany } from "@/lib/company-registry";
 import { createRegistryContact, getRegistryContactById } from "@/lib/contact-registry";
+import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
+import { mapPrismaContactToApp } from "@/lib/prisma-mappers";
 import { readLiveCompanies } from "@/lib/prisma-data";
 import { resolveAccountOwner } from "@/lib/company-owner";
 import { buildM365RelationshipCard } from "@/lib/m365/relationship-card";
 import { loadM365PaneContext } from "@/lib/m365/pane-context";
 import type { M365RelationshipCardPayload } from "@/types/m365";
-import type { ContactListRole, ContactStatus, RelationshipLevel } from "@/types/contact";
+import type { Contact, ContactListRole, ContactStatus, RelationshipLevel } from "@/types/contact";
+import { getContactDisplayName } from "@/types/contact";
 import {
   resolveContactListRole,
   suggestContactListRoleFromTitle,
@@ -181,9 +184,37 @@ export async function addOutlookContact(
   for (const existing of companies) {
     for (const contact of existing.contacts) {
       if (contact.Email?.trim().toLowerCase() === email) {
-        throw new Error("This contact is already in SmartCRM.");
+        return finishExistingContact(contact, existing);
       }
     }
+  }
+
+  const prismaContact = await findPrismaContactByIdOrEmail(email).catch(() => null);
+  if (prismaContact) {
+    const companyLookup = prismaContact.company
+      ? {
+          Id: 0,
+          Title: prismaContact.company.name,
+          CompanyID:
+            prismaContact.company.code?.trim() || prismaContact.company.id,
+        }
+      : { Id: 0, Title: "Unknown company", CompanyID: "" };
+    const mapped = mapPrismaContactToApp(prismaContact, companyLookup);
+    const companyFromLive =
+      companies.find(
+        (row) =>
+          row.CompanyID === companyLookup.CompanyID ||
+          row.CompanyID === prismaContact.companyId ||
+          (prismaContact.company?.code &&
+            row.CompanyID === prismaContact.company.code) ||
+          row.Title.trim().toLowerCase() === companyLookup.Title.trim().toLowerCase(),
+      ) ?? null;
+    if (companyFromLive) {
+      return finishExistingContact(mapped, companyFromLive);
+    }
+    throw new Error(
+      `${getContactDisplayName(mapped) || email} is already in SmartCRM. Open the existing contact instead of creating a duplicate.`,
+    );
   }
 
   let company =
@@ -353,6 +384,56 @@ export async function addOutlookContact(
     contactId: refreshedContact.ContactID,
     companyId: refreshedCompany.CompanyID,
     companyCreated,
+    relationshipCard,
+  };
+}
+
+async function finishExistingContact(
+  contact: Contact,
+  company: Company,
+): Promise<OutlookAddContactResult> {
+  logOutlookImport("REUSE EXISTING CONTACT", {
+    ContactID: contact.ContactID,
+    Email: contact.Email,
+    CompanyID: company.CompanyID,
+  });
+
+  const pane = await loadM365PaneContext({
+    companyId: company.CompanyID,
+    email: contact.Email,
+  });
+  let refreshedCompany = pane.resolved?.company ?? company;
+  const refreshedContact =
+    (await getRegistryContactById(contact.ContactID).catch(() => null)) ?? contact;
+  if (
+    !refreshedCompany.contacts.some(
+      (entry) => entry.ContactID === refreshedContact.ContactID,
+    )
+  ) {
+    refreshedCompany = {
+      ...refreshedCompany,
+      contacts: [...refreshedCompany.contacts, refreshedContact],
+    };
+  }
+
+  let relationshipCard: M365RelationshipCardPayload | null = null;
+  try {
+    relationshipCard = buildM365RelationshipCard(
+      refreshedCompany,
+      {
+        ...pane.ctx,
+        companies: [refreshedCompany],
+      },
+      { correspondence: pane.correspondence },
+    );
+  } catch {
+    relationshipCard = null;
+  }
+
+  return {
+    contactId: refreshedContact.ContactID,
+    companyId: refreshedCompany.CompanyID,
+    companyCreated: false,
     relationshipCard,
   };
 }
