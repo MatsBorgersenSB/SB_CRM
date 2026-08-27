@@ -142,14 +142,27 @@ export type M365MeetingBriefingPayload = {
   deepLink: string;
 };
 
-/** Outlook Daily Focus pane. */
+/** Outlook Daily Focus pane — FS-018 exactly 4 blocks. */
+export type M365DailyFocusCommitment = {
+  id: string;
+  title: string;
+  dueLabel: string;
+  overdue: boolean;
+  impact: string[];
+  href: string;
+};
+
 export type M365DailyFocusPayload = {
   kind: "daily-focus";
   meta: M365IntelligenceMeta;
-  todaysFocus: string;
-  topActions: M365ActionBlock[];
-  topRelationshipRisk: M365RiskBlock | null;
-  topOpportunityRisk: M365RiskBlock | null;
+  /** Block 1 — who to engage today (external preferred). */
+  whoToEngage: M365ActionBlock | null;
+  /** Block 2 — opportunity or project/relationship work at risk. */
+  workAtRisk: M365RiskBlock | null;
+  /** Block 3 — open commitment due or overdue. */
+  openCommitmentDue: M365DailyFocusCommitment | null;
+  /** Block 4 — singular next best action. */
+  nextBestAction: M365ActionBlock;
 };
 
 /** Teams Account Workspace — max 7 sections. */

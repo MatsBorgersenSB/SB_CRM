@@ -12,7 +12,6 @@ export const M365_BUDGETS = {
     maxWhatChanged: 2,
   },
   dailyFocus: {
-    maxActions: 3,
     sections: 4,
     scroll: false,
   },

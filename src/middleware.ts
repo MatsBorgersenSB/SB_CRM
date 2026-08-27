@@ -42,7 +42,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/outlook/dialog-bridge") ||
     pathname.startsWith("/auth/signin") ||
     pathname.startsWith("/outlook-addin") ||
-    pathname.startsWith("/outlook/")
+    pathname.startsWith("/outlook/") ||
+    pathname.startsWith("/teams/")
   ) {
     return NextResponse.next({
       request: { headers: requestHeaders },
