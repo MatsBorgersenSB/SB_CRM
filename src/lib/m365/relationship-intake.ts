@@ -9,6 +9,7 @@ import { setConversationLinksForContact } from "@/lib/email-intelligence-data";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
+import { prismaDemoSeedOpportunityWhere } from "@/lib/demo-seed-markers";
 import type {
   RelationshipIntakeApproveInput,
   RelationshipIntakeApproveResult,
@@ -50,7 +51,11 @@ async function loadLinkOptions(companyId: string | null): Promise<{
 
   if (prismaCompanyId) {
     const companyScoped = await prisma.opportunity.findMany({
-      where: { status: "open", companyId: prismaCompanyId },
+      where: {
+        status: "open",
+        companyId: prismaCompanyId,
+        NOT: prismaDemoSeedOpportunityWhere,
+      },
       select: { id: true, name: true, code: true },
       orderBy: { updatedAt: "desc" },
       take: 40,

@@ -254,7 +254,7 @@ export function ProjectRelatedOrganizationsPanel({
                   checked={isPrimary}
                   onChange={(event) => setIsPrimary(event.target.checked)}
                 />
-                Primary customer organization
+                Primary account organization
               </label>
               <div className="mt-3 flex gap-2">
                 <button

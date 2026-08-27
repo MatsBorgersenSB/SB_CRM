@@ -43,11 +43,6 @@ export function UniversalSearchProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void loadIndex();
-  }, [loadIndex]);
-
-  // Refresh when opening so newly created contacts (e.g. Halvor) appear immediately.
-  useEffect(() => {
     if (open) void loadIndex();
   }, [open, loadIndex]);
 

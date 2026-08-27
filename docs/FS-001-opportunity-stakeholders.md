@@ -270,7 +270,7 @@ Where useful, the UI may show influence / engagement / last-contact style signal
 ### 5.8 Out of scope (this FS)
 
 - Creating or merging company contacts (company/contact FS)
-- Project-level stakeholder model (`ProjectTeamMember`) except shared role vocabulary
+- Project-level stakeholder model — see **FS-015** (Phase 2.2A); shared role vocabulary only
 - Auto-emailing stakeholders
 - Invented org charts from public web scraping without user confirmation
 

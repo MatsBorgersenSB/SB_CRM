@@ -14,6 +14,10 @@ import {
   stableNumericId,
   toCompanyTrackingId,
 } from "@/lib/prisma-mappers";
+import type {
+  GrowthCorrespondenceSnippet,
+  GrowthDealRecord,
+} from "@/types/growth-super-skills";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import { SMARTDOC_CATEGORIES, type SmartDocCategory } from "@/types/smartdoc-library";
 import { emptyAnalytics, type AnalyticsDb } from "@/lib/analytics-data";
@@ -29,6 +33,11 @@ import {
   readResearchReports as readJsonResearchReports,
 } from "@/lib/pipeline-db";
 import { readProjects } from "@/lib/project-db";
+import {
+  DEMO_SEED_OWNER_ID,
+  prismaDemoSeedCompanyWhere,
+  prismaDemoSeedOpportunityWhere,
+} from "@/lib/demo-seed-markers";
 
 export type LivePortfolio = {
   companies: Company[];
@@ -43,6 +52,59 @@ export type LiveFocusContext = {
   commercialPackages: CommercialPackage[];
   projects: Project[];
   source: "prisma" | "json";
+};
+
+/** Contact fields required to map a relationship card / dashboard row — no notes trees. */
+export const CONTACT_LIST_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  fullName: true,
+  jobTitle: true,
+  emails: true,
+  phoneNumbers: true,
+  status: true,
+  linkedInUrl: true,
+  buyingRole: true,
+  sentiment: true,
+  influenceLevel: true,
+  reportsToId: true,
+} as const;
+
+/** Opportunity fields for pipeline rows — omit understanding JSON and description blobs. */
+export const OPPORTUNITY_LIST_SELECT = {
+  id: true,
+  code: true,
+  name: true,
+  currency: true,
+  companyRole: true,
+  nextStep: true,
+  stage: true,
+  status: true,
+  value: true,
+  probability: true,
+  expectedCloseDate: true,
+  ownerId: true,
+  offeringIds: true,
+  team: true,
+  sharepointFolderId: true,
+  sharepointFolderUrl: true,
+  sharepointFolderPath: true,
+  company: { select: { id: true, name: true } },
+} as const;
+
+/** Growth skills need understanding, description, and closed outcomes. */
+export const GROWTH_OPPORTUNITY_SELECT = {
+  ...OPPORTUNITY_LIST_SELECT,
+  understanding: true,
+  description: true,
+  updatedAt: true,
+} as const;
+
+export type LiveGrowthContext = LivePortfolio & {
+  activities: Activity[];
+  growthDeals: GrowthDealRecord[];
+  correspondence: GrowthCorrespondenceSnippet[];
 };
 
 /**
@@ -69,16 +131,57 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
     const [companies, opportunities] = await withPrismaRetry((prisma) =>
       Promise.all([
         prisma.company.findMany({
-          where: { status: "active" },
-          include: {
-            contacts: { where: { status: "active" } },
+          where: { status: "active", NOT: prismaDemoSeedCompanyWhere },
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            alternativeNames: true,
+            organizationNumber: true,
+            vatNumber: true,
+            website: true,
+            industry: true,
+            sectors: true,
+            size: true,
+            types: true,
+            companyType: true,
+            status: true,
+            ownerId: true,
+            parentCompanyId: true,
+            addressLine1: true,
+            addressLine2: true,
+            postalCode: true,
+            city: true,
+            stateRegion: true,
+            country: true,
+            countryCode: true,
+            continent: true,
+            emails: true,
+            phoneNumbers: true,
+            createdAt: true,
+            updatedAt: true,
+            contacts: {
+              where: {
+                status: "active",
+                NOT: {
+                  OR: [
+                    { ownerId: DEMO_SEED_OWNER_ID },
+                    { m365GraphId: { startsWith: "seed-m365-" } },
+                  ],
+                },
+              },
+              select: CONTACT_LIST_SELECT,
+            },
             opportunities: { select: { id: true } },
           },
           orderBy: { name: "asc" },
         }),
         prisma.opportunity.findMany({
-          where: { status: { in: ["open", "on_hold"] } },
-          include: { company: { select: { id: true, name: true } } },
+          where: {
+            status: { in: ["open", "on_hold"] },
+            NOT: prismaDemoSeedOpportunityWhere,
+          },
+          select: OPPORTUNITY_LIST_SELECT,
           orderBy: { updatedAt: "desc" },
         }),
       ]),
@@ -140,6 +243,98 @@ export async function readLiveCompanies(): Promise<Company[]> {
 export async function readLivePipelines(): Promise<PipelineRow[]> {
   const portfolio = await readLivePortfolio();
   return portfolio.pipelines;
+}
+
+function toGrowthDeal(
+  row: Parameters<typeof mapPrismaOpportunityToPipelineRow>[0] & {
+    status: GrowthDealRecord["registryStatus"];
+    description?: string | null;
+    updatedAt?: Date;
+  },
+): GrowthDealRecord {
+  return {
+    ...mapPrismaOpportunityToPipelineRow(row),
+    registryStatus: row.status,
+    description: row.description ?? null,
+    updatedAt: row.updatedAt?.toISOString(),
+  };
+}
+
+/**
+ * Growth operating loop + super skills: live companies, open and closed deals
+ * with understanding fields, recent opportunity mail, and live activities.
+ */
+export async function readLiveGrowthContext(): Promise<LiveGrowthContext> {
+  const [portfolio, activities] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities().catch(() => [] as Activity[]),
+  ]);
+  const recentActivities = activities.slice(0, 200);
+
+  if (portfolio.source === "json") {
+    return {
+      ...portfolio,
+      activities: recentActivities,
+      growthDeals: portfolio.pipelines,
+      correspondence: [],
+    };
+  }
+
+  try {
+    const [growthRows, emails] = await withPrismaRetry((prisma) =>
+      Promise.all([
+        prisma.opportunity.findMany({
+          where: {
+            status: { in: ["open", "on_hold", "closed_won", "closed_lost"] },
+            NOT: prismaDemoSeedOpportunityWhere,
+          },
+          select: GROWTH_OPPORTUNITY_SELECT,
+          orderBy: { updatedAt: "desc" },
+        }),
+        prisma.emailMessageRecord.findMany({
+          where: { isDeletedInSource: false, opportunityId: { not: null } },
+          select: {
+            opportunityId: true,
+            subject: true,
+            bodyPreview: true,
+            sentAt: true,
+          },
+          orderBy: { sentAt: "desc" },
+          take: 100,
+        }),
+      ]),
+    );
+
+    const growthDeals = growthRows.map((row) => toGrowthDeal(row));
+    const openDeals = growthDeals.filter(
+      (deal) => deal.registryStatus === "open" || deal.registryStatus === "on_hold",
+    );
+
+    return {
+      companies: portfolio.companies,
+      pipelines: openDeals.length > 0 ? openDeals : portfolio.pipelines,
+      source: "prisma",
+      activities: recentActivities,
+      growthDeals,
+      correspondence: emails.map((row) => ({
+        opportunityId: row.opportunityId,
+        subject: row.subject,
+        bodyPreview: row.bodyPreview,
+        sentAt: row.sentAt.toISOString(),
+      })),
+    };
+  } catch (error) {
+    console.warn(
+      "[prisma-data] Growth extras unavailable; skills will run on open pipeline rows only:",
+      error instanceof Error ? error.message : error,
+    );
+    return {
+      ...portfolio,
+      activities: recentActivities,
+      growthDeals: portfolio.pipelines,
+      correspondence: [],
+    };
+  }
 }
 
 function displayNameFromFile(fileName: string): string {

@@ -1,3 +1,4 @@
+import { searchGleif } from "@/lib/integrations/company-registers/adapters/gleif";
 import {
   cleanText,
   emptyCompany,
@@ -10,9 +11,9 @@ import type {
 } from "@/lib/integrations/company-registers/types";
 
 /**
- * OpenRegister / OffeneRegister company search.
+ * OpenRegister / OffeneRegister company search when OPENREGISTER_API_KEY is set.
+ * Keyless fallback is GLEIF (LEI holders with German registered address).
  * Docs: https://docs.openregister.de/
- * Requires OPENREGISTER_API_KEY when the public demo is unavailable.
  */
 
 type OpenRegisterCompany = {
@@ -62,28 +63,36 @@ function mapDe(row: OpenRegisterCompany): UnifiedEuropeanCompany | null {
   });
 }
 
+async function searchOpenRegister(query: string): Promise<UnifiedEuropeanCompany[]> {
+  const apiKey = process.env.OPENREGISTER_API_KEY?.trim();
+  if (!apiKey) return [];
+
+  const url = `https://api.openregister.de/v1/companies/search?q=${encodeURIComponent(query)}&limit=8`;
+  const data = await fetchRegistryJson<OpenRegisterResponse>(url, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "X-API-Key": apiKey,
+    },
+  });
+  if (!data) return [];
+
+  const rows = data.results ?? data.data ?? data.companies ?? [];
+  return rows
+    .map(mapDe)
+    .filter((row): row is UnifiedEuropeanCompany => Boolean(row));
+}
+
 export const germanyAdapter: RegistryAdapter = {
   id: "DE",
   countryCode: "DE",
-  sourceRegistry: "OffeneRegister (DE)",
+  sourceRegistry: "OffeneRegister / GLEIF (DE)",
   async search(query: string): Promise<UnifiedEuropeanCompany[]> {
     const q = query.trim();
     if (!q) return [];
 
-    const apiKey = process.env.OPENREGISTER_API_KEY?.trim();
-    const headers: Record<string, string> = {};
-    if (apiKey) {
-      headers.Authorization = `Bearer ${apiKey}`;
-      headers["X-API-Key"] = apiKey;
-    }
+    const openRegister = await searchOpenRegister(q);
+    if (openRegister.length > 0) return openRegister;
 
-    const url = `https://api.openregister.de/v1/companies/search?q=${encodeURIComponent(q)}&limit=8`;
-    const data = await fetchRegistryJson<OpenRegisterResponse>(url, { headers });
-    if (!data) return [];
-
-    const rows = data.results ?? data.data ?? data.companies ?? [];
-    return rows
-      .map(mapDe)
-      .filter((row): row is UnifiedEuropeanCompany => Boolean(row));
+    return searchGleif(q, "DE");
   },
 };

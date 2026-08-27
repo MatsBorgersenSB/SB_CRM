@@ -273,7 +273,7 @@ export function Company360LivingWorkspace({
               company={company}
               pendingCommitment={pendingCommitment}
               onCompanyUpdated={onCompanyUpdated}
-              onCommitmentChanged={() => router.refresh()}
+              onCommitmentChanged={undefined}
               verdict={verdict}
               trailing={
                 <Company360ActionsBar

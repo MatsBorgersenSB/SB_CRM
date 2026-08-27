@@ -8,10 +8,11 @@ import {
   getCompanyRelationshipPosture,
   isOpportunityEligibleCompany,
 } from "@/lib/company-classification";
-import { loadM365DataContext, resolveCompanyFromInput } from "@/lib/m365";
+import { resolveM365PaneCompany } from "@/lib/m365/pane-context";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
+import { prismaDemoSeedCompanyWhere, prismaDemoSeedOpportunityWhere } from "@/lib/demo-seed-markers";
 
 type LinkOption = {
   id: string;
@@ -41,8 +42,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const ctx = await loadM365DataContext();
-    const resolved = resolveCompanyFromInput(ctx.companies, { email });
+    const resolved = await resolveM365PaneCompany({ email });
     if (!resolved?.contact) {
       return NextResponse.json(
         { error: "No matching contact for this email", email },
@@ -60,16 +60,21 @@ export async function GET(request: Request) {
 
     const companyScoped = prismaCompanyId
       ? await prisma.opportunity.findMany({
-          where: { status: "open", companyId: prismaCompanyId },
+          where: {
+            status: "open",
+            companyId: prismaCompanyId,
+            NOT: prismaDemoSeedOpportunityWhere,
+          },
           select: { id: true, name: true, code: true },
           orderBy: { updatedAt: "desc" },
-          take: 50,
+          take: 20,
         })
       : [];
     const companyRows = await prisma.company.findMany({
+      where: { NOT: prismaDemoSeedCompanyWhere },
       select: { id: true, name: true, code: true },
       orderBy: { updatedAt: "desc" },
-      take: 120,
+      take: 20,
     });
     const dedupCompanyIds = new Set<string>();
     const companyOptions: LinkOption[] = [];
@@ -91,13 +96,14 @@ export async function GET(request: Request) {
     const broader = await prisma.opportunity.findMany({
       where: {
         status: "open",
+        NOT: prismaDemoSeedOpportunityWhere,
         ...(companyScoped.length > 0
           ? { id: { notIn: companyScoped.map((row) => row.id) } }
           : {}),
       },
       select: { id: true, name: true, code: true },
       orderBy: { updatedAt: "desc" },
-      take: 40,
+      take: 15,
     });
     const opportunityRows = [...companyScoped, ...broader];
 

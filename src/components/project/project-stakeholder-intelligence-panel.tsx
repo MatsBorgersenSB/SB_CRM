@@ -178,10 +178,27 @@ export function ProjectStakeholderIntelligencePanel({
         </section>
       ) : null}
 
+      {!compact && (intelligence.roles?.length ?? 0) > 0 ? (
+        <section>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+            Roles
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {intelligence.roles.map((entry) => (
+              <li key={entry.stakeholderId} className="text-[12px] text-carbon-blue/70">
+                <span className="font-semibold text-carbon-blue">{entry.name}</span>
+                <span className="text-carbon-blue/45"> · {entry.role}</span>
+                <span className="text-carbon-blue/40"> · {entry.organizationName}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {!compact && intelligence.responsibilities.length > 0 ? (
         <section>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55">
-            Roles & responsibilities
+            Responsibilities
           </p>
           <ul className="flex flex-col gap-2">
             {intelligence.responsibilities.map((entry) => (

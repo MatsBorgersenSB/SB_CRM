@@ -13,6 +13,11 @@ import {
   hydrateCoPilotDismissalsFromServer,
   isCoPilotProposalHandled,
 } from "@/lib/smartassist-copilot-store";
+import { formatCompanyTypesLabel } from "@/lib/company-classification";
+import { normalizeCompanySectors } from "@/lib/company-sectors";
+import type { CompanyType } from "@/types/company-type";
+import type { Company } from "@/types/company";
+import type { CoPilotActionProposal } from "@/types/smartassist-copilot";
 
 function BlockLabel({ children }: { children: string }) {
   return (
@@ -126,9 +131,15 @@ export function RelationshipCard({
     ? "flex h-full max-h-[100dvh] flex-col overflow-hidden bg-white"
     : "dashboard-card overflow-hidden";
 
-  const proposal = payload.nextBestAction.activeAssistProposal;
+  const [card, setCard] = useState(payload);
+  const proposal = card.nextBestAction.activeAssistProposal;
   const [actionCleared, setActionCleared] = useState(false);
   const [approveReady, setApproveReady] = useState(!proposal);
+
+  useEffect(() => {
+    setCard(payload);
+    setActionCleared(false);
+  }, [payload.companyId, payload.nextBestAction.id, payload.pendingCommitment?.activityId]);
 
   useEffect(() => {
     if (!outlookHost || !proposal) {
@@ -151,6 +162,53 @@ export function RelationshipCard({
     };
   }, [outlookHost, proposal]);
 
+  const applyProposalOptimistically = (applied: CoPilotActionProposal) => {
+    const patch = applied.payload.recordUpdate?.companyPatch;
+    const nextSectors = patch?.Sectors;
+    const nextTypes = patch?.CompanyTypes;
+    setCard((current) => {
+      let next = current;
+      if (Array.isArray(nextSectors)) {
+        next = { ...next, sectors: normalizeCompanySectors(nextSectors) };
+      }
+      if (Array.isArray(nextTypes) && nextTypes.length > 0) {
+        next = {
+          ...next,
+          relationshipRoleLabel: formatCompanyTypesLabel(nextTypes as CompanyType[], {
+            max: 2,
+          }),
+        };
+      }
+      return next;
+    });
+    setActionCleared(true);
+  };
+
+  const handleSectorsUpdated = (company: Company) => {
+    setCard((current) => ({
+      ...current,
+      sectors: normalizeCompanySectors(company.Sectors),
+    }));
+  };
+
+  const handleCommitmentCompleted = () => {
+    setCard((current) => {
+      const nextCount = Math.max(0, current.openCommitments.count - 1);
+      return {
+        ...current,
+        pendingCommitment: null,
+        openCommitments: {
+          ...current.openCommitments,
+          count: nextCount,
+          stateLabel: nextCount === 0 ? "None open" : `${nextCount} open`,
+        },
+      };
+    });
+    if (proposal?.kind === "complete_commitment") {
+      setActionCleared(true);
+    }
+  };
+
   const showRecommendedDetail = !actionCleared;
 
   return (
@@ -168,27 +226,23 @@ export function RelationshipCard({
           <BlockLabel>Relationship Health</BlockLabel>
           {outlookHost ? (
             <p className="mt-1.5 text-[12px] font-semibold leading-snug text-carbon-blue">
-              {payload.meta.whatMatters}
+              {card.meta.whatMatters}
             </p>
           ) : null}
           <div className={`mt-2 ${outlookHost ? "flex items-start gap-3" : ""}`}>
-            {outlookHost ? <HealthRing health={payload.health} size="sm" /> : null}
+            {outlookHost ? <HealthRing health={card.health} size="sm" /> : null}
             <div className="min-w-0 flex-1">
               <RelationshipHeader
-                companyName={payload.companyName}
-                companyId={payload.companyId}
-                relationshipRoleLabel={payload.relationshipRoleLabel}
-                sectors={payload.sectors}
-                pendingCommitment={payload.pendingCommitment}
-                health={payload.health}
+                companyName={card.companyName}
+                companyId={card.companyId}
+                relationshipRoleLabel={card.relationshipRoleLabel}
+                sectors={card.sectors}
+                pendingCommitment={card.pendingCommitment}
+                health={card.health}
                 hideHealthRing={outlookHost}
-                deepLink={outlookHost ? undefined : payload.deepLink}
-                onCommitmentCompleted={() => {
-                  if (proposal?.kind === "complete_commitment") {
-                    setActionCleared(true);
-                  }
-                  onActiveAssistApplied?.();
-                }}
+                deepLink={outlookHost ? undefined : card.deepLink}
+                onCommitmentCompleted={handleCommitmentCompleted}
+                onSectorsUpdated={handleSectorsUpdated}
               />
             </div>
           </div>
@@ -196,15 +250,15 @@ export function RelationshipCard({
 
         <section aria-label="Top Risk">
           <BlockLabel>Top Risk</BlockLabel>
-          {payload.topRisk ? (
+          {card.topRisk ? (
             <div className="mt-2 border border-upcycle-orange/25 bg-upcycle-orange/[0.03] px-3 py-2.5">
               <p className="text-[12px] font-semibold leading-snug text-carbon-blue">
-                {payload.topRisk.label}
+                {card.topRisk.label}
               </p>
-              {payload.topRisk.detail ? (
-                <p className="mt-0.5 text-[10px] text-carbon-blue/50">{payload.topRisk.detail}</p>
+              {card.topRisk.detail ? (
+                <p className="mt-0.5 text-[10px] text-carbon-blue/50">{card.topRisk.detail}</p>
               ) : null}
-              <ImpactContext items={payload.topRisk.impact} />
+              <ImpactContext items={card.topRisk.impact} />
             </div>
           ) : (
             <p className="mt-2 text-[11px] text-carbon-blue/45">No critical risks detected</p>
@@ -219,13 +273,17 @@ export function RelationshipCard({
           {showRecommendedDetail ? (
             <>
               <div className="mt-2">
-                <NextBestActionCard action={payload.nextBestAction} prominent hideLinks />
+                <NextBestActionCard action={card.nextBestAction} prominent hideLinks />
               </div>
               <CardActions
-                payload={payload}
+                payload={card}
                 outlookHost={outlookHost}
                 onCreateOpportunity={onCreateOpportunity}
-                onActiveAssistApplied={onActiveAssistApplied}
+                onActiveAssistApplied={() => {
+                  if (proposal) applyProposalOptimistically(proposal);
+                  else setActionCleared(true);
+                  onActiveAssistApplied?.();
+                }}
                 onNoAction={() => setActionCleared(true)}
                 showApprove={approveReady}
               />
@@ -240,7 +298,7 @@ export function RelationshipCard({
               </p>
               {outlookHost ? (
                 <a
-                  href={buildSmartCrmUrl(payload.deepLink)}
+                  href={buildSmartCrmUrl(card.deepLink)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
@@ -249,7 +307,7 @@ export function RelationshipCard({
                 </a>
               ) : (
                 <Link
-                  href={payload.deepLink}
+                  href={card.deepLink}
                   className="inline-block text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
                 >
                   Open in SmartCRM
@@ -266,22 +324,22 @@ export function RelationshipCard({
           <div className="border border-carbon-blue/8 px-3 py-2.5">
             <BlockLabel>Open Opportunities</BlockLabel>
             <p className="mt-2 text-base font-semibold tabular-nums text-carbon-blue/80">
-              {payload.openOpportunities.count}
+              {card.openOpportunities.count}
             </p>
             <p className="text-[10px] text-carbon-blue/45">
-              {payload.openOpportunities.valueLabel}
+              {card.openOpportunities.valueLabel}
             </p>
-            <ImpactContext items={payload.openOpportunities.impact} />
+            <ImpactContext items={card.openOpportunities.impact} />
           </div>
           <div className="border border-carbon-blue/8 px-3 py-2.5">
             <BlockLabel>Open Commitments</BlockLabel>
             <p className="mt-2 text-base font-semibold tabular-nums text-carbon-blue/80">
-              {payload.openCommitments.count}
+              {card.openCommitments.count}
             </p>
             <p className="text-[10px] text-carbon-blue/45">
-              {payload.openCommitments.stateLabel}
+              {card.openCommitments.stateLabel}
             </p>
-            <ImpactContext items={payload.openCommitments.impact} />
+            <ImpactContext items={card.openCommitments.impact} />
           </div>
         </section>
       </div>

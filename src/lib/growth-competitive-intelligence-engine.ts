@@ -89,7 +89,6 @@ export function getCompetitorProfile(companyId: string): GrowthCompetitorProfile
 
 export function buildAllCompetitorProfiles(companies: Company[]): GrowthCompetitorProfile[] {
   const crmCompetitors = companies.filter((company) => companyHasType(company, "Competitor"));
-  const crmIds = new Set(crmCompetitors.map((c) => c.CompanyID));
 
   const fromCrm = crmCompetitors.map((company) => {
     const profileSeed = seed.competitorProfiles[company.CompanyID];
@@ -109,16 +108,12 @@ export function buildAllCompetitorProfiles(companies: Company[]): GrowthCompetit
       memberships: [],
       certifications: [],
       eventPresence: [],
-      learnings: "Monitor competitive positioning.",
+      learnings: "Monitor competitive positioning against live deals — do not invent activity.",
       href: company360Href(company.CompanyID),
     } satisfies GrowthCompetitorProfile;
   });
 
-  const fromSeed = Object.entries(seed.competitorProfiles)
-    .filter(([companyId]) => !crmIds.has(companyId))
-    .map(([companyId, profileSeed]) => buildProfileFromSeed(companyId, profileSeed));
-
-  return [...fromCrm, ...fromSeed].sort((a, b) => {
+  return fromCrm.sort((a, b) => {
     const order = { critical: 0, high: 1, medium: 2, low: 3 };
     return order[a.threatLevel] - order[b.threatLevel];
   });
@@ -308,11 +303,16 @@ export function buildCompetitorUnderstanding(
   companies: Company[],
   pipelines: PipelineRow[],
 ): CompetitorUnderstanding | null {
-  const profileSeed = seed.competitorProfiles[companyId];
-  if (!profileSeed) return null;
-
   const company = companies.find((c) => c.CompanyID === companyId);
-  const profile = buildProfileFromSeed(companyId, profileSeed, company);
+  const profileSeed = seed.competitorProfiles[companyId];
+  const profile = company
+    ? profileSeed
+      ? buildProfileFromSeed(companyId, profileSeed, company)
+      : buildAllCompetitorProfiles([company])[0]
+    : profileSeed
+      ? buildProfileFromSeed(companyId, profileSeed)
+      : null;
+  if (!profile) return null;
 
   const overlappingEvents = seed.events
     .filter((event) =>
@@ -322,36 +322,45 @@ export function buildCompetitorUnderstanding(
     )
     .map((event) => event.name);
 
+  const fallbackSeed: CompetitorProfileSeed = profileSeed ?? {
+    companyName: profile.companyName,
+    threatLevel: profile.threatLevel,
+    competitorClass: profile.competitorClass,
+    positioning: profile.positioning,
+    strengths: profile.strengths,
+    weaknesses: profile.weaknesses,
+    successFactors: profile.successFactors,
+    recentActivity: profile.recentActivity,
+    memberships: profile.memberships,
+    certifications: profile.certifications,
+    eventPresence: profile.eventPresence,
+    learnings: profile.learnings,
+  };
+
   return {
     profile,
     whyWeCompete:
-      profileSeed.whyWeCompete ??
-      `${profile.companyName} competes in overlapping markets — monitor positioning and counter-narrative.`,
+      profileSeed?.whyWeCompete ??
+      `${profile.companyName} is classified as Competitor in the live registry. Overlap with our deals is not yet evidenced.`,
     whereWeCompete: {
-      markets: profileSeed.whereWeCompete?.markets ?? [],
-      geographies: profileSeed.whereWeCompete?.geographies ?? [],
-      segments: profileSeed.whereWeCompete?.segments ?? [],
+      markets: profileSeed?.whereWeCompete?.markets ?? [],
+      geographies: profileSeed?.whereWeCompete?.geographies ?? [],
+      segments: profileSeed?.whereWeCompete?.segments ?? [],
       overlappingDeals: findOverlappingDeals(profile.companyName, pipelines),
-      overlappingEvents,
+      overlappingEvents: profileSeed ? overlappingEvents : [],
     },
-    howWeCompete: profileSeed.howWeCompete ?? {
-      theirApproach: profile.positioning,
-      ourCounter: profile.learnings,
-      winConditions: profile.weaknesses.map((w) => `Exploit: ${w}`),
-      loseConditions: profile.strengths.map((s) => `Avoid when buyer prioritizes: ${s}`),
+    howWeCompete: profileSeed?.howWeCompete ?? {
+      theirApproach: "Not observed in CRM.",
+      ourCounter: "Classify overlap on live opportunities before writing a counter-narrative.",
+      winConditions: [],
+      loseConditions: [],
     },
-    whatsChanging: profileSeed.whatsChanging ?? [
-      {
-        change: profile.recentActivity,
-        implication: profile.learnings,
-        dateLabel: "Recent",
-      },
-    ],
+    whatsChanging: profileSeed?.whatsChanging ?? [],
     whatWeShouldLearn: profile.learnings,
-    nextBestDecision: buildNextBestDecision(profile, profileSeed),
-    relatedMarketIntelligence: findRelatedMarketIntel(profile.companyName),
-    signalAssessment: buildCompetitorSignalAssessment(profile, profileSeed, company, pipelines),
-    knowledgeInsights: buildKnowledgeInsights(profile, profileSeed, company),
+    nextBestDecision: buildNextBestDecision(profile, fallbackSeed),
+    relatedMarketIntelligence: profileSeed ? findRelatedMarketIntel(profile.companyName) : [],
+    signalAssessment: buildCompetitorSignalAssessment(profile, fallbackSeed, company, pipelines),
+    knowledgeInsights: buildKnowledgeInsights(profile, fallbackSeed, company),
   };
 }
 
@@ -381,13 +390,31 @@ export function buildCompetitiveLandscape(
   const primaryAction = rankedDecisions[0] ?? null;
   const nextBestDecisions = applySignalBudget(rankedDecisions, 3);
 
+  const seedMissing = Object.values(seed.competitorProfiles)
+    .filter(
+      (profile) =>
+        !companies.some(
+          (company) =>
+            company.Title.trim().toLowerCase() === profile.companyName.trim().toLowerCase() &&
+            companyHasType(company, "Competitor"),
+        ),
+    )
+    .map((profile) => ({
+      name: profile.companyName,
+      status: "unclassified" as const,
+      reason: "Named in strategy notes — not classified as Competitor in the live registry.",
+    }));
+
   const potentialMissingCompetitors = applySignalBudget(
-    seed.potentialMissingCompetitors ?? [],
+    [...seedMissing, ...(seed.potentialMissingCompetitors ?? [])],
     SIGNAL_BUDGETS.missingCompetitors,
   );
 
   return {
-    headline: "Signals — not a competitor database",
+    headline:
+      competitorProfiles.length > 0
+        ? "Signals — not a competitor database"
+        : "No competitors classified in the live registry",
     focusQuestions: SMARTASSIST_COMPETITIVE_QUESTIONS,
     context,
     competitors,

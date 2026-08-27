@@ -90,13 +90,13 @@ function buildMissingRoleGaps(
   if (
     hasEvidence &&
     project.milestones.length > 0 &&
-    !roleMatches(stakeholders, ["technical lead", "integrator"])
+    !roleMatches(stakeholders, ["technical lead", "engineering lead", "integrator"])
   ) {
     gaps.push({
       id: "technical_lead",
       label: "Missing Technical Lead",
       impact: "Engineering decisions and specification changes lack a clear technical owner.",
-      recommendedAction: "Assign a Technical Lead or Integrator from delivery or customer side.",
+      recommendedAction: "Assign a Technical Lead or Engineering Lead from delivery or customer side.",
       severity: project.risks.some((risk) => risk.severity === "critical") ? "critical" : "warning",
     });
   }
@@ -158,7 +158,13 @@ function relationshipHealthFromCoverage(
 }
 
 const OWNER_ROLE_PATTERNS = ["project manager", "commercial lead", "sponsor"];
-const DELIVERY_ROLE_PATTERNS = ["technical lead", "integrator", "supplier", "consultant"];
+const DELIVERY_ROLE_PATTERNS = [
+  "technical lead",
+  "engineering lead",
+  "integrator",
+  "supplier",
+  "consultant",
+];
 const APPROVAL_ROLE_PATTERNS = ["decision maker", "legal", "procurement", "eic", "approver"];
 const RECIPIENT_ROLE_PATTERNS = ["project sponsor", "technical buyer", "customer"];
 
@@ -307,6 +313,16 @@ export function buildProjectStakeholderIntelligence(
     };
   });
 
+  const roles = stakeholders.map((entry) => {
+    const org = resolveStakeholderOrganizationName(entry, organizations, companies);
+    return {
+      stakeholderId: entry.id,
+      name: entry.name,
+      role: entry.role,
+      organizationName: org.name,
+    };
+  });
+
   const responsibilities = stakeholders
     .filter((entry) => entry.responsibilities?.trim())
     .map((entry) => ({
@@ -322,6 +338,7 @@ export function buildProjectStakeholderIntelligence(
     relationshipHealth: relationshipHealthFromCoverage(coverageScore, missingRoles),
     missingRoles,
     influenceMap,
+    roles,
     responsibilities,
     relationshipValidation,
     executionIntelligence,

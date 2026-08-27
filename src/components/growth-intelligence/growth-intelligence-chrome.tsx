@@ -26,8 +26,8 @@ export function GrowthIntelligenceChrome({
     <WorkspaceChrome>
       <WorkspaceHeader
         scope="Growth Intelligence"
-        title="Strategic brain of SmartCRM"
-        context="Awareness → Credibility → Relationships → Opportunities → Paid Services → Machinery Sales"
+        title="Strategic operating loop"
+        context="This week → This quarter → Watch. Observed CRM first. Strategy notes stay labelled."
         actions={<RoleSwitcher companies={companies} />}
       />
 

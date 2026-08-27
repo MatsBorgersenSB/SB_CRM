@@ -14,6 +14,7 @@ import {
 } from "@/lib/prisma-mappers";
 import { allocateNextCompanyCode } from "@/lib/data/companies";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
+import { prismaDemoSeedCompanyWhere } from "@/lib/demo-seed-markers";
 import type { UpdateCompanyPatch } from "@/lib/pipeline-db";
 import { readCompanies } from "@/lib/pipeline-db";
 import type { Company, SharePointPerson } from "@/types/company";
@@ -86,7 +87,10 @@ async function resolvePrismaParentId(
   if (parent === null || !parent.Id) return null;
 
   const companies = await withPrismaRetry((prisma) =>
-    prisma.company.findMany({ select: { id: true, name: true } }),
+    prisma.company.findMany({
+      where: { NOT: prismaDemoSeedCompanyWhere },
+      select: { id: true, name: true },
+    }),
   );
   const byNumeric = companies.find((row) => stableNumericId(row.id) === parent.Id);
   if (byNumeric) return byNumeric.id;

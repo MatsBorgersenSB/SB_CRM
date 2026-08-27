@@ -1,5 +1,6 @@
 import type { CompanyType } from "@/types/company-type";
 import type { CompetitiveLandscapeSummary } from "@/types/competitive-intelligence";
+import type { GrowthSuperSkills } from "@/types/growth-super-skills";
 
 export const GROWTH_NORTH_STAR_OUTCOMES = [
   "Machinery sales",
@@ -16,9 +17,9 @@ export type GrowthNorthStarOutcome = (typeof GROWTH_NORTH_STAR_OUTCOMES)[number]
 export const GROWTH_INTELLIGENCE_SECTIONS = [
   {
     id: "dashboard",
-    label: "Dashboard",
+    label: "This week",
     href: "/growth",
-    description: "Strategic pulse — attention, opportunities, competitors, events.",
+    description: "Named deals and people from the live registry — what to do now.",
   },
   {
     id: "competitors",
@@ -30,7 +31,7 @@ export const GROWTH_INTELLIGENCE_SECTIONS = [
     id: "events",
     label: "Events",
     href: "/growth/events",
-    description: "Trade shows and conferences ranked by commercial opportunity.",
+    description: "Named meetings from live contacts — paid-study agenda, not a booth.",
   },
   {
     id: "memberships",
@@ -60,7 +61,7 @@ export const GROWTH_INTELLIGENCE_SECTIONS = [
     id: "recommendations",
     label: "Recommendations",
     href: "/growth/recommendations",
-    description: "Prioritized strategic actions with confidence scores.",
+    description: "Strategic actions grounded in live deals when possible.",
   },
   {
     id: "strategic-initiatives",
@@ -72,7 +73,7 @@ export const GROWTH_INTELLIGENCE_SECTIONS = [
     id: "market-intelligence",
     label: "Market Intelligence",
     href: "/growth/market-intelligence",
-    description: "Trends, regulations, funding and industry developments.",
+    description: "Evidence librarian — sourced facts from live CRM, or unknown.",
   },
 ] as const;
 
@@ -80,6 +81,41 @@ export type GrowthIntelligenceSectionId =
   (typeof GROWTH_INTELLIGENCE_SECTIONS)[number]["id"];
 
 export type GrowthHorizon = "30d" | "90d" | "12m" | "36m";
+
+export type GrowthEvidenceKind = "observed" | "unknown" | "hypothesis";
+
+export type GrowthOperatingHorizon = "this_week" | "this_quarter" | "watch";
+
+export type GrowthOperatingAction = {
+  id: string;
+  horizon: GrowthOperatingHorizon;
+  title: string;
+  why: string;
+  next: string;
+  impact: string;
+  href: string;
+  evidence: GrowthEvidenceKind;
+  companyName?: string;
+  dealName?: string;
+};
+
+export type GrowthOperatingLoop = {
+  thisWeek: GrowthOperatingAction[];
+  thisQuarter: GrowthOperatingAction[];
+  watch: GrowthOperatingAction[];
+  unknowns: string[];
+};
+
+export type GrowthLiveDeal = {
+  id: string;
+  name: string;
+  companyName: string;
+  status: string;
+  nextStep: string;
+  href: string;
+  offer?: string;
+  offerWhy?: string;
+};
 
 export type GrowthConfidence = "high" | "medium" | "low";
 
@@ -120,6 +156,8 @@ export type GrowthEvent = {
   name: string;
   location: string;
   dateLabel: string;
+  /** ISO date (YYYY-MM-DD) when the event ends — used to hide finished shows from planning. */
+  endsOn?: string;
   horizon: GrowthHorizon;
   audienceQuality: "high" | "medium" | "low";
   decisionMakerDensity: "high" | "medium" | "low";
@@ -192,6 +230,7 @@ export type GrowthMarketIntelligenceItem = {
   dateLabel: string;
   relevance: "high" | "medium" | "low";
   impact: string[];
+  evidence?: GrowthEvidenceKind;
 };
 
 export type GrowthAttentionItem = {
@@ -215,6 +254,8 @@ export type GrowthEmergingOpportunity = {
 
 export type GrowthIntelligenceSnapshot = {
   generatedAt: string;
+  operatingLoop: GrowthOperatingLoop;
+  liveDeals: GrowthLiveDeal[];
   attention: GrowthAttentionItem[];
   emergingOpportunities: GrowthEmergingOpportunity[];
   activeCompetitors: GrowthCompetitorProfile[];
@@ -235,6 +276,8 @@ export type GrowthIntelligenceSnapshot = {
   }>;
   strategicInitiatives: GrowthStrategicInitiative[];
   marketIntelligence: GrowthMarketIntelligenceItem[];
+  unverifiedMarketNotes: GrowthMarketIntelligenceItem[];
+  superSkills: GrowthSuperSkills;
   competitiveLandscape: CompetitiveLandscapeSummary;
   metrics: {
     competitorCount: number;

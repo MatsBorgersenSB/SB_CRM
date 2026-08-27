@@ -6,7 +6,9 @@ import { CompanyTypeBadges } from "@/components/companies/company-type-badges";
 import { GrowthImpactBlock, GrowthRecommendationCard } from "@/components/growth-intelligence/growth-recommendation-card";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { eventPlanningHref } from "@/types/event-planning";
+import { isEventPast } from "@/lib/growth-event-timing";
 import type { GrowthIntelligenceSnapshot } from "@/types/growth-intelligence";
+import { offerLabel, type GrowthMeetingTarget } from "@/types/growth-super-skills";
 
 const RECOMMENDATION_COLORS = {
   attend: "text-green-700",
@@ -22,62 +24,128 @@ export function GrowthCompetitorsView({ snapshot }: { snapshot: GrowthIntelligen
 }
 
 export function GrowthEventsView({ snapshot }: { snapshot: GrowthIntelligenceSnapshot }) {
+  const upcoming = snapshot.events.filter((event) => !isEventPast(event));
+  const passed = snapshot.events.filter((event) => isEventPast(event));
+  const meetings = snapshot.superSkills.meetingMachine;
+
   return (
     <WorkspaceStack>
-      {snapshot.events.map((event) => (
-        <article key={event.id} className="dashboard-card p-4 sm:p-5">
-          <header className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <Link
-                href={eventPlanningHref(event.id)}
-                className="text-sm font-semibold text-carbon-blue hover:text-upcycle-orange"
-              >
-                {event.name}
-              </Link>
-              <p className="text-[11px] text-carbon-blue/50">
-                {event.location} · {event.dateLabel}
-              </p>
-            </div>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${RECOMMENDATION_COLORS[event.recommendation]}`}>
-              {event.recommendation}
-            </span>
-          </header>
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <Metric label="Relevance" value={`${event.strategicRelevance}%`} />
-            <Metric label="Audience" value={event.audienceQuality} />
-            <Metric label="Decision makers" value={event.decisionMakerDensity} />
-            <Metric label="Cost" value={event.estimatedCost} />
-            <Metric label="Return potential" value={event.returnPotential} />
-            <Metric
-              label="Planning"
-              value={event.planningStatus.replace(/_/g, " ")}
-              highlight={event.planningStatus === "needs_planning"}
-            />
-          </div>
-
-          {event.competitivePresence.length > 0 ? (
-            <p className="mt-3 text-[10px] text-carbon-blue/50">
-              Competitive presence: {event.competitivePresence.join(" · ")}
-            </p>
-          ) : null}
-
-          <GrowthImpactBlock items={event.impact} />
-
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-carbon-blue/8 pt-4">
-            <Link
-              href={eventPlanningHref(event.id)}
-              className="text-[12px] font-semibold text-upcycle-orange hover:text-carbon-blue"
-            >
-              Open planning workspace →
-            </Link>
-            <span className="text-[10px] text-carbon-blue/40">
-              Companies · contacts · outreach · tracking
-            </span>
-          </div>
-        </article>
+      {upcoming.length === 0 ? (
+        <p className="dashboard-card px-4 py-6 text-[13px] text-carbon-blue/50">
+          No upcoming events. Passed shows stay in Watch until outcomes are captured.
+        </p>
+      ) : null}
+      {upcoming.map((event) => (
+        <EventCard
+          key={event.id}
+          event={event}
+          passed={false}
+          meetings={meetings.filter((target) => target.eventId === event.id)}
+        />
       ))}
+      {passed.length > 0 ? (
+        <section>
+          <h2 className="mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+            Passed — review or archive
+          </h2>
+          <div className="flex flex-col gap-3">
+            {passed.map((event) => (
+              <EventCard key={event.id} event={event} passed meetings={[]} />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </WorkspaceStack>
+  );
+}
+
+function EventCard({
+  event,
+  passed,
+  meetings,
+}: {
+  event: GrowthIntelligenceSnapshot["events"][number];
+  passed: boolean;
+  meetings: GrowthMeetingTarget[];
+}) {
+  return (
+    <article className="dashboard-card p-4 sm:p-5">
+      <header className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <Link
+            href={eventPlanningHref(event.id)}
+            className="text-sm font-semibold text-carbon-blue hover:text-upcycle-orange"
+          >
+            {event.name}
+          </Link>
+          <p className="text-[11px] text-carbon-blue/50">
+            {event.location} · {event.dateLabel}
+          </p>
+        </div>
+        <span
+          className={`text-[10px] font-bold uppercase tracking-wider ${
+            passed ? "text-carbon-blue/40" : RECOMMENDATION_COLORS[event.recommendation]
+          }`}
+        >
+          {passed ? "Passed" : event.recommendation}
+        </span>
+      </header>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <Metric label="Audience" value={event.audienceQuality} />
+        <Metric label="Decision makers" value={event.decisionMakerDensity} />
+        <Metric label="Cost" value={event.estimatedCost} />
+        <Metric label="Return potential" value={event.returnPotential} />
+        <Metric
+          label="Planning"
+          value={passed ? "Capture outcomes" : event.planningStatus.replace(/_/g, " ")}
+          highlight={!passed && event.planningStatus === "needs_planning"}
+        />
+      </div>
+
+      {meetings.length > 0 ? (
+        <ul className="mt-3 space-y-2">
+          {meetings.map((target) => (
+            <li
+              key={`${target.eventId}-${target.companyName}-${target.contactName ?? "unnamed"}`}
+              className="rounded-lg border border-carbon-blue/10 px-3 py-2"
+            >
+              <p className="text-[12px] font-semibold text-carbon-blue">
+                {target.contactName ?? "Name a person first"}
+                <span className="font-normal text-carbon-blue/55"> · {target.companyName}</span>
+              </p>
+              {target.contactRole ? (
+                <p className="text-[11px] text-carbon-blue/50">{target.contactRole}</p>
+              ) : null}
+              <p className="mt-1 text-[11px] text-upcycle-orange">{offerLabel(target.offer)}</p>
+              <p className="mt-0.5 text-[11px] text-carbon-blue/65">{target.agenda}</p>
+            </li>
+          ))}
+        </ul>
+      ) : !passed && event.recommendation === "attend" ? (
+        <p className="mt-3 text-[11px] text-carbon-blue/50">
+          No named meeting targets yet. Classify sell-to companies and add contacts before requesting meetings.
+        </p>
+      ) : null}
+
+      {event.competitivePresence.length > 0 ? (
+        <p className="mt-3 text-[10px] text-carbon-blue/50">
+          Competitive presence (strategy note): {event.competitivePresence.join(" · ")}
+        </p>
+      ) : null}
+
+      <GrowthImpactBlock items={event.impact} />
+
+      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-carbon-blue/8 pt-4">
+        <Link
+          href={eventPlanningHref(event.id)}
+          className="text-[12px] font-semibold text-upcycle-orange hover:text-carbon-blue"
+        >
+          {passed ? "Open for outcome capture →" : "Open planning workspace →"}
+        </Link>
+        <span className="text-[10px] text-carbon-blue/40">Named CRM companies only</span>
+      </div>
+    </article>
   );
 }
 
@@ -93,8 +161,7 @@ export function GrowthMembershipsView({ snapshot }: { snapshot: GrowthIntelligen
             </span>
           </header>
           <p className="mt-2 text-[11px] text-carbon-blue/60">{membership.commercialPotential}</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-4">
-            <Metric label="Relevance" value={`${membership.strategicRelevance}%`} />
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
             <Metric label="Decision makers" value={membership.decisionMakerAccess} />
             <Metric label="Partners" value={membership.partnerAccess} />
             <Metric label="Influence" value={membership.marketInfluence} />
@@ -110,6 +177,30 @@ export function GrowthMembershipsView({ snapshot }: { snapshot: GrowthIntelligen
 export function GrowthMarketSegmentsView({ snapshot }: { snapshot: GrowthIntelligenceSnapshot }) {
   return (
     <WorkspaceStack>
+      {snapshot.liveDeals.length > 0 ? (
+        <section className="dashboard-card p-4 sm:p-5">
+          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+            Named opportunities in the registry
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {snapshot.liveDeals.map((deal) => (
+              <li key={deal.id}>
+                <Link
+                  href={deal.href}
+                  className="block text-[12px] font-medium text-carbon-blue hover:text-upcycle-orange"
+                >
+                  {deal.name}
+                  <span className="font-normal text-carbon-blue/50"> · {deal.companyName}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : (
+        <p className="dashboard-card px-4 py-6 text-[13px] text-carbon-blue/50">
+          No open sales opportunities to map onto segments yet.
+        </p>
+      )}
       {snapshot.marketSegments.map((segment) => (
         <article key={segment.id} className="dashboard-card p-4 sm:p-5">
           <header className="flex flex-wrap items-start justify-between gap-2">
@@ -122,10 +213,12 @@ export function GrowthMarketSegmentsView({ snapshot }: { snapshot: GrowthIntelli
             </span>
           </header>
           <p className="mt-2 text-[11px] text-carbon-blue/65">{segment.summary}</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <p className="mt-2 text-[10px] font-medium uppercase tracking-wider text-carbon-blue/40">
+            Strategy note — not a live pipeline count
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <Metric label="Machinery potential" value={segment.machineryPotential} />
             <Metric label="Services potential" value={segment.servicesPotential} />
-            <Metric label="CRM opportunities" value={String(segment.opportunityCount)} />
           </div>
           <GrowthImpactBlock items={segment.impact} />
         </article>
@@ -148,13 +241,6 @@ export function GrowthMarketingChannelsView({ snapshot }: { snapshot: GrowthInte
             </div>
           </header>
           <p className="mt-2 text-[11px] text-carbon-blue/60">{channel.summary}</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-5">
-            <ScoreBar label="Awareness" value={channel.awareness} />
-            <ScoreBar label="Credibility" value={channel.credibility} />
-            <ScoreBar label="Commercial" value={channel.commercialImpact} />
-            <ScoreBar label="Strategic" value={channel.strategicValue} />
-            <ScoreBar label="Long-term" value={channel.longTermInfluence} />
-          </div>
           <GrowthImpactBlock items={channel.impact} />
         </article>
       ))}
@@ -163,6 +249,16 @@ export function GrowthMarketingChannelsView({ snapshot }: { snapshot: GrowthInte
 }
 
 export function GrowthPartnerEcosystemView({ snapshot }: { snapshot: GrowthIntelligenceSnapshot }) {
+  if (snapshot.partnerEcosystem.length === 0) {
+    return (
+      <WorkspaceStack>
+        <p className="dashboard-card px-4 py-6 text-[13px] text-carbon-blue/55">
+          No offtakers, investors, universities or partners are classified in the live registry.
+          Classify a company first — do not invent an ecosystem.
+        </p>
+      </WorkspaceStack>
+    );
+  }
   return (
     <WorkspaceStack>
       {snapshot.partnerEcosystem.map((partner) => (
@@ -232,25 +328,73 @@ export function GrowthStrategicInitiativesView({ snapshot }: { snapshot: GrowthI
 }
 
 export function GrowthMarketIntelligenceView({ snapshot }: { snapshot: GrowthIntelligenceSnapshot }) {
+  const cards = snapshot.superSkills.marketIntel;
+  const unsourced = snapshot.unverifiedMarketNotes;
+
   return (
     <WorkspaceStack>
-      {snapshot.marketIntelligence.map((item) => (
-        <article key={item.id} className="dashboard-card p-4 sm:p-5">
-          <header className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
-                {item.category.replace(/_/g, " ")} · {item.dateLabel}
+      {cards.length === 0 ? (
+        <p className="dashboard-card px-4 py-6 text-[13px] text-carbon-blue/50">
+          No live market evidence yet. Unknown stays unknown — we will not invent regulation or competitor news.
+        </p>
+      ) : (
+        cards.map((card) => (
+          <article key={card.id} className="dashboard-card p-4 sm:p-5">
+            <header className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+                  {card.category.replace(/_/g, " ")} · {card.geography} · {card.asOf}
+                </p>
+                <h3 className="mt-1 text-sm font-semibold text-carbon-blue">{card.title}</h3>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/40">
+                {card.evidence === "observed" ? "Observed in CRM" : "Unverified"}
+              </span>
+            </header>
+            <p className="mt-2 text-[11px] text-carbon-blue/65">{card.fact}</p>
+            <p className="mt-2 text-[10px] text-carbon-blue/45">Source: {card.sourceLabel}</p>
+            <p className="mt-2 text-[11px] font-medium text-upcycle-orange">
+              {offerLabel(card.offerImplication)} — {card.offerWhy}
+            </p>
+            {card.relatedDeals.length > 0 ? (
+              <p className="mt-2 text-[11px] text-carbon-blue/60">
+                Pipeline:{" "}
+                {card.relatedDeals.map((deal, index) => (
+                  <span key={deal.id}>
+                    {index > 0 ? " · " : null}
+                    <Link href={deal.href} className="font-medium text-carbon-blue hover:text-upcycle-orange">
+                      {deal.name}
+                    </Link>
+                  </span>
+                ))}
               </p>
-              <h3 className="mt-1 text-sm font-semibold text-carbon-blue">{item.title}</h3>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/40">
-              {item.relevance}
-            </span>
-          </header>
-          <p className="mt-2 text-[11px] text-carbon-blue/65">{item.summary}</p>
-          <GrowthImpactBlock items={item.impact} />
-        </article>
-      ))}
+            ) : null}
+            <Link
+              href={card.nextHref}
+              className="mt-3 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
+            >
+              {card.nextAction}
+            </Link>
+          </article>
+        ))
+      )}
+
+      {unsourced.length > 0 ? (
+        <details className="dashboard-card p-4 sm:p-5">
+          <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+            Unsourced strategy notes — not primary intelligence
+          </summary>
+          <ul className="mt-3 space-y-3">
+            {unsourced.map((item) => (
+              <li key={item.id}>
+                <p className="text-[12px] font-semibold text-carbon-blue/70">{item.title}</p>
+                <p className="mt-1 text-[11px] text-carbon-blue/50">{item.summary}</p>
+                <p className="mt-1 text-[10px] text-carbon-blue/40">No source. Do not brief from this card.</p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </WorkspaceStack>
   );
 }
@@ -272,19 +416,3 @@ function Metric({
   );
 }
 
-function ScoreBar({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <div className="flex justify-between text-[9px] text-carbon-blue/45">
-        <span>{label}</span>
-        <span className="tabular-nums">{value}</span>
-      </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-carbon-blue/8">
-        <div
-          className="h-full rounded-full bg-upcycle-orange/70"
-          style={{ width: `${value}%` }}
-        />
-      </div>
-    </div>
-  );
-}

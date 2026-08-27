@@ -6,7 +6,7 @@ import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
 import {
   resolveOutlookSelectedMessageSeeds,
-  subscribeOutlookSelectedItemsChanged,
+  subscribeOutlookMailboxItemChanged,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
 import {
@@ -67,7 +67,6 @@ export function OutlookMailTagPanel({
   const [linkKind, setLinkKind] = useState<"opportunity" | "project">("opportunity");
   const [selectedId, setSelectedId] = useState("");
   const [busy, setBusy] = useState(false);
-  const [selectionTick, setSelectionTick] = useState(0);
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -86,12 +85,18 @@ export function OutlookMailTagPanel({
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
-    void subscribeOutlookSelectedItemsChanged(() => {
-      setSelectionTick((value) => value + 1);
+    let cancelled = false;
+    void subscribeOutlookMailboxItemChanged(() => {
+      void resolveOutlookSelectedMessageSeeds().then((openSeeds) => {
+        if (cancelled) return;
+        setSeeds(openSeeds);
+        setSeed(openSeeds[0] ?? null);
+      });
     }).then((fn) => {
       unsubscribe = fn;
     });
     return () => {
+      cancelled = true;
       unsubscribe?.();
     };
   }, []);
@@ -149,7 +154,7 @@ export function OutlookMailTagPanel({
     return () => {
       cancelled = true;
     };
-  }, [email, role, selectionTick]);
+  }, [email, role]);
 
   useEffect(() => {
     // Keep filing destination valid when no opportunity/project is selected.

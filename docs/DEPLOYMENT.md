@@ -96,13 +96,11 @@ docker compose run --rm --entrypoint sh web -c \
 
 Ensure the `web` image (or a dedicated migrate image) includes the Prisma CLI and `prisma/migrations`. The production runner image is slim; prefer a CI job or jump host for `migrate deploy` if the runner does not ship `node_modules/prisma`.
 
-### C. Seed (non-production only)
+### C. Seed (purge invented demo only)
 
-```bash
-npx prisma db seed
-```
+`npx prisma db seed` **deletes** invented Prisma demo records (Acme Renewables, Global TechCorp, and the seed copy of Standard Bio). It does **not** insert companies, contacts, or opportunities.
 
-Do **not** run the demo seed against customer production data.
+Do **not** re-introduce demo companies into the live registry. Reality First: unknown over fiction.
 
 ### Rollback posture
 

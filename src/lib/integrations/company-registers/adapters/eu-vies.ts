@@ -73,13 +73,23 @@ function parseAddress(address: string | undefined): {
   postalCode?: string;
   city?: string;
 } {
-  const text = cleanText(address);
-  if (!text) return {};
+  const raw = typeof address === "string" ? address.replace(/\r\n/g, "\n").trim() : "";
+  if (!raw) return {};
 
-  // Common VIES format: "STREET\nPOSTAL CITY" or "STREET, POSTAL CITY"
-  const lines = text.split(/\n+/).map(cleanText).filter(Boolean);
+  const lines = raw
+    .split(/\n+/)
+    .map(cleanText)
+    .filter(Boolean);
   if (lines.length >= 2) {
     const last = lines[lines.length - 1] ?? "";
+    const swedish = last.match(/^(\d{3}\s?\d{2})\s+(.+)$/);
+    if (swedish) {
+      return {
+        streetAddress: lines.slice(0, -1).join(", "),
+        postalCode: swedish[1].replace(/\s+/g, " "),
+        city: swedish[2],
+      };
+    }
     const match = last.match(/^(\d{4,5})\s+(.+)$/);
     if (match) {
       return {
@@ -89,6 +99,16 @@ function parseAddress(address: string | undefined): {
       };
     }
     return { streetAddress: lines[0], city: last };
+  }
+
+  const text = cleanText(raw);
+  const swedish = text.match(/^(.+?)\s+(\d{3}\s?\d{2})\s+(.+)$/);
+  if (swedish) {
+    return {
+      streetAddress: swedish[1],
+      postalCode: swedish[2].replace(/\s+/g, " "),
+      city: swedish[3],
+    };
   }
 
   const match = text.match(/^(.+?)[,\s]+(\d{4,5})\s+(.+)$/);

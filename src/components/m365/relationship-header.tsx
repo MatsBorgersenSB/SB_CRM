@@ -11,6 +11,7 @@ import {
   RelationshipTrendBadge,
 } from "@/components/relationship/relationship-health-display";
 import type { RelationshipHealthStatus, RelationshipTrend } from "@/lib/relationship-health-engine";
+import type { Company } from "@/types/company";
 
 export function RelationshipHeader({
   companyName,
@@ -23,6 +24,7 @@ export function RelationshipHeader({
   deepLink,
   hideHealthRing = false,
   onCommitmentCompleted,
+  onSectorsUpdated,
 }: {
   companyName: string;
   /** When set, sector tags can be edited in place. */
@@ -37,6 +39,7 @@ export function RelationshipHeader({
   deepLink?: string;
   hideHealthRing?: boolean;
   onCommitmentCompleted?: () => void;
+  onSectorsUpdated?: (company: Company) => void;
 }) {
   return (
     <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -68,6 +71,7 @@ export function RelationshipHeader({
               companyId={companyId}
               sectors={sectors}
               density="outlook"
+              onUpdated={onSectorsUpdated}
             />
           </div>
         ) : null}

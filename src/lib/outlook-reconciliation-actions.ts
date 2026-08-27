@@ -12,24 +12,19 @@ import {
 /** Server-only Outlook reconciliation mutations — uses fs-backed stores. */
 
 export async function loadReconciliationContext(): Promise<ReconciliationContext> {
-  const {
-    readLiveActivities,
-    readLiveCompanies,
-    readLiveOutlookEvidence,
-    readLivePipelines,
-  } = await import("@/lib/prisma-data");
+  const { readLiveFocusContext, readLiveOutlookEvidence } = await import(
+    "@/lib/prisma-data"
+  );
 
-  const [companies, pipelines, activities, outlookEvidence] = await Promise.all([
-    readLiveCompanies(),
-    readLivePipelines(),
-    readLiveActivities(),
+  const [focus, outlookEvidence] = await Promise.all([
+    readLiveFocusContext(),
     readLiveOutlookEvidence(),
   ]);
 
   return {
-    companies,
-    pipelines,
-    activities,
+    companies: focus.companies,
+    pipelines: focus.pipelines,
+    activities: focus.activities,
     outlookEvidence,
     connected: outlookEvidence.length > 0,
   };

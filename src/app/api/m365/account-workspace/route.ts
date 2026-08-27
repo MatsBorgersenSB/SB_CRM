@@ -1,9 +1,6 @@
-import {
-  buildM365AccountWorkspace,
-  loadM365DataContext,
-  resolveCompanyFromInput,
-} from "@/lib/m365";
+import { buildM365AccountWorkspace } from "@/lib/m365";
 import { m365Error, m365Json } from "@/lib/m365/api-response";
+import { loadM365PaneContext } from "@/lib/m365/pane-context";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -15,11 +12,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const ctx = await loadM365DataContext();
-    const resolved = resolveCompanyFromInput(
-      ctx.companies,
-      companyId ? { companyId } : { email: email! },
-    );
+    const { ctx, resolved } = await loadM365PaneContext({ email, companyId });
 
     if (!resolved) {
       return m365Error("No matching account found for this context", 404);

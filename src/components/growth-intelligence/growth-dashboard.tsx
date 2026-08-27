@@ -4,220 +4,161 @@ import Link from "next/link";
 import { IntelligenceLead } from "@/components/ui/intelligence-lead";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { GrowthImpactBlock } from "@/components/growth-intelligence/growth-recommendation-card";
-import { GrowthRecommendationCard } from "@/components/growth-intelligence/growth-recommendation-card";
-import type { GrowthIntelligenceSnapshot } from "@/types/growth-intelligence";
-import { competitiveIntelligenceHref } from "@/types/competitive-intelligence";
-import { eventPlanningHref } from "@/types/event-planning";
+import type {
+  GrowthEvidenceKind,
+  GrowthIntelligenceSnapshot,
+  GrowthOperatingAction,
+} from "@/types/growth-intelligence";
 
-const SEVERITY_STYLES = {
-  critical: "border-red-500/30 bg-red-500/[0.04]",
-  warning: "border-amber-500/30 bg-amber-500/[0.04]",
-  info: "border-carbon-blue/10 bg-carbon-blue/[0.02]",
-} as const;
+const EVIDENCE_LABEL: Record<GrowthEvidenceKind, string> = {
+  observed: "Observed in CRM",
+  unknown: "Unknown — do not invent",
+  hypothesis: "Strategy note — not CRM fact",
+};
 
 export function GrowthDashboard({ snapshot }: { snapshot: GrowthIntelligenceSnapshot }) {
-  const { metrics } = snapshot;
+  const { operatingLoop, liveDeals, metrics } = snapshot;
 
   return (
     <WorkspaceStack>
       <IntelligenceLead
-        eyebrow="Growth Intelligence · StandardBio"
-        title="What requires attention right now?"
-        summary="Strategic pulse across competitors, events, opportunities and recommended actions — every signal filtered by contribution to machinery sales and paid professional services."
+        eyebrow="Growth Intelligence · This week"
+        title="What should we do with live deals and people?"
+        summary="Skills read live deals, mail, and understanding fields. Unknown stays unknown. Strategy notes stay in Watch."
         vitals={[
-          { label: "Competitors tracked", value: String(metrics.competitorCount) },
           {
-            label: "Events need planning",
+            label: "Open sales deals",
+            value: String(liveDeals.length),
+            highlight: liveDeals.length > 0,
+          },
+          {
+            label: "This week",
+            value: String(operatingLoop.thisWeek.length),
+            highlight: operatingLoop.thisWeek.length > 0,
+          },
+          {
+            label: "Events still ahead",
             value: String(metrics.eventsNeedingPlanning),
-            highlight: metrics.eventsNeedingPlanning > 0,
           },
           {
-            label: "Priority recommendations",
-            value: String(metrics.highPriorityRecommendations),
-            highlight: true,
+            label: "Competitors in registry",
+            value: String(metrics.competitorCount),
           },
-          { label: "Ecosystem partners", value: String(metrics.partnerCount) },
         ]}
-        action={
-          <Link
-            href="/growth/recommendations"
-            className="text-[11px] font-semibold text-upcycle-orange hover:underline"
-          >
-            View all recommendations →
-          </Link>
-        }
       />
 
-      <section className="dashboard-card p-4 sm:p-5">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
-          What requires attention?
-        </h2>
-        <ul className="mt-3 space-y-2">
-          {snapshot.attention.map((item) => (
-            <li key={item.id}>
-              {item.href ? (
-                <Link
-                  href={item.href}
-                  className={`block rounded-lg border px-3 py-2.5 transition-colors hover:border-upcycle-orange/25 ${SEVERITY_STYLES[item.severity]}`}
-                >
-                  <AttentionRow item={item} />
-                </Link>
-              ) : (
-                <div className={`rounded-lg border px-3 py-2.5 ${SEVERITY_STYLES[item.severity]}`}>
-                  <AttentionRow item={item} />
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <OperatingSection
+        title="This week"
+        empty="Nothing in the live registry needs a growth move this week. Classify relationships or open a real opportunity first."
+        actions={operatingLoop.thisWeek}
+      />
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <OperatingSection
+        title="This quarter"
+        empty="No upcoming events or classified commercial targets to plan against."
+        actions={operatingLoop.thisQuarter}
+      />
+
+      <OperatingSection
+        title="Watch"
+        empty="No watch items. Unknown stays unknown."
+        actions={operatingLoop.watch}
+      />
+
+      {operatingLoop.unknowns.length > 0 ? (
         <section className="dashboard-card p-4 sm:p-5">
-          <header className="mb-3 flex items-center justify-between">
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
-              Emerging opportunities
-            </h2>
-            <Link
-              href="/growth/market-segments"
-              className="text-[10px] font-semibold text-upcycle-orange hover:underline"
-            >
-              Segments
-            </Link>
-          </header>
-          <ul className="space-y-2">
-            {snapshot.emergingOpportunities.map((opp) => (
-              <li key={opp.id}>
-                {opp.href ? (
-                  <Link
-                    href={opp.href}
-                    className="block rounded-lg border border-carbon-blue/10 px-3 py-2.5 hover:border-upcycle-orange/20"
-                  >
-                    <OpportunityRow opp={opp} />
-                  </Link>
-                ) : (
-                  <div className="rounded-lg border border-carbon-blue/10 px-3 py-2.5">
-                    <OpportunityRow opp={opp} />
-                  </div>
-                )}
+          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+            What we don’t know
+          </h2>
+          <ul className="mt-3 space-y-1.5">
+            {operatingLoop.unknowns.map((item) => (
+              <li key={item} className="text-[12px] leading-relaxed text-carbon-blue/65">
+                {item}
               </li>
             ))}
           </ul>
         </section>
+      ) : null}
 
+      {liveDeals.length > 0 ? (
         <section className="dashboard-card p-4 sm:p-5">
           <header className="mb-3 flex items-center justify-between">
             <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
-              Active competitors
+              Live pipeline
             </h2>
             <Link
-              href="/growth/competitors"
+              href="/opportunities"
               className="text-[10px] font-semibold text-upcycle-orange hover:underline"
             >
-              Full analysis
+              All opportunities
             </Link>
           </header>
           <ul className="space-y-2">
-            {snapshot.activeCompetitors.map((competitor) => (
-              <li key={competitor.companyId}>
+            {liveDeals.slice(0, 8).map((deal) => (
+              <li key={deal.id}>
                 <Link
-                  href={competitiveIntelligenceHref(competitor.companyId)}
+                  href={deal.href}
                   className="block rounded-lg border border-carbon-blue/10 px-3 py-2.5 hover:border-upcycle-orange/20"
                 >
-                  <p className="text-[11px] font-semibold text-carbon-blue">{competitor.companyName}</p>
-                  <p className="mt-0.5 text-[10px] text-carbon-blue/55">{competitor.recentActivity}</p>
-                  <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
-                    Threat: {competitor.threatLevel}
+                  <p className="text-[12px] font-semibold text-carbon-blue">{deal.name}</p>
+                  <p className="mt-0.5 text-[11px] text-carbon-blue/55">
+                    {deal.companyName} · {deal.status}
                   </p>
+                  <p className="mt-1 text-[11px] text-carbon-blue/70">Next: {deal.nextStep}</p>
+                  {deal.offer ? (
+                    <p className="mt-1 text-[11px] font-medium text-upcycle-orange">
+                      Offer: {deal.offer}
+                      {deal.offerWhy ? ` — ${deal.offerWhy}` : ""}
+                    </p>
+                  ) : null}
                 </Link>
               </li>
             ))}
           </ul>
         </section>
-      </div>
-
-      <section className="dashboard-card p-4 sm:p-5">
-        <header className="mb-3 flex items-center justify-between">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
-            Events requiring planning
-          </h2>
-          <Link
-            href="/growth/events"
-            className="text-[10px] font-semibold text-upcycle-orange hover:underline"
-          >
-            All events
-          </Link>
-        </header>
-        <ul className="space-y-2">
-          {snapshot.eventsRequiringPlanning.map((event) => (
-            <li
-              key={event.id}
-              className="rounded-lg border border-carbon-blue/10 px-3 py-2.5"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <Link
-                    href={eventPlanningHref(event.id)}
-                    className="text-[11px] font-semibold text-carbon-blue hover:text-upcycle-orange"
-                  >
-                    {event.name}
-                  </Link>
-                  <p className="text-[10px] text-carbon-blue/50">
-                    {event.location} · {event.dateLabel}
-                  </p>
-                </div>
-                <span className="text-[9px] font-bold uppercase tracking-wider text-amber-700">
-                  Needs planning
-                </span>
-              </div>
-              <GrowthImpactBlock items={event.impact} />
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section>
-        <header className="mb-3">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
-            Top strategic recommendations
-          </h2>
-        </header>
-        <div className="grid gap-3 lg:grid-cols-2">
-          {snapshot.recommendations.slice(0, 2).map((rec) => (
-            <GrowthRecommendationCard key={rec.id} recommendation={rec} />
-          ))}
-        </div>
-      </section>
+      ) : null}
     </WorkspaceStack>
   );
 }
 
-function AttentionRow({
-  item,
+function OperatingSection({
+  title,
+  empty,
+  actions,
 }: {
-  item: GrowthIntelligenceSnapshot["attention"][number];
+  title: string;
+  empty: string;
+  actions: GrowthOperatingAction[];
 }) {
   return (
-    <>
-      <p className="text-[11px] font-semibold text-carbon-blue">{item.label}</p>
-      <p className="mt-0.5 text-[10px] text-carbon-blue/55">{item.detail}</p>
-      <GrowthImpactBlock items={item.impact} />
-    </>
-  );
-}
-
-function OpportunityRow({
-  opp,
-}: {
-  opp: GrowthIntelligenceSnapshot["emergingOpportunities"][number];
-}) {
-  return (
-    <>
-      <p className="text-[11px] font-semibold text-carbon-blue">{opp.label}</p>
-      <p className="text-[10px] text-carbon-blue/50">
-        {opp.segment} · {opp.horizon} · {opp.potential} potential
-      </p>
-      <GrowthImpactBlock items={opp.impact} />
-    </>
+    <section className="dashboard-card p-4 sm:p-5">
+      <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+        {title}
+      </h2>
+      {actions.length === 0 ? (
+        <p className="mt-3 text-[13px] text-carbon-blue/50">{empty}</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {actions.map((action) => (
+            <li key={action.id}>
+              <Link
+                href={action.href}
+                className="block rounded-lg border border-carbon-blue/10 px-3 py-2.5 hover:border-upcycle-orange/20"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="text-[12px] font-semibold text-carbon-blue">{action.title}</p>
+                  <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+                    {EVIDENCE_LABEL[action.evidence]}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/60">{action.why}</p>
+                <p className="mt-1 text-[11px] font-medium text-upcycle-orange">{action.next}</p>
+                <GrowthImpactBlock items={[action.impact]} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

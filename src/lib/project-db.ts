@@ -4,6 +4,7 @@ import { PROJECTS } from "@/data/projects-data";
 import { getPrisma, isPrismaConnectionError } from "@/lib/prisma";
 import {
   detachCompanyFromProject,
+  getProjectStakeholders,
   normalizeProjectRelationships,
 } from "@/lib/project-relationship-utils";
 import { normalizeProjectTeam } from "@/lib/project-team-utils";
@@ -12,7 +13,15 @@ import type {
   ProjectRelatedOrganization,
   ProjectStakeholderRecord,
 } from "@/types/project-relationships";
+import {
+  INTERNAL_ORGANIZATION_ID,
+  UNASSIGNED_ORGANIZATION_ID,
+} from "@/types/project-relationships";
 import type { Prisma } from "@/generated/prisma";
+
+function getProjectStakeholdersFromProject(project: Project): ProjectStakeholderRecord[] {
+  return getProjectStakeholders(project);
+}
 
 /**
  * Known false pilot links — Reality First corrections.
@@ -216,9 +225,26 @@ export async function updateProject(projectId: string, patch: ProjectPatch): Pro
 
   const current = rowToProject(existing);
   const previousName = current.name;
+
+  let nextPatch = { ...patch };
+  if (
+    patch.relatedOrganizations !== undefined &&
+    patch.projectStakeholders === undefined
+  ) {
+    const keptIds = new Set(patch.relatedOrganizations.map((org) => org.id));
+    const stakeholders = getProjectStakeholdersFromProject(current).map((entry) =>
+      entry.organizationId === INTERNAL_ORGANIZATION_ID ||
+      entry.organizationId === UNASSIGNED_ORGANIZATION_ID ||
+      keptIds.has(entry.organizationId)
+        ? entry
+        : { ...entry, organizationId: UNASSIGNED_ORGANIZATION_ID },
+    );
+    nextPatch = { ...nextPatch, projectStakeholders: stakeholders };
+  }
+
   const updated = normalizeProject({
     ...current,
-    ...patch,
+    ...nextPatch,
     id: existing.id,
     discoveryAnswers:
       patch.discoveryAnswers !== undefined

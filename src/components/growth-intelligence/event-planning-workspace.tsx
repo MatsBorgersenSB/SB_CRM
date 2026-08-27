@@ -13,7 +13,8 @@ import type {
 } from "@/types/event-planning";
 import { eventPlanningHref } from "@/types/event-planning";
 import { company360Href } from "@/types/company-360";
-import { buildEventPlanningWorkspace, industryForEventSeed } from "@/lib/growth-event-planning-engine";
+import { buildEventPlanningWorkspace, getGrowthEventById, industryForEventSeed } from "@/lib/growth-event-planning-engine";
+import { isEventPast } from "@/lib/growth-event-timing";
 import {
   markEventCompanyAdded,
   readEventPlanningState,
@@ -23,6 +24,7 @@ import {
 import { stashEventCompanyPrefill } from "@/lib/event-planning-prefill";
 import { stashSmartAssistPrefill } from "@/lib/smart-assist-prefill";
 import { m365ComposeHref, telHref } from "@/lib/compose-actions";
+import { offerLabel, type GrowthMeetingTarget } from "@/types/growth-super-skills";
 import { overflowLabel } from "@/lib/signal-extraction";
 import { SmartAssistCategoryBadge, SmartAssistConfidenceLabel } from "@/components/smartassist/smartassist-intelligence-display";
 import { WorkspaceIntelContextLayout } from "@/components/ui/workspace-intel-context-layout";
@@ -55,9 +57,11 @@ const PRIORITY_STYLES: Record<EventPlanningContact["priority"], string> = {
 export function EventPlanningWorkspaceView({
   eventId,
   companies,
+  meetingTargets = [],
 }: {
   eventId: string;
   companies: Company[];
+  meetingTargets?: GrowthMeetingTarget[];
 }) {
   const router = useRouter();
   const [persisted, setPersisted] = useState<EventPlanningPersistedState>(() =>
@@ -86,6 +90,9 @@ export function EventPlanningWorkspaceView({
       </div>
     );
   }
+
+  const eventRecord = getGrowthEventById(eventId);
+  const eventPassed = eventRecord ? isEventPast(eventRecord) : false;
 
   const handleContactStatus = (contactTargetId: string, status: EventPlanningContact["status"]) => {
     setPersisted(updateEventContactStatus(eventId, contactTargetId, status));
@@ -150,6 +157,56 @@ export function EventPlanningWorkspaceView({
       >
         ← Events
       </Link>
+
+      {eventPassed ? (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2.5 text-[12px] text-carbon-blue/70">
+          This event has passed. Capture who you met, or archive it. Do not keep a meeting-suite task
+          for a finished show.
+        </p>
+      ) : null}
+
+      {!eventPassed && meetingTargets.length > 0 ? (
+        <section className={`${WORKSPACE_PANEL_SURFACE} p-4 sm:p-5`}>
+          <p className={EDITORIAL_LABEL}>Named-person meeting machine</p>
+          <ul className="mt-3 space-y-3">
+            {meetingTargets.map((target) => (
+              <li
+                key={`${target.companyName}-${target.contactName ?? "unnamed"}`}
+                className="border-b border-carbon-blue/8 pb-3 last:border-b-0 last:pb-0"
+              >
+                <p className="text-[13px] font-semibold text-carbon-blue">
+                  {target.contactName ?? "No named contact yet"}
+                  <span className="font-normal text-carbon-blue/55"> · {target.companyName}</span>
+                </p>
+                {target.dealName ? (
+                  <p className="text-[11px] text-carbon-blue/50">Deal: {target.dealName}</p>
+                ) : null}
+                <p className="mt-1 text-[11px] text-upcycle-orange">{offerLabel(target.offer)}</p>
+                <p className={`mt-1 ${EDITORIAL_BODY}`}>{target.agenda}</p>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  <Link href={target.companyHref} className="text-[11px] font-semibold text-upcycle-orange hover:underline">
+                    Open company
+                  </Link>
+                  {target.contactEmail ? (
+                    <a
+                      href={m365ComposeHref(
+                        target.contactEmail,
+                        `${workspace.event.name} — 20 minutes on a paid bankability pack`,
+                        `Hello ${target.contactName ?? ""},\n\n${target.agenda}\n\nWould you have 20 minutes at ${workspace.event.name}, or a call beforehand?\n`,
+                      )}
+                      className="text-[11px] font-semibold text-upcycle-orange hover:underline"
+                    >
+                      Open in Outlook
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-carbon-blue/40">No email on file — do not invent one</span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <WorkspaceIntelContextLayout
         header={

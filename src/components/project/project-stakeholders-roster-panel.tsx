@@ -39,9 +39,15 @@ function sanitizeDisplayText(value: string | null | undefined): string {
 function suggestRoleForContact(jobTitle?: string, role?: string): string {
   const corpus = `${jobTitle ?? ""} ${role ?? ""}`.toLowerCase();
   if (/ceo|chief|president|executive sponsor/.test(corpus)) return "Executive Sponsor";
-  if (/procurement|buyer/.test(corpus)) return "Procurement";
+  if (/project sponsor|sponsor/.test(corpus)) return "Project Sponsor";
+  if (/engineering|engineer/.test(corpus)) return "Engineering Lead";
+  if (/technical buyer|buyer|purchasing/.test(corpus)) return "Technical Buyer";
+  if (/procurement/.test(corpus)) return "Procurement";
   if (/operations|plant|technical/.test(corpus)) return "Technical Lead";
   if (/legal|counsel/.test(corpus)) return "Legal";
+  if (/consultant|advisor/.test(corpus)) return "Consultant";
+  if (/commercial|sales|business development/.test(corpus)) return "Commercial Lead";
+  if (/project manager|pm\b/.test(corpus)) return "Project Manager";
   return "Decision Maker";
 }
 
@@ -689,7 +695,7 @@ function RolePicker({
               {option}
             </option>
           ))}
-          <option value={CUSTOM_ROLE_VALUE}>+ Create new role…</option>
+          <option value={CUSTOM_ROLE_VALUE}>+ Create New Role</option>
         </select>
       </label>
       {role === CUSTOM_ROLE_VALUE ? (
