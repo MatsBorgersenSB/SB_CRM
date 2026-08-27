@@ -115,7 +115,7 @@ Keys: `DATABASE_URL`, `DIRECT_URL`, `TOKEN_ENCRYPTION_SECRET`, `NEXT_PUBLIC_APP_
 | Spec | Status |
 |------|--------|
 | FS-017 Outlook Integration | Not started (previews exist: `/outlook/*`, M365 APIs) |
-| FS-018 Teams Integration | Not started |
+| FS-018 Teams Integration | Approved — `docs/FS-018-teams-integration.md` (Phase 1–4 design) |
 | FS-019 ERP Integration | Not started |
 
 ---
