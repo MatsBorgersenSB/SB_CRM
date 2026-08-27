@@ -65,6 +65,7 @@ Canonical product docs live under `/docs`:
 | FS-014 | `docs/FS-014-post-meeting-notes.md` |
 | FS-015 | `docs/FS-015-project-relationships-stakeholders.md` |
 | FS-018 | `docs/FS-018-teams-integration.md` |
+| FS-020 | `docs/FS-020-duplicate-management.md` |
 
 When implementing or changing behaviour covered by an FS/AD, **read the relevant doc first** and keep code aligned with it.
 

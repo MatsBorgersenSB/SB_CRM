@@ -61,6 +61,11 @@ export function canDeleteCompany(role: UserRole): boolean {
   return role === "superuser" || role === "admin";
 }
 
+/** FS-020: Duplicate Manager — enterprise ADMIN only. */
+export function canAccessDuplicateManager(role: UserRole): boolean {
+  return role === "superuser" || role === "admin";
+}
+
 export function canWritePipelineField(
   role: UserRole,
   field: EditablePipelineField,

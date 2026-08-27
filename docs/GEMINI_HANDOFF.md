@@ -117,6 +117,7 @@ Keys: `DATABASE_URL`, `DIRECT_URL`, `TOKEN_ENCRYPTION_SECRET`, `NEXT_PUBLIC_APP_
 | FS-017 Outlook Integration | Not started (previews exist: `/outlook/*`, M365 APIs) |
 | FS-018 Teams Integration | Approved — Phase 1 hosts live at `/teams/daily-focus`, `/teams/meeting-briefing`; package `teams/` (sideload + Entra still required) |
 | FS-019 ERP Integration | Not started |
+| FS-020 Duplicate Manager | Approved — `/administration/duplicates` (company merge + contact portfolio scan) |
 
 ---
 
@@ -128,7 +129,7 @@ Keys: `DATABASE_URL`, `DIRECT_URL`, `TOKEN_ENCRYPTION_SECRET`, `NEXT_PUBLIC_APP_
 - Contacts: `/contacts`, `/contacts/[contactId]`
 - Opportunities/Deals: `/opportunities`, `/deals`, detail Mission Control–style workspace
 - Activities, Projects, Knowledge/SmartDocs, Intelligence, Attention, Revenue, Inventory, Conversions
-- Administration: users-access, workspace architect, assisted configuration
+- Administration: users-access, workspace architect, assisted configuration, **Duplicate Manager** (`/administration/duplicates`, FS-020)
 - Growth workspace, Workflows approval queue, Analytics reporting
 
 ### Prisma domain models (high level)
