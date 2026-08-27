@@ -5,7 +5,7 @@ import {
   type AnalyticsDealOutcome,
 } from "@/lib/analytics/pipeline-analytics";
 import { withPrismaRetry } from "@/lib/prisma";
-import { prismaDemoSeedOpportunityWhere } from "@/lib/demo-seed-markers";
+import { prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
 import { mapPrismaOpportunityToPipelineRow } from "@/lib/prisma-mappers";
 import { readPipelines } from "@/lib/pipeline-db";
 
@@ -47,7 +47,7 @@ export async function loadAnalyticsDeals(): Promise<{
       prisma.opportunity.findMany({
         where: {
           status: { in: ["open", "on_hold", "closed_won", "closed_lost"] },
-          NOT: prismaDemoSeedOpportunityWhere,
+          AND: prismaLiveOpportunityWhere.AND,
         },
         include: { company: { select: { id: true, name: true } } },
         orderBy: { updatedAt: "desc" },

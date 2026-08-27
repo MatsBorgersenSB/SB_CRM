@@ -9,7 +9,7 @@ import {
 } from "@/lib/email-intelligence-data";
 import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
 import { getPrisma } from "@/lib/prisma";
-import { prismaDemoSeedOpportunityWhere } from "@/lib/demo-seed-markers";
+import { prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
 import { readProjects } from "@/lib/project-db";
 import { toContactTrackingId } from "@/lib/prisma-mappers";
 
@@ -104,7 +104,7 @@ export async function GET(
           where: {
             status: "open",
             companyId: contact.companyId,
-            NOT: prismaDemoSeedOpportunityWhere,
+            AND: prismaLiveOpportunityWhere.AND,
           },
           select: { id: true, name: true, code: true },
           orderBy: { updatedAt: "desc" },
@@ -115,7 +115,7 @@ export async function GET(
     const broader = await prisma.opportunity.findMany({
       where: {
         status: "open",
-        NOT: prismaDemoSeedOpportunityWhere,
+        AND: prismaLiveOpportunityWhere.AND,
         ...(companyScoped.length > 0
           ? { id: { notIn: companyScoped.map((row) => row.id) } }
           : {}),
@@ -138,7 +138,7 @@ export async function GET(
       const linked = await prisma.opportunity.findMany({
         where: {
           id: { in: linkedOppIds },
-          NOT: prismaDemoSeedOpportunityWhere,
+          AND: prismaLiveOpportunityWhere.AND,
         },
         select: { id: true, name: true, code: true },
       });

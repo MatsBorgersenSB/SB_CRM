@@ -9,7 +9,7 @@ import { setConversationLinksForContact } from "@/lib/email-intelligence-data";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
-import { prismaDemoSeedOpportunityWhere } from "@/lib/demo-seed-markers";
+import { prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
 import type {
   RelationshipIntakeApproveInput,
   RelationshipIntakeApproveResult,
@@ -54,7 +54,7 @@ async function loadLinkOptions(companyId: string | null): Promise<{
       where: {
         status: "open",
         companyId: prismaCompanyId,
-        NOT: prismaDemoSeedOpportunityWhere,
+        AND: prismaLiveOpportunityWhere.AND,
       },
       select: { id: true, name: true, code: true },
       orderBy: { updatedAt: "desc" },

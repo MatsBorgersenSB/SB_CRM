@@ -1,5 +1,5 @@
 import { withPrismaRetry } from "@/lib/prisma";
-import { prismaDemoSeedCompanyWhere } from "@/lib/demo-seed-markers";
+import { prismaLiveCompanyWhere } from "@/lib/demo-seed-markers";
 import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 import type { Company } from "@/types/company";
 import {
@@ -151,12 +151,12 @@ export async function readGrowthIntelligenceWorkspace(): Promise<GrowthIntellige
     const [healthRows, signalRows, companyRows] = await withPrismaRetry((prisma) =>
       Promise.all([
         prisma.accountHealthRecord.findMany({
-          where: { company: { NOT: prismaDemoSeedCompanyWhere } },
+          where: { company: prismaLiveCompanyWhere },
           include: { company: { select: { name: true } } },
           orderBy: { calculatedAt: "desc" },
         }),
         prisma.expansionSignal.findMany({
-          where: { company: { NOT: prismaDemoSeedCompanyWhere } },
+          where: { company: prismaLiveCompanyWhere },
           include: {
             company: { select: { name: true } },
             opportunity: { select: { name: true } },
@@ -164,7 +164,7 @@ export async function readGrowthIntelligenceWorkspace(): Promise<GrowthIntellige
           orderBy: { createdAt: "desc" },
         }),
         prisma.company.findMany({
-          where: { status: "active", NOT: prismaDemoSeedCompanyWhere },
+          where: { status: "active", AND: prismaLiveCompanyWhere.AND },
           select: {
             id: true,
             name: true,

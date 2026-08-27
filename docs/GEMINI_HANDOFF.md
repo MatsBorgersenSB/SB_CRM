@@ -115,7 +115,7 @@ Keys: `DATABASE_URL`, `DIRECT_URL`, `TOKEN_ENCRYPTION_SECRET`, `NEXT_PUBLIC_APP_
 | Spec | Status |
 |------|--------|
 | FS-017 Outlook Integration | Not started (previews exist: `/outlook/*`, M365 APIs) |
-| FS-018 Teams Integration | Approved — Phase 1+2 hosts: Daily Focus, Meeting Briefing, Account Workspace (`/teams/*`, manifest v1.1.0) |
+| FS-018 Teams Integration | **v1 complete** — Phases 1–3 + Phase 4 foundation (`/teams/*`, manifest v1.2.0) |
 | FS-019 ERP Integration | Not started |
 | FS-020 Duplicate Manager | Approved — Phase 1+2: `/administration/duplicates` (merge, dismiss, Company 360 hint) |
 

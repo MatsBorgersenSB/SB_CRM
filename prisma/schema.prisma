@@ -868,6 +868,20 @@ model CoPilotDismissal {
   @@map("copilot_dismissals")
 }
 
-// Add these optional M365 mapping fields to your existing Contact model:
-// m365GraphId    String?   @unique // Microsoft Graph Contact / User Object ID
-// m365ImmutableId String?  @unique // Immutable ID across tenant transfers
+/// FS-018 Phase 4 - Teams channel to company or project binding (explicit user confirm).
+model TeamsChannelBinding {
+  id        String   @id @default(uuid())
+  teamId    String
+  channelId String
+  companyId String?
+  projectId String?
+  boundBy   String?
+  boundAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teamId, channelId])
+  @@index([companyId])
+  @@index([projectId])
+  @@map("teams_channel_bindings")
+}
+

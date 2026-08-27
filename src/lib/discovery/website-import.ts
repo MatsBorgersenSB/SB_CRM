@@ -16,7 +16,7 @@ import {
   updateCompanyContact,
 } from "@/lib/pipeline-db";
 import { readLiveCompanies } from "@/lib/prisma-data";
-import { prismaDemoSeedCompanyWhere } from "@/lib/demo-seed-markers";
+import { prismaLiveCompanyWhere } from "@/lib/demo-seed-markers";
 import { resolveAccountOwner } from "@/lib/company-owner";
 import { emailsIncludeAddress } from "@/lib/entity-route-utils";
 import { isInternalEmail } from "@/lib/domain-rules";
@@ -145,7 +145,7 @@ async function findPrismaCompanyByDomain(domain: string) {
   if (!domain) return null;
   const companies = await withPrismaRetry((prisma) =>
     prisma.company.findMany({
-      where: { status: "active", NOT: prismaDemoSeedCompanyWhere },
+      where: { status: "active", AND: prismaLiveCompanyWhere.AND },
       select: { id: true, website: true },
     }),
   );

@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { CompanyStatus, OpportunityStatus } from "@/generated/prisma";
-import { prismaDemoSeedCompanyWhere } from "@/lib/demo-seed-markers";
+import { prismaLiveCompanyWhere } from "@/lib/demo-seed-markers";
 import { withPrismaRetry } from "@/lib/prisma";
 import type {
   CompanyDuplicateCluster,
@@ -189,7 +189,7 @@ export async function findCompanyDuplicateClusters(options?: {
     prisma.company.findMany({
       where: {
         status: "active",
-        NOT: prismaDemoSeedCompanyWhere,
+        AND: prismaLiveCompanyWhere.AND,
       },
       select: {
         id: true,

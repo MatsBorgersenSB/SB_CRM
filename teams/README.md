@@ -1,40 +1,39 @@
 # SmartCRM for Teams (FS-018)
 
 **Host:** `https://sb-crm-seven.vercel.app`  
-**Spec:** [`docs/FS-018-teams-integration.md`](../docs/FS-018-teams-integration.md)
+**Spec:** [`docs/FS-018-teams-integration.md`](../docs/FS-018-teams-integration.md)  
+**Package:** [`manifest.json`](./manifest.json) **v1.2.0** (FS-018 v1 complete)
 
 | Phase | Surface | URL |
 |-------|---------|-----|
-| 1 | Daily Focus (personal) | `/teams/daily-focus` |
-| 1 | Meeting Briefing | `/teams/meeting-briefing?email=` or `?companyId=` |
-| 1 | Meeting tab config | `/teams/meeting-briefing/config` |
-| 2 | Account Workspace (channel) | `/teams/account-workspace?companyId=` or `?projectId=` |
-| 2 | Channel tab config | `/teams/account-workspace/config` |
-| | Manifest | [`manifest.json`](./manifest.json) **v1.1.0** |
+| 1 | Daily Focus | `/teams/daily-focus` |
+| 1 | Meeting Briefing | `/teams/meeting-briefing` |
+| 2 | Account Workspace | `/teams/account-workspace` |
+| 2 | Channel config | `/teams/account-workspace/config` |
+| 3 | Assign message | `/teams/assign-message` |
+| 3 | Post-meeting notes | `/teams/post-meeting` |
+| 4 | Channel binding API | `/api/teams/channel-binding` |
+| 4 | Attention Adaptive Card JSON | `/api/teams/attention-card?teamId=&channelId=` |
+| 3 | Bot (task modules) | `/api/teams/bot` |
 
-## Design rules
+## Sideload
 
-- No CRM iframes / full Mission Control in Teams
-- Daily Focus = **exactly 4 blocks**
-- Meeting Briefing = **7 sections**
-- Account Workspace = **max 7 blocks**
-- Opportunity CTAs stay sell-to gated; Project bind is always allowed
+1. Deploy `/teams/*` and `/api/teams/*`.
+2. Set every `REPLACE_WITH_AZURE_AD_CLIENT_ID` in `manifest.json` to the Entra app id.
+3. Register the same app as a Teams bot messaging endpoint:  
+   `https://sb-crm-seven.vercel.app/api/teams/bot`
+4. Zip `manifest.json`, `color.png`, `outline.png` → upload custom app.
 
-## Sideload (developer)
+## Channel bind
 
-1. Deploy so `/teams/*` is live.
-2. Set `webApplicationInfo.id` in `manifest.json` to your Azure AD app client id.
-3. Zip `manifest.json`, `color.png`, and `outline.png`.
-4. Teams → Apps → Upload a custom app.
-5. Personal: **Daily Focus**.
-6. Channel: **+** → SmartCRM → choose company or project (e.g. Escalante) → Save.
+Saving the Account Workspace tab stores `companyId`/`projectId` in the tab URL **and** persists `TeamsChannelBinding` (`teamId` + `channelId`). Unbind via `DELETE /api/teams/channel-binding`.
 
-## Browser preview
+## Attention cards
 
-- Account Workspace: `/teams/account-workspace?projectId=PRJ-CARBON-EMERGENTE` or `?companyId=CO-…`
-- Also validate via `/m365-preview`
+`GET /api/teams/attention-card` returns Adaptive Card JSON (≤4 facts). Post via Flow/bot on a schedule — proactive weekly push is optional ops wiring, not required for product v1.
 
-## Later phases
+## Deferred (ops / later)
 
-- Phase 3: Message extension Assign + FS-014
-- Phase 4: Durable channel binding table + weekly attention cards
+- Graph live meeting transcript pull
+- Planner task create from approved commitments
+- Auto-bind by channel name (never without confirm)
