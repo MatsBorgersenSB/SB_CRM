@@ -7,6 +7,11 @@ import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
 import { ATTIO_GROUP_ACTIONS } from "@/lib/attio-workspace-surfaces";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
+import {
+  composeRecipientsFromThreads,
+  mergeComposeRecipientOptions,
+  type ComposeRecipientOption,
+} from "@/lib/email-compose-recipients";
 import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
 import type { SentimentGrade } from "@/generated/prisma";
@@ -170,6 +175,9 @@ export function EmailIntelligence({
   const [composeTo, setComposeTo] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
+  const [projectRecipients, setProjectRecipients] = useState<ComposeRecipientOption[]>(
+    [],
+  );
 
   const load = useCallback(async () => {
     if (!scopeId) {
@@ -220,6 +228,49 @@ export function EmailIntelligence({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (scopeKind !== "project" || !scopeId) {
+      setProjectRecipients([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/projects/${encodeURIComponent(scopeId)}/mail-recipients`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) return;
+        const payload = (await response.json()) as {
+          recipients?: ComposeRecipientOption[];
+        };
+        if (!cancelled) {
+          setProjectRecipients(
+            Array.isArray(payload.recipients) ? payload.recipients : [],
+          );
+        }
+      } catch {
+        if (!cancelled) setProjectRecipients([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [scopeKind, scopeId]);
+
+  const composeRecipientOptions = useMemo(() => {
+    const fromThreads = composeRecipientsFromThreads(
+      threads.flatMap((thread) => thread.messages),
+    );
+    return mergeComposeRecipientOptions([...projectRecipients, ...fromThreads]);
+  }, [projectRecipients, threads]);
+
+  useEffect(() => {
+    if (!composeOpen || composeTo.trim()) return;
+    const preferred = composeRecipientOptions.find((row) => row.isExternal);
+    if (preferred) setComposeTo(preferred.email);
+  }, [composeOpen, composeRecipientOptions, composeTo]);
 
   const totalMessages = useMemo(
     () => threads.reduce((sum, thread) => sum + thread.messages.length, 0),
@@ -383,13 +434,40 @@ export function EmailIntelligence({
           <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <label className="block text-[11px] font-semibold text-carbon-blue/55">
               To
+              {composeRecipientOptions.length > 0 ? (
+                <select
+                  value={
+                    composeRecipientOptions.some((row) => row.email === composeTo.trim().toLowerCase())
+                      ? composeTo.trim().toLowerCase()
+                      : ""
+                  }
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value) setComposeTo(value);
+                  }}
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+                >
+                  <option value="">Choose project person…</option>
+                  {composeRecipientOptions.map((row) => (
+                    <option key={row.email} value={row.email}>
+                      {row.label} · {row.email}
+                      {row.isExternal ? "" : " (internal)"}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
               <input
-                type="email"
+                type="text"
+                inputMode="email"
+                autoComplete="off"
                 value={composeTo}
                 onChange={(event) => setComposeTo(event.target.value)}
                 placeholder="name@company.com"
                 className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
               />
+              <span className="mt-1 block text-[10px] font-normal text-carbon-blue/45">
+                Pick an external project contact, or type any address. Opens Outlook with that To.
+              </span>
             </label>
             <label className="block text-[11px] font-semibold text-carbon-blue/55">
               Subject
