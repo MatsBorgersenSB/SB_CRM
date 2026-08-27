@@ -37,6 +37,7 @@ export function DuplicateManagerShell() {
   const [primaryId, setPrimaryId] = useState<string | null>(null);
   const [secondaryId, setSecondaryId] = useState<string | null>(null);
   const [merging, setMerging] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
   const [mergeMessage, setMergeMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -123,6 +124,51 @@ export function DuplicateManagerShell() {
       setMerging(false);
     }
   }
+
+  async function dismissCluster() {
+    if (!selectedCluster || dismissing) return;
+    setDismissing(true);
+    setMergeMessage(null);
+    try {
+      const response = await fetch("/api/administration/duplicates/dismiss", {
+        method: "POST",
+        headers: withAuthRoleHeaders(user.role, { "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          memberIds: selectedCluster.members.map((m) => m.id),
+          note: "Not the same company",
+          companyId: selectedCluster.suggestedPrimaryId,
+        }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setMergeMessage(body.error ?? "Could not dismiss cluster");
+        return;
+      }
+      setMergeMessage("Marked as not a duplicate — hidden from the queue.");
+      await load();
+    } catch {
+      setMergeMessage("Could not dismiss cluster");
+    } finally {
+      setDismissing(false);
+    }
+  }
+
+  const mergePreview = useMemo(() => {
+    if (!selectedCluster || !primaryId || !secondaryId) return null;
+    const primary = selectedCluster.members.find((m) => m.id === primaryId);
+    const secondary = selectedCluster.members.find((m) => m.id === secondaryId);
+    if (!primary || !secondary) return null;
+    const unionTypes = Array.from(
+      new Set([...primary.types, ...secondary.types].map((t) => t.trim()).filter(Boolean)),
+    );
+    return {
+      primary,
+      secondary,
+      unionTypes,
+      contactsMoving: secondary.contactCount,
+      opportunitiesMoving: secondary.opportunityCount,
+    };
+  }, [selectedCluster, primaryId, secondaryId]);
 
   if (!allowed) {
     return (
@@ -346,6 +392,23 @@ export function DuplicateManagerShell() {
                       Nothing is hard-deleted.
                     </p>
 
+                    {mergePreview ? (
+                      <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-[11px] text-carbon-blue/65">
+                        <p className="font-semibold text-carbon-blue">Merge preview</p>
+                        <p className="mt-1">
+                          Keep <strong>{mergePreview.primary.name}</strong> · archive{" "}
+                          <strong>{mergePreview.secondary.name}</strong>
+                        </p>
+                        <p className="mt-0.5">
+                          Move {mergePreview.contactsMoving} contacts ·{" "}
+                          {mergePreview.opportunitiesMoving} opportunities
+                          {mergePreview.unionTypes.length > 0
+                            ? ` · types → ${mergePreview.unionTypes.join(", ")}`
+                            : ""}
+                        </p>
+                      </div>
+                    ) : null}
+
                     <button
                       type="button"
                       disabled={!primaryId || !secondaryId || merging || primaryId === secondaryId}
@@ -353,6 +416,14 @@ export function DuplicateManagerShell() {
                       className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"
                     >
                       {merging ? "Merging…" : "Confirm merge"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={dismissing || !selectedCluster}
+                      onClick={() => void dismissCluster()}
+                      className="inline-flex w-full items-center justify-center border border-carbon-blue/15 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:bg-carbon-blue/[0.02] disabled:opacity-40"
+                    >
+                      {dismissing ? "Dismissing…" : "Not a duplicate"}
                     </button>
                     {mergeMessage ? (
                       <p className="text-[11px] text-carbon-blue/70">{mergeMessage}</p>

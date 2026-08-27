@@ -27,6 +27,8 @@ import type { CommercialPackage } from "@/types/commercial-package";
 import type { InventoryDb } from "@/lib/inventory-data";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project } from "@/types/project";
+import { CompanyDuplicateHintBanner } from "@/components/company-360/company-duplicate-hint-banner";
+import type { CompanyDuplicateHint } from "@/lib/duplicate-management";
 import { buildCompanyAttentionItems } from "@/lib/smart-attention-engine";
 
 type Company360ShellProps = {
@@ -37,6 +39,7 @@ type Company360ShellProps = {
   inventory: InventoryDb;
   commercialPackages: CommercialPackage[];
   projects: Project[];
+  duplicateHint?: CompanyDuplicateHint | null;
 };
 
 export function Company360Shell({
@@ -47,6 +50,7 @@ export function Company360Shell({
   inventory,
   commercialPackages,
   projects,
+  duplicateHint = null,
 }: Company360ShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -343,6 +347,7 @@ export function Company360Shell({
             allPipelines={visiblePipelines}
             onCreateOpportunity={handleCreateOpportunity}
             onAssignOpportunityStakeholder={handleAssignOpportunityStakeholder}
+            duplicateHint={duplicateHint}
           />
         </WorkspaceMain>
     </WorkspaceChrome>

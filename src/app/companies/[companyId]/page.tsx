@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Company360Shell } from "@/components/company-360/company-360-shell";
 import { getCompanyById } from "@/lib/data/companies";
+import { loadCompanyDuplicateHint } from "@/lib/duplicate-management";
 import { pickEntityRouteParam } from "@/lib/entity-route-utils";
 import { readProjects } from "@/lib/project-db";
 import {
@@ -85,6 +86,9 @@ export default async function Company360Page({ params }: Company360PageProps) {
   }
 
   const shellCompanies = mergeCompanyIntoPortfolio(companies, company);
+  const duplicateHint = await loadCompanyDuplicateHint(
+    company.code || company.CompanyID,
+  );
 
   return (
     <Suspense fallback={null}>
@@ -96,6 +100,7 @@ export default async function Company360Page({ params }: Company360PageProps) {
         inventory={inventory}
         commercialPackages={commercialPackages}
         projects={projects}
+        duplicateHint={duplicateHint}
       />
     </Suspense>
   );

@@ -140,10 +140,21 @@ Michelin: one workspace, two tabs (Companies · Contacts). No widget sprawl.
 | AC-05 | Non-ADMIN cannot merge |
 | AC-06 | Contacts tab lists portfolio duplicates and links to existing merge |
 | AC-07 | No silent / automatic merges |
+| AC-08 | Admin can dismiss a cluster as “Not a duplicate”; it leaves the open queue |
+| AC-09 | Company 360 shows a possible-duplicate hint for ADMIN with link to Duplicate Manager |
 
 ---
 
-## 10. Out of Scope (v1)
+## 10. Phases
+
+| Phase | Scope | Status |
+|-------|--------|--------|
+| **1** | Company detect + merge · Contacts portfolio scan · Admin workspace | Shipped |
+| **2** | Dismiss / suppress false positives · Company 360 hint · merge preview | In product |
+
+---
+
+## 11. Out of Scope (v1)
 
 - Auto-merge
 - Fuzzy ML / embeddings

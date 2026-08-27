@@ -42,6 +42,7 @@ import { getProjectsForCompany } from "@/lib/project-team-utils";
 import { CompanyProjectsTable } from "@/components/project/company-projects-table";
 import type { CompanyHeroQuickEdit } from "@/lib/company-identity";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
+import { CompanyDuplicateHintBanner } from "@/components/company-360/company-duplicate-hint-banner";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import {
   canCreateOpportunity,
@@ -82,6 +83,7 @@ export function Company360LivingWorkspace({
   allPipelines,
   onCreateOpportunity,
   onAssignOpportunityStakeholder,
+  duplicateHint = null,
 }: {
   snapshot: Company360Snapshot;
   commercialPackages: CommercialPackage[];
@@ -104,6 +106,7 @@ export function Company360LivingWorkspace({
     contactId: string,
     projectRole: string,
   ) => Promise<PipelineRow>;
+  duplicateHint?: import("@/lib/duplicate-management").CompanyDuplicateHint | null;
 }) {
   const { company, header, pipelines: linkedPipelines } = snapshot;
   const identity = buildCompanyHeroIdentity(company);
@@ -247,6 +250,7 @@ export function Company360LivingWorkspace({
 
   return (
     <WorkspaceStack>
+      <CompanyDuplicateHintBanner hint={duplicateHint} />
       <section className="dashboard-card overflow-hidden">
         <div className="px-6 py-5">
           {activeTool === "edit-company" ? (
