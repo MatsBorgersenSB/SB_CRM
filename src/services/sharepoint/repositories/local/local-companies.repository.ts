@@ -86,6 +86,9 @@ export class LocalCompaniesRepository
           { organizationNumber },
         );
       }
+      if (error instanceof Error && /already (used|exists)/i.test(error.message)) {
+        throw SharePointServiceError.conflict(error.message);
+      }
       throw error;
     }
   }

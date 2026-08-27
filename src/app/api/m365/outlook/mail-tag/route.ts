@@ -102,13 +102,28 @@ export async function GET(request: Request) {
     const opportunityRows = [...companyScoped, ...broader];
 
     const projects = await readProjects();
-    const projectOptions: LinkOption[] = projects.slice(0, 80).map((project) => ({
-      id: project.id,
-      label: project.linkedCompanyId
-        ? `${project.name} · ${project.linkedCompanyId}`
-        : project.name,
-      name: project.name,
-    }));
+    const projectOptions: LinkOption[] = projects
+      .slice()
+      .sort((a, b) => {
+        const aLinked =
+          a.linkedCompanyId === companyId || a.linkedCompanyId === prismaCompany?.code
+            ? 0
+            : 1;
+        const bLinked =
+          b.linkedCompanyId === companyId || b.linkedCompanyId === prismaCompany?.code
+            ? 0
+            : 1;
+        if (aLinked !== bLinked) return aLinked - bLinked;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 80)
+      .map((project) => ({
+        id: project.id,
+        label: project.linkedCompanyId
+          ? `${project.name} · ${project.linkedCompanyId}`
+          : project.name,
+        name: project.name,
+      }));
 
     let currentOpportunityId: string | null = null;
     let currentProjectId: string | null = null;
