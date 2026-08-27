@@ -108,15 +108,27 @@ export async function GET(request: Request) {
     const opportunityRows = [...companyScoped, ...broader];
 
     const projects = await readProjects();
+    const { getProjectRelatedOrganizations } = await import(
+      "@/lib/project-relationship-utils"
+    );
+    const companyKeys = new Set(
+      [companyId, prismaCompany?.code, prismaCompany?.id].filter(
+        (value): value is string => Boolean(value?.trim()),
+      ),
+    );
     const projectOptions: LinkOption[] = projects
       .slice()
       .sort((a, b) => {
+        const aOrgs = getProjectRelatedOrganizations(a);
+        const bOrgs = getProjectRelatedOrganizations(b);
         const aLinked =
-          a.linkedCompanyId === companyId || a.linkedCompanyId === prismaCompany?.code
+          companyKeys.has(a.linkedCompanyId ?? "") ||
+          aOrgs.some((org) => companyKeys.has(org.companyId))
             ? 0
             : 1;
         const bLinked =
-          b.linkedCompanyId === companyId || b.linkedCompanyId === prismaCompany?.code
+          companyKeys.has(b.linkedCompanyId ?? "") ||
+          bOrgs.some((org) => companyKeys.has(org.companyId))
             ? 0
             : 1;
         if (aLinked !== bLinked) return aLinked - bLinked;
