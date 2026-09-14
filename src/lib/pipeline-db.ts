@@ -486,6 +486,31 @@ export async function updatePipeline(
   return updated;
 }
 
+export async function deletePipeline(id: string): Promise<void> {
+  const database = await ensureDb();
+  const index = database.pipelines.findIndex(
+    (record) => record.id === id || record.code === id,
+  );
+
+  if (index === -1) {
+    throw new Error(`Pipeline not found: ${id}`);
+  }
+
+  const [removed] = database.pipelines.splice(index, 1);
+  const removedId = removed?.id ?? id;
+
+  database.companies = database.companies.map((company) =>
+    company.pipelineIds.includes(removedId)
+      ? {
+          ...company,
+          pipelineIds: company.pipelineIds.filter((pipelineId) => pipelineId !== removedId),
+        }
+      : company,
+  );
+
+  await writeDb(database);
+}
+
 /** Attach an existing opportunity to a company (JSON portfolio + Prisma when available). */
 export async function linkCompanyToPipeline(
   companyId: string,

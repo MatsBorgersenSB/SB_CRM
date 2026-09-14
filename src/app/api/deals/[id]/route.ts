@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRequestRole } from "@/lib/api-auth";
-import { assertPipelinePatchAllowed } from "@/lib/permissions";
+import { assertPipelinePatchAllowed, canDeleteOpportunity } from "@/lib/permissions";
 import {
   clientIpFromRequest,
   logAuditEvent,
@@ -69,6 +69,39 @@ export async function GET(
     const { deals } = getServerSharePointServices();
     const deal = await deals.getById(id);
     return NextResponse.json(deal);
+  } catch (error) {
+    return sharePointErrorResponse(error);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const role = getRequestRole(request);
+
+  if (!canDeleteOpportunity(role)) {
+    return sharePointErrorResponse(
+      SharePointServiceError.forbidden("Insufficient role to delete opportunities"),
+    );
+  }
+
+  try {
+    const { deals } = getServerSharePointServices();
+    await deals.delete(id);
+
+    const actor = resolveAuditActor(request, role);
+    await logAuditEvent({
+      ...actor,
+      action: "DEAL_DELETED",
+      entityType: "Deal",
+      entityId: id,
+      ipAddress: clientIpFromRequest(request),
+      metadata: { privileged: true },
+    });
+
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     return sharePointErrorResponse(error);
   }

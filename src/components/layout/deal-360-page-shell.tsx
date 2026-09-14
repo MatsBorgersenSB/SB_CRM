@@ -10,13 +10,14 @@ import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/types/company";
+import { syncPipelineRecord, deleteDealRecord } from "@/lib/sync-pipeline";
+import { buildDealAttentionItems } from "@/lib/smart-attention-engine";
 import {
   filterCompaniesForUser,
   filterPipelinesForUser,
   canManageOpportunityStakeholders,
+  canDeleteOpportunity,
 } from "@/lib/permissions";
-import { buildDealAttentionItems } from "@/lib/smart-attention-engine";
-import { syncPipelineRecord } from "@/lib/sync-pipeline";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { PipelineRow } from "@/types/pipeline";
@@ -121,6 +122,13 @@ export function Deal360PageShell({
     [pipeline, user.role],
   );
 
+  const handleOpportunityDelete = useCallback(async () => {
+    if (!pipeline || !canDeleteOpportunity(user.role)) return;
+    await deleteDealRecord(pipeline.id, user.role);
+    router.push("/opportunities");
+    router.refresh();
+  }, [pipeline, router, user.role]);
+
   useEffect(() => {
     if (!tabParam) return;
     const aliases: Record<string, string> = {
@@ -195,6 +203,9 @@ export function Deal360PageShell({
             }}
             role={user.role}
             onPipelinePatch={handlePipelinePatch}
+            onOpportunityDelete={
+              canDeleteOpportunity(user.role) ? handleOpportunityDelete : undefined
+            }
           />
         </WorkspaceMain>
     </WorkspaceChrome>

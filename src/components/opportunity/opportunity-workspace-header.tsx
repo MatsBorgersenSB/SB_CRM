@@ -20,12 +20,14 @@ import { opportunityStageLabel } from "@/lib/opportunity-overview";
 import type { CommercialPackage } from "@/types/commercial-package";
 import {
   canAssignOpportunityOwner,
+  canDeleteOpportunity,
   canEditExpectedCloseDate,
   canEditOpportunityValue,
 } from "@/lib/permissions";
 import type { UserRole } from "@/types/auth";
 import { OpportunityOfferingsPanel } from "@/components/opportunity/opportunity-offerings-panel";
 import { OpportunityProbabilityPill } from "@/components/opportunity/opportunity-probability-pill";
+import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 import { formatOfferingLabels } from "@/lib/standard-bio-offerings";
 import {
   ATTIO_PILL,
@@ -63,6 +65,7 @@ export function OpportunityWorkspaceHeader({
   pipelines = [],
   role,
   onPipelinePatch,
+  onOpportunityDelete,
 }: {
   pipeline: PipelineRow;
   companies: Company[];
@@ -71,6 +74,7 @@ export function OpportunityWorkspaceHeader({
   pipelines?: PipelineRow[];
   role: UserRole;
   onPipelinePatch?: (patch: Partial<PipelineRow>) => Promise<void>;
+  onOpportunityDelete?: () => Promise<void>;
 }) {
   const company = findCompanyForDeal(pipeline.id, companies);
   const stageLabel = opportunityStageLabel(pipeline, commercialPackages);
@@ -83,6 +87,7 @@ export function OpportunityWorkspaceHeader({
   const canEditOwner = canAssignOpportunityOwner(role) && Boolean(onPipelinePatch);
   const canEditTimeline = canEditExpectedCloseDate(role) && Boolean(onPipelinePatch);
   const canEditValue = canEditOpportunityValue(role) && Boolean(onPipelinePatch);
+  const canDelete = canDeleteOpportunity(role) && Boolean(onOpportunityDelete);
 
   const handleOwnerChange = async (nextOwner: SharePointPerson) => {
     await onPipelinePatch?.({ opportunityOwner: nextOwner });
@@ -187,6 +192,12 @@ export function OpportunityWorkspaceHeader({
                   role={role}
                   label="New mail in Outlook"
                   className="inline-flex items-center border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-upcycle-orange hover:text-upcycle-orange dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                />
+              ) : null}
+              {canDelete && onOpportunityDelete ? (
+                <OpportunityDeleteControl
+                  opportunityName={pipeline.assetName}
+                  onDelete={onOpportunityDelete}
                 />
               ) : null}
             </div>
@@ -435,6 +446,67 @@ function EditableValue({
       title="Click to edit deal value"
     >
       {displayValue}
+    </button>
+  );
+}
+
+function OpportunityDeleteControl({
+  opportunityName,
+  onDelete,
+}: {
+  opportunityName: string;
+  onDelete: () => Promise<void>;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      await onDelete();
+    } catch (deleteError) {
+      const message =
+        deleteError instanceof Error && deleteError.message.trim()
+          ? deleteError.message
+          : "Unable to delete this opportunity.";
+      setError(message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (confirmOpen) {
+    return (
+      <div className="w-full max-w-sm shrink-0 sm:w-72">
+        <DestructiveConfirmPanel
+          title="Delete this opportunity?"
+          message={`${opportunityName} will leave the pipeline. Linked activities, mail, and documents are kept. Use this when the opportunity was registered by mistake.`}
+          confirmLabel="Delete"
+          onConfirm={() => void handleDelete()}
+          onCancel={() => {
+            setConfirmOpen(false);
+            setError(null);
+          }}
+          loading={deleting}
+        />
+        {error ? (
+          <p className="mt-2 text-[11px] font-medium text-thermal-red" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setConfirmOpen(true)}
+      className="inline-flex items-center border border-thermal-red/30 bg-white px-2.5 py-1 text-[11px] font-semibold text-thermal-red hover:bg-thermal-red/[0.06] dark:border-thermal-red/40 dark:bg-slate-900"
+    >
+      Delete opportunity
     </button>
   );
 }

@@ -202,3 +202,25 @@ export async function updateRegistryOpportunity(
 
   return loadMappedOpportunity(id);
 }
+
+export async function deleteRegistryOpportunity(
+  id: string | number,
+): Promise<boolean> {
+  if (!(await prismaRegistryAvailable())) return false;
+
+  const { findPrismaOpportunityByRouteKey } = await import(
+    "@/lib/resolve-opportunity-route"
+  );
+  const existing = await findPrismaOpportunityByRouteKey(String(id));
+  if (!existing) return false;
+
+  if (existing.status === "archived") return true;
+
+  await withPrismaRetry((prisma) =>
+    prisma.opportunity.update({
+      where: { id: existing.id },
+      data: { status: "archived" },
+    }),
+  );
+  return true;
+}

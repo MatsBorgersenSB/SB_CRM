@@ -7,10 +7,11 @@ import type {
   Deal,
   UpdateDealInput,
 } from "@/types/deal";
-import { createPipeline, readPipelines } from "@/lib/pipeline-db";
+import { createPipeline, deletePipeline, readPipelines } from "@/lib/pipeline-db";
 import { updatePipelineWithCommercialHooks } from "@/lib/commercial-package-actions";
 import {
   createRegistryOpportunity,
+  deleteRegistryOpportunity,
   getRegistryOpportunity,
   listRegistryOpportunities,
   updateRegistryOpportunity,
@@ -88,9 +89,13 @@ export class LocalDealsRepository
     return updatePipelineWithCommercialHooks(String(id), patch);
   }
 
-  async delete(): Promise<void> {
-    throw SharePointServiceError.validation(
-      "Delete deal is not enabled in local transport",
-    );
+  async delete(id: string | number): Promise<void> {
+    if (await deleteRegistryOpportunity(id)) return;
+
+    try {
+      await deletePipeline(String(id));
+    } catch {
+      throw SharePointServiceError.notFound("Deal", id);
+    }
   }
 }
