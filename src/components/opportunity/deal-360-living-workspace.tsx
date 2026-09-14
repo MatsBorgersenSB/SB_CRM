@@ -83,6 +83,7 @@ export function Deal360LivingWorkspace({
   dealTeam,
   role,
   onPipelinePatch,
+  onOpportunityDelete,
 }: {
   pipeline: PipelineRow;
   companies: Company[];
@@ -99,6 +100,7 @@ export function Deal360LivingWorkspace({
   };
   role: UserRole;
   onPipelinePatch?: (patch: Partial<PipelineRow>) => Promise<void>;
+  onOpportunityDelete?: () => Promise<void>;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -331,6 +333,7 @@ export function Deal360LivingWorkspace({
         pipelines={pipelines}
         role={role}
         onPipelinePatch={onPipelinePatch}
+        onOpportunityDelete={onOpportunityDelete}
       />
 
       <DealVelocityCard dealId={pipeline.id} />

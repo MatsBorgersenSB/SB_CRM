@@ -53,6 +53,17 @@ export async function syncPipelineField(
   await syncPipelineRecord(id, buildSharePointPatch(field, value), role);
 }
 
+export async function deleteDealRecord(
+  id: string,
+  role: UserRole = "superuser",
+): Promise<void> {
+  try {
+    await getDealsService(role).delete(id);
+  } catch (error) {
+    throw toSharePointServiceError(error);
+  }
+}
+
 /** @internal role header preserved for API route RBAC enforcement */
 export function authHeaders(role: UserRole): HeadersInit {
   return {

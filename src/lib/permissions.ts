@@ -307,6 +307,11 @@ export function canCreateOpportunity(role: UserRole): boolean {
   return canAssignOpportunityOwner(role);
 }
 
+/** Remove a mistaken opportunity from the live pipeline — creators and ADMIN. */
+export function canDeleteOpportunity(role: UserRole): boolean {
+  return role === "superuser" || role === "admin" || role === "commercial";
+}
+
 export function canEditExpectedCloseDate(role: UserRole): boolean {
   return role === "superuser" || role === "commercial";
 }
