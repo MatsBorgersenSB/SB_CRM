@@ -118,8 +118,8 @@ export function OpportunityWorkspaceHeader({
     "";
 
   return (
-    <header aria-label="Opportunity context" className={`${ATTIO_SURFACE} overflow-hidden`}>
-      <div className={ATTIO_SURFACE_HEADER}>
+    <header aria-label="Opportunity context" className={ATTIO_SURFACE}>
+      <div className={`${ATTIO_SURFACE_HEADER} flex items-center justify-between gap-3`}>
         <nav
           aria-label="Breadcrumb"
           className="flex min-w-0 flex-wrap items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400"
@@ -137,6 +137,12 @@ export function OpportunityWorkspaceHeader({
             {pipeline.assetName}
           </span>
         </nav>
+        {canDelete && onOpportunityDelete ? (
+          <OpportunityDeleteControl
+            opportunityName={pipeline.assetName}
+            onDelete={onOpportunityDelete}
+          />
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
@@ -192,12 +198,6 @@ export function OpportunityWorkspaceHeader({
                   role={role}
                   label="New mail in Outlook"
                   className="inline-flex items-center border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-upcycle-orange hover:text-upcycle-orange dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                />
-              ) : null}
-              {canDelete && onOpportunityDelete ? (
-                <OpportunityDeleteControl
-                  opportunityName={pipeline.assetName}
-                  onDelete={onOpportunityDelete}
                 />
               ) : null}
             </div>
@@ -504,7 +504,7 @@ function OpportunityDeleteControl({
     <button
       type="button"
       onClick={() => setConfirmOpen(true)}
-      className="inline-flex items-center border border-thermal-red/30 bg-white px-2.5 py-1 text-[11px] font-semibold text-thermal-red hover:bg-thermal-red/[0.06] dark:border-thermal-red/40 dark:bg-slate-900"
+      className="shrink-0 border border-thermal-red/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-thermal-red hover:bg-thermal-red/[0.06] dark:border-thermal-red/40 dark:bg-slate-900"
     >
       Delete opportunity
     </button>
