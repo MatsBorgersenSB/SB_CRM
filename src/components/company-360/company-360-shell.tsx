@@ -12,12 +12,13 @@ import type { Company360Snapshot } from "@/lib/company-360-data";
 import { buildCompany360Snapshot } from "@/lib/company-360-data";
 import {
   canCreateOpportunity,
+  canDeleteOpportunity,
   canManageOpportunityStakeholders,
   filterCompaniesForUser,
   filterPipelinesForUser,
 } from "@/lib/permissions";
 import { createContactRecord, deleteContactRecord, syncCompanyContact, archiveContactRecord } from "@/lib/sync-company";
-import { createDealRecord, syncPipelineRecord } from "@/lib/sync-pipeline";
+import { createDealRecord, deleteDealRecord, syncPipelineRecord } from "@/lib/sync-pipeline";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
@@ -315,6 +316,27 @@ export function Company360Shell({
     [pipelineRows, user.role],
   );
 
+  const handleDeleteOpportunity = useCallback(
+    async (dealId: string) => {
+      if (!canDeleteOpportunity(user.role)) {
+        throw new Error("You do not have permission to delete opportunities");
+      }
+      await deleteDealRecord(dealId, user.role);
+      setPipelineRows((current) => current.filter((row) => row.id !== dealId));
+      setCompany((current) => ({
+        ...current,
+        pipelineIds: current.pipelineIds.filter((id) => id !== dealId),
+      }));
+      setCompanyRows((current) =>
+        current.map((record) => ({
+          ...record,
+          pipelineIds: record.pipelineIds.filter((id) => id !== dealId),
+        })),
+      );
+    },
+    [user.role],
+  );
+
   return (
     <WorkspaceChrome>
         <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
@@ -347,6 +369,9 @@ export function Company360Shell({
             allPipelines={visiblePipelines}
             onCreateOpportunity={handleCreateOpportunity}
             onAssignOpportunityStakeholder={handleAssignOpportunityStakeholder}
+            onDeleteOpportunity={
+              canDeleteOpportunity(user.role) ? handleDeleteOpportunity : undefined
+            }
             duplicateHint={duplicateHint}
           />
         </WorkspaceMain>

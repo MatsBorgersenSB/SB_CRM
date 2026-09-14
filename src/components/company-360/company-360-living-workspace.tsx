@@ -83,6 +83,7 @@ export function Company360LivingWorkspace({
   allPipelines,
   onCreateOpportunity,
   onAssignOpportunityStakeholder,
+  onDeleteOpportunity,
   duplicateHint = null,
 }: {
   snapshot: Company360Snapshot;
@@ -106,6 +107,7 @@ export function Company360LivingWorkspace({
     contactId: string,
     projectRole: string,
   ) => Promise<PipelineRow>;
+  onDeleteOpportunity?: (dealId: string) => Promise<void>;
   duplicateHint?: import("@/lib/duplicate-management").CompanyDuplicateHint | null;
 }) {
   const { company, header, pipelines: linkedPipelines } = snapshot;
@@ -350,6 +352,7 @@ export function Company360LivingWorkspace({
         canManageOpportunityStakeholders={canManageOpportunityStakeholders(role)}
         onCreateOpportunity={onCreateOpportunity}
         onAssignOpportunityStakeholder={onAssignOpportunityStakeholder}
+        onDeleteOpportunity={onDeleteOpportunity}
         onCompanyUpdated={onCompanyUpdated}
       />
 

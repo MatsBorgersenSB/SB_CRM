@@ -25,6 +25,7 @@ import { CompanyOpportunitiesSection } from "@/components/opportunity/company-op
 import { CompanyContactsTable } from "@/components/company-360/company-contacts-table";
 import { DealLink } from "@/components/relationship/relationship-links";
 import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 
 function formatCloseDate(value: string | undefined): string {
   if (!value) return "—";
@@ -121,6 +122,7 @@ function OpportunitiesOverviewStrip({
   canManageStakeholders = false,
   onCreateOpportunity,
   onAssignStakeholder,
+  onDeleteOpportunity,
   onCompanyUpdated,
 }: {
   company: Company;
@@ -138,9 +140,13 @@ function OpportunitiesOverviewStrip({
     contactId: string,
     projectRole: string,
   ) => Promise<PipelineRow>;
+  onDeleteOpportunity?: (dealId: string) => Promise<void>;
   onCompanyUpdated?: (company: Company) => void;
 }) {
   const [createRequestId, setCreateRequestId] = useState(0);
+  const [deleteDealId, setDeleteDealId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const canDelete = Boolean(onDeleteOpportunity);
 
   const rows = useMemo(() => {
     const sorted = [...deals].sort((a, b) => {
@@ -215,8 +221,36 @@ function OpportunitiesOverviewStrip({
                   >
                     {deal.assetName}
                   </DealLink>
-                  <OpportunityMomentumBadge momentum={momentum} className="shrink-0" />
+                  <div className="flex shrink-0 items-center gap-2">
+                    <OpportunityMomentumBadge momentum={momentum} className="shrink-0" />
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteDealId(deal.id)}
+                        className="text-[11px] font-semibold text-thermal-red hover:underline"
+                      >
+                        Delete
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
+                {deleteDealId === deal.id && onDeleteOpportunity ? (
+                  <div className="mt-2">
+                    <DestructiveConfirmPanel
+                      title="Delete this opportunity?"
+                      message={`${deal.assetName} will leave the pipeline. Linked activities, mail, and documents are kept.`}
+                      confirmLabel="Delete"
+                      loading={deleting}
+                      onCancel={() => setDeleteDealId(null)}
+                      onConfirm={() => {
+                        setDeleting(true);
+                        void onDeleteOpportunity(deal.id)
+                          .then(() => setDeleteDealId(null))
+                          .finally(() => setDeleting(false));
+                      }}
+                    />
+                  </div>
+                ) : null}
 
                 <dl className="mt-1.5 flex flex-wrap gap-1">
                   <OpportunityKeyAttribute label="Stage">
@@ -300,6 +334,7 @@ export function Company360OverviewStrips({
   canManageOpportunityStakeholders: canManageStakeholders = false,
   onCreateOpportunity,
   onAssignOpportunityStakeholder,
+  onDeleteOpportunity,
   onCompanyUpdated,
 }: {
   company: Company;
@@ -325,6 +360,7 @@ export function Company360OverviewStrips({
     contactId: string,
     projectRole: string,
   ) => Promise<PipelineRow>;
+  onDeleteOpportunity?: (dealId: string) => Promise<void>;
   onCompanyUpdated?: (company: Company) => void;
 }) {
   return (
@@ -354,6 +390,7 @@ export function Company360OverviewStrips({
         canManageStakeholders={canManageStakeholders}
         onCreateOpportunity={onCreateOpportunity}
         onAssignStakeholder={onAssignOpportunityStakeholder}
+        onDeleteOpportunity={onDeleteOpportunity}
         onCompanyUpdated={onCompanyUpdated}
       />
     </>
