@@ -13,6 +13,10 @@ import type { Company } from "@/types/company";
 import type { UpdateContactInput } from "@/types/contact";
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 import { ContactRoleSelect } from "@/components/ui/contact-role-select";
+import {
+  companyNeedsSelectDisambiguation,
+  formatCompanySelectLabel,
+} from "@/lib/m365/company-resolution";
 
 type WizardMode = "transfer" | "merge" | "position";
 
@@ -254,7 +258,10 @@ export function ContactLifecycleWizard({
                 >
                   {transferOptions.map((company) => (
                     <option key={company.CompanyID} value={company.CompanyID}>
-                      {company.Title}
+                      {formatCompanySelectLabel(
+                        company,
+                        companyNeedsSelectDisambiguation(company, transferOptions),
+                      )}
                     </option>
                   ))}
                 </select>

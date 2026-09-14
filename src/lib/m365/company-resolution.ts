@@ -10,6 +10,42 @@ export function canonicalCompanyDisplayName(company: Company): string {
   return company.Title.trim();
 }
 
+type CompanySelectOption = {
+  Title: string;
+  CompanyID: string;
+  City?: string;
+  Domain?: string;
+};
+
+function companySelectFirstToken(title: string): string {
+  return stripLegalSuffixTokens(title).split(/\s+/)[0] ?? "";
+}
+
+/** True when another company shares the same leading name token (e.g. two Antec records). */
+export function companyNeedsSelectDisambiguation(
+  company: Pick<CompanySelectOption, "Title">,
+  all: Array<Pick<CompanySelectOption, "Title">>,
+): boolean {
+  const token = companySelectFirstToken(company.Title);
+  if (!token) return false;
+  return (
+    all.filter((row) => companySelectFirstToken(row.Title) === token).length > 1
+  );
+}
+
+/** Company picker label — always includes tracking ID; city/domain when names collide. */
+export function formatCompanySelectLabel(
+  company: CompanySelectOption,
+  duplicateName = false,
+): string {
+  const extra = duplicateName
+    ? [company.City?.trim(), company.Domain?.trim()].filter(Boolean).join(" · ")
+    : "";
+  return extra
+    ? `${company.Title} · ${extra} (${company.CompanyID})`
+    : `${company.Title} (${company.CompanyID})`;
+}
+
 function normalizeCompanyTitle(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }

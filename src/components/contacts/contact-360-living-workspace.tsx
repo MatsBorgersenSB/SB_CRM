@@ -29,6 +29,7 @@ import { useSmartAssistActionHost } from "@/components/smartassist/smartassist-a
 import { useAuth } from "@/context/auth-context";
 import { workspaceDocumentsContextFromContact } from "@/lib/workspace-documents-data";
 import { canDeleteContact } from "@/lib/permissions";
+import { transferContactRecord } from "@/lib/sync-company";
 import { getContactDisplayName, type UpdateContactInput } from "@/types/contact";
 import type { EditableContactField as EditableContactFieldName } from "@/types/contact";
 import type { EmploymentStatus } from "@/types/contact-lifecycle";
@@ -236,8 +237,12 @@ export function Contact360LivingWorkspace({
     setContactEditOpen((open) => !open);
   };
 
-  const handleCompanyChange = (_contactId: string, targetCompanyId: string) => {
-    onContactTransferred(contact, targetCompanyId);
+  const handleCompanyChange = async (_contactId: string, targetCompanyId: string) => {
+    const result = await transferContactRecord(contact.ContactID, { targetCompanyId });
+    if (!result.contact) {
+      throw new Error("Company change did not complete.");
+    }
+    onContactTransferred(result.contact, targetCompanyId);
   };
 
   const contactTools = (

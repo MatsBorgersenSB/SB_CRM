@@ -129,6 +129,9 @@ export class LocalContactsRepository
       return contactFromStoredRecord(company, next);
     } catch (error) {
       if (error instanceof SharePointServiceError) throw error;
+      if (error instanceof Error && error.message.trim()) {
+        throw SharePointServiceError.validation(error.message);
+      }
       throw SharePointServiceError.notFound("Contact", id);
     }
   }
