@@ -228,6 +228,7 @@ export function Contact360PageShell({
       router.replace(
         `/contacts/${encodeURIComponent(updated.ContactID)}?company=${encodeURIComponent(targetCompanyId)}`,
       );
+      router.refresh();
     },
     [replaceContactInCompanies, router],
   );

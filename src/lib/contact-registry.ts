@@ -6,6 +6,7 @@ import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import {
   mapPrismaContactToApp,
   stableNumericId,
+  toCompanyTrackingId,
   toContactTrackingId,
 } from "@/lib/prisma-mappers";
 import { assertExternalContactEmail } from "@/lib/internal-colleague";
@@ -19,13 +20,41 @@ import type {
   RelationshipLevel,
   UpdateContactInput,
 } from "@/types/contact";
-import type { EmploymentStatus } from "@/types/contact-lifecycle";
+import type {
+  CareerHistoryEntry,
+  CompanyTransferRecord,
+  EmploymentStatus,
+} from "@/types/contact-lifecycle";
 
 type ContactMeta = {
   role?: ContactListRole | string;
   relationshipLevel?: RelationshipLevel | string;
   employmentStatus?: EmploymentStatus | string;
+  careerHistory?: CareerHistoryEntry[];
+  companyTransfers?: CompanyTransferRecord[];
 };
+
+function lifecycleId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function publicCompanyRef(row: {
+  id: string;
+  code?: string | null;
+  name: string;
+}): { companyId: string; companyName: string } {
+  return {
+    companyId: row.code?.trim() || toCompanyTrackingId(row.id),
+    companyName: row.name,
+  };
+}
+
+function companyRefFromPatch(
+  patch: UpdateContactInput,
+): string | number | undefined {
+  if (!patch.Company) return undefined;
+  return "CompanyID" in patch.Company ? patch.Company.CompanyID : patch.Company.Id;
+}
 
 async function prismaRegistryAvailable(): Promise<boolean> {
   try {
@@ -129,6 +158,8 @@ async function loadMappedContact(prismaId: string): Promise<Contact> {
       (meta.relationshipLevel as RelationshipLevel) || mapped.RelationshipLevel,
     EmploymentStatus:
       (meta.employmentStatus as EmploymentStatus) || mapped.EmploymentStatus || "Active",
+    CareerHistory: meta.careerHistory,
+    CompanyTransfers: meta.companyTransfers,
     reportsToName:
       row.reportsTo?.fullName ||
       `${row.reportsTo?.firstName ?? ""} ${row.reportsTo?.lastName ?? ""}`.trim() ||
@@ -250,6 +281,7 @@ export async function updateRegistryContact(
     if (!jsonContact) return null;
 
     const prismaCompanyId =
+      (await resolvePrismaCompanyId(companyRefFromPatch(patch))) ??
       (await resolvePrismaCompanyId(jsonCompanyId)) ??
       (await resolvePrismaCompanyId(jsonContact.Company?.Id));
 
@@ -398,19 +430,102 @@ export async function updateRegistryContact(
     });
   }
 
+  let nextNotes = existing.personalNotes;
   if (
     patch.Role !== undefined ||
     patch.RelationshipLevel !== undefined ||
     patch.EmploymentStatus !== undefined
   ) {
-    data.personalNotes = serializeContactMeta(existing.personalNotes, patch);
+    nextNotes = serializeContactMeta(existing.personalNotes, patch);
   }
 
   if (patch.Company) {
-    const companyRef =
-      "CompanyID" in patch.Company ? patch.Company.CompanyID : patch.Company.Id;
-    const companyId = await resolvePrismaCompanyId(companyRef);
-    if (companyId) data.companyId = companyId;
+    const companyRef = companyRefFromPatch(patch);
+    const targetRow = await findPrismaCompanyByRouteKey(String(companyRef ?? ""));
+    if (!targetRow) {
+      throw new Error(`Company not found: ${companyRef}`);
+    }
+
+    if (targetRow.id !== existing.companyId) {
+      data.companyId = targetRow.id;
+      const transferDate = new Date().toISOString().slice(0, 10);
+      const meta = parseContactMeta(nextNotes);
+      const source = existing.company
+        ? publicCompanyRef(existing.company)
+        : {
+            companyId: existing.companyId
+              ? toCompanyTrackingId(existing.companyId)
+              : "unknown",
+            companyName: "Unknown company",
+          };
+      const target = publicCompanyRef(targetRow);
+      const createdAt =
+        "createdAt" in existing && existing.createdAt instanceof Date
+          ? existing.createdAt.toISOString().slice(0, 10)
+          : transferDate;
+
+      let careerHistory: CareerHistoryEntry[] = Array.isArray(meta.careerHistory)
+        ? [...meta.careerHistory]
+        : [];
+      if (careerHistory.length === 0 && existing.companyId) {
+        careerHistory = [
+          {
+            id: lifecycleId("career"),
+            companyId: source.companyId,
+            companyName: source.companyName,
+            role: meta.role || existing.jobTitle || "",
+            jobTitle: existing.jobTitle || "",
+            startDate: createdAt,
+            endDate: null,
+          },
+        ];
+      }
+      careerHistory = careerHistory.map((entry) =>
+        entry.companyId === source.companyId && entry.endDate === null
+          ? { ...entry, endDate: transferDate }
+          : entry,
+      );
+      careerHistory.push({
+        id: lifecycleId("career"),
+        companyId: target.companyId,
+        companyName: target.companyName,
+        role: patch.Role ?? meta.role ?? existing.jobTitle ?? "",
+        jobTitle: patch.JobTitle?.trim() || existing.jobTitle || "",
+        startDate: transferDate,
+        endDate: null,
+      });
+
+      const companyTransfers: CompanyTransferRecord[] = [
+        ...(Array.isArray(meta.companyTransfers) ? meta.companyTransfers : []),
+        {
+          id: lifecycleId("transfer"),
+          previousCompanyId: source.companyId,
+          previousCompanyName: source.companyName,
+          newCompanyId: target.companyId,
+          newCompanyName: target.companyName,
+          transferDate,
+          preservedReferences: {
+            activities: 0,
+            documents: 0,
+            opportunities: 0,
+            emails: 0,
+          },
+        },
+      ];
+
+      nextNotes = JSON.stringify({
+        ...meta,
+        role: patch.Role ?? meta.role,
+        relationshipLevel: patch.RelationshipLevel ?? meta.relationshipLevel,
+        employmentStatus: patch.EmploymentStatus ?? meta.employmentStatus,
+        careerHistory,
+        companyTransfers,
+      });
+    }
+  }
+
+  if (nextNotes !== existing.personalNotes) {
+    data.personalNotes = nextNotes;
   }
 
   const updated = await withPrismaRetry(async (prisma) =>

@@ -16,6 +16,10 @@ import { findCountryEntry } from "@/lib/geo/country-continent";
 import { ContactRoleSelect } from "@/components/ui/contact-role-select";
 import { isInternalEmail } from "@/lib/domain-rules";
 import { fillContactFormFromPastedText } from "@/lib/contact-paste";
+import {
+  companyNeedsSelectDisambiguation,
+  formatCompanySelectLabel,
+} from "@/lib/m365/company-resolution";
 
 export const emptyContactForm = (): CreateContactInput => ({
   FirstName: "",
@@ -56,6 +60,7 @@ type ContactFormFieldsProps = {
     CompanyID: string;
     Title: string;
     City?: string;
+    Domain?: string;
     Country?: string | { Title?: string } | null;
     contacts?: Array<{ ContactID: string; Title: string }>;
   }>;
@@ -299,7 +304,10 @@ export function ContactFormFields({
               >
                 {companies.map((company) => (
                   <option key={company.CompanyID} value={company.CompanyID}>
-                    {company.Title} ({company.CompanyID})
+                    {formatCompanySelectLabel(
+                      company,
+                      companyNeedsSelectDisambiguation(company, companies),
+                    )}
                   </option>
                 ))}
               </select>

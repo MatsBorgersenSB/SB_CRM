@@ -26,6 +26,10 @@ import {
 } from "@/components/contacts/contact-form-fields";
 import { ActionMenu, ActionMenuItem } from "@/components/relationship/action-menu";
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
+import {
+  companyNeedsSelectDisambiguation,
+  formatCompanySelectLabel,
+} from "@/lib/m365/company-resolution";
 
 /** Strip leaked HTML / markup from contact fields before display. */
 function sanitizeContactDisplayField(value: string | null | undefined): string {
@@ -186,7 +190,10 @@ function ContactRowActions({
           >
             {reassignOptions.map((company) => (
               <option key={company.CompanyID} value={company.CompanyID}>
-                {company.Title}
+                {formatCompanySelectLabel(
+                  company,
+                  companyNeedsSelectDisambiguation(company, reassignOptions),
+                )}
               </option>
             ))}
           </select>

@@ -19,7 +19,7 @@ type Contact360EditPanelProps = {
   onCancel: () => void;
   onContactUpdate: (contactId: string, patch: UpdateContactInput) => Promise<void>;
   onContactDelete?: (contactId: string) => Promise<void>;
-  onCompanyChange?: (contactId: string, targetCompanyId: string) => void;
+  onCompanyChange?: (contactId: string, targetCompanyId: string) => void | Promise<void>;
 };
 
 function contactToForm(
@@ -122,8 +122,11 @@ export function Contact360EditPanel({
         IsSuspicious: form.EmploymentStatus === "Suspicious",
       });
 
-      if (companyId !== record.companyId && onCompanyChange) {
-        onCompanyChange(record.contact.ContactID, companyId);
+      if (companyId !== record.companyId) {
+        if (!onCompanyChange) {
+          throw new Error("Unable to change company for this contact.");
+        }
+        await onCompanyChange(record.contact.ContactID, companyId);
       }
 
       onCancel();
@@ -176,6 +179,7 @@ export function Contact360EditPanel({
             CompanyID: company.CompanyID,
             Title: company.Title,
             City: company.City,
+            Domain: company.Domain,
             Country: company.Country?.Title ?? "",
             contacts: company.contacts.map((contact) => ({
               ContactID: contact.ContactID,

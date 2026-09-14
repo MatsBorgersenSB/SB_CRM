@@ -7,15 +7,14 @@ import {
 import type { Contact } from "@/types/contact";
 import type { EmploymentStatus, TransferContactInput } from "@/types/contact-lifecycle";
 
-/** Server-only contact lifecycle mutations — uses fs-backed stores. */
+/** Server-only contact lifecycle mutations — Prisma registry first, JSON fallback. */
 
 export async function loadContactLifecycleContext(): Promise<ContactLifecycleContext> {
-  const { readActivities, readCompanies, readPipelines } = await import("@/lib/pipeline-db");
+  const { readLivePortfolio, readLiveActivities } = await import("@/lib/prisma-data");
 
-  const [companies, pipelines, activities] = await Promise.all([
-    readCompanies(),
-    readPipelines(),
-    readActivities(),
+  const [{ companies, pipelines }, activities] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
   ]);
 
   return { companies, pipelines, activities };
@@ -46,8 +45,13 @@ function findContactInContext(
   contactId: string,
   context: ContactLifecycleContext,
 ): { contact: Contact; company: (typeof context.companies)[number] } | null {
+  const key = contactId.trim().toLowerCase();
   for (const company of context.companies) {
-    const contact = company.contacts.find((row) => row.ContactID === contactId);
+    const contact = company.contacts.find((row) => {
+      if (row.ContactID?.trim().toLowerCase() === key) return true;
+      if (String(row.id).toLowerCase() === key) return true;
+      return false;
+    });
     if (contact) return { contact, company };
   }
   return null;
@@ -57,6 +61,15 @@ export async function executeContactTransfer(
   contactId: string,
   input: TransferContactInput,
 ): Promise<Contact> {
+  const { updateRegistryContact } = await import("@/lib/contact-registry");
+  const updated = await updateRegistryContact(contactId, {
+    Company: { CompanyID: input.targetCompanyId },
+    ...(input.newRole ? { Role: input.newRole } : {}),
+    ...(input.newJobTitle !== undefined ? { JobTitle: input.newJobTitle } : {}),
+    ...(input.employmentStatus ? { EmploymentStatus: input.employmentStatus } : {}),
+  });
+  if (updated) return updated;
+
   const { transferCompanyContactWithHistory } = await import("@/lib/pipeline-db");
   return transferCompanyContactWithHistory(contactId, input);
 }
@@ -66,6 +79,13 @@ export async function executeContactArchive(
   archived: boolean,
   employmentStatus?: EmploymentStatus,
 ): Promise<Contact> {
+  const { updateRegistryContact } = await import("@/lib/contact-registry");
+  const updated = await updateRegistryContact(contactId, {
+    IsArchived: archived,
+    ...(employmentStatus ? { EmploymentStatus: employmentStatus } : {}),
+  });
+  if (updated) return updated;
+
   const { archiveCompanyContact } = await import("@/lib/pipeline-db");
   return archiveCompanyContact(contactId, archived, employmentStatus);
 }
