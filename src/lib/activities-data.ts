@@ -128,7 +128,7 @@ export const defaultActivities: Activity[] = [
     LinkedDocuments: [
       {
         Title: "PL-1031_Audit-Note.03.pdf",
-        DocCategory: "Compliance",
+        DocCategory: "Permits",
         Revision: "03",
         DealId: "PL-1031",
       },

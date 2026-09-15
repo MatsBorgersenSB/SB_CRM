@@ -25,6 +25,7 @@ import {
   computeBusinessImpactLevel,
 } from "@/lib/smartdoc-timeline";
 import { daysBetween } from "@/lib/relative-time";
+import { isPermitSmartDocCategory } from "@/types/smartdoc-library";
 
 export type DocumentHealthComponent = {
   id: string;
@@ -127,11 +128,11 @@ const REQUIRED_BY_STAGE: Record<
   ],
   delivery: [
     { id: "tech-datasheet", label: "Technical Datasheet", docCategory: "Technical", critical: true },
-    { id: "compliance", label: "Compliance Certificate", docCategory: "Compliance", critical: true },
+    { id: "compliance", label: "Environmental Permit", docCategory: "Permits", critical: true },
     { id: "legal", label: "Contract Document", docCategory: "Legal", critical: false },
   ],
   production: [
-    { id: "compliance-cert", label: "Compliance Certificate", docCategory: "Compliance", critical: true },
+    { id: "compliance-cert", label: "Environmental Permit", docCategory: "Permits", critical: true },
     { id: "financial", label: "Financial Report", docCategory: "Financial", critical: false },
   ],
 };
@@ -205,7 +206,7 @@ function scoreApprovalStatus(
   pipeline: PipelineRow | undefined,
 ): { score: number; status: SmartDocApprovalStatus; detail: string } {
   const needsApproval =
-    doc.docCategory === "Compliance" ||
+    isPermitSmartDocCategory(doc.docCategory) ||
     doc.docCategory === "Legal" ||
     pipeline?.status === "Contract Negotiation";
 
@@ -283,7 +284,7 @@ function detectDocumentRisks(
   const linkedCompanies = getLinkedCompaniesForDocument(doc, companies, pipeline ? [pipeline] : []);
 
   if (
-    doc.docCategory === "Compliance" &&
+    isPermitSmartDocCategory(doc.docCategory) &&
     (Number.parseInt(doc.revision, 10) || 1) <= CERTIFICATE_EXPIRY_REVISION &&
     (daysSinceRef === null || daysSinceRef >= REVIEW_DUE_DAYS)
   ) {
@@ -291,7 +292,7 @@ function detectDocumentRisks(
       id: `${doc.id}-expiring`,
       type: "expiring_certificate",
       label: "Expiring certificate",
-      detail: "Compliance document may expire without renewal review",
+      detail: "Permit or licence may expire without renewal review",
       severity: "critical",
     });
   }
@@ -558,13 +559,18 @@ export function computeDocumentIntelligence(
   };
 }
 
+function categoryMatchesSpec(docCategory: string, specCategory: string): boolean {
+  if (docCategory.toLowerCase() === specCategory.toLowerCase()) return true;
+  return isPermitSmartDocCategory(docCategory) && isPermitSmartDocCategory(specCategory);
+}
+
 function documentMatchesSpec(
   docs: SmartDocRecord[],
   spec: RequiredDocumentSpec,
 ): SmartDocRecord | undefined {
   return docs.find(
     (d) =>
-      d.docCategory.toLowerCase() === spec.docCategory.toLowerCase() &&
+      categoryMatchesSpec(d.docCategory, spec.docCategory) &&
       (!spec.docType || d.docType.toLowerCase().includes(spec.docType.toLowerCase())),
   );
 }
@@ -614,7 +620,7 @@ export function computeMissingDocumentsForCompany(
 
   const specs: RequiredDocumentSpec[] = [
     { id: "nda", label: "Master NDA", docCategory: "Legal", critical: true },
-    { id: "compliance", label: "Compliance Pack", docCategory: "Compliance", critical: false },
+    { id: "compliance", label: "Permit pack", docCategory: "Permits", critical: false },
   ];
 
   const items: MissingDocumentItem[] = specs.map((spec) => {

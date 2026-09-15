@@ -87,16 +87,36 @@ Default / recommended for supplier quotations:
 | Origin | external |
 | Counterparty | Supplier display name when known (e.g. Dorset) |
 
+### FR-3b Classification (authority permits)
+
+Pollution permits, planning decisions, and operating licences are **company knowledge** (the plant holder), optionally linked to an opportunity. They are not Legal contracts.
+
+Default / recommended for a Norwegian pollution permit (`tillatelse` / forurensningsloven):
+
+| Field | Value |
+|-------|-------|
+| DocCategory | Permits |
+| DocType | Environmental Permit |
+| Origin | external |
+| Owner | Company that holds the permit (e.g. Vest Biogass AS) |
+| LinkedDealId | Optional — do not move ownership onto a supplier or a fabricated deal |
+
+Permit types: Environmental Permit · Planning Permit · Building Permit · Operating Licence · Permit Application · Inspection Report.
+
+Identity category code: **P**. Example: `CO-####-P-ENV-0001`.
+
 ### FR-4 Persistence / SharePoint
 
 - SharePoint path SoT: `/Companies/{CompanyName}/Documents/…`
 - SmartCRM stores library metadata (identity, classification, ownership, optional SharePoint URL/path).
+- On Graph upload, SmartCRM writes **Doc Category** and **Doc Type** onto the SharePoint library item (creates the columns if missing, adds them to the Document content type, and includes current types such as Permits). SharePoint does not inherit CRM values automatically — they are stamped on the file after upload.
 - Binary upload to Graph under the company Documents folder mirrors the opportunity pattern when Graph is configured; otherwise metadata + local/document record path is acceptable with an explicit Graph ensure TODO.
 
 ### FR-5 APIs
 
 - Company-scoped **list** and **create/register**: `/api/companies/[companyId]/smartdocs`
 - Existing `/api/deals/[id]/smartdocs` remains for deal-owned docs (no breaking change).
+- Delete mistaken SmartDoc: `DELETE /api/smartdocs/[documentId]`
 
 ### FR-6 Company 360 Documents
 
@@ -108,12 +128,20 @@ Default / recommended for supplier quotations:
 
 - When Documents filters hide rows, show filtered vs total counts and clear filters.
 
+### FR-8 Delete mistaken SmartDocs
+
+- A user with upload rights (or ADMIN) can **delete** a SmartDoc that was imported by mistake.
+- Delete removes: library metadata, the Prisma document row, and the SharePoint file when Graph is on.
+- Delete does **not** invent a replacement. The user re-imports if they want a new classified file (e.g. Permits / Environmental Permit on the company that holds the permit).
+- Linked activities are kept. Commercial package membership for that file is removed.
+
 ---
 
 ## SmartAssist Behaviour
 
-- Observe filename / content signals before asking (e.g. quotation, tilbud, Dorset, S02325).
+- Observe filename / content signals before asking (e.g. quotation, tilbud, Dorset, S02325, tillatelse, forurensning).
 - Suggest Commercial / Supplier Quotation / Origin external for supplier quotes.
+- Suggest Permits / Environmental Permit / Origin external for authority permits (`tillatelse`, pollution, discharge, Statsforvalteren).
 - Suggest Counterparty from company name or filename when confident.
 - Never auto-create Companies, Contacts, Opportunities, or fake deals.
 - Recommend linking to an open opportunity only when one already exists and the user asks (Phase 2).
@@ -127,7 +155,7 @@ Default / recommended for supplier quotations:
 ### Company 360 → Documents
 
 1. **What am I looking at?** Company document workspace (not a CRM file dump).
-2. **What matters?** Supplier quotes, certificates, and reusable company knowledge — plus deal docs when present.
+2. **What matters?** Supplier quotes, permits, certificates, and reusable company knowledge — plus deal docs when present.
 3. **What next?** Import or create a company SmartDoc; open Document 360 for detail.
 
 ### Import (Michelin)
@@ -183,6 +211,7 @@ Default / recommended for supplier quotations:
 6. SharePoint path fields ready for `/Companies/{Name}/Documents/`; Graph folder ensure may be TODO if heavy.
 7. No fake deals created by the import path.
 8. Company Documents Import works when the company has no deals.
+9. User can delete a mistaken SmartDoc from Company/Opportunity Documents and Document 360; SharePoint file is removed when Graph is on.
 
 ### Phase 2 (deferred)
 

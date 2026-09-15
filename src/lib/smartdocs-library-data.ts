@@ -7,6 +7,7 @@ import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import { normalizeSmartDocCategory } from "@/types/smartdoc-library";
 
 function seedFromPipeline(
   pipeline: PipelineRow,
@@ -20,9 +21,9 @@ function seedFromPipeline(
   const parsed = parseSmartDocsFilename(pipeline.FileLeafRef);
   const company = findCompanyForDeal(pipeline.id, companies);
   const context = inferCommercialStage(pipeline, packages);
-  const docCategory = (parsed?.DocCategory ??
-    pipeline.DocCategory ??
-    "General") as SmartDocLibraryRecord["DocCategory"];
+  const docCategory = normalizeSmartDocCategory(
+    parsed?.DocCategory ?? pipeline.DocCategory ?? "General",
+  );
   const docType = parsed?.DocType ?? pipeline.DocType ?? "Unclassified Document";
   const identity = buildDocumentIdentity(
     pipeline.id,
@@ -80,9 +81,9 @@ export function buildDefaultSmartDocsLibrary(
 
       const parsed = parseSmartDocsFilename(member.fileName);
       const company = findCompanyForDeal(pipeline.id, companies);
-      const docCategory = (member.DocCategory ??
-        parsed?.DocCategory ??
-        "Commercial") as SmartDocLibraryRecord["DocCategory"];
+      const docCategory = normalizeSmartDocCategory(
+        member.DocCategory ?? parsed?.DocCategory ?? "Commercial",
+      );
       const docType = parsed?.DocType ?? member.role;
       const identity = buildDocumentIdentity(
         pipeline.id,

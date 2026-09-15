@@ -268,6 +268,11 @@ export function canUploadSmartDocs(role: UserRole): boolean {
   return role === "superuser" || role === "commercial" || role === "engineer";
 }
 
+/** Remove a mistaken SmartDoc from the library and SharePoint. */
+export function canDeleteSmartDoc(role: UserRole): boolean {
+  return canUploadSmartDocs(role) || role === "admin";
+}
+
 export function canManageCommercialPackages(role: UserRole): boolean {
   return role === "superuser" || role === "commercial";
 }

@@ -5,7 +5,13 @@ import { ArrowLeft } from "lucide-react";
 import type { Document360Snapshot } from "@/lib/document-360-data";
 import { Document360LivingWorkspace } from "@/components/smartdocs/document-360-living-workspace";
 
-export function Document360Shell({ snapshot }: { snapshot: Document360Snapshot }) {
+export function Document360Shell({
+  snapshot,
+  onDocumentDelete,
+}: {
+  snapshot: Document360Snapshot;
+  onDocumentDelete?: () => Promise<void>;
+}) {
   return (
     <div className="flex flex-col gap-4">
       <Link
@@ -16,7 +22,10 @@ export function Document360Shell({ snapshot }: { snapshot: Document360Snapshot }
         SmartDocs
       </Link>
 
-      <Document360LivingWorkspace snapshot={snapshot} />
+      <Document360LivingWorkspace
+        snapshot={snapshot}
+        onDocumentDelete={onDocumentDelete}
+      />
     </div>
   );
 }

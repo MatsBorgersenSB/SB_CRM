@@ -11,6 +11,7 @@ export {
   sanitizeSharePointName,
   sanitizeSharePointFolderName,
   applySmartDocFieldsToDriveItem,
+  deleteSharePointDriveItem,
 } from "./graph-client";
 export type {
   OpportunitySharePointFolder,

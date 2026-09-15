@@ -19,7 +19,7 @@ import type {
   GrowthDealRecord,
 } from "@/types/growth-super-skills";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
-import { SMARTDOC_CATEGORIES, type SmartDocCategory } from "@/types/smartdoc-library";
+import { normalizeSmartDocCategory } from "@/types/smartdoc-library";
 import { emptyAnalytics, type AnalyticsDb } from "@/lib/analytics-data";
 import { emptyInventory, type InventoryDb } from "@/lib/inventory-data";
 import {
@@ -336,12 +336,6 @@ function displayNameFromFile(fileName: string): string {
   return fileName.replace(/\.[^.]+$/, "").trim() || fileName;
 }
 
-function toSmartDocCategory(value: string): SmartDocCategory {
-  return SMARTDOC_CATEGORIES.includes(value as SmartDocCategory)
-    ? (value as SmartDocCategory)
-    : "General";
-}
-
 /**
  * Live SmartDocs from Prisma DocumentRecord.
  * JSON seed library (Nordic Polymers Thermal Recovery…) is local/CI only.
@@ -397,7 +391,7 @@ export async function readLiveSmartDocsLibrary(): Promise<SmartDocLibraryRecord[
         DealName: row.opportunity?.name ?? "",
         CommercialStage: "",
         CreatedAt: row.createdAt.toISOString(),
-        DocCategory: toSmartDocCategory(classified.DocCategory),
+        DocCategory: normalizeSmartDocCategory(classified.DocCategory),
         DocType: classified.DocType,
         DocumentName: displayNameFromFile(row.name),
         Revision: "01",

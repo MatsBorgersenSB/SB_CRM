@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
@@ -9,15 +10,20 @@ import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
 import { buildDocument360Snapshot } from "@/lib/document-360-data";
 import {
+  canDeleteSmartDoc,
   filterCompaniesForUser,
   filterPipelinesForUser,
 } from "@/lib/permissions";
 import { getSmartDocById } from "@/lib/smartdoc-registry";
+import { deleteSmartDocRecord } from "@/lib/sync-smartdoc";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import { isCompanyOwnedSmartDoc } from "@/types/smartdoc-library";
 import type { CommercialPackage } from "@/types/commercial-package";
+import { company360Href } from "@/types/company-360";
+import { deal360Href } from "@/types/relationship-navigation";
 
 export function Document360PageShell({
   documentId,
@@ -35,6 +41,7 @@ export function Document360PageShell({
   commercialPackages?: CommercialPackage[];
 }) {
   const { user } = useAuth();
+  const router = useRouter();
 
   const scopedCompanies = useMemo(
     () => filterCompaniesForUser(companies, user),
@@ -62,7 +69,28 @@ export function Document360PageShell({
     );
   }, [document, scopedPipelines, scopedCompanies, activities, library, commercialPackages]);
 
+  const handleDocumentDelete = useCallback(async () => {
+    if (!snapshot) return;
+    const id = snapshot.libraryRecord?.SmartDocID ?? snapshot.header.documentId;
+    await deleteSmartDocRecord(id, user.role);
+
+    const record = snapshot.libraryRecord;
+    if (record && isCompanyOwnedSmartDoc(record) && record.OwnerCompanyId) {
+      router.push(company360Href(record.OwnerCompanyId, "documents"));
+    } else if (record?.DealId) {
+      router.push(deal360Href(record.DealId, "documents"));
+    } else if (record?.OwnerCompanyId) {
+      router.push(company360Href(record.OwnerCompanyId, "documents"));
+    } else {
+      router.push("/knowledge");
+    }
+    router.refresh();
+  }, [router, snapshot, user.role]);
+
   if (!snapshot) notFound();
+
+  const showDelete =
+    canDeleteSmartDoc(user.role) && Boolean(snapshot.libraryRecord);
 
   return (
     <WorkspaceChrome>
@@ -73,7 +101,10 @@ export function Document360PageShell({
           <RoleSwitcher companies={scopedCompanies} />
         </header>
         <WorkspaceMain>
-          <Document360Shell snapshot={snapshot} />
+          <Document360Shell
+            snapshot={snapshot}
+            onDocumentDelete={showDelete ? handleDocumentDelete : undefined}
+          />
         </WorkspaceMain>
     </WorkspaceChrome>
   );

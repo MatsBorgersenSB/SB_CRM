@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { Document360Snapshot } from "@/lib/document-360-data";
 import { Document360Actions } from "@/components/smartdocs/document-360-actions";
@@ -8,8 +9,15 @@ import {
   DocumentHealthBadge,
 } from "@/components/smartdocs/document-intelligence-display";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 
-export function DocumentWorkspaceHeader({ snapshot }: { snapshot: Document360Snapshot }) {
+export function DocumentWorkspaceHeader({
+  snapshot,
+  onDocumentDelete,
+}: {
+  snapshot: Document360Snapshot;
+  onDocumentDelete?: () => Promise<void>;
+}) {
   const { header, intelligence, memberOf, memberOfHref } = snapshot;
 
   return (
@@ -46,7 +54,74 @@ export function DocumentWorkspaceHeader({ snapshot }: { snapshot: Document360Sna
           </p>
         ) : null}
         <Document360Actions snapshot={snapshot} layout="hero" />
+        {onDocumentDelete ? (
+          <DocumentDeleteControl
+            documentName={header.displayName}
+            onDelete={onDocumentDelete}
+          />
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function DocumentDeleteControl({
+  documentName,
+  onDelete,
+}: {
+  documentName: string;
+  onDelete: () => Promise<void>;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      await onDelete();
+    } catch (deleteError) {
+      const message =
+        deleteError instanceof Error && deleteError.message.trim()
+          ? deleteError.message
+          : "Unable to delete this document.";
+      setError(message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (confirmOpen) {
+    return (
+      <div className="w-full max-w-sm shrink-0 sm:w-72 lg:text-left">
+        <DestructiveConfirmPanel
+          title="Delete this document?"
+          message={`${documentName} will be removed from SmartCRM and deleted in SharePoint. Use this when the document was imported by mistake.`}
+          confirmLabel="Delete"
+          onConfirm={() => void handleDelete()}
+          onCancel={() => {
+            setConfirmOpen(false);
+            setError(null);
+          }}
+          loading={deleting}
+        />
+        {error ? (
+          <p className="mt-2 text-[11px] font-medium text-thermal-red" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setConfirmOpen(true)}
+      className="shrink-0 border border-thermal-red/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-thermal-red hover:bg-thermal-red/[0.06]"
+    >
+      Delete document
+    </button>
   );
 }

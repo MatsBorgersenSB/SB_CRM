@@ -12,16 +12,21 @@ import type { AttentionItem } from "@/types/attention-item";
 export function Document360LivingWorkspace({
   snapshot,
   attentionItems = [],
+  onDocumentDelete,
 }: {
   snapshot: Document360Snapshot;
   attentionItems?: AttentionItem[];
+  onDocumentDelete?: () => Promise<void>;
 }) {
   const { businessContext } = snapshot;
 
   return (
     <WorkspaceStack>
       <WorkspacePanel title="Document">
-        <DocumentWorkspaceHeader snapshot={snapshot} />
+        <DocumentWorkspaceHeader
+          snapshot={snapshot}
+          onDocumentDelete={onDocumentDelete}
+        />
       </WorkspacePanel>
 
       <WorkspacePanel title="Business Context">

@@ -1,3 +1,8 @@
+import {
+  SMARTDOC_CATEGORIES,
+  SMARTDOC_TYPES_BY_CATEGORY,
+} from "@/types/smartdoc-library";
+
 /**
  * Microsoft Graph helpers for SharePoint Online document provisioning.
  * SharePoint Online is the single source of truth for opportunity documents.
@@ -169,87 +174,436 @@ export type SmartDocSharePointFields = {
   DocType: string;
 };
 
-const SMARTDOC_LIBRARY_COLUMNS: Array<{
-  name: keyof SmartDocSharePointFields;
-  displayName: string;
-}> = [
-  { name: "DocCategory", displayName: "Doc Category" },
-  { name: "DocType", displayName: "Doc Type" },
+type GraphColumn = {
+  id?: string;
+  name?: string;
+  displayName?: string;
+  hidden?: boolean;
+  readOnly?: boolean;
+  text?: { allowMultipleLines?: boolean; maxLength?: number };
+  choice?: {
+    allowText?: boolean;
+    choices?: string[];
+    displayAs?: string;
+  };
+};
+
+type ResolvedSmartDocColumns = {
+  categoryName: string;
+  typeName: string;
+  categoryColumn: GraphColumn;
+  typeColumn: GraphColumn;
+};
+
+const SMARTDOC_TYPE_LABELS = [
+  ...new Set(Object.values(SMARTDOC_TYPES_BY_CATEGORY).flat()),
 ];
 
-const ensuredSmartDocColumns = new Set<string>();
+const resolvedSmartDocColumns = new Map<string, ResolvedSmartDocColumns>();
 
-type GraphColumn = { name?: string; displayName?: string };
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeColumnKey(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase().replace(/[\s_]+/g, "");
+}
+
+function columnChoices(column: GraphColumn): string[] {
+  return (column.choice?.choices ?? [])
+    .map((choice) => choice.trim())
+    .filter(Boolean);
+}
+
+function isWritableColumn(column: GraphColumn): boolean {
+  if (column.hidden || column.readOnly) return false;
+  if (column.text || column.choice) return true;
+  return Boolean(column.name);
+}
+
+function findColumn(
+  columns: GraphColumn[],
+  names: string[],
+  displayNames: string[],
+): GraphColumn | undefined {
+  const nameKeys = names.map(normalizeColumnKey);
+  const displayKeys = displayNames.map(normalizeColumnKey);
+  return columns.find((column) => {
+    if (!isWritableColumn(column)) return false;
+    const name = normalizeColumnKey(column.name);
+    const display = normalizeColumnKey(column.displayName);
+    return nameKeys.includes(name) || displayKeys.includes(display);
+  });
+}
+
+function findSmartDocCategoryColumn(columns: GraphColumn[]): GraphColumn | undefined {
+  const owned = findColumn(
+    columns,
+    ["DocCategory"],
+    ["Doc Category", "DocCategory"],
+  );
+  if (owned) return owned;
+
+  const generic = findColumn(columns, ["Category"], ["Category"]);
+  if (!generic?.choice) return undefined;
+  const known = new Set(SMARTDOC_CATEGORIES.map((value) => value.toLowerCase()));
+  const overlap = columnChoices(generic).some((choice) =>
+    known.has(choice.toLowerCase()),
+  );
+  return overlap ? generic : undefined;
+}
+
+function findSmartDocTypeColumn(columns: GraphColumn[]): GraphColumn | undefined {
+  const owned = findColumn(
+    columns,
+    ["DocType"],
+    ["Doc Type", "DocType"],
+  );
+  if (owned) return owned;
+
+  const documentType = findColumn(
+    columns,
+    ["DocumentType"],
+    ["Document Type"],
+  );
+  if (!documentType) return undefined;
+  if (!documentType.choice) return documentType;
+  const known = new Set(SMARTDOC_TYPE_LABELS.map((value) => value.toLowerCase()));
+  const overlap = columnChoices(documentType).some((choice) =>
+    known.has(choice.toLowerCase()),
+  );
+  return overlap ? documentType : undefined;
+}
 
 async function listDriveColumns(
   accessToken: string,
   siteId: string,
 ): Promise<GraphColumn[]> {
-  const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/columns?$select=name,displayName&$top=200`;
-  const res = await fetch(endpoint, {
-    method: "GET",
-    headers: authHeaders(accessToken),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Graph list columns failed (${res.status}): ${err}`);
+  const columns: GraphColumn[] = [];
+  let endpoint: string | null =
+    `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/columns?$top=200`;
+
+  while (endpoint) {
+    const res = await fetch(endpoint, {
+      method: "GET",
+      headers: authHeaders(accessToken),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Graph list columns failed (${res.status}): ${err}`);
+    }
+    const body = (await res.json()) as {
+      value?: GraphColumn[];
+      "@odata.nextLink"?: string;
+    };
+    columns.push(...(body.value ?? []));
+    endpoint = body["@odata.nextLink"] ?? null;
   }
-  const body = (await res.json()) as { value?: GraphColumn[] };
-  return body.value ?? [];
+
+  return columns;
 }
 
-async function createDriveTextColumn(
+async function createDriveColumn(
   accessToken: string,
   siteId: string,
   name: string,
   displayName: string,
-): Promise<void> {
+  choices: string[],
+): Promise<GraphColumn> {
   const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/columns`;
-  const res = await fetch(endpoint, {
+  const choiceRes = await fetch(endpoint, {
     method: "POST",
     headers: authHeaders(accessToken),
     body: JSON.stringify({
       name,
       displayName,
+      hidden: false,
+      required: false,
+      choice: {
+        allowText: true,
+        choices,
+        displayAs: "dropDownMenu",
+      },
+    }),
+  });
+  if (choiceRes.ok) return (await choiceRes.json()) as GraphColumn;
+
+  const choiceErr = await choiceRes.text();
+  if (
+    choiceRes.status === 409 ||
+    /already exists|nameAlreadyExists/i.test(choiceErr)
+  ) {
+    const existing = (await listDriveColumns(accessToken, siteId)).find(
+      (column) => normalizeColumnKey(column.name) === normalizeColumnKey(name),
+    );
+    if (existing) return existing;
+  }
+
+  const textRes = await fetch(endpoint, {
+    method: "POST",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({
+      name,
+      displayName,
+      hidden: false,
+      required: false,
       text: { allowMultipleLines: false, maxLength: 255 },
     }),
   });
-  if (res.ok || res.status === 409) return;
-  const err = await res.text();
-  if (/already exists|nameAlreadyExists/i.test(err)) return;
-  throw new Error(`Graph create column ${name} failed (${res.status}): ${err}`);
+  if (textRes.ok) return (await textRes.json()) as GraphColumn;
+  const textErr = await textRes.text();
+  if (textRes.status === 409 || /already exists|nameAlreadyExists/i.test(textErr)) {
+    const existing = (await listDriveColumns(accessToken, siteId)).find(
+      (column) => normalizeColumnKey(column.name) === normalizeColumnKey(name),
+    );
+    if (existing) return existing;
+  }
+  throw new Error(
+    `Graph create column ${name} failed (${textRes.status}): ${textErr || choiceErr}`,
+  );
 }
 
-async function ensureSmartDocLibraryColumns(
+async function ensureChoiceOptions(
   accessToken: string,
   siteId: string,
-): Promise<void> {
-  if (ensuredSmartDocColumns.has(siteId)) return;
+  column: GraphColumn,
+  required: string[],
+): Promise<GraphColumn> {
+  if (!column.id || !column.choice) return column;
+  const existing = columnChoices(column);
+  const merged = [...existing];
+  for (const value of required) {
+    if (!merged.some((choice) => choice.toLowerCase() === value.toLowerCase())) {
+      merged.push(value);
+    }
+  }
+  if (merged.length === existing.length && column.choice.allowText) return column;
 
-  const existing = await listDriveColumns(accessToken, siteId);
-  const names = new Set(
-    existing
-      .map((column) => column.name?.trim())
-      .filter((name): name is string => Boolean(name)),
+  const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/columns/${encodeURIComponent(column.id)}`;
+  const payload = {
+    choice: {
+      allowText: true,
+      choices: merged,
+      displayAs: column.choice.displayAs ?? "dropDownMenu",
+    },
+  };
+  const res = await fetch(endpoint, {
+    method: "PATCH",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+  if (res.ok) {
+    return { ...column, choice: payload.choice };
+  }
+  const err = await res.text();
+  if (/allowText|fill.?in/i.test(err) && merged.length !== existing.length) {
+    const retry = await fetch(endpoint, {
+      method: "PATCH",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({
+        choice: {
+          choices: merged,
+          displayAs: column.choice.displayAs ?? "dropDownMenu",
+        },
+      }),
+    });
+    if (retry.ok) {
+      return {
+        ...column,
+        choice: { ...column.choice, choices: merged },
+      };
+    }
+  }
+  throw new Error(
+    `Graph update column ${column.name} failed (${res.status}): ${err}`,
   );
+}
 
-  for (const column of SMARTDOC_LIBRARY_COLUMNS) {
-    if (names.has(column.name)) continue;
-    await createDriveTextColumn(
-      accessToken,
-      siteId,
-      column.name,
-      column.displayName,
+async function addColumnToDocumentContentTypes(
+  accessToken: string,
+  siteId: string,
+  column: GraphColumn,
+): Promise<void> {
+  if (!column.id) return;
+
+  const typesRes = await fetch(
+    `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/contentTypes?$select=id,name,hidden`,
+    { method: "GET", headers: authHeaders(accessToken) },
+  );
+  if (!typesRes.ok) return;
+  const typesBody = (await typesRes.json()) as {
+    value?: Array<{ id?: string; name?: string; hidden?: boolean }>;
+  };
+  const targets = (typesBody.value ?? []).filter((type) => {
+    if (!type.id || type.hidden) return false;
+    const name = (type.name ?? "").trim().toLowerCase();
+    return (
+      name === "document" ||
+      name === "item" ||
+      name.endsWith(" document") ||
+      name === "document set"
     );
+  });
+
+  const bindUrl = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/columns/${encodeURIComponent(column.id)}`;
+  for (const type of targets) {
+    const res = await fetch(
+      `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/contentTypes/${encodeURIComponent(type.id!)}/columns`,
+      {
+        method: "POST",
+        headers: authHeaders(accessToken),
+        body: JSON.stringify({
+          "sourceColumn@odata.bind": bindUrl,
+        }),
+      },
+    );
+    if (res.ok || res.status === 409) continue;
+    const err = await res.text();
+    if (/already exists|nameAlreadyExists/i.test(err)) continue;
+  }
+}
+
+async function addColumnsToDefaultView(
+  accessToken: string,
+  siteId: string,
+  columns: GraphColumn[],
+): Promise<void> {
+  const viewsRes = await fetch(
+    `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/views`,
+    { method: "GET", headers: authHeaders(accessToken) },
+  );
+  if (!viewsRes.ok) return;
+  const viewsBody = (await viewsRes.json()) as {
+    value?: Array<{ id?: string; name?: string; default?: boolean }>;
+  };
+  const view =
+    (viewsBody.value ?? []).find((item) => item.default) ??
+    (viewsBody.value ?? []).find(
+      (item) => (item.name ?? "").toLowerCase() === "all documents",
+    );
+  if (!view?.id) return;
+
+  for (const column of columns) {
+    const name = column.name?.trim();
+    if (!name) continue;
+    const res = await fetch(
+      `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/list/views/${encodeURIComponent(view.id)}/columns`,
+      {
+        method: "POST",
+        headers: authHeaders(accessToken),
+        body: JSON.stringify({ name }),
+      },
+    );
+    if (res.ok || res.status === 404 || res.status === 405 || res.status === 409) {
+      continue;
+    }
+    const err = await res.text();
+    if (/already exists|nameAlreadyExists/i.test(err)) continue;
+  }
+}
+
+async function resolveSmartDocLibraryColumns(
+  accessToken: string,
+  siteId: string,
+  force = false,
+): Promise<ResolvedSmartDocColumns> {
+  if (!force) {
+    const cached = resolvedSmartDocColumns.get(siteId);
+    if (cached) return cached;
   }
 
-  ensuredSmartDocColumns.add(siteId);
+  let columns = await listDriveColumns(accessToken, siteId);
+  let categoryColumn = findSmartDocCategoryColumn(columns);
+  let typeColumn = findSmartDocTypeColumn(columns);
+
+  if (!categoryColumn) {
+    await createDriveColumn(
+      accessToken,
+      siteId,
+      "DocCategory",
+      "Doc Category",
+      [...SMARTDOC_CATEGORIES],
+    );
+    columns = await listDriveColumns(accessToken, siteId);
+    categoryColumn = findSmartDocCategoryColumn(columns);
+  }
+  if (!typeColumn) {
+    await createDriveColumn(
+      accessToken,
+      siteId,
+      "DocType",
+      "Doc Type",
+      SMARTDOC_TYPE_LABELS,
+    );
+    columns = await listDriveColumns(accessToken, siteId);
+    typeColumn = findSmartDocTypeColumn(columns);
+  }
+
+  if (!categoryColumn || !typeColumn) {
+    throw new Error("SharePoint Doc Category / Doc Type columns could not be created");
+  }
+
+  categoryColumn = await ensureChoiceOptions(
+    accessToken,
+    siteId,
+    categoryColumn,
+    [...SMARTDOC_CATEGORIES],
+  );
+  typeColumn = await ensureChoiceOptions(
+    accessToken,
+    siteId,
+    typeColumn,
+    SMARTDOC_TYPE_LABELS,
+  );
+
+  await addColumnToDocumentContentTypes(accessToken, siteId, categoryColumn);
+  await addColumnToDocumentContentTypes(accessToken, siteId, typeColumn);
+  await addColumnsToDefaultView(accessToken, siteId, [categoryColumn, typeColumn]);
+
+  const categoryName = categoryColumn.name?.trim();
+  const typeName = typeColumn.name?.trim();
+  if (!categoryName || !typeName) {
+    throw new Error("SharePoint Doc Category / Doc Type columns have no internal name");
+  }
+
+  const resolved: ResolvedSmartDocColumns = {
+    categoryName,
+    typeName,
+    categoryColumn,
+    typeColumn,
+  };
+  resolvedSmartDocColumns.set(siteId, resolved);
+  return resolved;
+}
+
+async function waitForDriveListItem(
+  accessToken: string,
+  siteId: string,
+  itemId: string,
+): Promise<void> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/items/${encodeURIComponent(itemId)}/listItem`;
+    const res = await fetch(endpoint, {
+      method: "GET",
+      headers: authHeaders(accessToken),
+    });
+    if (res.ok) return;
+    const err = await res.text();
+    lastError = new Error(`Graph listItem not ready (${res.status}): ${err}`);
+    if (res.status !== 404 && !/not found|listItem/i.test(err)) {
+      throw lastError;
+    }
+    await delay(400 * (attempt + 1));
+  }
+  if (lastError) throw lastError;
 }
 
 async function patchDriveItemFields(
   accessToken: string,
   siteId: string,
   itemId: string,
+  columns: ResolvedSmartDocColumns,
   fields: SmartDocSharePointFields,
 ): Promise<void> {
   const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/items/${encodeURIComponent(itemId)}/listItem/fields`;
@@ -257,8 +611,8 @@ async function patchDriveItemFields(
     method: "PATCH",
     headers: authHeaders(accessToken),
     body: JSON.stringify({
-      DocCategory: fields.DocCategory,
-      DocType: fields.DocType,
+      [columns.categoryName]: fields.DocCategory,
+      [columns.typeName]: fields.DocType,
     }),
   });
   if (res.ok) return;
@@ -267,8 +621,8 @@ async function patchDriveItemFields(
 }
 
 /**
- * Write SmartDoc Doc Category and Doc Type onto the SharePoint library item
- * so views and filters inherit the confirmed classification.
+ * Write SmartDoc category and type onto the SharePoint library item
+ * so the document library details pane and filters show the confirmed classification.
  */
 export async function applySmartDocFieldsToDriveItem(input: {
   accessToken: string;
@@ -280,22 +634,36 @@ export async function applySmartDocFieldsToDriveItem(input: {
   const type = input.fields.DocType.trim();
   if (!category || !type) return;
 
-  await ensureSmartDocLibraryColumns(input.accessToken, input.siteId);
+  await waitForDriveListItem(input.accessToken, input.siteId, input.itemId);
+
+  const write = async (forceResolve: boolean) => {
+    const columns = await resolveSmartDocLibraryColumns(
+      input.accessToken,
+      input.siteId,
+      forceResolve,
+    );
+    await patchDriveItemFields(
+      input.accessToken,
+      input.siteId,
+      input.itemId,
+      columns,
+      { DocCategory: category, DocType: type },
+    );
+  };
 
   try {
-    await patchDriveItemFields(input.accessToken, input.siteId, input.itemId, {
-      DocCategory: category,
-      DocType: type,
-    });
+    await write(false);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const retryable = /404|not found|listItem/i.test(message);
+    const retryable =
+      /404|not found|listItem|does not exist|invalid field|field or property|specified value is not valid/i.test(
+        message,
+      );
     if (!retryable) throw error;
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    await patchDriveItemFields(input.accessToken, input.siteId, input.itemId, {
-      DocCategory: category,
-      DocType: type,
-    });
+    resolvedSmartDocColumns.delete(input.siteId);
+    await delay(600);
+    await waitForDriveListItem(input.accessToken, input.siteId, input.itemId);
+    await write(true);
   }
 }
 
@@ -370,6 +738,29 @@ export async function uploadFileToSharePointFolder(input: {
     webUrl: item.webUrl,
     name: item.name ?? safeName,
   };
+}
+
+/**
+ * Delete a filed SmartDoc from the SharePoint document library.
+ * Missing items are treated as already gone.
+ */
+export async function deleteSharePointDriveItem(input: {
+  accessToken: string;
+  siteId: string;
+  itemId: string;
+}): Promise<void> {
+  if (!input.accessToken?.trim()) throw new Error("Graph access token is required");
+  if (!input.siteId?.trim()) throw new Error("SHAREPOINT_SITE_ID is required");
+  if (!input.itemId?.trim()) return;
+
+  const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(input.siteId)}/drive/items/${encodeURIComponent(input.itemId)}`;
+  const res = await fetch(endpoint, {
+    method: "DELETE",
+    headers: authHeaders(input.accessToken),
+  });
+  if (res.ok || res.status === 204 || res.status === 404) return;
+  const err = await res.text();
+  throw new Error(`Graph delete failed (${res.status}): ${err}`);
 }
 
 /**
