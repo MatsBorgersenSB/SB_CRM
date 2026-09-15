@@ -1,5 +1,6 @@
 import type { LinkedDocument } from "@/types/activity";
 import type { PipelineRow } from "@/types/pipeline";
+import { normalizeSmartDocCategory } from "@/types/smartdoc-library";
 
 export type SmartDocReviewStatus = "Current" | "Due" | "Overdue" | "Unknown";
 
@@ -46,7 +47,7 @@ export function smartDocFromLibraryRecord(
     id: record.SmartDocID,
     fileName: record.FileLeafRef,
     displayName: record.DocumentName,
-    docCategory: record.DocCategory,
+    docCategory: normalizeSmartDocCategory(record.DocCategory),
     docType: record.DocType,
     revision: record.Revision,
     clientLookup: record.PlNumber,
@@ -61,7 +62,7 @@ export function smartDocFromPipeline(pipeline: PipelineRow): SmartDocRecord | nu
     id: pipeline.id,
     fileName: pipeline.FileLeafRef,
     displayName: smartDocDisplayName(pipeline.FileLeafRef),
-    docCategory: pipeline.DocCategory ?? "General",
+    docCategory: normalizeSmartDocCategory(pipeline.DocCategory),
     docType: pipeline.DocType ?? "Document",
     revision: pipeline.Revision ?? "01",
     clientLookup: pipeline.ClientLookup ?? pipeline.id,
@@ -79,7 +80,7 @@ export function smartDocFromLinkedDocument(
     id: fallbackId,
     fileName,
     displayName: smartDocDisplayName(fileName),
-    docCategory: linked.DocCategory ?? "General",
+    docCategory: normalizeSmartDocCategory(linked.DocCategory),
     docType: linked.Title.split(/[-_.]/).pop() ?? "Document",
     revision: linked.Revision ?? "01",
     clientLookup: linked.DealId ?? fallbackId,

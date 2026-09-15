@@ -8,6 +8,7 @@ import type {
   SmartDocTimelineEventKind,
 } from "@/types/smartdoc";
 import { getActivitiesReferencingDocument } from "@/lib/smartdoc-registry";
+import { isPermitSmartDocCategory } from "@/types/smartdoc-library";
 
 function parseActivityDate(value: string): Date {
   const normalized = value.includes("T") ? value : value.replace(" ", "T");
@@ -100,7 +101,9 @@ export function computeBusinessImpactLevel(
 ): BusinessImpactLevel {
   let score = 0;
 
-  if (document.docCategory === "Compliance" || document.docCategory === "Legal") score += 2;
+  if (isPermitSmartDocCategory(document.docCategory) || document.docCategory === "Legal") {
+    score += 2;
+  }
   if (document.docCategory === "Technical") score += 1;
   if (pipeline && pipeline.salesValue >= 1_000_000) score += 2;
   else if (pipeline && pipeline.salesValue >= 500_000) score += 1;

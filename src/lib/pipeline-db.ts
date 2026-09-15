@@ -1654,6 +1654,49 @@ export async function updateSmartDocLibraryRecord(
   return updated;
 }
 
+export async function findSmartDocLibraryRecord(
+  documentId: string,
+): Promise<SmartDocLibraryRecord | null> {
+  const key = documentId.trim();
+  if (!key) return null;
+  const library = await readSmartDocsLibrary();
+  return (
+    library.find(
+      (record) =>
+        record.SmartDocID === key ||
+        record.FileLeafRef === key ||
+        record.FileLeafRef.startsWith(`${key} `) ||
+        record.FileLeafRef.startsWith(`${key}.`),
+    ) ?? null
+  );
+}
+
+export async function deleteSmartDocLibraryRecord(
+  documentId: string,
+): Promise<SmartDocLibraryRecord | null> {
+  const database = await ensureDb();
+  const key = documentId.trim();
+  const index = database.smartDocsLibrary.findIndex(
+    (record) =>
+      record.SmartDocID === key ||
+      record.FileLeafRef === key ||
+      record.FileLeafRef.startsWith(`${key} `) ||
+      record.FileLeafRef.startsWith(`${key}.`),
+  );
+  if (index === -1) return null;
+
+  const [removed] = database.smartDocsLibrary.splice(index, 1);
+  if (!removed) return null;
+
+  database.commercialPackages = database.commercialPackages.map((pkg) => ({
+    ...pkg,
+    members: pkg.members.filter((member) => member.fileName !== removed.FileLeafRef),
+  }));
+
+  await writeDb(database);
+  return removed;
+}
+
 export async function readResearchReports(): Promise<StoredResearchReport[]> {
   const database = await ensureDb();
   return database.researchReports ?? [];

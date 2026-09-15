@@ -71,6 +71,7 @@ export const WORKSPACE_CREATE_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[] 
   { label: "Formal Quotation", category: "Commercial", type: "Formal Quotation" },
   { label: "Supplier Quotation", category: "Commercial", type: "Supplier Quotation" },
   { label: "Technical Datasheet", category: "Technical", type: "Technical Datasheet" },
+  { label: "Environmental Permit", category: "Permits", type: "Environmental Permit" },
   { label: "Meeting Notes", category: "Operational", type: "Meeting Notes" },
   { label: "Commercial Terms", category: "Commercial", type: "Terms Schedule" },
   { label: "Custom Document", category: "General", type: "Unclassified Document" },
@@ -79,6 +80,7 @@ export const WORKSPACE_CREATE_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[] 
 /** Prefer supplier-first presets when importing on a company with no deals. */
 export const WORKSPACE_COMPANY_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[] = [
   { label: "Supplier Quotation", category: "Commercial", type: "Supplier Quotation" },
+  { label: "Environmental Permit", category: "Permits", type: "Environmental Permit" },
   { label: "Technical Datasheet", category: "Technical", type: "Technical Datasheet" },
   { label: "Third-party Report", category: "Technical", type: "Third-party Report" },
   { label: "Vendor Agreement", category: "Legal", type: "Vendor Agreement" },

@@ -19,22 +19,25 @@ export function WorkspaceDocumentsBrowseTable({
   sortKey,
   sortDir,
   onSort,
+  onDelete,
 }: {
   rows: WorkspaceDocumentRow[];
   sortKey: WorkspaceDocumentSortKey;
   sortDir: "asc" | "desc";
   onSort: (column: WorkspaceDocumentSortKey) => void;
+  onDelete?: (row: WorkspaceDocumentRow) => void;
 }) {
   return (
     <div className="overflow-x-auto">
       <WorkspaceTable className="min-w-[920px]">
         <colgroup>
-          <col className="w-[24%]" />
-          <col className="w-[14%]" />
+          <col className="w-[22%]" />
+          <col className="w-[13%]" />
           <col className="w-[8%]" />
+          <col className="w-[11%]" />
+          <col className="w-[22%]" />
           <col className="w-[12%]" />
-          <col className="w-[26%]" />
-          <col className="w-[12%]" />
+          {onDelete ? <col className="w-[12%]" /> : null}
         </colgroup>
         <WorkspaceTableHead>
           <WorkspaceTableHeadRow>
@@ -49,6 +52,11 @@ export function WorkspaceDocumentsBrowseTable({
                 align={column.key === "modifiedAt" ? "right" : "left"}
               />
             ))}
+            {onDelete ? (
+              <WorkspaceTableHeadCell align="right">
+                <span className="sr-only">Actions</span>
+              </WorkspaceTableHeadCell>
+            ) : null}
           </WorkspaceTableHeadRow>
         </WorkspaceTableHead>
         <WorkspaceTableBody>
@@ -90,6 +98,19 @@ export function WorkspaceDocumentsBrowseTable({
               <WorkspaceTableBodyCell className="text-right tabular-nums text-carbon-blue/70">
                 {row.modifiedLabel}
               </WorkspaceTableBodyCell>
+              {onDelete ? (
+                <WorkspaceTableBodyCell className="text-right">
+                  {row.statusKind === "activity_link" ? null : (
+                    <button
+                      type="button"
+                      onClick={() => onDelete(row)}
+                      className="text-[11px] font-semibold text-thermal-red hover:underline"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </WorkspaceTableBodyCell>
+              ) : null}
             </WorkspaceTableBodyRow>
           ))}
         </WorkspaceTableBody>

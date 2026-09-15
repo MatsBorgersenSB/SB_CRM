@@ -69,6 +69,7 @@ export const SMARTDOC_ORIGIN_LABELS: Record<SmartDocOrigin, string> = {
 export type SmartDocCategory =
   | "Commercial"
   | "Legal"
+  | "Permits"
   | "Technical"
   | "Financial"
   | "Operational"
@@ -77,6 +78,7 @@ export type SmartDocCategory =
 export const SMARTDOC_CATEGORIES: SmartDocCategory[] = [
   "Commercial",
   "Legal",
+  "Permits",
   "Technical",
   "Financial",
   "Operational",
@@ -96,6 +98,14 @@ export const SMARTDOC_TYPES_BY_CATEGORY: Record<SmartDocCategory, string[]> = {
     "Payment Milestones",
   ],
   Legal: ["NDA Contract", "Signed Contract", "Vendor Agreement", "MSA"],
+  Permits: [
+    "Environmental Permit",
+    "Planning Permit",
+    "Building Permit",
+    "Operating Licence",
+    "Permit Application",
+    "Inspection Report",
+  ],
   Technical: [
     "Technical Datasheet",
     "Process Summary",
@@ -116,6 +126,12 @@ export const SMARTDOC_EXTERNAL_TYPES = new Set<string>([
   "Supplier Invoice",
   "Third-party Report",
   "Vendor Agreement",
+  "Environmental Permit",
+  "Planning Permit",
+  "Building Permit",
+  "Operating Licence",
+  "Permit Application",
+  "Inspection Report",
 ]);
 
 /** Types that are typically produced by Standard Bio. */
@@ -197,6 +213,26 @@ export function normalizeSmartDocOrigin(
     return cleaned;
   }
   return "unknown";
+}
+
+/** Map stored / legacy labels onto the current taxonomy. */
+export function normalizeSmartDocCategory(
+  value: string | null | undefined,
+): SmartDocCategory {
+  const cleaned = value?.trim();
+  if (!cleaned) return "General";
+  if (cleaned === "Compliance") return "Permits";
+  if (SMARTDOC_CATEGORIES.includes(cleaned as SmartDocCategory)) {
+    return cleaned as SmartDocCategory;
+  }
+  return "General";
+}
+
+/** Authority permits and legacy Compliance rows. */
+export function isPermitSmartDocCategory(
+  category: string | null | undefined,
+): boolean {
+  return category === "Permits" || category === "Compliance";
 }
 
 export function suggestOriginForDocType(docType: string): SmartDocOrigin {

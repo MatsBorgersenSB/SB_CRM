@@ -22,7 +22,7 @@ import {
   suggestDocumentName,
   suggestDocumentNames,
 } from "@/lib/smartdoc-identity";
-import { SMARTDOC_CATEGORIES, type SmartDocCategory } from "@/types/smartdoc-library";
+import { normalizeSmartDocCategory } from "@/types/smartdoc-library";
 import { buildSmartDocRegistry } from "@/lib/smartdoc-registry";
 import {
   getActivitiesReferencingDocument,
@@ -126,10 +126,7 @@ export type Document360Snapshot = {
 };
 
 function resolveCategoryLabelSafe(category: string): string {
-  if (SMARTDOC_CATEGORIES.includes(category as SmartDocCategory)) {
-    return resolveCategoryLabel(category as SmartDocCategory);
-  }
-  return category;
+  return resolveCategoryLabel(normalizeSmartDocCategory(category));
 }
 
 function resolveSuggestedNameStatus(

@@ -37,6 +37,7 @@ import {
   WORKSPACE_COMPANY_DOCUMENT_PRESETS,
   WORKSPACE_CREATE_DOCUMENT_PRESETS,
   workspaceDocumentsLinkSummary,
+  type WorkspaceDocumentRow,
   type WorkspaceDocumentsContext,
 } from "@/lib/workspace-documents-data";
 import {
@@ -48,10 +49,13 @@ import {
 import { WorkspaceDocumentsBrowseTable } from "@/components/documents/workspace-documents-browse-table";
 import { ViewInSharePointButton } from "@/components/documents/view-in-sharepoint-button";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 import { WORKSPACE_PANEL_SURFACE } from "@/lib/workspace-design-system";
 import { WorkspaceModeNav } from "@/components/ui/workspace-mode-nav";
 import { useAuth } from "@/context/auth-context";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
+import { canDeleteSmartDoc } from "@/lib/permissions";
+import { deleteSmartDocRecord } from "@/lib/sync-smartdoc";
 
 type DocumentsMode = "browse" | "create" | "import";
 
@@ -151,6 +155,8 @@ export function WorkspaceDocumentsPanel({
   const [tableQuery, setTableQuery] = useState(defaultDocumentTableQuery);
   const [importQueue, setImportQueue] = useState<ImportQueueItem[]>([]);
   const [classifying, setClassifying] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<WorkspaceDocumentRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const resolvedDealId = targetDealId || defaultTargetDealId(context, pipelines) || "";
   const dealOptions = useMemo(
@@ -387,6 +393,27 @@ export function WorkspaceDocumentsPanel({
   useEffect(() => {
     void loadLibrary();
   }, [loadLibrary]);
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteSmartDocRecord(pendingDelete.id, user.role);
+      setLibrary((current) =>
+        current.filter((record) => record.SmartDocID !== pendingDelete.id),
+      );
+      setPendingDelete(null);
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Unable to delete this document.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const initial = defaultTargetDealId(context, pipelines);
@@ -863,6 +890,18 @@ export function WorkspaceDocumentsPanel({
                 onClearAll={() => setTableQuery(defaultDocumentTableQuery())}
               />
             </div>
+            {pendingDelete ? (
+              <div className="border-b border-thermal-red/15 px-4 py-3">
+                <DestructiveConfirmPanel
+                  title="Delete this document?"
+                  message={`${pendingDelete.name} will be removed from SmartCRM and deleted in SharePoint. Use this when the document was imported by mistake.`}
+                  confirmLabel="Delete"
+                  loading={deleting}
+                  onConfirm={() => void handleConfirmDelete()}
+                  onCancel={() => setPendingDelete(null)}
+                />
+              </div>
+            ) : null}
             {displayedRows.length === 0 ? (
               <p className="px-6 py-10 text-center text-sm text-carbon-blue/45">
                 No documents match your filters. Try clearing search or filters.
@@ -874,6 +913,14 @@ export function WorkspaceDocumentsPanel({
                 sortDir={tableQuery.sortDir}
                 onSort={(column) =>
                   setTableQuery((current) => toggleDocumentSort(current, column))
+                }
+                onDelete={
+                  !readOnly && canDeleteSmartDoc(user.role)
+                    ? (row) => {
+                        setPendingDelete(row);
+                        setError(null);
+                      }
+                    : undefined
                 }
               />
             )}

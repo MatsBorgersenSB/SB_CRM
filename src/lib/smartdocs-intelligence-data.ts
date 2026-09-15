@@ -10,6 +10,7 @@ import { buildSmartDocRegistry } from "@/lib/smartdoc-registry";
 import { isKnowledgeAtRisk } from "@/lib/smartdoc-timeline";
 import { deal360Href } from "@/types/relationship-navigation";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import { isPermitSmartDocCategory } from "@/types/smartdoc-library";
 
 export type SmartDocsIntelligenceItem = DocumentIntelligence & {
   href: string;
@@ -116,7 +117,7 @@ export function buildSmartDocsIntelligence(
     const hasDoc = documents.some(
       (d) =>
         (d.pipelineId === deal.id || d.clientLookup === deal.id) &&
-        (d.docCategory === "Legal" || d.docCategory === "Compliance"),
+        (d.docCategory === "Legal" || isPermitSmartDocCategory(d.docCategory)),
     );
     if (
       !hasDoc &&
@@ -129,7 +130,7 @@ export function buildSmartDocsIntelligence(
         entityName: deal.assetName,
         entityKind: "deal",
         label: "Critical document missing",
-        detail: `${deal.status} requires Legal/Compliance documentation. Impact: approval and close can stall without it.`,
+        detail: `${deal.status} requires Legal or Permit documentation. Impact: approval and close can stall without it.`,
         href: deal360Href(deal.id, "documents"),
       });
     }
