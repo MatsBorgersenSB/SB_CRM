@@ -9,6 +9,7 @@ export { AccountWorkspace } from "./account-workspace";
 export { M365ValidationPanel } from "./m365-validation-panel";
 export { OutlookRelationshipCardPane } from "./outlook-relationship-card-pane";
 export { OutlookComposeAssignPane } from "./outlook-compose-assign-pane";
+export { OutlookContactSearch } from "./outlook-contact-search";
 export { OutlookNoContactState } from "./outlook-no-contact-state";
 export { OutlookAddContactDialog } from "./outlook-add-contact-dialog";
 export { OutlookEnrichmentPanel } from "./outlook-enrichment-panel";

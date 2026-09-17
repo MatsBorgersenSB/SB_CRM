@@ -35,14 +35,21 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const email = searchParams.get("email")?.trim().toLowerCase() || "";
+  const contactIdParam = searchParams.get("contactId")?.trim() || "";
   const conversationId = searchParams.get("conversationId")?.trim() || "";
 
-  if (!email) {
-    return NextResponse.json({ error: "email is required" }, { status: 400 });
+  if (!email && !contactIdParam) {
+    return NextResponse.json(
+      { error: "email or contactId is required" },
+      { status: 400 },
+    );
   }
 
   try {
-    const resolved = await resolveM365PaneCompany({ email });
+    const resolved = await resolveM365PaneCompany({
+      email: email || undefined,
+      contactId: contactIdParam || undefined,
+    });
     if (!resolved?.contact) {
       return NextResponse.json(
         { error: "No matching contact for this email", email },

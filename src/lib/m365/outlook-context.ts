@@ -360,6 +360,37 @@ export async function resolveOutlookComposeRecipients(options?: {
 }
 
 /**
+ * Put a CRM contact onto Outlook To. Best-effort — CRM assign still works if Outlook refuses.
+ */
+export async function addOutlookComposeRecipient(input: {
+  email: string;
+  displayName?: string;
+}): Promise<boolean> {
+  const email = input.email.trim().toLowerCase();
+  if (!email.includes("@")) return false;
+
+  const office = await whenOfficeReady();
+  const to = office?.context.mailbox?.item?.to;
+  if (!to?.addAsync) return false;
+
+  return await new Promise((resolve) => {
+    try {
+      to.addAsync!(
+        [
+          {
+            emailAddress: email,
+            displayName: input.displayName?.trim() || email,
+          },
+        ],
+        (result) => resolve(isOfficeAsyncSuccess(result.status)),
+      );
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+/**
  * Subscribe to To/Cc/Bcc changes on the open compose item.
  * Returns an unsubscribe function (best-effort).
  */
