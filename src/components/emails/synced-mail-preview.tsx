@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
 
@@ -21,14 +21,19 @@ export function SyncedMailPreview({
   webLink = null,
   role = "superuser",
   compact = false,
+  presentation = "default",
 }: {
   emailId: string;
   bodyPreview: string | null;
   webLink?: string | null;
   role?: UserRole;
   compact?: boolean;
+  /** snippet = text only; reader = expanded body + Open in Outlook. */
+  presentation?: "default" | "snippet" | "reader";
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const isReader = presentation === "reader";
+  const isSnippet = presentation === "snippet";
+  const [expanded, setExpanded] = useState(isReader);
   const [previewText, setPreviewText] = useState(bodyPreview);
   const [outlookUrl, setOutlookUrl] = useState(webLink);
   const [loading, setLoading] = useState(false);
@@ -92,8 +97,25 @@ export function SyncedMailPreview({
     setError("Outlook link is not available for this message yet. Sync Outlook and try again.");
   };
 
+  useEffect(() => {
+    if (!isReader) return;
+    setExpanded(true);
+    if (!previewText || previewText.length < 80 || !outlookUrl) {
+      void loadView();
+    }
+    // Load once per message when the conversation is opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emailId, isReader]);
+
+  if (isSnippet) {
+    if (!shortSnippet) return null;
+    return (
+      <p className="text-[12px] leading-relaxed text-carbon-blue/55">{shortSnippet}</p>
+    );
+  }
+
   return (
-    <div className={compact ? "mt-1.5" : "mt-2"}>
+    <div className={compact || isReader ? "mt-1.5" : "mt-2"}>
       {!expanded && shortSnippet ? (
         <p className="text-[11px] leading-relaxed text-carbon-blue/55">{shortSnippet}</p>
       ) : null}
@@ -113,14 +135,16 @@ export function SyncedMailPreview({
       {error ? <p className="mt-1 text-[11px] text-red-700/80">{error}</p> : null}
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => void togglePreview()}
-          className="inline-flex items-center border border-carbon-blue/15 bg-white px-2.5 py-1 text-[11px] font-semibold text-carbon-blue/75 transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
-        >
-          {expanded ? "Hide preview" : "Preview in SmartCRM"}
-        </button>
+        {isReader ? null : (
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => void togglePreview()}
+            className="inline-flex items-center border border-carbon-blue/15 bg-white px-2.5 py-1 text-[11px] font-semibold text-carbon-blue/75 transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
+          >
+            {expanded ? "Hide preview" : "Preview in SmartCRM"}
+          </button>
+        )}
         <button
           type="button"
           disabled={loading}

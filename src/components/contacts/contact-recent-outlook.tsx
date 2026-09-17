@@ -48,16 +48,128 @@ type LinkOption = {
   name: string;
 };
 
-function formatSentAt(value: string): string {
+const RELATIONSHIP_HINTS = [
+  "reconnect",
+  "reconnecting",
+  "linkedin",
+  "great to have you",
+  "catching up",
+  "how are you",
+  "nice to meet",
+  "good to see you",
+  "welcome back",
+  "coffee",
+];
+
+const COMMERCIAL_HINTS = [
+  "opportunit",
+  "quotation",
+  "quote",
+  "tilbud",
+  "proposal",
+  "invoice",
+  "permit",
+  "tillatelse",
+  "contract",
+  "nda",
+  "feedstock",
+  "pyrolysis",
+  "digestate",
+  "biochar",
+  "arcipug",
+  "arcipplug",
+  "datasheet",
+  "specification",
+  "purchase order",
+  "budget",
+  "offer",
+];
+
+const SUGGEST_STOP_WORDS = new Set([
+  "with",
+  "from",
+  "this",
+  "that",
+  "project",
+  "opportunity",
+  "standard",
+  "standar",
+  "and",
+  "the",
+  "for",
+  "mail",
+  "email",
+]);
+
+function formatCompactDate(value: string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Time unknown";
-  return date.toLocaleString(undefined, {
+  if (Number.isNaN(date.getTime())) return "date unknown";
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    ...(sameYear ? {} : { year: "numeric" }),
   });
+}
+
+function latestMessage(thread: ContactEmailThread): ContactEmailMessage | null {
+  return thread.messages[thread.messages.length - 1] ?? null;
+}
+
+function threadSubject(thread: ContactEmailThread): string {
+  const latest = latestMessage(thread);
+  if (!latest) return "Untitled conversation";
+  return (
+    thread.summary?.subject ||
+    latest.subject.replace(/^Re:\s*/i, "").trim() ||
+    latest.subject
+  );
+}
+
+function threadStamp(thread: ContactEmailThread): string | null {
+  const latest = latestMessage(thread);
+  return thread.summary?.latestSentAt ?? latest?.sentAt ?? null;
+}
+
+function snippetText(preview: string | null, max = 110): string {
+  const text = (preview ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+function mailLooksCommercial(subject: string, preview: string | null): boolean {
+  const hay = `${subject} ${preview ?? ""}`.toLowerCase();
+  if (COMMERCIAL_HINTS.some((hint) => hay.includes(hint))) return true;
+  if (RELATIONSHIP_HINTS.some((hint) => hay.includes(hint))) return false;
+  return false;
+}
+
+function isThreadLinked(latest: ContactEmailMessage): boolean {
+  return Boolean(latest.opportunityId || latest.projectId);
+}
+
+/** Reality First: only suggest a deal whose distinctive name appears in the subject. */
+function suggestWorkLink(subject: string, options: LinkOption[]): LinkOption | null {
+  if (options.length === 0) return null;
+  const hay = subject.toLowerCase();
+  let best: { option: LinkOption; hits: number; longest: number } | null = null;
+  for (const option of options) {
+    const tokens = option.label
+      .toLowerCase()
+      .split(/[^a-z0-9æøå]+/i)
+      .filter((token) => token.length >= 4 && !SUGGEST_STOP_WORDS.has(token));
+    const hits = tokens.filter((token) => hay.includes(token));
+    if (hits.length === 0) continue;
+    const longest = Math.max(...hits.map((hit) => hit.length));
+    if (
+      !best ||
+      hits.length > best.hits ||
+      (hits.length === best.hits && longest > best.longest)
+    ) {
+      best = { option, hits: hits.length, longest };
+    }
+  }
+  return best && best.longest >= 5 ? best.option : null;
 }
 
 function dealEmailsHref(dealId: string): string {
@@ -70,8 +182,8 @@ export type ContactMailWorkLink = {
 };
 
 /**
- * Compact person-lens Outlook threads for Contact 360.
- * User sets opportunity and/or project relationship; no silent auto-link.
+ * Person-lens Outlook conversations for Contact 360.
+ * Lead with last talk and Reply; filing is progressive, never a tagging console.
  */
 export function ContactRecentOutlook({
   contactId,
@@ -103,6 +215,7 @@ export function ContactRecentOutlook({
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -268,10 +381,10 @@ export function ContactRecentOutlook({
       await applyLinksToConversation(conversationId, links);
       setStatusMessage(
         links.opportunityId === null && links.projectId === undefined
-          ? "Opportunity cleared — Not linked."
+          ? "Opportunity cleared."
           : links.projectId === null && links.opportunityId === undefined
-            ? "Project cleared — Not linked."
-            : "Link updated.",
+            ? "Project cleared."
+            : "Linked to work.",
       );
     } catch (linkError) {
       setError(
@@ -283,15 +396,16 @@ export function ContactRecentOutlook({
   };
 
   const applyBulkLinks = async (
+    targets: ContactEmailThread[],
     links: { opportunityId?: string | null; projectId?: string | null },
     successLabel: string,
   ) => {
-    if (visibleThreads.length === 0) return;
+    if (targets.length === 0) return;
     setBulkBusy(true);
     setError(null);
     setStatusMessage(null);
     try {
-      for (const thread of visibleThreads) {
+      for (const thread of targets) {
         await applyLinksToConversation(thread.conversationId, links);
       }
       setStatusMessage(successLabel);
@@ -337,6 +451,7 @@ export function ContactRecentOutlook({
       setThreads((current) =>
         current.filter((thread) => thread.conversationId !== conversationId),
       );
+      setExpandedId((current) => (current === conversationId ? null : current));
     } catch (purgeError) {
       setError(
         purgeError instanceof Error ? purgeError.message : "Could not remove mail",
@@ -346,22 +461,25 @@ export function ContactRecentOutlook({
     }
   };
 
-  const visibleThreads = useMemo(() => {
-    return threads
-      .filter((thread) => {
-        if (domainFilter !== "external") return true;
-        return thread.messages.some((message) => !message.isInternalOnly);
-      })
-      .slice(0, 8);
+  const domainMatched = useMemo(() => {
+    return threads.filter((thread) => {
+      if (domainFilter !== "external") return true;
+      return thread.messages.some((message) => !message.isInternalOnly);
+    });
   }, [threads, domainFilter]);
+
+  const visibleThreads = useMemo(() => domainMatched.slice(0, 8), [domainMatched]);
 
   const hasInternalMail = useMemo(
     () => threads.some((thread) => thread.messages.every((message) => message.isInternalOnly)),
     [threads],
   );
 
+  const domainFilterHidesRows =
+    domainFilter === "external" && domainMatched.length < threads.length;
+
   const filterChips = useMemo((): FilterSummaryChip[] => {
-    if (domainFilter === "all") return [];
+    if (!domainFilterHidesRows) return [];
     return [
       {
         id: "domain",
@@ -370,47 +488,69 @@ export function ContactRecentOutlook({
         onRemove: () => setDomainFilter("all"),
       },
     ];
-  }, [domainFilter]);
+  }, [domainFilterHidesRows]);
+
+  const commercialUnlinked = useMemo(() => {
+    return visibleThreads.filter((thread) => {
+      const latest = latestMessage(thread);
+      if (!latest || isThreadLinked(latest)) return false;
+      return mailLooksCommercial(threadSubject(thread), latest.bodyPreview);
+    });
+  }, [visibleThreads]);
+
+  const headline = useMemo(() => {
+    if (loading) return "Loading conversations…";
+    if (visibleThreads.length === 0) return null;
+    let newest: { at: string; outbound: boolean } | null = null;
+    for (const thread of visibleThreads) {
+      const latest = latestMessage(thread);
+      const at = threadStamp(thread);
+      if (!at || !latest) continue;
+      if (!newest || Date.parse(at) > Date.parse(newest.at)) {
+        newest = { at, outbound: latest.isOutbound };
+      }
+    }
+    if (!newest) return `${visibleThreads.length} conversations`;
+    const count = visibleThreads.length;
+    return `Last mail ${formatCompactDate(newest.at)} · ${newest.outbound ? "outbound" : "inbound"} · ${count} conversation${count === 1 ? "" : "s"}`;
+  }, [loading, visibleThreads]);
 
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-          Recent Outlook
-        </p>
-        <div className="flex items-center gap-2">
+        {headline ? (
+          <p className="text-[13px] text-carbon-blue/70">{headline}</p>
+        ) : (
+          <span />
+        )}
+        <div className="flex items-center gap-3">
           {hasInternalMail ? (
-            <>
-              <label className="sr-only" htmlFor={`contact-mail-domain-${contactId}`}>
-                Domain filter
-              </label>
-              <select
-                id={`contact-mail-domain-${contactId}`}
-                value={domainFilter}
-                onChange={(event) =>
-                  setDomainFilter(event.target.value as "all" | "external")
-                }
-                className="border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] text-carbon-blue"
-              >
-                <option value="external">External (default)</option>
-                <option value="all">All domains</option>
-              </select>
-            </>
+            <button
+              type="button"
+              onClick={() =>
+                setDomainFilter((current) =>
+                  current === "external" ? "all" : "external",
+                )
+              }
+              className="text-[11px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
+            >
+              {domainFilter === "external" ? "Include internal" : "Hide internal"}
+            </button>
           ) : null}
           <button
             type="button"
             onClick={() => void load()}
-            className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45 hover:text-upcycle-orange"
+            className="text-[11px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
           >
             Refresh
           </button>
         </div>
       </div>
 
-      {!loading && threads.length > 1 && filterChips.length > 0 ? (
+      {!loading && domainFilterHidesRows ? (
         <FilterTransparencyBar
-          entityLabel="threads"
-          filteredCount={visibleThreads.length}
+          entityLabel="conversations"
+          filteredCount={domainMatched.length}
           totalCount={threads.length}
           activeFilters={filterChips}
           onClearAll={() => setDomainFilter("all")}
@@ -418,53 +558,34 @@ export function ContactRecentOutlook({
         />
       ) : null}
 
-      {!loading && visibleThreads.length > 1 ? (
+      {!loading && commercialUnlinked.length >= 3 ? (
         <div className="mb-2 flex flex-wrap items-end gap-2 border border-carbon-blue/10 bg-white px-2 py-2">
-          <p className="w-full text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-            Apply to all shown threads
+          <p className="w-full text-[12px] text-carbon-blue/70">
+            {commercialUnlinked.length} commercial conversations are not linked to
+            work.
           </p>
-          <button
-            type="button"
-            disabled={bulkBusy}
-            onClick={() =>
-              void applyBulkLinks(
-                { opportunityId: null },
-                "Cleared opportunity on all shown threads (Not linked).",
-              )
-            }
-            className="border border-carbon-blue/20 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70 hover:border-upcycle-orange/50 hover:text-upcycle-orange disabled:opacity-50"
-          >
-            Clear opportunity
-          </button>
           <label className="min-w-[12rem] flex-1">
-            <span className="sr-only">Set project on all shown threads</span>
+            <span className="sr-only">Link commercial conversations to an opportunity</span>
             <select
-              disabled={bulkBusy || projectOptions.length === 0}
+              disabled={bulkBusy || opportunityOptions.length === 0}
               defaultValue=""
               onChange={(event) => {
                 const value = event.target.value;
                 event.target.value = "";
                 if (!value) return;
-                if (value === "__clear__") {
-                  void applyBulkLinks(
-                    { projectId: null },
-                    "Cleared project on all shown threads (Not linked).",
-                  );
-                  return;
-                }
-                const option = projectOptions.find((row) => row.id === value);
+                const option = opportunityOptions.find((row) => row.id === value);
                 void applyBulkLinks(
-                  { projectId: value },
+                  commercialUnlinked,
+                  { opportunityId: value },
                   option
-                    ? `Linked all shown threads to ${option.label}.`
-                    : "Linked all shown threads to the selected project.",
+                    ? `Linked ${commercialUnlinked.length} conversations to ${option.label}.`
+                    : "Linked commercial conversations to the selected opportunity.",
                 );
               }}
               className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
             >
-              <option value="">Set project…</option>
-              <option value="__clear__">Not linked (clear project)</option>
-              {projectOptions.map((option) => (
+              <option value="">Link to opportunity…</option>
+              {opportunityOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
@@ -475,10 +596,6 @@ export function ContactRecentOutlook({
             <span className="text-[11px] text-carbon-blue/45">Updating…</span>
           ) : null}
         </div>
-      ) : null}
-
-      {loading ? (
-        <p className="text-[12px] text-carbon-blue/45">Loading Outlook threads…</p>
       ) : null}
 
       {error ? <p className="text-[12px] text-red-700/80">{error}</p> : null}
@@ -499,187 +616,252 @@ export function ContactRecentOutlook({
         </div>
       ) : null}
 
-      <ul className="mt-2 flex flex-col gap-2">
+      {domainMatched.length > visibleThreads.length ? (
+        <p className="mb-1 text-[11px] text-carbon-blue/45">
+          Showing the latest 8 of {domainMatched.length} conversations.
+        </p>
+      ) : null}
+
+      <ul className="divide-y divide-carbon-blue/10">
         {visibleThreads.map((thread) => {
-          const latest = thread.messages[thread.messages.length - 1]!;
-          const subject =
-            thread.summary?.subject ||
-            latest.subject.replace(/^Re:\s*/i, "").trim() ||
-            latest.subject;
+          const latest = latestMessage(thread);
+          if (!latest) return null;
+          const subject = threadSubject(thread);
+          const stamp = threadStamp(thread);
           const risk = thread.summary?.riskAlerts?.[0];
           const dealId = latest.opportunityId;
           const projectId = latest.projectId;
           const busy =
             purgingId === thread.conversationId ||
             linkingId === thread.conversationId;
+          const expanded = expandedId === thread.conversationId;
+          const commercial = mailLooksCommercial(subject, latest.bodyPreview);
+          const linked = isThreadLinked(latest);
+          const suggestion =
+            !dealId && commercial
+              ? suggestWorkLink(subject, opportunityOptions)
+              : null;
+          const showCollapsedLinkCta = commercial && !linked;
+          const messageCount = thread.summary?.messageCount ?? thread.messages.length;
+          const snippet = snippetText(latest.bodyPreview);
 
           return (
-            <li
-              key={thread.conversationId}
-              className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-[13px] font-semibold text-carbon-blue">
-                  {latest.isDeletedInSource ? (
-                    <span className="mr-1 text-carbon-blue/40">[Deleted in Outlook]</span>
-                  ) : null}
-                  {subject}
-                </p>
-                <p className="text-[10px] text-carbon-blue/45">
-                  {formatSentAt(thread.summary?.latestSentAt ?? latest.sentAt)}
-                </p>
-              </div>
-              <p className="mt-0.5 text-[11px] text-carbon-blue/50">
-                {latest.isOutbound ? "Outbound" : "Inbound"} ·{" "}
-                {thread.summary?.messageCount ?? thread.messages.length} message
-                {(thread.summary?.messageCount ?? thread.messages.length) === 1
-                  ? ""
-                  : "s"}
-              </p>
-              <SyncedMailPreview
-                emailId={latest.id}
-                bodyPreview={latest.bodyPreview}
-                webLink={latest.webLink}
-                role={role}
-                compact
-              />
-              {!latest.isDeletedInSource ? (
-                <EmailMessageActions
-                  toEmail={
-                    latest.isOutbound
-                      ? contactEmail?.trim() || latest.senderEmail
-                      : latest.senderEmail
+            <li key={thread.conversationId} className="py-2.5 first:pt-1">
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() =>
+                    setExpandedId((current) =>
+                      current === thread.conversationId ? null : thread.conversationId,
+                    )
                   }
-                  subject={latest.subject}
-                  bodyPreview={latest.bodyPreview}
-                  contactId={contactId}
-                  contactName={contactName ?? null}
-                  contactPhone={contactPhone ?? null}
-                  opportunityId={dealId || undefined}
-                  projectId={projectId || undefined}
-                  role={role}
-                  compact
-                />
-              ) : null}
-              <div className="mt-1 flex flex-wrap gap-1.5">
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="min-w-0 text-[13px] font-semibold text-carbon-blue">
+                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                        {latest.isOutbound ? "Out" : "In"}
+                      </span>
+                      {latest.isDeletedInSource ? (
+                        <span className="mr-1 text-carbon-blue/40">[Deleted in Outlook]</span>
+                      ) : null}
+                      {subject}
+                    </p>
+                    <p className="shrink-0 text-[11px] text-carbon-blue/45">
+                      {stamp ? formatCompactDate(stamp) : "Date unknown"}
+                    </p>
+                  </div>
+                  {expanded ? null : snippet ? (
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/55">
+                      {snippet}
+                    </p>
+                  ) : null}
+                </button>
+                {!latest.isDeletedInSource ? (
+                  <div className="shrink-0 pt-0.5">
+                    <EmailMessageActions
+                      toEmail={
+                        latest.isOutbound
+                          ? contactEmail?.trim() || latest.senderEmail
+                          : latest.senderEmail
+                      }
+                      subject={latest.subject}
+                      bodyPreview={latest.bodyPreview}
+                      contactId={contactId}
+                      contactName={contactName ?? null}
+                      contactPhone={contactPhone ?? null}
+                      opportunityId={dealId || undefined}
+                      projectId={projectId || undefined}
+                      role={role}
+                      compact
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                 {dealId && (latest.opportunityCode || latest.opportunityName) ? (
-                  <span className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] text-carbon-blue/55">
-                    Opportunity:{" "}
+                  <Link
+                    href={dealEmailsHref(dealId)}
+                    className="text-[11px] font-medium text-upcycle-orange hover:underline"
+                  >
                     {latest.opportunityCode
                       ? `${latest.opportunityCode} · ${latest.opportunityName ?? ""}`
                       : latest.opportunityName}
-                  </span>
-                ) : (
-                  <span className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-1.5 py-0.5 text-[10px] text-carbon-blue/40">
-                    Opportunity: Not linked
-                  </span>
-                )}
-                {projectId && latest.projectName ? (
-                  <span className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] text-carbon-blue/55">
-                    Project: {latest.projectName}
-                  </span>
-                ) : (
-                  <span className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-1.5 py-0.5 text-[10px] text-carbon-blue/40">
-                    Project: Not linked
-                  </span>
-                )}
-              </div>
-              {risk ? (
-                <p className="mt-1 text-[11px] text-amber-800/90">Attention: {risk}</p>
-              ) : null}
-
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <label className="block min-w-0">
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                    Opportunity
-                  </span>
-                  <select
-                    value={dealId ?? ""}
-                    disabled={busy || bulkBusy}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      void setThreadLinks(thread.conversationId, {
-                        opportunityId: value ? value : null,
-                      });
-                    }}
-                    className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
-                  >
-                    <option value="">Not linked</option>
-                    {dealId &&
-                    !opportunityOptions.some((option) => option.id === dealId) ? (
-                      <option value={dealId}>
-                        {latest.opportunityCode
-                          ? `${latest.opportunityCode} · ${latest.opportunityName ?? dealId}`
-                          : (latest.opportunityName ?? dealId)}
-                      </option>
-                    ) : null}
-                    {opportunityOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block min-w-0">
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                    Project
-                  </span>
-                  <select
-                    value={projectId ?? ""}
-                    disabled={busy || bulkBusy}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      void setThreadLinks(thread.conversationId, {
-                        projectId: value ? value : null,
-                      });
-                    }}
-                    className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
-                  >
-                    <option value="">Not linked</option>
-                    {projectId &&
-                    !projectOptions.some((option) => option.id === projectId) ? (
-                      <option value={projectId}>
-                        {latest.projectName ?? projectId}
-                      </option>
-                    ) : null}
-                    {projectOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {dealId ? (
-                  <Link
-                    href={dealEmailsHref(dealId)}
-                    className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
-                  >
-                    Open opportunity
                   </Link>
                 ) : null}
-                {projectId ? (
+                {projectId && latest.projectName ? (
                   <Link
                     href={projectEmailsHref(projectId)}
-                    className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
+                    className="text-[11px] font-medium text-upcycle-orange hover:underline"
                   >
-                    Open project emails
+                    {latest.projectName}
                   </Link>
                 ) : null}
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void removeThread(thread.conversationId)}
-                  className="border border-carbon-blue/20 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/65 hover:border-thermal-red/40 hover:text-thermal-red disabled:opacity-50"
-                >
-                  {purgingId === thread.conversationId
-                    ? "Removing…"
-                    : "Remove from SmartCRM"}
-                </button>
+                {showCollapsedLinkCta && !expanded ? (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(thread.conversationId)}
+                    className="text-[11px] font-medium text-carbon-blue/55 hover:text-upcycle-orange"
+                  >
+                    Link to work
+                  </button>
+                ) : null}
+                {messageCount > 1 ? (
+                  <span className="text-[11px] text-carbon-blue/40">
+                    {messageCount} messages
+                  </span>
+                ) : null}
               </div>
+
+              {expanded ? (
+                <div className="mt-2 space-y-2">
+                  {risk ? (
+                    <p className="text-[11px] text-amber-800/90">Attention: {risk}</p>
+                  ) : null}
+
+                  {suggestion && !dealId ? (
+                    <p className="text-[12px] leading-relaxed text-carbon-blue/75">
+                      This looks like {suggestion.label}.{" "}
+                      <button
+                        type="button"
+                        disabled={busy || bulkBusy}
+                        onClick={() =>
+                          void setThreadLinks(thread.conversationId, {
+                            opportunityId: suggestion.id,
+                          })
+                        }
+                        className="font-semibold text-upcycle-orange hover:underline disabled:opacity-50"
+                      >
+                        Link it
+                      </button>
+                    </p>
+                  ) : null}
+
+                  <SyncedMailPreview
+                    emailId={latest.id}
+                    bodyPreview={latest.bodyPreview}
+                    webLink={latest.webLink}
+                    role={role}
+                    compact
+                    presentation="reader"
+                  />
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="block min-w-0">
+                      <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                        Opportunity
+                      </span>
+                      <select
+                        value={dealId ?? ""}
+                        disabled={busy || bulkBusy}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          void setThreadLinks(thread.conversationId, {
+                            opportunityId: value ? value : null,
+                          });
+                        }}
+                        className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
+                      >
+                        <option value="">Not linked</option>
+                        {dealId &&
+                        !opportunityOptions.some((option) => option.id === dealId) ? (
+                          <option value={dealId}>
+                            {latest.opportunityCode
+                              ? `${latest.opportunityCode} · ${latest.opportunityName ?? dealId}`
+                              : (latest.opportunityName ?? dealId)}
+                          </option>
+                        ) : null}
+                        {opportunityOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block min-w-0">
+                      <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                        Project
+                      </span>
+                      <select
+                        value={projectId ?? ""}
+                        disabled={busy || bulkBusy}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          void setThreadLinks(thread.conversationId, {
+                            projectId: value ? value : null,
+                          });
+                        }}
+                        className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
+                      >
+                        <option value="">Not linked</option>
+                        {projectId &&
+                        !projectOptions.some((option) => option.id === projectId) ? (
+                          <option value={projectId}>
+                            {latest.projectName ?? projectId}
+                          </option>
+                        ) : null}
+                        {projectOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {dealId ? (
+                      <Link
+                        href={dealEmailsHref(dealId)}
+                        className="text-[11px] font-medium text-carbon-blue/55 hover:text-upcycle-orange"
+                      >
+                        Open opportunity
+                      </Link>
+                    ) : null}
+                    {projectId ? (
+                      <Link
+                        href={projectEmailsHref(projectId)}
+                        className="text-[11px] font-medium text-carbon-blue/55 hover:text-upcycle-orange"
+                      >
+                        Open project emails
+                      </Link>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void removeThread(thread.conversationId)}
+                      className="text-[11px] font-medium text-carbon-blue/45 hover:text-thermal-red disabled:opacity-50"
+                    >
+                      {purgingId === thread.conversationId
+                        ? "Removing…"
+                        : "Remove from SmartCRM"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </li>
           );
         })}
