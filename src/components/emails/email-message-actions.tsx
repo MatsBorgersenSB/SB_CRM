@@ -125,7 +125,7 @@ export function EmailMessageActions({
   };
 
   return (
-    <div className="mt-2">
+    <div className={compact ? undefined : "mt-2"}>
       <div className="flex flex-wrap items-center gap-1.5">
         <button
           type="button"
