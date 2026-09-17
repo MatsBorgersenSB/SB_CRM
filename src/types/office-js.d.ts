@@ -32,6 +32,10 @@ declare namespace Office {
 
   interface Recipients {
     getAsync(callback: (result: AsyncResult<EmailAddressDetails[]>) => void): void;
+    addAsync?: (
+      recipients: EmailAddressDetails[],
+      callback?: (result: AsyncResult<void>) => void,
+    ) => void;
   }
 
   interface Body {

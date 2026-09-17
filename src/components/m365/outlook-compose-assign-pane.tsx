@@ -7,10 +7,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
+import { OutlookContactSearch, type OutlookContactHit } from "@/components/m365/outlook-contact-search";
 import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
 import {
+  addOutlookComposeRecipient,
   ensureOutlookComposeSeed,
   resolveOutlookComposeRecipients,
   subscribeOutlookComposeRecipientsChanged,
@@ -51,7 +53,7 @@ type Phase =
   | { status: "ready"; email: string; context: TagContextPayload };
 
 async function loadTagContext(
-  email: string,
+  input: { email?: string; contactId?: string },
   role: UserRole,
 ): Promise<
   | { kind: "auth" }
@@ -59,13 +61,17 @@ async function loadTagContext(
   | { kind: "ready"; context: TagContextPayload }
   | { kind: "error"; message: string }
 > {
-  const response = await fetch(
-    `/api/m365/outlook/mail-tag?${new URLSearchParams({ email })}`,
-    {
-      headers: { [AUTH_ROLE_HEADER]: role },
-      credentials: "include",
-    },
-  );
+  const params = new URLSearchParams();
+  if (input.email?.trim()) params.set("email", input.email.trim().toLowerCase());
+  if (input.contactId?.trim()) params.set("contactId", input.contactId.trim());
+  if (!params.has("email") && !params.has("contactId")) {
+    return { kind: "error", message: "Choose a contact or enter an email." };
+  }
+
+  const response = await fetch(`/api/m365/outlook/mail-tag?${params}`, {
+    headers: { [AUTH_ROLE_HEADER]: role },
+    credentials: "include",
+  });
 
   if (response.status === 401 || response.status === 403) {
     return { kind: "auth" };
@@ -97,7 +103,12 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
   const [status, setStatus] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [manualEmail, setManualEmail] = useState("");
+  const [newContactDraft, setNewContactDraft] = useState<{
+    email: string;
+    displayName: string;
+  } | null>(null);
   const recipientKeyRef = useRef("");
+  const keepCrmChoiceRef = useRef(false);
 
   const reload = useCallback(() => {
     setReloadKey((key) => key + 1);
@@ -120,6 +131,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
 
   const loadForEmail = useCallback(
     async (email: string, displayName = "") => {
+      keepCrmChoiceRef.current = true;
       setPhase({ status: "loading" });
       setError(null);
       setStatus(null);
@@ -130,7 +142,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
         return;
       }
 
-      const result = await loadTagContext(normalized, role);
+      const result = await loadTagContext({ email: normalized }, role);
       if (result.kind === "auth") {
         setPhase({ status: "auth-required" });
         return;
@@ -154,18 +166,80 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
     [role],
   );
 
+  const selectCrmContact = useCallback(
+    async (hit: OutlookContactHit) => {
+      keepCrmChoiceRef.current = true;
+      setError(null);
+      setStatus(null);
+      setNewContactDraft(null);
+      if (hit.email) {
+        await addOutlookComposeRecipient({
+          email: hit.email,
+          displayName: hit.name,
+        });
+        setRecipients((current) => {
+          if (current.some((row) => row.email === hit.email)) return current;
+          return [{ email: hit.email!, displayName: hit.name }, ...current];
+        });
+        await loadForEmail(hit.email, hit.name);
+        return;
+      }
+
+      setPhase({ status: "loading" });
+      const result = await loadTagContext({ contactId: hit.id }, role);
+      if (result.kind === "auth") {
+        setPhase({ status: "auth-required" });
+        return;
+      }
+      if (result.kind === "unknown") {
+        setError("This contact is in search but could not be opened. Add them again with an email.");
+        setPhase({ status: "no-recipients" });
+        return;
+      }
+      if (result.kind === "error") {
+        setError(result.message);
+        setPhase({ status: "no-recipients" });
+        return;
+      }
+      applyReadyContext("", result.context);
+    },
+    [loadForEmail, role],
+  );
+
+  const startNewContact = (draft: {
+    query: string;
+    email: string;
+    displayName: string;
+  }) => {
+    setError(null);
+    setStatus(null);
+    if (draft.email && EMAIL_RE.test(draft.email)) {
+      void loadForEmail(draft.email, draft.displayName);
+      return;
+    }
+    setNewContactDraft({
+      email: draft.email,
+      displayName: draft.displayName || draft.query,
+    });
+    setPhase({ status: "no-recipients" });
+  };
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      setPhase({ status: "loading" });
-      setError(null);
-      setStatus(null);
-
       const list = await resolveOutlookComposeRecipients({
         attempts: 6,
         delayMs: 350,
       });
       if (cancelled) return;
+
+      if (list.length === 0 && keepCrmChoiceRef.current) {
+        return;
+      }
+
+      setPhase({ status: "loading" });
+      setError(null);
+      setStatus(null);
       setRecipients(list);
       recipientKeyRef.current = list
         .map((entry) => entry.email)
@@ -186,7 +260,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
         setSelectedEmail(preferred);
       }
 
-      const result = await loadTagContext(preferred, role);
+      const result = await loadTagContext({ email: preferred }, role);
       if (cancelled) return;
 
       if (result.kind === "auth") {
@@ -261,7 +335,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       setError(null);
       setStatus(null);
 
-      const result = await loadTagContext(selectedEmail, role);
+      const result = await loadTagContext({ email: selectedEmail }, role);
       if (cancelled) return;
 
       if (result.kind === "auth") {
@@ -417,48 +491,75 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       </p>
       <p className="mt-1 text-sm font-semibold text-carbon-blue">Assign this mail</p>
       <p className="mt-1 text-[11px] leading-snug text-carbon-blue/55">
-        Link this draft to the company or a project. Opportunity only appears for sell-to
-        relationships (Customer / Prospect / Offtaker).
+        Search SmartCRM for the person, or add them if they are new. Opportunity only
+        appears for sell-to relationships (Customer / Prospect / Offtaker).
       </p>
 
       {phase.status === "loading" ? (
-        <p className="mt-4 text-[11px] text-carbon-blue/45">Reading recipients…</p>
+        <p className="mt-4 text-[11px] text-carbon-blue/45">
+          {recipients.length === 0
+            ? "Looking up contacts…"
+            : "Reading recipients…"}
+        </p>
       ) : null}
 
-      {phase.status === "no-recipients" ? (
-        <div className="mt-4 space-y-3">
-          <p className="text-[11px] leading-relaxed text-carbon-blue/55">
-            Outlook has not shared the To field yet. Click refresh, or type the recipient
-            email.
-          </p>
-          <button
-            type="button"
-            onClick={reload}
-            className="inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
-          >
-            Refresh recipients
-          </button>
+      <div className="mt-4">
+        <OutlookContactSearch
+          role={role}
+          disabled={busy}
+          onSelect={(hit) => void selectCrmContact(hit)}
+          onCreateNew={startNewContact}
+        />
+      </div>
+
+      {newContactDraft ? (
+        <div className="mt-3 space-y-2 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
+          <p className="text-[12px] font-medium text-carbon-blue">Add a new contact</p>
+          {newContactDraft.displayName ? (
+            <p className="text-[11px] text-carbon-blue/55">{newContactDraft.displayName}</p>
+          ) : null}
           <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-            Recipient email
+            Email
             <input
               type="email"
-              value={manualEmail}
-              onChange={(event) => setManualEmail(event.target.value)}
-              placeholder="name@company.com"
+              value={newContactDraft.email || manualEmail}
+              onChange={(event) => {
+                const value = event.target.value;
+                setManualEmail(value);
+                setNewContactDraft((current) =>
+                  current ? { ...current, email: value } : current,
+                );
+              }}
+              placeholder="kristy.pena@arciplug.com"
               className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
             />
           </label>
           <button
             type="button"
             onClick={() => {
-              const email = manualEmail.trim().toLowerCase();
-              setRecipients([{ email, displayName: "" }]);
-              void loadForEmail(email);
+              const email = (newContactDraft.email || manualEmail).trim().toLowerCase();
+              void loadForEmail(email, newContactDraft.displayName);
             }}
-            disabled={!manualEmail.trim()}
+            disabled={!EMAIL_RE.test((newContactDraft.email || manualEmail).trim())}
             className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
           >
-            Continue with this email
+            Continue
+          </button>
+        </div>
+      ) : null}
+
+      {phase.status === "no-recipients" && !newContactDraft ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-[11px] leading-relaxed text-carbon-blue/55">
+            Outlook has not filled To yet. Search for the person above, or refresh if you
+            already typed them in Outlook.
+          </p>
+          <button
+            type="button"
+            onClick={reload}
+            className="text-[11px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
+          >
+            Refresh Outlook recipients
           </button>
         </div>
       ) : null}

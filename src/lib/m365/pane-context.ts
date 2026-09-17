@@ -169,6 +169,16 @@ async function fetchCompanyCard(prismaId: string, preferContactId?: string) {
   };
 }
 
+function pickEmailFromJson(emails: unknown): string {
+  if (!Array.isArray(emails) || emails.length === 0) return "";
+  const typed = emails.filter(
+    (entry): entry is { address?: string; isPrimary?: boolean } =>
+      Boolean(entry && typeof entry === "object"),
+  );
+  const primary = typed.find((entry) => entry.isPrimary) ?? typed[0];
+  return primary?.address?.trim().toLowerCase() || "";
+}
+
 function mapResolvedFromRow(row: NonNullable<CompanyCardRow>, email?: string): M365PaneResolved {
   const company = mapPrismaCompanyToApp({
     ...row,
@@ -187,11 +197,38 @@ function mapResolvedFromRow(row: NonNullable<CompanyCardRow>, email?: string): M
 export async function resolveM365PaneCompany(input: {
   email?: string | null;
   companyId?: string | null;
+  contactId?: string | null;
 }): Promise<M365PaneResolved | null> {
   const email = input.email?.trim().toLowerCase() || "";
   const companyId = input.companyId?.trim() || "";
+  const contactId = input.contactId?.trim() || "";
 
   try {
+    if (contactId) {
+      const { findPrismaContactByIdOrEmail } = await import(
+        "@/lib/resolve-contact-route"
+      );
+      const found = await findPrismaContactByIdOrEmail(contactId);
+      if (found?.companyId) {
+        const companyRow = await fetchCompanyCard(found.companyId, found.id);
+        if (companyRow) {
+          const mapped = mapResolvedFromRow(
+            companyRow,
+            pickEmailFromJson(found.emails) || email || undefined,
+          );
+          if (mapped.contact) return mapped;
+          const company = mapPrismaCompanyToApp({
+            ...companyRow,
+            contacts: companyRow.contacts as PrismaContactListRow[],
+          });
+          const match =
+            company.contacts.find((entry) => entry.ContactID === contactId) ??
+            company.contacts[0];
+          return match ? { company, contact: match } : { company };
+        }
+      }
+    }
+
     if (email) {
       const contactId = await findContactIdByEmail(email);
       if (contactId) {

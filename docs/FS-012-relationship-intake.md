@@ -208,11 +208,12 @@ Single source of truth: no duplicate contact/company rows across JSON and Prisma
 
 When the user is **writing** a new mail in Outlook:
 
-1. SmartCRM Compose pane (`?mode=compose`) resolves **To / Cc recipients** (not the mailbox owner).
-2. Unknown recipient opens the **same FS-012 intake** with recipient-oriented copy (`variant=compose`).
-3. After create, optional opportunity/project link uses an **outbound** seed (`isOutbound: true`, contact = recipient) via `saveAsync` when the draft lacks identity.
-4. Known contact: Assign opportunity | project | relationship-only (posture-gated) — same commercial rules as read-mode Tag.
-5. Prefer **decide-then-compose** from Opportunity / Relationship Card (“New mail in Outlook” / New tagged mail) when starting from CRM; Compose Assign covers “already writing.”
+1. SmartCRM Compose pane (`?mode=compose`) resolves **To / Cc recipients** when Outlook shares them. If To is empty, the user can **search Contact Registry** by name, email, or company, or **add a new contact**.
+2. Picking a known contact loads assign options and, when an email is on file, adds them to Outlook To (best-effort).
+3. Unknown person opens the **same FS-012 intake** with recipient-oriented copy (`variant=compose`).
+4. After create, optional opportunity/project link uses an **outbound** seed (`isOutbound: true`, contact = recipient) via `saveAsync` when the draft lacks identity.
+5. Known contact: Assign opportunity | project | relationship-only (posture-gated) — same commercial rules as read-mode Tag.
+6. Prefer **decide-then-compose** from Opportunity / Relationship Card (“New mail in Outlook” / New tagged mail) when starting from CRM; Compose Assign covers “already writing.”
 
 ---
 
