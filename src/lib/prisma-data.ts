@@ -71,7 +71,7 @@ export const CONTACT_LIST_SELECT = {
   reportsToId: true,
 } as const;
 
-/** Opportunity fields for pipeline rows — omit understanding JSON and description blobs. */
+/** Opportunity fields for pipeline rows — include understanding so captured answers are never dropped. */
 export const OPPORTUNITY_LIST_SELECT = {
   id: true,
   code: true,
@@ -87,6 +87,7 @@ export const OPPORTUNITY_LIST_SELECT = {
   ownerId: true,
   offeringIds: true,
   team: true,
+  understanding: true,
   sharepointFolderId: true,
   sharepointFolderUrl: true,
   sharepointFolderPath: true,

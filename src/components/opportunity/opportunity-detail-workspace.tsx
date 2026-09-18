@@ -13,6 +13,7 @@ import {
   resolveOpportunityRouteRecord,
 } from "@/lib/resolve-opportunity-route";
 import { mapPrismaOpportunityToPipelineRow } from "@/lib/prisma-mappers";
+import type { PipelineRow } from "@/types/pipeline";
 
 type OpportunityRouteParams = {
   id?: string;
@@ -49,54 +50,57 @@ export async function OpportunityDetailWorkspace({
     notFound();
   }
 
-  const [{ companies, pipelines }, activities, commercialPackages] =
+  const [{ companies, pipelines: portfolioPipelines }, activities, commercialPackages] =
     await Promise.all([
       readLivePortfolio(),
       readLiveActivities(),
       readLiveCommercialPackages(),
     ]);
 
-  // 1. Portfolio / seed first (PL-1042 links from the opportunities list)
-  let opportunity =
-    findOpportunityInPortfolio(pipelines, rawKey) ??
-    findOpportunityInPortfolio(pipelines, cleanKey) ??
-    null;
-
-  // 2. Prisma bridge (no `code` field on Opportunity — id + name only)
-  if (!opportunity) {
-    try {
-      const prismaRow = await findPrismaOpportunityByRouteKey(rawKey);
-      if (prismaRow) {
-        opportunity =
-          findOpportunityInPortfolio(pipelines, prismaRow.id) ??
-          findOpportunityInPortfolio(pipelines, prismaRow.name) ??
-          mapPrismaOpportunityToPipelineRow(prismaRow);
-      }
-    } catch (e) {
-      console.warn("DB opportunity lookup bypassed:", e);
+  let prismaMapped: PipelineRow | null = null;
+  try {
+    const prismaRow =
+      (await findPrismaOpportunityByRouteKey(rawKey)) ??
+      (await findPrismaOpportunityByRouteKey(cleanKey));
+    if (prismaRow) {
+      prismaMapped = mapPrismaOpportunityToPipelineRow(prismaRow);
     }
+  } catch (error) {
+    console.warn("DB opportunity lookup bypassed:", error);
   }
 
-  // 3. Final dual-store resolve (covers edge aliases)
+  // Prisma is the source of truth for captured understanding. Never prefer a
+  // list projection that omitted those answers.
+  let opportunity =
+    prismaMapped ??
+    findOpportunityInPortfolio(portfolioPipelines, rawKey) ??
+    findOpportunityInPortfolio(portfolioPipelines, cleanKey) ??
+    null;
+
   if (!opportunity) {
     opportunity =
-      (await resolveOpportunityRouteRecord(pipelines, rawKey)) ?? null;
+      (await resolveOpportunityRouteRecord(portfolioPipelines, rawKey)) ?? null;
   }
 
   if (!opportunity) {
     notFound();
   }
 
+  const pipelines = prismaMapped
+    ? [
+        prismaMapped,
+        ...portfolioPipelines.filter((row) => row.id !== prismaMapped!.id),
+      ]
+    : portfolioPipelines.some((row) => row.id === opportunity.id)
+      ? portfolioPipelines
+      : [opportunity, ...portfolioPipelines];
+
   return (
     <Suspense fallback={null}>
       <Deal360PageShell
         dealId={opportunity.id}
         companies={companies}
-        pipelines={
-          pipelines.some((row) => row.id === opportunity.id)
-            ? pipelines
-            : [opportunity, ...pipelines]
-        }
+        pipelines={pipelines}
         activities={activities}
         commercialPackages={commercialPackages}
       />

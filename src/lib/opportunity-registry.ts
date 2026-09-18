@@ -115,7 +115,12 @@ export async function getRegistryOpportunity(
   if (!(await prismaRegistryAvailable())) return null;
 
   try {
-    return await loadMappedOpportunity(id);
+    const { findPrismaOpportunityByRouteKey } = await import(
+      "@/lib/resolve-opportunity-route"
+    );
+    const existing = await findPrismaOpportunityByRouteKey(id);
+    if (!existing) return null;
+    return mapPrismaOpportunityToPipelineRow(existing);
   } catch {
     return null;
   }
@@ -144,9 +149,10 @@ export async function updateRegistryOpportunity(
 ): Promise<PipelineRow | null> {
   if (!(await prismaRegistryAvailable())) return null;
 
-  const existing = await withPrismaRetry((prisma) =>
-    prisma.opportunity.findUnique({ where: { id }, select: { id: true } }),
+  const { findPrismaOpportunityByRouteKey } = await import(
+    "@/lib/resolve-opportunity-route"
   );
+  const existing = await findPrismaOpportunityByRouteKey(id);
   if (!existing) return null;
 
   const data: Prisma.OpportunityUpdateInput = {};
@@ -190,17 +196,17 @@ export async function updateRegistryOpportunity(
   }
 
   if (Object.keys(data).length === 0) {
-    return loadMappedOpportunity(id);
+    return loadMappedOpportunity(existing.id);
   }
 
   await withPrismaRetry((prisma) =>
     prisma.opportunity.update({
-      where: { id },
+      where: { id: existing.id },
       data,
     }),
   );
 
-  return loadMappedOpportunity(id);
+  return loadMappedOpportunity(existing.id);
 }
 
 export async function deleteRegistryOpportunity(

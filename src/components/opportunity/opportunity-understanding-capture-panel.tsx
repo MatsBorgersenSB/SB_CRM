@@ -89,7 +89,10 @@ function UnderstandingFieldRow({
     [pipeline, fieldId],
   );
   const [draft, setDraft] = useState(
-    resolved.source === "captured" ? resolved.value : resolved.source === "derived" ? "" : "",
+    resolved.source === "captured" ? resolved.value : "",
+  );
+  const [localCaptured, setLocalCaptured] = useState(
+    resolved.source === "captured" ? resolved.value : "",
   );
   const [editing, setEditing] = useState(focused && !readOnly);
   const [saving, setSaving] = useState(false);
@@ -97,9 +100,16 @@ function UnderstandingFieldRow({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const capturedValue =
+    resolved.source === "captured" ? resolved.value : localCaptured.trim();
+  const displaySource = capturedValue
+    ? ("captured" as const)
+    : resolved.source;
+
   useEffect(() => {
     if (resolved.source === "captured") {
       setDraft(resolved.value);
+      setLocalCaptured(resolved.value);
     }
   }, [resolved.source, resolved.value]);
 
@@ -113,17 +123,17 @@ function UnderstandingFieldRow({
   const category = categoryForSource(
     editing && draft.trim()
       ? "captured"
-      : resolved.source === "empty" && !draft.trim()
+      : displaySource === "empty" && !draft.trim()
         ? "empty"
-        : resolved.source,
+        : displaySource,
   );
 
   const displayValue =
-    resolved.source === "empty" && !editing
+    displaySource === "empty" && !editing
       ? "Unknown — answer here"
-      : resolved.source === "derived" && !editing
+      : displaySource === "derived" && !editing
         ? resolved.value
-        : draft || resolved.value;
+        : capturedValue || draft || resolved.value;
 
   const handleSave = async () => {
     if (!onSave) return;
@@ -131,6 +141,7 @@ function UnderstandingFieldRow({
     setError(null);
     try {
       await onSave(fieldId, draft);
+      setLocalCaptured(draft.trim());
       setEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save answer.");
@@ -172,7 +183,7 @@ function UnderstandingFieldRow({
             placeholder={resolved.definition.placeholder}
             className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue placeholder:text-carbon-blue/35"
           />
-          {resolved.source === "derived" && !draft.trim() ? (
+          {resolved.source === "derived" && !draft.trim() && !capturedValue ? (
             <p className="mt-1 text-[11px] text-carbon-blue/45">
               Current record: {resolved.value}. Save a refined answer to confirm.
             </p>
@@ -189,7 +200,7 @@ function UnderstandingFieldRow({
             <button
               type="button"
               onClick={() => {
-                setDraft(resolved.source === "captured" ? resolved.value : "");
+                setDraft(capturedValue || (displaySource === "captured" ? resolved.value : ""));
                 setError(null);
                 setEditing(false);
               }}
@@ -205,9 +216,9 @@ function UnderstandingFieldRow({
       ) : (
         <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
           <p
-            className={`text-[13px] leading-relaxed ${
-              resolved.source === "empty" ? "text-carbon-blue/45" : "text-carbon-blue"
-            }`}
+              className={`text-[13px] leading-relaxed ${
+                displaySource === "empty" ? "text-carbon-blue/45" : "text-carbon-blue"
+              }`}
           >
             {displayValue}
           </p>
@@ -215,12 +226,12 @@ function UnderstandingFieldRow({
             <button
               type="button"
               onClick={() => {
-                setDraft(resolved.source === "captured" ? resolved.value : "");
+                setDraft(capturedValue || "");
                 setEditing(true);
               }}
               className="shrink-0 text-[11px] font-semibold text-upcycle-orange hover:underline"
             >
-              {resolved.source === "empty" ? "Answer now" : "Edit"}
+              {displaySource === "empty" ? "Answer now" : "Edit"}
             </button>
           ) : null}
         </div>
