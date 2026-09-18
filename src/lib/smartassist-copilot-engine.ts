@@ -394,6 +394,7 @@ export function buildCoPilotProposals(
     pipelines,
     activities: liveActivities,
     commercialPackages: livePackages,
+    correspondenceByCompanyId,
   }).filter((item) => item.status === "open");
 
   const suggestions = buildSuggestedActivities(attentionItems);

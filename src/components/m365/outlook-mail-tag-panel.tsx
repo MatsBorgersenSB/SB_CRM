@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
+import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
+import { company360Href } from "@/types/company-360";
+import { contact360Href, project360Href } from "@/types/relationship-navigation";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
 import {
   resolveOutlookSelectedMessageSeeds,
@@ -458,6 +461,12 @@ export function OutlookMailTagPanel({
       </p>
       <SelectedMailSubjects seeds={seeds} />
 
+      <Outlook360Links
+        companyId={context.companyId ?? context.selectedCompanyId}
+        contactId={context.contactId}
+        projectId={linkKind === "project" ? selectedId || context.currentProjectId : context.currentProjectId}
+      />
+
       <div className="mt-2 flex gap-1">
         {(
           [
@@ -613,6 +622,63 @@ export function OutlookMailTagPanel({
       {error ? <p className="mt-1.5 text-[10px] text-thermal-red">{error}</p> : null}
       {syncError ? <p className="mt-1.5 text-[10px] text-thermal-red">{syncError}</p> : null}
     </div>
+  );
+}
+
+function Outlook360Links({
+  companyId,
+  contactId,
+  projectId,
+}: {
+  companyId?: string | null;
+  contactId?: string | null;
+  projectId?: string | null;
+}) {
+  if (!companyId && !contactId && !projectId) return null;
+  const linkClass =
+    "font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange";
+  return (
+    <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px]">
+      {companyId ? (
+        <a
+          href={buildSmartCrmUrl(company360Href(companyId))}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClass}
+        >
+          Company 360
+        </a>
+      ) : null}
+      {contactId && companyId ? (
+        <a
+          href={buildSmartCrmUrl(contact360Href(contactId, companyId))}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClass}
+        >
+          Contact 360
+        </a>
+      ) : contactId ? (
+        <a
+          href={buildSmartCrmUrl(contact360Href(contactId))}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClass}
+        >
+          Contact 360
+        </a>
+      ) : null}
+      {projectId ? (
+        <a
+          href={buildSmartCrmUrl(project360Href(projectId))}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClass}
+        >
+          Project 360
+        </a>
+      ) : null}
+    </p>
   );
 }
 

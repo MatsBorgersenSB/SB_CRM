@@ -49,6 +49,7 @@ import { ContactProjectRolesTable } from "@/components/project/contact-project-r
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { deal360Href, project360Href } from "@/types/relationship-navigation";
+import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 
 type LifecycleWizardMode = "transfer" | "merge" | "position" | null;
 
@@ -77,6 +78,7 @@ export function Contact360LivingWorkspace({
   projects,
   onProjectUpdated,
   onPipelineUpdated,
+  correspondence = null,
 }: {
   record: GlobalContactRecord;
   company: Company;
@@ -86,6 +88,7 @@ export function Contact360LivingWorkspace({
   commercialPackages: CommercialPackage[];
   attentionItems: AttentionItem[];
   outlookEvidence: OutlookEvidenceRecord[];
+  correspondence?: CompanyCorrespondenceEvidence | null;
   role: UserRole;
   lifecycleAction?: string | null;
   reconcileAction?: string | null;
@@ -130,8 +133,11 @@ export function Contact360LivingWorkspace({
   );
 
   const relationshipSummary = useMemo(
-    () => buildCompanyRelationshipSummary(company, activities, pipelines),
-    [company, activities, pipelines],
+    () =>
+      buildCompanyRelationshipSummary(company, activities, pipelines, {
+        correspondence,
+      }),
+    [company, activities, pipelines, correspondence],
   );
 
   const linkedDeals = useMemo(

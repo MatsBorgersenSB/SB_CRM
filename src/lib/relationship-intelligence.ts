@@ -9,6 +9,8 @@ import {
   isFollowUpOverdue,
 } from "@/lib/activity-utils";
 import { daysBetween, formatDaysAgo } from "@/lib/relative-time";
+import { laterIso } from "@/lib/contact-360-verdict";
+import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import type { NextBestActionWithCompany } from "@/lib/next-best-action-engine";
 import {
   computeRelationshipHealth,
@@ -305,8 +307,17 @@ export function buildCompanyRelationshipSummary(
   company: Company,
   activities: Activity[],
   pipelines: PipelineRow[],
+  options?: { correspondence?: CompanyCorrespondenceEvidence | null },
 ): CompanyRelationshipSummary {
-  return buildCompanySummaries([company], activities, pipelines)[0]!;
+  const correspondenceByCompanyId = options?.correspondence
+    ? new Map([[company.CompanyID, options.correspondence]])
+    : undefined;
+  return buildCompanySummaries(
+    [company],
+    activities,
+    pipelines,
+    correspondenceByCompanyId,
+  )[0]!;
 }
 
 export function buildCompanySummariesForCompanies(
@@ -413,10 +424,18 @@ function buildCompanySummaries(
   companies: Company[],
   activities: Activity[],
   pipelines: PipelineRow[],
+  correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>,
 ): CompanyRelationshipSummary[] {
   return companies.map((company) => {
-    const healthReport = computeRelationshipHealth(company, activities, pipelines);
+    const correspondence = correspondenceByCompanyId?.get(company.CompanyID) ?? null;
+    const healthReport = computeRelationshipHealth(company, activities, pipelines, {
+      correspondence,
+    });
     const lastActivity = getLastActivityForCompany(company.Title, activities);
+    const lastContactAt = laterIso(
+      lastActivity?.ActivityDate ?? null,
+      correspondence?.lastSentAt ?? null,
+    );
 
     const openActions = activities.filter(
       (a) => a.Company?.Title === company.Title && isFollowUpOpen(a),
@@ -434,8 +453,8 @@ function buildCompanySummaries(
       healthStatus: healthReport.status,
       trend: healthReport.trend,
       healthReport,
-      lastContactAt: lastActivity?.ActivityDate ?? null,
-      lastContactLabel: formatDaysAgo(lastActivity?.ActivityDate ?? null),
+      lastContactAt,
+      lastContactLabel: formatDaysAgo(lastContactAt),
       openActions,
       activeDeals,
     };

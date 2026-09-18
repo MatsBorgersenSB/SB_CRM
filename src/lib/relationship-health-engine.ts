@@ -17,6 +17,8 @@ import {
   findEvidenceForCompany,
 } from "@/lib/outlook-reconciliation-engine";
 import type { OutlookEvidenceRecord } from "@/types/outlook-reconciliation";
+import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
+import { hasCorrespondence } from "@/lib/company-correspondence";
 
 export type RelationshipHealthStatus =
   | "Strategic"
@@ -58,6 +60,8 @@ export type RelationshipHealthReport = {
   components: HealthScoreComponent[];
   summary: string;
   isNewRelationship: boolean;
+  /** Latest CRM activity or Outlook mail — used by NBA recency. */
+  lastTouchAt: string | null;
   /** Rule-based next step — extension point for future intelligence modules. */
   recommendedAction: RecommendedAction;
 };
@@ -74,7 +78,17 @@ const COMPONENT_WEIGHTS: Record<HealthScoreComponentId, number> = {
 export type RelationshipHealthOptions = {
   outlookEvidence?: OutlookEvidenceRecord[];
   connected?: boolean;
+  correspondence?: CompanyCorrespondenceEvidence | null;
 };
+
+function laterDate(a: string | null | undefined, b: string | null | undefined): string | null {
+  const aTime = a ? Date.parse(a) : Number.NaN;
+  const bTime = b ? Date.parse(b) : Number.NaN;
+  if (!Number.isFinite(aTime) && !Number.isFinite(bTime)) return null;
+  if (!Number.isFinite(aTime)) return b?.trim() || null;
+  if (!Number.isFinite(bTime)) return a?.trim() || null;
+  return aTime >= bTime ? a! : b!;
+}
 
 const STALLED_DAYS = 21;
 
@@ -348,21 +362,32 @@ export function computeRelationshipHealth(
     companyEvidence,
     connected,
   );
+  const mailEvidence = hasCorrespondence(options.correspondence)
+    ? options.correspondence
+    : null;
+  const mailCount = mailEvidence?.messageCount ?? 0;
+  const mailLast = mailEvidence?.lastSentAt ?? null;
+  const mailDays = mailLast ? daysBetween(mailLast) : null;
 
-  const effectiveLastDate = touchpoints.effectiveLastDate ?? lastActivity?.ActivityDate ?? null;
+  const effectiveLastDate = laterDate(
+    touchpoints.effectiveLastDate ?? lastActivity?.ActivityDate ?? null,
+    mailLast,
+  );
   const lastContactDays = effectiveLastDate ? daysBetween(effectiveLastDate) : 999;
   const hasEffectiveContact = Boolean(effectiveLastDate);
 
   const recent30 =
     activitiesInWindow(companyActivities, 0, 30).length +
-    (touchpoints.includesOutlook ? touchpoints.outlookEmailCount : 0);
+    (touchpoints.includesOutlook ? touchpoints.outlookEmailCount : 0) +
+    (mailDays != null && mailDays < 30 ? mailCount : 0);
   const recent90 =
     activitiesInWindow(companyActivities, 0, 90).length +
     (touchpoints.includesOutlook
       ? touchpoints.outlookEmailCount +
         touchpoints.outlookTeamsCount +
         touchpoints.outlookCalendarCount
-      : 0);
+      : 0) +
+    (mailDays != null && mailDays < 90 ? mailCount : 0);
 
   const openActions = companyActivities.filter(isFollowUpOpen);
   const overdueActions = openActions.filter(isFollowUpOverdue);
@@ -392,7 +417,12 @@ export function computeRelationshipHealth(
     !hasEffectiveContact && company.contacts.length === 0 && company.pipelineIds.length === 0;
 
   const recency = scoreContactRecency(lastContactDays, hasEffectiveContact);
-  if (touchpoints.includesOutlook) {
+  if (mailCount > 0) {
+    recency.detail =
+      mailDays === 0
+        ? "Last Outlook mail today"
+        : `Last Outlook mail ${mailDays} day${mailDays === 1 ? "" : "s"} ago`;
+  } else if (touchpoints.includesOutlook) {
     recency.detail = effectiveRecencyDetail(touchpoints);
   }
   const frequency = scoreActivityFrequency(recent30, recent90);
@@ -457,6 +487,7 @@ export function computeRelationshipHealth(
     components,
     summary,
     isNewRelationship,
+    lastTouchAt: effectiveLastDate,
   };
 
   const recommendedAction = resolveNextBestAction({
@@ -464,6 +495,7 @@ export function computeRelationshipHealth(
     report: draft,
     activities,
     pipelines,
+    correspondence: options.correspondence ?? null,
   });
 
   return { ...draft, recommendedAction };

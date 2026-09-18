@@ -42,10 +42,6 @@ function CardActions({
   onNoAction?: () => void;
   showApprove: boolean;
 }) {
-  const smartCrmHref = buildSmartCrmUrl(payload.deepLink);
-  const linkProps = outlookHost
-    ? { target: "_blank" as const, rel: "noopener noreferrer" as const }
-    : {};
   const proposal = payload.nextBestAction.activeAssistProposal;
   const pendingActivityId = payload.pendingCommitment?.activityId;
   const proposalDuplicatesCard =
@@ -67,7 +63,9 @@ function CardActions({
       ) : payload.nextBestAction.plannerEligible ? (
         <a
           href="https://tasks.office.com/"
-          {...linkProps}
+          {...(outlookHost
+            ? { target: "_blank" as const, rel: "noopener noreferrer" as const }
+            : {})}
           className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
         >
           Execute in Planner
@@ -91,22 +89,64 @@ function CardActions({
           Create opportunity
         </button>
       ) : null}
+      <SmartCrm360Links payload={payload} outlookHost={outlookHost} />
+    </div>
+  );
+}
+
+function SmartCrm360Links({
+  payload,
+  outlookHost,
+}: {
+  payload: M365RelationshipCardPayload;
+  outlookHost: boolean;
+}) {
+  const linkProps = outlookHost
+    ? { target: "_blank" as const, rel: "noopener noreferrer" as const }
+    : {};
+  const companyHref = outlookHost ? buildSmartCrmUrl(payload.deepLink) : payload.deepLink;
+  const contactHref = payload.contactDeepLink
+    ? outlookHost
+      ? buildSmartCrmUrl(payload.contactDeepLink)
+      : payload.contactDeepLink
+    : null;
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
       {outlookHost ? (
         <a
-          href={smartCrmHref}
+          href={companyHref}
           {...linkProps}
           className="text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
         >
-          Open in SmartCRM
+          Company 360
         </a>
       ) : (
         <Link
           href={payload.deepLink}
           className="text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
         >
-          Open in SmartCRM
+          Company 360
         </Link>
       )}
+      {contactHref ? (
+        outlookHost ? (
+          <a
+            href={contactHref}
+            {...linkProps}
+            className="text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
+          >
+            Contact 360
+          </a>
+        ) : (
+          <Link
+            href={payload.contactDeepLink!}
+            className="text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
+          >
+            Contact 360
+          </Link>
+        )
+      ) : null}
     </div>
   );
 }
@@ -297,21 +337,9 @@ export function RelationshipCard({
                 You chose not to act. SmartAssist will not push this recommendation again.
               </p>
               {outlookHost ? (
-                <a
-                  href={buildSmartCrmUrl(card.deepLink)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
-                >
-                  Open in SmartCRM
-                </a>
+                <SmartCrm360Links payload={card} outlookHost />
               ) : (
-                <Link
-                  href={card.deepLink}
-                  className="inline-block text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
-                >
-                  Open in SmartCRM
-                </Link>
+                <SmartCrm360Links payload={card} outlookHost={false} />
               )}
             </div>
           )}

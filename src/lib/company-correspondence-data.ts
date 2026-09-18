@@ -5,7 +5,9 @@
 
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma";
 import { getPrisma } from "@/lib/prisma";
+import { toContactTrackingId } from "@/lib/prisma-mappers";
 import {
   EMPTY_CORRESPONDENCE,
   type CompanyCorrespondenceEvidence,
@@ -15,6 +17,21 @@ import {
   type CorrespondenceMailSnippet,
 } from "@/lib/correspondence-action-signals";
 import type { Company } from "@/types/company";
+
+function addressesFromEmailsJson(emails: unknown): string[] {
+  if (!Array.isArray(emails)) return [];
+  return [
+    ...new Set(
+      emails
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") return "";
+          const address = (entry as { address?: unknown }).address;
+          return typeof address === "string" ? address.trim().toLowerCase() : "";
+        })
+        .filter(Boolean),
+    ),
+  ];
+}
 
 /**
  * Load EmailMessageRecord evidence for one company (contact id + email match).
@@ -55,18 +72,97 @@ export async function loadCorrespondenceEvidenceByCompanyId(
     }
   }
 
-  if (emails.length === 0 && contactIds.length === 0) return result;
-
   const prisma = getPrisma();
-  const orClauses: Array<Record<string, unknown>> = [];
-  if (contactIds.length > 0) {
-    orClauses.push({ contactId: { in: [...new Set(contactIds)] } });
+  const lookupKeys = [
+    ...new Set(
+      companies.flatMap((company) =>
+        [company.CompanyID, company.code].filter(
+          (value): value is string => Boolean(value?.trim()),
+        ),
+      ),
+    ),
+  ];
+
+  if (lookupKeys.length > 0) {
+    const prismaCompanies = await prisma.company.findMany({
+      where: {
+        OR: lookupKeys.flatMap((key) => [
+          { id: key },
+          { code: key },
+          { code: key.toUpperCase() },
+        ]),
+      },
+      select: {
+        id: true,
+        code: true,
+        contacts: {
+          where: { status: "active" },
+          select: { id: true, emails: true },
+        },
+      },
+    });
+
+    for (const row of prismaCompanies) {
+      const appCompany = companies.find(
+        (company) =>
+          company.CompanyID === row.code ||
+          company.code === row.code ||
+          company.CompanyID === row.id ||
+          company.code === row.id,
+      );
+      if (!appCompany) continue;
+
+      for (const contact of row.contacts) {
+        contactIds.push(contact.id);
+        contactToCompany.set(contact.id, appCompany.CompanyID);
+        contactToCompany.set(
+          toContactTrackingId(contact.id),
+          appCompany.CompanyID,
+        );
+        for (const address of addressesFromEmailsJson(contact.emails)) {
+          emails.push(address);
+          emailToCompany.set(address, appCompany.CompanyID);
+        }
+      }
+    }
   }
-  if (emails.length > 0) {
-    const uniqueEmails = [...new Set(emails)];
+
+  const uniqueContactIds = [...new Set(contactIds)];
+  const uniqueEmails = [...new Set(emails)];
+  const orClauses: Prisma.EmailMessageRecordWhereInput[] = [];
+  if (uniqueContactIds.length > 0) {
+    orClauses.push({ contactId: { in: uniqueContactIds } });
+  }
+  if (uniqueEmails.length > 0) {
     orClauses.push({ senderEmail: { in: uniqueEmails } });
     orClauses.push({ recipientEmails: { hasSome: uniqueEmails } });
   }
+
+  const projectToCompanies = new Map<string, string[]>();
+  try {
+    const { readProjects } = await import("@/lib/project-db");
+    const { getProjectsForCompany } = await import("@/lib/project-team-utils");
+    const projects = await readProjects();
+    for (const company of companies) {
+      const keys = [company.CompanyID, company.code].filter(
+        (value): value is string => Boolean(value?.trim()),
+      );
+      const linked = keys.flatMap((key) => getProjectsForCompany(key, projects));
+      for (const project of linked) {
+        const list = projectToCompanies.get(project.id) ?? [];
+        if (!list.includes(company.CompanyID)) list.push(company.CompanyID);
+        projectToCompanies.set(project.id, list);
+      }
+    }
+    const projectIds = [...projectToCompanies.keys()];
+    if (projectIds.length > 0) {
+      orClauses.push({ projectId: { in: projectIds } });
+    }
+  } catch (error) {
+    console.warn("[correspondence] project mail match skipped", error);
+  }
+
+  if (orClauses.length === 0) return result;
 
   const messages = await prisma.emailMessageRecord.findMany({
     where: {
@@ -96,8 +192,13 @@ export async function loadCorrespondenceEvidenceByCompanyId(
 
   for (const message of messages) {
     const companyIds = new Set<string>();
-    if (message.contactId && contactToCompany.has(message.contactId)) {
-      companyIds.add(contactToCompany.get(message.contactId)!);
+    if (message.contactId) {
+      const byUuid = contactToCompany.get(message.contactId);
+      if (byUuid) companyIds.add(byUuid);
+      const byTracking = contactToCompany.get(
+        toContactTrackingId(message.contactId),
+      );
+      if (byTracking) companyIds.add(byTracking);
     }
     const sender = message.senderEmail?.trim().toLowerCase();
     if (sender && emailToCompany.has(sender)) {
@@ -107,6 +208,11 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       const normalized = recipient.trim().toLowerCase();
       if (normalized && emailToCompany.has(normalized)) {
         companyIds.add(emailToCompany.get(normalized)!);
+      }
+    }
+    if (message.projectId) {
+      for (const companyId of projectToCompanies.get(message.projectId) ?? []) {
+        companyIds.add(companyId);
       }
     }
 
@@ -122,6 +228,9 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       isOutbound: message.isOutbound,
       sentiment: message.sentiment,
     };
+    const matchedAddresses = [sender, ...(message.recipientEmails ?? [])]
+      .map((value) => value?.trim().toLowerCase() ?? "")
+      .filter((value) => value && emailToCompany.has(value));
 
     for (const companyId of companyIds) {
       const current = result.get(companyId) ?? { ...EMPTY_CORRESPONDENCE };
@@ -129,6 +238,16 @@ export async function loadCorrespondenceEvidenceByCompanyId(
         projectName && !current.projectNames.includes(projectName)
           ? [...current.projectNames, projectName]
           : current.projectNames;
+      const correspondentEmails = [...(current.correspondentEmails ?? [])];
+      const lastSentByEmail = { ...(current.lastSentByEmail ?? {}) };
+      for (const address of matchedAddresses) {
+        if (!correspondentEmails.includes(address)) {
+          correspondentEmails.push(address);
+        }
+        if (!lastSentByEmail[address]) {
+          lastSentByEmail[address] = sentAt;
+        }
+      }
       result.set(companyId, {
         messageCount: current.messageCount + 1,
         lastSentAt: current.lastSentAt ?? sentAt,
@@ -139,6 +258,8 @@ export async function loadCorrespondenceEvidenceByCompanyId(
         proposalFollowUps: current.proposalFollowUps,
         openPromises: current.openPromises,
         mailKeywordHaystack: current.mailKeywordHaystack,
+        correspondentEmails,
+        lastSentByEmail,
       });
 
       const list = snippetsByCompany.get(companyId) ?? [];

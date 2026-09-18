@@ -28,10 +28,13 @@ import type { Company } from "@/types/company";
 import type { M365RelationshipCardPayload } from "@/types/m365";
 import { M365_BUDGETS } from "@/types/m365";
 import { company360Href } from "@/types/company-360";
+import { contact360Href } from "@/types/relationship-navigation";
+import { getContactDisplayName, type Contact } from "@/types/contact";
 import { normalizeCompanySectors } from "@/lib/company-sectors";
 
 export type BuildM365RelationshipCardOptions = {
   correspondence?: CompanyCorrespondenceEvidence | null;
+  contact?: Contact | null;
 };
 
 export function buildM365RelationshipCard(
@@ -208,6 +211,13 @@ export function buildM365RelationshipCard(
             : ["No open commitments blocking progress"],
     },
     deepLink: company360Href(company.CompanyID),
+    contactId: options?.contact?.ContactID,
+    contactName: options?.contact
+      ? getContactDisplayName(options.contact)
+      : undefined,
+    contactDeepLink: options?.contact
+      ? contact360Href(options.contact.ContactID, company.CompanyID)
+      : undefined,
   };
 }
 

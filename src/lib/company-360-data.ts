@@ -320,7 +320,9 @@ export function buildCompany360Snapshot(
   options?: { correspondence?: CompanyCorrespondenceEvidence | null },
 ): Company360Snapshot {
   const correspondence = options?.correspondence ?? null;
-  const summary = buildCompanyRelationshipSummary(company, activities, pipelines);
+  const summary = buildCompanyRelationshipSummary(company, activities, pipelines, {
+    correspondence,
+  });
   const companyActivities = getActivitiesForCompany(activities, company);
   const openActions = companyActivities.filter(isFollowUpOpen);
   const linkedPipelines = getLinkedPipelines(company, pipelines);
