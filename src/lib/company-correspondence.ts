@@ -27,6 +27,10 @@ export type CompanyCorrespondenceEvidence = {
   openPromises: CorrespondenceOpenPromise[];
   /** Subject + preview from recent threads — keyword detection only, never displayed. */
   mailKeywordHaystack: string;
+  /** Lowercased contact emails that appear on matched mail — person-level recency. */
+  correspondentEmails: string[];
+  /** Lowercased contact email → latest sentAt for that person. */
+  lastSentByEmail: Record<string, string>;
 };
 
 export const EMPTY_CORRESPONDENCE: CompanyCorrespondenceEvidence = {
@@ -38,12 +42,23 @@ export const EMPTY_CORRESPONDENCE: CompanyCorrespondenceEvidence = {
   proposalFollowUps: [],
   openPromises: [],
   mailKeywordHaystack: "",
+  correspondentEmails: [],
+  lastSentByEmail: {},
 };
 
 export function hasCorrespondence(
   evidence: CompanyCorrespondenceEvidence | null | undefined,
 ): boolean {
   return Boolean(evidence && evidence.messageCount > 0);
+}
+
+export function correspondenceTouchesEmail(
+  evidence: CompanyCorrespondenceEvidence | null | undefined,
+  email: string | null | undefined,
+): boolean {
+  const normalized = email?.trim().toLowerCase();
+  if (!normalized || !evidence) return false;
+  return (evidence.correspondentEmails ?? []).includes(normalized);
 }
 
 /**
@@ -107,9 +122,22 @@ export function mergeLiveMailIntoEvidence(
       ? [...base.projectNames, projectName]
       : base.projectNames;
 
+  const liveNormalized = liveEmail.toLowerCase();
+  const currentEmails = base.correspondentEmails ?? [];
+  const correspondentEmails = currentEmails.includes(liveNormalized)
+    ? currentEmails
+    : [...currentEmails, liveNormalized];
+  const lastSentAt = base.lastSentAt ?? new Date().toISOString();
+  const lastSentByEmail = {
+    ...(base.lastSentByEmail ?? {}),
+  };
+  if (!lastSentByEmail[liveNormalized]) {
+    lastSentByEmail[liveNormalized] = lastSentAt;
+  }
+
   return {
     messageCount: Math.max(base.messageCount, 1),
-    lastSentAt: base.lastSentAt ?? new Date().toISOString(),
+    lastSentAt,
     projectLinkedCount: Math.max(
       base.projectLinkedCount,
       projectName ? 1 : 0,
@@ -119,5 +147,23 @@ export function mergeLiveMailIntoEvidence(
     proposalFollowUps: base.proposalFollowUps ?? [],
     openPromises: base.openPromises ?? [],
     mailKeywordHaystack: base.mailKeywordHaystack ?? "",
+    correspondentEmails,
+    lastSentByEmail,
   };
+}
+
+/** Map stored Outlook recency onto company people (ContactID keys). */
+export function lastMailByContactIdFromCorrespondence(
+  contacts: Array<{ ContactID: string; Email?: string | null }>,
+  evidence: CompanyCorrespondenceEvidence | null | undefined,
+): Record<string, string> {
+  const next: Record<string, string> = {};
+  const byEmail = evidence?.lastSentByEmail ?? {};
+  for (const contact of contacts) {
+    const email = contact.Email?.trim().toLowerCase();
+    if (!email) continue;
+    const sentAt = byEmail[email];
+    if (sentAt) next[contact.ContactID] = sentAt;
+  }
+  return next;
 }

@@ -7,7 +7,7 @@ import {
   gradeEmailSentiment,
 } from "@/lib/email-sentiment";
 import { extractCorrespondenceActionSignals } from "@/lib/correspondence-action-signals";
-import type { SentimentGrade } from "@/generated/prisma";
+import type { Prisma, SentimentGrade } from "@/generated/prisma";
 import type { IngestedSmartDoc } from "@/lib/smartdocs-ingestion";
 
 export type EmailAttachmentDto = {
@@ -83,7 +83,8 @@ function toAttachmentDto(doc: {
   mimeType: string | null;
   sizeBytes: number | null;
   source: string;
-  contentBase64: string | null;
+  contentBase64?: string | null;
+  sharepointItemId?: string | null;
 }): EmailAttachmentDto {
   return {
     id: doc.id,
@@ -91,7 +92,10 @@ function toAttachmentDto(doc: {
     mimeType: doc.mimeType,
     sizeBytes: doc.sizeBytes,
     source: doc.source,
-    hasContent: Boolean(doc.contentBase64),
+    hasContent:
+      Boolean(doc.contentBase64) ||
+      Boolean(doc.sharepointItemId) ||
+      (doc.sizeBytes ?? 0) > 0,
     downloadUrl: `/api/documents/${encodeURIComponent(doc.id)}/download`,
   };
 }
@@ -129,7 +133,7 @@ const emailMessageInclude = {
       mimeType: true,
       sizeBytes: true,
       source: true,
-      contentBase64: true,
+      sharepointItemId: true,
     },
     orderBy: { name: "asc" as const },
   },
@@ -172,17 +176,19 @@ function toEmailDto(message: {
     mimeType: string | null;
     sizeBytes: number | null;
     source: string;
-    contentBase64: string | null;
+    contentBase64?: string | null;
+    sharepointItemId?: string | null;
   }>;
 }): EmailMessageIntelligenceDto {
   const senderIsInternal = isInternalEmail(message.senderEmail);
   const senderIsExternal = isExternalEmail(message.senderEmail);
-  const recipientDomains = message.recipientEmails.map((email) => ({
+  const recipientEmails = message.recipientEmails ?? [];
+  const recipientDomains = recipientEmails.map((email) => ({
     email,
     isInternal: isInternalEmail(email),
     isExternal: isExternalEmail(email),
   }));
-  const participantEmails = [message.senderEmail, ...message.recipientEmails];
+  const participantEmails = [message.senderEmail, ...recipientEmails];
   const isInternalOnly =
     participantEmails.length > 0 &&
     participantEmails.every((address) => isInternalEmail(address));
@@ -203,7 +209,7 @@ function toEmailDto(message: {
     bodyPreview: message.bodyPreview,
     webLink: message.webLink,
     senderEmail: message.senderEmail,
-    recipientEmails: message.recipientEmails,
+    recipientEmails,
     sentAt: message.sentAt.toISOString(),
     sentiment: message.sentiment,
     isOutbound: message.isOutbound,
@@ -543,7 +549,8 @@ export async function readEmailsForContact(
 }
 
 /**
- * Load EmailMessageRecord rows for a company (people + company-linked mail).
+ * Load EmailMessageRecord rows for a company (people-linked mail).
+ * EmailMessageRecord has no companyId — match Prisma contact UUIDs and known addresses.
  */
 export async function readEmailsForCompany(
   companyKey: string,
@@ -562,6 +569,7 @@ export async function readEmailsForCompany(
     },
     select: {
       id: true,
+      code: true,
       contacts: {
         where: { status: "active" },
         select: { id: true, emails: true },
@@ -574,7 +582,7 @@ export async function readEmailsForCompany(
   const addresses = company.contacts.flatMap((row) =>
     contactEmailsFromJson(row.emails),
   );
-  const orClauses: Array<Record<string, unknown>> = [{ companyId: company.id }];
+  const orClauses: Prisma.EmailMessageRecordWhereInput[] = [];
   if (contactIds.length > 0) {
     orClauses.push({ contactId: { in: contactIds } });
   }
@@ -582,6 +590,37 @@ export async function readEmailsForCompany(
     orClauses.push({ senderEmail: { in: addresses } });
     orClauses.push({ recipientEmails: { hasSome: addresses } });
   }
+
+  const companyKeys = [company.id, company.code].filter(
+    (value): value is string => Boolean(value?.trim()),
+  );
+  try {
+    const { readProjects } = await import("@/lib/project-db");
+    const { getProjectsForCompany } = await import("@/lib/project-team-utils");
+    const projects = await readProjects();
+    const linked = companyKeys.flatMap((key) =>
+      getProjectsForCompany(key, projects),
+    );
+    const projectIds = [...new Set(linked.map((project) => project.id))];
+    if (projectIds.length > 0) {
+      orClauses.push({ projectId: { in: projectIds } });
+    }
+  } catch (error) {
+    console.warn("[readEmailsForCompany] project mail match skipped", error);
+  }
+
+  const opportunities = await prisma.opportunity.findMany({
+    where: { companyId: company.id },
+    select: { id: true },
+    take: 80,
+  });
+  if (opportunities.length > 0) {
+    orClauses.push({
+      opportunityId: { in: opportunities.map((row) => row.id) },
+    });
+  }
+
+  if (orClauses.length === 0) return [];
 
   const messages = await prisma.emailMessageRecord.findMany({
     where: {

@@ -121,6 +121,10 @@ export type M365RelationshipCardPayload = {
   openOpportunities: M365OpportunityExposureBlock;
   openCommitments: M365CommitmentBlock;
   deepLink: string;
+  /** Person 360 when the open mail maps to a known contact. */
+  contactId?: string;
+  contactName?: string;
+  contactDeepLink?: string;
 };
 
 /** Outlook / Teams Meeting Briefing. */

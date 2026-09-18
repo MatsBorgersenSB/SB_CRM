@@ -13,9 +13,12 @@ import {
 import {
   getCompanyRelationshipPosture,
   isCompanyUnclassified,
-  isOpportunityEligibleCompany,
 } from "@/lib/company-classification";
 import { daysBetween } from "@/lib/relative-time";
+import {
+  shouldOfferCreateOpportunity,
+  type CompanyCorrespondenceEvidence,
+} from "@/lib/company-correspondence";
 
 /** V1 deterministic output — future AI providers return source: "ai". */
 export type NextBestActionSource = "rule" | "ai";
@@ -75,6 +78,7 @@ export type RelationshipHealthSnapshot = {
   components: Array<{ id: string; score: number; detail: string }>;
   summary: string;
   isNewRelationship: boolean;
+  lastTouchAt?: string | null;
 };
 
 export type NextBestActionContext = {
@@ -82,6 +86,7 @@ export type NextBestActionContext = {
   report: RelationshipHealthSnapshot;
   activities: Activity[];
   pipelines: PipelineRow[];
+  correspondence?: CompanyCorrespondenceEvidence | null;
 };
 
 export type NextBestActionRule = {
@@ -224,7 +229,11 @@ export function buildNextBestActionInputs(ctx: NextBestActionContext): NextBestA
     healthScore: ctx.report.score,
     healthStatus: ctx.report.status,
     trend: ctx.report.trend,
-    lastContactDays: lastActivity ? daysBetween(lastActivity.ActivityDate) : null,
+    lastContactDays: ctx.report.lastTouchAt
+      ? daysBetween(ctx.report.lastTouchAt)
+      : lastActivity
+        ? daysBetween(lastActivity.ActivityDate)
+        : null,
     activityFrequency30d: activitiesInWindow(acts, 0, 30).length,
     activityFrequency90d: activitiesInWindow(acts, 0, 90).length,
     openCommitments: openActions.length,
@@ -425,7 +434,8 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
       if (salesDeals.length > 0 || inputs.isNewRelationship) return null;
       if (inputs.contactCount === 0) return null;
       // Sell-to only — never invent pipeline for suppliers, partners alone, or unclassified.
-      if (!isOpportunityEligibleCompany(ctx.company)) return null;
+      // Known Outlook mail is still not a deal; keep the CTA only when commercially eligible.
+      if (!shouldOfferCreateOpportunity(ctx.company, ctx.correspondence)) return null;
 
       return {
         id: `nba-pipeline-${inputs.companyId}`,

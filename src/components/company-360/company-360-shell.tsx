@@ -31,6 +31,8 @@ import type { Project } from "@/types/project";
 import { CompanyDuplicateHintBanner } from "@/components/company-360/company-duplicate-hint-banner";
 import type { CompanyDuplicateHint } from "@/lib/duplicate-management";
 import { buildCompanyAttentionItems } from "@/lib/smart-attention-engine";
+import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
+import { lastMailByContactIdFromCorrespondence } from "@/lib/company-correspondence";
 
 type Company360ShellProps = {
   initialCompany: Company;
@@ -41,6 +43,7 @@ type Company360ShellProps = {
   commercialPackages: CommercialPackage[];
   projects: Project[];
   duplicateHint?: CompanyDuplicateHint | null;
+  correspondence?: CompanyCorrespondenceEvidence | null;
 };
 
 export function Company360Shell({
@@ -52,6 +55,7 @@ export function Company360Shell({
   commercialPackages,
   projects,
   duplicateHint = null,
+  correspondence = null,
 }: Company360ShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -129,8 +133,10 @@ export function Company360Shell({
 
   const snapshot: Company360Snapshot = useMemo(
     () =>
-      buildCompany360Snapshot(company, visiblePipelines, scopedActivities, inventory),
-    [company, visiblePipelines, scopedActivities, inventory],
+      buildCompany360Snapshot(company, visiblePipelines, scopedActivities, inventory, {
+        correspondence,
+      }),
+    [company, visiblePipelines, scopedActivities, inventory, correspondence],
   );
 
   const attentionItems = useMemo(
@@ -141,8 +147,9 @@ export function Company360Shell({
         scopedActivities,
         commercialPackages,
         companyRows,
+        correspondence,
       ),
-    [company, visiblePipelines, scopedActivities, commercialPackages, companyRows],
+    [company, visiblePipelines, scopedActivities, commercialPackages, companyRows, correspondence],
   );
 
   const handleCreateContact = useCallback(
@@ -373,6 +380,12 @@ export function Company360Shell({
               canDeleteOpportunity(user.role) ? handleDeleteOpportunity : undefined
             }
             duplicateHint={duplicateHint}
+            initialLastMailAt={correspondence?.lastSentAt ?? null}
+            initialLastMailByContactId={lastMailByContactIdFromCorrespondence(
+              company.contacts,
+              correspondence,
+            )}
+            correspondence={correspondence}
           />
         </WorkspaceMain>
     </WorkspaceChrome>

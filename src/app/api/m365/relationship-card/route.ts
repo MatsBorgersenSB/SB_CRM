@@ -88,7 +88,10 @@ export async function GET(request: Request) {
     }
 
     return m365Json(
-      buildM365RelationshipCard(resolved.company, ctx, { correspondence }),
+      buildM365RelationshipCard(resolved.company, ctx, {
+        correspondence,
+        contact: resolved.contact,
+      }),
     );
   } catch {
     return m365Error("Failed to build relationship card intelligence", 500);

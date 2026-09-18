@@ -134,13 +134,15 @@ export function CompanyRecentOutlook({
   );
 
   useEffect(() => {
+    if (loading || error) return;
     const latest = visibleThreads[0]?.summary?.latestSentAt ?? visibleThreads[0]?.messages.at(-1)?.sentAt ?? null;
-    if (latest === latestMailRef.current) return;
+    if (!latest || latest === latestMailRef.current) return;
     latestMailRef.current = latest;
     onLatestMailAt?.(latest);
-  }, [visibleThreads, onLatestMailAt]);
+  }, [visibleThreads, onLatestMailAt, loading, error]);
 
   useEffect(() => {
+    if (loading || error) return;
     const next: Record<string, string> = {};
     for (const contact of contacts) {
       let latest: string | null = null;
@@ -152,11 +154,12 @@ export function CompanyRecentOutlook({
       }
       if (latest) next[contact.ContactID] = latest;
     }
+    if (Object.keys(next).length === 0) return;
     const serialized = JSON.stringify(next);
     if (serialized === contactMailRef.current) return;
     contactMailRef.current = serialized;
     onContactLastMail?.(next);
-  }, [contacts, threads, onContactLastMail]);
+  }, [contacts, threads, onContactLastMail, loading, error]);
 
   return (
     <div>

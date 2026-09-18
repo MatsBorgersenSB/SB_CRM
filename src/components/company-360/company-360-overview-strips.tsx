@@ -330,6 +330,7 @@ export function Company360OverviewStrips({
   onContactArchive,
   createRequestId,
   lastMailByContactId,
+  outlook,
   canCreateOpportunity: canCreateOpp = false,
   canManageOpportunityStakeholders: canManageStakeholders = false,
   onCreateOpportunity,
@@ -352,6 +353,7 @@ export function Company360OverviewStrips({
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
   createRequestId?: number;
   lastMailByContactId?: Record<string, string>;
+  outlook?: ReactNode;
   canCreateOpportunity?: boolean;
   canManageOpportunityStakeholders?: boolean;
   onCreateOpportunity?: (input: CreateOpportunityInput) => Promise<PipelineRow>;
@@ -379,6 +381,7 @@ export function Company360OverviewStrips({
         createRequestId={createRequestId}
         lastMailByContactId={lastMailByContactId}
       />
+      {outlook}
       <OpportunitiesOverviewStrip
         company={company}
         companies={companies}

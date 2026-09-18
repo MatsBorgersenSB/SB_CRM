@@ -88,6 +88,7 @@ export function buildSmartAssistFocus(
     pipelines: scopedPipelines,
     activities: scopedActivities,
     commercialPackages,
+    correspondenceByCompanyId: options?.correspondenceByCompanyId,
   }).filter((item) => item.status === "open");
 
   const criticalDeals = oppCenter.dealsAtRisk.filter(

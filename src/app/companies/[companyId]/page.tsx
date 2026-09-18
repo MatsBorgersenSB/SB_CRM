@@ -5,6 +5,7 @@ import { getCompanyById } from "@/lib/data/companies";
 import { loadCompanyDuplicateHint } from "@/lib/duplicate-management";
 import { pickEntityRouteParam } from "@/lib/entity-route-utils";
 import { readProjects } from "@/lib/project-db";
+import { loadCorrespondenceEvidenceForCompany } from "@/lib/company-correspondence-data";
 import {
   readLiveActivities,
   readLiveCommercialPackages,
@@ -86,9 +87,10 @@ export default async function Company360Page({ params }: Company360PageProps) {
   }
 
   const shellCompanies = mergeCompanyIntoPortfolio(companies, company);
-  const duplicateHint = await loadCompanyDuplicateHint(
-    company.code || company.CompanyID,
-  );
+  const [duplicateHint, correspondence] = await Promise.all([
+    loadCompanyDuplicateHint(company.code || company.CompanyID),
+    loadCorrespondenceEvidenceForCompany(company),
+  ]);
 
   return (
     <Suspense fallback={null}>
@@ -101,6 +103,7 @@ export default async function Company360Page({ params }: Company360PageProps) {
         commercialPackages={commercialPackages}
         projects={projects}
         duplicateHint={duplicateHint}
+        correspondence={correspondence}
       />
     </Suspense>
   );

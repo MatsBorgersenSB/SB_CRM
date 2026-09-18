@@ -48,7 +48,10 @@ import {
   canCreateOpportunity,
   canManageOpportunityStakeholders,
 } from "@/lib/permissions";
-import { isOpportunityEligibleCompany } from "@/lib/company-classification";
+import {
+  shouldOfferCreateOpportunity,
+  type CompanyCorrespondenceEvidence,
+} from "@/lib/company-correspondence";
 import { filterDismissedAttentionItems } from "@/lib/attention-dismiss-store";
 import { companyRouteKey } from "@/types/company-360";
 import {
@@ -85,6 +88,9 @@ export function Company360LivingWorkspace({
   onAssignOpportunityStakeholder,
   onDeleteOpportunity,
   duplicateHint = null,
+  initialLastMailAt = null,
+  initialLastMailByContactId = {},
+  correspondence = null,
 }: {
   snapshot: Company360Snapshot;
   commercialPackages: CommercialPackage[];
@@ -109,6 +115,9 @@ export function Company360LivingWorkspace({
   ) => Promise<PipelineRow>;
   onDeleteOpportunity?: (dealId: string) => Promise<void>;
   duplicateHint?: import("@/lib/duplicate-management").CompanyDuplicateHint | null;
+  initialLastMailAt?: string | null;
+  initialLastMailByContactId?: Record<string, string>;
+  correspondence?: CompanyCorrespondenceEvidence | null;
 }) {
   const { company, header, pipelines: linkedPipelines } = snapshot;
   const identity = buildCompanyHeroIdentity(company);
@@ -122,9 +131,9 @@ export function Company360LivingWorkspace({
   const [discoveryUrl, setDiscoveryUrl] = useState(
     company.Domain ? companyWebsiteHref(company.Domain) : "",
   );
-  const [lastMailAt, setLastMailAt] = useState<string | null>(null);
+  const [lastMailAt, setLastMailAt] = useState<string | null>(initialLastMailAt);
   const [lastMailByContactId, setLastMailByContactId] = useState<Record<string, string>>(
-    {},
+    initialLastMailByContactId,
   );
 
   useEffect(() => {
@@ -248,7 +257,7 @@ export function Company360LivingWorkspace({
   const canCreateOpp =
     canCreateOpportunity(role) &&
     Boolean(onCreateOpportunity) &&
-    isOpportunityEligibleCompany(company);
+    shouldOfferCreateOpportunity(company, correspondence);
 
   return (
     <WorkspaceStack>
@@ -348,6 +357,21 @@ export function Company360LivingWorkspace({
         onContactArchive={onContactArchive}
         createRequestId={createRequestId}
         lastMailByContactId={lastMailByContactId}
+        outlook={
+          <WorkspacePanel title="Recent Outlook" id="outlook" icon="email">
+            <CompanyRecentOutlook
+              companyId={company.CompanyID}
+              contacts={company.contacts}
+              role={role}
+              onLatestMailAt={(sentAt) => {
+                if (sentAt) setLastMailAt(sentAt);
+              }}
+              onContactLastMail={(byId) => {
+                setLastMailByContactId((current) => ({ ...current, ...byId }));
+              }}
+            />
+          </WorkspacePanel>
+        }
         canCreateOpportunity={canCreateOpp}
         canManageOpportunityStakeholders={canManageOpportunityStakeholders(role)}
         onCreateOpportunity={onCreateOpportunity}
@@ -365,16 +389,6 @@ export function Company360LivingWorkspace({
           companies={companies}
           role={role}
           onProjectUpdated={onProjectUpdated}
-        />
-      </WorkspacePanel>
-
-      <WorkspacePanel title="Recent Outlook" id="outlook" icon="email">
-        <CompanyRecentOutlook
-          companyId={company.CompanyID}
-          contacts={company.contacts}
-          role={role}
-          onLatestMailAt={setLastMailAt}
-          onContactLastMail={setLastMailByContactId}
         />
       </WorkspacePanel>
 

@@ -11,6 +11,12 @@ import type { NextBestAction } from "@/lib/next-best-action-engine";
 import { computeOpportunityIntelligence } from "@/lib/opportunity-intelligence-engine";
 import { computeRelationshipHealth } from "@/lib/relationship-health-engine";
 import { daysBetween, formatLastContact } from "@/lib/relative-time";
+import { laterIso } from "@/lib/contact-360-verdict";
+import {
+  correspondenceTouchesEmail,
+  hasCorrespondence,
+  type CompanyCorrespondenceEvidence,
+} from "@/lib/company-correspondence";
 import type { Activity } from "@/types/activity";
 import type {
   AttentionItem,
@@ -47,6 +53,7 @@ export type AttentionEngineContext = {
   /** Scope to a single company when building company hub attention. */
   companyId?: string;
   ownerId?: string;
+  correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>;
 };
 
 function parseActivityDate(value: string): Date {
@@ -186,6 +193,7 @@ function buildCompanyAttention(
   pipelines: PipelineRow[],
   activities: Activity[],
   companyId?: string,
+  correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>,
 ): AttentionItem[] {
   const items: AttentionItem[] = [];
   const scoped = companyId
@@ -199,10 +207,14 @@ function buildCompanyAttention(
         parseActivityDate(a.ActivityDate).getTime(),
     );
     const lastActivity = companyActivities[0];
-    const health = computeRelationshipHealth(company, activities, pipelines);
+    const correspondence = correspondenceByCompanyId?.get(company.CompanyID) ?? null;
+    const health = computeRelationshipHealth(company, activities, pipelines, {
+      correspondence,
+    });
     const contact = primaryContact(company);
+    const lastTouchAt = laterIso(lastActivity?.ActivityDate, correspondence?.lastSentAt ?? null);
 
-    if (companyActivities.length === 0) {
+    if (companyActivities.length === 0 && !hasCorrespondence(correspondence)) {
       pushItem(items, {
         id: `attn-no-activity-${company.CompanyID}`,
         sourceObjectId: company.CompanyID,
@@ -220,9 +232,7 @@ function buildCompanyAttention(
       });
     }
 
-    const daysSince = lastActivity
-      ? daysBetween(lastActivity.ActivityDate)
-      : null;
+    const daysSince = lastTouchAt ? daysBetween(lastTouchAt) : null;
 
     // Only emit cold-contact when a real last-contact date exists.
     // Missing dates are covered by no_activity — never show "Infinity days ago".
@@ -233,7 +243,7 @@ function buildCompanyAttention(
         sourceObjectName: company.Title,
         objectType: "Company",
         severity: daysSince >= 60 ? "urgent" : "needs_attention",
-        recommendation: `Last contact ${formatLastContact(lastActivity?.ActivityDate, daysSince)} — relationship is cooling (health ${health.score}/100).`,
+        recommendation: `Last contact ${formatLastContact(lastTouchAt, daysSince)} — relationship is cooling (health ${health.score}/100).`,
         suggestedAiAction: "Schedule Follow-Up Call",
         href: company360Href(company.CompanyID),
         companyId: company.CompanyID,
@@ -294,15 +304,18 @@ function buildContactAttention(
   companies: Company[],
   activities: Activity[],
   companyId?: string,
+  correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>,
 ): AttentionItem[] {
   const items: AttentionItem[] = [];
 
   for (const company of companies) {
     if (companyId && company.CompanyID !== companyId) continue;
+    const correspondence = correspondenceByCompanyId?.get(company.CompanyID) ?? null;
 
     for (const contact of company.contacts) {
       const contactActivities = getActivitiesForContact(activities, contact.ContactID);
-      if (contactActivities.length === 0) {
+      const mailTouches = correspondenceTouchesEmail(correspondence, contact.Email);
+      if (contactActivities.length === 0 && !mailTouches) {
         pushItem(items, {
           id: `attn-contact-silent-${contact.ContactID}`,
           sourceObjectId: contact.ContactID,
@@ -608,8 +621,14 @@ export function buildAttentionItems(ctx: AttentionEngineContext): AttentionItem[
       scoped.pipelines,
       scoped.activities,
       scoped.companyId,
+      scoped.correspondenceByCompanyId,
     ),
-    ...buildContactAttention(scoped.companies, scoped.activities, scoped.companyId),
+    ...buildContactAttention(
+      scoped.companies,
+      scoped.activities,
+      scoped.companyId,
+      scoped.correspondenceByCompanyId,
+    ),
     ...buildOpportunityAttention(
       scoped.companies,
       scoped.pipelines,
@@ -644,14 +663,19 @@ export function buildCompanyAttentionItems(
   activities: Activity[],
   commercialPackages: CommercialPackage[],
   allCompanies: Company[],
+  correspondence?: CompanyCorrespondenceEvidence | null,
 ): AttentionItem[] {
   const accountOwner = company.AccountOwner?.Title;
+  const correspondenceByCompanyId = correspondence
+    ? new Map([[company.CompanyID, correspondence]])
+    : undefined;
   return buildAttentionItems({
     companies: allCompanies,
     pipelines,
     activities,
     commercialPackages,
     companyId: company.CompanyID,
+    correspondenceByCompanyId,
   }).map((item) => ({
     ...item,
     ownerLabel: item.ownerLabel ?? accountOwner,
@@ -665,9 +689,14 @@ export function buildContactAttentionItems(
   pipelines: PipelineRow[],
   activities: Activity[],
   commercialPackages: CommercialPackage[],
+  correspondence?: CompanyCorrespondenceEvidence | null,
 ): AttentionItem[] {
   const company = companies.find((c) => c.CompanyID === companyId);
   const accountOwner = company?.AccountOwner?.Title;
+  const correspondenceByCompanyId =
+    correspondence && company
+      ? new Map([[company.CompanyID, correspondence]])
+      : undefined;
 
   return buildAttentionItems({
     companies,
@@ -675,6 +704,7 @@ export function buildContactAttentionItems(
     activities,
     commercialPackages,
     companyId,
+    correspondenceByCompanyId,
   })
     .filter(
       (item) =>

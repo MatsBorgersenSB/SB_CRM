@@ -17,6 +17,7 @@ import {
   syncCompanyContact,
 } from "@/lib/sync-company";
 import { buildContactAttentionItems } from "@/lib/smart-attention-engine";
+import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { OutlookEvidenceRecord } from "@/types/outlook-reconciliation";
@@ -33,6 +34,7 @@ type Contact360PageShellProps = {
   commercialPackages: CommercialPackage[];
   outlookEvidence: OutlookEvidenceRecord[];
   projects: Project[];
+  correspondence?: CompanyCorrespondenceEvidence | null;
 };
 
 export function Contact360PageShell({
@@ -43,6 +45,7 @@ export function Contact360PageShell({
   commercialPackages,
   outlookEvidence,
   projects,
+  correspondence = null,
 }: Contact360PageShellProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -122,8 +125,9 @@ export function Contact360PageShell({
       scopedPipelines,
       activityRows,
       commercialPackages,
+      correspondence,
     );
-  }, [record, scopedCompanies, scopedPipelines, activityRows, commercialPackages]);
+  }, [record, scopedCompanies, scopedPipelines, activityRows, commercialPackages, correspondence]);
 
   const handleReconciliationImported = useCallback(() => {
     router.refresh();
@@ -287,6 +291,7 @@ export function Contact360PageShell({
           commercialPackages={commercialPackages}
           outlookEvidence={evidenceRows}
           attentionItems={attentionItems}
+          correspondence={correspondence}
           role={user.role}
           lifecycleAction={lifecycleAction}
           reconcileAction={reconcileAction}

@@ -10,6 +10,7 @@ import {
   readLivePortfolio,
 } from "@/lib/prisma-data";
 import { resolveContactRouteRecord } from "@/lib/resolve-contact-route";
+import { loadCorrespondenceEvidenceForCompany } from "@/lib/company-correspondence-data";
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 import type { Company } from "@/types/company";
 
@@ -124,6 +125,15 @@ export default async function Contact360Page({
     record.companyName,
     record.contact,
   );
+  const recordCompany = shellCompanies.find(
+    (row) =>
+      row.CompanyID === record.companyId ||
+      row.code === record.companyId ||
+      row.Title === record.companyName,
+  );
+  const correspondence = recordCompany
+    ? await loadCorrespondenceEvidenceForCompany(recordCompany)
+    : undefined;
 
   return (
     <Suspense fallback={null}>
@@ -135,6 +145,7 @@ export default async function Contact360Page({
         commercialPackages={commercialPackages}
         outlookEvidence={outlookEvidence}
         projects={projects}
+        correspondence={correspondence}
       />
     </Suspense>
   );
