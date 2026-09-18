@@ -24,6 +24,27 @@ import type { PipelineRow } from "@/types/pipeline";
 import { isOpportunityActionTab } from "@/types/opportunity-actions";
 import { isOpportunityWorkspaceTab } from "@/types/opportunity-workspace";
 
+function hasCapturedUnderstanding(
+  row: PipelineRow | undefined,
+): boolean {
+  if (!row?.understanding) return false;
+  const fields = row.understanding.fields ?? {};
+  const notes = row.understanding.discoveryNotes ?? {};
+  return Object.keys(fields).length > 0 || Object.keys(notes).length > 0;
+}
+
+function mergeDealPreservingUnderstanding(
+  current: PipelineRow | undefined,
+  incoming: PipelineRow | undefined,
+): PipelineRow | undefined {
+  if (!incoming) return incoming;
+  if (!current || current.id !== incoming.id) return incoming;
+  if (hasCapturedUnderstanding(incoming) || !hasCapturedUnderstanding(current)) {
+    return incoming;
+  }
+  return { ...incoming, understanding: current.understanding };
+}
+
 export function Deal360PageShell({
   dealId,
   companies,
@@ -61,10 +82,10 @@ export function Deal360PageShell({
   const [pipeline, setPipeline] = useState(initialPipeline);
 
   useEffect(() => {
-    setPipeline(
+    const incoming =
       scopedPipelines.find(matchDeal) ??
-        (user.role === "client_lead" ? undefined : pipelines.find(matchDeal)),
-    );
+      (user.role === "client_lead" ? undefined : pipelines.find(matchDeal));
+    setPipeline((current) => mergeDealPreservingUnderstanding(current, incoming));
   }, [scopedPipelines, pipelines, dealId, user.role]);
 
   const attentionItems = useMemo(() => {
@@ -116,8 +137,22 @@ export function Deal360PageShell({
   const handlePipelinePatch = useCallback(
     async (patch: Partial<PipelineRow>) => {
       if (!pipeline) return;
-      const updated = await syncPipelineRecord(pipeline.id, patch, user.role);
-      setPipeline(updated);
+      const optimistic: PipelineRow = { ...pipeline, ...patch };
+      setPipeline(optimistic);
+      try {
+        const updated = await syncPipelineRecord(pipeline.id, patch, user.role);
+        setPipeline({
+          ...optimistic,
+          ...updated,
+          understanding:
+            updated.understanding ??
+            patch.understanding ??
+            optimistic.understanding,
+        });
+      } catch (error) {
+        setPipeline(pipeline);
+        throw error;
+      }
     },
     [pipeline, user.role],
   );

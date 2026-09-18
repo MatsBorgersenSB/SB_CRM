@@ -341,8 +341,16 @@ function mapTeam(team: unknown): PipelineTeamMember[] {
 }
 
 function mapUnderstanding(value: unknown): OpportunityUnderstandingCapture | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
-  const row = value as {
+  let parsed: unknown = value;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed) as unknown;
+    } catch {
+      return undefined;
+    }
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
+  const row = parsed as {
     fields?: unknown;
     discoveryNotes?: unknown;
     updatedAt?: unknown;
