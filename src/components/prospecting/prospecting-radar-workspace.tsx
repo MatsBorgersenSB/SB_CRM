@@ -252,8 +252,8 @@ export function ProspectingRadarWorkspace({
 
             {visible.length === 0 ? (
               <p className="px-4 py-8 text-sm text-carbon-blue/50">
-                No pending thermal tenders match this view. Ingest notices from TED, Doffin,
-                Mercell, or SAM — SmartCRM does not invent tenders.
+                No pending thermal tenders match this view. SmartCRM pulls TED every morning,
+                keeps only pyrolysis and torrefaction notices, and does not invent tenders.
               </p>
             ) : view === "table" ? (
               <div className="overflow-x-auto px-2 pb-3 pt-1">

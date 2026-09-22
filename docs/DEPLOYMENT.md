@@ -186,7 +186,7 @@ Deploy pipelines should run `prisma migrate deploy` against the target database 
 - [ ] Strong `POSTGRES_PASSWORD` (not the Compose default)
 - [ ] `NEXT_PUBLIC_APP_URL` matches the public TLS hostname
 - [ ] TLS termination (reverse proxy / load balancer) in front of port 3000
-- [ ] `CRON_SECRET` set for M365 mail sync cron (`/api/cron/m365-mail-sync`) and subscription renewal
+- [ ] `CRON_SECRET` set for M365 mail sync, subscription renewal, and `/api/cron/tender-ingest`
 - [ ] Backups enabled for the `smartcrm_postgres_data` volume
 - [ ] `/api/health` monitored
 - [ ] OAuth redirect URIs registered for `{NEXT_PUBLIC_APP_URL}/api/auth/callback/azure-ad` (SSO) and `{NEXT_PUBLIC_APP_URL}/api/auth/m365/callback` (Graph)

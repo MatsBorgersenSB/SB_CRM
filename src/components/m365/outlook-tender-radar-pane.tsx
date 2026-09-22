@@ -87,7 +87,7 @@ export function OutlookTenderRadarPane() {
 
       {tenders.length === 0 ? (
         <p className="mt-5 text-[12px] text-carbon-blue/45">
-          No pending thermal tenders. Notices appear after ingest — SmartCRM does not invent them.
+          No pending thermal tenders. TED is pulled every morning — SmartCRM does not invent notices.
         </p>
       ) : (
         <ul className="mt-4 space-y-3">
