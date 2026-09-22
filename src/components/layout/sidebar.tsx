@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Radar,
+  Satellite,
   Search,
   Settings,
   Sparkles,
@@ -104,6 +105,13 @@ const navItems: NavItem[] = [
     href: "/growth",
     icon: Sparkles,
     match: (p) => p.startsWith("/growth"),
+    section: "growth",
+  },
+  {
+    label: "Prospecting Radar",
+    href: "/prospecting",
+    icon: Satellite,
+    match: (p) => p.startsWith("/prospecting"),
     section: "growth",
   },
   {

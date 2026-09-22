@@ -241,6 +241,10 @@ export function canAccessRoute(role: UserRole, href: string): boolean {
     return canAccessIntelligenceCenter(role);
   }
 
+  if (href === "/prospecting" || href.startsWith("/prospecting")) {
+    return canAccessIntelligenceCenter(role);
+  }
+
   if (href === "/revenue" || href.startsWith("/revenue")) {
     return canAccessIntelligenceCenter(role);
   }

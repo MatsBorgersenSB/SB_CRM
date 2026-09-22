@@ -74,6 +74,8 @@ model Company {
   // FS-011 Autonomous Workflow Engine
   workflowExecutions WorkflowExecution[]
 
+  promotedTenders Tender[] @relation("TenderPromotedCompany")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -307,6 +309,8 @@ model Opportunity {
   sharepointFolderId  String?
   sharepointFolderUrl String?
   sharepointFolderPath String?
+
+  promotedTenders Tender[] @relation("TenderPromotedOpportunity")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -883,5 +887,36 @@ model TeamsChannelBinding {
   @@index([companyId])
   @@index([projectId])
   @@map("teams_channel_bindings")
+}
+
+/// Thermal Tender Ingestion — pyrolysis + torrefaction public notices.
+model Tender {
+  id                 String   @id @default(cuid())
+  externalId         String   @unique
+  source             String // TED | Doffin | Mercell | SAM
+  title              String
+  authorityName      String
+  country            String
+  publicationDate    DateTime
+  submissionDeadline DateTime
+  estimatedBudget    Float?
+  sectorTag          String // Timber & Forestry | Municipal & Sludge | Energy & Utilities
+  technologyType     String // Pyrolysis | Torrefaction | Both
+  summary            String   @db.Text
+  rawUrl             String?
+  status             String   @default("PENDING") // PENDING | PROMOTED | EXPIRED | DISMISSED
+  classifierConfidence Int?
+
+  promotedCompanyId String?
+  promotedCompany   Company? @relation("TenderPromotedCompany", fields: [promotedCompanyId], references: [id], onDelete: SetNull)
+  promotedOpportunityId String?
+  promotedOpportunity   Opportunity? @relation("TenderPromotedOpportunity", fields: [promotedOpportunityId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, publicationDate])
+  @@index([submissionDeadline])
+  @@map("thermal_tenders")
 }
 
