@@ -54,7 +54,7 @@ export function OutlookRelationshipCardPane() {
 
   if (state.status === "loading") {
     return (
-      <div className="flex h-[100dvh] items-center justify-center bg-white px-6">
+      <div className="flex h-full items-center justify-center bg-white px-6">
         <p className="text-[12px] text-carbon-blue/50">Loading relationship intelligence…</p>
       </div>
     );
@@ -62,7 +62,7 @@ export function OutlookRelationshipCardPane() {
 
   if (state.status === "error") {
     return (
-      <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
+      <div className="flex h-full flex-col justify-center bg-white px-6">
         <p className="text-sm font-semibold text-carbon-blue">SmartCRM unavailable</p>
         <p className="mt-1 text-[11px] text-carbon-blue/50">{state.message}</p>
       </div>
@@ -71,7 +71,7 @@ export function OutlookRelationshipCardPane() {
 
   if (state.status === "auth-required") {
     return (
-      <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
+      <div className="flex h-full flex-col justify-center bg-white px-6">
         <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
           <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
             SmartCRM
@@ -96,7 +96,7 @@ export function OutlookRelationshipCardPane() {
 
   if (state.status === "empty") {
     return (
-      <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
+      <div className="flex h-full flex-col justify-center bg-white px-6">
         <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
@@ -109,7 +109,7 @@ export function OutlookRelationshipCardPane() {
   if (state.status === "not-found" && resolvedEmail) {
     if (isAutomatedMailboxEmail(resolvedEmail)) {
       return (
-        <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
+        <div className="flex h-full flex-col justify-center bg-white px-6">
           <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
             SmartCRM
           </p>
@@ -134,7 +134,7 @@ export function OutlookRelationshipCardPane() {
 
   if (state.status === "ready") {
     return (
-      <div className="flex min-h-[100dvh] flex-col gap-3 bg-white p-3">
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto bg-white p-3">
         {emailTouchpoint ? (
           <OutlookReconciliationCard
             candidate={emailTouchpoint}
@@ -179,7 +179,7 @@ export function OutlookRelationshipCardPane() {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
+    <div className="flex h-full flex-col justify-center bg-white px-6">
       <p className="text-sm font-semibold text-carbon-blue">No relationship context</p>
       <a
         href={buildSmartCrmUrl("/companies")}

@@ -7,7 +7,7 @@ import { OutlookAddinModeRouter } from "@/components/m365/outlook-addin-mode-rou
 
 /**
  * Outlook add-in task pane entry (manifest SourceLocation).
- * Read → Relationship Card. Compose (?mode=compose) → Assign pane.
+ * Read → Relationship Card | Tender Radar. Compose (?mode=compose) → Assign pane.
  */
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
