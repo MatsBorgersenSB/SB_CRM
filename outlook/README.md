@@ -67,7 +67,7 @@ Set these on the **`sb-crm-seven`** Vercel project only (Production). Do not mai
 | `AZURE_AD_CLIENT_SECRET` | Entra app secret (aliases: `AZURE_CLIENT_SECRET`, `SMARTCRM_AZURE_APP_SECRET`) |
 | `AZURE_AD_TENANT_ID` | Prefer `organizations` |
 | `TOKEN_ENCRYPTION_SECRET` | Encrypt Graph tokens at rest |
-| `CRON_SECRET` | Protects `/api/cron/m365-mail-sync` and subscription renew |
+| `CRON_SECRET` | Protects `/api/cron/m365-mail-sync`, subscription renew, and `/api/cron/tender-ingest` |
 | `INTERNAL_DOMAINS` | FS-009 internal vs external mail classification |
 | `SHAREPOINT_TRANSPORT` | `graph` |
 | `SHAREPOINT_SITE_ID` | Target site for opportunity folders |
@@ -79,6 +79,7 @@ Vercel cron (see `vercel.json`):
 
 - `/api/cron/m365-mail-sync` every 10 minutes
 - `/api/cron/m365-renew-subscriptions` every 12 hours
+- `/api/cron/tender-ingest` daily at 06:00 UTC (TED always; Doffin/SAM/Mercell when keyed)
 
 ## Verify
 
