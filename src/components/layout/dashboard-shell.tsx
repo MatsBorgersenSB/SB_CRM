@@ -14,6 +14,7 @@ import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
 import { buildRelationshipCommandCenter, getWelcomeGreeting } from "@/lib/relationship-intelligence";
 import { buildAttentionQueue, topAttentionHeadline } from "@/lib/smart-attention-engine";
+import { groupAttentionBySeverity } from "@/types/attention-item";
 import { buildDailyBriefing } from "@/lib/smartcrm-copilot-engine";
 import {
   filterCompaniesForUser,
@@ -84,9 +85,9 @@ function DashboardShellContent({
     const company = companies.find((c) => c.CompanyID === user.companyId);
     if (!company) return activities;
 
-    const contactIds = new Set(company.contacts.map((c) => c.ContactID));
+    const contactIds = new Set((company.contacts ?? []).map((c) => c.ContactID));
     const contactNames = new Set(
-      company.contacts.map((c) => `${c.FirstName} ${c.LastName}`.trim()),
+      (company.contacts ?? []).map((c) => `${c.FirstName} ${c.LastName}`.trim()),
     );
 
     return activities.filter((a) => {
@@ -98,25 +99,48 @@ function DashboardShellContent({
     });
   }, [activities, companies, user]);
 
-  const data = useMemo(
-    () =>
-      buildRelationshipCommandCenter(
+  const data = useMemo(() => {
+    try {
+      return buildRelationshipCommandCenter(
         scopedCompanies,
         scopedPipelines,
         scopedActivities,
         { correspondence: correspondenceMap },
-      ),
-    [scopedActivities, scopedCompanies, scopedPipelines, correspondenceMap],
-  );
+      );
+    } catch (error) {
+      console.error("[today] command center failed", error);
+      return {
+        kpis: {
+          pipelineValue: "—",
+          openFollowUps: 0,
+          overdueFollowUps: 0,
+          activeDeals: 0,
+          totalCompanies: scopedCompanies.length,
+          totalContacts: 0,
+        },
+        focusItems: [],
+        recentActivities: [] as Activity[],
+        relationshipsNeedingAttention: [],
+        companySummaries: [],
+        nextBestActions: [],
+      };
+    }
+  }, [scopedActivities, scopedCompanies, scopedPipelines, correspondenceMap]);
 
-  const dailyBriefing = useMemo(
-    () => buildDailyBriefing(scopedCompanies, scopedPipelines, scopedActivities),
-    [scopedActivities, scopedCompanies, scopedPipelines],
-  );
+  const dailyBriefing = useMemo(() => {
+    try {
+      return buildDailyBriefing(scopedCompanies, scopedPipelines, scopedActivities);
+    } catch (error) {
+      console.error("[today] briefing failed", error);
+      return {
+        headline: "What needs attention, and what should happen next.",
+      };
+    }
+  }, [scopedActivities, scopedCompanies, scopedPipelines]);
 
-  const attentionQueue = useMemo(
-    () =>
-      buildAttentionQueue({
+  const attentionQueue = useMemo(() => {
+    try {
+      return buildAttentionQueue({
         companies: scopedCompanies,
         pipelines: scopedPipelines,
         activities: scopedActivities,
@@ -124,17 +148,20 @@ function DashboardShellContent({
         correspondenceByCompanyId: correspondenceMap,
         smartDocs,
         tenders,
-      }),
-    [
-      scopedActivities,
-      scopedCompanies,
-      scopedPipelines,
-      commercialPackages,
-      correspondenceMap,
-      smartDocs,
-      tenders,
-    ],
-  );
+      });
+    } catch (error) {
+      console.error("[today] attention queue failed", error);
+      return groupAttentionBySeverity([]);
+    }
+  }, [
+    scopedActivities,
+    scopedCompanies,
+    scopedPipelines,
+    commercialPackages,
+    correspondenceMap,
+    smartDocs,
+    tenders,
+  ]);
 
 
   const recentActivity = data.recentActivities.slice(0, 4);

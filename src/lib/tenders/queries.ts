@@ -43,9 +43,13 @@ export async function expireOverdueTenders(now: Date = new Date()): Promise<numb
 export async function listPendingTenders(options?: {
   take?: number;
   now?: Date;
+  /** Homepage / focus reads should not write. Cron already expires overdue notices. */
+  expire?: boolean;
 }): Promise<TenderListItem[]> {
   const now = options?.now ?? new Date();
-  await expireOverdueTenders(now);
+  if (options?.expire !== false) {
+    await expireOverdueTenders(now);
+  }
 
   const prisma = getPrisma();
   const rows = await prisma.tender.findMany({
