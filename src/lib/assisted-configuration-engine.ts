@@ -19,6 +19,7 @@ import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import { deal360Href, OPPORTUNITY_LIST_HREF } from "@/types/relationship-navigation";
 import type {
   ConfigGapSeverity,
   ConfigRecommendation,
@@ -227,7 +228,7 @@ function buildOwnershipRecommendations(input: ConfigurationAuditInput): ConfigRe
         expectedOutcome: "Every open opportunity routes notifications to a responsible commercial lead.",
         severity: "critical",
         confidencePercent: 94,
-        href: dealsMissingOwner[0] ? `/deals/${dealsMissingOwner[0].id}` : "/deals",
+        href: dealsMissingOwner[0] ? deal360Href(dealsMissingOwner[0].id) : OPPORTUNITY_LIST_HREF,
         resolutionLabel: "Assign opportunity owner now",
       }),
     );

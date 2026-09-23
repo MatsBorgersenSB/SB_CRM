@@ -2,6 +2,7 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import { formatDealValue } from "@/types/pipeline";
+import { deal360Href } from "@/types/relationship-navigation";
 import {
   computeOpportunityIntelligence,
   computePortfolioRevenueForecast,
@@ -43,7 +44,7 @@ const HEALTH_ORDER: OpportunityHealthStatus[] = [
 function toCommandCenterItem(intelligence: OpportunityIntelligence): OpportunityCommandCenterItem {
   return {
     ...intelligence,
-    href: `/deals/${encodeURIComponent(intelligence.dealId)}`,
+    href: deal360Href(intelligence.dealId),
     subtitle: [
       intelligence.stage,
       intelligence.companyName ?? "Unlinked",

@@ -9,6 +9,7 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
 import type { PipelineRow } from "@/types/pipeline";
+import { deal360Href } from "@/types/relationship-navigation";
 import type {
   ConnectedTouchpointSummary,
   MissingTouchpointCandidate,
@@ -116,7 +117,7 @@ function resolutionHref(
   if (entityType === "company") {
     return `/companies/${encodeURIComponent(entityId)}?reconcile=1`;
   }
-  return `/deals/${encodeURIComponent(entityId)}?reconcile=1`;
+  return `${deal360Href(entityId)}?reconcile=1`;
 }
 
 function buildCandidate(

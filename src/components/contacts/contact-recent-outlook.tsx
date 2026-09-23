@@ -173,7 +173,7 @@ function suggestWorkLink(subject: string, options: LinkOption[]): LinkOption | n
 }
 
 function dealEmailsHref(dealId: string): string {
-  return `/deals/${encodeURIComponent(dealId)}?view=emails`;
+  return `/opportunities/${encodeURIComponent(dealId)}?view=emails`;
 }
 
 export type ContactMailWorkLink = {

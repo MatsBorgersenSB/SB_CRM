@@ -256,7 +256,7 @@ function ScoreMetric({
 
 function ExpansionSignalCard({ signal }: { signal: ExpansionSignalView }) {
   const href = signal.opportunityId
-    ? `/deals/${encodeURIComponent(signal.opportunityId)}`
+    ? `/opportunities/${encodeURIComponent(signal.opportunityId)}`
     : `/companies`;
 
   return (

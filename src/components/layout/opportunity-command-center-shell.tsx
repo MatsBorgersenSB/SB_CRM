@@ -67,7 +67,7 @@ export function OpportunityCommandCenterShell({
           actions={
             <div className="flex items-center gap-3">
               <Link
-                href="/deals"
+                href="/opportunities"
                 className="text-[10px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
               >
                 Table view
@@ -101,7 +101,7 @@ export function OpportunityCommandCenterShell({
                 title="Deals at risk"
                 description="Needs action now"
                 count={snapshot.dealsAtRisk.length}
-                href="/deals"
+                href="/opportunities"
                 emptyMessage="No deals at risk."
                 accent="risk"
               >

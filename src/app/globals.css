@@ -22,6 +22,18 @@
   --command-hover: rgba(230, 81, 37, 0.08);
   --command-text: #1f1c24;
   --command-shadow: 0 24px 80px -12px rgba(31, 28, 36, 0.35);
+  --card: #ffffff;
+  --card-foreground: #1f1c24;
+  --muted: #f4f4f5;
+  --muted-foreground: rgba(31, 28, 36, 0.58);
+  --border: rgba(31, 28, 36, 0.1);
+  --accent: rgba(230, 81, 37, 0.08);
+  --accent-foreground: #1f1c24;
+  --primary: #e65125;
+  --primary-foreground: #ffffff;
+  --destructive: #801712;
+  --destructive-foreground: #ffffff;
+  --ring: #e65125;
   color-scheme: light;
 }
 
@@ -44,12 +56,36 @@ html.dark {
   --command-hover: rgba(230, 81, 37, 0.14);
   --command-text: #eceaee;
   --command-shadow: 0 24px 80px -12px rgba(0, 0, 0, 0.65);
+  --card: #1a181c;
+  --card-foreground: #eceaee;
+  --muted: rgba(255, 255, 255, 0.05);
+  --muted-foreground: rgba(236, 234, 238, 0.58);
+  --border: rgba(255, 255, 255, 0.1);
+  --accent: rgba(230, 81, 37, 0.14);
+  --accent-foreground: #eceaee;
+  --primary: #e65125;
+  --primary-foreground: #ffffff;
+  --destructive: #f0b4ae;
+  --destructive-foreground: #1f1c24;
+  --ring: #e65125;
   color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
 
   --color-upcycle-orange: #e65125;
   --color-carbon-blue: var(--carbon-blue);

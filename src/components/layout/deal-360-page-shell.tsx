@@ -180,17 +180,17 @@ export function Deal360PageShell({
     const resolved = aliases[tabParam];
     if (resolved !== undefined) {
       const url = resolved
-        ? `/deals/${dealId}?${resolved}`
-        : `/deals/${dealId}`;
+        ? `/opportunities/${dealId}?${resolved}`
+        : `/opportunities/${dealId}`;
       router.replace(url, { scroll: false });
       return;
     }
     if (isOpportunityActionTab(tabParam) && !searchParams.get("view")) {
-      router.replace(`/deals/${dealId}?view=actions&action=${tabParam}`, { scroll: false });
+      router.replace(`/opportunities/${dealId}?view=actions&action=${tabParam}`, { scroll: false });
       return;
     }
     if (isOpportunityWorkspaceTab(tabParam) && !searchParams.get("view")) {
-      router.replace(`/deals/${dealId}?view=actions&action=${tabParam}`, { scroll: false });
+      router.replace(`/opportunities/${dealId}?view=actions&action=${tabParam}`, { scroll: false });
     }
   }, [tabParam, dealId, router, searchParams]);
 
@@ -200,21 +200,21 @@ export function Deal360PageShell({
 
   return (
     <WorkspaceChrome>
-        <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/95">
+        <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-4 backdrop-blur-sm">
           <nav
             aria-label="Breadcrumb"
-            className="min-w-0 truncate text-[12px] text-slate-500 dark:text-slate-400"
+            className="min-w-0 truncate text-xs text-muted-foreground"
           >
             <Link
               href="/opportunities"
-              className="font-medium text-slate-500 transition-colors hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+              className="font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Opportunities
             </Link>
-            <span aria-hidden className="mx-1.5 text-slate-300 dark:text-slate-600">
+            <span aria-hidden className="mx-1.5 text-border">
               /
             </span>
-            <span className="font-semibold text-slate-800 dark:text-slate-100">
+            <span className="font-semibold text-foreground">
               {pipeline.assetName}
             </span>
           </nav>

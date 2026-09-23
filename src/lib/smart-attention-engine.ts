@@ -38,6 +38,7 @@ import {
   commercialPackageHref,
   contact360Href,
   deal360Href,
+  hrefTouchesOpportunity,
 } from "@/types/relationship-navigation";
 import { documentSet360Href } from "@/types/document-set";
 
@@ -738,7 +739,7 @@ export function buildDealAttentionItems(
       (item) =>
         item.sourceObjectId === dealId ||
         (item.objectType === "Opportunity" && item.sourceObjectId === dealId) ||
-        item.href.includes(`/deals/${dealId}`),
+        hrefTouchesOpportunity(item.href, dealId),
     )
     .map((item) => ({
       ...item,

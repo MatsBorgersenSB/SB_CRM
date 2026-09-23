@@ -3,6 +3,7 @@ import { resolveOpportunityOwner } from "@/lib/opportunity-owner";
 import type { Activity } from "@/types/activity";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import { deal360Href } from "@/types/relationship-navigation";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import type {
   OwnedEntityRef,
@@ -80,7 +81,7 @@ export function analyzeUserOwnership(
       ownedOpportunities.push({
         id: pipeline.id,
         label: pipeline.assetName ?? pipeline.id,
-        href: `/deals/${pipeline.id}`,
+        href: deal360Href(pipeline.id),
       });
       ownedDealIds.add(pipeline.id);
     }
@@ -113,7 +114,7 @@ export function analyzeUserOwnership(
       id: doc.SmartDocID,
       label: doc.DocumentName,
       href: doc.DealId
-        ? `/deals/${doc.DealId}`
+        ? deal360Href(doc.DealId)
         : doc.OwnerCompanyId
           ? `/companies/${doc.OwnerCompanyId}`
           : `/documents/${doc.SmartDocID}`,

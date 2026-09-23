@@ -242,7 +242,7 @@ Users navigate **relationships**, not menus. Every business object is a link to 
 |--------|-------|
 | Company | `/companies/{id}` |
 | Contact | `/contacts/{contactId}` |
-| Opportunity | `/deals/{dealId}` |
+| Opportunity | `/opportunities/{dealId}` |
 | Document | `/documents/{documentId}` |
 | Document Set | `/document-sets/{setId}` |
 | Transmission Package | Deal commercial tab or document set |

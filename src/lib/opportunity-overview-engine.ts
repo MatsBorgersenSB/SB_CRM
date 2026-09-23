@@ -8,6 +8,7 @@ import {
   isFollowUpOverdue,
 } from "@/lib/activity-utils";
 import type { SmartDocsIntelligenceSnapshot } from "@/lib/smartdocs-intelligence-data";
+import { deal360Href } from "@/types/relationship-navigation";
 
 export type OpportunityDecisionBrief = {
   happening: string;
@@ -184,7 +185,7 @@ export function buildCriticalRisks(
       detail: flaw.detail,
       impact: flaw.impact,
       severity: "critical",
-      href: `/deals/${encodeURIComponent(dealId)}?tab=commercial`,
+      href: deal360Href(dealId, "commercial"),
     });
   }
 
@@ -195,7 +196,7 @@ export function buildCriticalRisks(
       detail: risk.detail,
       impact: risk.impact,
       severity: "high",
-      href: `/deals/${encodeURIComponent(dealId)}?tab=commercial`,
+      href: deal360Href(dealId, "commercial"),
     });
   }
 

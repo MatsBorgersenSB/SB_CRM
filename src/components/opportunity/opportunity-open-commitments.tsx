@@ -73,7 +73,7 @@ export function OpportunityOpenCommitments({
       })}
       {open.length > 6 ? (
         <Link
-          href={`/deals/${encodeURIComponent(dealId)}?tab=activities`}
+          href={`/opportunities/${encodeURIComponent(dealId)}?tab=activities`}
           className="inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
         >
           View all {open.length} commitments →

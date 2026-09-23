@@ -67,7 +67,7 @@ function buildDealUrl(
     }
   }
   const query = params.toString();
-  return `/deals/${encodeURIComponent(dealId)}${query ? `?${query}` : ""}`;
+  return `/opportunities/${encodeURIComponent(dealId)}${query ? `?${query}` : ""}`;
 }
 
 /**

@@ -10,9 +10,9 @@ const BADGE_STYLES_NAV: Record<string, string> = {
 };
 
 const BADGE_STYLES_LIGHT: Record<string, string> = {
-  ADMIN: "border-upcycle-orange/40 bg-upcycle-orange/10 text-upcycle-orange",
-  MANAGER: "border-carbon-blue/25 bg-carbon-blue/5 text-carbon-blue",
-  REP: "border-carbon-blue/15 bg-carbon-blue/[0.03] text-carbon-blue/70",
+  ADMIN: "border-primary/40 bg-primary/10 text-primary",
+  MANAGER: "border-border bg-muted text-foreground",
+  REP: "border-border/60 bg-muted/60 text-muted-foreground",
 };
 
 /** FS-013 enterprise role badge for navigation. */

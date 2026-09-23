@@ -26,6 +26,7 @@ import { computeDocumentIntelligence } from "@/lib/document-intelligence-engine"
 import { buildRelationshipMemory } from "@/lib/relationship-memory";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { company360Href } from "@/types/company-360";
+import { deal360Href, OPPORTUNITY_LIST_HREF } from "@/types/relationship-navigation";
 import { smartDocFromPipeline, smartDocHref } from "@/types/smartdoc";
 import { isFollowUpOpen } from "@/lib/activity-utils";
 
@@ -285,7 +286,7 @@ export function buildOpportunityCopilotSummary(
         intelligence.nextBestAction.priority,
         intelligence.companyId
           ? company360Href(intelligence.companyId, "opportunities")
-          : "/deals",
+          : OPPORTUNITY_LIST_HREF,
       ),
     ],
     source,
@@ -319,7 +320,7 @@ export function buildDocumentCopilotSummary(
             id: `dep-opp-${snapshot.pipeline.id}`,
             label: snapshot.pipeline.assetName,
             detail: snapshot.pipeline.status,
-            href: "/deals",
+            href: deal360Href(snapshot.pipeline.id),
             severity: "info" as const,
           },
         ]

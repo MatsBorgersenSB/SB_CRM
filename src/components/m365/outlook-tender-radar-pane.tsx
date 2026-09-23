@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DeadlineBadge,
+  SectorBadge,
+  TechnologyBadges,
+} from "@/components/prospecting/tender-chrome";
 import { useAuth } from "@/context/auth-context";
 import { withAuthRoleHeaders } from "@/lib/api-auth";
 import { canCreateOpportunity } from "@/lib/permissions";
 import type { TenderListItem } from "@/lib/tenders/types";
-
-function countdownLabel(daysLeft: number): string {
-  if (daysLeft <= 0) return "⏰ Due today";
-  if (daysLeft === 1) return "⏰ 1 Day Left";
-  return `⏰ ${daysLeft} Days Left`;
-}
 
 export function OutlookTenderRadarPane() {
   const { user } = useAuth();
@@ -68,56 +69,55 @@ export function OutlookTenderRadarPane() {
   if (tenders === null) {
     return (
       <div className="px-4 py-6">
-        <p className="text-[12px] text-carbon-blue/50">Loading tender radar…</p>
+        <p className="text-sm text-muted-foreground">Loading tender radar…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col overflow-auto px-4 py-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
-        Tender Radar
-      </p>
-      <p className="mt-1 text-sm font-semibold text-carbon-blue">Top thermal notices</p>
-      <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
-        Pyrolysis and torrefaction tenders still open. Promote only when this deserves a deal.
-      </p>
+    <div className="flex h-full flex-col gap-4 overflow-auto bg-background px-4 py-4">
+      <div className="flex flex-col gap-1">
+        <p className="text-[11px] font-semibold tracking-tight text-primary">Tender Radar</p>
+        <h1 className="font-semibold tracking-tight text-foreground">Top thermal notices</h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Pyrolysis and torrefaction tenders still open. Promote only when this deserves a deal.
+        </p>
+      </div>
 
-      {error ? <p className="mt-3 text-[11px] text-rose-700">{error}</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       {tenders.length === 0 ? (
-        <p className="mt-5 text-[12px] text-carbon-blue/45">
-          No pending thermal tenders. TED is pulled every morning — SmartCRM does not invent notices.
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          No pending thermal tenders. TED is pulled every morning — SmartCRM does not invent
+          notices.
         </p>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <ul className="flex flex-col gap-3">
           {tenders.map((tender) => (
             <li
               key={tender.id}
-              className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3"
+              className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm"
             >
-              <p className="text-[12px] font-semibold text-carbon-blue">{tender.title}</p>
-              <p className="mt-1 text-[11px] text-carbon-blue/50">
+              <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                {tender.title}
+              </h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 {tender.authorityName} · {tender.country}
               </p>
-              <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-carbon-blue/55">
-                {tender.technologyType === "Both"
-                  ? "[ Pyrolysis ] [ Torrefaction ]"
-                  : `[ ${tender.technologyType} ]`}{" "}
-                · {tender.sectorTag}
-              </p>
-              <p className="mt-1 text-[11px] font-medium text-carbon-blue">
-                {countdownLabel(tender.daysLeft)}
-              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <TechnologyBadges type={tender.technologyType} />
+                <SectorBadge sector={tender.sectorTag} />
+              </div>
+              <DeadlineBadge daysLeft={tender.daysLeft} />
               {canPromote ? (
-                <button
-                  type="button"
+                <Button
+                  size="sm"
                   disabled={busyId === tender.id}
                   onClick={() => void promote(tender.id)}
-                  className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 disabled:opacity-50"
                 >
-                  ✓ Promote to Opportunity
-                </button>
+                  <Check className="size-3.5" strokeWidth={2} />
+                  Promote
+                </Button>
               ) : null}
             </li>
           ))}

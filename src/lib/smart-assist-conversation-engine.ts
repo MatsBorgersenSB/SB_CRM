@@ -15,7 +15,7 @@ import { buildAttentionItems } from "@/lib/smart-attention-engine";
 import { buildCoPilotProposals } from "@/lib/smartassist-copilot-engine";
 import { daysBetween } from "@/lib/relative-time";
 import { company360Href } from "@/types/company-360";
-import { deal360Href } from "@/types/relationship-navigation";
+import { deal360Href, parseDealIdFromHref } from "@/types/relationship-navigation";
 import type { SmartAssistCommandResult, SmartAssistFocus } from "@/types/smart-assist";
 import type { AuthUser } from "@/types/auth";
 import type { SearchIndexItem } from "@/types/universal-search";
@@ -543,9 +543,7 @@ export function answerConversationalQuestion(
       summary,
       actionLabel: fallback[0] ? "Review opportunity" : "View opportunities",
       href: fallback[0]?.href ?? "/opportunities",
-      dealId: fallback[0]?.href?.includes("/deals/")
-        ? fallback[0].href.split("/deals/")[1]?.split("?")[0]
-        : undefined,
+      dealId: parseDealIdFromHref(fallback[0]?.href),
       openCoach: Boolean(fallback[0]),
     };
   }
@@ -570,9 +568,7 @@ export function answerConversationalQuestion(
     actionLabel:
       topRec.category === "crm_admin" ? "Review in Co-Pilot" : "Take action",
     href: topRec.href ?? "/opportunities",
-    dealId: topRec.href?.includes("/deals/")
-      ? topRec.href.split("/deals/")[1]?.split("?")[0]
-      : undefined,
+    dealId: parseDealIdFromHref(topRec.href),
     openCoach: topRec.category === "opportunity" || topRec.category === "commercial",
   };
 }
