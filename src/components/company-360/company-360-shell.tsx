@@ -33,6 +33,9 @@ import type { CompanyDuplicateHint } from "@/lib/duplicate-management";
 import { buildCompanyAttentionItems } from "@/lib/smart-attention-engine";
 import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import { lastMailByContactIdFromCorrespondence } from "@/lib/company-correspondence";
+import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import type { CompanyDocumentKnowledgeState } from "@/lib/company-document-knowledge";
+import { EMPTY_DOCUMENT_KNOWLEDGE_STATE } from "@/lib/company-document-knowledge";
 
 type Company360ShellProps = {
   initialCompany: Company;
@@ -44,6 +47,8 @@ type Company360ShellProps = {
   projects: Project[];
   duplicateHint?: CompanyDuplicateHint | null;
   correspondence?: CompanyCorrespondenceEvidence | null;
+  smartDocs?: SmartDocLibraryRecord[];
+  documentKnowledge?: CompanyDocumentKnowledgeState;
 };
 
 export function Company360Shell({
@@ -56,6 +61,8 @@ export function Company360Shell({
   projects,
   duplicateHint = null,
   correspondence = null,
+  smartDocs = [],
+  documentKnowledge = EMPTY_DOCUMENT_KNOWLEDGE_STATE,
 }: Company360ShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -392,6 +399,8 @@ export function Company360Shell({
               correspondence,
             )}
             correspondence={correspondence}
+            smartDocs={smartDocs}
+            documentKnowledge={documentKnowledge}
           />
         </WorkspaceMain>
     </WorkspaceChrome>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   buildCareerTimeline,
@@ -213,6 +213,17 @@ export function Contact360LivingWorkspace({
 
   const canManage = canDeleteContact(role);
 
+  useEffect(() => {
+    const scrollToHash = () => {
+      const id = window.location.hash.replace(/^#/, "");
+      if (!id) return;
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    window.requestAnimationFrame(scrollToHash);
+    window.addEventListener("hashchange", scrollToHash);
+    return () => window.removeEventListener("hashchange", scrollToHash);
+  }, [contact.ContactID]);
+
   const handleEmploymentStatusChange = async (status: EmploymentStatus) => {
     setEmploymentBusy(true);
     try {
@@ -310,6 +321,7 @@ export function Contact360LivingWorkspace({
           companies={companies}
           pipelines={pipelines}
           showNewTask={false}
+          documentCount={documentCount}
         />
       </div>
 

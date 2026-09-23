@@ -76,6 +76,9 @@ model Company {
 
   promotedTenders Tender[] @relation("TenderPromotedCompany")
 
+  /// Confirmed / dismissed document-backed knowledge (user decisions). Proposed claims are computed live.
+  documentKnowledge Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

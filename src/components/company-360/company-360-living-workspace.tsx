@@ -26,7 +26,13 @@ import { Company360OverviewStrips } from "@/components/company-360/company-360-o
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { CompanyRecentOutlook } from "@/components/company-360/company-recent-outlook";
 import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
+import { CompanyDocumentKnowledgePanel } from "@/components/company-360/company-document-knowledge-panel";
 import { workspaceDocumentsContextFromCompany } from "@/lib/workspace-documents-data";
+import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import {
+  EMPTY_DOCUMENT_KNOWLEDGE_STATE,
+  type CompanyDocumentKnowledgeState,
+} from "@/lib/company-document-knowledge";
 import type { Company360Snapshot } from "@/lib/company-360-data";
 import type { Company } from "@/types/company";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -91,6 +97,8 @@ export function Company360LivingWorkspace({
   initialLastMailAt = null,
   initialLastMailByContactId = {},
   correspondence = null,
+  smartDocs = [],
+  documentKnowledge = EMPTY_DOCUMENT_KNOWLEDGE_STATE,
 }: {
   snapshot: Company360Snapshot;
   commercialPackages: CommercialPackage[];
@@ -118,12 +126,14 @@ export function Company360LivingWorkspace({
   initialLastMailAt?: string | null;
   initialLastMailByContactId?: Record<string, string>;
   correspondence?: CompanyCorrespondenceEvidence | null;
+  smartDocs?: SmartDocLibraryRecord[];
+  documentKnowledge?: CompanyDocumentKnowledgeState;
 }) {
   const { company, header, pipelines: linkedPipelines } = snapshot;
   const identity = buildCompanyHeroIdentity(company);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [documentCount, setDocumentCount] = useState(0);
+  const [documentCount, setDocumentCount] = useState(smartDocs.length);
   const [activeTool, setActiveTool] = useState<Company360ActiveTool>(null);
   const [createRequestId, setCreateRequestId] = useState(0);
   const [attentionDismissTick, setAttentionDismissTick] = useState(0);
@@ -333,6 +343,12 @@ export function Company360LivingWorkspace({
         </div>
       </section>
 
+      <CompanyDocumentKnowledgePanel
+        companyId={company.CompanyID}
+        documents={smartDocs}
+        initialState={documentKnowledge}
+      />
+
       <div className="flex justify-end">
         <EntityNewActivityButton
           context={{
@@ -342,6 +358,7 @@ export function Company360LivingWorkspace({
           companies={companies}
           pipelines={linkedPipelines}
           showNewTask={false}
+          documentCount={documentCount}
         />
       </div>
 

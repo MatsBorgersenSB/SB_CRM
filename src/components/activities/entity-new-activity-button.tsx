@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, type MouseEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
 import { TaskCreateModal } from "@/components/activities/task-create-modal";
 import { useAuth } from "@/context/auth-context";
@@ -13,6 +14,7 @@ import type {
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { StandardBioUserRecord } from "@/types/user-access";
+import { workspaceDocumentsHref } from "@/types/relationship-navigation";
 
 function contextPreset(
   context: ActivityWorkspaceContext,
@@ -32,6 +34,30 @@ const DEFAULT_BUTTON_CLASS =
 const SECONDARY_BUTTON_CLASS =
   "inline-flex shrink-0 items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange";
 
+function openSamePageDocumentsHash(href: string, event: MouseEvent<HTMLAnchorElement>) {
+  if (typeof window === "undefined") return;
+  let next: URL;
+  try {
+    next = new URL(href, window.location.origin);
+  } catch {
+    return;
+  }
+  if (next.pathname !== window.location.pathname) return;
+  if (next.search && next.search !== window.location.search) return;
+  if (!next.hash) return;
+
+  event.preventDefault();
+  const id = next.hash.replace(/^#/, "");
+  if (window.location.hash !== next.hash) {
+    window.location.hash = next.hash;
+  } else {
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  }
+  window.requestAnimationFrame(() => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
 export function EntityNewActivityButton({
   context,
   companies,
@@ -40,6 +66,7 @@ export function EntityNewActivityButton({
   className,
   label = "New activity",
   showNewTask = true,
+  documentCount,
 }: {
   context: ActivityWorkspaceContext;
   companies: Company[];
@@ -48,11 +75,13 @@ export function EntityNewActivityButton({
   className?: string;
   label?: string;
   showNewTask?: boolean;
+  documentCount?: number;
 }) {
   const router = useRouter();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
+  const documentsHref = workspaceDocumentsHref(context);
 
   const handleCreated = useCallback(() => {
     setOpen(false);
@@ -81,6 +110,19 @@ export function EntityNewActivityButton({
           <Plus className="size-3.5" strokeWidth={2} aria-hidden />
           {label}
         </button>
+        {documentsHref ? (
+          <Link
+            href={documentsHref}
+            className={SECONDARY_BUTTON_CLASS}
+            onClick={(event) => openSamePageDocumentsHash(documentsHref, event)}
+          >
+            <FileText className="size-3.5" strokeWidth={2} aria-hidden />
+            Documents
+            {typeof documentCount === "number" && documentCount > 0 ? (
+              <span className="text-carbon-blue/45">{documentCount}</span>
+            ) : null}
+          </Link>
+        ) : null}
       </div>
       <ActivityCreateWizard
         open={open}

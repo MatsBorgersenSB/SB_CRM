@@ -104,6 +104,7 @@ export function ProjectMissionControl({
         activityContext={activityContext}
         companies={companies}
         pipelines={pipelines}
+        documentCount={actionCounts?.documents}
       />
 
       {view === "actions" ? (
