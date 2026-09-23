@@ -15,7 +15,7 @@ import {
 
 /**
  * Attio-style segment control — fixed-size pills, no layout shift on select.
- * New activity CTA stays to the right of tabs on every mission-control view.
+ * New activity and Documents stay to the right of tabs on every mission-control view.
  */
 export function OpportunityMissionControlTabBar({
   active,
@@ -23,12 +23,14 @@ export function OpportunityMissionControlTabBar({
   activityContext,
   companies = [],
   pipelines = [],
+  documentCount,
 }: {
   active: OpportunityMissionControlView;
   onChange: (view: OpportunityMissionControlView) => void;
   activityContext: ActivityWorkspaceContext;
   companies?: Company[];
   pipelines?: PipelineRow[];
+  documentCount?: number;
 }) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -57,6 +59,7 @@ export function OpportunityMissionControlTabBar({
         context={activityContext}
         companies={companies}
         pipelines={pipelines}
+        documentCount={documentCount}
       />
     </div>
   );

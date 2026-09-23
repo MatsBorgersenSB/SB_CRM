@@ -16,12 +16,14 @@ export function ProjectMissionControlTabBar({
   activityContext,
   companies = [],
   pipelines = [],
+  documentCount,
 }: {
   active: ProjectMissionControlView;
   onChange: (view: ProjectMissionControlView) => void;
   activityContext: ActivityWorkspaceContext;
   companies?: Company[];
   pipelines?: PipelineRow[];
+  documentCount?: number;
 }) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -40,6 +42,7 @@ export function ProjectMissionControlTabBar({
         context={activityContext}
         companies={companies}
         pipelines={pipelines}
+        documentCount={documentCount}
       />
     </div>
   );

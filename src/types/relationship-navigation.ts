@@ -1,3 +1,4 @@
+import type { ActivityWorkspaceContext } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import { isQuotationKind } from "@/types/commercial-package";
 import { company360Href } from "@/types/company-360";
@@ -52,6 +53,11 @@ export function deal360Href(
   return query ? `${base}?${query}` : base;
 }
 
+/** Associated SmartDocs for this opportunity — last action on every mission-control view. */
+export function dealDocumentsHref(dealId: string): string {
+  return `/opportunities/${encodeURIComponent(dealId)}?view=actions&action=documents`;
+}
+
 /** Read an opportunity id from either canonical or legacy `/deals/` hrefs. */
 export function parseDealIdFromHref(href: string | undefined | null): string | undefined {
   if (!href) return undefined;
@@ -83,6 +89,31 @@ export function project360Href(
 
 export function projectEmailsHref(projectId: string): string {
   return project360Href(projectId, { view: "emails" });
+}
+
+/** Associated SmartDocs for this project — last action on every mission-control view. */
+export function projectDocumentsHref(projectId: string): string {
+  return `/projects/${encodeURIComponent(projectId)}?view=actions&action=documents`;
+}
+
+export function contactDocumentsHref(contactId: string, companyId?: string): string {
+  return `${contact360Href(contactId, companyId)}#documents`;
+}
+
+/**
+ * Documents for the current workspace — opportunity, then project, then person, then company.
+ */
+export function workspaceDocumentsHref(
+  context: Pick<
+    ActivityWorkspaceContext,
+    "dealId" | "projectId" | "contactId" | "companyId"
+  >,
+): string | null {
+  if (context.dealId) return dealDocumentsHref(context.dealId);
+  if (context.projectId) return projectDocumentsHref(context.projectId);
+  if (context.contactId) return contactDocumentsHref(context.contactId, context.companyId);
+  if (context.companyId) return company360Href(context.companyId, "documents");
+  return null;
 }
 
 export function companyHref(companyId: string) {

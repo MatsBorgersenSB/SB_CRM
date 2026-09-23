@@ -196,6 +196,20 @@ const KEYWORD_RULES: KeywordRule[] = [
     reason: "Filename indicates a Standard Bio proposal",
   },
   {
+    keywords: [
+      "flow diagram",
+      "flowdiagram",
+      "flytdiagram",
+      "prosessflyt",
+      "process flow",
+      "p&id",
+    ],
+    DocCategory: "Technical",
+    DocType: "Process Summary",
+    Origin: "external",
+    reason: "Filename indicates a process or flow diagram",
+  },
+  {
     keywords: ["specs", "specification", "datasheet", "manual", "technical", "teknisk"],
     DocCategory: "Technical",
     DocType: "Technical Datasheet",

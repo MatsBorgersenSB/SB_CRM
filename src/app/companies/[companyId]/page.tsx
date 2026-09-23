@@ -11,8 +11,11 @@ import {
   readLiveCommercialPackages,
   readLiveInventory,
   readLivePortfolio,
+  readLiveSmartDocsForCompany,
 } from "@/lib/prisma-data";
 import { emptyInventory } from "@/lib/inventory-data";
+import { loadCompanyDocumentKnowledge } from "@/lib/company-document-knowledge-data";
+import { EMPTY_DOCUMENT_KNOWLEDGE_STATE } from "@/lib/company-document-knowledge";
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 import type { Company } from "@/types/company";
 
@@ -106,7 +109,7 @@ export default async function Company360Page({ params }: Company360PageProps) {
   };
 
   const shellCompanies = mergeCompanyIntoPortfolio(companies, company);
-  const [duplicateHint, correspondence] = await Promise.all([
+  const [duplicateHint, correspondence, smartDocs, documentKnowledge] = await Promise.all([
     loadCompanyDuplicateHint(company.code || company.CompanyID).catch((error) => {
       console.warn("[company-360] duplicate hint unavailable", error);
       return null;
@@ -114,6 +117,14 @@ export default async function Company360Page({ params }: Company360PageProps) {
     loadCorrespondenceEvidenceForCompany(company).catch((error) => {
       console.warn("[company-360] correspondence unavailable", error);
       return null;
+    }),
+    readLiveSmartDocsForCompany(company.CompanyID).catch((error) => {
+      console.warn("[company-360] SmartDocs unavailable", error);
+      return [];
+    }),
+    loadCompanyDocumentKnowledge(company.CompanyID).catch((error) => {
+      console.warn("[company-360] document knowledge unavailable", error);
+      return EMPTY_DOCUMENT_KNOWLEDGE_STATE;
     }),
   ]);
 
@@ -129,6 +140,8 @@ export default async function Company360Page({ params }: Company360PageProps) {
         projects={projects}
         duplicateHint={duplicateHint}
         correspondence={correspondence}
+        smartDocs={smartDocs}
+        documentKnowledge={documentKnowledge}
       />
     </Suspense>
   );

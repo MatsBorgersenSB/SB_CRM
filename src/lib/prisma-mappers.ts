@@ -45,7 +45,8 @@ export type PrismaContactListRow = Pick<
 > &
   Partial<PrismaContact>;
 
-type PrismaCompanyWithRelations = PrismaCompany & {
+type PrismaCompanyWithRelations = Omit<PrismaCompany, "documentKnowledge"> & {
+  documentKnowledge?: PrismaCompany["documentKnowledge"];
   contacts: PrismaContactListRow[];
   opportunities: Array<Pick<PrismaOpportunity, "id">>;
 };

@@ -160,6 +160,7 @@ export function OpportunityMissionControl({
             activityContext={activityContext}
             companies={companies}
             pipelines={pipelines}
+            documentCount={actionCounts?.documents}
           />
         </div>
 
