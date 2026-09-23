@@ -19,7 +19,9 @@ import type {
 
 function roleMatches(stakeholders: ReturnType<typeof getProjectStakeholders>, patterns: string[]): boolean {
   return stakeholders.some((entry) =>
-    patterns.some((pattern) => entry.role.toLowerCase().includes(pattern.toLowerCase())),
+    patterns.some((pattern) =>
+      (entry.role ?? "").toLowerCase().includes(pattern.toLowerCase()),
+    ),
   );
 }
 

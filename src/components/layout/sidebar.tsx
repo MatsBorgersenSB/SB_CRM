@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Building2,
   FileText,
+  FolderKanban,
   LayoutDashboard,
   Search,
   Settings,
@@ -27,7 +28,7 @@ type NavItem = {
   section?: "home" | "work" | "admin";
 };
 
-/** Six primary destinations — intelligence engines feed Today, they are not peer products. */
+/** Primary destinations — intelligence engines feed Today, they are not peer products. */
 const navItems: NavItem[] = [
   {
     label: "Today",
@@ -55,6 +56,13 @@ const navItems: NavItem[] = [
     href: "/opportunities",
     icon: TrendingUp,
     match: (p) => p.startsWith("/opportunities") || p.startsWith("/deals"),
+    section: "work",
+  },
+  {
+    label: "Projects",
+    href: "/projects",
+    icon: FolderKanban,
+    match: (p) => p.startsWith("/projects"),
     section: "work",
   },
   {

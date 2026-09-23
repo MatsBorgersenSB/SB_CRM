@@ -5,6 +5,7 @@ import { formatCompanyLocation } from "@/types/company";
 import { formatDealValue } from "@/types/pipeline";
 import { sumPipelineValue } from "@/lib/impact-context";
 import type { InventoryDb } from "@/lib/inventory-data";
+import { emptyInventory } from "@/lib/inventory-data";
 import { getActivitiesForCompany, isFollowUpOpen, isFollowUpOverdue } from "@/lib/activity-utils";
 import { getCompanySmartDocs, getLinkedPipelines } from "@/lib/company-utils";
 import {
@@ -291,16 +292,17 @@ function buildMaterialTracks(
   const linked = getLinkedPipelines(company, pipelines);
 
   return linked.map((deal) => {
-    const inventoryRow = inventory.ledger.find(
-      (row) =>
-        row.materialType.toLowerCase() === deal.targetFeedstock.toLowerCase() ||
-        deal.targetFeedstock.toLowerCase().includes(row.materialType.toLowerCase()),
-    );
+    const inventoryRow = inventory.ledger.find((row) => {
+      const material = (row.materialType ?? "").toLowerCase();
+      const feedstock = (deal.targetFeedstock ?? "").toLowerCase();
+      if (!material || !feedstock) return false;
+      return material === feedstock || feedstock.includes(material);
+    });
 
     return {
       dealId: deal.id,
       dealName: deal.assetName,
-      feedstock: deal.targetFeedstock,
+      feedstock: deal.targetFeedstock ?? "",
       capacityKgH: deal.reactorDesignCapacity,
       status: deal.status,
       companyRole: deal.companyRole,
@@ -388,4 +390,91 @@ export function buildCompany360Snapshot(
     materials,
     intelligence,
   };
+}
+
+/** Degraded 360 when a live relationship record cannot be scored. */
+export function fallbackCompany360Snapshot(company: Company): Company360Snapshot {
+  const safe: Company = {
+    ...company,
+    contacts: company.contacts ?? [],
+    pipelineIds: company.pipelineIds ?? [],
+  };
+  try {
+    return buildCompany360Snapshot(safe, [], [], emptyInventory);
+  } catch (error) {
+    console.error("[company-360] fallback snapshot failed", error);
+    const emptyAction = {
+      id: "review-account",
+      action: "Review this account",
+      reason: "Relationship intelligence could not be scored for this company.",
+      priority: "Medium" as const,
+      confidenceScore: 0,
+      ruleId: "fallback",
+      source: "rule" as const,
+    };
+    return {
+      company: safe,
+      header: {
+        companyName: safe.Title || "Company",
+        companyTypes: normalizeCompanyTypes(safe),
+        companyTypesLabel: formatCompanyTypesLabel(normalizeCompanyTypes(safe)),
+        industry: safe.Industry,
+        status: safe.Status,
+        healthScore: 0,
+        healthStatus: "Weak",
+        trend: "Stable",
+        lastContactLabel: "Unknown",
+        openActions: 0,
+        openOpportunities: 0,
+        location: formatCompanyLocation(safe),
+        accountOwner: formatAccountOwnerDisplay(safe.AccountOwner),
+        recommendedAction: emptyAction,
+      },
+      summary: {
+        company: safe,
+        healthLabel: "Needs Attention",
+        healthScore: 0,
+        healthStatus: "Weak",
+        trend: "Stable",
+        lastContactAt: null,
+        lastContactLabel: "Unknown",
+        openActions: 0,
+        activeDeals: 0,
+        healthReport: {
+          score: 0,
+          status: "Weak",
+          trend: "Stable",
+          components: [],
+          summary: "Relationship intelligence could not be scored for this company.",
+          isNewRelationship: false,
+          lastTouchAt: null,
+          recommendedAction: emptyAction,
+        },
+      },
+      activities: [],
+      openActions: [],
+      pipelines: [],
+      documents: [],
+      materials: [],
+      intelligence: {
+        healthScore: 0,
+        healthStatus: "Weak",
+        trend: "Stable",
+        healthReport: {
+          score: 0,
+          status: "Weak",
+          trend: "Stable",
+          components: [],
+          summary: "Relationship intelligence could not be scored for this company.",
+          isNewRelationship: false,
+          lastTouchAt: null,
+          recommendedAction: emptyAction,
+        },
+        riskSignals: [],
+        suggestedActions: ["Open this company again after the latest data loads."],
+        recommendedAction: emptyAction,
+        extensions: {},
+      },
+    };
+  }
 }

@@ -154,13 +154,16 @@ export function Company360LivingWorkspace({
     return pending ? toPendingCommitmentView(pending) : null;
   }, [companyActivities]);
 
-  const linkedProjects = useMemo(
-    () =>
-      getProjectsForCompany(company.CompanyID, projects, {
-        contactIds: company.contacts.map((contact) => contact.ContactID),
-      }),
-    [company.CompanyID, company.contacts, projects],
-  );
+  const linkedProjects = useMemo(() => {
+    try {
+      return getProjectsForCompany(company.CompanyID, projects, {
+        contactIds: (company.contacts ?? []).map((contact) => contact.ContactID),
+      });
+    } catch (error) {
+      console.error("[company-360] linked projects failed", error);
+      return [];
+    }
+  }, [company.CompanyID, company.contacts, projects]);
 
   const visibleAttentionItems = useMemo(() => {
     void attentionDismissTick;
@@ -198,23 +201,24 @@ export function Company360LivingWorkspace({
     });
   }, [linkedPipelines, scopedActivities]);
 
-  const verdict = useMemo(
-    () =>
-      buildCompany360Verdict({
-        engineAction:
-          "action" in header.recommendedAction && header.recommendedAction.action
-            ? header.recommendedAction.action
-            : header.recommendedAction.title ?? "Review this account",
-        engineReason: header.recommendedAction.reason,
-        lastActivityAt: companyActivities[0]?.ActivityDate ?? null,
-        lastMailAt,
-        stalledDealName: stalledDeal?.assetName ?? null,
-        stalledDealStage: stalledDeal
-          ? opportunityStageLabel(stalledDeal, commercialPackages)
-          : null,
-        engageContact: pickEngageContact(company.contacts),
-      }),
-    [
+  const verdict = useMemo(() => {
+    const rec = header.recommendedAction;
+    const engineAction =
+      rec && typeof rec === "object" && "action" in rec && rec.action
+        ? rec.action
+        : rec?.title ?? "Review this account";
+    return buildCompany360Verdict({
+      engineAction,
+      engineReason: rec?.reason ?? "",
+      lastActivityAt: companyActivities[0]?.ActivityDate ?? null,
+      lastMailAt,
+      stalledDealName: stalledDeal?.assetName ?? null,
+      stalledDealStage: stalledDeal
+        ? opportunityStageLabel(stalledDeal, commercialPackages)
+        : null,
+      engageContact: pickEngageContact(company.contacts ?? []),
+    });
+  }, [
       header.recommendedAction,
       companyActivities,
       lastMailAt,
@@ -361,7 +365,7 @@ export function Company360LivingWorkspace({
           <WorkspacePanel title="Recent Outlook" id="outlook" icon="email">
             <CompanyRecentOutlook
               companyId={company.CompanyID}
-              contacts={company.contacts}
+              contacts={company.contacts ?? []}
               role={role}
               onLatestMailAt={(sentAt) => {
                 if (sentAt) setLastMailAt(sentAt);

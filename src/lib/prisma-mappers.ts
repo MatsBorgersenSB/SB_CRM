@@ -297,8 +297,8 @@ export function mapPrismaCompanyToApp(company: PrismaCompanyWithRelations): Comp
     stateRegion: company.stateRegion ?? null,
     countryCode: company.countryCode ?? null,
     continent: company.continent ?? null,
-    pipelineIds: company.opportunities.map((opportunity) => opportunity.id),
-    contacts: company.contacts.map((contact) => mapPrismaContactToApp(contact, lookup)),
+    pipelineIds: (company.opportunities ?? []).map((opportunity) => opportunity.id),
+    contacts: (company.contacts ?? []).map((contact) => mapPrismaContactToApp(contact, lookup)),
     Notes: undefined,
     Tags: company.types,
   };

@@ -9,7 +9,7 @@ import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
 import type { Company360Snapshot } from "@/lib/company-360-data";
-import { buildCompany360Snapshot } from "@/lib/company-360-data";
+import { buildCompany360Snapshot, fallbackCompany360Snapshot } from "@/lib/company-360-data";
 import {
   canCreateOpportunity,
   canDeleteOpportunity,
@@ -131,26 +131,32 @@ export function Company360Shell({
     return activities;
   }, [activities, company.CompanyID, user]);
 
-  const snapshot: Company360Snapshot = useMemo(
-    () =>
-      buildCompany360Snapshot(company, visiblePipelines, scopedActivities, inventory, {
+  const snapshot: Company360Snapshot = useMemo(() => {
+    try {
+      return buildCompany360Snapshot(company, visiblePipelines, scopedActivities, inventory, {
         correspondence,
-      }),
-    [company, visiblePipelines, scopedActivities, inventory, correspondence],
-  );
+      });
+    } catch (error) {
+      console.error("[company-360] snapshot failed", error);
+      return fallbackCompany360Snapshot(company);
+    }
+  }, [company, visiblePipelines, scopedActivities, inventory, correspondence]);
 
-  const attentionItems = useMemo(
-    () =>
-      buildCompanyAttentionItems(
+  const attentionItems = useMemo(() => {
+    try {
+      return buildCompanyAttentionItems(
         company,
         visiblePipelines,
         scopedActivities,
         commercialPackages,
         companyRows,
         correspondence,
-      ),
-    [company, visiblePipelines, scopedActivities, commercialPackages, companyRows, correspondence],
-  );
+      );
+    } catch (error) {
+      console.error("[company-360] attention failed", error);
+      return [];
+    }
+  }, [company, visiblePipelines, scopedActivities, commercialPackages, companyRows, correspondence]);
 
   const handleCreateContact = useCallback(
     async (input: CreateContactInput) => {
@@ -382,7 +388,7 @@ export function Company360Shell({
             duplicateHint={duplicateHint}
             initialLastMailAt={correspondence?.lastSentAt ?? null}
             initialLastMailByContactId={lastMailByContactIdFromCorrespondence(
-              company.contacts,
+              company.contacts ?? [],
               correspondence,
             )}
             correspondence={correspondence}

@@ -102,12 +102,28 @@ async function loadBundledSeedProjects(): Promise<Project[]> {
     const raw = await fs.readFile(BUNDLED_DB_PATH, "utf-8");
     const parsed = JSON.parse(raw) as ProjectsDatabase;
     if (Array.isArray(parsed.projects) && parsed.projects.length > 0) {
-      return parsed.projects.map(normalizeProject);
+      return parsed.projects.flatMap((project) => {
+        try {
+          return [normalizeProject(project)];
+        } catch (error) {
+          console.warn(
+            `[project-db] Skipping malformed bundled project ${project.id}:`,
+            error instanceof Error ? error.message : error,
+          );
+          return [];
+        }
+      });
     }
   } catch {
     // Fall through to in-code seed.
   }
-  return PROJECTS.map(normalizeProject);
+  return PROJECTS.flatMap((project) => {
+    try {
+      return [normalizeProject(project)];
+    } catch {
+      return [];
+    }
+  });
 }
 
 /**
@@ -185,7 +201,18 @@ export async function readProjects(): Promise<Project[]> {
     const rows = await getPrisma().projectWorkspace.findMany({
       orderBy: { name: "asc" },
     });
-    return rows.map(rowToProject);
+    const projects: Project[] = [];
+    for (const row of rows) {
+      try {
+        projects.push(rowToProject(row));
+      } catch (error) {
+        console.warn(
+          `[project-db] Skipping malformed project ${row.id}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+    return projects;
   } catch (error) {
     console.warn(
       "[project-db] Falling back to bundled project seed:",

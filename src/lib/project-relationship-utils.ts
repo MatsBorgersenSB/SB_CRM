@@ -47,7 +47,7 @@ export function isRemovedStakeholder(
       (entry.contactId && entry.contactId === stakeholder.contactId) ||
       (entry.userId &&
         entry.userId === stakeholder.userId &&
-        entry.role?.toLowerCase() === stakeholder.role.toLowerCase()),
+        (entry.role ?? "").toLowerCase() === (stakeholder.role ?? "").toLowerCase()),
   );
 }
 
@@ -120,7 +120,7 @@ export function normalizeProjectRelationships(project: Project): Project {
     relatedOrganizations.find((org) => org.isPrimary) ?? relatedOrganizations[0];
 
   const manager = projectStakeholders.find(
-    (entry) => entry.role.toLowerCase() === "project manager" && entry.userId,
+    (entry) => (entry.role ?? "").toLowerCase() === "project manager" && entry.userId,
   );
 
   return {
@@ -329,9 +329,11 @@ export function upsertProjectManagerStakeholder(
   }
 
   const withoutManager = stakeholders.filter(
-    (entry) => entry.role.toLowerCase() !== "project manager",
+    (entry) => (entry.role ?? "").toLowerCase() !== "project manager",
   );
-  const existing = stakeholders.find((entry) => entry.role.toLowerCase() === "project manager");
+  const existing = stakeholders.find(
+    (entry) => (entry.role ?? "").toLowerCase() === "project manager",
+  );
 
   return [
     {
