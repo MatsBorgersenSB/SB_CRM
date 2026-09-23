@@ -41,6 +41,10 @@ import {
   hrefTouchesOpportunity,
 } from "@/types/relationship-navigation";
 import { documentSet360Href } from "@/types/document-set";
+import { smartDocHref } from "@/types/smartdoc";
+import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import { buildSmartDocsIntelligence } from "@/lib/smartdocs-intelligence-data";
+import type { TenderListItem } from "@/lib/tenders/types";
 
 const STALLED_DAYS = 21;
 const COLD_CONTACT_DAYS = 45;
@@ -55,6 +59,10 @@ export type AttentionEngineContext = {
   companyId?: string;
   ownerId?: string;
   correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>;
+  /** Live SmartDocs library — company-owned, deal-owned, and unclassified files. */
+  smartDocs?: SmartDocLibraryRecord[];
+  /** Open thermal tenders that still need a bid decision. */
+  tenders?: TenderListItem[];
 };
 
 function parseActivityDate(value: string): Date {
@@ -551,6 +559,152 @@ function buildCommercialPackageAttention(
   return items;
 }
 
+function isUnclassifiedSmartDoc(record: SmartDocLibraryRecord): boolean {
+  const type = (record.DocType ?? "").trim().toLowerCase();
+  return type.length === 0 || type === "unclassified document" || type === "unclassified";
+}
+
+function resolveSmartDocCompany(
+  record: SmartDocLibraryRecord,
+  companies: Company[],
+): Company | undefined {
+  if (record.OwnerCompanyId) {
+    const owner = record.OwnerCompanyId.trim().toLowerCase();
+    const byId = companies.find(
+      (company) =>
+        company.CompanyID.trim().toLowerCase() === owner ||
+        company.code?.trim().toLowerCase() === owner,
+    );
+    if (byId) return byId;
+  }
+  if (record.DealId) {
+    return findCompanyForDeal(record.DealId, companies);
+  }
+  const client = (record.ClientName ?? "").trim().toLowerCase();
+  if (!client) return undefined;
+  return companies.find((company) => company.Title.trim().toLowerCase() === client);
+}
+
+function buildDocumentKnowledgeAttention(
+  companies: Company[],
+  pipelines: PipelineRow[],
+  activities: Activity[],
+  smartDocs: SmartDocLibraryRecord[],
+  companyId?: string,
+): AttentionItem[] {
+  const items: AttentionItem[] = [];
+  const intelligence = buildSmartDocsIntelligence(
+    pipelines,
+    companies,
+    activities,
+    smartDocs,
+  );
+
+  for (const doc of intelligence.knowledgeAtRisk.slice(0, 5)) {
+    const company =
+      (doc.document.pipelineId
+        ? findCompanyForDeal(doc.document.pipelineId, companies)
+        : undefined) ??
+      companies.find((row) => {
+        const lookup = (doc.document.clientLookup ?? "").trim().toLowerCase();
+        if (!lookup) return false;
+        return (
+          row.CompanyID.trim().toLowerCase() === lookup ||
+          row.code?.trim().toLowerCase() === lookup ||
+          row.Title.trim().toLowerCase() === lookup
+        );
+      });
+    if (companyId && company && company.CompanyID !== companyId) continue;
+
+    pushItem(items, {
+      id: `attn-doc-risk-${doc.document.id}`,
+      sourceObjectId: doc.document.id,
+      sourceObjectName: doc.document.displayName,
+      objectType: "Document",
+      severity: doc.insights.businessImpactLevel === "Critical" ? "urgent" : "needs_attention",
+      recommendation: doc.insights.businessImpact,
+      suggestedAiAction: doc.nextBestAction.action,
+      href: doc.href,
+      companyId: company?.CompanyID,
+      companyName: company?.Title,
+      ruleId: "knowledge_at_risk",
+    });
+  }
+
+  for (const missing of intelligence.missingCriticalDocuments.slice(0, 3)) {
+    if (companyId && missing.entityKind === "company" && missing.id !== companyId) continue;
+    pushItem(items, {
+      id: `attn-doc-missing-${missing.id}`,
+      sourceObjectId: missing.id,
+      sourceObjectName: missing.entityName,
+      objectType: missing.entityKind === "deal" ? "Opportunity" : "Company",
+      severity: "needs_attention",
+      recommendation: missing.detail,
+      suggestedAiAction: missing.label,
+      href: missing.href,
+      companyId: missing.entityKind === "company" ? missing.id : undefined,
+      companyName: missing.entityKind === "company" ? missing.entityName : undefined,
+      ruleId: "missing_critical_document",
+    });
+  }
+
+  let unclassifiedCount = 0;
+  for (const record of smartDocs) {
+    if (!isUnclassifiedSmartDoc(record)) continue;
+    const company = resolveSmartDocCompany(record, companies);
+    if (companyId && company?.CompanyID !== companyId) continue;
+    unclassifiedCount += 1;
+    if (unclassifiedCount > 3) break;
+
+    pushItem(items, {
+      id: `attn-doc-unclassified-${record.SmartDocID}`,
+      sourceObjectId: record.SmartDocID,
+      sourceObjectName: record.DocumentName || record.FileLeafRef,
+      objectType: "Document",
+      severity: "waiting",
+      recommendation:
+        "This file is stored but not classified, so it cannot be reused as knowledge on the company or opportunity.",
+      suggestedAiAction: "Classify this document",
+      href: smartDocHref(record.SmartDocID),
+      companyId: company?.CompanyID,
+      companyName: company?.Title ?? record.ClientName,
+      ruleId: "unclassified_document",
+    });
+  }
+
+  return items;
+}
+
+function buildTenderAttention(
+  tenders: TenderListItem[],
+  companyId?: string,
+): AttentionItem[] {
+  if (companyId) return [];
+  const items: AttentionItem[] = [];
+
+  for (const tender of tenders.slice(0, 4)) {
+    const days = tender.daysLeft;
+    if (days < 0) continue;
+    pushItem(items, {
+      id: `attn-tender-${tender.id}`,
+      sourceObjectId: tender.id,
+      sourceObjectName: tender.title,
+      objectType: "Tender",
+      severity: days <= 7 ? "urgent" : "needs_attention",
+      recommendation:
+        days <= 7
+          ? `Submission deadline in ${days} day${days === 1 ? "" : "s"}. Missing this window means we cannot compete.`
+          : `${tender.authorityName} · ${tender.country}. Decide whether to bid while the notice is still open.`,
+      suggestedAiAction: "Review open tender",
+      href: "/prospecting",
+      dueDate: tender.submissionDeadline,
+      ruleId: "open_thermal_tender",
+    });
+  }
+
+  return items;
+}
+
 function dedupeAttentionItems(items: AttentionItem[]): AttentionItem[] {
   const byKey = new Map<string, AttentionItem>();
 
@@ -587,6 +741,25 @@ function attentionItemReferencesLiveEntity(
         (a) => a.ActivityID === item.sourceObjectId || String(a.id) === item.sourceObjectId,
       );
     case "Document":
+      return (
+        Boolean(
+          ctx.smartDocs?.some(
+            (record) =>
+              record.SmartDocID === item.sourceObjectId ||
+              record.FileLeafRef === item.sourceObjectId,
+          ),
+        ) ||
+        ctx.pipelines.some(
+          (pipeline) => pipeline.id === item.sourceObjectId && Boolean(pipeline.FileLeafRef),
+        ) ||
+        ctx.commercialPackages.some(
+          (pkg) =>
+            pkg.PackageID === item.sourceObjectId ||
+            pkg.DocumentSetID === item.sourceObjectId,
+        )
+      );
+    case "Tender":
+      return Boolean(ctx.tenders?.some((tender) => tender.id === item.sourceObjectId));
     case "DocumentSet":
     case "TransmissionPackage":
     case "CommercialBaseline":
@@ -642,6 +815,14 @@ export function buildAttentionItems(ctx: AttentionEngineContext): AttentionItem[
       scoped.commercialPackages,
       scoped.companyId,
     ),
+    ...buildDocumentKnowledgeAttention(
+      scoped.companies,
+      scoped.pipelines,
+      scoped.activities,
+      scoped.smartDocs ?? [],
+      scoped.companyId,
+    ),
+    ...buildTenderAttention(scoped.tenders ?? [], scoped.companyId),
   ];
 
   return dedupeAttentionItems(raw)

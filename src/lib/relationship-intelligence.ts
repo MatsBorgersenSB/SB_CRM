@@ -466,6 +466,7 @@ export function buildRelationshipCommandCenter(
   companies: Company[],
   pipelines: PipelineRow[],
   activities: Activity[],
+  options?: { correspondence?: Map<string, CompanyCorrespondenceEvidence> },
 ): RelationshipCommandCenter {
   const executive = computeExecutivePipelineKpis(pipelines);
   const intelligence = computeActivityIntelligence(activities, pipelines);
@@ -475,7 +476,12 @@ export function buildRelationshipCommandCenter(
     0,
   );
 
-  const allSummaries = buildCompanySummaries(companies, activities, pipelines);
+  const allSummaries = buildCompanySummaries(
+    companies,
+    activities,
+    pipelines,
+    options?.correspondence,
+  );
 
   const summaries = allSummaries
     .sort((a, b) => {

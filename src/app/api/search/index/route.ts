@@ -1,16 +1,31 @@
 import { NextResponse } from "next/server";
+import { loadCorrespondenceEvidenceByCompanyId } from "@/lib/company-correspondence-data";
 import { buildUniversalSearchIndex } from "@/lib/universal-search-index";
-import { readLiveFocusContext, readLiveInventory, readLiveResearchReports } from "@/lib/prisma-data";
+import {
+  readLiveFocusContext,
+  readLiveInventory,
+  readLiveResearchReports,
+  readLiveSmartDocsLibrary,
+} from "@/lib/prisma-data";
+import { listPendingTenders } from "@/lib/tenders/queries";
 
 /**
  * Global Search / Ask index — same live portfolio as Contacts / Company 360.
- * Never build from JSON seed alone when Prisma holds the registry (Halvor bug).
+ * Includes SmartDocs, mail correspondence, and open tenders as knowledge.
  */
 export async function GET() {
   const [focus, inventory, researchReports] = await Promise.all([
     readLiveFocusContext(),
     readLiveInventory(),
     readLiveResearchReports(),
+  ]);
+
+  const [correspondenceByCompanyId, smartDocs, tenders] = await Promise.all([
+    loadCorrespondenceEvidenceByCompanyId(focus.companies, { take: 100 }).catch(
+      () => new Map(),
+    ),
+    readLiveSmartDocsLibrary().catch(() => []),
+    listPendingTenders({ take: 20 }).catch(() => []),
   ]);
 
   const index = buildUniversalSearchIndex(
@@ -20,6 +35,7 @@ export async function GET() {
     inventory,
     focus.commercialPackages,
     researchReports,
+    { correspondenceByCompanyId, smartDocs, tenders },
   );
 
   return NextResponse.json({

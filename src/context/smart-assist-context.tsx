@@ -17,6 +17,8 @@ import type { PipelineRow } from "@/types/pipeline";
 import type { SmartAssistFocus } from "@/types/smart-assist";
 import { buildSmartAssistFocus } from "@/lib/smart-assist-engine";
 import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
+import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import type { TenderListItem } from "@/lib/tenders/types";
 import { filterHandledCoPilotProposals, hydrateCoPilotDismissalsFromServer } from "@/lib/smartassist-copilot-store";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -34,6 +36,8 @@ type SmartAssistContextValue = {
     activities: Activity[];
     commercialPackages: CommercialPackage[];
     correspondenceByCompanyId?: Record<string, CompanyCorrespondenceEvidence>;
+    smartDocs?: SmartDocLibraryRecord[];
+    tenders?: TenderListItem[];
   } | null;
   visible: boolean;
 };
@@ -84,7 +88,11 @@ export function SmartAssistProvider({ children }: { children: ReactNode }) {
           body.meta.activities,
           body.meta.commercialPackages,
           user,
-          { correspondenceByCompanyId },
+          {
+            correspondenceByCompanyId,
+            smartDocs: body.meta.smartDocs,
+            tenders: body.meta.tenders,
+          },
         );
         const filteredProposals = filterHandledCoPilotProposals(built.copilotProposals);
         setFocus({

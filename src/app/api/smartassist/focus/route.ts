@@ -1,17 +1,21 @@
 import { NextResponse } from "next/server";
 import { buildSmartAssistFocus } from "@/lib/smart-assist-engine";
 import { loadCorrespondenceEvidenceByCompanyId } from "@/lib/company-correspondence-data";
-import { readLiveFocusContext } from "@/lib/prisma-data";
+import { readLiveFocusContext, readLiveSmartDocsLibrary } from "@/lib/prisma-data";
+import { listPendingTenders } from "@/lib/tenders/queries";
 import { DEFAULT_AUTH_USER } from "@/types/auth";
 
 export async function GET() {
   const { companies, pipelines, activities, commercialPackages } =
     await readLiveFocusContext();
 
-  const correspondenceByCompanyId = await loadCorrespondenceEvidenceByCompanyId(
-    companies,
-    { take: 100 },
-  );
+  const [correspondenceByCompanyId, smartDocs, tenders] = await Promise.all([
+    loadCorrespondenceEvidenceByCompanyId(companies, { take: 100 }).catch(
+      () => new Map(),
+    ),
+    readLiveSmartDocsLibrary().catch(() => []),
+    listPendingTenders({ take: 12 }).catch(() => []),
+  ]);
 
   const focus = buildSmartAssistFocus(
     companies,
@@ -19,7 +23,7 @@ export async function GET() {
     activities,
     commercialPackages,
     DEFAULT_AUTH_USER,
-    { correspondenceByCompanyId },
+    { correspondenceByCompanyId, smartDocs, tenders },
   );
 
   return NextResponse.json({
@@ -30,6 +34,8 @@ export async function GET() {
       activities,
       commercialPackages,
       correspondenceByCompanyId: Object.fromEntries(correspondenceByCompanyId),
+      smartDocs,
+      tenders,
     },
   });
 }

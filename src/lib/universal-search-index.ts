@@ -23,6 +23,9 @@ import { formatDealValue } from "@/types/pipeline";
 import type { RawMaterial } from "@/types/raw-material";
 import type { SearchIndexItem } from "@/types/universal-search";
 import type { StoredResearchReport } from "@/types/research-report";
+import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import type { TenderListItem } from "@/lib/tenders/types";
+import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import { company360Href } from "@/types/company-360";
 import { smartDocHref } from "@/types/smartdoc";
 import {
@@ -283,7 +286,10 @@ function buildNoteItems(activities: Activity[]): SearchIndexItem[] {
 
   for (const activity of activities) {
     const notes = [
+      activity.Summary?.trim(),
       ...(activity.KeyDecisions ?? []),
+      ...(activity.AgreedActions ?? []).map((action) => action.text),
+      ...(activity.Risks ?? []),
       activity.ActivityDescription?.trim(),
     ].filter(Boolean) as string[];
 
@@ -315,11 +321,69 @@ function buildDocumentItems(
   pipelines: PipelineRow[],
   companies: Company[],
   activities: Activity[],
+  library: SmartDocLibraryRecord[] = [],
 ): SearchIndexItem[] {
   const results: SearchIndexItem[] = [];
+  const seen = new Set<string>();
+
+  for (const record of library) {
+    seen.add(record.SmartDocID);
+    if (record.DealId && record.FileLeafRef) {
+      seen.add(`${record.DealId}::${record.FileLeafRef}`);
+    }
+
+    const company =
+      (record.OwnerCompanyId
+        ? companies.find(
+            (row) =>
+              row.CompanyID === record.OwnerCompanyId ||
+              row.code === record.OwnerCompanyId,
+          )
+        : undefined) ??
+      (record.DealId ? findCompanyForDeal(record.DealId, companies) : undefined);
+    const last = record.DealId
+      ? lastForDeal(record.DealId, activities)
+      : company
+        ? lastForCompany(company.Title, activities)
+        : { label: "Filed knowledge", at: record.CreatedAt };
+
+    results.push(
+      item({
+        id: `document-${record.SmartDocID}`,
+        entityType: "document",
+        name: record.DocumentName || record.FileLeafRef,
+        typeLabel: record.DocType || record.DocCategory || "SmartDoc",
+        contextPreview: [
+          record.DocCategory,
+          record.ClientName,
+          record.Counterparty,
+          record.DealName,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        lastActivityLabel: last.label,
+        lastActivityAt: last.at,
+        href: smartDocHref(record.SmartDocID),
+        keywords: [
+          record.SmartDocID,
+          record.FileLeafRef,
+          record.DocCategory,
+          record.DocType,
+          record.ClientName,
+          record.DealId ?? "",
+          record.Counterparty ?? "",
+        ],
+        smartMeta: company
+          ? { companyId: company.CompanyID, companyName: company.Title }
+          : undefined,
+      }),
+    );
+  }
 
   for (const pipeline of pipelines) {
     if (!pipeline.FileLeafRef) continue;
+    const key = `${pipeline.id}::${pipeline.FileLeafRef}`;
+    if (seen.has(key) || seen.has(pipeline.id)) continue;
 
     const company = findCompanyForDeal(pipeline.id, companies);
     const dealLast = lastForDeal(pipeline.id, activities);
@@ -437,12 +501,20 @@ function buildAttentionItemsIndex(
   pipelines: PipelineRow[],
   activities: Activity[],
   commercialPackages: CommercialPackage[],
+  extras?: {
+    correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>;
+    smartDocs?: SmartDocLibraryRecord[];
+    tenders?: TenderListItem[];
+  },
 ): { items: SearchIndexItem[]; countByCompany: Map<string, number> } {
   const attention = buildAttentionItems({
     companies,
     pipelines,
     activities,
     commercialPackages,
+    correspondenceByCompanyId: extras?.correspondenceByCompanyId,
+    smartDocs: extras?.smartDocs,
+    tenders: extras?.tenders,
   });
 
   const countByCompany = new Map<string, number>();
@@ -548,6 +620,11 @@ export function buildUniversalSearchIndex(
   inventory: InventoryDb,
   commercialPackages: CommercialPackage[] = [],
   researchReports: StoredResearchReport[] = [],
+  extras?: {
+    correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>;
+    smartDocs?: SmartDocLibraryRecord[];
+    tenders?: TenderListItem[];
+  },
 ): SearchIndexItem[] {
   const materials = inventory.ledger.map(ledgerToRawMaterial);
   const { items: attentionItems, countByCompany } = buildAttentionItemsIndex(
@@ -555,13 +632,14 @@ export function buildUniversalSearchIndex(
     pipelines,
     activities,
     commercialPackages,
+    extras,
   );
 
   return [
     ...buildCompanyItems(companies, pipelines, activities, countByCompany),
     ...buildContactItems(companies, activities),
     ...buildDealItems(pipelines, companies, activities),
-    ...buildDocumentItems(pipelines, companies, activities),
+    ...buildDocumentItems(pipelines, companies, activities, extras?.smartDocs),
     ...buildDocumentSetItems(commercialPackages, companies),
     ...buildTransmissionItems(commercialPackages, companies),
     ...attentionItems,

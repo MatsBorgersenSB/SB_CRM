@@ -43,6 +43,9 @@ export type SmartAssistConversationContext = {
   user: AuthUser;
   pathname?: string;
   focus?: SmartAssistFocus | null;
+  correspondenceByCompanyId?: Map<string, import("@/lib/company-correspondence").CompanyCorrespondenceEvidence>;
+  smartDocs?: import("@/types/smartdoc-library").SmartDocLibraryRecord[];
+  tenders?: import("@/lib/tenders/types").TenderListItem[];
 };
 
 export type ConversationalIntent =
@@ -244,6 +247,7 @@ export function gatherBusinessImpactRecommendations(
     ctx.companies,
     ctx.pipelines,
     ctx.activities,
+    { correspondence: ctx.correspondenceByCompanyId },
   );
   const oppCenter = buildOpportunityCommandCenter(
     ctx.pipelines,
@@ -255,6 +259,9 @@ export function gatherBusinessImpactRecommendations(
     pipelines: ctx.pipelines,
     activities: ctx.activities,
     commercialPackages: ctx.commercialPackages,
+    correspondenceByCompanyId: ctx.correspondenceByCompanyId,
+    smartDocs: ctx.smartDocs,
+    tenders: ctx.tenders,
   }).filter((item) => item.status === "open");
 
   const copilotProposals =
@@ -376,7 +383,8 @@ export function gatherBusinessImpactRecommendations(
     const rawScore = computeRawImpactScore({
       revenueWeight: item.severity === "urgent" ? 80 : 45,
       relationshipWeight: item.objectType === "Company" || item.objectType === "Contact" ? 75 : 35,
-      opportunityWeight: item.objectType === "Opportunity" ? 80 : 30,
+      opportunityWeight:
+        item.objectType === "Opportunity" || item.objectType === "Tender" ? 80 : 30,
       contractReadinessWeight: item.objectType === "Document" ? 65 : 25,
     });
 

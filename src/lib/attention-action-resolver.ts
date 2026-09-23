@@ -145,8 +145,14 @@ export function resolveAttentionActions(item: AttentionItem): AttentionAction[] 
       if (item.objectType === "Opportunity") {
         actions.push({
           kind: "navigate",
-          label: "Open Deal",
+          label: "Open Opportunity",
           href: item.href || deal360Href(item.sourceObjectId),
+        });
+      } else if (item.objectType === "Document" || item.objectType === "Tender") {
+        actions.push({
+          kind: "navigate",
+          label: item.objectType === "Tender" ? "Open tenders" : "Open document",
+          href: item.href,
         });
       } else if (item.objectType === "Contact" && email) {
         pushDraftEmail();
