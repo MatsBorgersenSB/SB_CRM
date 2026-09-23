@@ -593,13 +593,22 @@ function buildDocumentKnowledgeAttention(
   companyId?: string,
 ): AttentionItem[] {
   const items: AttentionItem[] = [];
-  const intelligence = buildSmartDocsIntelligence(
-    pipelines,
-    companies,
-    activities,
-    smartDocs,
-  );
+  let intelligence: ReturnType<typeof buildSmartDocsIntelligence> | null = null;
+  try {
+    intelligence = buildSmartDocsIntelligence(
+      pipelines,
+      companies,
+      activities,
+      smartDocs,
+    );
+  } catch (error) {
+    console.warn(
+      "[attention] document intelligence skipped",
+      error instanceof Error ? error.message : error,
+    );
+  }
 
+  if (intelligence) {
   for (const doc of intelligence.knowledgeAtRisk.slice(0, 5)) {
     const company =
       (doc.document.pipelineId
@@ -646,6 +655,7 @@ function buildDocumentKnowledgeAttention(
       companyName: missing.entityKind === "company" ? missing.entityName : undefined,
       ruleId: "missing_critical_document",
     });
+  }
   }
 
   let unclassifiedCount = 0;
@@ -732,7 +742,7 @@ function attentionItemReferencesLiveEntity(
       return ctx.companies.some((c) => c.CompanyID === item.sourceObjectId);
     case "Contact":
       return ctx.companies.some((c) =>
-        c.contacts.some((contact) => contact.ContactID === item.sourceObjectId),
+        (c.contacts ?? []).some((contact) => contact.ContactID === item.sourceObjectId),
       );
     case "Opportunity":
       return ctx.pipelines.some((p) => p.id === item.sourceObjectId);
