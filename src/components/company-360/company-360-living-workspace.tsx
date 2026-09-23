@@ -27,12 +27,15 @@ import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-docume
 import { CompanyRecentOutlook } from "@/components/company-360/company-recent-outlook";
 import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
 import { CompanyDocumentKnowledgePanel } from "@/components/company-360/company-document-knowledge-panel";
+import { AddFindingPanel } from "@/components/knowledge/add-finding-panel";
 import { workspaceDocumentsContextFromCompany } from "@/lib/workspace-documents-data";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import {
   EMPTY_DOCUMENT_KNOWLEDGE_STATE,
   type CompanyDocumentKnowledgeState,
 } from "@/lib/company-document-knowledge";
+import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
+import type { SourceFinding } from "@/lib/source-findings";
 import type { Company360Snapshot } from "@/lib/company-360-data";
 import type { Company } from "@/types/company";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -134,6 +137,9 @@ export function Company360LivingWorkspace({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [documentCount, setDocumentCount] = useState(smartDocs.length);
+  const [findings, setFindings] = useState<SourceFinding[]>(
+    documentKnowledge.findings ?? [],
+  );
   const [activeTool, setActiveTool] = useState<Company360ActiveTool>(null);
   const [createRequestId, setCreateRequestId] = useState(0);
   const [attentionDismissTick, setAttentionDismissTick] = useState(0);
@@ -144,6 +150,40 @@ export function Company360LivingWorkspace({
   const [lastMailAt, setLastMailAt] = useState<string | null>(initialLastMailAt);
   const [lastMailByContactId, setLastMailByContactId] = useState<Record<string, string>>(
     initialLastMailByContactId,
+  );
+
+  useEffect(() => {
+    setFindings(documentKnowledge.findings ?? []);
+  }, [documentKnowledge.findings]);
+
+  const saveCompanyFindings = useCallback(
+    async (next: SourceFinding[]) => {
+      const previous = findings;
+      setFindings(next);
+      const response = await fetch(
+        `/api/companies/${encodeURIComponent(company.CompanyID)}/findings`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            [AUTH_ROLE_HEADER]: role,
+          },
+          body: JSON.stringify({ findings: next }),
+        },
+      );
+      if (!response.ok) {
+        setFindings(previous);
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(payload?.error || "Could not save finding");
+      }
+      const payload = (await response.json().catch(() => null)) as {
+        findings?: SourceFinding[];
+      } | null;
+      if (Array.isArray(payload?.findings)) setFindings(payload.findings);
+    },
+    [company.CompanyID, findings, role],
   );
 
   useEffect(() => {
@@ -342,6 +382,12 @@ export function Company360LivingWorkspace({
           ) : null}
         </div>
       </section>
+
+      <AddFindingPanel
+        targetLabel="this company"
+        findings={findings}
+        onFindingsChange={saveCompanyFindings}
+      />
 
       <CompanyDocumentKnowledgePanel
         companyId={company.CompanyID}

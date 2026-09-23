@@ -29,6 +29,7 @@ import { computeCommercialViability } from "@/lib/commercial-viability-engine";
 import { buildOpportunityUnderstanding } from "@/lib/opportunity-workspace-intelligence";
 import {
   patchDiscoveryNote,
+  patchSourceFindings,
   patchUnderstandingCapture,
 } from "@/lib/opportunity-understanding-model";
 import { DealStakeholdersTable } from "@/components/opportunity/deal-stakeholders-table";
@@ -37,6 +38,7 @@ import { OpportunityMissionControl } from "@/components/opportunity/opportunity-
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
 import type { OpportunityDiscoveryQuestionItem } from "@/lib/opportunity-workspace-intelligence";
+import type { SourceFinding } from "@/lib/source-findings";
 
 const LEGACY_HASH_TO_ACTION: Record<string, OpportunityActionTab> = {
   activities: "activities",
@@ -182,6 +184,15 @@ export function Deal360LivingWorkspace({
         item.id,
         value,
       );
+      await onPipelinePatch({ understanding });
+    },
+    [onPipelinePatch, pipeline.understanding],
+  );
+
+  const handleSaveFindings = useCallback(
+    async (findings: SourceFinding[]) => {
+      if (!onPipelinePatch) return;
+      const understanding = patchSourceFindings(pipeline.understanding, findings);
       await onPipelinePatch({ understanding });
     },
     [onPipelinePatch, pipeline.understanding],
@@ -361,6 +372,7 @@ export function Deal360LivingWorkspace({
         onSaveDiscoveryAnswer={
           onPipelinePatch ? handleSaveDiscoveryAnswer : undefined
         }
+        onSaveFindings={onPipelinePatch ? handleSaveFindings : undefined}
         role={role}
         influenceReadOnly={dealTeam.readOnly}
       />

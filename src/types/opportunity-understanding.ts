@@ -1,5 +1,7 @@
 /** Phase 2.6B — Opportunity Understanding Capture model */
 
+import type { SourceFinding } from "@/lib/source-findings";
+
 export type UnderstandingCategory =
   | "commercial"
   | "technical"
@@ -253,6 +255,8 @@ export type OpportunityUnderstandingCapture = {
    * (e.g. offerings scope, ad-hoc discovery prompts).
    */
   discoveryNotes?: Record<string, string>;
+  /** Public-source and user notes added via Add a finding. */
+  findings?: SourceFinding[];
   updatedAt?: string;
 };
 

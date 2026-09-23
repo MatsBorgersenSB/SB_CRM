@@ -16,6 +16,7 @@ import { OpportunityMissionControlTabBar } from "@/components/opportunity/opport
 import { OpportunityQuestionBox } from "@/components/opportunity/opportunity-question-box";
 import { OpportunityQuestionsWorkspace } from "@/components/opportunity/opportunity-questions-workspace";
 import { OpportunityTimelineWorkspace } from "@/components/opportunity/opportunity-timeline-workspace";
+import { AddFindingPanel } from "@/components/knowledge/add-finding-panel";
 import { buildOpportunityUnderstanding } from "@/lib/opportunity-workspace-intelligence";
 import { buildSmartDocsIntelligence } from "@/lib/smartdocs-intelligence-data";
 import type { OpportunityAskContext } from "@/lib/opportunity-smartassist-ask";
@@ -24,6 +25,7 @@ import type { OpportunityActionTab } from "@/types/opportunity-actions";
 import type { OpportunityMissionControlView } from "@/types/opportunity-mission-control";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
 import type { UserRole } from "@/types/auth";
+import type { SourceFinding } from "@/lib/source-findings";
 import {
   SmartAssistCategoryBadge,
   SmartAssistConfidenceLabel,
@@ -62,6 +64,7 @@ export function OpportunityMissionControl({
   onAnswerNow,
   onSaveUnderstandingField,
   onSaveDiscoveryAnswer,
+  onSaveFindings,
   role = "superuser",
   influenceReadOnly = false,
 }: {
@@ -89,6 +92,7 @@ export function OpportunityMissionControl({
     item: import("@/lib/opportunity-workspace-intelligence").OpportunityDiscoveryQuestionItem,
     value: string,
   ) => Promise<void>;
+  onSaveFindings?: (findings: SourceFinding[]) => Promise<void>;
   role?: UserRole;
   influenceReadOnly?: boolean;
 }) {
@@ -200,6 +204,8 @@ export function OpportunityMissionControl({
             hasCriticalGaps={understanding.knowledgeModel.criticalGaps.length > 0}
             stakeholdersOverview={stakeholdersOverview}
             onAnswerNow={onAnswerNow}
+            findings={pipeline.understanding?.findings ?? []}
+            onSaveFindings={onSaveFindings}
           />
         ) : null}
 
@@ -312,6 +318,8 @@ function OverviewPanel({
   hasCriticalGaps,
   stakeholdersOverview,
   onAnswerNow,
+  findings,
+  onSaveFindings,
 }: {
   objective: string;
   objectiveConfidence: "high" | "medium" | "low";
@@ -329,6 +337,8 @@ function OverviewPanel({
   hasCriticalGaps: boolean;
   stakeholdersOverview?: ReactNode;
   onAnswerNow?: (fieldId: string) => void;
+  findings: SourceFinding[];
+  onSaveFindings?: (findings: SourceFinding[]) => Promise<void>;
 }) {
   const objectiveCategory = confidenceToCategory(objectiveConfidence);
   const objectiveLabel =
@@ -336,6 +346,17 @@ function OverviewPanel({
 
   return (
     <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
+      <AddFindingPanel
+        targetLabel="this opportunity"
+        findings={findings}
+        onFindingsChange={
+          onSaveFindings ??
+          (async () => {
+            throw new Error("You cannot add findings with this role");
+          })
+        }
+      />
+
       <MissionInsight
         label="What the customer wants"
         answer={objectiveLabel}

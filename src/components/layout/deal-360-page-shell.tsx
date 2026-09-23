@@ -30,7 +30,12 @@ function hasCapturedUnderstanding(
   if (!row?.understanding) return false;
   const fields = row.understanding.fields ?? {};
   const notes = row.understanding.discoveryNotes ?? {};
-  return Object.keys(fields).length > 0 || Object.keys(notes).length > 0;
+  const findings = row.understanding.findings ?? [];
+  return (
+    Object.keys(fields).length > 0 ||
+    Object.keys(notes).length > 0 ||
+    findings.length > 0
+  );
 }
 
 function mergeDealPreservingUnderstanding(

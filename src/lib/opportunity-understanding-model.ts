@@ -8,6 +8,10 @@ import {
   UNDERSTANDING_FIELDS,
   UNDERSTANDING_FIELD_BY_ID,
 } from "@/types/opportunity-understanding";
+import {
+  confirmedFindingAnswerForField,
+  type SourceFinding,
+} from "@/lib/source-findings";
 
 export type ResolvedUnderstandingField = {
   definition: UnderstandingFieldDefinition;
@@ -100,6 +104,13 @@ export function resolveUnderstandingField(
   if (captured) {
     return { definition, value: captured, source: "captured" };
   }
+  const fromFinding = confirmedFindingAnswerForField(
+    pipeline.understanding?.findings,
+    fieldId,
+  );
+  if (fromFinding) {
+    return { definition, value: fromFinding, source: "captured" };
+  }
   const derived = deriveFieldValue(pipeline, fieldId)?.trim() ?? "";
   if (derived) {
     return { definition, value: derived, source: "derived" };
@@ -174,6 +185,7 @@ export function patchUnderstandingCapture(
   return {
     fields,
     discoveryNotes: current?.discoveryNotes,
+    findings: current?.findings,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -194,6 +206,27 @@ export function patchDiscoveryNote(
     fields: { ...(current?.fields ?? {}) },
     discoveryNotes:
       Object.keys(discoveryNotes).length > 0 ? discoveryNotes : undefined,
+    findings: current?.findings,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function patchSourceFindings(
+  current: OpportunityUnderstandingCapture | undefined,
+  findings: SourceFinding[],
+): OpportunityUnderstandingCapture {
+  const fields = { ...(current?.fields ?? {}) };
+  for (const finding of findings) {
+    for (const claim of finding.claims) {
+      if (claim.decision !== "confirmed" || !claim.fieldId) continue;
+      if (fields[claim.fieldId]?.trim()) continue;
+      fields[claim.fieldId] = claim.statement;
+    }
+  }
+  return {
+    fields,
+    discoveryNotes: current?.discoveryNotes,
+    findings,
     updatedAt: new Date().toISOString(),
   };
 }
