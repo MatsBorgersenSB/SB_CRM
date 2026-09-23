@@ -23,14 +23,14 @@ export function DashboardKpiGrid({ kpis }: { kpis: DashboardKpis }) {
     {
       label: "Pipeline Value",
       value: kpis.pipelineValue,
-      href: "/deals",
+      href: "/opportunities",
       icon: <CircleDollarSign className="size-4" strokeWidth={1.75} />,
       accent: "orange",
     },
     {
       label: "Active Deals",
       value: kpis.activeDeals,
-      href: "/deals",
+      href: "/opportunities",
       icon: <Workflow className="size-4" strokeWidth={1.75} />,
     },
     {

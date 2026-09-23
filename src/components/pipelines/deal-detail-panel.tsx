@@ -143,7 +143,7 @@ export function DealDetailPanel({
       />
 
       <Link
-        href={`/deals/${encodeURIComponent(pipeline.id)}`}
+        href={`/opportunities/${encodeURIComponent(pipeline.id)}`}
         className="text-[10px] text-carbon-blue/45 hover:text-upcycle-orange hover:underline"
       >
         Open full Deal 360

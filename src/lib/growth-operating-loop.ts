@@ -6,6 +6,7 @@ import {
 import { isEventPast, isEventUpcoming } from "@/lib/growth-event-timing";
 import { getLifecycleStage } from "@/types/pipeline";
 import { company360Href } from "@/types/company-360";
+import { deal360Href } from "@/types/relationship-navigation";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type {
@@ -43,7 +44,7 @@ export function openSalesDeals(pipelines: PipelineRow[]): PipelineRow[] {
 }
 
 function dealHref(deal: PipelineRow): string {
-  return `/deals/${encodeURIComponent(deal.id)}`;
+  return deal360Href(deal.id);
 }
 
 function nextStepLooksEmpty(deal: PipelineRow): boolean {

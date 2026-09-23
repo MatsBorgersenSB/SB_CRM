@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 
 type M365Status = {
   connected: boolean;
@@ -10,9 +12,9 @@ type M365Status = {
 };
 
 /**
- * Always-on Outlook mail sync control for the global workspace header.
+ * Quiet Outlook mail sync control — lives in the sidebar footer, not a product header.
  */
-export function M365MailSyncHeaderButton() {
+export function M365MailSyncHeaderButton({ compact = false }: { compact?: boolean }) {
   const [status, setStatus] = useState<M365Status | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -69,47 +71,66 @@ export function M365MailSyncHeaderButton() {
     return (
       <Link
         href="/m365-preview"
-        className="inline-flex items-center gap-1.5 border border-carbon-blue/15 bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
-        title="Connect Microsoft 365 to sync Outlook mail"
+        className={cn(
+          "inline-flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs tracking-tight",
+          "text-muted-foreground transition-colors hover:bg-accent/80 hover:text-foreground",
+        )}
+        title="Connect Microsoft 365 to sync mail"
       >
         <RefreshCw className="size-3" strokeWidth={2} aria-hidden />
-        Connect to sync
+        Connect mail
       </Link>
     );
   }
 
+  const statusLabel = error
+    ? error
+    : message
+      ? message
+      : status.lastSyncedAt
+        ? `Last sync ${new Date(status.lastSyncedAt).toLocaleTimeString()}`
+        : null;
+
   return (
-    <div className="flex items-center gap-2">
-      {error ? (
-        <span className="hidden max-w-[14rem] truncate text-[10px] text-red-700/80 sm:inline" title={error}>
-          {error}
-        </span>
-      ) : message ? (
-        <span className="hidden max-w-[14rem] truncate text-[10px] text-emerald-700/90 sm:inline" title={message}>
-          {message}
-        </span>
-      ) : status.lastSyncedAt ? (
+    <div className="flex flex-col gap-1">
+      {statusLabel && !compact ? (
         <span
-          className="hidden text-[10px] text-carbon-blue/40 sm:inline"
-          title={new Date(status.lastSyncedAt).toLocaleString()}
+          className={cn(
+            "hidden truncate text-[10px] sm:inline",
+            error ? "text-destructive" : "text-muted-foreground",
+          )}
+          title={statusLabel}
         >
-          Last sync {new Date(status.lastSyncedAt).toLocaleTimeString()}
+          {statusLabel}
         </span>
       ) : null}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         disabled={syncing}
         onClick={() => void syncNow()}
-        className="inline-flex items-center gap-1.5 border border-carbon-blue/15 bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+        className="w-full justify-start px-2 text-muted-foreground"
         title="Sync Outlook mailbox now"
       >
         <RefreshCw
-          className={`size-3 ${syncing ? "animate-spin" : ""}`}
+          className={cn("size-3", syncing ? "animate-spin" : "")}
           strokeWidth={2}
           aria-hidden
         />
-        {syncing ? "Syncing…" : "Sync Outlook"}
-      </button>
+        {syncing ? "Syncing…" : "Sync mail"}
+      </Button>
+      {compact && statusLabel ? (
+        <span
+          className={cn(
+            "truncate px-2 text-[10px]",
+            error ? "text-destructive" : "text-muted-foreground",
+          )}
+          title={statusLabel}
+        >
+          {statusLabel}
+        </span>
+      ) : null}
     </div>
   );
 }

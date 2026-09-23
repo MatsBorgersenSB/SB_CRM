@@ -145,7 +145,7 @@ export function ActivityKnowledgeSections({ activity }: { activity: Activity }) 
             {memory.linkedDeals.map((deal) => (
               <Link
                 key={deal.Title}
-                href={`/deals/${deal.Title}`}
+                href={`/opportunities/${encodeURIComponent(deal.Title)}`}
                 className="inline-flex items-center gap-1.5 border border-carbon-blue/10 px-2.5 py-1 font-mono text-[11px] text-upcycle-orange hover:border-upcycle-orange/30"
               >
                 <Workflow className="size-3" />

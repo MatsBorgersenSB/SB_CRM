@@ -282,7 +282,7 @@ export function ActivityCard({
                   {memory.linkedDeals.map((deal) => (
                     <LinkChip
                       key={deal.Title}
-                      href="/deals"
+                      href={`/opportunities/${encodeURIComponent(deal.Title)}`}
                       icon={Workflow}
                       label={deal.Title}
                       mono

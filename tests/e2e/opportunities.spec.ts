@@ -16,13 +16,11 @@ test.describe("FS-016 · Opportunities / deals smoke", () => {
     await expect(page.getByRole("option", { name: "Contract Negotiation" })).toBeVisible();
   });
 
-  test("deals pipeline page loads with stage status signals", async ({ page }) => {
+  test("legacy /deals path redirects to opportunities", async ({ page }) => {
     await page.goto("/deals");
 
-    await expect(page.getByRole("heading", { name: "Deals", exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/opportunities/);
+    await expect(page.getByText("Opportunities").first()).toBeVisible();
     await expect(page.getByText("SmartCRM", { exact: true }).first()).toBeVisible();
-
-    // Pipeline table phase-gate column header
-    await expect(page.getByText("Current Phase-Gate")).toBeVisible();
   });
 });

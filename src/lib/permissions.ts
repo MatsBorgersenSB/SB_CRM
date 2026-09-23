@@ -220,6 +220,7 @@ export function canAccessRoute(role: UserRole, href: string): boolean {
       href === "/contacts" ||
       href === "/activities" ||
       href === "/deals" ||
+      href === "/opportunities" ||
       href === "/projects" ||
       href === "/knowledge"
     );

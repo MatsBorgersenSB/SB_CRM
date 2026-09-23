@@ -35,7 +35,10 @@ export function contact360Href(
   return `${base}${query ? `?${query}` : ""}`;
 }
 
-/** Deal / Opportunity 360. */
+/** Opportunity list — canonical path. `/deals` redirects here. */
+export const OPPORTUNITY_LIST_HREF = "/opportunities";
+
+/** Deal / Opportunity 360 — canonical path is `/opportunities/{id}`. `/deals/{id}` redirects. */
 export function deal360Href(
   dealId: string,
   tab?: Deal360Tab,
@@ -45,8 +48,25 @@ export function deal360Href(
   if (tab) params.set("tab", tab);
   if (options?.packageId) params.set("package", options.packageId);
   const query = params.toString();
-  const base = `/deals/${encodeURIComponent(dealId)}`;
+  const base = `/opportunities/${encodeURIComponent(dealId)}`;
   return query ? `${base}?${query}` : base;
+}
+
+/** Read an opportunity id from either canonical or legacy `/deals/` hrefs. */
+export function parseDealIdFromHref(href: string | undefined | null): string | undefined {
+  if (!href) return undefined;
+  const match = href.match(/\/(?:opportunities|deals)\/([^/?#]+)/);
+  return match?.[1] ? decodeURIComponent(match[1]) : undefined;
+}
+
+export function hrefTouchesOpportunity(href: string, dealId: string): boolean {
+  const encoded = encodeURIComponent(dealId);
+  return (
+    href.includes(`/opportunities/${dealId}`) ||
+    href.includes(`/opportunities/${encoded}`) ||
+    href.includes(`/deals/${dealId}`) ||
+    href.includes(`/deals/${encoded}`)
+  );
 }
 
 /** Project Workspace Light — coordinated effort toward a defined outcome. */

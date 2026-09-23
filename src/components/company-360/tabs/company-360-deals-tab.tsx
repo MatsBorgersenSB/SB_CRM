@@ -261,7 +261,7 @@ export function Company360DealsTab({ pipelines }: { pipelines: PipelineRow[] }) 
           When deals are linked to this company, they appear here with full pipeline context.
         </p>
         <Link
-          href="/deals"
+          href="/opportunities"
           className="mt-4 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange"
         >
           Open pipeline

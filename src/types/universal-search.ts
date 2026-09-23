@@ -123,6 +123,27 @@ export const ASK_SUGGESTED_QUESTIONS = [
 
 export const SEARCH_COMMANDS: SearchCommand[] = [
   {
+    id: "open-tenders",
+    label: "Open Tenders",
+    description: "Thermal tenders that may deserve a bid",
+    href: "/prospecting",
+    keywords: ["open tenders", "tender", "radar", "prospecting", "ted", "doffin"],
+  },
+  {
+    id: "open-activities",
+    label: "Activities",
+    description: "Meetings, calls, and follow-ups",
+    href: "/activities",
+    keywords: ["activities", "meetings", "follow-ups", "open activities"],
+  },
+  {
+    id: "open-projects",
+    label: "Projects",
+    description: "Coordinated delivery work",
+    href: "/projects",
+    keywords: ["projects", "open projects", "project workspace"],
+  },
+  {
     id: "create-company",
     label: "Create Company",
     description: "Add a new account to SmartCRM",
@@ -167,7 +188,7 @@ export const SEARCH_COMMANDS: SearchCommand[] = [
   {
     id: "draft-email",
     label: "Draft Customer Email",
-    description: "Go to Focus to act on attention items",
+    description: "Go to Today to act on attention items",
     href: "/",
     keywords: ["draft email", "draft customer email", "compose email"],
   },

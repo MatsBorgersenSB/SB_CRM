@@ -113,14 +113,24 @@ function DashboardShellContent({
   return (
     <WorkspaceChrome>
         <WorkspaceHeader
-          scope="Your workspace"
+          scope="Today"
           title={ownerFilter ? `${ownerFilter} — Attention Queue` : "My Attention"}
           context={
             ownerFilter
               ? "Filtered queue for this owner"
               : "What needs attention, why, and what to do next"
           }
-          actions={<RoleSwitcher companies={scopedCompanies} />}
+          actions={
+            <div className="flex items-center gap-3">
+              <Link
+                href="/prospecting"
+                className="text-xs font-medium tracking-tight text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Open tenders
+              </Link>
+              <RoleSwitcher companies={scopedCompanies} />
+            </div>
+          }
         />
 
         <WorkspaceMain>

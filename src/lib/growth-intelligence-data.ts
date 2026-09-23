@@ -12,6 +12,7 @@ import {
 import { buildGrowthSuperSkills, offerLabel } from "@/lib/growth-super-skills";
 import { buildAllCompetitorProfiles, buildCompetitiveLandscape } from "@/lib/growth-competitive-intelligence-engine";
 import { company360Href } from "@/types/company-360";
+import { deal360Href } from "@/types/relationship-navigation";
 import type {
   GrowthCompetitorProfile,
   GrowthEvent,
@@ -172,7 +173,7 @@ function buildEmergingOpportunities(
       "Existing CRM opportunity — align growth actions to deal stage",
       "Paid feasibility may accelerate machinery decision",
     ],
-    href: `/deals/${encodeURIComponent(deal.id)}`,
+    href: deal360Href(deal.id),
   }));
 
   const fromSegments = segments
@@ -235,7 +236,7 @@ function buildLiveDeals(
       companyName: company?.Title ?? deal.ClientLookup?.trim() ?? "Unlinked company",
       status: deal.status,
       nextStep: deal.currentMilestone?.trim() || "Not captured",
-      href: `/deals/${encodeURIComponent(deal.id)}`,
+      href: deal360Href(deal.id),
       offer: choice ? offerLabel(choice.offer) : undefined,
       offerWhy: choice?.why,
     };

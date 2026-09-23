@@ -1,20 +1,6 @@
-import { AppShell } from "@/components/layout/app-shell";
-import { readLiveActivities, readLivePortfolio } from "@/lib/prisma-data";
+import { redirect } from "next/navigation";
+import { OPPORTUNITY_LIST_HREF } from "@/types/relationship-navigation";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-export default async function DealsPage() {
-  const [{ companies, pipelines }, activities] = await Promise.all([
-    readLivePortfolio(),
-    readLiveActivities(),
-  ]);
-
-  return (
-    <AppShell
-      initialPipelines={pipelines}
-      companies={companies}
-      activities={activities}
-    />
-  );
+export default function DealsRedirectPage() {
+  redirect(OPPORTUNITY_LIST_HREF);
 }

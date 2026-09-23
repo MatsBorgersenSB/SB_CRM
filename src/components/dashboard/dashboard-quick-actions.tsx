@@ -28,7 +28,7 @@ const actions = [
   },
   {
     label: "New Deal",
-    href: "/deals",
+    href: "/opportunities",
     icon: Workflow,
     primary: false,
   },

@@ -18,7 +18,7 @@ export function ThemeToggle() {
       aria-pressed={dark}
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       title={dark ? "Light mode" : "Dark mode"}
-      className="relative inline-flex size-8 items-center justify-center border border-carbon-blue/15 bg-white text-carbon-blue transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange"
+      className="relative inline-flex size-8 items-center justify-center rounded-md border border-border/60 bg-card text-foreground transition-colors hover:border-primary/40 hover:text-primary"
     >
       <Sun className="hidden size-4 dark:block" strokeWidth={1.75} />
       <Moon className="block size-4 dark:hidden" strokeWidth={1.75} />

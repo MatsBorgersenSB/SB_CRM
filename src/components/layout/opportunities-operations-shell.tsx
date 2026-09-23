@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import Link from "next/link";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { OpportunitiesOperationsTable } from "@/components/opportunity/opportunities-operations-table";
 import { OpportunityCreateModal } from "@/components/opportunity/opportunity-create-modal";
@@ -13,8 +12,8 @@ import {
 import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
-import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
 import { rankCommercialViability } from "@/lib/commercial-viability-engine";
@@ -257,21 +256,12 @@ export function OpportunitiesOperationsShell({
 
   return (
     <WorkspaceChrome>
-      <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] text-carbon-blue/55">
-          <SmartCRMIcon name="opportunity" size="xs" />
-          <span className="font-semibold text-carbon-blue">Opportunities</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/intelligence"
-            className="text-[10px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
-          >
-            Intelligence →
-          </Link>
-          <RoleSwitcher companies={scopedCompanies} />
-        </div>
-      </header>
+      <WorkspaceHeader
+        scope="Pipeline"
+        title="Opportunities"
+        context="What is blocking progress, and what should happen next"
+        actions={<RoleSwitcher companies={scopedCompanies} />}
+      />
 
       <WorkspaceMain>
         <WorkspaceStack>

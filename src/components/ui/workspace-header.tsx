@@ -17,14 +17,16 @@ export function WorkspaceHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-4 border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-sm">
       <div className="min-w-0">
-        <p className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+        <p className="truncate text-[11px] font-medium tracking-tight text-muted-foreground">
           {scope}
         </p>
-        <p className="truncate text-sm font-semibold text-carbon-blue">{title}</p>
+        <p className="truncate font-semibold tracking-tight text-foreground">{title}</p>
         {context ? (
-          <div className="hidden truncate text-[10px] text-carbon-blue/45 sm:block">{context}</div>
+          <div className="hidden truncate text-sm leading-relaxed text-muted-foreground sm:block">
+            {context}
+          </div>
         ) : null}
       </div>
       <div className="shrink-0">{actions ?? <ThemeToggle />}</div>

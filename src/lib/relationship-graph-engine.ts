@@ -5,6 +5,7 @@ import { formatDealValue, formatReactorCapacity } from "@/types/pipeline";
 import { getContactDisplayName } from "@/types/contact";
 import { smartDocHref, smartDocFromPipeline } from "@/types/smartdoc";
 import { company360Href } from "@/types/company-360";
+import { deal360Href } from "@/types/relationship-navigation";
 import type {
   CompanyRelationshipGraph,
   GraphDependency,
@@ -264,7 +265,7 @@ export function buildCompanyRelationshipGraph(
     nodes.push(
       buildNode(dealId, "opportunity", deal.assetName, 2, i, snapshot.pipelines.length, {
         subtitle: deal.status,
-        href: `/deals`,
+        href: deal360Href(deal.id),
         healthScore: actCount >= 2 ? 75 : actCount >= 1 ? 55 : 30,
         healthLabel: deal.status,
         riskLevel: actCount === 0 ? "high" : riskFromScore(actCount >= 2 ? 70 : 45),

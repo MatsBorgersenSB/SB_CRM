@@ -7,6 +7,7 @@ import { USER_ROLE_LABELS } from "@/types/auth";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import { deal360Href } from "@/types/relationship-navigation";
 import type {
   StandardBioUserRecord,
   UserAccessGap,
@@ -128,7 +129,7 @@ export function buildUsersAccessAudit(input: UsersAccessAuditInput): UsersAccess
           impact: "Deal progression and follow-ups lack accountability.",
           recommendedAction: "Assign an opportunity owner from a commercial user with portfolio scope.",
           severity: "warning",
-          href: `/deals/${pipeline.id}`,
+          href: deal360Href(pipeline.id),
           resolutionLabel: `Assign owner on ${pipeline.assetName ?? pipeline.id}`,
           entityId: pipeline.id,
         }),

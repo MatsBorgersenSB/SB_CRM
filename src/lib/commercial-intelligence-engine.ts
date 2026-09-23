@@ -23,6 +23,7 @@ import type {
   CommercialViabilityDimensionId,
   ViabilityRecommendation,
 } from "@/types/commercial-viability";
+import { deal360Href } from "@/types/relationship-navigation";
 
 const DIMENSION_MAP: Record<CommercialViabilityDimensionId, CommercialIntelligenceDimensionId | null> =
   {
@@ -108,7 +109,7 @@ function toIntelligenceAssessment(
       : {
           action: "Review commercial viability",
           reason: q.shouldInvestResources,
-          href: `/deals/${viability.dealId}`,
+          href: deal360Href(viability.dealId),
           priority: "Medium",
         },
   };

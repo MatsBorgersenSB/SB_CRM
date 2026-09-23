@@ -2,6 +2,7 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import { formatDealValue } from "@/types/pipeline";
+import { deal360Href } from "@/types/relationship-navigation";
 import { computeExecutivePipelineKpis } from "@/lib/pipeline-kpis";
 import {
   computeActivityIntelligence,
@@ -264,7 +265,7 @@ function buildFocusItems(
         priority: "high",
         title: `Review ${deal.assetName}`,
         subtitle: company?.Title ?? deal.id,
-        href: "/deals",
+        href: deal360Href(deal.id),
         companyName: company?.Title,
         valueLabel: formatDealValue(deal.currency, deal.salesValue),
       });
@@ -285,7 +286,7 @@ function buildFocusItems(
         priority: "high",
         title: `${deal.assetName} stalled`,
         subtitle: `No activity for ${daysSince} days · ${deal.status}`,
-        href: "/deals",
+        href: deal360Href(deal.id),
         companyName: company?.Title,
         daysStalled: daysSince,
       });

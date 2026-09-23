@@ -75,7 +75,7 @@ export function OpportunityOverview({
           action={
             risks.length > 0 ? (
               <Link
-                href={`/deals/${encodeURIComponent(dealId)}?tab=commercial`}
+                href={`/opportunities/${encodeURIComponent(dealId)}?tab=commercial`}
                 className="text-[10px] font-semibold text-upcycle-orange hover:underline"
               >
                 Full analysis
