@@ -232,6 +232,9 @@ export function executeSmartAssistAsk(
     user: ctx.user,
     pathname: ctx.pathname,
     focus: ctx.focus,
+    correspondenceByCompanyId: ctx.correspondenceByCompanyId,
+    smartDocs: ctx.smartDocs,
+    tenders: ctx.tenders,
   };
 
   const operational = tryOperationalCommands(command, ctx.companies, ctx.pipelines);

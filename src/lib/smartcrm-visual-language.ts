@@ -47,7 +47,8 @@ export type AttentionObjectTypeKey =
   | "Document"
   | "DocumentSet"
   | "TransmissionPackage"
-  | "CommercialBaseline";
+  | "CommercialBaseline"
+  | "Tender";
 
 export type SearchEntityTypeKey =
   | "company"
@@ -78,6 +79,7 @@ export const ATTENTION_OBJECT_ICONS: Record<AttentionObjectTypeKey, string> = {
   DocumentSet: SMARTCRM_ICONS.documentSet,
   TransmissionPackage: SMARTCRM_ICONS.documentSet,
   CommercialBaseline: SMARTCRM_ICONS.document,
+  Tender: SMARTCRM_ICONS.search,
 };
 
 export const SEARCH_ENTITY_ICONS: Record<SearchEntityTypeKey, string> = {

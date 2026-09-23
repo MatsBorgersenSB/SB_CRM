@@ -20,7 +20,8 @@ export type AttentionObjectType =
   | "Document"
   | "DocumentSet"
   | "TransmissionPackage"
-  | "CommercialBaseline";
+  | "CommercialBaseline"
+  | "Tender";
 
 export type AttentionItem = {
   id: string;

@@ -18,6 +18,8 @@ import {
 import { buildAttentionItems } from "@/lib/smart-attention-engine";
 import { buildCoPilotProposals } from "@/lib/smartassist-copilot-engine";
 import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
+import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import type { TenderListItem } from "@/lib/tenders/types";
 import { company360Href } from "@/types/company-360";
 import { deal360Href } from "@/types/relationship-navigation";
 import type {
@@ -67,6 +69,8 @@ export function buildSmartAssistFocus(
   user: AuthUser,
   options?: {
     correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>;
+    smartDocs?: SmartDocLibraryRecord[];
+    tenders?: TenderListItem[];
   },
 ): SmartAssistFocus {
   const portfolio = resolveSmartAssistPortfolio(companies, pipelines, activities, user);
@@ -81,6 +85,7 @@ export function buildSmartAssistFocus(
     scopedCompanies,
     scopedPipelines,
     scopedActivities,
+    { correspondence: options?.correspondenceByCompanyId },
   );
   const oppCenter = buildOpportunityCommandCenter(scopedPipelines, scopedCompanies, scopedActivities);
   const attentionItems = buildAttentionItems({
@@ -89,6 +94,8 @@ export function buildSmartAssistFocus(
     activities: scopedActivities,
     commercialPackages,
     correspondenceByCompanyId: options?.correspondenceByCompanyId,
+    smartDocs: options?.smartDocs,
+    tenders: options?.tenders,
   }).filter((item) => item.status === "open");
 
   const criticalDeals = oppCenter.dealsAtRisk.filter(
@@ -115,7 +122,10 @@ export function buildSmartAssistFocus(
 
   const ownedAttention = attentionItems.filter((item) => {
     const companyId = item.companyId ?? item.href.match(/\/companies\/([^/?]+)/)?.[1];
-    return companyId ? ownedCompanyIds.has(companyId) : false;
+    if (!companyId) {
+      return item.objectType === "Tender" || item.objectType === "Document";
+    }
+    return ownedCompanyIds.has(companyId);
   });
   const routedAttention =
     user.role === "commercial" || user.role === "engineer"

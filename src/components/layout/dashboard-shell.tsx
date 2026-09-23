@@ -23,6 +23,9 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { PipelineRow } from "@/types/pipeline";
+import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
+import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import type { TenderListItem } from "@/lib/tenders/types";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 
@@ -31,6 +34,9 @@ type DashboardShellProps = {
   pipelines: PipelineRow[];
   activities: Activity[];
   commercialPackages: CommercialPackage[];
+  correspondenceByCompanyId?: Record<string, CompanyCorrespondenceEvidence>;
+  smartDocs?: SmartDocLibraryRecord[];
+  tenders?: TenderListItem[];
 };
 
 export function DashboardShell(props: DashboardShellProps) {
@@ -46,6 +52,9 @@ function DashboardShellContent({
   pipelines,
   activities,
   commercialPackages,
+  correspondenceByCompanyId,
+  smartDocs,
+  tenders,
 }: DashboardShellProps) {
   const searchParams = useSearchParams();
   const ownerFilter = searchParams.get("owner") ?? undefined;
@@ -59,6 +68,14 @@ function DashboardShellContent({
   const scopedPipelines = useMemo(
     () => filterPipelinesForUser(pipelines, user, companies),
     [pipelines, user, companies],
+  );
+
+  const correspondenceMap = useMemo(
+    () =>
+      correspondenceByCompanyId
+        ? new Map(Object.entries(correspondenceByCompanyId))
+        : undefined,
+    [correspondenceByCompanyId],
   );
 
   const scopedActivities = useMemo(() => {
@@ -87,8 +104,9 @@ function DashboardShellContent({
         scopedCompanies,
         scopedPipelines,
         scopedActivities,
+        { correspondence: correspondenceMap },
       ),
-    [scopedActivities, scopedCompanies, scopedPipelines],
+    [scopedActivities, scopedCompanies, scopedPipelines, correspondenceMap],
   );
 
   const dailyBriefing = useMemo(
@@ -103,8 +121,19 @@ function DashboardShellContent({
         pipelines: scopedPipelines,
         activities: scopedActivities,
         commercialPackages,
+        correspondenceByCompanyId: correspondenceMap,
+        smartDocs,
+        tenders,
       }),
-    [scopedActivities, scopedCompanies, scopedPipelines, commercialPackages],
+    [
+      scopedActivities,
+      scopedCompanies,
+      scopedPipelines,
+      commercialPackages,
+      correspondenceMap,
+      smartDocs,
+      tenders,
+    ],
   );
 
 
