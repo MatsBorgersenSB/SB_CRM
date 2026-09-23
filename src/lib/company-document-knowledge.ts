@@ -2,6 +2,7 @@ import { smartDocHref } from "@/types/smartdoc";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import { isPermitSmartDocCategory } from "@/types/smartdoc-library";
 import { company360Href } from "@/types/company-360";
+import { parseSourceFindings, type SourceFinding } from "@/lib/source-findings";
 
 export type DocumentKnowledgeConfidence = "high" | "moderate";
 export type DocumentKnowledgeKind = "fact" | "unknown";
@@ -33,6 +34,7 @@ export type DocumentKnowledgeNextAction = {
 export type CompanyDocumentKnowledgeState = {
   confirmed: Record<string, { at: string }>;
   dismissed: Record<string, { at: string }>;
+  findings?: SourceFinding[];
 };
 
 export type CompanyDocumentKnowledgeSnapshot = {
@@ -47,6 +49,7 @@ export type CompanyDocumentKnowledgeSnapshot = {
 export const EMPTY_DOCUMENT_KNOWLEDGE_STATE: CompanyDocumentKnowledgeState = {
   confirmed: {},
   dismissed: {},
+  findings: [],
 };
 
 function isUnclassifiedType(docType: string | null | undefined): boolean {
@@ -82,11 +85,12 @@ function sourceFrom(record: SmartDocLibraryRecord): DocumentKnowledgeSource {
 
 function parseState(raw: unknown): CompanyDocumentKnowledgeState {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { confirmed: {}, dismissed: {} };
+    return { confirmed: {}, dismissed: {}, findings: [] };
   }
   const row = raw as {
     confirmed?: unknown;
     dismissed?: unknown;
+    findings?: unknown;
   };
   const confirmed: CompanyDocumentKnowledgeState["confirmed"] = {};
   const dismissed: CompanyDocumentKnowledgeState["dismissed"] = {};
@@ -108,7 +112,11 @@ function parseState(raw: unknown): CompanyDocumentKnowledgeState {
       if (key.trim()) dismissed[key] = { at: at || new Date().toISOString() };
     }
   }
-  return { confirmed, dismissed };
+  return {
+    confirmed,
+    dismissed,
+    findings: parseSourceFindings(row.findings),
+  };
 }
 
 export function parseCompanyDocumentKnowledgeState(
@@ -416,5 +424,5 @@ export function applyDocumentKnowledgeDecision(
   delete dismissed[id];
   if (decision === "confirmed") confirmed[id] = { at };
   else dismissed[id] = { at };
-  return { confirmed, dismissed };
+  return { confirmed, dismissed, findings: state.findings };
 }

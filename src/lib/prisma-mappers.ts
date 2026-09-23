@@ -30,6 +30,7 @@ import type {
 import { COMPANY_ROLES } from "@/types/pipeline";
 import type { OpportunityUnderstandingCapture } from "@/types/opportunity-understanding";
 import { isUnderstandingFieldId } from "@/types/opportunity-understanding";
+import { parseSourceFindings } from "@/lib/source-findings";
 import type {
   Company as PrismaCompany,
   Contact as PrismaContact,
@@ -354,6 +355,7 @@ function mapUnderstanding(value: unknown): OpportunityUnderstandingCapture | und
   const row = parsed as {
     fields?: unknown;
     discoveryNotes?: unknown;
+    findings?: unknown;
     updatedAt?: unknown;
   };
 
@@ -380,9 +382,12 @@ function mapUnderstanding(value: unknown): OpportunityUnderstandingCapture | und
     }
   }
 
+  const findings = parseSourceFindings(row.findings);
+
   if (
     Object.keys(fields).length === 0 &&
     Object.keys(discoveryNotes).length === 0 &&
+    findings.length === 0 &&
     typeof row.updatedAt !== "string"
   ) {
     return undefined;
@@ -392,6 +397,7 @@ function mapUnderstanding(value: unknown): OpportunityUnderstandingCapture | und
     fields,
     discoveryNotes:
       Object.keys(discoveryNotes).length > 0 ? discoveryNotes : undefined,
+    findings: findings.length > 0 ? findings : undefined,
     updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : undefined,
   };
 }
