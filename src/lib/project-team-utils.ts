@@ -46,8 +46,8 @@ export function migrateLegacyProjectTeam(project: Project): ProjectTeamMember[] 
     const isManager =
       !managerAssigned &&
       (internal.name === project.owner ||
-        internal.role.toLowerCase().includes("owner") ||
-        internal.role.toLowerCase().includes("manager"));
+        (internal.role ?? "").toLowerCase().includes("owner") ||
+        (internal.role ?? "").toLowerCase().includes("manager"));
 
     members.push({
       id: createTeamMemberId(),
@@ -76,7 +76,7 @@ export function migrateLegacyProjectTeam(project: Project): ProjectTeamMember[] 
   }
 
   for (const stakeholder of project.stakeholders ?? []) {
-    const roleLower = stakeholder.role.toLowerCase();
+    const roleLower = (stakeholder.role ?? "").toLowerCase();
     let category: ProjectTeamCategory = "associated_contact";
 
     if (stakeholder.contactId && project.linkedCompanyId) {
@@ -160,7 +160,7 @@ export function upsertProjectManager(
 
 export function resolveProjectManagerName(project: Project): string {
   const manager = getProjectStakeholders(project).find(
-    (entry) => entry.role.toLowerCase() === "project manager",
+    (entry) => (entry.role ?? "").toLowerCase() === "project manager",
   );
   if (manager) return manager.name;
   const teamManager = getProjectTeam(project).find((member) => member.category === "project_manager");

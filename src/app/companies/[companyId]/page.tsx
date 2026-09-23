@@ -12,6 +12,7 @@ import {
   readLiveInventory,
   readLivePortfolio,
 } from "@/lib/prisma-data";
+import { emptyInventory } from "@/lib/inventory-data";
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 import type { Company } from "@/types/company";
 
@@ -73,23 +74,47 @@ export default async function Company360Page({ params }: Company360PageProps) {
     projects,
   ] = await Promise.all([
     readLivePortfolio(),
-    readLiveActivities(),
-    readLiveInventory(),
-    readLiveCommercialPackages(),
-    readProjects(),
+    readLiveActivities().catch((error) => {
+      console.warn("[company-360] activities unavailable", error);
+      return [];
+    }),
+    readLiveInventory().catch((error) => {
+      console.warn("[company-360] inventory unavailable", error);
+      return emptyInventory;
+    }),
+    readLiveCommercialPackages().catch((error) => {
+      console.warn("[company-360] commercial packages unavailable", error);
+      return [];
+    }),
+    readProjects().catch((error) => {
+      console.warn("[company-360] projects unavailable", error);
+      return [];
+    }),
   ]);
 
   // Prisma by id OR code, then seed/portfolio with the same matchers.
-  const company = await getCompanyById(cleanId, companies);
+  const resolved = await getCompanyById(cleanId, companies);
 
-  if (!company) {
+  if (!resolved) {
     notFound();
   }
 
+  const company: Company = {
+    ...resolved,
+    contacts: resolved.contacts ?? [],
+    pipelineIds: resolved.pipelineIds ?? [],
+  };
+
   const shellCompanies = mergeCompanyIntoPortfolio(companies, company);
   const [duplicateHint, correspondence] = await Promise.all([
-    loadCompanyDuplicateHint(company.code || company.CompanyID),
-    loadCorrespondenceEvidenceForCompany(company),
+    loadCompanyDuplicateHint(company.code || company.CompanyID).catch((error) => {
+      console.warn("[company-360] duplicate hint unavailable", error);
+      return null;
+    }),
+    loadCorrespondenceEvidenceForCompany(company).catch((error) => {
+      console.warn("[company-360] correspondence unavailable", error);
+      return null;
+    }),
   ]);
 
   return (

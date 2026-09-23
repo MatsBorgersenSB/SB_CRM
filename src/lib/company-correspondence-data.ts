@@ -51,6 +51,7 @@ export async function loadCorrespondenceEvidenceByCompanyId(
   const result = new Map<string, CompanyCorrespondenceEvidence>();
   if (companies.length === 0) return result;
 
+  try {
   const emails: string[] = [];
   const contactIds: string[] = [];
   const emailToCompany = new Map<string, string>();
@@ -58,7 +59,7 @@ export async function loadCorrespondenceEvidenceByCompanyId(
 
   for (const company of companies) {
     result.set(company.CompanyID, { ...EMPTY_CORRESPONDENCE });
-    for (const contact of company.contacts) {
+    for (const contact of company.contacts ?? []) {
       const contactId = contact.ContactID?.trim();
       if (contactId) {
         contactIds.push(contactId);
@@ -216,7 +217,9 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       }
     }
 
-    const sentAt = message.sentAt.toISOString();
+    const sentAtDate = message.sentAt instanceof Date ? message.sentAt : new Date(message.sentAt);
+    if (Number.isNaN(sentAtDate.getTime())) continue;
+    const sentAt = sentAtDate.toISOString();
     const projectLinked = Boolean(message.projectId?.trim());
     const projectName = message.projectName?.trim() || null;
     const snippet: CorrespondenceMailSnippet = {
@@ -285,4 +288,8 @@ export async function loadCorrespondenceEvidenceByCompanyId(
   }
 
   return result;
+  } catch (error) {
+    console.warn("[correspondence] load failed", error);
+    return result;
+  }
 }
