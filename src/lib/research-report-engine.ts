@@ -192,7 +192,7 @@ export function buildResearchReportFromBriefing(
     title: `${typeLabel}: ${briefing.subjectLabel}`,
     subject: briefing.subjectLabel,
     generatedAt: new Date().toISOString(),
-    docCategory: type === "opportunity_assessment" ? "Commercial" : "Operational",
+    docCategory: type === "opportunity_assessment" ? "Sales & Marketing" : "Operation",
     docType: docTypeForReport(type),
     revision: "01",
     priority: briefing.overallAssessment.priority,

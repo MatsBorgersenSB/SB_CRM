@@ -123,17 +123,17 @@ const REQUIRED_BY_STAGE: Record<
 > = {
   sales: [
     { id: "nda", label: "NDA / Legal Agreement", docCategory: "Legal", critical: true },
-    { id: "tech-spec", label: "Technical Specification", docCategory: "Technical", critical: false },
-    { id: "proposal", label: "Proposal / Commercial", docCategory: "Financial", critical: false },
+    { id: "tech-spec", label: "Technical Specification", docCategory: "Engineering", critical: false },
+    { id: "proposal", label: "Proposal / Commercial", docCategory: "Finance", critical: false },
   ],
   delivery: [
-    { id: "tech-datasheet", label: "Technical Datasheet", docCategory: "Technical", critical: true },
-    { id: "compliance", label: "Environmental Permit", docCategory: "Permits", critical: true },
+    { id: "tech-datasheet", label: "Technical Datasheet", docCategory: "Engineering", critical: true },
+    { id: "compliance", label: "Environmental Permit", docCategory: "Quality", critical: true },
     { id: "legal", label: "Contract Document", docCategory: "Legal", critical: false },
   ],
   production: [
-    { id: "compliance-cert", label: "Environmental Permit", docCategory: "Permits", critical: true },
-    { id: "financial", label: "Financial Report", docCategory: "Financial", critical: false },
+    { id: "compliance-cert", label: "Environmental Permit", docCategory: "Quality", critical: true },
+    { id: "financial", label: "Financial Report", docCategory: "Finance", critical: false },
   ],
 };
 
@@ -319,7 +319,7 @@ function detectDocumentRisks(
   }
 
   if (
-    doc.docCategory === "Technical" &&
+    (doc.docCategory === "Technical" || doc.docCategory === "Engineering") &&
     pipeline &&
     ["Site Installation", "Commissioning Phase", "Live Production"].includes(pipeline.status) &&
     (Number.parseInt(doc.revision, 10) || 1) < 2
@@ -620,7 +620,7 @@ export function computeMissingDocumentsForCompany(
 
   const specs: RequiredDocumentSpec[] = [
     { id: "nda", label: "Master NDA", docCategory: "Legal", critical: true },
-    { id: "compliance", label: "Permit pack", docCategory: "Permits", critical: false },
+    { id: "compliance", label: "Permit pack", docCategory: "Quality", critical: false },
   ];
 
   const items: MissingDocumentItem[] = specs.map((spec) => {

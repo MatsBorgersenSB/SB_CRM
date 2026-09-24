@@ -4,22 +4,51 @@ import type {
   SmartDocNameSuggestions,
 } from "@/types/smartdoc-library";
 
-/** Michelin taxonomy — category segment in document identity (e.g. S = Sales & Marketing). */
+/** SharePoint Doc_Cat_Code — category segment in document identity. */
 export const SMARTDOC_IDENTITY_CATEGORY_CODES: Record<
   SmartDocCategory,
   { code: string; label: string }
 > = {
-  Commercial: { code: "S", label: "Sales & Marketing" },
-  Legal: { code: "L", label: "Legal" },
-  Permits: { code: "P", label: "Permits" },
-  Technical: { code: "T", label: "Technical" },
-  Financial: { code: "F", label: "Financial" },
-  Operational: { code: "O", label: "Operational" },
+  Admin: { code: "A", label: "Admin" },
+  Engineering: { code: "E", label: "Engineering" },
+  Finance: { code: "F", label: "Finance" },
   General: { code: "G", label: "General" },
+  "Project Management": { code: "P", label: "Project Management" },
+  "Sales & Marketing": { code: "S", label: "Sales & Marketing" },
+  "Aftermarket & Service": { code: "Z", label: "Aftermarket & Service" },
+  Legal: { code: "L", label: "Legal" },
+  Quality: { code: "Q", label: "Quality" },
+  Operation: { code: "O", label: "Operation" },
 };
 
-/** Type segment in document identity (3-letter codes). */
+/** SharePoint Doc_Type_Code — type segment in document identity (2–4 letters). */
 export const SMARTDOC_IDENTITY_TYPE_CODES: Record<string, string> = {
+  Datasheet: "DS",
+  Calculation: "CL",
+  Manual: "MA",
+  Report: "RE",
+  Drawing: "DRW",
+  Register: "RG",
+  "Minutes og Meeting": "MM",
+  Memo: "ME",
+  Presentation: "PP",
+  "Risk Assessment": "RA",
+  "Request for information": "RFI",
+  "Request for Quotation": "RFQ",
+  Quotation: "QU",
+  Template: "TP",
+  Invoice: "INV",
+  "Shipping Doc": "SH",
+  Contract: "CT",
+  NDA: "NDA",
+  Specification: "SP",
+  Certificate: "CRT",
+  Procedure: "PR",
+  Projectplan: "PPL",
+  "Scope of Works": "SOW",
+  "Change Request": "CR",
+  "Issue Log": "IL",
+  // Legacy SmartCRM types — still parse existing IDs
   "Formal Quotation": "QUO",
   "Budget Quotation": "QUO",
   "Price Indication": "QUO",
@@ -44,12 +73,11 @@ export const SMARTDOC_IDENTITY_TYPE_CODES: Record<string, string> = {
   "Heat Balance": "HBL",
   Clarifications: "CLR",
   "Third-party Report": "TPR",
-  Invoice: "INV",
   "Supplier Invoice": "SIV",
   "Budget Report": "BRP",
   "Payment Schedule": "PSC",
   "Business Report": "BRP",
-  "Meeting Notes": "MNT",
+  "Meeting Notes": "MM",
   "Project Plan": "PPL",
   "Unclassified Document": "GEN",
   Attachment: "ATT",
@@ -57,7 +85,7 @@ export const SMARTDOC_IDENTITY_TYPE_CODES: Record<string, string> = {
 };
 
 /** PL-… (opportunity), CO-… (company), or PRJ-… (project) owner prefix + category + type + sequence. */
-const IDENTITY_PATTERN = /^((?:PL|CO|PRJ)-[A-Z0-9]+)-([A-Z])-([A-Z]{3})-(\d{4})$/i;
+const IDENTITY_PATTERN = /^((?:PL|CO|PRJ)-[A-Z0-9]+)-([A-Z])-([A-Z]{2,4})-(\d{4})$/i;
 
 const OWNER_CODE_PATTERN = /^(PL|CO|PRJ)-[A-Z0-9]+$/i;
 
@@ -105,7 +133,8 @@ function normalizeTypeForSuggestedName(docType: string): string {
   if (
     docType === "Formal Quotation" ||
     docType === "Budget Quotation" ||
-    docType === "Price Indication"
+    docType === "Price Indication" ||
+    docType === "Supplier Quotation"
   ) {
     return "Quotation";
   }

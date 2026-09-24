@@ -27,7 +27,7 @@ import {
   SMARTDOC_CATEGORIES,
   SMARTDOC_ORIGIN_LABELS,
   SMARTDOC_ORIGINS,
-  SMARTDOC_TYPES_BY_CATEGORY,
+  SMARTDOC_TYPES,
   suggestOriginForDocType,
 } from "@/types/smartdoc-library";
 import {
@@ -1119,7 +1119,7 @@ export function WorkspaceDocumentsPanel({
               </div>
 
               {importQueue.map((item, index) => {
-                const types = SMARTDOC_TYPES_BY_CATEGORY[item.DocCategory];
+                const types = SMARTDOC_TYPES;
                 const previewId = importIdentityIds[index];
                 return (
                   <div
@@ -1167,14 +1167,9 @@ export function WorkspaceDocumentsPanel({
                           disabled={item.status === "importing" || item.status === "done"}
                           onChange={(event) => {
                             const nextCategory = event.target.value as SmartDocCategory;
-                            const nextTypes = SMARTDOC_TYPES_BY_CATEGORY[nextCategory];
-                            const nextType = nextTypes.includes(item.DocType)
-                              ? item.DocType
-                              : nextTypes[0]!;
                             updateQueueItem(item.id, {
                               DocCategory: nextCategory,
-                              DocType: nextType,
-                              Origin: suggestOriginForDocType(nextType),
+                              Origin: suggestOriginForDocType(item.DocType),
                               status: item.status === "error" ? "ready" : item.status,
                               error: undefined,
                             });

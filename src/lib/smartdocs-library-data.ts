@@ -24,7 +24,7 @@ function seedFromPipeline(
   const docCategory = normalizeSmartDocCategory(
     parsed?.DocCategory ?? pipeline.DocCategory ?? "General",
   );
-  const docType = parsed?.DocType ?? pipeline.DocType ?? "Unclassified Document";
+  const docType = parsed?.DocType ?? pipeline.DocType ?? "Memo";
   const identity = buildDocumentIdentity(
     pipeline.id,
     docCategory,
@@ -82,7 +82,7 @@ export function buildDefaultSmartDocsLibrary(
       const parsed = parseSmartDocsFilename(member.fileName);
       const company = findCompanyForDeal(pipeline.id, companies);
       const docCategory = normalizeSmartDocCategory(
-        member.DocCategory ?? parsed?.DocCategory ?? "Commercial",
+        member.DocCategory ?? parsed?.DocCategory ?? "Sales & Marketing",
       );
       const docType = parsed?.DocType ?? member.role;
       const identity = buildDocumentIdentity(

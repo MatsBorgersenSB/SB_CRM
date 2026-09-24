@@ -12,11 +12,15 @@ import type { CommercialPackage } from "@/types/commercial-package";
 import type { CreateDocumentSetInput, DocumentSet } from "@/types/document-set";
 import { documentSetTypeLabel } from "@/types/document-set";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
+import {
+  isEngineeringSmartDocCategory,
+  isSalesSmartDocCategory,
+} from "@/types/smartdoc-library";
 import type { DocumentSetMemberRole } from "@/types/commercial-package";
 
 function inferMemberRole(record: SmartDocLibraryRecord): DocumentSetMemberRole {
-  if (record.DocCategory === "Commercial") return "quotation";
-  if (record.DocCategory === "Technical") return "technical";
+  if (isSalesSmartDocCategory(record.DocCategory)) return "quotation";
+  if (isEngineeringSmartDocCategory(record.DocCategory)) return "technical";
   return "attachment";
 }
 

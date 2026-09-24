@@ -32,7 +32,7 @@ export const defaultActivities: Activity[] = [
     LinkedDocuments: [
       {
         Title: "PL-1042_Feedstock-Spec.02.pdf",
-        DocCategory: "Technical",
+        DocCategory: "Engineering",
         Revision: "02",
         DealId: "PL-1042",
       },
@@ -64,7 +64,7 @@ export const defaultActivities: Activity[] = [
     LinkedDocuments: [
       {
         Title: "PL-1042_Financial-Invoice.01 Q3 Report.pdf",
-        DocCategory: "Financial",
+        DocCategory: "Finance",
         Revision: "01",
         DealId: "PL-1042",
       },
@@ -128,7 +128,7 @@ export const defaultActivities: Activity[] = [
     LinkedDocuments: [
       {
         Title: "PL-1031_Audit-Note.03.pdf",
-        DocCategory: "Permits",
+        DocCategory: "Quality",
         Revision: "03",
         DealId: "PL-1031",
       },
@@ -158,7 +158,7 @@ export const defaultActivities: Activity[] = [
     LinkedDocuments: [
       {
         Title: "PL-1042_Financial-Invoice.01 Q3 Report.pdf",
-        DocCategory: "Financial",
+        DocCategory: "Finance",
         Revision: "01",
         DealId: "PL-1042",
       },

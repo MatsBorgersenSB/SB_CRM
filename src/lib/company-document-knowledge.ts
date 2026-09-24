@@ -79,7 +79,7 @@ function sourceFrom(record: SmartDocLibraryRecord): DocumentKnowledgeSource {
     id: record.SmartDocID,
     name,
     href: smartDocHref(record.SmartDocID),
-    docType: record.DocType || "Unclassified Document",
+    docType: record.DocType || "Memo",
   };
 }
 

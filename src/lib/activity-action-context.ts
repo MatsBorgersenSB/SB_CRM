@@ -106,7 +106,7 @@ function inferDocumentRelevance(
   if (/quotation|commercial|terms|budget/.test(name) && /commercial|email|align|proposal/.test(keys)) {
     return "Grounds commercial discussion in the latest offer.";
   }
-  if (category === "Technical" && /request|information|sample/.test(keys)) {
+  if ((category === "Technical" || category === "Engineering") && /request|information|sample/.test(keys)) {
     return "Technical reference for the information request.";
   }
   if (overlapScore(docName, [blocker]) > 0) {
@@ -128,10 +128,10 @@ function scoreDocument(
   if (doc.href) score += 10;
   score += overlapScore(doc.name, actionKeys);
   score += overlapScore(doc.name, [briefing.blockingProgress, briefing.nextStep]);
-  if (doc.category === "Technical" && input.recommendations.primary.actionType === "request_information") {
+  if ((doc.category === "Technical" || doc.category === "Engineering") && input.recommendations.primary.actionType === "request_information") {
     score += 25;
   }
-  if (doc.category === "Commercial" && input.recommendations.primary.actionType === "send_email") {
+  if ((doc.category === "Commercial" || doc.category === "Sales & Marketing") && input.recommendations.primary.actionType === "send_email") {
     score += 20;
   }
 

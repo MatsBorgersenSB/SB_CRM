@@ -16,7 +16,7 @@ const LEGACY_SMARTDOCS_FILENAME_PATTERN =
  * CO-1009-S-SUQ-0001 Dorset S02325.pdf
  */
 const IDENTITY_SMARTDOCS_FILENAME_PATTERN =
-  /^((?:PL|CO)-[A-Z0-9]+)-([A-Z])-([A-Z]{3})-(\d{4})(?:\s+.+)?\.([^.]+)$/i;
+  /^((?:PL|CO|PRJ)-[A-Z0-9]+)-([A-Z])-([A-Z]{2,4})-(\d{4})(?:\s+.+)?\.([^.]+)$/i;
 
 export function parseSmartDocsFilename(
   fileName: string,

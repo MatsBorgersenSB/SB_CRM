@@ -1,9 +1,5 @@
 import type { SmartDocCategory, SmartDocOrigin } from "@/types/smartdoc-library";
-import {
-  SMARTDOC_CATEGORIES,
-  SMARTDOC_TYPES_BY_CATEGORY,
-  suggestOriginForDocType,
-} from "@/types/smartdoc-library";
+import { SMARTDOC_TYPES, suggestOriginForDocType } from "@/types/smartdoc-library";
 
 export type DocIntelligenceResult = {
   DocCategory: SmartDocCategory;
@@ -33,8 +29,8 @@ const KEYWORD_RULES: KeywordRule[] = [
       "soknad om utslipp",
       "søknad om utslipp",
     ],
-    DocCategory: "Permits",
-    DocType: "Permit Application",
+    DocCategory: "Quality",
+    DocType: "Certificate",
     Origin: "external",
     reason: "Filename indicates a permit application to an authority",
   },
@@ -45,8 +41,8 @@ const KEYWORD_RULES: KeywordRule[] = [
       "igangsettingstillatelse",
       "building permit",
     ],
-    DocCategory: "Permits",
-    DocType: "Building Permit",
+    DocCategory: "Quality",
+    DocType: "Certificate",
     Origin: "external",
     reason: "Filename indicates a municipal building permit",
   },
@@ -57,8 +53,8 @@ const KEYWORD_RULES: KeywordRule[] = [
       "zoning permit",
       "arealplan",
     ],
-    DocCategory: "Permits",
-    DocType: "Planning Permit",
+    DocCategory: "Quality",
+    DocType: "Certificate",
     Origin: "external",
     reason: "Filename indicates a planning or zoning permit",
   },
@@ -69,8 +65,8 @@ const KEYWORD_RULES: KeywordRule[] = [
       "anleggskonsesjon",
       "konsesjon",
     ],
-    DocCategory: "Permits",
-    DocType: "Operating Licence",
+    DocCategory: "Quality",
+    DocType: "Certificate",
     Origin: "external",
     reason: "Filename indicates an operating licence",
   },
@@ -81,8 +77,8 @@ const KEYWORD_RULES: KeywordRule[] = [
       "inspection report",
       "egenkontroll",
     ],
-    DocCategory: "Permits",
-    DocType: "Inspection Report",
+    DocCategory: "Quality",
+    DocType: "Report",
     Origin: "external",
     reason: "Filename indicates an authority inspection or compliance report",
   },
@@ -100,10 +96,22 @@ const KEYWORD_RULES: KeywordRule[] = [
       "miljødirektoratet",
       "tillatelse",
     ],
-    DocCategory: "Permits",
-    DocType: "Environmental Permit",
+    DocCategory: "Quality",
+    DocType: "Certificate",
     Origin: "external",
     reason: "Filename indicates an environmental or pollution permit",
+  },
+  {
+    keywords: [
+      "presentasjon",
+      "presentation",
+      "pitch deck",
+      "slide deck",
+    ],
+    DocCategory: "Sales & Marketing",
+    DocType: "Presentation",
+    Origin: "standard_bio",
+    reason: "Filename indicates a presentation",
   },
   {
     keywords: [
@@ -113,8 +121,8 @@ const KEYWORD_RULES: KeywordRule[] = [
       "order-confirm",
       "order_confirm",
     ],
-    DocCategory: "Commercial",
-    DocType: "Order Confirmation",
+    DocCategory: "Sales & Marketing",
+    DocType: "Memo",
     Origin: "external",
     reason: "Filename indicates an external order confirmation",
   },
@@ -127,8 +135,8 @@ const KEYWORD_RULES: KeywordRule[] = [
       "innkjøpsordre",
       "bestilling",
     ],
-    DocCategory: "Commercial",
-    DocType: "Customer Purchase Order",
+    DocCategory: "Sales & Marketing",
+    DocType: "Shipping Doc",
     Origin: "external",
     reason: "Filename indicates a customer purchase order",
   },
@@ -141,59 +149,80 @@ const KEYWORD_RULES: KeywordRule[] = [
       "leverandor",
       "leverandør",
     ],
-    DocCategory: "Commercial",
-    DocType: "Supplier Quotation",
+    DocCategory: "Sales & Marketing",
+    DocType: "Quotation",
     Origin: "external",
     reason: "Filename indicates a supplier quotation",
   },
   {
+    keywords: ["rfq", "request for quotation", "request for quote"],
+    DocCategory: "Sales & Marketing",
+    DocType: "Request for Quotation",
+    Origin: "external",
+    reason: "Filename indicates a request for quotation",
+  },
+  {
+    keywords: ["rfi", "request for information"],
+    DocCategory: "Sales & Marketing",
+    DocType: "Request for information",
+    Origin: "external",
+    reason: "Filename indicates a request for information",
+  },
+  {
     keywords: ["tilbud", "quote", "quotation"],
-    DocCategory: "Commercial",
-    DocType: "Supplier Quotation",
+    DocCategory: "Sales & Marketing",
+    DocType: "Quotation",
     Origin: "external",
     reason: "Imported quotation — treated as external unless you mark it Standard Bio",
   },
   {
     keywords: ["supplier invoice", "vendor invoice"],
-    DocCategory: "Financial",
-    DocType: "Supplier Invoice",
+    DocCategory: "Finance",
+    DocType: "Invoice",
     Origin: "external",
     reason: "Filename indicates a supplier invoice",
   },
   {
     keywords: ["invoice", "receipt", "billing", "faktura"],
-    DocCategory: "Financial",
+    DocCategory: "Finance",
     DocType: "Invoice",
     Origin: "external",
     reason: "Filename indicates an invoice or billing document",
   },
   {
-    keywords: ["third party", "third-party", "lab report", "consultant report"],
-    DocCategory: "Technical",
-    DocType: "Third-party Report",
+    keywords: ["nda"],
+    DocCategory: "Legal",
+    DocType: "NDA",
     Origin: "external",
-    reason: "Filename indicates a third-party report",
+    reason: "Filename indicates a non-disclosure agreement",
   },
   {
-    keywords: ["agreement", "contract", "kontrakt", "nda", "msa", "terms", "avtale"],
+    keywords: ["agreement", "contract", "kontrakt", "msa", "terms", "avtale"],
     DocCategory: "Legal",
-    DocType: "Signed Contract",
+    DocType: "Contract",
     Origin: "external",
     reason: "Filename indicates a contract or agreement",
   },
   {
-    keywords: ["formal quotation", "budget quotation", "price indication"],
-    DocCategory: "Commercial",
-    DocType: "Formal Quotation",
+    keywords: ["minutes", "mom", "møtereferat", "motereferat", "meeting notes"],
+    DocCategory: "Project Management",
+    DocType: "Minutes og Meeting",
     Origin: "standard_bio",
-    reason: "Filename indicates a Standard Bio quotation",
+    reason: "Filename indicates meeting minutes",
   },
   {
-    keywords: ["proposal", "rfp"],
-    DocCategory: "Commercial",
-    DocType: "Sales Proposal",
+    keywords: ["project plan", "projectplan", "fremdriftsplan"],
+    DocCategory: "Project Management",
+    DocType: "Projectplan",
     Origin: "standard_bio",
-    reason: "Filename indicates a Standard Bio proposal",
+    reason: "Filename indicates a project plan",
+  },
+  {
+    keywords: ["risk assessment", "ros-analyse", "risikoanalyse"],
+    DocCategory: "Quality",
+    DocType: "Risk Assessment",
+    Origin: "standard_bio",
+    reason: "Filename indicates a risk assessment",
   },
   {
     keywords: [
@@ -203,23 +232,46 @@ const KEYWORD_RULES: KeywordRule[] = [
       "prosessflyt",
       "process flow",
       "p&id",
+      "drawing",
+      "tegning",
     ],
-    DocCategory: "Technical",
-    DocType: "Process Summary",
+    DocCategory: "Engineering",
+    DocType: "Drawing",
     Origin: "external",
-    reason: "Filename indicates a process or flow diagram",
+    reason: "Filename indicates a drawing or process diagram",
   },
   {
-    keywords: ["specs", "specification", "datasheet", "manual", "technical", "teknisk"],
-    DocCategory: "Technical",
-    DocType: "Technical Datasheet",
+    keywords: ["datasheet", "data sheet"],
+    DocCategory: "Engineering",
+    DocType: "Datasheet",
     Origin: "standard_bio",
-    reason: "Filename indicates a technical document",
+    reason: "Filename indicates a datasheet",
+  },
+  {
+    keywords: ["specification", "spesifikasjon", "scope of work", "sow"],
+    DocCategory: "Engineering",
+    DocType: "Specification",
+    Origin: "standard_bio",
+    reason: "Filename indicates a specification",
+  },
+  {
+    keywords: ["manual", "brukermanual", "procedure", "prosedyre"],
+    DocCategory: "Engineering",
+    DocType: "Manual",
+    Origin: "standard_bio",
+    reason: "Filename indicates a manual or procedure",
+  },
+  {
+    keywords: ["calculation", "beregning", "heat balance"],
+    DocCategory: "Engineering",
+    DocType: "Calculation",
+    Origin: "standard_bio",
+    reason: "Filename indicates a calculation",
   },
   {
     keywords: ["report", "summary", "analysis", "rapport"],
-    DocCategory: "Operational",
-    DocType: "Business Report",
+    DocCategory: "Engineering",
+    DocType: "Report",
     Origin: "unknown",
     reason: "Filename indicates a report — confirm origin",
   },
@@ -227,7 +279,7 @@ const KEYWORD_RULES: KeywordRule[] = [
 
 const DEFAULT_RESULT: DocIntelligenceResult = {
   DocCategory: "General",
-  DocType: "Unclassified Document",
+  DocType: "Memo",
   Origin: "unknown",
   reason: "No strong filename signal — please confirm category, type, and origin",
 };
@@ -276,19 +328,10 @@ function ensureKnownType(
   category: SmartDocCategory,
   docType: string,
 ): { DocCategory: SmartDocCategory; DocType: string } {
-  const types = SMARTDOC_TYPES_BY_CATEGORY[category] ?? [];
-  if (types.includes(docType)) return { DocCategory: category, DocType: docType };
-
-  for (const candidate of SMARTDOC_CATEGORIES) {
-    if (SMARTDOC_TYPES_BY_CATEGORY[candidate].includes(docType)) {
-      return { DocCategory: candidate, DocType: docType };
-    }
+  if ((SMARTDOC_TYPES as readonly string[]).includes(docType)) {
+    return { DocCategory: category, DocType: docType };
   }
-
-  return {
-    DocCategory: category,
-    DocType: types[0] ?? "Unclassified Document",
-  };
+  return { DocCategory: category, DocType: "Memo" };
 }
 
 export function classifyByFileName(fileName: string): DocIntelligenceResult {
@@ -301,12 +344,23 @@ export function classifyByFileName(fileName: string): DocIntelligenceResult {
   // "Unclassified Document". SCADA/screenshots are usually technical context.
   if ([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff"].includes(ext)) {
     return {
-      DocCategory: "Technical",
-      DocType: "Technical Datasheet",
+      DocCategory: "Engineering",
+      DocType: "Drawing",
       Origin: "unknown",
       Counterparty: counterparty,
       referenceNumber,
-      reason: "Image attachment classified as technical reference material",
+      reason: "Image attachment classified as an engineering drawing",
+    };
+  }
+
+  if ([".ppt", ".pptx", ".pps", ".ppsx", ".odp", ".key"].includes(ext)) {
+    return {
+      DocCategory: "Sales & Marketing",
+      DocType: "Presentation",
+      Origin: "standard_bio",
+      Counterparty: counterparty,
+      referenceNumber,
+      reason: "PowerPoint classified as a presentation — confirm origin if this came from the customer",
     };
   }
 

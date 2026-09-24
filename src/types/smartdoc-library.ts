@@ -66,88 +66,143 @@ export const SMARTDOC_ORIGIN_LABELS: Record<SmartDocOrigin, string> = {
   unknown: "Unknown",
 };
 
+/**
+ * SharePoint Document Categories list (Doc_Category / Doc_Cat_Code).
+ * SmartCRM must use this vocabulary — it is the document SoT.
+ */
 export type SmartDocCategory =
-  | "Commercial"
+  | "Admin"
+  | "Engineering"
+  | "Finance"
+  | "General"
+  | "Project Management"
+  | "Sales & Marketing"
+  | "Aftermarket & Service"
   | "Legal"
-  | "Permits"
-  | "Technical"
-  | "Financial"
-  | "Operational"
-  | "General";
+  | "Quality"
+  | "Operation";
 
 export const SMARTDOC_CATEGORIES: SmartDocCategory[] = [
-  "Commercial",
-  "Legal",
-  "Permits",
-  "Technical",
-  "Financial",
-  "Operational",
+  "Admin",
+  "Engineering",
+  "Finance",
   "General",
+  "Project Management",
+  "Sales & Marketing",
+  "Aftermarket & Service",
+  "Legal",
+  "Quality",
+  "Operation",
 ];
 
+/**
+ * SharePoint Document Types list (Doc_Types / Doc_Type_Code).
+ * Types are independent of category — pick both, as in SharePoint.
+ */
+export const SMARTDOC_TYPES = [
+  "Datasheet",
+  "Calculation",
+  "Manual",
+  "Report",
+  "Drawing",
+  "Register",
+  "Minutes og Meeting",
+  "Memo",
+  "Presentation",
+  "Risk Assessment",
+  "Request for information",
+  "Request for Quotation",
+  "Quotation",
+  "Template",
+  "Invoice",
+  "Shipping Doc",
+  "Contract",
+  "NDA",
+  "Specification",
+  "Certificate",
+  "Procedure",
+  "Projectplan",
+  "Scope of Works",
+  "Change Request",
+  "Issue Log",
+] as const;
+
+export type SmartDocType = (typeof SMARTDOC_TYPES)[number];
+
+/** Typical types per category — guidance only; every type remains selectable. */
 export const SMARTDOC_TYPES_BY_CATEGORY: Record<SmartDocCategory, string[]> = {
-  Commercial: [
-    "Formal Quotation",
-    "Budget Quotation",
-    "Price Indication",
-    "Sales Proposal",
-    "Supplier Quotation",
-    "Customer Purchase Order",
-    "Order Confirmation",
-    "Terms Schedule",
-    "Payment Milestones",
+  Admin: ["Memo", "Template", "Register", "Procedure", "Issue Log"],
+  Engineering: [
+    "Datasheet",
+    "Calculation",
+    "Drawing",
+    "Specification",
+    "Manual",
+    "Report",
+    "Scope of Works",
   ],
-  Legal: ["NDA Contract", "Signed Contract", "Vendor Agreement", "MSA"],
-  Permits: [
-    "Environmental Permit",
-    "Planning Permit",
-    "Building Permit",
-    "Operating Licence",
-    "Permit Application",
-    "Inspection Report",
+  Finance: ["Invoice", "Quotation", "Report"],
+  General: ["Memo", "Presentation", "Template", "Register"],
+  "Project Management": [
+    "Minutes og Meeting",
+    "Projectplan",
+    "Scope of Works",
+    "Change Request",
+    "Issue Log",
+    "Risk Assessment",
+    "Report",
   ],
-  Technical: [
-    "Technical Datasheet",
-    "Process Summary",
-    "Heat Balance",
-    "Clarifications",
-    "Third-party Report",
+  "Sales & Marketing": [
+    "Presentation",
+    "Quotation",
+    "Request for Quotation",
+    "Request for information",
+    "Memo",
+    "Report",
   ],
-  Financial: ["Invoice", "Supplier Invoice", "Budget Report", "Payment Schedule"],
-  Operational: ["Business Report", "Meeting Notes", "Project Plan"],
-  General: ["Unclassified Document", "Attachment", "Correspondence"],
+  "Aftermarket & Service": [
+    "Manual",
+    "Procedure",
+    "Shipping Doc",
+    "Report",
+    "Issue Log",
+  ],
+  Legal: ["Contract", "NDA", "Memo"],
+  Quality: [
+    "Certificate",
+    "Procedure",
+    "Risk Assessment",
+    "Report",
+    "Register",
+  ],
+  Operation: ["Procedure", "Manual", "Report", "Register", "Issue Log"],
 };
 
 /** Types that are typically produced outside Standard Bio. */
 export const SMARTDOC_EXTERNAL_TYPES = new Set<string>([
-  "Supplier Quotation",
-  "Customer Purchase Order",
-  "Order Confirmation",
-  "Supplier Invoice",
-  "Third-party Report",
-  "Vendor Agreement",
-  "Environmental Permit",
-  "Planning Permit",
-  "Building Permit",
-  "Operating Licence",
-  "Permit Application",
-  "Inspection Report",
+  "Certificate",
+  "Contract",
+  "NDA",
+  "Invoice",
+  "Shipping Doc",
+  "Request for information",
+  "Request for Quotation",
 ]);
 
 /** Types that are typically produced by Standard Bio. */
 export const SMARTDOC_STANDARD_BIO_TYPES = new Set<string>([
-  "Formal Quotation",
-  "Budget Quotation",
-  "Price Indication",
-  "Sales Proposal",
-  "Terms Schedule",
-  "Payment Milestones",
-  "Technical Datasheet",
-  "Process Summary",
-  "Heat Balance",
-  "Clarifications",
-  "Meeting Notes",
-  "Project Plan",
+  "Presentation",
+  "Datasheet",
+  "Quotation",
+  "Manual",
+  "Drawing",
+  "Calculation",
+  "Specification",
+  "Procedure",
+  "Template",
+  "Projectplan",
+  "Scope of Works",
+  "Minutes og Meeting",
 ]);
 
 export type DealDocumentContext = {
@@ -215,24 +270,133 @@ export function normalizeSmartDocOrigin(
   return "unknown";
 }
 
-/** Map stored / legacy labels onto the current taxonomy. */
+const LEGACY_CATEGORY_MAP: Record<string, SmartDocCategory> = {
+  commercial: "Sales & Marketing",
+  "sales & marketing": "Sales & Marketing",
+  sales: "Sales & Marketing",
+  legal: "Legal",
+  leagal: "Legal",
+  permits: "Quality",
+  compliance: "Quality",
+  quality: "Quality",
+  technical: "Engineering",
+  engineering: "Engineering",
+  financial: "Finance",
+  finance: "Finance",
+  operational: "Operation",
+  operation: "Operation",
+  operations: "Operation",
+  general: "General",
+  admin: "Admin",
+  "project management": "Project Management",
+  "aftermarket & service": "Aftermarket & Service",
+  aftermarket: "Aftermarket & Service",
+};
+
+const LEGACY_TYPE_MAP: Record<string, SmartDocType> = {
+  "formal quotation": "Quotation",
+  "budget quotation": "Quotation",
+  "price indication": "Quotation",
+  "supplier quotation": "Quotation",
+  "sales proposal": "Presentation",
+  "customer purchase order": "Shipping Doc",
+  "order confirmation": "Memo",
+  "terms schedule": "Contract",
+  "payment milestones": "Invoice",
+  "nda contract": "NDA",
+  nda: "NDA",
+  "signed contract": "Contract",
+  "vendor agreement": "Contract",
+  msa: "Contract",
+  "environmental permit": "Certificate",
+  "planning permit": "Certificate",
+  "building permit": "Certificate",
+  "operating licence": "Certificate",
+  "operating license": "Certificate",
+  "permit application": "Certificate",
+  "inspection report": "Report",
+  "technical datasheet": "Datasheet",
+  datasheet: "Datasheet",
+  "process summary": "Specification",
+  "heat balance": "Calculation",
+  clarifications: "Memo",
+  "third-party report": "Report",
+  invoice: "Invoice",
+  "supplier invoice": "Invoice",
+  "budget report": "Report",
+  "payment schedule": "Invoice",
+  "business report": "Report",
+  "meeting notes": "Minutes og Meeting",
+  "minutes of meeting": "Minutes og Meeting",
+  "minutes og meeting": "Minutes og Meeting",
+  "project plan": "Projectplan",
+  projectplan: "Projectplan",
+  "unclassified document": "Memo",
+  attachment: "Memo",
+  correspondence: "Memo",
+  presentation: "Presentation",
+  quaotation: "Quotation",
+  quotation: "Quotation",
+};
+
+/** Map stored / legacy labels onto the SharePoint taxonomy. */
 export function normalizeSmartDocCategory(
   value: string | null | undefined,
 ): SmartDocCategory {
   const cleaned = value?.trim();
   if (!cleaned) return "General";
-  if (cleaned === "Compliance") return "Permits";
   if (SMARTDOC_CATEGORIES.includes(cleaned as SmartDocCategory)) {
     return cleaned as SmartDocCategory;
   }
-  return "General";
+  const mapped = LEGACY_CATEGORY_MAP[cleaned.toLowerCase()];
+  return mapped ?? "General";
 }
 
-/** Authority permits and legacy Compliance rows. */
+export function isSmartDocType(value: string | null | undefined): value is SmartDocType {
+  return Boolean(value && (SMARTDOC_TYPES as readonly string[]).includes(value));
+}
+
+export function normalizeSmartDocType(value: string | null | undefined): string {
+  const cleaned = value?.trim();
+  if (!cleaned) return "Memo";
+  if (isSmartDocType(cleaned)) return cleaned;
+  return LEGACY_TYPE_MAP[cleaned.toLowerCase()] ?? cleaned;
+}
+
+/** Authority permits and legacy Compliance / Permits rows. */
 export function isPermitSmartDocCategory(
   category: string | null | undefined,
 ): boolean {
-  return category === "Permits" || category === "Compliance";
+  const cleaned = category?.trim();
+  return cleaned === "Permits" || cleaned === "Compliance";
+}
+
+export function looksLikePermitDocument(
+  category: string | null | undefined,
+  docType?: string | null,
+): boolean {
+  if (isPermitSmartDocCategory(category)) return true;
+  const type = normalizeSmartDocType(docType).toLowerCase();
+  return (
+    type === "certificate" ||
+    /permit|tillatelse|licence|license|konsesjon/.test(type)
+  );
+}
+
+export function isSalesSmartDocCategory(
+  category: string | null | undefined,
+): boolean {
+  const cleaned = category?.trim();
+  if (cleaned === "Commercial") return true;
+  return normalizeSmartDocCategory(cleaned) === "Sales & Marketing";
+}
+
+export function isEngineeringSmartDocCategory(
+  category: string | null | undefined,
+): boolean {
+  const cleaned = category?.trim();
+  if (cleaned === "Technical") return true;
+  return normalizeSmartDocCategory(cleaned) === "Engineering";
 }
 
 export function suggestOriginForDocType(docType: string): SmartDocOrigin {

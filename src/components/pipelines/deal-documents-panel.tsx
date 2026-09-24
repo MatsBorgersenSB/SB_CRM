@@ -29,7 +29,7 @@ import type {
 } from "@/types/smartdoc-library";
 import {
   SMARTDOC_CATEGORIES,
-  SMARTDOC_TYPES_BY_CATEGORY,
+  SMARTDOC_TYPES,
 } from "@/types/smartdoc-library";
 
 type DealDocumentsPanelProps = {
@@ -230,8 +230,8 @@ export function DealDocumentsPanel({
   const [error, setError] = useState<string | null>(null);
   const [uploadPhase, setUploadPhase] = useState<UploadPhase>("form");
   const [createdDocument, setCreatedDocument] = useState<SmartDocLibraryRecord | null>(null);
-  const [docCategory, setDocCategory] = useState<SmartDocCategory>("Commercial");
-  const [docType, setDocType] = useState(SMARTDOC_TYPES_BY_CATEGORY.Commercial[0]!);
+  const [docCategory, setDocCategory] = useState<SmartDocCategory>("Sales & Marketing");
+  const [docType, setDocType] = useState<string>("Quotation");
   const [documentName, setDocumentName] = useState("");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
   const [originalFileName, setOriginalFileName] = useState<string | undefined>();
@@ -241,7 +241,7 @@ export function DealDocumentsPanel({
   const [selectedDocumentSetId, setSelectedDocumentSetId] = useState<string>("");
   const [assigningDocId, setAssigningDocId] = useState<string | null>(null);
 
-  const docTypes = useMemo(() => SMARTDOC_TYPES_BY_CATEGORY[docCategory], [docCategory]);
+  const docTypes = SMARTDOC_TYPES;
 
   const identityPreview = useMemo<SmartDocIdentityPreview | null>(() => {
     if (!context) return null;
@@ -307,12 +307,6 @@ export function DealDocumentsPanel({
   }, [loadDocuments]);
 
   useEffect(() => {
-    if (!docTypes.includes(docType)) {
-      setDocType(docTypes[0]!);
-    }
-  }, [docCategory, docType, docTypes]);
-
-  useEffect(() => {
     if (!nameSuggestions || nameManuallyEdited) return;
     setDocumentName(nameSuggestions.primary);
   }, [nameSuggestions, nameManuallyEdited]);
@@ -355,14 +349,15 @@ export function DealDocumentsPanel({
     const hint = classifyByFileName(file.name);
     if (SMARTDOC_CATEGORIES.includes(hint.DocCategory as SmartDocCategory)) {
       setDocCategory(hint.DocCategory as SmartDocCategory);
-      const types = SMARTDOC_TYPES_BY_CATEGORY[hint.DocCategory as SmartDocCategory];
-      if (types.includes(hint.DocType)) {
+      if ((SMARTDOC_TYPES as readonly string[]).includes(hint.DocType)) {
         setDocType(hint.DocType);
       }
       setDocumentName(
         suggestImportDocumentName({
           dealName: context?.dealName ?? "",
-          docType: types.includes(hint.DocType) ? hint.DocType : types[0]!,
+          docType: (SMARTDOC_TYPES as readonly string[]).includes(hint.DocType)
+            ? hint.DocType
+            : "Memo",
           originalFileName: file.name,
           referenceNumber: hint.referenceNumber,
         }),

@@ -104,7 +104,7 @@ export function computeBusinessImpactLevel(
   if (isPermitSmartDocCategory(document.docCategory) || document.docCategory === "Legal") {
     score += 2;
   }
-  if (document.docCategory === "Technical") score += 1;
+  if (document.docCategory === "Technical" || document.docCategory === "Engineering") score += 1;
   if (pipeline && pipeline.salesValue >= 1_000_000) score += 2;
   else if (pipeline && pipeline.salesValue >= 500_000) score += 1;
   if (refs.length >= 3) score += 1;
