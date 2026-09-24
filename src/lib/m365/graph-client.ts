@@ -740,6 +740,161 @@ export async function uploadFileToSharePointFolder(input: {
   };
 }
 
+export type SharePointUploadSession = {
+  uploadUrl: string;
+  expirationDateTime: string;
+  fileName: string;
+};
+
+export type SharePointUploadChunkResult = {
+  complete: boolean;
+  item?: SharePointUploadedFile;
+  nextExpectedRanges?: string[];
+};
+
+/**
+ * Graph upload-session URLs are pre-authenticated. Only Microsoft hosts are allowed
+ * so the chunk proxy cannot be used as an open SSRF relay.
+ */
+export function isTrustedSharePointUploadUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase();
+    return (
+      host === "graph.microsoft.com" ||
+      host.endsWith(".graph.microsoft.com") ||
+      host.endsWith(".sharepoint.com") ||
+      host.endsWith(".sharepoint-df.com") ||
+      host.endsWith(".office.com") ||
+      host.endsWith(".office365.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Create a resumable Graph upload session so the browser can send bytes
+ * to SharePoint without putting the file through a Vercel function body.
+ */
+export async function createSharePointFolderUploadSession(input: {
+  accessToken: string;
+  siteId: string;
+  folderId: string;
+  fileName: string;
+}): Promise<SharePointUploadSession> {
+  const { accessToken, siteId, folderId } = input;
+  if (!accessToken?.trim()) throw new Error("Graph access token is required");
+  if (!siteId?.trim()) throw new Error("SHAREPOINT_SITE_ID is required");
+  if (!folderId?.trim()) throw new Error("SharePoint folder id is required");
+
+  const safeName = sanitizeSharePointName(input.fileName).replace(/\s+/g, " ");
+  const path = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/items/${encodeURIComponent(folderId)}:/${encodeURIComponent(safeName)}:/createUploadSession`;
+
+  const res = await fetch(path, {
+    method: "POST",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({
+      item: {
+        "@microsoft.graph.conflictBehavior": "rename",
+        name: safeName,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Graph createUploadSession failed (${res.status}): ${err}`);
+  }
+
+  const session = (await res.json()) as {
+    uploadUrl?: string;
+    expirationDateTime?: string;
+  };
+  if (!session.uploadUrl?.trim()) {
+    throw new Error("Graph createUploadSession returned no uploadUrl");
+  }
+  if (!isTrustedSharePointUploadUrl(session.uploadUrl)) {
+    throw new Error("Graph createUploadSession returned an untrusted upload URL");
+  }
+
+  return {
+    uploadUrl: session.uploadUrl,
+    expirationDateTime: session.expirationDateTime ?? "",
+    fileName: safeName,
+  };
+}
+
+/**
+ * Forward one byte range to a Graph upload session. Last range returns the drive item.
+ */
+export async function putSharePointUploadSessionChunk(input: {
+  uploadUrl: string;
+  contentRange: string;
+  bytes: ArrayBuffer | Uint8Array | Buffer;
+}): Promise<SharePointUploadChunkResult> {
+  if (!isTrustedSharePointUploadUrl(input.uploadUrl)) {
+    throw new Error("Upload URL is not a trusted SharePoint host");
+  }
+
+  const body =
+    input.bytes instanceof Buffer
+      ? input.bytes
+      : Buffer.from(
+          input.bytes instanceof ArrayBuffer
+            ? new Uint8Array(input.bytes)
+            : input.bytes,
+        );
+
+  const res = await fetch(input.uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Length": String(body.length),
+      "Content-Range": input.contentRange,
+      "Content-Type": "application/octet-stream",
+    },
+    body,
+  });
+
+  const raw = await res.text();
+  if (!res.ok) {
+    throw new Error(`Graph upload session chunk failed (${res.status}): ${raw.slice(0, 400)}`);
+  }
+
+  if (!raw.trim()) {
+    return { complete: false };
+  }
+
+  let parsed: {
+    id?: string;
+    webUrl?: string;
+    name?: string;
+    nextExpectedRanges?: string[];
+  };
+  try {
+    parsed = JSON.parse(raw) as typeof parsed;
+  } catch {
+    return { complete: false };
+  }
+
+  if (parsed.id && parsed.webUrl) {
+    return {
+      complete: true,
+      item: {
+        itemId: parsed.id,
+        webUrl: parsed.webUrl,
+        name: parsed.name ?? "",
+      },
+    };
+  }
+
+  return {
+    complete: false,
+    nextExpectedRanges: parsed.nextExpectedRanges,
+  };
+}
+
 /**
  * Delete a filed SmartDoc from the SharePoint document library.
  * Missing items are treated as already gone.
@@ -761,6 +916,34 @@ export async function deleteSharePointDriveItem(input: {
   if (res.ok || res.status === 204 || res.status === 404) return;
   const err = await res.text();
   throw new Error(`Graph delete failed (${res.status}): ${err}`);
+}
+
+/**
+ * Download file bytes from a SharePoint drive item so SmartAssist can read content.
+ */
+export async function downloadSharePointDriveItemBytes(input: {
+  accessToken: string;
+  siteId: string;
+  itemId: string;
+}): Promise<Buffer> {
+  if (!input.accessToken?.trim()) throw new Error("Graph access token is required");
+  if (!input.siteId?.trim()) throw new Error("SHAREPOINT_SITE_ID is required");
+  if (!input.itemId?.trim()) throw new Error("SharePoint item id is required");
+
+  const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(input.siteId)}/drive/items/${encodeURIComponent(input.itemId)}/content`;
+  const res = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+      Accept: "application/octet-stream",
+    },
+    redirect: "follow",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Graph download failed (${res.status}): ${err}`);
+  }
+  return Buffer.from(await res.arrayBuffer());
 }
 
 /**
