@@ -68,7 +68,7 @@ function inferDocumentsFromDescription(activity: Activity): LinkedDocument[] {
   return [
     {
       Title: pdfMatch[0],
-      DocCategory: "Financial",
+      DocCategory: "Finance",
       DealId: activity.Deal?.Title,
     },
   ];

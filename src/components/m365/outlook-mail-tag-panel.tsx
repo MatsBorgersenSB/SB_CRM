@@ -14,7 +14,7 @@ import {
 } from "@/lib/m365/outlook-context";
 import {
   SMARTDOC_CATEGORIES,
-  SMARTDOC_TYPES_BY_CATEGORY,
+  SMARTDOC_TYPES,
   type SmartDocCategory,
 } from "@/types/smartdoc-library";
 import type { UserRole } from "@/types/auth";
@@ -707,7 +707,7 @@ function FiledDocumentsReviewPanel({
       </p>
       <div className="mt-2 max-h-56 space-y-2 overflow-auto">
         {docs.map((doc) => {
-          const types = SMARTDOC_TYPES_BY_CATEGORY[doc.docCategory];
+          const types = SMARTDOC_TYPES;
           return (
             <div key={doc.id} className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-2">
               <p className="truncate text-[10px] font-medium text-carbon-blue/70">{doc.name}</p>
@@ -716,16 +716,12 @@ function FiledDocumentsReviewPanel({
                   value={doc.docCategory}
                   onChange={(event) => {
                     const nextCategory = event.target.value as SmartDocCategory;
-                    const nextTypes = SMARTDOC_TYPES_BY_CATEGORY[nextCategory];
                     setDocs((current) =>
                       current.map((row) =>
                         row.id === doc.id
                           ? {
                               ...row,
                               docCategory: nextCategory,
-                              docType: nextTypes.includes(row.docType)
-                                ? row.docType
-                                : nextTypes[0] ?? row.docType,
                             }
                           : row,
                       ),

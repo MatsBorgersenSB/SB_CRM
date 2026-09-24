@@ -1,6 +1,6 @@
 import {
   SMARTDOC_CATEGORIES,
-  SMARTDOC_TYPES_BY_CATEGORY,
+  SMARTDOC_TYPES,
 } from "@/types/smartdoc-library";
 
 /**
@@ -195,9 +195,7 @@ type ResolvedSmartDocColumns = {
   typeColumn: GraphColumn;
 };
 
-const SMARTDOC_TYPE_LABELS = [
-  ...new Set(Object.values(SMARTDOC_TYPES_BY_CATEGORY).flat()),
-];
+const SMARTDOC_TYPE_LABELS = [...SMARTDOC_TYPES];
 
 const resolvedSmartDocColumns = new Map<string, ResolvedSmartDocColumns>();
 
@@ -239,8 +237,8 @@ function findColumn(
 function findSmartDocCategoryColumn(columns: GraphColumn[]): GraphColumn | undefined {
   const owned = findColumn(
     columns,
-    ["DocCategory"],
-    ["Doc Category", "DocCategory"],
+    ["DocCategory", "Doc_Category", "DocCat"],
+    ["Doc Category", "DocCategory", "Doc_Category", "Category"],
   );
   if (owned) return owned;
 
@@ -256,8 +254,8 @@ function findSmartDocCategoryColumn(columns: GraphColumn[]): GraphColumn | undef
 function findSmartDocTypeColumn(columns: GraphColumn[]): GraphColumn | undefined {
   const owned = findColumn(
     columns,
-    ["DocType"],
-    ["Doc Type", "DocType"],
+    ["DocType", "Doc_Types", "Doc_Type"],
+    ["Doc Type", "DocType", "Doc Types", "Document Type"],
   );
   if (owned) return owned;
 
@@ -599,6 +597,23 @@ async function waitForDriveListItem(
   if (lastError) throw lastError;
 }
 
+function pickExistingChoice(
+  column: GraphColumn,
+  desired: string,
+  aliases: string[] = [],
+): string {
+  const options = columnChoices(column);
+  if (options.length === 0) return desired;
+  const candidates = [desired, ...aliases];
+  for (const candidate of candidates) {
+    const hit = options.find(
+      (choice) => choice.toLowerCase() === candidate.toLowerCase(),
+    );
+    if (hit) return hit;
+  }
+  return desired;
+}
+
 async function patchDriveItemFields(
   accessToken: string,
   siteId: string,
@@ -606,13 +621,26 @@ async function patchDriveItemFields(
   columns: ResolvedSmartDocColumns,
   fields: SmartDocSharePointFields,
 ): Promise<void> {
+  const category = pickExistingChoice(columns.categoryColumn, fields.DocCategory, [
+    "Leagal",
+    "Financial",
+    "Operational",
+    "Commercial",
+    "Technical",
+    "Permits",
+  ]);
+  const type = pickExistingChoice(columns.typeColumn, fields.DocType, [
+    "Quaotation",
+    "Minutes of Meeting",
+    "Meeting Notes",
+  ]);
   const endpoint = `${GRAPH_BASE}/sites/${encodeURIComponent(siteId)}/drive/items/${encodeURIComponent(itemId)}/listItem/fields`;
   const res = await fetch(endpoint, {
     method: "PATCH",
     headers: authHeaders(accessToken),
     body: JSON.stringify({
-      [columns.categoryName]: fields.DocCategory,
-      [columns.typeName]: fields.DocType,
+      [columns.categoryName]: category,
+      [columns.typeName]: type,
     }),
   });
   if (res.ok) return;

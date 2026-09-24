@@ -146,7 +146,7 @@ export async function deleteSmartDoc(documentId: string): Promise<DeletedSmartDo
     ...prismaRecords.map((row) => row.name),
     ...prismaRecords.map((row) => {
       const match = row.name.match(
-        /^((?:PL|CO|PRJ)-[A-Z0-9]+-[A-Z]-[A-Z]{3}-\d{4})/i,
+        /^((?:PL|CO|PRJ)-[A-Z0-9]+-[A-Z]-[A-Z]{2,4}-\d{4})/i,
       );
       return match?.[1];
     }),

@@ -3,7 +3,7 @@ import { getRequestRole } from "@/lib/api-auth";
 import { getPrisma } from "@/lib/prisma";
 import { getGraphAccessToken } from "@/lib/m365/get-graph-access-token";
 import { applySmartDocFieldsToDriveItem } from "@/lib/m365/graph-client";
-import { SMARTDOC_CATEGORIES, SMARTDOC_TYPES_BY_CATEGORY } from "@/types/smartdoc-library";
+import { SMARTDOC_CATEGORIES, SMARTDOC_TYPES } from "@/types/smartdoc-library";
 
 export async function PATCH(request: Request) {
   const role = getRequestRole(request);
@@ -45,7 +45,7 @@ export async function PATCH(request: Request) {
         results.push({ documentId, ok: false, error: "Invalid category" });
         continue;
       }
-      if (!SMARTDOC_TYPES_BY_CATEGORY[docCategory as (typeof SMARTDOC_CATEGORIES)[number]].includes(docType)) {
+      if (!(SMARTDOC_TYPES as readonly string[]).includes(docType)) {
         results.push({ documentId, ok: false, error: "Invalid type for category" });
         continue;
       }

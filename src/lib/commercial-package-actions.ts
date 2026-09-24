@@ -64,7 +64,7 @@ function buildExecutionExtras(
       role: "attachment",
       Title: `${dealId}_Commercial-Customer Contacts.01 Project Roster.pdf`,
       fileName: `${dealId}_Commercial-Customer Contacts.01 Project Roster.pdf`,
-      DocCategory: "Commercial",
+      DocCategory: "Sales & Marketing",
       Revision: "01",
       DealId: dealId,
     });
@@ -81,7 +81,7 @@ function buildExecutionExtras(
       role: "technical",
       Title: `${dealId}_Technical-Clarifications.01 Engineering Notes.pdf`,
       fileName: `${dealId}_Technical-Clarifications.01 Engineering Notes.pdf`,
-      DocCategory: "Technical",
+      DocCategory: "Engineering",
       Revision: "01",
       DealId: dealId,
     });

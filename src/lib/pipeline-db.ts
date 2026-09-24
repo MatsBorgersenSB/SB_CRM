@@ -44,6 +44,10 @@ import {
 } from "@/lib/smartdoc-library-engine";
 import type { CreateSmartDocInput } from "@/types/smartdoc-library";
 import { isCompanyOwnedSmartDoc } from "@/types/smartdoc-library";
+import {
+  isEngineeringSmartDocCategory,
+  isSalesSmartDocCategory,
+} from "@/types/smartdoc-library";
 import type { DeepResearchBriefing } from "@/types/deep-research";
 import type { ResearchReport, StoredResearchReport } from "@/types/research-report";
 import {
@@ -1466,9 +1470,9 @@ export async function createSmartDocLibraryRecord(
     );
     if (!alreadyMember) {
       const role =
-        record.DocCategory === "Commercial"
+        isSalesSmartDocCategory(record.DocCategory)
           ? "quotation"
-          : record.DocCategory === "Technical"
+          : isEngineeringSmartDocCategory(record.DocCategory)
             ? "technical"
             : "attachment";
       database.commercialPackages[packageIndex] = {

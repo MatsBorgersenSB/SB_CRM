@@ -82,7 +82,7 @@ export type ResearchReport = {
   title: string;
   subject: string;
   generatedAt: string;
-  docCategory: "Operational" | "Commercial";
+  docCategory: "Operation" | "Sales & Marketing";
   docType: string;
   revision: string;
   priority: DeepResearchPriority;
