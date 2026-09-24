@@ -55,6 +55,7 @@ import { WorkspaceModeNav } from "@/components/ui/workspace-mode-nav";
 import { useAuth } from "@/context/auth-context";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import { canDeleteSmartDoc } from "@/lib/permissions";
+import { importSmartDocWithFile } from "@/lib/smartdoc-browser-upload";
 import { deleteSmartDocRecord } from "@/lib/sync-smartdoc";
 
 type DocumentsMode = "browse" | "create" | "import";
@@ -478,31 +479,21 @@ export function WorkspaceDocumentsPanel({
 
     let response: Response;
     if (file) {
-      const form = new FormData();
-      form.append("DocCategory", payload.DocCategory);
-      form.append("DocType", payload.DocType);
-      form.append("DocumentName", payload.DocumentName);
-      if (payload.originalFileName) {
-        form.append("originalFileName", payload.originalFileName);
-      }
-      if (payload.DocumentSetID && !useCompanyOwnership && !isProjectScope) {
-        form.append("DocumentSetID", payload.DocumentSetID);
-      }
-      if (payload.Origin) {
-        form.append("Origin", payload.Origin);
-      }
-      if (payload.Counterparty) {
-        form.append("Counterparty", payload.Counterparty);
-      }
-      if (isProjectScope && context.projectId) {
-        form.append("LinkedProjectId", context.projectId);
-      }
-      form.append("file", file, file.name);
-      response = await fetch(endpoint, {
-        method: "POST",
-        credentials: "include",
+      return importSmartDocWithFile({
+        endpoint,
         headers: authHeaders,
-        body: form,
+        payload: {
+          ...payload,
+          ...(isProjectScope && context.projectId
+            ? { LinkedProjectId: context.projectId }
+            : {}),
+        },
+        file,
+        scope: isProjectScope
+          ? { kind: "project", projectId }
+          : useCompanyOwnership
+            ? { kind: "company", companyId: ownerId }
+            : { kind: "opportunity", dealId },
       });
     } else {
       response = await fetch(endpoint, {
@@ -847,7 +838,7 @@ export function WorkspaceDocumentsPanel({
                   type="file"
                   multiple
                   className="mt-3 text-[11px] text-carbon-blue/70"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
                   onChange={(event) => {
                     handleFilePick(event.target.files);
                     event.target.value = "";
@@ -1098,7 +1089,7 @@ export function WorkspaceDocumentsPanel({
               type="file"
               multiple
               className="mt-3 text-[11px] text-carbon-blue/70"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
               onChange={(event) => {
                 handleFilePick(event.target.files);
                 event.target.value = "";
@@ -1143,7 +1134,7 @@ export function WorkspaceDocumentsPanel({
                         <p className="mt-0.5 text-[11px] text-carbon-blue/60">{item.reason}</p>
                         {item.status === "importing" ? (
                           <p className="mt-1 text-[11px] font-medium text-upcycle-orange">
-                            Importing…
+                            Importing to SharePoint…
                           </p>
                         ) : null}
                         {item.status === "error" && item.error ? (
@@ -1323,7 +1314,7 @@ export function WorkspaceDocumentsPanel({
                   className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold text-white disabled:opacity-50"
                 >
                   {saving
-                    ? "Importing…"
+                    ? "Uploading to SharePoint…"
                     : readyImportCount === 1
                       ? "Confirm & Import"
                       : `Confirm & Import ${readyImportCount}`}

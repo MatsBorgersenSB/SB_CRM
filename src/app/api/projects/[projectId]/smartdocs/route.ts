@@ -8,7 +8,11 @@ import {
 } from "@/lib/prisma-data";
 import { readProjectById } from "@/lib/project-db";
 import { buildProjectDocumentContext } from "@/lib/smartdoc-library-engine";
-import { importProjectSmartDoc } from "@/lib/smartdoc-import";
+import {
+  filedSharePointFromJson,
+  importProjectSmartDoc,
+  type FiledSharePointSmartDoc,
+} from "@/lib/smartdoc-import";
 import { resolveCompanyForSmartDocs } from "@/lib/pipeline-db";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
@@ -21,6 +25,7 @@ import {
 async function parseCreateSmartDocRequest(request: Request): Promise<{
   metadata: CreateSmartDocInput;
   file?: { bytes: Buffer; mimeType: string | null; originalFileName: string };
+  sharePoint?: FiledSharePointSmartDoc;
 }> {
   const contentType = request.headers.get("content-type") ?? "";
 
@@ -69,11 +74,13 @@ async function parseCreateSmartDocRequest(request: Request): Promise<{
     mimeType?: string;
   };
 
+  const sharePoint = filedSharePointFromJson(body as unknown as Record<string, unknown>);
+
   let file:
     | { bytes: Buffer; mimeType: string | null; originalFileName: string }
     | undefined;
 
-  if (body.fileBase64?.trim()) {
+  if (!sharePoint && body.fileBase64?.trim()) {
     file = {
       bytes: Buffer.from(body.fileBase64, "base64"),
       mimeType: body.mimeType ?? null,
@@ -94,6 +101,7 @@ async function parseCreateSmartDocRequest(request: Request): Promise<{
       LinkedDealId: body.LinkedDealId?.trim() || undefined,
     },
     file,
+    sharePoint,
   };
 }
 
@@ -164,7 +172,7 @@ export async function POST(
   }
 
   try {
-    const { metadata, file } = await parseCreateSmartDocRequest(request);
+    const { metadata, file, sharePoint } = await parseCreateSmartDocRequest(request);
 
     if (
       !metadata.DocCategory ||
@@ -201,6 +209,7 @@ export async function POST(
         LinkedProjectId: projectId,
       },
       file,
+      sharePoint,
     });
 
     const [project, documents] = await Promise.all([

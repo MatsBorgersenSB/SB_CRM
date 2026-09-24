@@ -10,7 +10,8 @@ import {
   readLiveSmartDocsForDeal,
   readLiveSmartDocsLibrary,
 } from "@/lib/prisma-data";
-import { importOpportunitySmartDoc } from "@/lib/smartdoc-import";
+import { filedSharePointFromJson, importOpportunitySmartDoc } from "@/lib/smartdoc-import";
+import type { FiledSharePointSmartDoc } from "@/lib/smartdoc-import";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import type { CreateSmartDocInput, SmartDocCategory } from "@/types/smartdoc-library";
@@ -22,6 +23,7 @@ import {
 async function parseCreateSmartDocRequest(request: Request): Promise<{
   metadata: CreateSmartDocInput;
   file?: { bytes: Buffer; mimeType: string | null; originalFileName: string };
+  sharePoint?: FiledSharePointSmartDoc;
 }> {
   const contentType = request.headers.get("content-type") ?? "";
 
@@ -68,13 +70,18 @@ async function parseCreateSmartDocRequest(request: Request): Promise<{
   const body = (await request.json()) as CreateSmartDocInput & {
     fileBase64?: string;
     mimeType?: string;
+    sharepointItemId?: string;
+    sharepointWebUrl?: string;
+    sizeBytes?: number;
   };
+
+  const sharePoint = filedSharePointFromJson(body as unknown as Record<string, unknown>);
 
   let file:
     | { bytes: Buffer; mimeType: string | null; originalFileName: string }
     | undefined;
 
-  if (body.fileBase64?.trim()) {
+  if (!sharePoint && body.fileBase64?.trim()) {
     file = {
       bytes: Buffer.from(body.fileBase64, "base64"),
       mimeType: body.mimeType ?? null,
@@ -95,6 +102,7 @@ async function parseCreateSmartDocRequest(request: Request): Promise<{
       Counterparty: body.Counterparty?.trim() || undefined,
     },
     file,
+    sharePoint,
   };
 }
 
@@ -162,7 +170,7 @@ export async function POST(
   }
 
   try {
-    const { metadata, file } = await parseCreateSmartDocRequest(request);
+    const { metadata, file, sharePoint } = await parseCreateSmartDocRequest(request);
 
     if (
       !metadata.DocCategory ||
@@ -188,6 +196,7 @@ export async function POST(
         Counterparty: metadata.Counterparty,
       },
       file,
+      sharePoint,
     });
 
     const [pipeline, companies, packages, documents] = await Promise.all([
