@@ -58,6 +58,10 @@ import {
   canManageOpportunityStakeholders,
 } from "@/lib/permissions";
 import {
+  companyHasType,
+} from "@/lib/company-classification";
+import { hasConfirmedCompetitorKnowledge } from "@/lib/competitor-brief";
+import {
   shouldOfferCreateOpportunity,
   type CompanyCorrespondenceEvidence,
 } from "@/lib/company-correspondence";
@@ -267,6 +271,8 @@ export function Company360LivingWorkspace({
         ? opportunityStageLabel(stalledDeal, commercialPackages)
         : null,
       engageContact: pickEngageContact(company.contacts ?? []),
+      competitorWatch: companyHasType(company, "Competitor"),
+      hasCompetitorFacts: hasConfirmedCompetitorKnowledge(findings),
     });
   }, [
       header.recommendedAction,
@@ -275,6 +281,8 @@ export function Company360LivingWorkspace({
       stalledDeal,
       commercialPackages,
       company.contacts,
+      findings,
+      company,
     ],
   );
 
@@ -387,6 +395,8 @@ export function Company360LivingWorkspace({
         targetLabel="this company"
         findings={findings}
         onFindingsChange={saveCompanyFindings}
+        mode={companyHasType(company, "Competitor") ? "competitor" : "default"}
+        companyId={company.CompanyID}
       />
 
       <CompanyDocumentKnowledgePanel

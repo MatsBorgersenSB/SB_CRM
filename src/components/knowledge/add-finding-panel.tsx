@@ -20,22 +20,66 @@ export function AddFindingPanel({
   targetLabel,
   findings,
   onFindingsChange,
+  documentCount = 0,
+  onReadDocuments,
+  mode = "default",
+  companyId,
 }: {
   /** e.g. "this opportunity" / "this company" */
   targetLabel: string;
   findings: SourceFinding[];
   onFindingsChange: (next: SourceFinding[]) => Promise<void>;
+  documentCount?: number;
+  onReadDocuments?: () => Promise<SourceFinding[]>;
+  /** Competitor 360 — one Collect CTA, high-value facts only. */
+  mode?: "default" | "competitor";
+  companyId?: string;
 }) {
   const { user } = useAuth();
   const canAdd = canUploadSmartDocs(user.role) || user.role === "admin";
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [collecting, setCollecting] = useState(false);
+  const [readingDocs, setReadingDocs] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claimBusy, setClaimBusy] = useState<string | null>(null);
+  const isCompetitor = mode === "competitor";
+
+  const collectCompetitor = async () => {
+    if (!companyId || busy || readingDocs || collecting) return;
+    setCollecting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/companies/${encodeURIComponent(companyId)}/competitor-brief`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            [AUTH_ROLE_HEADER]: user.role,
+          },
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        finding?: SourceFinding;
+        error?: string;
+      } | null;
+      if (!response.ok || !payload?.finding) {
+        throw new Error(payload?.error || "Could not collect competitor knowledge");
+      }
+      await onFindingsChange(appendSourceFinding(findings, payload.finding));
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not collect competitor knowledge",
+      );
+    } finally {
+      setCollecting(false);
+    }
+  };
 
   const add = async () => {
     const raw = draft.trim();
-    if (!raw || busy) return;
+    if (!raw || busy || collecting) return;
     setBusy(true);
     setError(null);
     try {
@@ -78,6 +122,7 @@ export function AddFindingPanel({
         title: preview.title,
         url: url ?? undefined,
         note: leftover || (!url ? raw : undefined),
+        kind: url ? "url" : "note",
         claims: preview.claims,
       });
       await onFindingsChange(appendSourceFinding(findings, finding));
@@ -86,6 +131,32 @@ export function AddFindingPanel({
       setError(caught instanceof Error ? caught.message : "Could not add finding");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const readDocuments = async () => {
+    if (!onReadDocuments || readingDocs || busy) return;
+    setReadingDocs(true);
+    setError(null);
+    try {
+      const proposed = await onReadDocuments();
+      if (proposed.length === 0) {
+        setError(
+          "Documents are filed, but SmartAssist could not read their content. Paste the key facts below.",
+        );
+        return;
+      }
+      let next = findings;
+      for (const finding of proposed) {
+        next = appendSourceFinding(next, finding);
+      }
+      await onFindingsChange(next);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not read attached documents",
+      );
+    } finally {
+      setReadingDocs(false);
     }
   };
 
@@ -113,32 +184,58 @@ export function AddFindingPanel({
       className="rounded-lg border-2 border-upcycle-orange/55 bg-upcycle-orange/[0.06] px-4 py-4 shadow-sm dark:bg-upcycle-orange/10"
     >
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
-        Add knowledge here
+        {isCompetitor ? "Internal only" : "Add knowledge here"}
       </p>
       <h2
         id="add-finding-title"
         className="mt-1 text-[18px] font-semibold tracking-tight text-carbon-blue"
       >
-        Add a finding
+        {isCompetitor ? "What we know about this competitor" : "Add a finding"}
       </h2>
       <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-carbon-blue/70">
-        Paste a public URL or write what you learned. This is the place findings go on{" "}
-        <span className="font-semibold text-carbon-blue">{targetLabel}</span>. SmartAssist
-        proposes facts. You confirm. Nothing is invented.
+        {isCompetitor ? (
+          <>
+            This stays inside Standard Bio. Collect what they sell, which feedstock they
+            serve, where they overlap our live deals, and what changed. You confirm. We
+            never invent an opportunity.
+          </>
+        ) : (
+          <>
+            Paste a public URL or write what you learned. This is the place findings go on{" "}
+            <span className="font-semibold text-carbon-blue">{targetLabel}</span>. SmartAssist
+            proposes facts. You confirm. Nothing is invented.
+          </>
+        )}
       </p>
 
       {canAdd ? (
         <div className="mt-3">
+          {isCompetitor && companyId ? (
+            <button
+              type="button"
+              onClick={() => void collectCompetitor()}
+              disabled={busy || readingDocs || collecting}
+              className="inline-flex rounded-md bg-upcycle-orange px-4 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {collecting ? "Collecting…" : "Collect competitor knowledge"}
+            </button>
+          ) : null}
           <label htmlFor="finding-input" className="sr-only">
-            Paste a URL or write a finding
+            {isCompetitor
+              ? "Paste a product page or write one fact we already know"
+              : "Paste a URL or write a finding"}
           </label>
           <textarea
             id="finding-input"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            rows={3}
-            placeholder="Paste a URL here, or write what you know — e.g. https://byggeprosjekter.bygg.no/…"
-            className="w-full resize-y rounded-md border border-upcycle-orange/35 bg-white px-3 py-2.5 text-[14px] text-carbon-blue shadow-inner outline-none ring-upcycle-orange/30 placeholder:text-carbon-blue/35 focus:border-upcycle-orange focus:ring-2"
+            rows={isCompetitor ? 2 : 3}
+            placeholder={
+              isCompetitor
+                ? "Or paste a product / reference page, or write one fact we already know internally"
+                : "Paste a URL here, or write what you know — e.g. https://byggeprosjekter.bygg.no/…"
+            }
+            className={`w-full resize-y rounded-md border border-upcycle-orange/35 bg-white px-3 py-2.5 text-[14px] text-carbon-blue shadow-inner outline-none ring-upcycle-orange/30 placeholder:text-carbon-blue/35 focus:border-upcycle-orange focus:ring-2 ${isCompetitor ? "mt-3" : ""}`}
             onKeyDown={(event) => {
               if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
                 event.preventDefault();
@@ -150,13 +247,35 @@ export function AddFindingPanel({
             <button
               type="button"
               onClick={() => void add()}
-              disabled={busy || !draft.trim()}
-              className="inline-flex rounded-md bg-upcycle-orange px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={busy || readingDocs || collecting || !draft.trim()}
+              className={
+                isCompetitor
+                  ? "inline-flex rounded-md border border-upcycle-orange/40 bg-white px-3.5 py-2 text-[13px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  : "inline-flex rounded-md bg-upcycle-orange px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:cursor-not-allowed disabled:opacity-50"
+              }
             >
-              {busy ? "Reading…" : `Add to ${targetLabel}`}
+              {busy && draft.trim()
+                ? "Reading…"
+                : isCompetitor
+                  ? "Add to our knowledge"
+                  : `Add to ${targetLabel}`}
             </button>
+            {onReadDocuments && documentCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => void readDocuments()}
+                disabled={busy || readingDocs || collecting}
+                className="inline-flex rounded-md border border-upcycle-orange/40 bg-white px-3.5 py-2 text-[13px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {readingDocs
+                  ? "Reading documents…"
+                  : `Read ${documentCount} document${documentCount === 1 ? "" : "s"} on ${targetLabel}`}
+              </button>
+            ) : null}
             <span className="text-[12px] text-carbon-blue/50">
-              Ctrl+Enter to add · Confirm each fact after it appears
+              {isCompetitor
+                ? "Confirm what we know · skip slogans"
+                : "Ctrl+Enter to add · Confirm each fact after it appears"}
             </span>
           </div>
         </div>
@@ -180,7 +299,13 @@ export function AddFindingPanel({
               className="rounded-md border border-carbon-blue/10 bg-white px-3 py-3 dark:bg-slate-950"
             >
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/45">
-                From the market
+                {finding.kind === "document"
+                  ? "From the document"
+                  : finding.kind === "note"
+                    ? "From you"
+                    : finding.kind === "competitor"
+                      ? "Internal knowledge"
+                      : "From the market"}
               </p>
               <p className="mt-1 text-[14px] font-semibold text-carbon-blue">
                 {finding.title}
@@ -206,7 +331,9 @@ export function AddFindingPanel({
                       <p className="mt-0.5 text-[12px] text-carbon-blue/55">{claim.impact}</p>
                       {claim.decision === "confirmed" ? (
                         <p className="mt-1 text-[11px] font-semibold text-emerald-700">
-                          Confirmed on {targetLabel}
+                          {isCompetitor
+                            ? "Confirmed as what we know"
+                            : `Confirmed on ${targetLabel}`}
                         </p>
                       ) : canAdd ? (
                         <div className="mt-1.5 flex flex-wrap gap-2">
@@ -236,7 +363,9 @@ export function AddFindingPanel({
         </ul>
       ) : (
         <p className="mt-3 text-[12px] text-carbon-blue/45">
-          Nothing added yet. Paste the article or note above — that is how this record learns.
+          {isCompetitor
+            ? "Nothing confirmed yet. Collect what they sell, which feedstock, and whether they overlap us — that is how we know the competition."
+            : "Nothing added yet. Paste a URL or write a note — that is how this record learns."}
         </p>
       )}
     </section>
