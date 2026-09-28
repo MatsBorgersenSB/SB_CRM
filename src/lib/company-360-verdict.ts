@@ -79,6 +79,8 @@ export function buildCompany360Verdict(input: {
   stalledDealName?: string | null;
   stalledDealStage?: string | null;
   engageContact?: { name: string; role: string } | null;
+  competitorWatch?: boolean;
+  hasCompetitorFacts?: boolean;
 }): Company360Verdict {
   const lastInteractionAt = laterIso(input.lastActivityAt, input.lastMailAt);
   const lastInteractionSource = sourceOfLatest(input.lastActivityAt, input.lastMailAt);
@@ -91,6 +93,16 @@ export function buildCompany360Verdict(input: {
     ? Math.floor((Date.now() - lastMs) / (1000 * 60 * 60 * 24))
     : null;
   const recentTouch = daysSinceTouch != null && daysSinceTouch < 14;
+
+  if (input.competitorWatch && !input.hasCompetitorFacts) {
+    return {
+      lastInteractionAt,
+      lastInteractionSource,
+      nextAction: "Collect competitor knowledge",
+      nextReason:
+        "Internal only. Know what they sell, which feedstock they serve, and whether they overlap our live deals.",
+    };
+  }
 
   if (deal && person && !recentTouch) {
     const dealLabel = stage ? `${deal} (${stage})` : deal;

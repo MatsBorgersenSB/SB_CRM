@@ -11,11 +11,14 @@ export type SourceFindingClaim = {
   decision?: SourceFindingDecision;
 };
 
+export type SourceFindingKind = "url" | "note" | "document" | "competitor";
+
 export type SourceFinding = {
   id: string;
   title: string;
   url?: string;
   note?: string;
+  kind?: SourceFindingKind;
   addedAt: string;
   claims: SourceFindingClaim[];
 };
@@ -58,9 +61,15 @@ export function parseSourceFindings(raw: unknown): SourceFinding[] {
     const id = typeof row.id === "string" ? row.id.trim() : "";
     const title = typeof row.title === "string" ? row.title.trim() : "";
     if (!id || !title) continue;
-    const url =
-      typeof row.url === "string" && isPublicHttpUrl(row.url) ? row.url.trim() : undefined;
+    const url = typeof row.url === "string" && row.url.trim() ? row.url.trim() : undefined;
     const note = typeof row.note === "string" ? row.note.trim() : undefined;
+    const kind: SourceFindingKind | undefined =
+      row.kind === "url" ||
+      row.kind === "note" ||
+      row.kind === "document" ||
+      row.kind === "competitor"
+        ? row.kind
+        : undefined;
     const addedAt =
       typeof row.addedAt === "string" && row.addedAt.trim()
         ? row.addedAt
@@ -70,6 +79,7 @@ export function parseSourceFindings(raw: unknown): SourceFinding[] {
       title,
       url,
       note: note || undefined,
+      kind,
       addedAt,
       claims: parseClaims(row.claims),
     });
@@ -127,6 +137,7 @@ export function createSourceFinding(input: {
   title: string;
   url?: string;
   note?: string;
+  kind?: SourceFindingKind;
   claims: SourceFindingClaim[];
 }): SourceFinding {
   const id =
@@ -138,11 +149,42 @@ export function createSourceFinding(input: {
     title: input.title.trim() || "Finding",
     url: input.url,
     note: input.note?.trim() || undefined,
+    kind: input.kind,
     addedAt: new Date().toISOString(),
     claims: input.claims.map((claim, index) => ({
       ...claim,
       id: claim.id || `${id}-claim-${index + 1}`,
     })),
+  };
+}
+
+function normalizeFindingStatement(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** Re-collect keeps confirmed competitor knowledge and does not revive dismissed ones. */
+export function mergeCompetitorFinding(
+  previous: SourceFinding,
+  incoming: SourceFinding,
+): SourceFinding {
+  const confirmed = previous.claims.filter((row) => row.decision === "confirmed");
+  const dismissed = new Set(
+    previous.claims
+      .filter((row) => row.decision === "dismissed")
+      .map((row) => normalizeFindingStatement(row.statement)),
+  );
+  const confirmedKeys = new Set(
+    confirmed.map((row) => normalizeFindingStatement(row.statement)),
+  );
+  const nextNew = incoming.claims.filter((row) => {
+    const key = normalizeFindingStatement(row.statement);
+    return !dismissed.has(key) && !confirmedKeys.has(key);
+  });
+  return {
+    ...incoming,
+    id: previous.id,
+    addedAt: previous.addedAt,
+    claims: [...confirmed, ...nextNew].slice(0, 7),
   };
 }
 
@@ -152,12 +194,30 @@ export function appendSourceFinding(
 ): SourceFinding[] {
   const existing = current ?? [];
   if (existing.some((row) => row.id === finding.id)) return existing;
+  if (finding.kind === "competitor") {
+    const index = existing.findIndex((row) => row.kind === "competitor");
+    if (index >= 0) {
+      const previous = existing[index];
+      return existing.map((row, rowIndex) =>
+        rowIndex === index ? mergeCompetitorFinding(previous, finding) : row,
+      );
+    }
+  }
   if (
     finding.url &&
     existing.some((row) => row.url && row.url.toLowerCase() === finding.url!.toLowerCase())
   ) {
     return existing.map((row) =>
       row.url && row.url.toLowerCase() === finding.url!.toLowerCase() ? finding : row,
+    );
+  }
+  if (
+    finding.kind === "document" &&
+    finding.note &&
+    existing.some((row) => row.kind === "document" && row.note === finding.note)
+  ) {
+    return existing.map((row) =>
+      row.kind === "document" && row.note === finding.note ? finding : row,
     );
   }
   return [...existing, finding];
@@ -264,7 +324,7 @@ function uniqueClaims(claims: SourceFindingClaim[]): SourceFindingClaim[] {
     seen.add(key);
     next.push(row);
   }
-  return next.slice(0, 8);
+  return next.slice(0, 10);
 }
 
 /**
@@ -274,11 +334,39 @@ function uniqueClaims(claims: SourceFindingClaim[]): SourceFindingClaim[] {
 export function extractSourceFindingPreview(
   htmlOrText: string,
   url: string,
+  titleOverride?: string,
 ): SourceFindingPreview {
-  const title = extractPageTitle(htmlOrText, url);
+  const title = titleOverride?.trim() || extractPageTitle(htmlOrText, url);
   const text = htmlToPlainText(htmlOrText);
   const lower = text.toLowerCase();
   const claims: SourceFindingClaim[] = [];
+  const permitish =
+    /tillatelse|forurensningsloven|statsforvalteren|utslippstillatelse|environmental permit/i.test(
+      text,
+    );
+
+  const permitNo =
+    text.match(/Tillatelsesnummer[:\s]*([0-9]{4}\.[0-9]{4}\.T)/i)?.[1] ??
+    text.match(/\b(20\d{2}\.\d{4}\.T)\b/)?.[1];
+  const lastChanged =
+    text.match(/Tillatelse sist endret[:\s]*(\d{2}\.\d{2}\.\d{4})/i)?.[1];
+  const firstGiven =
+    text.match(/Tillatelse første gang gitt[:\s]*(\d{2}\.\d{2}\.\d{4})/i)?.[1];
+  if (permitNo || permitish) {
+    const parts = [
+      permitNo ? `Permit ${permitNo}` : "An environmental permit",
+      lastChanged ? `last changed ${lastChanged}` : null,
+      firstGiven ? `first granted ${firstGiven}` : null,
+    ].filter(Boolean);
+    claims.push(
+      claim(
+        "permitting",
+        `${parts.join(", ")}. This is authority evidence, not an assumption.`,
+        "Whether the plant can legally operate is already documented. Confirm it onto the record.",
+        "permitting",
+      ),
+    );
+  }
 
   const volumes = [
     ...text.matchAll(
@@ -346,6 +434,7 @@ export function extractSourceFindingPreview(
   }
 
   if (
+    !permitNo &&
     /miljøgodkj|environmental approval|tillatelse|utslippstillatelse|permit/i.test(
       text,
     )
@@ -356,6 +445,63 @@ export function extractSourceFindingPreview(
         "The source reports an environmental approval or permit pathway.",
         "Permitting is often the real critical path. Confirm status and limits.",
         "permitting",
+      ),
+    );
+  }
+
+  const products: string[] = [];
+  if (/\blbg\b|flytende biometan|liquefied biogas/i.test(text)) products.push("LBG");
+  if (/\blco2\b|flytende karbondioksid/i.test(text)) products.push("LCO2");
+  if (/biogjødsel|digestate|biorest/i.test(text)) products.push("digestate");
+  if (products.length > 0) {
+    claims.push(
+      claim(
+        "end-product",
+        `Reported outputs: ${products.join(", ")}.`,
+        "Product intent drives system design, offtake, and what we should sell.",
+        "end_product",
+      ),
+    );
+  }
+
+  if (/raudemel|volda kommune/i.test(text)) {
+    claims.push(
+      claim(
+        "site",
+        "The site is named in the source (Raudemel / Volda).",
+        "Site identity and zoning are permitting evidence — not a blank.",
+        "site_readiness",
+      ),
+    );
+  } else if (/m[²2]|kvadratmeter|20[\s.]?000 m/i.test(text)) {
+    claims.push(
+      claim(
+        "site",
+        "The source describes plant buildings or tank volume on site.",
+        "Site scale is a readiness signal — confirm before assuming installation windows.",
+        "site_readiness",
+      ),
+    );
+  }
+
+  if (/ikke ha utslipp til vann|ingen ordinære utslipp til vann/i.test(text)) {
+    claims.push(
+      claim(
+        "utilities",
+        "The permit requires a closed process with no ordinary discharge to water.",
+        "Site utilities and discharge limits change what can be promised in a package.",
+        "utilities",
+      ),
+    );
+  }
+
+  if (/1\s*oue\/m/i.test(text)) {
+    claims.push(
+      claim(
+        "technical-odor",
+        "Odour at neighbouring homes is capped at 1 ouE/m³.",
+        "Odour limits are a real operating constraint, not a neighbour complaint to ignore.",
+        "technical_fit",
       ),
     );
   }
@@ -382,8 +528,11 @@ export function extractSourceFindingPreview(
     );
   }
 
-  const year = text.match(/(?:salg|sales|drift|operation|online).{0,40}(20\d{2})/i);
-  if (year?.[1] || /høsten 20\d{2}|late 20\d{2}|q[1-4] 20\d{2}/i.test(text)) {
+  const year = text.match(/(?:salg|sales|oppstart|start-up|first sales).{0,40}(20\d{2})/i);
+  if (
+    !permitish &&
+    (year?.[1] || /høsten 20\d{2}|late 20\d{2}|q[1-4] 20\d{2}/i.test(text))
+  ) {
     const when = year?.[1] ? year[1] : "the date named in the article";
     claims.push(
       claim(
@@ -391,17 +540,6 @@ export function extractSourceFindingPreview(
         `Reported start of sales / operations around ${when}.`,
         "Timeline tells us whether we are early, on time, or late to the package.",
         "timeline",
-      ),
-    );
-  }
-
-  if (/m[²2]|kvadratmeter|20[\s.]?000 m/i.test(text)) {
-    claims.push(
-      claim(
-        "site",
-        "The source describes plant buildings or tank volume on site.",
-        "Site scale is a readiness signal — confirm before assuming installation windows.",
-        "site_readiness",
       ),
     );
   }

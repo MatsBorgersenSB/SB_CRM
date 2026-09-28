@@ -111,7 +111,16 @@ export function CompanyWorkspaceHeader({
         <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
           Next
         </p>
-        <p className="mt-0.5 text-[14px] font-semibold text-carbon-blue">{nextLabel}</p>
+        {nextLabel === "Collect competitor knowledge" ? (
+          <a
+            href="#add-finding"
+            className="mt-0.5 inline-block text-[14px] font-semibold text-upcycle-orange hover:underline"
+          >
+            {nextLabel}
+          </a>
+        ) : (
+          <p className="mt-0.5 text-[14px] font-semibold text-carbon-blue">{nextLabel}</p>
+        )}
         {nextReason ? (
           <p className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/55">{nextReason}</p>
         ) : null}
