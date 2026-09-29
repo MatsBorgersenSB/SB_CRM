@@ -112,16 +112,21 @@ function applySuperSkillsToLoop(
   for (const hearing of skills.hearings) {
     if (hearing.unknown) continue;
     const names = hearing.mentions.map((item) => item.competitorName).join(", ");
+    const known = hearing.mentions.find((item) => item.knownFact)?.knownFact;
     pushUnique(
       thisWeek,
       {
         id: `hearing-${hearing.dealId}`,
         horizon: "this_week",
         title: `${names} named on ${hearing.dealName}`,
-        why: hearing.mentions[0]?.quote || "Competitor mentioned in live records.",
-        next: "Prepare the counter on that deal — bankability and commissioning — with the quote in hand.",
-        impact: "Deal-room hearing beats a generic competitor essay.",
-        href: hearing.href,
+        why: known
+          ? `Internal knowledge: ${known}`
+          : hearing.mentions[0]?.quote || "Competitor mentioned in live records.",
+        next: hearing.mentions[0]?.competitorHref
+          ? "Open internal competitor knowledge and confirm what we know. This is not a customer brief."
+          : "If this rival is real, classify them as Competitor and collect internal knowledge.",
+        impact: "Deal-room hearing plus confirmed rival knowledge beats a generic competitor essay.",
+        href: hearing.mentions[0]?.competitorHref ?? hearing.href,
         evidence: "observed",
         companyName: hearing.companyName,
         dealName: hearing.dealName,
@@ -200,6 +205,65 @@ function applySuperSkillsToLoop(
         evidence: names.length > 0 ? "observed" : "unknown",
       },
       4,
+    );
+  }
+
+  for (const change of skills.whatChanged ?? []) {
+    pushUnique(
+      thisWeek,
+      {
+        id: change.id,
+        horizon: "this_week",
+        title: change.title,
+        why: change.why,
+        next: change.next,
+        impact: change.impact,
+        href: change.href,
+        evidence: "observed",
+      },
+      4,
+    );
+  }
+
+  for (const meeting of skills.meetingKnowledge ?? []) {
+    pushUnique(
+      thisWeek,
+      {
+        id: `meet-know-${meeting.activityId}`,
+        horizon: "this_week",
+        title: `Turn “${meeting.subject}” into knowledge`,
+        why: meeting.why,
+        next: "Confirm facts, decisions, commitments and unknowns. Do not invent people.",
+        impact: "A meeting that does not change a record did not happen for SmartCRM.",
+        href: meeting.href,
+        evidence: "unknown",
+        companyName: meeting.companyName,
+        dealName: meeting.dealName ?? undefined,
+      },
+      3,
+    );
+  }
+
+  for (const match of skills.ecosystemMatches ?? []) {
+    const names = match.candidates.map((row) => row.companyName).join(", ");
+    pushUnique(
+      thisWeek,
+      {
+        id: `eco-${match.dealId}-${match.gap}`,
+        horizon: "this_week",
+        title:
+          match.gap === "offtake"
+            ? `Introduce an offtaker for ${match.dealName}?`
+            : `Introduce funding for ${match.dealName}?`,
+        why: `${match.gap === "offtake" ? "Offtake" : "Funding"} is not confirmed. On file: ${names}.`,
+        next: "You decide whether to introduce. Do not invent a company or an opportunity.",
+        impact: "We connect the ecosystem we already have — we do not sell offtake or capital.",
+        href: match.candidates[0]?.href ?? match.href,
+        evidence: "observed",
+        companyName: match.companyName,
+        dealName: match.dealName,
+      },
+      3,
     );
   }
 
@@ -474,8 +538,8 @@ export function buildGrowthOperatingLoop(
           horizon: "watch",
           title: `Watch ${competitor.Title}`,
           why: "Classified as Competitor in the live registry.",
-          next: "Attach evidence from live deals and events — not generic market copy.",
-          impact: "Competitor intelligence only counts when it overlaps our pipeline.",
+          next: "Collect competitor knowledge on the company record — internal only.",
+          impact: "Competitor intelligence only counts when it is confirmed knowledge, not a label.",
           href: `/growth/competitors/${encodeURIComponent(competitor.CompanyID)}`,
           evidence: "observed",
           companyName: competitor.Title,

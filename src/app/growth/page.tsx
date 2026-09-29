@@ -22,6 +22,7 @@ export default async function GrowthDashboardPage() {
           activities: context.activities,
           growthDeals: context.growthDeals,
           correspondence: context.correspondence,
+          findingsByCompanyId: context.findingsByCompanyId,
         }}
       />
       <GrowthIntelligenceWorkspace data={growthFs010} />

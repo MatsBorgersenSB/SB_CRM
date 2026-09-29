@@ -24,7 +24,7 @@ export function GrowthDashboard({ snapshot }: { snapshot: GrowthIntelligenceSnap
       <IntelligenceLead
         eyebrow="Growth Intelligence · This week"
         title="What should we do with live deals and people?"
-        summary="Skills read live deals, mail, and understanding fields. Unknown stays unknown. Strategy notes stay in Watch."
+        summary="Skills read live deals, mail, competitor knowledge, and meetings. Unknown stays unknown. Rival facts stay internal."
         vitals={[
           {
             label: "Open sales deals",
@@ -39,6 +39,11 @@ export function GrowthDashboard({ snapshot }: { snapshot: GrowthIntelligenceSnap
           {
             label: "Events still ahead",
             value: String(metrics.eventsNeedingPlanning),
+          },
+          {
+            label: "Meetings to capture",
+            value: String(snapshot.superSkills.meetingKnowledge.length),
+            highlight: snapshot.superSkills.meetingKnowledge.length > 0,
           },
           {
             label: "Competitors in registry",

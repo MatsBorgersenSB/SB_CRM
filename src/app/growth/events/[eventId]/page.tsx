@@ -27,6 +27,7 @@ export default async function EventPlanningPage({ params }: EventPlanningPagePro
     activities: context.activities,
     growthDeals: context.growthDeals,
     correspondence: context.correspondence,
+    findingsByCompanyId: context.findingsByCompanyId,
   });
   const meetingTargets = snapshot.superSkills.meetingMachine.filter(
     (target) => target.eventId === eventId,
