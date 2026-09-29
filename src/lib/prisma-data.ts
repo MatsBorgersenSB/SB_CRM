@@ -33,6 +33,7 @@ import {
   readResearchReports as readJsonResearchReports,
 } from "@/lib/pipeline-db";
 import { readProjects } from "@/lib/project-db";
+import { parseCompanyDocumentKnowledgeState } from "@/lib/company-document-knowledge";
 import {
   prismaLiveCompanyWhere,
   prismaLiveContactWhere,
@@ -106,6 +107,7 @@ export type LiveGrowthContext = LivePortfolio & {
   activities: Activity[];
   growthDeals: GrowthDealRecord[];
   correspondence: GrowthCorrespondenceSnippet[];
+  findingsByCompanyId: Record<string, import("@/lib/source-findings").SourceFinding[]>;
 };
 
 /**
@@ -273,11 +275,12 @@ export async function readLiveGrowthContext(): Promise<LiveGrowthContext> {
       activities: recentActivities,
       growthDeals: portfolio.pipelines,
       correspondence: [],
+      findingsByCompanyId: {},
     };
   }
 
   try {
-    const [growthRows, emails] = await withPrismaRetry((prisma) =>
+    const [growthRows, emails, knowledgeRows] = await withPrismaRetry((prisma) =>
       Promise.all([
         prisma.opportunity.findMany({
           where: {
@@ -298,6 +301,10 @@ export async function readLiveGrowthContext(): Promise<LiveGrowthContext> {
           orderBy: { sentAt: "desc" },
           take: 100,
         }),
+        prisma.company.findMany({
+          where: { status: "active", AND: prismaLiveCompanyWhere.AND },
+          select: { code: true, documentKnowledge: true },
+        }),
       ]),
     );
 
@@ -305,6 +312,22 @@ export async function readLiveGrowthContext(): Promise<LiveGrowthContext> {
     const openDeals = growthDeals.filter(
       (deal) => deal.registryStatus === "open" || deal.registryStatus === "on_hold",
     );
+
+    const findingsByCompanyId: LiveGrowthContext["findingsByCompanyId"] = {};
+    for (const row of knowledgeRows) {
+      const code = row.code?.trim();
+      if (!code) continue;
+      const findings = parseCompanyDocumentKnowledgeState(row.documentKnowledge).findings ?? [];
+      if (findings.length > 0) findingsByCompanyId[code] = findings;
+    }
+    for (const company of portfolio.companies) {
+      const fromCode = company.code?.trim()
+        ? findingsByCompanyId[company.code.trim()]
+        : undefined;
+      if (fromCode && company.CompanyID && !findingsByCompanyId[company.CompanyID]) {
+        findingsByCompanyId[company.CompanyID] = fromCode;
+      }
+    }
 
     return {
       companies: portfolio.companies,
@@ -318,6 +341,7 @@ export async function readLiveGrowthContext(): Promise<LiveGrowthContext> {
         bodyPreview: row.bodyPreview,
         sentAt: row.sentAt.toISOString(),
       })),
+      findingsByCompanyId,
     };
   } catch (error) {
     console.warn(
@@ -329,6 +353,7 @@ export async function readLiveGrowthContext(): Promise<LiveGrowthContext> {
       activities: recentActivities,
       growthDeals: portfolio.pipelines,
       correspondence: [],
+      findingsByCompanyId: {},
     };
   }
 }

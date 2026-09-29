@@ -1,5 +1,7 @@
 import { htmlToPlainText, type SourceFinding, type SourceFindingClaim } from "@/lib/source-findings";
 import type { Company } from "@/types/company";
+import { companyHasType } from "@/lib/company-classification";
+import { company360Href } from "@/types/company-360";
 
 /** Cap at five — internal competitor knowledge, not a SWOT essay. */
 export const COMPETITOR_BRIEF_MAX_CLAIMS = 5;
@@ -335,11 +337,48 @@ export function competitorBriefTitle(companyName: string, sourceHost?: string): 
   return `${name} — what we know`;
 }
 
+export function confirmedCompetitorFacts(
+  findings: SourceFinding[] | undefined,
+): string[] {
+  const facts: string[] = [];
+  for (const finding of findings ?? []) {
+    for (const claim of finding.claims) {
+      if (claim.decision !== "confirmed" || claim.id === "unknown") continue;
+      const statement = claim.statement.trim();
+      if (!statement) continue;
+      facts.push(statement);
+      if (facts.length >= 3) return facts;
+    }
+  }
+  return facts;
+}
+
+export type LiveCompetitorWatch = {
+  companyId: string;
+  companyName: string;
+  href: string;
+  tokens: string[];
+  confirmedFacts: string[];
+};
+
+/** Classified Competitor companies — internal watchlist, not a customer brief. */
+export function buildLiveCompetitorWatch(
+  companies: Company[],
+  findingsByCompanyId?: Record<string, SourceFinding[]>,
+): LiveCompetitorWatch[] {
+  return companies
+    .filter((company) => companyHasType(company, "Competitor"))
+    .map((company) => ({
+      companyId: company.CompanyID,
+      companyName: company.Title,
+      href: `${company360Href(company.CompanyID)}#add-finding`,
+      tokens: competitorSearchNames(company.Title),
+      confirmedFacts: confirmedCompetitorFacts(findingsByCompanyId?.[company.CompanyID]),
+    }))
+    .filter((row) => row.tokens.length > 0);
+}
+
 export function hasConfirmedCompetitorKnowledge(findings: SourceFinding[] | undefined): boolean {
-  return (findings ?? []).some((finding) =>
-    finding.claims.some(
-      (row) => row.decision === "confirmed" && row.id !== "unknown" && row.statement.trim().length > 0,
-    ),
-  );
+  return confirmedCompetitorFacts(findings).length > 0;
 }
 

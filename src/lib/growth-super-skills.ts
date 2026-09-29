@@ -10,6 +10,7 @@ import { resolveUnderstandingField } from "@/lib/opportunity-understanding-model
 import {
   getCompanyRelationshipPosture,
   isOpportunityEligibleCompany,
+  companyHasType,
 } from "@/lib/company-classification";
 import { companyForDeal, openSalesDeals } from "@/lib/growth-operating-loop";
 import { isEventUpcoming } from "@/lib/growth-event-timing";
@@ -17,14 +18,22 @@ import type { GrowthEvent } from "@/types/growth-intelligence";
 import type {
   GrowthCorrespondenceSnippet,
   GrowthDealRecord,
+  GrowthEcosystemMatch,
   GrowthMarketIntelCard,
+  GrowthMeetingKnowledgeGap,
   GrowthMeetingTarget,
   GrowthOfferKind,
   GrowthSuperSkills,
   GrowthWinLossMemory,
+  GrowthChangeSignal,
 } from "@/types/growth-super-skills";
+import {
+  buildLiveCompetitorWatch,
+  type LiveCompetitorWatch,
+} from "@/lib/competitor-brief";
+import { confirmedFindingAnswerForField, type SourceFinding } from "@/lib/source-findings";
 
-const COMPETITOR_ALIASES = [
+const SEED_COMPETITOR_ALIASES = [
   { name: "PYREG", tokens: ["pyreg"] },
   { name: "ETIA / Biogreen", tokens: ["etia", "biogreen"] },
   { name: "Carbofex", tokens: ["carbofex"] },
@@ -73,13 +82,60 @@ function activityText(activity: Activity): string {
     .toLowerCase();
 }
 
-function findCompetitorMentions(haystack: string): Array<{ name: string; quote: string }> {
-  const hits: Array<{ name: string; quote: string }> = [];
-  for (const alias of COMPETITOR_ALIASES) {
-    const token = alias.tokens.find((item) => haystack.includes(item));
+type CompetitorSearchRow = {
+  name: string;
+  tokens: string[];
+  companyId?: string;
+  href?: string;
+  knownFact?: string;
+};
+
+function competitorSearchRows(watch: LiveCompetitorWatch[]): CompetitorSearchRow[] {
+  const live: CompetitorSearchRow[] = watch.map((row) => ({
+    name: row.companyName,
+    tokens: row.tokens,
+    companyId: row.companyId,
+    href: row.href,
+    knownFact: row.confirmedFacts[0],
+  }));
+  const liveTokens = new Set(live.flatMap((row) => row.tokens));
+  const seed: CompetitorSearchRow[] = SEED_COMPETITOR_ALIASES.filter(
+    (alias) => !alias.tokens.some((token) => liveTokens.has(token)),
+  ).map((alias) => ({
+    name: alias.name,
+    tokens: [...alias.tokens],
+  }));
+  return [...live, ...seed];
+}
+
+function findCompetitorMentions(
+  haystack: string,
+  rows: CompetitorSearchRow[],
+): Array<{
+  name: string;
+  quote: string;
+  companyId?: string;
+  href?: string;
+  knownFact?: string;
+}> {
+  const hits: Array<{
+    name: string;
+    quote: string;
+    companyId?: string;
+    href?: string;
+    knownFact?: string;
+  }> = [];
+  for (const row of rows) {
+    const token = row.tokens.find((item) => haystack.includes(item));
     if (!token) continue;
     const start = Math.max(0, haystack.indexOf(token) - 40);
-    hits.push({ name: alias.name, quote: clip(haystack.slice(start, start + 120)) });
+    hits.push({
+      name: row.name,
+      quote: clip(haystack.slice(start, start + 120)),
+      companyId: row.companyId,
+      href: row.href,
+      knownFact: row.knownFact,
+    });
   }
   return hits;
 }
@@ -130,6 +186,15 @@ function fieldKnown(deal: PipelineRow, fieldId: UnderstandingFieldId): boolean {
   return resolveUnderstandingField(deal, fieldId).source !== "empty";
 }
 
+function knowledgeKnown(
+  deal: PipelineRow,
+  fieldId: UnderstandingFieldId,
+  companyFindings?: SourceFinding[],
+): boolean {
+  if (fieldKnown(deal, fieldId)) return true;
+  return Boolean(confirmedFindingAnswerForField(companyFindings, fieldId));
+}
+
 export function buildGrowthSuperSkills(input: {
   companies: Company[];
   pipelines: PipelineRow[];
@@ -137,6 +202,7 @@ export function buildGrowthSuperSkills(input: {
   activities?: Activity[];
   growthDeals?: GrowthDealRecord[];
   correspondence?: GrowthCorrespondenceSnippet[];
+  findingsByCompanyId?: Record<string, SourceFinding[]>;
   now?: Date;
 }): GrowthSuperSkills {
   const now = input.now ?? new Date();
@@ -145,38 +211,60 @@ export function buildGrowthSuperSkills(input: {
   const open = openSalesDeals(deals);
   const activities = input.activities ?? [];
   const correspondence = input.correspondence ?? [];
+  const findingsByCompanyId = input.findingsByCompanyId ?? {};
+  const watch = buildLiveCompetitorWatch(input.companies, findingsByCompanyId);
+  const searchRows = competitorSearchRows(watch);
 
   const hearings = open.map((deal) => {
     const company = companyForDeal(input.companies, deal);
     const mentions: GrowthSuperSkills["hearings"][number]["mentions"] = [];
+    if (company && companyHasType(company, "Competitor")) {
+      return {
+        dealId: deal.id,
+        dealName: deal.assetName,
+        companyName: company.Title,
+        href: deal360Href(deal.id),
+        mentions: [],
+        unknown: true,
+      };
+    }
 
-    for (const hit of findCompetitorMentions(dealText(deal))) {
+    for (const hit of findCompetitorMentions(dealText(deal), searchRows)) {
       mentions.push({
         competitorName: hit.name,
         quote: hit.quote,
         source: "deal_field",
+        competitorId: hit.companyId,
+        competitorHref: hit.href,
+        knownFact: hit.knownFact,
       });
     }
 
     for (const activity of activitiesForDeal(activities, deal)) {
-      for (const hit of findCompetitorMentions(activityText(activity))) {
+      for (const hit of findCompetitorMentions(activityText(activity), searchRows)) {
         mentions.push({
           competitorName: hit.name,
           quote: hit.quote,
           source: "activity",
           asOf: activity.ActivityDate.slice(0, 10),
+          competitorId: hit.companyId,
+          competitorHref: hit.href,
+          knownFact: hit.knownFact,
         });
       }
     }
 
     for (const snippet of correspondence.filter((row) => row.opportunityId === deal.id)) {
       const haystack = `${snippet.subject} ${snippet.bodyPreview ?? ""}`.toLowerCase();
-      for (const hit of findCompetitorMentions(haystack)) {
+      for (const hit of findCompetitorMentions(haystack, searchRows)) {
         mentions.push({
           competitorName: hit.name,
           quote: hit.quote,
           source: "email",
           asOf: snippet.sentAt.slice(0, 10),
+          competitorId: hit.companyId,
+          competitorHref: hit.href,
+          knownFact: hit.knownFact,
         });
       }
     }
@@ -198,14 +286,15 @@ export function buildGrowthSuperSkills(input: {
 
   const realities = open.map((deal) => {
     const company = companyForDeal(input.companies, deal);
+    const companyFindings = company ? findingsByCompanyId[company.CompanyID] : undefined;
     const blockers: GrowthSuperSkills["realities"][number]["blockers"] = [];
-    if (!fieldKnown(deal, "funding_source") && !fieldKnown(deal, "budget")) {
+    if (!knowledgeKnown(deal, "funding_source", companyFindings) && !knowledgeKnown(deal, "budget", companyFindings)) {
       blockers.push("funding");
     }
-    if (!fieldKnown(deal, "permitting")) blockers.push("permit");
-    if (!fieldKnown(deal, "offtake_strategy")) blockers.push("offtake");
-    if (!fieldKnown(deal, "site_readiness")) blockers.push("build");
-    if (!fieldKnown(deal, "utilities")) blockers.push("operate");
+    if (!knowledgeKnown(deal, "permitting", companyFindings)) blockers.push("permit");
+    if (!knowledgeKnown(deal, "offtake_strategy", companyFindings)) blockers.push("offtake");
+    if (!knowledgeKnown(deal, "site_readiness", companyFindings)) blockers.push("build");
+    if (!knowledgeKnown(deal, "utilities", companyFindings)) blockers.push("operate");
     if (
       !fieldKnown(deal, "decision_maker") &&
       !fieldKnown(deal, "economic_buyer") &&
@@ -235,6 +324,11 @@ export function buildGrowthSuperSkills(input: {
           ? "Name the go/no-go owner from existing mail or meetings. Do not invent a contact."
           : "Confirm the next paid step on the deal.";
 
+    const evidenceNote =
+      blockers.length === 0
+        ? "Funding, permitting and offtake are on the record — this can be treated as a real project, not a brochure cycle."
+        : "Blockers are missing confirmed evidence — not a score. Fill from documents and meetings, or sell a paid study.";
+
     return {
       dealId: deal.id,
       dealName: deal.assetName,
@@ -243,6 +337,7 @@ export function buildGrowthSuperSkills(input: {
       blockers,
       fatal,
       next,
+      evidenceNote,
       authorityLevel:
         capital[0] === "permit"
           ? ("project" as const)
@@ -414,7 +509,7 @@ export function buildGrowthSuperSkills(input: {
       fact: bankability.map((row) => `${row.dealName}: ${row.blockers.join(", ")}`).join("; "),
       geography: "Project-level",
       asOf,
-      sourceLabel: "Opportunity understanding fields (empty = unknown)",
+      sourceLabel: "Confirmed understanding and company findings — empty stays unknown",
       evidence: "observed",
       offerImplication: "paid_feasibility",
       offerWhy:
@@ -444,13 +539,13 @@ export function buildGrowthSuperSkills(input: {
       sourceLabel: "Mail, activities and opportunity fields",
       evidence: "observed",
       offerImplication: "engineering",
-      offerWhy: "Counter the named competitor on that deal — not a generic EU OEM essay.",
+      offerWhy: "Internal knowledge: they already appear on this deal. Confirm what we know about them on the competitor record.",
       relatedDeals: heard.slice(0, 4).map((row) => ({
         id: row.dealId,
         name: row.dealName,
         href: row.href,
       })),
-      nextAction: "Open the deal and prepare the counter on bankability and commissioning, with the quote in hand.",
+      nextAction: "Open internal competitor knowledge on that deal. This is not a customer brief.",
       nextHref: heard[0].href,
       authorityLevel: "project",
     });
@@ -459,19 +554,19 @@ export function buildGrowthSuperSkills(input: {
       id: "mi-hearing-unknown",
       category: "unknown",
       title: "No competitor is evidenced on live deals",
-      fact: "Searched opportunity fields, activities and recent opportunity mail. No PYREG / ETIA / Carbofex mention found.",
+      fact: "Searched live competitor companies plus PYREG / ETIA / Carbofex aliases in opportunity fields, activities and mail. No named rival on a live deal.",
       geography: "Deal-room",
       asOf,
       sourceLabel: "SmartCRM search of live records",
       evidence: "observed",
       offerImplication: "watch",
-      offerWhy: "Unknown stays unknown. Do not brief the team as if PYREG is in the room.",
+      offerWhy: "Unknown stays unknown. Do not brief the team as if a rival is in the room.",
       relatedDeals: open.slice(0, 3).map((deal) => ({
         id: deal.id,
         name: deal.assetName,
         href: deal360Href(deal.id),
       })),
-      nextAction: "Ask the next customer conversation who else they are evaluating — then record it.",
+      nextAction: "Record who else they are evaluating on the deal — internal knowledge only.",
       nextHref: open[0] ? deal360Href(open[0].id) : "/growth",
       authorityLevel: "project",
     });
@@ -565,6 +660,28 @@ export function buildGrowthSuperSkills(input: {
     }
   }
 
+  const whatChanged = buildWhatChanged({
+    asOf,
+    now,
+    watch,
+    open,
+    activities,
+    correspondence,
+    companies: input.companies,
+    findingsByCompanyId,
+  });
+  const meetingKnowledge = buildMeetingKnowledgeGaps({
+    now,
+    activities,
+    companies: input.companies,
+    deals: open,
+  });
+  const ecosystemMatches = buildEcosystemMatches({
+    companies: input.companies,
+    open,
+    realities,
+  });
+
   return {
     hearings,
     realities,
@@ -573,7 +690,218 @@ export function buildGrowthSuperSkills(input: {
     winLoss,
     marketIntel: marketIntel.slice(0, 7),
     meetingMachine,
+    whatChanged,
+    meetingKnowledge,
+    ecosystemMatches,
   };
+}
+
+function daysAgo(iso: string | undefined, now: Date): number | null {
+  if (!iso) return null;
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return null;
+  return Math.floor((now.getTime() - ms) / (1000 * 60 * 60 * 24));
+}
+
+function latestFindingAt(findings: SourceFinding[] | undefined): string | null {
+  let latest: string | null = null;
+  for (const finding of findings ?? []) {
+    if (!finding.addedAt) continue;
+    if (!latest || finding.addedAt > latest) latest = finding.addedAt;
+  }
+  return latest;
+}
+
+function buildWhatChanged(input: {
+  asOf: string;
+  now: Date;
+  watch: LiveCompetitorWatch[];
+  open: GrowthDealRecord[];
+  activities: Activity[];
+  correspondence: GrowthCorrespondenceSnippet[];
+  companies: Company[];
+  findingsByCompanyId: Record<string, SourceFinding[]>;
+}): GrowthChangeSignal[] {
+  const signals: GrowthChangeSignal[] = [];
+
+  for (const activity of input.activities) {
+    const meeting =
+      activity.ActivityType === "Meeting" ||
+      activity.ActivityType === "Teams Meeting" ||
+      activity.ActivityType === "Site Visit";
+    if (!meeting) continue;
+    const age = daysAgo(activity.ActivityDate, input.now);
+    if (age == null || age > 14) continue;
+    const companyName = activity.Company?.Title?.trim() || "Unlinked company";
+    signals.push({
+      id: `chg-meet-${activity.ActivityID}`,
+      title: `Meeting: ${activity.Subject}`,
+      why: `${companyName} · ${activity.ActivityDate.slice(0, 10)}`,
+      next: "Turn this meeting into knowledge — facts, decisions, commitments, unknowns.",
+      impact: "A meeting that does not change a record did not happen for SmartCRM.",
+      href: `/activities/${encodeURIComponent(activity.ActivityID)}`,
+      asOf: activity.ActivityDate.slice(0, 10),
+      kind: "meeting",
+    });
+  }
+
+  for (const snippet of input.correspondence.slice(0, 8)) {
+    const age = daysAgo(snippet.sentAt, input.now);
+    if (age == null || age > 14) continue;
+    const deal = input.open.find((row) => row.id === snippet.opportunityId);
+    if (!deal) continue;
+    signals.push({
+      id: `chg-mail-${deal.id}-${snippet.sentAt}`,
+      title: `New mail on ${deal.assetName}`,
+      why: snippet.subject.trim() || "Opportunity mail in the last two weeks.",
+      next: "Confirm any new fact, decision or commitment onto the deal.",
+      impact: "Mail that is not turned into knowledge is lost.",
+      href: deal360Href(deal.id),
+      asOf: snippet.sentAt.slice(0, 10),
+      kind: "mail",
+    });
+  }
+
+  for (const rival of input.watch) {
+    const added = latestFindingAt(input.findingsByCompanyId[rival.companyId]);
+    const age = daysAgo(added ?? undefined, input.now);
+    if (rival.confirmedFacts.length === 0) {
+      signals.push({
+        id: `chg-know-${rival.companyId}`,
+        title: `We classified ${rival.companyName} as a competitor but have no confirmed knowledge`,
+        why: "A rival record without offer, feedstock or overlap does not increase understanding.",
+        next: "Collect competitor knowledge — internal only.",
+        impact: "Growth cannot use a classified rival until someone confirms a fact.",
+        href: rival.href,
+        asOf: input.asOf,
+        kind: "competitor",
+      });
+      continue;
+    }
+    if (age != null && age <= 14) {
+      signals.push({
+        id: `chg-fact-${rival.companyId}`,
+        title: `Competitor knowledge updated: ${rival.companyName}`,
+        why: rival.confirmedFacts[0] ?? "",
+        next: "Keep this current. Internal only.",
+        impact: "Confirmed rival facts now feed hearings on live deals.",
+        href: rival.href,
+        asOf: (added ?? input.asOf).slice(0, 10),
+        kind: "competitor",
+      });
+    }
+  }
+
+  const unique: GrowthChangeSignal[] = [];
+  const seen = new Set<string>();
+  for (const row of signals) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    unique.push(row);
+    if (unique.length >= 5) break;
+  }
+  return unique;
+}
+
+function meetingHasCapturedKnowledge(activity: Activity): boolean {
+  const decisions = (activity.KeyDecisions ?? []).some((row) => row.trim());
+  const actions = (activity.AgreedActions ?? []).some((row) => row.text.trim());
+  const summary = Boolean(activity.Summary?.trim());
+  return decisions || actions || summary;
+}
+
+function buildMeetingKnowledgeGaps(input: {
+  now: Date;
+  activities: Activity[];
+  companies: Company[];
+  deals: GrowthDealRecord[];
+}): GrowthMeetingKnowledgeGap[] {
+  const gaps: GrowthMeetingKnowledgeGap[] = [];
+  for (const activity of input.activities) {
+    const meeting =
+      activity.ActivityType === "Meeting" ||
+      activity.ActivityType === "Teams Meeting" ||
+      activity.ActivityType === "Site Visit";
+    if (!meeting) continue;
+    const age = daysAgo(activity.ActivityDate, input.now);
+    if (age == null || age > 21) continue;
+    if (meetingHasCapturedKnowledge(activity)) continue;
+    const deal =
+      input.deals.find((row) => row.id === activity.Deal?.Title) ||
+      input.deals.find((row) => activity.Deal?.Title && row.assetName === activity.Deal.Title) ||
+      null;
+    const companyName =
+      activity.Company?.Title?.trim() || deal?.ClientLookup || "Unlinked company";
+    gaps.push({
+      activityId: activity.ActivityID,
+      subject: activity.Subject,
+      when: activity.ActivityDate.slice(0, 10),
+      companyName,
+      dealName: deal?.assetName ?? activity.Deal?.Title ?? null,
+      href: `/activities/${encodeURIComponent(activity.ActivityID)}`,
+      why: activity.ActivityDescription?.trim()
+        ? "There is a note, but no confirmed decisions, commitments or summary."
+        : "The meeting is logged with nothing we can reuse as knowledge.",
+    });
+    if (gaps.length >= 3) break;
+  }
+  return gaps;
+}
+
+function buildEcosystemMatches(input: {
+  companies: Company[];
+  open: GrowthDealRecord[];
+  realities: GrowthSuperSkills["realities"];
+}): GrowthEcosystemMatch[] {
+  const offtakers = input.companies.filter((company) => companyHasType(company, "Offtaker"));
+  const investors = input.companies.filter((company) => companyHasType(company, "Investor"));
+  const matches: GrowthEcosystemMatch[] = [];
+
+  for (const reality of input.realities) {
+    const deal = input.open.find((row) => row.id === reality.dealId);
+    if (!deal) continue;
+    const account = companyForDeal(input.companies, deal);
+    const country = account?.Country?.Title?.trim().toLowerCase();
+
+    const gap: "offtake" | "funding" | null = reality.blockers.includes("offtake")
+      ? "offtake"
+      : reality.blockers.includes("funding")
+        ? "funding"
+        : null;
+    if (!gap) continue;
+
+    const pool = gap === "offtake" ? offtakers : investors;
+    const ranked = [...pool]
+      .filter((company) => company.CompanyID !== account?.CompanyID)
+      .sort((a, b) => {
+        const aSame = country && a.Country?.Title?.trim().toLowerCase() === country ? 0 : 1;
+        const bSame = country && b.Country?.Title?.trim().toLowerCase() === country ? 0 : 1;
+        return aSame - bSame;
+      })
+      .slice(0, 3);
+
+    if (ranked.length === 0) continue;
+
+    matches.push({
+      dealId: reality.dealId,
+      dealName: reality.dealName,
+      companyName: reality.companyName,
+      href: reality.href,
+      gap,
+      candidates: ranked.map((company) => ({
+        companyId: company.CompanyID,
+        companyName: company.Title,
+        href: company360Href(company.CompanyID),
+        role: gap === "offtake" ? "Offtaker" : "Investor",
+        why:
+          country && company.Country?.Title?.trim().toLowerCase() === country
+            ? `Already in our registry as ${gap === "offtake" ? "Offtaker" : "Investor"} in ${company.Country?.Title}. Introduce only if you choose — do not invent a company.`
+            : `Already classified ${gap === "offtake" ? "Offtaker" : "Investor"} in SmartCRM. You decide whether an introduction is right.`,
+      })),
+    });
+    if (matches.length >= 3) break;
+  }
+  return matches;
 }
 
 export { offerLabel } from "@/types/growth-super-skills";

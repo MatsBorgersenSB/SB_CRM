@@ -44,6 +44,7 @@ export default async function GrowthSectionPage({ params }: GrowthSectionPagePro
         activities: context.activities,
         growthDeals: context.growthDeals,
         correspondence: context.correspondence,
+        findingsByCompanyId: context.findingsByCompanyId,
       }}
     />
   );

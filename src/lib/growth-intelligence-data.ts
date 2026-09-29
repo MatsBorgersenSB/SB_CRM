@@ -259,6 +259,7 @@ export type GrowthIntelligenceExtras = {
   activities?: Activity[];
   growthDeals?: GrowthDealRecord[];
   correspondence?: GrowthCorrespondenceSnippet[];
+  findingsByCompanyId?: Record<string, import("@/lib/source-findings").SourceFinding[]>;
 };
 
 export function buildGrowthIntelligence(
@@ -282,6 +283,7 @@ export function buildGrowthIntelligence(
     activities: extras.activities,
     growthDeals: extras.growthDeals,
     correspondence: extras.correspondence,
+    findingsByCompanyId: extras.findingsByCompanyId,
   });
   const recommendations = groundRecommendations(
     seed.recommendations,

@@ -29,6 +29,10 @@ export type GrowthHearingMention = {
   quote: string;
   source: "email" | "activity" | "deal_field";
   asOf?: string;
+  competitorId?: string;
+  competitorHref?: string;
+  /** Confirmed internal knowledge — never a customer talk-track. */
+  knownFact?: string;
 };
 
 export type GrowthDealHearing = {
@@ -49,6 +53,7 @@ export type GrowthProjectReality = {
   fatal: string | null;
   next: string;
   authorityLevel: GrowthAuthorityLevel;
+  evidenceNote?: string;
 };
 
 export type GrowthStakeholderCoverage = {
@@ -111,6 +116,44 @@ export type GrowthMeetingTarget = {
   dealName?: string;
 };
 
+export type GrowthChangeSignal = {
+  id: string;
+  title: string;
+  why: string;
+  next: string;
+  impact: string;
+  href: string;
+  asOf: string;
+  kind: "competitor" | "deal" | "meeting" | "mail";
+};
+
+export type GrowthMeetingKnowledgeGap = {
+  activityId: string;
+  subject: string;
+  when: string;
+  companyName: string;
+  dealName: string | null;
+  href: string;
+  why: string;
+};
+
+export type GrowthEcosystemCandidate = {
+  companyId: string;
+  companyName: string;
+  href: string;
+  role: string;
+  why: string;
+};
+
+export type GrowthEcosystemMatch = {
+  dealId: string;
+  dealName: string;
+  companyName: string;
+  href: string;
+  gap: "offtake" | "funding";
+  candidates: GrowthEcosystemCandidate[];
+};
+
 export type GrowthSuperSkills = {
   hearings: GrowthDealHearing[];
   realities: GrowthProjectReality[];
@@ -119,6 +162,9 @@ export type GrowthSuperSkills = {
   winLoss: GrowthWinLossMemory[];
   marketIntel: GrowthMarketIntelCard[];
   meetingMachine: GrowthMeetingTarget[];
+  whatChanged: GrowthChangeSignal[];
+  meetingKnowledge: GrowthMeetingKnowledgeGap[];
+  ecosystemMatches: GrowthEcosystemMatch[];
 };
 
 export function offerLabel(offer: GrowthOfferKind): string {

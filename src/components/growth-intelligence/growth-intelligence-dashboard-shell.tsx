@@ -43,6 +43,7 @@ export function GrowthIntelligenceDashboardShell({
           correspondence: extras.correspondence?.filter(
             (row) => !row.opportunityId || scopedDealIds.has(row.opportunityId),
           ),
+          findingsByCompanyId: extras.findingsByCompanyId,
         }
       : undefined;
     return buildGrowthIntelligence(scopedCompanies, scopedPipelines, scopedExtras);
