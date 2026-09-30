@@ -118,15 +118,20 @@ export function Contact360PageShell({
 
   const attentionItems = useMemo(() => {
     if (!record) return [];
-    return buildContactAttentionItems(
-      record.contact.ContactID,
-      record.companyId,
-      scopedCompanies,
-      scopedPipelines,
-      activityRows,
-      commercialPackages,
-      correspondence,
-    );
+    try {
+      return buildContactAttentionItems(
+        record.contact.ContactID,
+        record.companyId,
+        scopedCompanies,
+        scopedPipelines,
+        activityRows,
+        commercialPackages,
+        correspondence,
+      );
+    } catch (error) {
+      console.error("[contact-360] attention engine failed", error);
+      return [];
+    }
   }, [record, scopedCompanies, scopedPipelines, activityRows, commercialPackages, correspondence]);
 
   const handleReconciliationImported = useCallback(() => {

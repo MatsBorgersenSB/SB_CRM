@@ -95,8 +95,8 @@ export function isTimelineMeaningful(
   return timeline.length > 1;
 }
 
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
+function normalizeEmail(email: string | null | undefined): string {
+  return (email ?? "").trim().toLowerCase();
 }
 
 function nameKey(contact: Pick<Contact, "FirstName" | "LastName">): string {

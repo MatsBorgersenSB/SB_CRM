@@ -323,27 +323,36 @@ function buildContactAttention(
 
     for (const contact of company.contacts) {
       const contactActivities = getActivitiesForContact(activities, contact.ContactID);
+      const email = contact.Email?.trim().toLowerCase() || "";
       const mailTouches = correspondenceTouchesEmail(correspondence, contact.Email);
-      if (contactActivities.length === 0 && !mailTouches) {
-        pushItem(items, {
-          id: `attn-contact-silent-${contact.ContactID}`,
-          sourceObjectId: contact.ContactID,
-          sourceObjectName: getContactDisplayName(contact),
-          objectType: "Contact",
-          severity: "needs_attention",
-          recommendation: `No activity logged with ${getContactDisplayName(contact)} — stakeholder may be disengaged.`,
-          suggestedAiAction: "Draft Email",
-          href: contact360Href(contact.ContactID, company.CompanyID),
-          companyId: company.CompanyID,
-          companyName: company.Title,
-          ruleId: "no_activity",
-          contactEmail: contact.Email,
-          contactPhone: contact.Mobile || contact.Phone,
-        });
+      const lastMailAt = email
+        ? correspondence?.lastSentByEmail?.[email] ?? null
+        : null;
+      const lastActivityAt = contactActivities[0]?.ActivityDate ?? null;
+      const lastTouchAt = laterIso(lastActivityAt, lastMailAt);
+
+      if (!lastTouchAt) {
+        if (!mailTouches) {
+          pushItem(items, {
+            id: `attn-contact-silent-${contact.ContactID}`,
+            sourceObjectId: contact.ContactID,
+            sourceObjectName: getContactDisplayName(contact),
+            objectType: "Contact",
+            severity: "needs_attention",
+            recommendation: `No activity logged with ${getContactDisplayName(contact)} — stakeholder may be disengaged.`,
+            suggestedAiAction: "Draft Email",
+            href: contact360Href(contact.ContactID, company.CompanyID),
+            companyId: company.CompanyID,
+            companyName: company.Title,
+            ruleId: "no_activity",
+            contactEmail: contact.Email,
+            contactPhone: contact.Mobile || contact.Phone,
+          });
+        }
         continue;
       }
 
-      const daysSince = daysBetween(contactActivities[0]!.ActivityDate);
+      const daysSince = daysBetween(lastTouchAt);
       if (Number.isFinite(daysSince) && daysSince >= COLD_CONTACT_DAYS) {
         pushItem(items, {
           id: `attn-contact-cold-${contact.ContactID}`,
@@ -351,7 +360,7 @@ function buildContactAttention(
           sourceObjectName: getContactDisplayName(contact),
           objectType: "Contact",
           severity: daysSince >= 60 ? "urgent" : "needs_attention",
-          recommendation: `Last interaction ${formatLastContact(contactActivities[0]!.ActivityDate, daysSince)} — relationship may be cooling.`,
+          recommendation: `Last interaction ${formatLastContact(lastTouchAt, daysSince)} — relationship may be cooling.`,
           suggestedAiAction: "Schedule Follow-Up Call",
           href: contact360Href(contact.ContactID, company.CompanyID),
           companyId: company.CompanyID,
