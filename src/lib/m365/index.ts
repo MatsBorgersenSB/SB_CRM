@@ -8,6 +8,7 @@ export { buildM365AccountWorkspace } from "./account-workspace";
 export {
   ensureOpportunitySharePointFolder,
   ensureCompanyDocumentsSharePointFolder,
+  ensureProjectSharePointFolder,
   sanitizeSharePointName,
   sanitizeSharePointFolderName,
   applySmartDocFieldsToDriveItem,
@@ -16,6 +17,7 @@ export {
 export type {
   OpportunitySharePointFolder,
   CompanyDocumentsSharePointFolder,
+  ProjectSharePointFolder,
   SmartDocSharePointFields,
 } from "./graph-client";
 export { getGraphAccessToken } from "./get-graph-access-token";
@@ -25,6 +27,7 @@ export {
   linkOpportunitySharePointFolder,
 } from "./provision-opportunity-folder";
 export { provisionCompanyDocumentsSharePointFolder } from "./provision-company-folder";
+export { provisionProjectSharePointFolder } from "./provision-project-folder";
 export {
   resolveOutlookCounterpartyEmail,
   resolveOutlookConversationId,

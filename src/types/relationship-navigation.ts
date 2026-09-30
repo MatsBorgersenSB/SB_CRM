@@ -101,7 +101,9 @@ export function contactDocumentsHref(contactId: string, companyId?: string): str
 }
 
 /**
- * Documents for the current workspace — opportunity, then project, then person, then company.
+ * Documents for the current workspace.
+ * Project wins over a linked opportunity — Escalante still carried seed PL-1031,
+ * which is not a live deal. Stay on the project instead of 404.
  */
 export function workspaceDocumentsHref(
   context: Pick<
@@ -109,8 +111,8 @@ export function workspaceDocumentsHref(
     "dealId" | "projectId" | "contactId" | "companyId"
   >,
 ): string | null {
-  if (context.dealId) return dealDocumentsHref(context.dealId);
   if (context.projectId) return projectDocumentsHref(context.projectId);
+  if (context.dealId) return dealDocumentsHref(context.dealId);
   if (context.contactId) return contactDocumentsHref(context.contactId, context.companyId);
   if (context.companyId) return company360Href(context.companyId, "documents");
   return null;

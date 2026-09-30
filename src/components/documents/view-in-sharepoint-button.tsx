@@ -32,6 +32,7 @@ export function ViewInSharePointButton({
   folderUrl: folderUrlProp,
   companyId,
   dealId,
+  projectId,
   dealName,
   companyName,
   className = "",
@@ -40,6 +41,7 @@ export function ViewInSharePointButton({
   folderUrl?: string | null;
   companyId?: string | null;
   dealId?: string | null;
+  projectId?: string | null;
   dealName?: string | null;
   companyName?: string | null;
   className?: string;
@@ -53,6 +55,7 @@ export function ViewInSharePointButton({
   const knownFileUrl = fileUrl?.trim() || "";
   const knownFolderUrl = folderUrl?.trim() || folderUrlProp?.trim() || "";
   const href = knownFileUrl || knownFolderUrl;
+  const canEnsureProject = Boolean(projectId?.trim());
   const canEnsureCompany = Boolean(companyId?.trim());
   const canEnsureDeal = Boolean(dealId?.trim());
 
@@ -61,6 +64,14 @@ export function ViewInSharePointButton({
       [AUTH_ROLE_HEADER]: user.role,
       "Content-Type": "application/json",
     };
+
+    if (canEnsureProject && projectId) {
+      const response = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/sharepoint`,
+        { method: "POST", credentials: "include", headers },
+      );
+      return readFolderUrl(response);
+    }
 
     if (canEnsureCompany && companyId) {
       const response = await fetch(
@@ -84,17 +95,33 @@ export function ViewInSharePointButton({
       return readFolderUrl(response);
     }
 
-    throw new Error("No company or opportunity to open in SharePoint");
-  }, [canEnsureCompany, canEnsureDeal, companyId, companyName, dealId, dealName, user.role]);
+    throw new Error("No project, company or opportunity to open in SharePoint");
+  }, [
+    canEnsureCompany,
+    canEnsureDeal,
+    canEnsureProject,
+    companyId,
+    companyName,
+    dealId,
+    dealName,
+    projectId,
+    user.role,
+  ]);
 
   useEffect(() => {
-    if (knownFileUrl || folderUrlProp?.trim() || !canEnsureCompany || !companyId) return;
+    const lookupId = canEnsureProject ? projectId : canEnsureCompany ? companyId : null;
+    const lookupPath = canEnsureProject
+      ? `/api/projects/${encodeURIComponent(projectId!)}/sharepoint`
+      : canEnsureCompany && companyId
+        ? `/api/companies/${encodeURIComponent(companyId)}/sharepoint`
+        : null;
+    if (knownFileUrl || folderUrlProp?.trim() || !lookupPath || !lookupId) return;
 
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    void fetch(`/api/companies/${encodeURIComponent(companyId)}/sharepoint`, {
+    void fetch(lookupPath, {
       credentials: "include",
     })
       .then((response) => readFolderUrl(response))
@@ -111,7 +138,7 @@ export function ViewInSharePointButton({
     return () => {
       cancelled = true;
     };
-  }, [canEnsureCompany, companyId, folderUrlProp, knownFileUrl]);
+  }, [canEnsureCompany, canEnsureProject, companyId, folderUrlProp, knownFileUrl, projectId]);
 
   const handleEnsureAndOpen = async () => {
     if (busy) return;
@@ -149,7 +176,7 @@ export function ViewInSharePointButton({
     );
   }
 
-  if (!canEnsureCompany && !canEnsureDeal) {
+  if (!canEnsureProject && !canEnsureCompany && !canEnsureDeal) {
     return null;
   }
 

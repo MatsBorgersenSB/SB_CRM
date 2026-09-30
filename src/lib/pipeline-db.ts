@@ -1602,7 +1602,7 @@ export async function createProjectSmartDocLibraryRecord(
     {
       ...input,
       LinkedProjectId: project.id,
-      LinkedDealId: input.LinkedDealId ?? project.linkedDealId,
+      LinkedDealId: input.LinkedDealId?.trim() || undefined,
     },
   );
 

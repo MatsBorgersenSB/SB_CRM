@@ -8,6 +8,7 @@ import type { Project } from "@/types/project";
 import { filterActivitiesToLiveEntities } from "@/lib/activity-utils";
 import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import { classifyByFileName } from "@/lib/mock-ai-parser";
+import { parseSmartDocIdentityFromFileName } from "@/lib/smartdoc-identity";
 import {
   mapPrismaCompanyToApp,
   mapPrismaOpportunityToPipelineRow,
@@ -391,30 +392,44 @@ export async function readLiveSmartDocsLibrary(): Promise<SmartDocLibraryRecord[
       return readSmartDocsLibrary();
     }
 
+    const projects = await readProjects().catch(() => [] as Project[]);
+    const projectNameById = new Map(
+      projects.map((project) => [project.id.trim().toUpperCase(), project.name]),
+    );
+
     return records.map((row) => {
       const owner = row.company ?? row.opportunity?.company ?? null;
       const classified = classifyByFileName(row.name);
+      const identity = parseSmartDocIdentityFromFileName(row.name);
       const companyId = owner
         ? owner.code?.trim() || toCompanyTrackingId(owner.id)
         : undefined;
+      const projectOwned = identity?.ownership === "project";
+      const companyOwned = !projectOwned && !row.opportunityId && Boolean(row.companyId);
+      const projectCode = identity?.ownerCode ?? "";
 
       return {
         id: stableNumericId(row.id),
-        SmartDocID: row.id,
-        DealId: row.opportunityId,
+        SmartDocID: identity?.documentId ?? row.id,
+        DealId: projectOwned ? null : row.opportunityId,
         OwnerCompanyId: companyId,
-        Ownership: row.opportunityId
-          ? "opportunity"
-          : row.companyId
-            ? "company"
-            : undefined,
+        Ownership: projectOwned
+          ? "project"
+          : row.opportunityId
+            ? "opportunity"
+            : companyOwned
+              ? "company"
+              : undefined,
         PlNumber:
+          identity?.ownerCode ||
           row.opportunity?.code?.trim() ||
           owner?.code?.trim() ||
           companyId ||
           "",
         ClientName: owner?.name ?? "",
-        DealName: row.opportunity?.name ?? "",
+        DealName: projectOwned
+          ? projectNameById.get(projectCode) ?? projectCode
+          : row.opportunity?.name ?? "",
         CommercialStage: "",
         CreatedAt: row.createdAt.toISOString(),
         DocCategory: normalizeSmartDocCategory(classified.DocCategory),
@@ -425,7 +440,8 @@ export async function readLiveSmartDocsLibrary(): Promise<SmartDocLibraryRecord[
         Origin: classified.Origin,
         Counterparty: classified.Counterparty,
         SharePointWebUrl: row.sharepointWebUrl ?? undefined,
-        LinkedDealId: row.opportunityId,
+        LinkedDealId: projectOwned ? null : row.opportunityId,
+        LinkedProjectId: projectOwned ? projectCode || null : null,
       } satisfies SmartDocLibraryRecord;
     });
   } catch (error) {
@@ -542,6 +558,7 @@ export async function readLiveSmartDocsForCompany(companyId: string) {
   );
 
   return library.filter((record) => {
+    if (record.Ownership === "project" || record.LinkedProjectId) return false;
     if (record.OwnerCompanyId?.trim().toLowerCase() === key) return true;
     if (
       company?.CompanyID &&
