@@ -1,5 +1,6 @@
 import type { SmartDocsDocument } from "@/types/pipeline";
 import {
+  parseSmartDocIdentityFromFileName,
   resolveCategoryCode,
   resolveTypeCode,
 } from "@/lib/smartdoc-identity";
@@ -9,23 +10,13 @@ import type { SmartDocCategory } from "@/types/smartdoc-library";
 const LEGACY_SMARTDOCS_FILENAME_PATTERN =
   /^([A-Z]{2}-\d{4})_([^-]+)-(.+?)\.(\d{2})\s+(.+)\.([^.]+)$/;
 
-/**
- * Identity with display name:
- * PL-1001-S-ORC-0001.pdf
- * PL-1001-S-ORC-0001 Order Confirmation.pdf
- * CO-1009-S-SUQ-0001 Dorset S02325.pdf
- */
-const IDENTITY_SMARTDOCS_FILENAME_PATTERN =
-  /^((?:PL|CO|PRJ)-[A-Z0-9]+)-([A-Z])-([A-Z]{2,4})-(\d{4})(?:\s+.+)?\.([^.]+)$/i;
-
 export function parseSmartDocsFilename(
   fileName: string,
 ): SmartDocsDocument | null {
-  const identity = fileName.match(IDENTITY_SMARTDOCS_FILENAME_PATTERN);
+  const identity = parseSmartDocIdentityFromFileName(fileName);
   if (identity) {
-    const [, ClientLookup] = identity;
     return {
-      ClientLookup: ClientLookup!,
+      ClientLookup: identity.ownerCode,
       DocCategory: "",
       DocType: "",
       Revision: "01",

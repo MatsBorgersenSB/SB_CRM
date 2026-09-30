@@ -40,6 +40,7 @@ import {
   type WorkspaceDocumentRow,
   type WorkspaceDocumentsContext,
 } from "@/lib/workspace-documents-data";
+import { projectDocumentsSharePointPath } from "@/types/smartdoc-library";
 import {
   applyWorkspaceDocumentTableQuery,
   buildWorkspaceDocumentFilterDefinitions,
@@ -744,6 +745,10 @@ export function WorkspaceDocumentsPanel({
     !sharePointCompanyId && context.scope === "opportunity"
       ? context.dealId || resolvedDealId
       : undefined;
+  const sharePointProjectId = isProjectScope ? context.projectId : undefined;
+  const projectSharePointPath = isProjectScope
+    ? projectDocumentsSharePointPath(context.projectName || "…", context.companyName)
+    : "";
 
   return (
     <div className="flex flex-col gap-4">
@@ -753,6 +758,7 @@ export function WorkspaceDocumentsPanel({
           fileUrl={importedSharePointUrl}
           companyId={sharePointCompanyId}
           dealId={sharePointDealId}
+          projectId={sharePointProjectId}
           dealName={context.dealName || targetPipeline?.assetName}
           companyName={context.companyName || ownerCompany?.Title}
         />
@@ -924,7 +930,8 @@ export function WorkspaceDocumentsPanel({
           {isProjectScope ? (
             <p className="mb-3 text-[11px] text-carbon-blue/55">
               Project documents use PRJ-… identity and file under SharePoint{" "}
-              <span className="font-mono">/Projects/{context.projectName || "…"}</span>.
+              <span className="font-mono">{projectSharePointPath}</span>. Category and type are
+              written on the SharePoint item.
             </p>
           ) : null}
           {companyOwnedEnabled && !isProjectScope ? (
@@ -1027,7 +1034,7 @@ export function WorkspaceDocumentsPanel({
           </button>
           <p className="mt-2 text-[11px] text-carbon-blue/45">
             {isProjectScope
-              ? "Project documents use PRJ-… identity. The Projects folder is created in SharePoint on first import."
+              ? "Project documents use PRJ-… identity. Category and type are tagged in SharePoint on first import."
               : useCompanyOwnership
                 ? "Company-owned documents use CO-… identity and do not invent opportunities."
                 : "Created documents are marked as Standard Bio origin."}
@@ -1040,7 +1047,8 @@ export function WorkspaceDocumentsPanel({
           {isProjectScope ? (
             <p className="mb-3 text-[11px] text-carbon-blue/55">
               Files import to this project and SharePoint{" "}
-              <span className="font-mono">/Projects/{context.projectName || "…"}</span>.
+              <span className="font-mono">{projectSharePointPath}</span>
+              . Confirm category and type — they are written onto the SharePoint file.
             </p>
           ) : useCompanyOwnership ? (
             <p className="mb-3 text-[11px] text-carbon-blue/55">

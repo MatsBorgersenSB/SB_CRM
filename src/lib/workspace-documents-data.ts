@@ -14,8 +14,12 @@ import {
   SMARTDOC_ORIGIN_LABELS,
 } from "@/types/smartdoc-library";
 import { company360Href } from "@/types/company-360";
-import { deal360Href, documentHref, contact360Href } from "@/types/relationship-navigation";
-import { project360Href } from "@/types/relationship-navigation";
+import {
+  deal360Href,
+  documentHref,
+  contact360Href,
+  projectDocumentsHref,
+} from "@/types/relationship-navigation";
 import { formatRelativeTime } from "@/lib/relative-time";
 
 export type WorkspaceDocumentsScope = "company" | "contact" | "opportunity" | "project";
@@ -130,7 +134,7 @@ function relatedObjectForLibraryRecord(
     return {
       label: record.DealName || "Project",
       href: record.LinkedProjectId
-        ? `${project360Href(record.LinkedProjectId, { view: "actions" })}&action=documents`
+        ? projectDocumentsHref(record.LinkedProjectId)
         : undefined,
     };
   }
@@ -397,24 +401,21 @@ export function workspaceDocumentsContextFromOpportunity(
   };
 }
 
-/** Project workspace — uses linked opportunity or company document scope. */
+/** Project workspace — files to the project. Never invent a missing linked deal. */
 export function workspaceDocumentsContextFromProject(
   project: Project,
   pipeline?: PipelineRow,
   company?: Company,
 ): WorkspaceDocumentsContext {
+  const liveDealId = pipeline?.id;
   return {
     scope: "project",
     projectId: project.id,
     projectName: project.name,
     companyId: company?.CompanyID ?? project.linkedCompanyId,
     companyName: company?.Title,
-    dealId: pipeline?.id ?? project.linkedDealId,
+    dealId: liveDealId,
     dealName: pipeline?.assetName,
-    pipelineIds: pipeline?.id
-      ? [pipeline.id]
-      : project.linkedDealId
-        ? [project.linkedDealId]
-        : [],
+    pipelineIds: liveDealId ? [liveDealId] : [],
   };
 }

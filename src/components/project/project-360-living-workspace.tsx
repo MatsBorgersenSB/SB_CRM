@@ -274,7 +274,7 @@ export function Project360LivingWorkspace({
               context={{
                 projectId: project.id,
                 projectName: project.name,
-                dealId: project.linkedDealId,
+                dealId: linkedPipeline?.id,
                 companyId: project.linkedCompanyId,
                 companyName: linkedCompany?.Title,
               }}
@@ -377,7 +377,7 @@ export function Project360LivingWorkspace({
         activityContext={{
           projectId: project.id,
           projectName: project.name,
-          dealId: project.linkedDealId,
+          dealId: linkedPipeline?.id,
           companyId: project.linkedCompanyId,
           companyName: linkedCompany?.Title,
         }}

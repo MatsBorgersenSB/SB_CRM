@@ -84,10 +84,14 @@ export const SMARTDOC_IDENTITY_TYPE_CODES: Record<string, string> = {
   Correspondence: "COR",
 };
 
-/** PL-… (opportunity), CO-… (company), or PRJ-… (project) owner prefix + category + type + sequence. */
-const IDENTITY_PATTERN = /^((?:PL|CO|PRJ)-[A-Z0-9]+)-([A-Z])-([A-Z]{2,4})-(\d{4})$/i;
+/**
+ * Owner codes may include extra hyphenated tokens (Escalante = PRJ-CARBON-EMERGENTE).
+ * Identity is parsed from the right: sequence, type, category, then the owner.
+ */
+const IDENTITY_PATTERN =
+  /^((?:PL|CO|PRJ)-[A-Z0-9]+(?:-[A-Z0-9]+)*)-([A-Z])-([A-Z]{2,4})-(\d{4})$/i;
 
-const OWNER_CODE_PATTERN = /^(PL|CO|PRJ)-[A-Z0-9]+$/i;
+const OWNER_CODE_PATTERN = /^(PL|CO|PRJ)-[A-Z0-9]+(?:-[A-Z0-9]+)*$/i;
 
 export const SMARTDOC_IDENTITY_EXPLANATION =
   "SmartDoc IDs encode ownership context: PL for deal docs, CO for company-owned docs, or PRJ for project docs, plus document category (e.g. S = Sales & Marketing), document type (e.g. SUQ = Supplier Quotation), and a unique sequence. IDs are assigned automatically — never edited manually. SharePoint manages file version history.";
@@ -305,12 +309,20 @@ export type SmartDocIdentityBreakdown = {
   /** @deprecated Prefer ownerCode — kept for existing call sites. */
   plNumber: string;
   ownerCode: string;
-  ownership: "company" | "opportunity";
+  ownership: "company" | "opportunity" | "project";
   categoryCode: string;
   categoryLabel: string;
   typeCode: string;
   sequence: string;
 };
+
+function ownershipFromOwnerCode(
+  ownerCode: string,
+): SmartDocIdentityBreakdown["ownership"] {
+  if (ownerCode.startsWith("CO-")) return "company";
+  if (ownerCode.startsWith("PRJ-")) return "project";
+  return "opportunity";
+}
 
 export function parseSmartDocIdentity(documentId: string): SmartDocIdentityBreakdown | null {
   const match = documentId.trim().match(IDENTITY_PATTERN);
@@ -326,12 +338,21 @@ export function parseSmartDocIdentity(documentId: string): SmartDocIdentityBreak
     documentId: `${normalizedOwner}-${categoryCode!.toUpperCase()}-${typeCode!.toUpperCase()}-${sequence}`,
     plNumber: normalizedOwner,
     ownerCode: normalizedOwner,
-    ownership: normalizedOwner.startsWith("CO-") ? "company" : "opportunity",
+    ownership: ownershipFromOwnerCode(normalizedOwner),
     categoryCode: categoryCode!.toUpperCase(),
     categoryLabel: categoryEntry?.[1].label ?? categoryCode!.toUpperCase(),
     typeCode: typeCode!.toUpperCase(),
     sequence: sequence!,
   };
+}
+
+/** File names are `{identity} {display name}.ext` — identity may contain hyphens. */
+export function parseSmartDocIdentityFromFileName(
+  fileName: string,
+): SmartDocIdentityBreakdown | null {
+  const stem = fileName.replace(/\.[^.]+$/, "").trim();
+  const token = stem.split(/\s+/)[0]?.trim() ?? "";
+  return parseSmartDocIdentity(token) ?? parseSmartDocIdentity(stem);
 }
 
 export function sharePointVersionLabel(revision: string): string {

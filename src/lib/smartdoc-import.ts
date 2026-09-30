@@ -546,7 +546,7 @@ export async function importProjectSmartDoc(input: {
       input.file?.originalFileName ??
       undefined,
     LinkedProjectId: project.id,
-    LinkedDealId: input.metadata.LinkedDealId ?? project.linkedDealId,
+    LinkedDealId: input.metadata.LinkedDealId?.trim() || undefined,
   };
 
   let libraryRecord = await createProjectSmartDocLibraryRecord(
