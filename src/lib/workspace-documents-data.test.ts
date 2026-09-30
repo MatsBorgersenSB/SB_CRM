@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { workspaceDocumentsHref } from "../types/relationship-navigation";
-import { workspaceDocumentsContextFromProject, WORKSPACE_PROJECT_DOCUMENT_PRESETS } from "./workspace-documents-data";
+import { workspaceDocumentsContextFromProject, WORKSPACE_PROJECT_DOCUMENT_PRESETS, workspaceDocumentsLinkSummary } from "./workspace-documents-data";
 import { SMARTDOC_TYPES } from "../types/smartdoc-library";
 import type { PipelineRow } from "../types/pipeline";
 import type { Project } from "../types/project";
@@ -62,5 +62,16 @@ describe("project documents stay on the project", () => {
       );
     }
     assert.ok(!labels.some((label) => /quotation|rfq|presentation/i.test(label)));
+  });
+
+  it("shows the real SharePoint path instead of /Projects/{Name}", () => {
+    const context = workspaceDocumentsContextFromProject(escalante, undefined, {
+      CompanyID: "CO-CARBON",
+      Title: "Carbón Emergente",
+    } as never);
+    assert.match(
+      workspaceDocumentsLinkSummary(context),
+      /\/Projects\/Carbón Emergente\/Escalante/,
+    );
   });
 });

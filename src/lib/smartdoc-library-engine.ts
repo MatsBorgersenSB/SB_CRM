@@ -1,6 +1,7 @@
 import { buildDealDocumentContext } from "@/lib/deal-document-context";
 import {
   buildDocumentIdentity,
+  normalizeSmartDocOwnerCode,
 } from "@/lib/smartdoc-identity";
 import { buildIdentitySmartDocsFileLeafRef } from "@/lib/smartdocs-filename";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -222,8 +223,15 @@ export function buildProjectDocumentContext(
   company?: Company | null,
   now = new Date().toISOString(),
 ): ProjectDocumentContext {
-  const projectCode = project.id.trim().toUpperCase();
-  if (!/^PRJ-[A-Z0-9]+$/i.test(projectCode)) {
+  let projectCode: string;
+  try {
+    projectCode = normalizeSmartDocOwnerCode(project.id);
+  } catch {
+    throw new Error(
+      `Project ${project.name} is missing a PRJ-… id required for project SmartDocs`,
+    );
+  }
+  if (!projectCode.startsWith("PRJ-")) {
     throw new Error(
       `Project ${project.name} is missing a PRJ-… id required for project SmartDocs`,
     );
