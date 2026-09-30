@@ -11,6 +11,7 @@ import {
   isCompanyOwnedSmartDoc,
   isProjectOwnedSmartDoc,
   normalizeSmartDocOrigin,
+  projectDocumentsSharePointPath,
   SMARTDOC_ORIGIN_LABELS,
 } from "@/types/smartdoc-library";
 import { company360Href } from "@/types/company-360";
@@ -336,7 +337,7 @@ export function workspaceDocumentsLinkSummary(context: WorkspaceDocumentsContext
     case "opportunity":
       return `Documents are linked to ${context.dealName ?? "this opportunity"} and ${context.companyName ?? "company"}.`;
     case "project":
-      return `Documents are owned by ${context.projectName ?? "this project"}. SharePoint: /Projects/{Name}.`;
+      return `Documents are owned by ${context.projectName ?? "this project"}. SharePoint: ${projectDocumentsSharePointPath(context.projectName ?? "this project", context.companyName)}.`;
     default:
       return "Documents use SmartDocs identity, classification, and version management.";
   }
