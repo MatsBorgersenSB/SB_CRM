@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { workspaceDocumentsHref } from "../types/relationship-navigation";
-import { workspaceDocumentsContextFromProject } from "./workspace-documents-data";
+import { workspaceDocumentsContextFromProject, WORKSPACE_PROJECT_DOCUMENT_PRESETS } from "./workspace-documents-data";
+import { SMARTDOC_TYPES } from "../types/smartdoc-library";
 import type { PipelineRow } from "../types/pipeline";
 import type { Project } from "../types/project";
 
@@ -40,5 +41,26 @@ describe("project documents stay on the project", () => {
     const context = workspaceDocumentsContextFromProject(escalante, pipeline);
     assert.equal(context.dealId, "live-deal");
     assert.deepEqual(context.pipelineIds, ["live-deal"]);
+  });
+
+  it("offers project Create shortcuts from the SharePoint list, not deal quotations", () => {
+    const labels = WORKSPACE_PROJECT_DOCUMENT_PRESETS.map((row) => row.label);
+    assert.deepEqual(labels, [
+      "Minutes of meeting",
+      "Project plan",
+      "Change request",
+      "Issue log",
+      "Drawing",
+      "Procedure",
+      "Certificate",
+      "Report",
+    ]);
+    for (const row of WORKSPACE_PROJECT_DOCUMENT_PRESETS) {
+      assert.ok(
+        (SMARTDOC_TYPES as readonly string[]).includes(row.type),
+        `${row.type} is not in the SharePoint type list`,
+      );
+    }
+    assert.ok(!labels.some((label) => /quotation|rfq|presentation/i.test(label)));
   });
 });

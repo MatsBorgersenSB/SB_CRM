@@ -92,6 +92,18 @@ export const WORKSPACE_COMPANY_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[]
   { label: "Memo", category: "General", type: "Memo" },
 ];
 
+/** Project Create shortcuts — SharePoint types as filed on an operating plant, not a deal. */
+export const WORKSPACE_PROJECT_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[] = [
+  { label: "Minutes of meeting", category: "Project Management", type: "Minutes og Meeting" },
+  { label: "Project plan", category: "Project Management", type: "Projectplan" },
+  { label: "Change request", category: "Project Management", type: "Change Request" },
+  { label: "Issue log", category: "Project Management", type: "Issue Log" },
+  { label: "Drawing", category: "Engineering", type: "Drawing" },
+  { label: "Procedure", category: "Operation", type: "Procedure" },
+  { label: "Certificate", category: "Quality", type: "Certificate" },
+  { label: "Report", category: "Engineering", type: "Report" },
+];
+
 function formatModifiedDate(value: string): string {
   if (!value) return "—";
   const date = new Date(value);

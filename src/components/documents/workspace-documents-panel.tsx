@@ -36,6 +36,7 @@ import {
   defaultTargetDealId,
   WORKSPACE_COMPANY_DOCUMENT_PRESETS,
   WORKSPACE_CREATE_DOCUMENT_PRESETS,
+  WORKSPACE_PROJECT_DOCUMENT_PRESETS,
   workspaceDocumentsLinkSummary,
   type WorkspaceDocumentRow,
   type WorkspaceDocumentsContext,
@@ -173,9 +174,11 @@ export function WorkspaceDocumentsPanel({
   const useCompanyOwnership =
     companyOwnedEnabled &&
     (ownershipMode === "company" || !resolvedDealId || dealOptions.length === 0);
+  const isProjectScope = context.scope === "project" && Boolean(context.projectId);
 
-  const documentPresets =
-    useCompanyOwnership
+  const documentPresets = isProjectScope
+    ? WORKSPACE_PROJECT_DOCUMENT_PRESETS
+    : useCompanyOwnership
       ? WORKSPACE_COMPANY_DOCUMENT_PRESETS
       : WORKSPACE_CREATE_DOCUMENT_PRESETS;
   const preset = documentPresets[presetIndex] ?? documentPresets[0]!;
@@ -208,8 +211,6 @@ export function WorkspaceDocumentsPanel({
   useEffect(() => {
     onDocumentCountChange?.(rows.length);
   }, [onDocumentCountChange, rows.length]);
-
-  const isProjectScope = context.scope === "project" && Boolean(context.projectId);
 
   const identityPreview = useMemo(() => {
     if (isProjectScope && context.projectId) {
