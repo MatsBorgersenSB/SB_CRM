@@ -17,7 +17,10 @@ import { OpportunityQuestionBox } from "@/components/opportunity/opportunity-que
 import { OpportunityQuestionsWorkspace } from "@/components/opportunity/opportunity-questions-workspace";
 import { OpportunityTimelineWorkspace } from "@/components/opportunity/opportunity-timeline-workspace";
 import { AddFindingPanel } from "@/components/knowledge/add-finding-panel";
+import { MarketFactsOnDeal } from "@/components/opportunity/market-facts-on-deal";
+import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
 import { buildOpportunityUnderstanding } from "@/lib/opportunity-workspace-intelligence";
+import { resolveAllUnderstandingFields } from "@/lib/opportunity-understanding-model";
 import { buildSmartDocsIntelligence } from "@/lib/smartdocs-intelligence-data";
 import type { OpportunityAskContext } from "@/lib/opportunity-smartassist-ask";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -65,6 +68,7 @@ export function OpportunityMissionControl({
   onSaveUnderstandingField,
   onSaveDiscoveryAnswer,
   onSaveFindings,
+  onReadDocuments,
   role = "superuser",
   influenceReadOnly = false,
 }: {
@@ -93,6 +97,7 @@ export function OpportunityMissionControl({
     value: string,
   ) => Promise<void>;
   onSaveFindings?: (findings: SourceFinding[]) => Promise<void>;
+  onReadDocuments?: () => Promise<SourceFinding[]>;
   role?: UserRole;
   influenceReadOnly?: boolean;
 }) {
@@ -106,6 +111,14 @@ export function OpportunityMissionControl({
         attentionItems,
       ),
     [pipeline, companies, assessment, activities, attentionItems],
+  );
+
+  const knownFieldIds = useMemo(
+    () =>
+      resolveAllUnderstandingFields(pipeline)
+        .filter((field) => field.source === "captured")
+        .map((field) => field.definition.id),
+    [pipeline],
   );
 
   const dealDocuments = useMemo(() => {
@@ -206,6 +219,12 @@ export function OpportunityMissionControl({
             onAnswerNow={onAnswerNow}
             findings={pipeline.understanding?.findings ?? []}
             onSaveFindings={onSaveFindings}
+            documentCount={dealDocuments.length}
+            onReadDocuments={onReadDocuments}
+            knownFieldIds={knownFieldIds}
+            country={findCompanyForDeal(pipeline.id, companies)?.Country?.Title}
+            feedstock={pipeline.targetFeedstock}
+            industry={findCompanyForDeal(pipeline.id, companies)?.Industry}
           />
         ) : null}
 
@@ -320,6 +339,12 @@ function OverviewPanel({
   onAnswerNow,
   findings,
   onSaveFindings,
+  documentCount = 0,
+  onReadDocuments,
+  knownFieldIds,
+  country,
+  feedstock,
+  industry,
 }: {
   objective: string;
   objectiveConfidence: "high" | "medium" | "low";
@@ -339,6 +364,12 @@ function OverviewPanel({
   onAnswerNow?: (fieldId: string) => void;
   findings: SourceFinding[];
   onSaveFindings?: (findings: SourceFinding[]) => Promise<void>;
+  documentCount?: number;
+  onReadDocuments?: () => Promise<SourceFinding[]>;
+  knownFieldIds?: readonly UnderstandingFieldId[];
+  country?: string | null;
+  feedstock?: string | null;
+  industry?: string | null;
 }) {
   const objectiveCategory = confidenceToCategory(objectiveConfidence);
   const objectiveLabel =
@@ -355,7 +386,11 @@ function OverviewPanel({
             throw new Error("You cannot add findings with this role");
           })
         }
+        documentCount={documentCount}
+        onReadDocuments={onReadDocuments}
+        knownFieldIds={knownFieldIds}
       />
+      <MarketFactsOnDeal country={country} feedstock={feedstock} industry={industry} />
 
       <MissionInsight
         label="What the customer wants"

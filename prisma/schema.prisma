@@ -923,3 +923,12 @@ model Tender {
   @@map("thermal_tenders")
 }
 
+/// Confirmed or dismissed sector market facts. The card text lives in code; only the decision is stored.
+model MarketFactDecision {
+  factId    String   @id
+  decision  String
+  updatedAt DateTime @updatedAt
+
+  @@map("market_fact_decisions")
+}
+

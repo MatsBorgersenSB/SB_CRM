@@ -162,6 +162,53 @@ function normalizeFindingStatement(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/**
+ * Facts read from a URL or document are not knowledge until someone confirms them.
+ * A fact this record already holds — a confirmed claim, or an understanding field
+ * already answered — is not asked again.
+ */
+export function settleIncomingClaims(
+  claims: SourceFindingClaim[],
+  existing: SourceFinding[] | undefined,
+  filledFieldIds?: readonly UnderstandingFieldId[],
+): SourceFindingClaim[] {
+  const filled = new Set(filledFieldIds ?? []);
+  const confirmedStatements = new Set<string>();
+  const dismissedStatements = new Set<string>();
+  const confirmedFields = new Set<UnderstandingFieldId>();
+
+  for (const finding of existing ?? []) {
+    for (const claim of finding.claims) {
+      const key = normalizeFindingStatement(claim.statement);
+      if (!key) continue;
+      if (claim.decision === "dismissed") dismissedStatements.add(key);
+      if (claim.decision === "confirmed") {
+        confirmedStatements.add(key);
+        if (claim.fieldId) confirmedFields.add(claim.fieldId);
+      }
+    }
+  }
+
+  const seen = new Set<string>();
+  const next: SourceFindingClaim[] = [];
+  for (const claim of claims) {
+    const key = normalizeFindingStatement(claim.statement);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    if (dismissedStatements.has(key) || confirmedStatements.has(key)) continue;
+    if (claim.fieldId && (filled.has(claim.fieldId) || confirmedFields.has(claim.fieldId))) {
+      continue;
+    }
+    next.push({
+      id: claim.id,
+      statement: claim.statement,
+      impact: claim.impact,
+      fieldId: claim.fieldId,
+    });
+  }
+  return next;
+}
+
 /** Re-collect keeps confirmed competitor knowledge and does not revive dismissed ones. */
 export function mergeCompetitorFinding(
   previous: SourceFinding,
@@ -188,39 +235,79 @@ export function mergeCompetitorFinding(
   };
 }
 
+/** Keep what a person already decided. Only unseen facts come back for validation. */
+function mergeReadFinding(previous: SourceFinding, incoming: SourceFinding): SourceFinding {
+  const decided = previous.claims.filter(
+    (row) => row.decision === "confirmed" || row.decision === "dismissed",
+  );
+  const decidedKeys = new Set(decided.map((row) => normalizeFindingStatement(row.statement)));
+  const confirmedFields = new Set(
+    decided
+      .filter((row) => row.decision === "confirmed" && row.fieldId)
+      .map((row) => row.fieldId as UnderstandingFieldId),
+  );
+  const fresh = incoming.claims.filter((row) => {
+    const key = normalizeFindingStatement(row.statement);
+    if (!key || decidedKeys.has(key)) return false;
+    if (row.fieldId && confirmedFields.has(row.fieldId)) return false;
+    return true;
+  });
+  return {
+    ...previous,
+    title: incoming.title.trim() || previous.title,
+    url: incoming.url ?? previous.url,
+    note: incoming.note ?? previous.note,
+    kind: incoming.kind ?? previous.kind,
+    claims: [...decided, ...fresh],
+  };
+}
+
 export function appendSourceFinding(
   current: SourceFinding[] | undefined,
   finding: SourceFinding,
+  filledFieldIds?: readonly UnderstandingFieldId[],
 ): SourceFinding[] {
   const existing = current ?? [];
-  if (existing.some((row) => row.id === finding.id)) return existing;
-  if (finding.kind === "competitor") {
+  const incoming: SourceFinding =
+    finding.kind === "competitor"
+      ? finding
+      : {
+          ...finding,
+          claims: settleIncomingClaims(finding.claims, existing, filledFieldIds),
+        };
+
+  if (existing.some((row) => row.id === incoming.id)) return existing;
+  if (incoming.kind === "competitor") {
     const index = existing.findIndex((row) => row.kind === "competitor");
     if (index >= 0) {
       const previous = existing[index];
       return existing.map((row, rowIndex) =>
-        rowIndex === index ? mergeCompetitorFinding(previous, finding) : row,
+        rowIndex === index ? mergeCompetitorFinding(previous, incoming) : row,
       );
     }
   }
   if (
-    finding.url &&
-    existing.some((row) => row.url && row.url.toLowerCase() === finding.url!.toLowerCase())
+    incoming.url &&
+    existing.some((row) => row.url && row.url.toLowerCase() === incoming.url!.toLowerCase())
   ) {
     return existing.map((row) =>
-      row.url && row.url.toLowerCase() === finding.url!.toLowerCase() ? finding : row,
+      row.url && row.url.toLowerCase() === incoming.url!.toLowerCase()
+        ? mergeReadFinding(row, incoming)
+        : row,
     );
   }
   if (
-    finding.kind === "document" &&
-    finding.note &&
-    existing.some((row) => row.kind === "document" && row.note === finding.note)
+    incoming.kind === "document" &&
+    incoming.note &&
+    existing.some((row) => row.kind === "document" && row.note === incoming.note)
   ) {
     return existing.map((row) =>
-      row.kind === "document" && row.note === finding.note ? finding : row,
+      row.kind === "document" && row.note === incoming.note
+        ? mergeReadFinding(row, incoming)
+        : row,
     );
   }
-  return [...existing, finding];
+  return [...existing, incoming];
 }
 
 export function applySourceFindingDecision(
