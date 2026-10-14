@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { BulkImportPanel } from "@/components/companies/bulk-import-panel";
 import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WebsiteDiscoveryPanel } from "@/components/companies/website-discovery-panel";
@@ -17,7 +16,8 @@ import {
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
-import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
+import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import { useAuth } from "@/context/auth-context";
 import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
@@ -281,13 +281,7 @@ export function ContactsShell({
 
   return (
     <WorkspaceChrome>
-      <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2 text-[12px] text-carbon-blue/55">
-          <SmartCRMIcon name="contact" size="xs" />
-          <span className="font-semibold text-carbon-blue">Contacts</span>
-        </div>
-        <RoleSwitcher companies={companyRows} />
-      </header>
+      <WorkspaceTopBar icon="people" title="People" />
 
       <WorkspaceMain>
         <WorkspaceStack>

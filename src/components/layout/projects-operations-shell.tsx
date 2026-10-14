@@ -1,14 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { ProjectsDirectory } from "@/components/project/projects-directory";
 import { ProjectCreateButton } from "@/components/project/project-create-button";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
-import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
-import { PROJECT_WORKSPACE_LIGHT } from "@/lib/smart-assist-config";
+import { WorkspacePageTitle } from "@/components/ui/workspace-page-title";
+import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import type { Project, ProjectKind } from "@/types/project";
 import { PROJECT_KIND_LABELS } from "@/types/project";
 import type { FilterDefinition, WorkspaceFilterValues } from "@/types/workspace-filters";
@@ -107,29 +106,18 @@ export function ProjectsOperationsShell({ projects }: { projects: Project[] }) {
 
   return (
     <WorkspaceChrome>
-      <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2 truncate text-[12px] text-carbon-blue/50">
-          <SmartCRMIcon name="project" size="xs" />
-          <span className="font-medium text-carbon-blue/70">Projects</span>
-        </div>
-        <RoleSwitcher />
-      </header>
+      <WorkspaceTopBar icon="project" title="Projects" />
 
       <WorkspaceMain>
         <WorkspaceStack>
-          <div className="flex flex-wrap items-start justify-between gap-4 border border-carbon-blue/10 bg-white p-4 lg:p-5">
-            <div>
-              <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-carbon-blue">
-                <SmartCRMIcon name="project" size="lg" label="Projects" />
-                Project Workspace
-              </h1>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-carbon-blue/65">
-                {PROJECT_WORKSPACE_LIGHT.description}
-              </p>
-              <p className="mt-1 text-[12px] text-carbon-blue/60">{PROJECT_WORKSPACE_LIGHT.mantra}</p>
-            </div>
-            <ProjectCreateButton />
-          </div>
+          <section className="dashboard-card p-4 sm:p-6">
+            <WorkspacePageTitle
+              icon="project"
+              title="Projects"
+              subtitle="Work we are delivering or preparing — which account it serves, what stage it is in, and who owns it."
+              actions={<ProjectCreateButton />}
+            />
+          </section>
 
           <FilterToolbar
             filters={filterDefinitions}

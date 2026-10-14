@@ -2,14 +2,14 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { WorkspaceDocumentsBrowseTable } from "@/components/documents/workspace-documents-browse-table";
 import { MissingCriticalDocumentRow } from "@/components/smartdocs/smartdocs-intelligence-row";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { IntelligenceLead } from "@/components/ui/intelligence-lead";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
-import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
+import { WorkspacePageTitle } from "@/components/ui/workspace-page-title";
+import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
@@ -129,7 +129,7 @@ export function KnowledgeShell({
     }
     if (rows.length === 0) {
       return {
-        title: "No SmartDocs in the library yet",
+        title: "No documents filed yet",
         summary:
           "File documents on a company, contact, opportunity, or project. SharePoint keeps the file; SmartCRM keeps category, type, and identity.",
         actionHref: "/companies",
@@ -147,15 +147,18 @@ export function KnowledgeShell({
 
   return (
     <WorkspaceChrome>
-      <WorkspaceHeader
-        scope="Knowledge workspace"
-        title="SmartDocs"
-        context="Find, file, and act on organizational documents"
-        actions={<RoleSwitcher companies={scopedCompanies} />}
-      />
+      <WorkspaceTopBar icon="document" title="Knowledge" />
 
       <WorkspaceMain>
         <WorkspaceStack>
+          <section className="dashboard-card p-4 sm:p-6">
+            <WorkspacePageTitle
+              icon="document"
+              title="Knowledge"
+              subtitle="The documents behind our relationships and deals — what we hold, where it lives, and what is still missing."
+            />
+          </section>
+
           <IntelligenceLead
             eyebrow="Attention"
             title={hero.title}

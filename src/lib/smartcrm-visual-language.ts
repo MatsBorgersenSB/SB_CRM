@@ -10,6 +10,7 @@
 
 export const SMARTCRM_ICONS = {
   contact: "contact",
+  people: "people",
   company: "company",
   opportunity: "opportunity",
   document: "document",

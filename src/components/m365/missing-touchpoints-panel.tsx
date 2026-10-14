@@ -76,9 +76,6 @@ export function MissingTouchpointsPanel({
           SmartAssist · {OUTLOOK_RELATIONSHIP_RECONCILIATION.title}
         </p>
         <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/70">{audit.summary}</p>
-        <p className="mt-1 text-[11px] italic text-carbon-blue/50">
-          {OUTLOOK_RELATIONSHIP_RECONCILIATION.mantra}
-        </p>
       </div>
 
       {touchpoints.length === 0 ? (

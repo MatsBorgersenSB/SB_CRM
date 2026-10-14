@@ -34,9 +34,6 @@ export function ContactRelationshipPortfolioPanel({
           SmartAssist · {CONTACT_RELATIONSHIP_INTELLIGENCE.title}
         </p>
         <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/70">{portfolio.summary}</p>
-        <p className="mt-1 text-[11px] italic text-carbon-blue/50">
-          {CONTACT_RELATIONSHIP_INTELLIGENCE.mantra}
-        </p>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-4">

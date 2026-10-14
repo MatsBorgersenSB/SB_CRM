@@ -46,9 +46,6 @@ export function ContactLifecycleInsights({
             SmartAssist · {CONTACT_RELATIONSHIP_INTELLIGENCE.title}
           </p>
           <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/70">{audit.summary}</p>
-          <p className="mt-1 text-[11px] italic text-carbon-blue/50">
-            {CONTACT_RELATIONSHIP_INTELLIGENCE.mantra}
-          </p>
         </div>
       ) : null}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { WorkspacePageTitle } from "@/components/ui/workspace-page-title";
 import { WorkspaceAddMenu, type WorkspaceAddMenuItem } from "@/components/ui/workspace-add-menu";
 import { canCreateCompany } from "@/lib/permissions";
 import type { UserRole } from "@/types/auth";
@@ -33,20 +33,15 @@ export function ContactsWorkspaceHeader({
   const canManage = canCreateCompany(role);
 
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-carbon-blue sm:text-2xl">
-          <SmartCRMIcon name="contact" size="md" label="Contacts" />
-          People
-        </h1>
-        <p className="mt-1 text-[12px] text-carbon-blue/50">
-          The people behind the relationships — their role, their buying role, and when we last spoke.
-        </p>
-      </div>
-
-      {canManage ? (
-        <WorkspaceAddMenu items={ADD_ITEMS} activeTool={activeTool} onSelect={onToolChange} />
-      ) : null}
-    </div>
+    <WorkspacePageTitle
+      icon="people"
+      title="People"
+      subtitle="The people behind the relationships — their role, their buying role, and when we last spoke."
+      actions={
+        canManage ? (
+          <WorkspaceAddMenu items={ADD_ITEMS} activeTool={activeTool} onSelect={onToolChange} />
+        ) : null
+      }
+    />
   );
 }

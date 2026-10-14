@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { OpportunitiesOperationsTable } from "@/components/opportunity/opportunities-operations-table";
 import { OpportunityCreateModal } from "@/components/opportunity/opportunity-create-modal";
 import { OpportunityImportDealsPanel } from "@/components/opportunity/opportunity-import-deals-panel";
@@ -12,7 +11,7 @@ import {
 import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
-import { WorkspaceHeader } from "@/components/ui/workspace-header";
+import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
@@ -256,12 +255,7 @@ export function OpportunitiesOperationsShell({
 
   return (
     <WorkspaceChrome>
-      <WorkspaceHeader
-        scope="Pipeline"
-        title="Opportunities"
-        context="What is blocking progress, and what should happen next"
-        actions={<RoleSwitcher companies={scopedCompanies} />}
-      />
+      <WorkspaceTopBar icon="opportunity" title="Opportunities" />
 
       <WorkspaceMain>
         <WorkspaceStack>
