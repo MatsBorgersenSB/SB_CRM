@@ -36,7 +36,7 @@ export function RelationshipHealthBadge({
   if (!hasSignal) {
     return (
       <span
-        className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${HEALTH_NO_SIGNAL_STYLE} ${className}`}
+        className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${HEALTH_NO_SIGNAL_STYLE} ${className}`}
         title="No interactions, mail or opportunities recorded yet"
       >
         {HEALTH_NO_SIGNAL_LABEL}
@@ -45,7 +45,7 @@ export function RelationshipHealthBadge({
   }
   return (
     <span
-      className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${HEALTH_STATUS_STYLES[status]} ${className}`}
+      className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${HEALTH_STATUS_STYLES[status]} ${className}`}
     >
       {status}
     </span>
@@ -61,7 +61,7 @@ export function RelationshipTrendBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider ${TREND_STYLES[trend]} ${className}`}
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider ${TREND_STYLES[trend]} ${className}`}
     >
       {trend === "Improving" ? "↑" : trend === "Declining" ? "↓" : "→"} {trend}
     </span>
@@ -113,7 +113,7 @@ export function RelationshipHealthBreakdown({
       <ul className="space-y-2">
         {report.components.map((component) => (
           <li key={component.id} className="space-y-1">
-            <div className="flex items-center justify-between gap-2 text-[11px]">
+            <div className="flex items-center justify-between gap-2 text-[12px]">
               <span className="font-medium text-carbon-blue/70">{component.label}</span>
               <span className="tabular-nums text-carbon-blue/50">
                 {component.score}
@@ -132,12 +132,12 @@ export function RelationshipHealthBreakdown({
                 style={{ width: `${component.score}%` }}
               />
             </div>
-            <p className="text-[10px] text-carbon-blue/45">{component.detail}</p>
+            <p className="text-[11px] text-carbon-blue/65">{component.detail}</p>
           </li>
         ))}
       </ul>
       {showEngineFootnote ? (
-        <p className="border-t border-carbon-blue/8 pt-2 text-[10px] text-carbon-blue/40">
+        <p className="border-t border-carbon-blue/8 pt-2 text-[11px] text-carbon-blue/60">
           {getHealthScoreExplanation()}
         </p>
       ) : null}
@@ -158,22 +158,22 @@ export function NextBestActionCard({
 
   if (compact) {
     return (
-      <div className="text-[11px] leading-relaxed text-carbon-blue/55">
+      <div className="text-[12px] leading-relaxed text-carbon-blue/55">
         <div className="flex flex-wrap items-center gap-1.5">
           <span
-            className={`inline-flex border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${NEXT_BEST_ACTION_PRIORITY_STYLES[action.priority]}`}
+            className={`inline-flex border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${NEXT_BEST_ACTION_PRIORITY_STYLES[action.priority]}`}
           >
             {action.priority}
           </span>
           {showConfidence ? (
-            <span className="text-[9px] font-semibold tabular-nums text-carbon-blue/40">
+            <span className="text-[10px] font-semibold tabular-nums text-carbon-blue/60">
               {action.confidenceScore}% confidence
             </span>
           ) : null}
         </div>
         <p className="mt-1">
           <span className="font-medium text-carbon-blue/75">{label}</span>
-          <span className="text-carbon-blue/45"> — {action.reason}</span>
+          <span className="text-carbon-blue/65"> — {action.reason}</span>
         </p>
       </div>
     );
@@ -183,11 +183,11 @@ export function NextBestActionCard({
     <div
       className={`border px-4 py-3 ${NEXT_BEST_ACTION_PRIORITY_STYLES[action.priority]}`}
     >
-      <p className="text-[9px] font-semibold uppercase tracking-wider opacity-70">
+      <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
         Next best action
       </p>
       <p className="mt-1 text-sm font-semibold">{label}</p>
-      <p className="mt-1 text-[11px] leading-relaxed opacity-80">{action.reason}</p>
+      <p className="mt-1 text-[12px] leading-relaxed opacity-80">{action.reason}</p>
     </div>
   );
 }
@@ -212,7 +212,7 @@ export function Company360HealthBadge({
   }
   return (
     <span
-      className={`inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 ${className}`}
+      className={`inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60 ${className}`}
     >
       {label}
     </span>

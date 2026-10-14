@@ -287,13 +287,13 @@ export function CompaniesActionBar({
     <section className={embedded ? "" : "border border-carbon-blue/15 bg-white"}>
       {embedded ? null : (
         <div className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Entity Actions
           </p>
           <button
             type="button"
             onClick={() => setCreateOpen(!createOpen)}
-            className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:bg-upcycle-orange/[0.04] hover:text-upcycle-orange"
+            className="border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:bg-upcycle-orange/[0.04] hover:text-upcycle-orange"
           >
             + New Company
           </button>
@@ -301,7 +301,7 @@ export function CompaniesActionBar({
       )}
       {createOpen ? (
         <div className={`grid gap-2 sm:grid-cols-2 ${embedded ? "" : "p-3"}`}>
-          <p className="sm:col-span-2 text-[11px] text-carbon-blue/50">
+          <p className="sm:col-span-2 text-[12px] text-carbon-blue/50">
             Required: Company Name, Account Owner, Company Type. Everything else is optional.
           </p>
           <div className="sm:col-span-2">
@@ -311,7 +311,7 @@ export function CompaniesActionBar({
             />
           </div>
           <label className="block sm:col-span-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Company Name (Title) <span className="text-thermal-red">*</span>
             </span>
             <input
@@ -341,7 +341,7 @@ export function CompaniesActionBar({
             />
           </div>
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Registration number
             </span>
             <input
@@ -356,7 +356,7 @@ export function CompaniesActionBar({
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             />
             {existingByOrgNumber ? (
-              <p className="mt-1 text-[11px] text-carbon-blue/70">
+              <p className="mt-1 text-[12px] text-carbon-blue/70">
                 Already in SmartCRM as{" "}
                 <Link
                   href={company360Href(existingByOrgNumber)}
@@ -372,7 +372,7 @@ export function CompaniesActionBar({
             ) : null}
           </label>
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               VAT number
             </span>
             <input
@@ -388,7 +388,7 @@ export function CompaniesActionBar({
             />
           </label>
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Industry
             </span>
             <IndustrySelect
@@ -412,7 +412,7 @@ export function CompaniesActionBar({
             />
           </div>
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Parent Company
             </span>
             <select
@@ -434,7 +434,7 @@ export function CompaniesActionBar({
             </select>
           </label>
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Status
             </span>
             <select
@@ -455,7 +455,7 @@ export function CompaniesActionBar({
             </select>
           </label>
           <label className="block sm:col-span-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Street
             </span>
             <input
@@ -471,7 +471,7 @@ export function CompaniesActionBar({
             />
           </label>
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Postal code
             </span>
             <input
@@ -487,7 +487,7 @@ export function CompaniesActionBar({
             />
           </label>
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               City
             </span>
             <input
@@ -518,7 +518,7 @@ export function CompaniesActionBar({
             }
           />
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Website
             </span>
             <input
@@ -534,7 +534,7 @@ export function CompaniesActionBar({
             />
           </label>
           <label className="block sm:col-span-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Phone
             </span>
             <input
@@ -558,12 +558,12 @@ export function CompaniesActionBar({
             {saving ? "Saving…" : "Create Company"}
           </button>
           {!canCreate ? (
-            <p className="sm:col-span-2 text-[11px] text-carbon-blue/50">
+            <p className="sm:col-span-2 text-[12px] text-carbon-blue/50">
               Fill required fields: {missingRequired.join(", ")}
             </p>
           ) : null}
           {createError ? (
-            <div className="sm:col-span-2 text-[11px] font-medium text-thermal-red" role="alert">
+            <div className="sm:col-span-2 text-[12px] font-medium text-thermal-red" role="alert">
               <p>{createError}</p>
               {createErrorHref ? (
                 <Link

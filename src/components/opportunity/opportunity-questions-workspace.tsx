@@ -132,7 +132,7 @@ function DiscoveryAnswerRow({
         rows={3}
         disabled={readOnly}
         placeholder="Type the answer from your discovery conversation…"
-        className="mt-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue/80 placeholder:text-carbon-blue/35 disabled:bg-carbon-blue/[0.02]"
+        className="mt-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue/80 placeholder:text-carbon-blue/50 disabled:bg-carbon-blue/[0.02]"
       />
       {!readOnly ? (
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -140,19 +140,19 @@ function DiscoveryAnswerRow({
             type="button"
             disabled={saving || !dirty}
             onClick={() => void onSave()}
-            className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-45"
+            className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-45"
           >
             {saving ? "Saving…" : savedValue ? "Update answer" : "Save answer"}
           </button>
           {savedFlash ? (
-            <span className="text-[11px] font-medium text-emerald-700">Saved</span>
+            <span className="text-[12px] font-medium text-emerald-700">Saved</span>
           ) : null}
           {item.fieldId ? (
-            <span className="text-[10px] text-carbon-blue/40">
+            <span className="text-[11px] text-carbon-blue/60">
               Saves to understanding · {item.fieldId.replace(/_/g, " ")}
             </span>
           ) : null}
-          {error ? <span className="text-[11px] text-thermal-red">{error}</span> : null}
+          {error ? <span className="text-[12px] text-thermal-red">{error}</span> : null}
         </div>
       ) : null}
     </li>

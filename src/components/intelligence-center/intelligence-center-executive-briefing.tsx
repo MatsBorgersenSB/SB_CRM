@@ -27,7 +27,7 @@ export function IntelligenceCenterGrowing({
 }) {
   if (briefing.growingItems.length === 0) {
     return (
-      <p className="text-sm text-carbon-blue/45">No accelerating relationships or deals right now.</p>
+      <p className="text-sm text-carbon-blue/65">No accelerating relationships or deals right now.</p>
     );
   }
 
@@ -43,7 +43,7 @@ export function IntelligenceCenterGrowing({
               <p className="text-sm font-semibold text-carbon-blue group-hover:text-upcycle-orange">
                 {item.label}
               </p>
-              <p className="mt-0.5 text-[11px] text-carbon-blue/45">{item.detail}</p>
+              <p className="mt-0.5 text-[12px] text-carbon-blue/65">{item.detail}</p>
             </div>
             {!bare ? (
               <ArrowRight className="size-4 shrink-0 text-carbon-blue/20 group-hover:text-upcycle-orange" />
@@ -66,7 +66,7 @@ export function IntelligenceCenterGrowing({
   return (
     <section className="dashboard-card overflow-hidden">
       <header className="border-b border-carbon-blue/8 px-6 py-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
           What is growing?
         </p>
         <p className="mt-2 text-sm text-carbon-blue/55">{briefing.growingNarrative}</p>
@@ -91,11 +91,11 @@ export function IntelligenceCenterPriorityActions({
   return (
     <section className="dashboard-card overflow-hidden">
       <header className="border-b border-carbon-blue/8 bg-upcycle-orange/[0.03] px-6 py-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange/80">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange/80">
           What should I do next?
         </p>
         {actions.length === 0 ? (
-          <p className="mt-3 text-sm text-carbon-blue/45">No urgent actions — portfolio is on track.</p>
+          <p className="mt-3 text-sm text-carbon-blue/65">No urgent actions — portfolio is on track.</p>
         ) : (
           <p className="mt-2 text-sm text-carbon-blue/55">
             {actions.length} prioritised action{actions.length === 1 ? "" : "s"} — start at the top.
@@ -116,12 +116,12 @@ export function IntelligenceCenterPriorityActions({
                   </span>
                   <div className="min-w-0 flex-1">
                     <span
-                      className={`text-[9px] font-semibold uppercase tracking-wider ${
+                      className={`text-[10px] font-semibold uppercase tracking-wider ${
                         item.priority === "critical"
                           ? "text-red-600"
                           : item.priority === "high"
                             ? "text-upcycle-orange"
-                            : "text-carbon-blue/45"
+                            : "text-carbon-blue/65"
                       }`}
                     >
                       {DOMAIN_LABELS[item.domain]}
@@ -129,7 +129,7 @@ export function IntelligenceCenterPriorityActions({
                     <p className="mt-1 text-sm font-semibold text-carbon-blue group-hover:text-upcycle-orange">
                       {item.action}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-carbon-blue/45">{item.context}</p>
+                    <p className="mt-0.5 text-[12px] text-carbon-blue/65">{item.context}</p>
                     <ImpactContext items={item.impact} />
                   </div>
                   <ArrowRight className="mt-1 size-4 shrink-0 text-carbon-blue/20 group-hover:text-upcycle-orange" />

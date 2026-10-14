@@ -68,15 +68,15 @@ export function OpportunityKnowledgePanel({
       <SmartAssistCopilotHost companyName={companyName} />
       <section className="dashboard-card p-4 sm:p-5">
         <header className="mb-3">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Knowledge at risk · {dealName}
           </h2>
-          <p className="mt-1 text-[11px] text-carbon-blue/50">
+          <p className="mt-1 text-[12px] text-carbon-blue/50">
             Documents and captured intelligence that could block or slow this opportunity.
           </p>
         </header>
         {dealKnowledge.length === 0 && missingForDeal.length === 0 ? (
-          <p className="text-[11px] text-carbon-blue/45">
+          <p className="text-[12px] text-carbon-blue/65">
             No knowledge gaps flagged for this deal.
           </p>
         ) : (
@@ -91,7 +91,7 @@ export function OpportunityKnowledgePanel({
         )}
         <Link
           href="/knowledge"
-          className="mt-3 inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
+          className="mt-3 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
         >
           Open full knowledge workspace →
         </Link>
@@ -99,12 +99,12 @@ export function OpportunityKnowledgePanel({
 
       <section className="dashboard-card p-4 sm:p-5">
         <header className="mb-3">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Captured activity intelligence
           </h2>
         </header>
         {knowledgeActivities.length === 0 ? (
-          <p className="text-[11px] text-carbon-blue/45">
+          <p className="text-[12px] text-carbon-blue/65">
             No activity knowledge captured yet — log an interaction to build deal memory.
           </p>
         ) : (
@@ -119,13 +119,13 @@ export function OpportunityKnowledgePanel({
                   >
                     <ActivityTypeIcon type={activity.ActivityType} size="sm" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[11px] font-semibold text-carbon-blue">
+                      <p className="truncate text-[12px] font-semibold text-carbon-blue">
                         {activity.Subject}
                       </p>
-                      <p className="mt-0.5 line-clamp-2 text-[10px] text-carbon-blue/50">
+                      <p className="mt-0.5 line-clamp-2 text-[11px] text-carbon-blue/50">
                         {memory.summary}
                       </p>
-                      <p className="mt-0.5 text-[9px] text-carbon-blue/35">
+                      <p className="mt-0.5 text-[10px] text-carbon-blue/50">
                         {formatActivityDateTime(activity.ActivityDate)}
                       </p>
                     </div>
@@ -140,7 +140,7 @@ export function OpportunityKnowledgePanel({
       {attentionItems.length > 0 ? (
         <section className="dashboard-card p-4 sm:p-5">
           <header className="mb-3">
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
               Attention items
             </h2>
           </header>

@@ -50,7 +50,7 @@ export function ActivityFocusCard({
               <p className={`mt-3 ${EDITORIAL_BODY}`}>{item.recommendedAction}</p>
               <Link
                 href={`/activities/${activity.ActivityID}`}
-                className="mt-4 inline-block text-[12px] font-medium text-upcycle-orange hover:text-upcycle-orange/80"
+                className="mt-4 inline-block text-[13px] font-medium text-upcycle-orange hover:text-upcycle-orange/80"
               >
                 Open activity
               </Link>
@@ -67,7 +67,7 @@ export function ActivityFocusCard({
         {!prominent ? (
           <Link
             href={`/activities/${activity.ActivityID}`}
-            className="shrink-0 text-[12px] font-medium text-upcycle-orange hover:text-upcycle-orange/80"
+            className="shrink-0 text-[13px] font-medium text-upcycle-orange hover:text-upcycle-orange/80"
           >
             Open
           </Link>
@@ -113,7 +113,7 @@ export function ActivityHistoryRow({
           </p>
           <Link
             href={`/activities/${activity.ActivityID}`}
-            className="mt-2 inline-block text-[12px] font-medium text-upcycle-orange hover:text-upcycle-orange/80"
+            className="mt-2 inline-block text-[13px] font-medium text-upcycle-orange hover:text-upcycle-orange/80"
           >
             View details
           </Link>

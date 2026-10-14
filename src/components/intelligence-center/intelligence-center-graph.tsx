@@ -12,11 +12,11 @@ function GraphRankRow({ item }: { item: RelationshipGraphIntelligenceSnapshot["m
         <p className="text-sm font-semibold text-carbon-blue group-hover:text-upcycle-orange">
           {item.label}
         </p>
-        <p className="mt-0.5 text-[10px] text-carbon-blue/45">{item.subtitle}</p>
+        <p className="mt-0.5 text-[11px] text-carbon-blue/65">{item.subtitle}</p>
       </div>
       <div className="shrink-0 text-right">
         <p className="text-lg font-bold tabular-nums text-carbon-blue">{item.metric}</p>
-        <p className="text-[9px] uppercase tracking-wider text-carbon-blue/35">{item.metricLabel}</p>
+        <p className="text-[10px] uppercase tracking-wider text-carbon-blue/50">{item.metricLabel}</p>
       </div>
     </Link>
   );
@@ -35,24 +35,24 @@ export function IntelligenceCenterGraph({
   return (
     <div className="space-y-6">
       <section className="dashboard-card px-6 py-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
           Relationship graph
         </p>
         <dl className="mt-5 grid gap-4 sm:grid-cols-2">
           <div>
-            <dt className="text-[11px] text-carbon-blue/45">Who matters</dt>
+            <dt className="text-[12px] text-carbon-blue/65">Who matters</dt>
             <dd className="mt-1 text-sm font-medium text-carbon-blue">
               {topConnected?.label ?? "No hub companies identified yet"}
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] text-carbon-blue/45">What is connected</dt>
+            <dt className="text-[12px] text-carbon-blue/65">What is connected</dt>
             <dd className="mt-1 text-sm font-medium text-carbon-blue">
               {overview.totalConnections} edges across {overview.totalNetworks} company networks
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] text-carbon-blue/45">Dependencies</dt>
+            <dt className="text-[12px] text-carbon-blue/65">Dependencies</dt>
             <dd className="mt-1 text-sm font-medium text-carbon-blue">
               {topCritical
                 ? `${topCritical.label} is the most critical knowledge asset`
@@ -60,7 +60,7 @@ export function IntelligenceCenterGraph({
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] text-carbon-blue/45">At risk</dt>
+            <dt className="text-[12px] text-carbon-blue/65">At risk</dt>
             <dd
               className={`mt-1 text-sm font-medium ${
                 gapCount > 0 ? "text-upcycle-orange" : "text-carbon-blue"

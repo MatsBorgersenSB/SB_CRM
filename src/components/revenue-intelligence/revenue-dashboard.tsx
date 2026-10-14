@@ -76,11 +76,11 @@ export function RevenueIntelligenceDashboard({
         ))}
       </section>
 
-      <p className="text-[11px] font-medium text-upcycle-orange">{snapshot.pipelineGrowthLabel}</p>
+      <p className="text-[12px] font-medium text-upcycle-orange">{snapshot.pipelineGrowthLabel}</p>
 
       <div className="grid gap-3 lg:grid-cols-2">
         <section className="dashboard-card p-4 sm:p-5">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Top Revenue Opportunities
           </h2>
           <ul className="mt-3 space-y-2">
@@ -93,14 +93,14 @@ export function RevenueIntelligenceDashboard({
         </section>
 
         <section className="dashboard-card p-4 sm:p-5">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Highest Value Consulting Opportunities
           </h2>
           <ul className="mt-3 space-y-2">
             {snapshot.topConsultingOpportunities.map((opp) => (
               <li key={opp.dealId}>
                 <RevenueOpportunityCard opp={opp} />
-                <p className="mt-0.5 pl-3 text-[9px] text-carbon-blue/45">
+                <p className="mt-0.5 pl-3 text-[10px] text-carbon-blue/65">
                   {opp.primaryServiceCategory} ·{" "}
                   {formatDealValue(
                     opp.currency as PipelineRow["currency"],
@@ -113,14 +113,14 @@ export function RevenueIntelligenceDashboard({
         </section>
 
         <section className="dashboard-card p-4 sm:p-5">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Highest Value Machinery Opportunities
           </h2>
           <ul className="mt-3 space-y-2">
             {snapshot.topMachineryOpportunities.map((opp) => (
               <li key={opp.dealId}>
                 <RevenueOpportunityCard opp={opp} />
-                <p className="mt-0.5 pl-3 text-[9px] text-carbon-blue/45">
+                <p className="mt-0.5 pl-3 text-[10px] text-carbon-blue/65">
                   Machinery ·{" "}
                   {formatDealValue(
                     opp.currency as PipelineRow["currency"],
@@ -133,11 +133,11 @@ export function RevenueIntelligenceDashboard({
         </section>
 
         <section className="dashboard-card p-4 sm:p-5">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Revenue At Risk
           </h2>
           {snapshot.revenueAtRisk.length === 0 ? (
-            <p className="mt-3 text-[11px] text-carbon-blue/45">No revenue flagged at risk.</p>
+            <p className="mt-3 text-[12px] text-carbon-blue/65">No revenue flagged at risk.</p>
           ) : (
             <ul className="mt-3 space-y-2">
               {snapshot.revenueAtRisk.map((opp) => (
@@ -152,10 +152,10 @@ export function RevenueIntelligenceDashboard({
 
       {topDeal ? (
         <section className="dashboard-card p-4 sm:p-5">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Sales Path Model · {topDeal.dealName}
           </h2>
-          <p className="mt-2 text-[11px] text-carbon-blue/55">
+          <p className="mt-2 text-[12px] text-carbon-blue/55">
             Relationship → Consulting → Engineering → Proposal → Machinery Contract
           </p>
           <div className="mt-3">
@@ -202,7 +202,7 @@ export function RevenueIntelligenceDashboard({
       ) : null}
 
       <section className="dashboard-card p-4 sm:p-5">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
           Market Returns
         </h2>
         <ul className="mt-3 space-y-2">
@@ -212,13 +212,13 @@ export function RevenueIntelligenceDashboard({
               className="flex items-center justify-between rounded-lg border border-carbon-blue/8 px-3 py-2"
             >
               <div>
-                <p className="text-[11px] font-semibold text-carbon-blue">{market.market}</p>
-                <p className="text-[10px] text-carbon-blue/45">
+                <p className="text-[12px] font-semibold text-carbon-blue">{market.market}</p>
+                <p className="text-[11px] text-carbon-blue/65">
                   {market.opportunityCount} opportunities · {market.averageProbability}% avg
                   probability
                 </p>
               </div>
-              <span className="text-[11px] font-bold tabular-nums text-carbon-blue">
+              <span className="text-[12px] font-bold tabular-nums text-carbon-blue">
                 {market.totalPotentialLabel}
               </span>
             </li>
@@ -227,14 +227,14 @@ export function RevenueIntelligenceDashboard({
       </section>
 
       <section className="dashboard-card p-4 sm:p-5">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
           Revenue Intelligence Answers
         </h2>
         <ul className="mt-3 space-y-3">
           {snapshot.aiInsights.map((insight) => (
             <li key={insight.question} className="border-l-2 border-upcycle-orange/30 pl-3">
-              <p className="text-[10px] font-semibold text-carbon-blue">{insight.question}</p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-carbon-blue/60">
+              <p className="text-[11px] font-semibold text-carbon-blue">{insight.question}</p>
+              <p className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/60">
                 {insight.answer}
               </p>
             </li>
@@ -248,10 +248,10 @@ export function RevenueIntelligenceDashboard({
 function EconomicsField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+      <dt className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
         {label}
       </dt>
-      <dd className="mt-0.5 text-[12px] font-semibold tabular-nums text-carbon-blue">{value}</dd>
+      <dd className="mt-0.5 text-[13px] font-semibold tabular-nums text-carbon-blue">{value}</dd>
     </div>
   );
 }

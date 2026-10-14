@@ -39,14 +39,14 @@ export function ContactHistoryPanel({
     <div className="flex flex-col gap-6">
       {showCareerTimeline ? (
         <section>
-          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Timeline
           </h3>
           <ContactCareerTimeline entries={careerEntries} transfers={transfers} />
         </section>
       ) : (
         <section>
-          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Timeline
           </h3>
           <p className="text-xs text-carbon-blue/50">
@@ -57,18 +57,18 @@ export function ContactHistoryPanel({
 
       {transfers.length > 0 ? (
         <section>
-          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Career changes
           </h3>
           <ul className="divide-y divide-carbon-blue/8 border border-carbon-blue/10">
             {transfers.map((transfer) => (
-              <li key={transfer.id} className="px-3 py-2.5 text-[12px] text-carbon-blue/70">
+              <li key={transfer.id} className="px-3 py-2.5 text-[13px] text-carbon-blue/70">
                 <span className="font-medium text-carbon-blue">
                   {transfer.previousCompanyName}
                 </span>
                 <span className="mx-1 text-carbon-blue/30">→</span>
                 <span className="font-medium text-carbon-blue">{transfer.newCompanyName}</span>
-                <span className="mt-0.5 block text-[11px] text-carbon-blue/50">
+                <span className="mt-0.5 block text-[12px] text-carbon-blue/50">
                   {formatDate(transfer.transferDate)}
                 </span>
               </li>
@@ -78,7 +78,7 @@ export function ContactHistoryPanel({
       ) : null}
 
       <section>
-        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Activity history
         </h3>
         <ActivityTimeline
@@ -90,19 +90,19 @@ export function ContactHistoryPanel({
       </section>
 
       <section>
-        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Employment changes
         </h3>
         {employmentChanges.length > 0 ? (
           <ul className="divide-y divide-carbon-blue/8 border border-carbon-blue/10">
             {employmentChanges.map((entry) => (
-              <li key={entry.id} className="px-3 py-2.5 text-[12px] text-carbon-blue/70">
+              <li key={entry.id} className="px-3 py-2.5 text-[13px] text-carbon-blue/70">
                 <span className="font-medium text-carbon-blue">
                   {entry.jobTitle || entry.role}
                 </span>
                 <span className="mx-1 text-carbon-blue/30">·</span>
                 <span>{entry.companyName}</span>
-                <span className="mt-0.5 block text-[11px] text-carbon-blue/50">
+                <span className="mt-0.5 block text-[12px] text-carbon-blue/50">
                   {formatDate(entry.startDate)} — {formatDate(entry.endDate)}
                 </span>
               </li>

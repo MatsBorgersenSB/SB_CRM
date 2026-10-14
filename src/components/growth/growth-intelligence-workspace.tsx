@@ -95,13 +95,13 @@ export function GrowthIntelligenceWorkspace({
     <section aria-label="FS-010 Growth & Expansion Intelligence" className="flex flex-col gap-4">
       <header className={`${ATTIO_SURFACE} overflow-hidden`}>
         <div className={ATTIO_SURFACE_HEADER}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
             FS-010 · Growth & Expansion Intelligence
           </p>
           <h2 className="mt-0.5 text-[15px] font-semibold text-slate-900 dark:text-slate-50">
             Account Health, Expansion Signals & Whitespace
           </h2>
-          <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
             SmartAssist proposes expansion moves — you decide. AD-001 filter transparency and
             4-part explainability are mandatory.
           </p>
@@ -122,7 +122,7 @@ export function GrowthIntelligenceWorkspace({
             <h3 className="text-[13px] font-semibold text-slate-900 dark:text-slate-50">
               Expansion Signals
             </h3>
-            <p className="mt-0.5 text-[12px] text-slate-500">
+            <p className="mt-0.5 text-[13px] text-slate-500">
               Upsell, cross-sell, and renewal / churn risk — user-gated actions only.
             </p>
           </div>
@@ -189,7 +189,7 @@ function AccountHealthIndexCard({
       <div className={ATTIO_SURFACE_HEADER}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
               Account Health Index
             </p>
             <h3 className="mt-0.5 text-[14px] font-semibold text-slate-900 dark:text-slate-50">
@@ -208,14 +208,14 @@ function AccountHealthIndexCard({
         <ScoreMetric label="Engagement" score={record.engagementScore} />
         <ScoreMetric label="Sentiment" score={record.sentimentScore} />
         <div className="flex flex-col justify-end">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
             Calculated
           </p>
-          <p className="mt-1 font-mono text-[12px] tabular-nums text-slate-600 dark:text-slate-300">
+          <p className="mt-1 font-mono text-[13px] tabular-nums text-slate-600 dark:text-slate-300">
             {new Date(record.calculatedAt).toLocaleString()}
           </p>
           {all.length > 1 ? (
-            <p className="mt-2 text-[11px] text-slate-400">
+            <p className="mt-2 text-[12px] text-slate-400">
               +{all.length - 1} other account{all.length - 1 === 1 ? "" : "s"} scored
             </p>
           ) : null}
@@ -236,7 +236,7 @@ function ScoreMetric({
 }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
         {label}
       </p>
       <p
@@ -271,15 +271,15 @@ function ExpansionSignalCard({ signal }: { signal: ExpansionSignalView }) {
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={ATTIO_PILL_STATIC}>{labelizeSignalType(signal.type)}</span>
             <span className={ATTIO_PILL_STATIC}>{signal.status}</span>
-            <span className="text-[11px] text-slate-500">{signal.companyName}</span>
+            <span className="text-[12px] text-slate-500">{signal.companyName}</span>
             {signal.opportunityName ? (
-              <span className="text-[11px] text-slate-400">· {signal.opportunityName}</span>
+              <span className="text-[12px] text-slate-400">· {signal.opportunityName}</span>
             ) : null}
           </div>
           <div className={ATTIO_GROUP_ACTIONS}>
             <Link
               href={href}
-              className="inline-flex rounded-md border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+              className="inline-flex rounded-md border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
             >
               {signalActionLabel(signal.type)}
             </Link>
@@ -312,14 +312,14 @@ function WhitespaceMatrixOverview({
       <div className={ATTIO_SURFACE_HEADER}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
               Whitespace Matrix
             </p>
             <h3 className="mt-0.5 text-[14px] font-semibold text-slate-900 dark:text-slate-50">
               Un-pitched solution categories
             </h3>
           </div>
-          <span className="font-mono text-[12px] tabular-nums text-slate-500">
+          <span className="font-mono text-[13px] tabular-nums text-slate-500">
             {unpitchedCount} unpitched
           </span>
         </div>
@@ -332,7 +332,7 @@ function WhitespaceMatrixOverview({
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[36rem] border-collapse text-left text-[12px]">
+          <table className="w-full min-w-[36rem] border-collapse text-left text-[13px]">
             <thead>
               <tr className="border-b border-slate-200/80 dark:border-slate-800">
                 <th className="px-4 py-2.5 font-semibold text-slate-500">Account</th>
@@ -377,20 +377,20 @@ function WhitespaceMatrixOverview({
 function CoverageBadge({ coverage }: { coverage: WhitespaceMatrixCell["coverage"] }) {
   if (coverage === "pitched") {
     return (
-      <span className="inline-flex rounded-md border border-emerald-500/25 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+      <span className="inline-flex rounded-md border border-emerald-500/25 bg-emerald-50 px-2 py-0.5 text-[12px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
         Pitched
       </span>
     );
   }
   if (coverage === "partial") {
     return (
-      <span className="inline-flex rounded-md border border-amber-500/25 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+      <span className="inline-flex rounded-md border border-amber-500/25 bg-amber-50 px-2 py-0.5 text-[12px] font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
         Partial
       </span>
     );
   }
   return (
-    <span className="inline-flex rounded-md border border-slate-200/80 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+    <span className="inline-flex rounded-md border border-slate-200/80 bg-slate-50 px-2 py-0.5 text-[12px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
       Un-pitched
     </span>
   );

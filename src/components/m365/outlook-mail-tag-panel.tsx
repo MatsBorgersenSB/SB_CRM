@@ -432,7 +432,7 @@ export function OutlookMailTagPanel({
   if (loading) {
     return (
       <div className="border border-carbon-blue/10 bg-white px-3 py-2.5">
-        <p className="text-[11px] text-carbon-blue/45">Loading mail tag options…</p>
+        <p className="text-[12px] text-carbon-blue/65">Loading mail tag options…</p>
       </div>
     );
   }
@@ -440,17 +440,17 @@ export function OutlookMailTagPanel({
   if (!context) {
     return error ? (
       <div className="border border-carbon-blue/10 bg-white px-3 py-2.5">
-        <p className="text-[11px] text-thermal-red">{error}</p>
+        <p className="text-[12px] text-thermal-red">{error}</p>
       </div>
     ) : null;
   }
 
   return (
     <div className="border border-upcycle-orange/25 bg-upcycle-orange/[0.03] px-3 py-2.5">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
         Tag mail
       </p>
-      <p className="mt-1 text-[11px] leading-snug text-carbon-blue/55">
+      <p className="mt-1 text-[12px] leading-snug text-carbon-blue/55">
         {selectedCount > 1
           ? `${selectedCount} mails selected. Save them onto this contact, or tag all to a project${
               opportunityTagging ? " or opportunity" : ""
@@ -493,7 +493,7 @@ export function OutlookMailTagPanel({
               setSelectedId("");
               setStatus(null);
             }}
-            className={`flex-1 border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`flex-1 border px-2 py-1 text-[11px] font-semibold uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-40 ${
               linkKind === entry.kind
                 ? "border-upcycle-orange/40 bg-upcycle-orange/10 text-upcycle-orange"
                 : "border-carbon-blue/15 bg-white text-carbon-blue/50"
@@ -504,12 +504,12 @@ export function OutlookMailTagPanel({
         ))}
       </div>
 
-      <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <label className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {linkKind === "opportunity" ? "Opportunity" : "Project"}
         <select
           value={selectedId}
           onChange={(event) => setSelectedId(event.target.value)}
-          className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+          className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
         >
           <option value="">Select…</option>
           {options.map((option) => (
@@ -527,7 +527,7 @@ export function OutlookMailTagPanel({
               type="button"
               disabled={busy}
               onClick={() => void markRelationshipInOutlook()}
-              className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
+              className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
             >
               {busy
                 ? "Saving…"
@@ -539,7 +539,7 @@ export function OutlookMailTagPanel({
               type="button"
               disabled={!selectedId || busy}
               onClick={() => void applyTag()}
-              className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+              className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
             >
               {busy
                 ? "Tagging…"
@@ -549,7 +549,7 @@ export function OutlookMailTagPanel({
             </button>
           </>
         ) : (
-          <p className="text-[10px] text-carbon-blue/45">
+          <p className="text-[11px] text-carbon-blue/65">
             Select one or more mails in Outlook, then save them here.
           </p>
         )}
@@ -580,12 +580,12 @@ export function OutlookMailTagPanel({
               type="button"
               disabled={!canFileAttachments}
               onClick={() => void syncAttachmentsToSmartDocs()}
-              className="inline-flex items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+              className="inline-flex items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
             >
               {syncBusy ? "Filing attachments…" : `File attachments (${selectedCount})`}
             </button>
             {attachmentBlockingReason ? (
-              <p className="mt-1 text-[10px] text-carbon-blue/45">{attachmentBlockingReason}</p>
+              <p className="mt-1 text-[11px] text-carbon-blue/65">{attachmentBlockingReason}</p>
             ) : null}
           </>
         ) : null}
@@ -603,12 +603,12 @@ export function OutlookMailTagPanel({
           role={role}
           disabled={!selectedId}
           label="New tagged mail"
-          className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+          className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
         />
       </div>
 
-      {status ? <p className="mt-1.5 text-[10px] text-emerald-700">{status}</p> : null}
-      {syncStatus ? <p className="mt-1.5 text-[10px] text-emerald-700">{syncStatus}</p> : null}
+      {status ? <p className="mt-1.5 text-[11px] text-emerald-700">{status}</p> : null}
+      {syncStatus ? <p className="mt-1.5 text-[11px] text-emerald-700">{syncStatus}</p> : null}
       {reviewDocs.length > 0 ? (
         <FiledDocumentsReviewPanel
           docs={reviewDocs}
@@ -619,8 +619,8 @@ export function OutlookMailTagPanel({
           error={reviewError}
         />
       ) : null}
-      {error ? <p className="mt-1.5 text-[10px] text-thermal-red">{error}</p> : null}
-      {syncError ? <p className="mt-1.5 text-[10px] text-thermal-red">{syncError}</p> : null}
+      {error ? <p className="mt-1.5 text-[11px] text-thermal-red">{error}</p> : null}
+      {syncError ? <p className="mt-1.5 text-[11px] text-thermal-red">{syncError}</p> : null}
     </div>
   );
 }
@@ -638,7 +638,7 @@ function Outlook360Links({
   const linkClass =
     "font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange";
   return (
-    <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px]">
+    <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
       {companyId ? (
         <a
           href={buildSmartCrmUrl(company360Href(companyId))}
@@ -699,10 +699,10 @@ function FiledDocumentsReviewPanel({
 }) {
   return (
     <div className="mt-2 border border-carbon-blue/10 bg-white px-2 py-2">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/45">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/65">
         Review category and type
       </p>
-      <p className="mt-1 text-[10px] text-carbon-blue/55">
+      <p className="mt-1 text-[11px] text-carbon-blue/55">
         SmartAssist suggested values. Adjust if needed, then save.
       </p>
       <div className="mt-2 max-h-56 space-y-2 overflow-auto">
@@ -710,7 +710,7 @@ function FiledDocumentsReviewPanel({
           const types = SMARTDOC_TYPES;
           return (
             <div key={doc.id} className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-2">
-              <p className="truncate text-[10px] font-medium text-carbon-blue/70">{doc.name}</p>
+              <p className="truncate text-[11px] font-medium text-carbon-blue/70">{doc.name}</p>
               <div className="mt-1 grid grid-cols-2 gap-2">
                 <select
                   value={doc.docCategory}
@@ -727,7 +727,7 @@ function FiledDocumentsReviewPanel({
                       ),
                     );
                   }}
-                  className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue"
+                  className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue"
                 >
                   {SMARTDOC_CATEGORIES.map((category) => (
                     <option key={category} value={category}>
@@ -745,7 +745,7 @@ function FiledDocumentsReviewPanel({
                       ),
                     );
                   }}
-                  className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue"
+                  className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue"
                 >
                   {types.map((type) => (
                     <option key={type} value={type}>
@@ -762,12 +762,12 @@ function FiledDocumentsReviewPanel({
         type="button"
         disabled={busy}
         onClick={() => void onSave()}
-        className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+        className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
       >
         {busy ? "Saving classification…" : "Save category and type"}
       </button>
-      {status ? <p className="mt-1 text-[10px] text-emerald-700">{status}</p> : null}
-      {error ? <p className="mt-1 text-[10px] text-thermal-red">{error}</p> : null}
+      {status ? <p className="mt-1 text-[11px] text-emerald-700">{status}</p> : null}
+      {error ? <p className="mt-1 text-[11px] text-thermal-red">{error}</p> : null}
     </div>
   );
 }
@@ -775,7 +775,7 @@ function FiledDocumentsReviewPanel({
 function SelectedMailSubjects({ seeds }: { seeds: OutlookOpenMessageSeed[] }) {
   if (seeds.length <= 1) return null;
   return (
-    <ul className="mt-2 max-h-28 overflow-auto text-[11px] leading-snug text-carbon-blue/60">
+    <ul className="mt-2 max-h-28 overflow-auto text-[12px] leading-snug text-carbon-blue/60">
       {seeds.slice(0, 8).map((row) => (
         <li key={row.externalMessageId} className="truncate">
           {typeof row.subject === "string" ? row.subject : "(no subject)"}
@@ -825,20 +825,20 @@ function AttachmentFilingControls({
   const canUseCurrentTag = selectedId.length > 0;
   return (
     <div className="mt-2 border border-carbon-blue/10 bg-white px-2 py-2">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/45">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/65">
         Attachment filing
       </p>
-      <p className="mt-1 text-[10px] leading-snug text-carbon-blue/70 font-semibold">
+      <p className="mt-1 text-[11px] leading-snug text-carbon-blue/70 font-semibold">
         {destinationSummary}
       </p>
-      <label className="mt-1 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <label className="mt-1 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         Where to store
         <select
           value={attachmentTarget}
           onChange={(event) =>
             setAttachmentTarget(event.target.value as "company" | "opportunity" | "project")
           }
-          className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+          className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
         >
           <option value="company">Company</option>
           {allowOpportunity ? <option value="opportunity">Opportunity</option> : null}
@@ -849,7 +849,7 @@ function AttachmentFilingControls({
         <button
           type="button"
           onClick={() => setAttachmentTarget("company")}
-          className="flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange"
+          className="flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange"
         >
           Store under company
         </button>
@@ -857,19 +857,19 @@ function AttachmentFilingControls({
           type="button"
           disabled={!canUseCurrentTag}
           onClick={() => setAttachmentTarget(linkKind)}
-          className="flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+          className="flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
         >
           Use selected {linkKind === "opportunity" ? "opportunity" : "project"}
         </button>
       </div>
       {attachmentTarget === "company" ? (
         <>
-          <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <label className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Company
             <select
               value={attachmentCompanyId}
               onChange={(event) => setAttachmentCompanyId(event.target.value)}
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
             >
               <option value="">Select company…</option>
               {companyOptions.map((option) => (
@@ -879,7 +879,7 @@ function AttachmentFilingControls({
               ))}
             </select>
           </label>
-          <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <label className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Related to (optional)
             <select
               value={attachmentRelationKind}
@@ -889,7 +889,7 @@ function AttachmentFilingControls({
                 );
                 setAttachmentRelationId("");
               }}
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
             >
               <option value="none">No relation</option>
               {allowOpportunity ? <option value="opportunity">Opportunity</option> : null}
@@ -897,12 +897,12 @@ function AttachmentFilingControls({
             </select>
           </label>
           {attachmentRelationKind !== "none" ? (
-            <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <label className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               {attachmentRelationKind === "project" ? "Project" : "Opportunity"}
               <select
                 value={attachmentRelationId}
                 onChange={(event) => setAttachmentRelationId(event.target.value)}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
               >
                 <option value="">Select…</option>
                 {relationOptions.map((option) => (
@@ -915,7 +915,7 @@ function AttachmentFilingControls({
           ) : null}
         </>
       ) : (
-        <p className="mt-2 text-[10px] text-carbon-blue/50">
+        <p className="mt-2 text-[11px] text-carbon-blue/50">
           Will use the selected {attachmentTarget} from the Tag mail section.
           {!selectedId
             ? " Select one first."

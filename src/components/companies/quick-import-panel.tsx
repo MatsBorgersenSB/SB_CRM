@@ -159,10 +159,10 @@ export function QuickImportPanel({
       {embedded ? null : (
         <div className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-2">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Quick Import
             </p>
-            <p className="text-[10px] text-carbon-blue/45">
+            <p className="text-[11px] text-carbon-blue/65">
               Paste signatures, cards, or LinkedIn — never type what text already contains.
             </p>
           </div>
@@ -172,7 +172,7 @@ export function QuickImportPanel({
               setOpen((value) => !value);
               if (open) reset();
             }}
-            className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:bg-upcycle-orange/[0.04] hover:text-upcycle-orange"
+            className="border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:bg-upcycle-orange/[0.04] hover:text-upcycle-orange"
           >
             {open ? "Close" : "Quick Import"}
           </button>
@@ -184,7 +184,7 @@ export function QuickImportPanel({
           <WorkflowHero phase={phase} error={error} />
 
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Paste company or contact information
             </span>
             <textarea
@@ -201,7 +201,7 @@ export function QuickImportPanel({
             {SUPPORTED_INPUT_HINTS.map((hint) => (
               <span
                 key={hint}
-                className="border border-carbon-blue/10 px-1.5 py-0.5 text-[9px] text-carbon-blue/45"
+                className="border border-carbon-blue/10 px-1.5 py-0.5 text-[10px] text-carbon-blue/65"
               >
                 {hint}
               </span>
@@ -213,7 +213,7 @@ export function QuickImportPanel({
               type="button"
               disabled={!text.trim() || busy}
               onClick={() => void handleAnalyze()}
-              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange disabled:opacity-50"
+              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange disabled:opacity-50"
             >
               {phase === "analyzing" ? "Analyzing…" : "Analyze"}
             </button>
@@ -242,14 +242,14 @@ export function QuickImportPanel({
                 type="button"
                 onClick={() => void handleImport()}
                 disabled={!preview.hasCompanyData && !preview.hasContactData}
-                className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+                className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white"
               >
                 Import
               </button>
               <button
                 type="button"
                 onClick={reset}
-                className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+                className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
               >
                 Start Over
               </button>
@@ -299,11 +299,11 @@ function WorkflowHero({ phase, error }: { phase: PanelPhase; error: string | nul
 
   return (
     <div className="rounded-lg border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/50">
         {message.title}
       </p>
-      <p className="mt-0.5 text-[11px] text-carbon-blue/65">{message.detail}</p>
-      {error ? <p className="mt-1 text-[11px] text-thermal-red">{error}</p> : null}
+      <p className="mt-0.5 text-[12px] text-carbon-blue/65">{message.detail}</p>
+      {error ? <p className="mt-1 text-[12px] text-thermal-red">{error}</p> : null}
     </div>
   );
 }
@@ -317,7 +317,7 @@ function ImportProgressView({
 }) {
   return (
     <div className="space-y-2 border border-upcycle-orange/20 bg-upcycle-orange/[0.03] p-3">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
         {importing ? "Import Progress" : "Analysis Progress"}
       </p>
       <ul className="space-y-1.5">
@@ -352,14 +352,14 @@ function StepRow({
       ? "text-emerald-700"
       : state === "active"
         ? "text-upcycle-orange"
-        : "text-carbon-blue/35";
+        : "text-carbon-blue/50";
 
   return (
-    <li className={`flex items-center gap-2 text-[11px] ${tone}`}>
+    <li className={`flex items-center gap-2 text-[12px] ${tone}`}>
       <span className="w-4 shrink-0 text-center font-semibold" aria-hidden>
         {icon}
       </span>
-      <span className={state === "pending" ? "text-carbon-blue/45" : "font-medium"}>{label}</span>
+      <span className={state === "pending" ? "text-carbon-blue/65" : "font-medium"}>{label}</span>
     </li>
   );
 }
@@ -367,7 +367,7 @@ function StepRow({
 function PreviewView({ preview }: { preview: QuickImportPreview }) {
   return (
     <div className="space-y-3 border border-carbon-blue/10 p-3">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         Import Preview
       </p>
 
@@ -389,16 +389,16 @@ function PreviewView({ preview }: { preview: QuickImportPreview }) {
       </div>
 
       <div>
-        <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Fields Extracted
         </p>
         <ul className="max-h-40 space-y-1 overflow-y-auto">
           {preview.fields.map((field) => (
             <li
               key={field.field}
-              className="flex items-center justify-between gap-2 text-[10px] text-carbon-blue/70"
+              className="flex items-center justify-between gap-2 text-[11px] text-carbon-blue/70"
             >
-              <span className="text-carbon-blue/45">{field.field}</span>
+              <span className="text-carbon-blue/65">{field.field}</span>
               <span className="truncate font-medium">{field.value}</span>
               <ActionBadge action={field.action} />
             </li>
@@ -426,17 +426,17 @@ function MatchCard({
 }) {
   return (
     <div className="rounded-md border border-carbon-blue/10 bg-white px-2.5 py-2">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {title}
       </p>
-      <p className="mt-0.5 text-[12px] font-semibold text-carbon-blue">{name}</p>
+      <p className="mt-0.5 text-[13px] font-semibold text-carbon-blue">{name}</p>
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         <ActionBadge action={action} />
-        <span className="text-[9px] uppercase tracking-wider text-carbon-blue/35">
+        <span className="text-[10px] uppercase tracking-wider text-carbon-blue/50">
           {confidence} confidence
         </span>
       </div>
-      <p className="mt-1 text-[10px] text-carbon-blue/50">{reason}</p>
+      <p className="mt-1 text-[11px] text-carbon-blue/50">{reason}</p>
     </div>
   );
 }
@@ -445,8 +445,8 @@ function ActionBadge({ action }: { action: "create" | "update" | "skip" | "uncha
   const styles = {
     create: "border-emerald-500/30 bg-emerald-500/10 text-emerald-800",
     update: "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange",
-    skip: "border-carbon-blue/15 bg-carbon-blue/[0.03] text-carbon-blue/45",
-    unchanged: "border-carbon-blue/10 text-carbon-blue/35",
+    skip: "border-carbon-blue/15 bg-carbon-blue/[0.03] text-carbon-blue/65",
+    unchanged: "border-carbon-blue/10 text-carbon-blue/50",
   };
 
   const labels = {
@@ -458,7 +458,7 @@ function ActionBadge({ action }: { action: "create" | "update" | "skip" | "uncha
 
   return (
     <span
-      className={`shrink-0 border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${styles[action]}`}
+      className={`shrink-0 border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${styles[action]}`}
     >
       {labels[action]}
     </span>
@@ -492,10 +492,10 @@ function IntelligencePanel({ preview }: { preview: QuickImportPreview }) {
 
   return (
     <div className="border-t border-carbon-blue/8 pt-2">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         Intelligence
       </p>
-      <ul className="mt-1 space-y-0.5 text-[10px] text-carbon-blue/55">
+      <ul className="mt-1 space-y-0.5 text-[11px] text-carbon-blue/55">
         {notes.map((note) => (
           <li key={note}>{note}</li>
         ))}
@@ -534,7 +534,7 @@ function CompletionView({
 
   return (
     <div className="space-y-3 border border-emerald-500/25 bg-emerald-500/[0.04] p-3">
-      <p className="text-[11px] font-bold text-emerald-800">Import Complete</p>
+      <p className="text-[12px] font-bold text-emerald-800">Import Complete</p>
 
       <dl className="grid gap-2 sm:grid-cols-2">
         <Stat label="Company" value={companyLabel} />
@@ -545,7 +545,7 @@ function CompletionView({
       </dl>
 
       {result.errors.length > 0 ? (
-        <ul className="space-y-1 text-[10px] text-thermal-red">
+        <ul className="space-y-1 text-[11px] text-thermal-red">
           {result.errors.map((item) => (
             <li key={item}>{item}</li>
           ))}
@@ -554,15 +554,15 @@ function CompletionView({
 
       {result.recommendedNextAction ? (
         <div className="rounded-md border border-upcycle-orange/20 bg-upcycle-orange/[0.04] px-2.5 py-2">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
             Recommended Next Action
           </p>
-          <p className="mt-0.5 text-[11px] text-carbon-blue/70">{result.recommendedNextAction}</p>
+          <p className="mt-0.5 text-[12px] text-carbon-blue/70">{result.recommendedNextAction}</p>
           {websiteUrl && onRunWebsiteDiscovery ? (
             <button
               type="button"
               onClick={() => onRunWebsiteDiscovery(websiteUrl)}
-              className="mt-2 border border-upcycle-orange/30 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange"
+              className="mt-2 border border-upcycle-orange/30 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange"
             >
               Run Website Discovery
             </button>
@@ -573,14 +573,14 @@ function CompletionView({
       <div className="flex flex-wrap gap-2 pt-1">
         <Link
           href={company360Href(result.company)}
-          className="inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+          className="inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white"
         >
           View Company
         </Link>
         {result.contact ? (
           <Link
             href={company360Href(result.company, "contacts")}
-            className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange/30"
+            className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange/30"
           >
             View Contact
           </Link>
@@ -588,7 +588,7 @@ function CompletionView({
         <button
           type="button"
           onClick={onStartOver}
-          className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+          className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
         >
           New Import
         </button>
@@ -600,10 +600,10 @@ function CompletionView({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-carbon-blue/8 bg-white px-2 py-1.5">
-      <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {label}
       </dt>
-      <dd className="mt-0.5 text-[12px] font-semibold text-carbon-blue">{value}</dd>
+      <dd className="mt-0.5 text-[13px] font-semibold text-carbon-blue">{value}</dd>
     </div>
   );
 }

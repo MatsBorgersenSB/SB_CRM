@@ -71,9 +71,9 @@ export function WorkspaceDocumentsBrowseTable({
                 </Link>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                   <OriginBadge origin={row.origin} label={row.originLabel} />
-                  <p className="truncate text-[10px] text-carbon-blue/40">{row.docCategory}</p>
+                  <p className="truncate text-[11px] text-carbon-blue/60">{row.docCategory}</p>
                   {row.counterparty ? (
-                    <p className="truncate text-[10px] text-carbon-blue/40">
+                    <p className="truncate text-[11px] text-carbon-blue/60">
                       · {row.counterparty}
                     </p>
                   ) : null}
@@ -104,7 +104,7 @@ export function WorkspaceDocumentsBrowseTable({
                     <button
                       type="button"
                       onClick={() => onDelete(row)}
-                      className="text-[11px] font-semibold text-thermal-red hover:underline"
+                      className="text-[12px] font-semibold text-thermal-red hover:underline"
                     >
                       Delete
                     </button>
@@ -142,7 +142,7 @@ function SortableHeadCell({
         type="button"
         onClick={() => onSort(column)}
         className={`inline-flex items-center gap-1 transition-colors hover:text-carbon-blue ${
-          active ? "text-carbon-blue" : "text-carbon-blue/45"
+          active ? "text-carbon-blue" : "text-carbon-blue/65"
         } ${align === "right" ? "ml-auto" : ""}`}
       >
         <span>{label}</span>
@@ -167,7 +167,7 @@ function OriginBadge({
 
   return (
     <span
-      className={`inline-flex shrink-0 border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${styles[origin]}`}
+      className={`inline-flex shrink-0 border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${styles[origin]}`}
       title={label}
     >
       {origin === "standard_bio" ? "Ours" : origin === "external" ? "External" : "Unknown"}
@@ -191,7 +191,7 @@ function StatusBadge({
 
   return (
     <span
-      className={`inline-flex max-w-full truncate border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${styles[statusKind]}`}
+      className={`inline-flex max-w-full truncate border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${styles[statusKind]}`}
       title={label}
     >
       {label}

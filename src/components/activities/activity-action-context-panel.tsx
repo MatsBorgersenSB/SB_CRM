@@ -70,7 +70,7 @@ export function ActivityActionContextPanel({ context }: { context: ActivityActio
               </dl>
               <Link
                 href={context.opportunity.href}
-                className="mt-4 inline-block text-[12px] font-semibold text-upcycle-orange hover:underline"
+                className="mt-4 inline-block text-[13px] font-semibold text-upcycle-orange hover:underline"
               >
                 Open opportunity
               </Link>
@@ -91,7 +91,7 @@ export function ActivityActionContextPanel({ context }: { context: ActivityActio
                   </dl>
                   <Link
                     href={contact.href}
-                    className="mt-2 inline-block text-[12px] font-semibold text-upcycle-orange hover:underline"
+                    className="mt-2 inline-block text-[13px] font-semibold text-upcycle-orange hover:underline"
                   >
                     View contact
                   </Link>
@@ -109,7 +109,7 @@ export function ActivityActionContextPanel({ context }: { context: ActivityActio
                 <li key={decision.text}>
                   <p className={`${EDITORIAL_BODY} font-medium text-carbon-blue/85`}>{decision.text}</p>
                   <p className={`mt-1 ${EDITORIAL_META}`}>
-                    <span className="text-carbon-blue/40">Why relevant: </span>
+                    <span className="text-carbon-blue/60">Why relevant: </span>
                     {decision.whyRelevant}
                   </p>
                 </li>
@@ -140,7 +140,7 @@ function ContextBlock({
       {viewAllHref ? (
         <Link
           href={viewAllHref}
-          className="mt-4 inline-block text-[12px] font-semibold text-upcycle-orange hover:underline"
+          className="mt-4 inline-block text-[13px] font-semibold text-upcycle-orange hover:underline"
         >
           {viewAllLabel}
         </Link>
@@ -171,7 +171,7 @@ function ContextItem({
       )}
       {meta ? <p className={`mt-0.5 ${EDITORIAL_META}`}>{meta}</p> : null}
       <p className={`mt-1.5 ${EDITORIAL_META}`}>
-        <span className="text-carbon-blue/40">Why relevant: </span>
+        <span className="text-carbon-blue/60">Why relevant: </span>
         {whyRelevant}
       </p>
     </div>
@@ -181,7 +181,7 @@ function ContextItem({
 function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <div className={EDITORIAL_META}>
-      <span className="text-carbon-blue/40">{label}: </span>
+      <span className="text-carbon-blue/60">{label}: </span>
       <span className="text-carbon-blue/70">{value}</span>
     </div>
   );

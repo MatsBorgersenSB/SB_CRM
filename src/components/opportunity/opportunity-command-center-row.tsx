@@ -14,12 +14,12 @@ export function OpportunityCommandCenterRow({
       <p className="text-sm font-semibold text-carbon-blue group-hover:text-upcycle-orange">
         {item.dealName}
       </p>
-      <p className="mt-0.5 text-[11px] text-carbon-blue/45">{item.subtitle}</p>
-      <p className="mt-2 text-[11px] font-semibold text-carbon-blue/75">
+      <p className="mt-0.5 text-[12px] text-carbon-blue/65">{item.subtitle}</p>
+      <p className="mt-2 text-[12px] font-semibold text-carbon-blue/75">
         {item.nextBestAction.action}
       </p>
       {topDealRisk ? (
-        <p className="mt-1.5 text-[10px] text-carbon-blue/45">
+        <p className="mt-1.5 text-[11px] text-carbon-blue/65">
           {topDealRisk.label}
           {topDealRisk.detail ? ` — ${topDealRisk.detail}` : ""}
         </p>

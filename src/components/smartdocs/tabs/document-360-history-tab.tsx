@@ -19,12 +19,12 @@ export function Document360HistoryTab({ snapshot }: { snapshot: Document360Snaps
     <section className="dashboard-card">
       <header className="border-b border-carbon-blue/8 px-5 py-4">
         <h2 className="text-sm font-semibold text-carbon-blue">SmartDocs timeline</h2>
-        <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+        <p className="mt-0.5 text-[12px] text-carbon-blue/65">
           Creation, reviews, updates, approvals, and references
         </p>
       </header>
       {events.length === 0 ? (
-        <p className="px-5 py-8 text-sm text-carbon-blue/45">No timeline events recorded.</p>
+        <p className="px-5 py-8 text-sm text-carbon-blue/65">No timeline events recorded.</p>
       ) : (
         <ol className="relative px-5 py-4">
           {events.map((event, index) => (
@@ -48,20 +48,20 @@ export function Document360HistoryTab({ snapshot }: { snapshot: Document360Snaps
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`inline-flex border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${TIMELINE_KIND_STYLES[event.kind]}`}
+                    className={`inline-flex border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${TIMELINE_KIND_STYLES[event.kind]}`}
                   >
                     {event.kind}
                   </span>
-                  <span className="text-[10px] text-carbon-blue/40">
+                  <span className="text-[11px] text-carbon-blue/60">
                     {formatRelativeTime(event.occurredAt)}
                   </span>
                 </div>
                 <p className="mt-1 text-sm font-medium text-carbon-blue">{event.label}</p>
-                <p className="mt-0.5 text-[11px] text-carbon-blue/55">{event.detail}</p>
+                <p className="mt-0.5 text-[12px] text-carbon-blue/55">{event.detail}</p>
                 {event.activityId ? (
                   <Link
                     href={`/activities/${event.activityId}`}
-                    className="mt-1 inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
+                    className="mt-1 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
                   >
                     View activity →
                   </Link>

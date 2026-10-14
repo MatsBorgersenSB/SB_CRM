@@ -16,10 +16,10 @@ function RiskPanel({
   if (!risk) {
     return (
       <section className="border border-carbon-blue/8 px-4 py-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
           {title}
         </h3>
-        <p className="mt-2 text-[11px] text-carbon-blue/45">Nothing urgent at risk</p>
+        <p className="mt-2 text-[12px] text-carbon-blue/65">Nothing urgent at risk</p>
       </section>
     );
   }
@@ -31,12 +31,12 @@ function RiskPanel({
 
   return (
     <section className={`border px-4 py-3 ${severityStyles}`}>
-      <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
         {title}
       </h3>
       <p className="mt-2 text-sm font-medium text-carbon-blue">{risk.label}</p>
       {risk.detail ? (
-        <p className="mt-0.5 text-[11px] text-carbon-blue/50">{risk.detail}</p>
+        <p className="mt-0.5 text-[12px] text-carbon-blue/50">{risk.detail}</p>
       ) : null}
       <ImpactContext items={risk.impact} />
     </section>
@@ -51,10 +51,10 @@ function CommitmentPanel({
   if (!commitment) {
     return (
       <section className="border border-carbon-blue/8 px-4 py-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
           Open commitment
         </h3>
-        <p className="mt-2 text-[11px] text-carbon-blue/45">No due commitments</p>
+        <p className="mt-2 text-[12px] text-carbon-blue/65">No due commitments</p>
       </section>
     );
   }
@@ -67,17 +67,17 @@ function CommitmentPanel({
           : "border-carbon-blue/10 bg-carbon-blue/[0.02]"
       }`}
     >
-      <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
         Open commitment
       </h3>
       <p className="mt-2 text-sm font-medium text-carbon-blue">{commitment.title}</p>
-      <p className="mt-0.5 text-[11px] text-carbon-blue/50">{commitment.dueLabel}</p>
+      <p className="mt-0.5 text-[12px] text-carbon-blue/50">{commitment.dueLabel}</p>
       <ImpactContext items={commitment.impact} />
       <a
         href={commitment.href}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-2 inline-flex text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
+        className="mt-2 inline-flex text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
       >
         Open in SmartCRM
       </a>
@@ -101,13 +101,13 @@ export function DailyFocus({
   return (
     <article className={shell}>
       <div className="space-y-3 px-4 py-4">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM · Daily Focus
         </p>
         <M365IntelligenceMetaStrip meta={payload.meta} />
 
         <section className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-4 py-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
             Who to engage
           </h3>
           {payload.whoToEngage ? (
@@ -115,7 +115,7 @@ export function DailyFocus({
               <NextBestActionCard action={payload.whoToEngage} compact />
             </div>
           ) : (
-            <p className="mt-2 text-[11px] text-carbon-blue/45">
+            <p className="mt-2 text-[12px] text-carbon-blue/65">
               No external engagement ranked for today
             </p>
           )}
@@ -125,7 +125,7 @@ export function DailyFocus({
         <CommitmentPanel commitment={payload.openCommitmentDue} />
 
         <section>
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
             Next best action
           </h3>
           <div className="mt-2">

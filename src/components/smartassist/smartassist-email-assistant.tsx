@@ -20,10 +20,10 @@ import {
 } from "@/lib/editorial-design-system";
 
 const actionButtonClass =
-  "inline-flex items-center border border-upcycle-orange/35 bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-colors hover:bg-upcycle-orange/90";
+  "inline-flex items-center border border-upcycle-orange/35 bg-upcycle-orange px-3 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-colors hover:bg-upcycle-orange/90";
 
 const secondaryButtonClass =
-  "inline-flex items-center border border-carbon-blue/15 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange";
+  "inline-flex items-center border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange";
 
 function AssistRow({ label, value }: { label: string; value: string }) {
   return (
@@ -160,7 +160,7 @@ export function SmartAssistEmailAssistant({
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto border border-carbon-blue/15 px-3 py-2 text-[11px] font-semibold text-carbon-blue/55 hover:text-carbon-blue"
+            className="ml-auto border border-carbon-blue/15 px-3 py-2 text-[12px] font-semibold text-carbon-blue/55 hover:text-carbon-blue"
           >
             Close
           </button>

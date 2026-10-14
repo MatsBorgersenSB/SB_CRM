@@ -75,51 +75,72 @@ export const DEFAULT_COMPANY_TYPES: CompanyType[] = [
   "Internal Company",
 ];
 
+/** Semantic icon keys — resolved to line icons by `CompanyTypeIcon`. */
+export type CompanyTypeIconName =
+  | "unclassified"
+  | "prospect"
+  | "customer"
+  | "partner"
+  | "competitor"
+  | "supplier"
+  | "authority"
+  | "research"
+  | "investor"
+  | "ngo"
+  | "grant"
+  | "association"
+  | "offtaker"
+  | "service"
+  | "consultant"
+  | "distributor"
+  | "internal"
+  | "other";
+
 export const COMPANY_TYPE_META: Record<
   CompanyType,
-  { emoji: string; label: string; plural: string }
+  { icon: CompanyTypeIconName; label: string; plural: string }
 > = {
-  Unclassified: { emoji: "❔", label: "Unclassified", plural: "Unclassified" },
-  Prospect: { emoji: "🎯", label: "Prospect", plural: "Prospects" },
-  Customer: { emoji: "👑", label: "Customer", plural: "Customers" },
-  Partner: { emoji: "🤝", label: "Partner", plural: "Partners" },
-  Competitor: { emoji: "⚔️", label: "Competitor", plural: "Competitors" },
-  "Supplier / Vendor": { emoji: "🏭", label: "Supplier / Vendor", plural: "Suppliers / Vendors" },
+  Unclassified: { icon: "unclassified", label: "Unclassified", plural: "Unclassified" },
+  Prospect: { icon: "prospect", label: "Prospect", plural: "Prospects" },
+  Customer: { icon: "customer", label: "Customer", plural: "Customers" },
+  Partner: { icon: "partner", label: "Partner", plural: "Partners" },
+  Competitor: { icon: "competitor", label: "Competitor", plural: "Competitors" },
+  "Supplier / Vendor": { icon: "supplier", label: "Supplier / Vendor", plural: "Suppliers / Vendors" },
   "Public / Government": {
-    emoji: "🏛",
+    icon: "authority",
     label: "Public / Government",
     plural: "Public / Government",
   },
   "University / Research": {
-    emoji: "🔬",
+    icon: "research",
     label: "University / Research",
     plural: "Universities / Research",
   },
-  Investor: { emoji: "🏦", label: "Investor", plural: "Investors" },
-  "NGO / Non-Profit": { emoji: "🌿", label: "NGO / Non-Profit", plural: "NGOs / Non-Profits" },
+  Investor: { icon: "investor", label: "Investor", plural: "Investors" },
+  "NGO / Non-Profit": { icon: "ngo", label: "NGO / Non-Profit", plural: "NGOs / Non-Profits" },
   "Granting Authority": {
-    emoji: "📜",
+    icon: "grant",
     label: "Granting Authority",
     plural: "Granting Authorities",
   },
-  Supplier: { emoji: "🏭", label: "Supplier", plural: "Suppliers" },
-  Association: { emoji: "🏛", label: "Association", plural: "Associations" },
+  Supplier: { icon: "supplier", label: "Supplier", plural: "Suppliers" },
+  Association: { icon: "association", label: "Association", plural: "Associations" },
   "Research Organization": {
-    emoji: "🔬",
+    icon: "research",
     label: "Research Organization",
     plural: "Research Organizations",
   },
-  Offtaker: { emoji: "📦", label: "Offtaker", plural: "Offtakers" },
+  Offtaker: { icon: "offtaker", label: "Offtaker", plural: "Offtakers" },
   "Government Agency": {
-    emoji: "🏛",
+    icon: "authority",
     label: "Government Agency",
     plural: "Government Agencies",
   },
-  "Service Provider": { emoji: "🛠", label: "Service Provider", plural: "Service Providers" },
-  Consultant: { emoji: "💼", label: "Consultant", plural: "Consultants" },
-  Distributor: { emoji: "🚚", label: "Distributor", plural: "Distributors" },
-  Authority: { emoji: "🏛", label: "Authority", plural: "Authorities" },
-  "Internal Company": { emoji: "🏢", label: "Internal Company", plural: "Internal Companies" },
+  "Service Provider": { icon: "service", label: "Service Provider", plural: "Service Providers" },
+  Consultant: { icon: "consultant", label: "Consultant", plural: "Consultants" },
+  Distributor: { icon: "distributor", label: "Distributor", plural: "Distributors" },
+  Authority: { icon: "authority", label: "Authority", plural: "Authorities" },
+  "Internal Company": { icon: "internal", label: "Internal Company", plural: "Internal Companies" },
 };
 
 /** Map legacy / slug / enum labels onto current presets. */
@@ -189,12 +210,12 @@ export function canonicalizeCompanyType(value: string): CompanyType | null {
 }
 
 export function getCompanyTypeMeta(type: string): {
-  emoji: string;
+  icon: CompanyTypeIconName;
   label: string;
   plural: string;
 } {
   const canonical = canonicalizeCompanyType(type);
   if (canonical) return COMPANY_TYPE_META[canonical];
-  return { emoji: "🏷️", label: type, plural: type };
+  return { icon: "other", label: type, plural: type };
 }
 

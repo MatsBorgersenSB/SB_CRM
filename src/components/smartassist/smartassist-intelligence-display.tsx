@@ -29,7 +29,7 @@ export function SmartAssistCategoryBadge({
 }) {
   return (
     <span
-      className={`inline-block border px-1.5 py-0.5 text-[10px] font-semibold leading-none ${CATEGORY_STYLES[category]}`}
+      className={`inline-block border px-1.5 py-0.5 text-[11px] font-semibold leading-none ${CATEGORY_STYLES[category]}`}
     >
       {INSIGHT_CATEGORY_LABELS[category]}
     </span>
@@ -42,7 +42,7 @@ export function SmartAssistConfidenceLabel({
   confidence: ConfidenceLevel;
 }) {
   return (
-    <span className="text-[10px] font-medium text-carbon-blue/40">
+    <span className="text-[11px] font-medium text-carbon-blue/60">
       {CONFIDENCE_LABELS[confidence]}
     </span>
   );
@@ -53,14 +53,14 @@ export function SmartAssistInsightRow({ insight }: { insight: SmartAssistInsight
     <li className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-2">
         {insight.topic ? (
-          <span className="text-[11px] font-medium text-carbon-blue/45">{insight.topic}</span>
+          <span className="text-[12px] font-medium text-carbon-blue/65">{insight.topic}</span>
         ) : null}
         <SmartAssistCategoryBadge category={insight.category} />
         <SmartAssistConfidenceLabel confidence={insight.confidence} />
       </div>
       <p className="text-[14px] leading-relaxed text-carbon-blue/80">{insight.statement}</p>
       {insight.confidenceReason ? (
-        <p className="text-[12px] leading-relaxed text-carbon-blue/45">
+        <p className="text-[13px] leading-relaxed text-carbon-blue/65">
           {insight.confidenceReason}
         </p>
       ) : null}
@@ -79,7 +79,7 @@ export function SmartAssistUnknownBlock({
       <p className="mt-2 text-[13px] leading-relaxed text-carbon-blue/65">{unknown.why}</p>
       {unknown.missingInformation.length > 0 ? (
         <div className="mt-3">
-          <p className="text-[11px] font-medium text-carbon-blue/45">Missing information</p>
+          <p className="text-[12px] font-medium text-carbon-blue/65">Missing information</p>
           <ul className="mt-1 space-y-1">
             {unknown.missingInformation.map((item) => (
               <li key={item} className="text-[13px] text-carbon-blue/70">
@@ -91,7 +91,7 @@ export function SmartAssistUnknownBlock({
       ) : null}
       {unknown.askNext.length > 0 ? (
         <div className="mt-3">
-          <p className="text-[11px] font-medium text-carbon-blue/45">Ask next</p>
+          <p className="text-[12px] font-medium text-carbon-blue/65">Ask next</p>
           <ul className="mt-1 space-y-1">
             {unknown.askNext.map((item) => (
               <li key={item} className="text-[13px] text-carbon-blue/70">
@@ -126,7 +126,7 @@ export function SmartAssistQueryResult({ result }: { result: SmartAssistQueryRes
 
       {result.suggestedQuestions.length > 0 ? (
         <div className="border-t border-carbon-blue/8 pt-3">
-          <p className="text-[11px] font-medium text-carbon-blue/45">Suggested questions</p>
+          <p className="text-[12px] font-medium text-carbon-blue/65">Suggested questions</p>
           <ul className="mt-2 space-y-1">
             {result.suggestedQuestions.map((question) => (
               <li key={question} className="text-[13px] text-carbon-blue/70">
@@ -159,7 +159,7 @@ export function SmartAssistEmbeddedPanel({
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[11px] font-medium text-carbon-blue/45">SmartAssist assessment</p>
+        <p className="text-[12px] font-medium text-carbon-blue/65">SmartAssist assessment</p>
         <p className="mt-2 text-[16px] font-medium leading-snug text-carbon-blue">
           {summary.headline}
         </p>
@@ -189,7 +189,7 @@ export function SmartAssistEmbeddedPanel({
 function InsightGroup({ title, items }: { title: string; items: SmartAssistInsight[] }) {
   return (
     <section>
-      <p className="text-[11px] font-medium text-carbon-blue/45">{title}</p>
+      <p className="text-[12px] font-medium text-carbon-blue/65">{title}</p>
       <ul className="mt-3 space-y-3">
         {items.map((insight) => (
           <SmartAssistInsightRow key={insight.id} insight={insight} />

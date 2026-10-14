@@ -28,7 +28,7 @@ export function ActivityFiltersBar({
     <div className="flex flex-col gap-2 border border-carbon-blue/10 bg-white p-3">
       <div className="relative">
         <Search
-          className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/35"
+          className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50"
           strokeWidth={1.75}
         />
         <input
@@ -89,7 +89,7 @@ export function ActivityFiltersBar({
           options={ACTION_STATUSES.map((s) => ({ value: s, label: s }))}
         />
         <label className="block">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             From
           </span>
           <input
@@ -117,7 +117,7 @@ function FilterSelect({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {label}
       </span>
       <select

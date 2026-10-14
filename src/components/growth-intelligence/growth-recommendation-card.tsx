@@ -10,7 +10,7 @@ export function GrowthRecommendationCard({
     <article className="dashboard-card p-4 sm:p-5">
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
             Recommendation · {recommendation.horizon}
           </p>
           <h3 className="mt-1 text-sm font-semibold text-carbon-blue">{recommendation.what}</h3>
@@ -28,10 +28,10 @@ export function GrowthRecommendationCard({
           ] as const
         ).map(([label, value]) => (
           <div key={label} className="min-w-0">
-            <dt className="text-[9px] font-bold uppercase tracking-[0.1em] text-carbon-blue/35">
+            <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-carbon-blue/50">
               {label}
             </dt>
-            <dd className="mt-0.5 text-[11px] leading-relaxed text-carbon-blue/70">{value}</dd>
+            <dd className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/70">{value}</dd>
           </div>
         ))}
       </dl>
@@ -40,7 +40,7 @@ export function GrowthRecommendationCard({
         {recommendation.outcomes.map((outcome) => (
           <span
             key={outcome}
-            className="rounded-full border border-carbon-blue/10 px-2 py-0.5 text-[9px] font-medium text-carbon-blue/55"
+            className="rounded-full border border-carbon-blue/10 px-2 py-0.5 text-[10px] font-medium text-carbon-blue/55"
           >
             {outcome}
           </span>

@@ -164,7 +164,7 @@ export function CompanyRecentOutlook({
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Recent Outlook
         </p>
         <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export function CompanyRecentOutlook({
               onChange={(event) =>
                 setDomainFilter(event.target.value as "all" | "external")
               }
-              className="border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] text-carbon-blue"
+              className="border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue"
               aria-label="Domain filter"
             >
               <option value="external">External (default)</option>
@@ -184,7 +184,7 @@ export function CompanyRecentOutlook({
           <button
             type="button"
             onClick={() => void load()}
-            className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45 hover:text-upcycle-orange"
+            className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65 hover:text-upcycle-orange"
           >
             Refresh
           </button>
@@ -192,12 +192,12 @@ export function CompanyRecentOutlook({
       </div>
 
       {loading ? (
-        <p className="text-[12px] text-carbon-blue/45">Loading Outlook threads…</p>
+        <p className="text-[13px] text-carbon-blue/65">Loading Outlook threads…</p>
       ) : null}
-      {error ? <p className="text-[12px] text-red-700/80">{error}</p> : null}
+      {error ? <p className="text-[13px] text-red-700/80">{error}</p> : null}
 
       {!loading && !error && visibleThreads.length === 0 ? (
-        <p className="text-[12px] leading-relaxed text-carbon-blue/55">
+        <p className="text-[13px] leading-relaxed text-carbon-blue/55">
           No synced Outlook mail for this company yet. Save mail from Outlook, then refresh.
         </p>
       ) : null}
@@ -220,11 +220,11 @@ export function CompanyRecentOutlook({
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-[13px] font-semibold text-carbon-blue">{subject}</p>
-                <p className="text-[10px] text-carbon-blue/45">
+                <p className="text-[11px] text-carbon-blue/65">
                   {formatSentAt(thread.summary?.latestSentAt ?? latest.sentAt)}
                 </p>
               </div>
-              <p className="mt-0.5 text-[11px] text-carbon-blue/50">
+              <p className="mt-0.5 text-[12px] text-carbon-blue/50">
                 {latest.isOutbound ? "Outbound" : "Inbound"} ·{" "}
                 {thread.summary?.messageCount ?? thread.messages.length} message
                 {(thread.summary?.messageCount ?? thread.messages.length) === 1 ? "" : "s"}

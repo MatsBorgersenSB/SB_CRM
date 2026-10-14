@@ -1,5 +1,5 @@
 function velocityTone(velocity?: string): string {
-  if (!velocity) return "text-carbon-blue/45";
+  if (!velocity) return "text-carbon-blue/65";
   if (velocity.startsWith("+")) return "text-upcycle-orange";
   if (velocity.startsWith("-")) return "text-flame";
   return "text-carbon-blue/55";
@@ -21,7 +21,7 @@ export function InventoryMetricCards({
           key={metric.label}
           className="border border-carbon-blue/15 bg-white px-3 py-2.5"
         >
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             {metric.label}
           </p>
           <p className="mt-1 text-xs font-semibold tabular-nums text-carbon-blue">
@@ -29,7 +29,7 @@ export function InventoryMetricCards({
           </p>
           {metric.velocity ? (
             <p
-              className={`mt-0.5 font-mono text-[9px] tabular-nums ${velocityTone(metric.velocity)}`}
+              className={`mt-0.5 font-mono text-[10px] tabular-nums ${velocityTone(metric.velocity)}`}
             >
               {metric.velocity}
             </p>

@@ -1,6 +1,7 @@
 import type { Document360Snapshot } from "@/lib/document-360-data";
 import { company360Href } from "@/types/company-360";
-import { MISSING_DOC_ICONS } from "@/types/smartdoc";
+import { MISSING_DOC_SEVERITY } from "@/types/smartdoc";
+import { SeverityIcon } from "@/components/ui/smartcrm-icon";
 import Link from "next/link";
 import { DocumentHealthBreakdown } from "@/components/smartdocs/document-intelligence-display";
 import { Document360HistoryTab } from "@/components/smartdocs/tabs/document-360-history-tab";
@@ -20,11 +21,11 @@ export function Document360IntelligenceTab({ snapshot }: { snapshot: Document360
     <div className="flex flex-col gap-4">
       {topRisk ? (
         <section className="dashboard-card px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Primary risk
           </p>
           <p className="mt-1 text-sm font-medium text-carbon-blue">{topRisk.label}</p>
-          <p className="mt-1 text-[11px] text-carbon-blue/55">{topRisk.detail}</p>
+          <p className="mt-1 text-[12px] text-carbon-blue/55">{topRisk.detail}</p>
         </section>
       ) : null}
 
@@ -37,7 +38,7 @@ export function Document360IntelligenceTab({ snapshot }: { snapshot: Document360
             {risks.slice(1).map((risk) => (
               <li key={risk.id} className="py-3 first:pt-0 last:pb-0">
                 <p className="text-sm font-medium text-carbon-blue">{risk.label}</p>
-                <p className="mt-1 text-[11px] text-carbon-blue/55">{risk.detail}</p>
+                <p className="mt-1 text-[12px] text-carbon-blue/55">{risk.detail}</p>
               </li>
             ))}
           </ul>
@@ -67,7 +68,7 @@ export function Document360IntelligenceTab({ snapshot }: { snapshot: Document360
                 {report.entityKind === "company" ? (
                   <Link
                     href={company360Href(report.entityId, "opportunities")}
-                    className="text-[10px] font-semibold text-upcycle-orange hover:underline"
+                    className="text-[11px] font-semibold text-upcycle-orange hover:underline"
                   >
                     Company 360 →
                   </Link>
@@ -75,11 +76,11 @@ export function Document360IntelligenceTab({ snapshot }: { snapshot: Document360
               </div>
               <ul className="mt-3 space-y-2">
                 {report.items.map((item) => (
-                  <li key={item.spec.id} className="flex items-start gap-2 text-[11px]">
-                    <span className="mt-0.5">{MISSING_DOC_ICONS[item.status]}</span>
+                  <li key={item.spec.id} className="flex items-start gap-2 text-[12px]">
+                    <SeverityIcon severity={MISSING_DOC_SEVERITY[item.status]} size="xs" className="mt-0.5" />
                     <div>
                       <span className="font-medium text-carbon-blue/75">{item.spec.label}</span>
-                      <span className="text-carbon-blue/40"> — {item.detail}</span>
+                      <span className="text-carbon-blue/60"> — {item.detail}</span>
                     </div>
                   </li>
                 ))}

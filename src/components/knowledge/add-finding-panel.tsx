@@ -199,7 +199,7 @@ export function AddFindingPanel({
       aria-labelledby="add-finding-title"
       className="rounded-lg border-2 border-upcycle-orange/55 bg-upcycle-orange/[0.06] px-4 py-4 shadow-sm dark:bg-upcycle-orange/10"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
         {isCompetitor ? "Internal only" : "Add knowledge here"}
       </p>
       <h2
@@ -254,7 +254,7 @@ export function AddFindingPanel({
                 ? "Or paste a product / reference page, or write one fact we already know internally"
                 : "Paste a URL here, or write what you know — e.g. https://byggeprosjekter.bygg.no/…"
             }
-            className={`w-full resize-y rounded-md border border-upcycle-orange/35 bg-white px-3 py-2.5 text-[14px] text-carbon-blue shadow-inner outline-none ring-upcycle-orange/30 placeholder:text-carbon-blue/35 focus:border-upcycle-orange focus:ring-2 ${isCompetitor ? "mt-3" : ""}`}
+            className={`w-full resize-y rounded-md border border-upcycle-orange/35 bg-white px-3 py-2.5 text-[14px] text-carbon-blue shadow-inner outline-none ring-upcycle-orange/30 placeholder:text-carbon-blue/50 focus:border-upcycle-orange focus:ring-2 ${isCompetitor ? "mt-3" : ""}`}
             onKeyDown={(event) => {
               if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
                 event.preventDefault();
@@ -291,7 +291,7 @@ export function AddFindingPanel({
                   : `Read ${documentCount} document${documentCount === 1 ? "" : "s"} on ${targetLabel}`}
               </button>
             ) : null}
-            <span className="text-[12px] text-carbon-blue/50">
+            <span className="text-[13px] text-carbon-blue/50">
               {isCompetitor
                 ? "Confirm what we know · skip slogans"
                 : "Ctrl+Enter to add · Confirm each new fact"}
@@ -305,12 +305,12 @@ export function AddFindingPanel({
       )}
 
       {error ? (
-        <p className="mt-2 text-[12px] font-medium text-red-700" role="alert">
+        <p className="mt-2 text-[13px] font-medium text-red-700" role="alert">
           {error}
         </p>
       ) : null}
       {notice ? (
-        <p className="mt-2 text-[12px] font-medium text-carbon-blue/70" role="status">
+        <p className="mt-2 text-[13px] font-medium text-carbon-blue/70" role="status">
           {notice}
         </p>
       ) : null}
@@ -322,7 +322,7 @@ export function AddFindingPanel({
               key={finding.id}
               className="rounded-md border border-carbon-blue/10 bg-white px-3 py-3 dark:bg-slate-950"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/65">
                 {finding.kind === "document"
                   ? "From the document"
                   : finding.kind === "note"
@@ -339,13 +339,13 @@ export function AddFindingPanel({
                   href={finding.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-0.5 inline-block break-all text-[12px] font-medium text-upcycle-orange hover:underline"
+                  className="mt-0.5 inline-block break-all text-[13px] font-medium text-upcycle-orange hover:underline"
                 >
                   {finding.url}
                 </a>
               ) : null}
               {finding.claims.filter((row) => row.decision !== "dismissed").length === 0 ? (
-                <p className="mt-2 text-[12px] text-carbon-blue/55">
+                <p className="mt-2 text-[13px] text-carbon-blue/55">
                   Already on {targetLabel}. Nothing new to validate.
                 </p>
               ) : (
@@ -357,15 +357,15 @@ export function AddFindingPanel({
                       <p className="text-[13px] leading-snug text-carbon-blue">
                         {claim.statement}
                       </p>
-                      <p className="mt-0.5 text-[12px] text-carbon-blue/55">{claim.impact}</p>
+                      <p className="mt-0.5 text-[13px] text-carbon-blue/55">{claim.impact}</p>
                       {!claim.decision &&
                       claim.fieldId &&
                       knownFieldIds?.includes(claim.fieldId) ? (
-                        <p className="mt-1 text-[11px] font-semibold text-carbon-blue/55">
+                        <p className="mt-1 text-[12px] font-semibold text-carbon-blue/55">
                           Already on {targetLabel}
                         </p>
                       ) : claim.decision === "confirmed" ? (
-                        <p className="mt-1 text-[11px] font-semibold text-emerald-700">
+                        <p className="mt-1 text-[12px] font-semibold text-emerald-700">
                           {isCompetitor
                             ? "Confirmed as what we know"
                             : `Confirmed on ${targetLabel}`}
@@ -376,7 +376,7 @@ export function AddFindingPanel({
                             type="button"
                             disabled={claimBusy === claim.id}
                             onClick={() => void decide(finding.id, claim, "confirmed")}
-                            className="rounded-md bg-upcycle-orange/12 px-2.5 py-1 text-[11px] font-semibold text-upcycle-orange hover:bg-upcycle-orange/18 disabled:opacity-50"
+                            className="rounded-md bg-upcycle-orange/12 px-2.5 py-1 text-[12px] font-semibold text-upcycle-orange hover:bg-upcycle-orange/18 disabled:opacity-50"
                           >
                             Confirm
                           </button>
@@ -384,7 +384,7 @@ export function AddFindingPanel({
                             type="button"
                             disabled={claimBusy === claim.id}
                             onClick={() => void decide(finding.id, claim, "dismissed")}
-                            className="rounded-md px-2.5 py-1 text-[11px] font-medium text-carbon-blue/55 hover:bg-carbon-blue/5 disabled:opacity-50"
+                            className="rounded-md px-2.5 py-1 text-[12px] font-medium text-carbon-blue/55 hover:bg-carbon-blue/5 disabled:opacity-50"
                           >
                             Not this
                           </button>
@@ -398,7 +398,7 @@ export function AddFindingPanel({
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-[12px] text-carbon-blue/45">
+        <p className="mt-3 text-[13px] text-carbon-blue/65">
           {isCompetitor
             ? "Nothing confirmed yet. Collect what they sell, which feedstock, and whether they overlap us — that is how we know the competition."
             : "Nothing added yet. Paste a URL or write a note — that is how this record learns."}

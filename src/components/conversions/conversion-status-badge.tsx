@@ -21,7 +21,7 @@ export function ConversionStatusBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusStyles[status]}`}
+      className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusStyles[status]}`}
     >
       {statusLabels[status]}
     </span>

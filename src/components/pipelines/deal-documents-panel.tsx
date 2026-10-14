@@ -43,12 +43,12 @@ type UploadPhase = "form" | "success";
 function PreviewField({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {label}
       </p>
       <p
         className={`mt-0.5 text-sm font-semibold text-carbon-blue ${
-          mono ? "font-mono text-[12px]" : ""
+          mono ? "font-mono text-[13px]" : ""
         }`}
       >
         {value}
@@ -59,7 +59,7 @@ function PreviewField({ label, value, mono = false }: { label: string; value: st
 
 function DealContextCard({ context }: { context: DealDocumentContext }) {
   return (
-    <p className="text-[11px] text-carbon-blue/55">
+    <p className="text-[12px] text-carbon-blue/55">
       <span className="font-mono text-carbon-blue/70">{context.plNumber}</span>
       {" · "}
       {context.dealName}
@@ -90,17 +90,17 @@ function DocumentIdentityCard({
     <section className="overflow-hidden border border-upcycle-orange/25 bg-gradient-to-br from-upcycle-orange/[0.06] to-white">
       <header className="flex items-start justify-between gap-2 border-b border-upcycle-orange/15 px-3 py-2">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange">
             Document identity
           </p>
-          <p className="mt-0.5 text-[10px] text-carbon-blue/50">
+          <p className="mt-0.5 text-[11px] text-carbon-blue/50">
             Reserved before upload · {identity.categoryLabel} · {docType}
           </p>
         </div>
         <button
           type="button"
           onClick={onToggleExplanation}
-          className="inline-flex shrink-0 items-center gap-1 border border-carbon-blue/10 bg-white px-1.5 py-1 text-[9px] font-semibold text-carbon-blue/55 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+          className="inline-flex shrink-0 items-center gap-1 border border-carbon-blue/10 bg-white px-1.5 py-1 text-[10px] font-semibold text-carbon-blue/55 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
           aria-expanded={showExplanation}
           title="How SmartDoc IDs work"
         >
@@ -115,14 +115,14 @@ function DocumentIdentityCard({
         <button
           type="button"
           onClick={onCopy}
-          className="inline-flex shrink-0 items-center gap-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+          className="inline-flex shrink-0 items-center gap-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
         >
           {copied ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
       {showExplanation ? (
-        <p className="border-t border-upcycle-orange/10 px-3 py-2 text-[10px] leading-relaxed text-carbon-blue/55">
+        <p className="border-t border-upcycle-orange/10 px-3 py-2 text-[11px] leading-relaxed text-carbon-blue/55">
           {SMARTDOC_IDENTITY_EXPLANATION}
         </p>
       ) : null}
@@ -145,7 +145,7 @@ function NameSuggestionChips({
 
   return (
     <div className="space-y-2">
-      <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         <Sparkles className="size-3 text-upcycle-orange" />
         Smart name suggestions
       </p>
@@ -167,7 +167,7 @@ function NameSuggestionChips({
               }`}
             >
               <span className="min-w-0 truncate font-medium">{name}</span>
-              <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                 {isPrimary ? "Primary" : `Alt ${index}`}
               </span>
             </button>
@@ -199,14 +199,14 @@ function UploadSuccessCard({
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             href={`/documents/${encodeURIComponent(document.SmartDocID)}`}
-            className="inline-flex items-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white hover:bg-upcycle-orange/90"
+            className="inline-flex items-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white hover:bg-upcycle-orange/90"
           >
             Open document
           </Link>
           <button
             type="button"
             onClick={onUploadAnother}
-            className="inline-flex items-center gap-1 border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+            className="inline-flex items-center gap-1 border border-carbon-blue/15 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange/30 hover:text-upcycle-orange"
           >
             <Upload className="size-3" />
             Upload another
@@ -432,7 +432,7 @@ export function DealDocumentsPanel({
   };
 
   if (loading || !context) {
-    return <p className="text-[11px] text-carbon-blue/50">Loading documents…</p>;
+    return <p className="text-[12px] text-carbon-blue/50">Loading documents…</p>;
   }
 
   return (
@@ -446,10 +446,10 @@ export function DealDocumentsPanel({
         ) : (
           <section className="overflow-hidden border border-carbon-blue/10 bg-white">
             <header className="border-b border-carbon-blue/8 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange">
                 Smart upload
               </p>
-              <p className="mt-0.5 text-[10px] text-carbon-blue/50">
+              <p className="mt-0.5 text-[11px] text-carbon-blue/50">
                 SmartCRM understands your document before it is stored.
               </p>
             </header>
@@ -468,7 +468,7 @@ export function DealDocumentsPanel({
 
               <div className="grid gap-2 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                     Document category
                   </span>
                   <select
@@ -489,7 +489,7 @@ export function DealDocumentsPanel({
                 </label>
 
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                     Document type
                   </span>
                   <select
@@ -520,7 +520,7 @@ export function DealDocumentsPanel({
               ) : null}
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Document name
                 </span>
                 <input
@@ -536,7 +536,7 @@ export function DealDocumentsPanel({
                 />
                 {nameSuggestions &&
                 documentName.trim() === nameSuggestions.primary.trim() ? (
-                  <p className="mt-1 flex items-center gap-1 text-[10px] text-upcycle-orange">
+                  <p className="mt-1 flex items-center gap-1 text-[11px] text-upcycle-orange">
                     <Sparkles className="size-3 shrink-0" />
                     Suggested by SmartDocs
                   </p>
@@ -545,7 +545,7 @@ export function DealDocumentsPanel({
 
               {quotationSets.length > 0 ? (
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                     Document set (optional)
                   </span>
                   <select
@@ -565,33 +565,33 @@ export function DealDocumentsPanel({
               ) : null}
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   File
                 </span>
                 <div className="mt-0.5 flex items-center gap-2 border border-dashed border-carbon-blue/20 bg-carbon-blue/[0.02] px-2 py-2.5">
-                  <FileUp className="size-3.5 text-carbon-blue/45" />
+                  <FileUp className="size-3.5 text-carbon-blue/65" />
                   <input
                     type="file"
                     disabled={saving}
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
                     onChange={(event) => handleFilePick(event.target.files)}
-                    className="min-w-0 flex-1 text-[10px] text-carbon-blue/70"
+                    className="min-w-0 flex-1 text-[11px] text-carbon-blue/70"
                   />
                 </div>
                 {originalFileName ? (
-                  <p className="mt-1 truncate font-mono text-[10px] text-carbon-blue/50">
+                  <p className="mt-1 truncate font-mono text-[11px] text-carbon-blue/50">
                     {originalFileName}
                   </p>
                 ) : null}
               </label>
 
-              {error ? <p className="text-[10px] text-red-600">{error}</p> : null}
+              {error ? <p className="text-[11px] text-red-600">{error}</p> : null}
 
               <button
                 type="button"
                 disabled={saving || !documentName.trim() || !originalFileName}
                 onClick={() => void handleUpload()}
-                className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+                className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
               >
                 {saving ? "Storing…" : "Store in SmartDocs library"}
               </button>
@@ -602,12 +602,12 @@ export function DealDocumentsPanel({
 
       <section className="border border-carbon-blue/10">
         <header className="border-b border-carbon-blue/10 px-3 py-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             SmartDocs library ({documents.length})
           </p>
         </header>
         {documents.length === 0 ? (
-          <p className="px-3 py-4 text-[11px] text-carbon-blue/50">
+          <p className="px-3 py-4 text-[12px] text-carbon-blue/50">
             No documents stored for this deal yet.
           </p>
         ) : (
@@ -616,20 +616,20 @@ export function DealDocumentsPanel({
               <li key={document.SmartDocID} className="px-3 py-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-mono text-[10px] font-semibold text-carbon-blue/55">
+                    <p className="font-mono text-[11px] font-semibold text-carbon-blue/55">
                       {document.SmartDocID}
                     </p>
                     <p className="mt-0.5 text-xs font-semibold text-carbon-blue">
                       {document.DocumentName}
                     </p>
-                    <p className="mt-0.5 text-[10px] text-carbon-blue/55">
+                    <p className="mt-0.5 text-[11px] text-carbon-blue/55">
                       {resolveCategoryLabel(document.DocCategory)} · {document.DocType}
                     </p>
-                    <p className="mt-1 truncate font-mono text-[10px] text-carbon-blue/45">
+                    <p className="mt-1 truncate font-mono text-[11px] text-carbon-blue/65">
                       {document.FileLeafRef}
                     </p>
                     {document.DocumentSetID ? (
-                      <p className="mt-1 text-[10px] text-carbon-blue/50">
+                      <p className="mt-1 text-[11px] text-carbon-blue/50">
                         Member of{" "}
                         <Link
                           href={documentSet360Href(document.DocumentSetID)}
@@ -648,7 +648,7 @@ export function DealDocumentsPanel({
                             if (setId) void handleAssignToSet(document.SmartDocID, setId);
                             event.target.value = "";
                           }}
-                          className="min-w-0 flex-1 border border-carbon-blue/15 bg-white px-1.5 py-1 text-[10px] text-carbon-blue"
+                          className="min-w-0 flex-1 border border-carbon-blue/15 bg-white px-1.5 py-1 text-[11px] text-carbon-blue"
                         >
                           <option value="">Assign to set…</option>
                           {quotationSets.map((set) => (
@@ -662,7 +662,7 @@ export function DealDocumentsPanel({
                   </div>
                   <Link
                     href={`/documents/${encodeURIComponent(document.SmartDocID)}`}
-                    className="shrink-0 text-[10px] font-semibold text-upcycle-orange hover:underline"
+                    className="shrink-0 text-[11px] font-semibold text-upcycle-orange hover:underline"
                   >
                     Open
                   </Link>

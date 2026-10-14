@@ -22,7 +22,7 @@ export function OpportunityRecentActivities({
 
   if (recent.length === 0) {
     return (
-      <p className="text-[11px] text-carbon-blue/45">
+      <p className="text-[12px] text-carbon-blue/65">
         No activities logged yet — record your first customer interaction.
       </p>
     );
@@ -40,13 +40,13 @@ export function OpportunityRecentActivities({
             >
               <ActivityTypeIcon type={activity.ActivityType} size="sm" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[11px] font-semibold text-carbon-blue">
+                <p className="truncate text-[12px] font-semibold text-carbon-blue">
                   {activity.Subject}
                 </p>
-                <p className="mt-0.5 line-clamp-1 text-[10px] text-carbon-blue/50">
+                <p className="mt-0.5 line-clamp-1 text-[11px] text-carbon-blue/50">
                   {memory.summary}
                 </p>
-                <p className="mt-0.5 text-[9px] text-carbon-blue/35">
+                <p className="mt-0.5 text-[10px] text-carbon-blue/50">
                   {formatActivityDateTime(activity.ActivityDate)}
                 </p>
               </div>
@@ -56,7 +56,7 @@ export function OpportunityRecentActivities({
       })}
       <Link
         href={`/opportunities/${encodeURIComponent(dealId)}?tab=activities`}
-        className="inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
+        className="inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
       >
         Open full activity workspace →
       </Link>

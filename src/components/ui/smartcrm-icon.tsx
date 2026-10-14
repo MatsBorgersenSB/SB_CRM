@@ -2,18 +2,41 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
+  Bookmark,
+  Building2,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  CircleAlert,
+  CircleCheck,
+  Clock,
+  Coins,
+  Dices,
+  FileText,
+  FolderClosed,
+  FolderKanban,
+  Globe,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Plus,
+  Search,
+  TrendingUp,
+  TriangleAlert,
+  User,
+  type LucideIcon,
+} from "lucide-react";
+import {
   readSectionCollapsed,
   writeSectionCollapsed,
 } from "@/lib/workspace-collapsible-state";
 import type { AttentionObjectType, AttentionSeverity } from "@/types/attention-item";
 import type { SearchEntityType } from "@/types/universal-search";
 import {
-  ATTENTION_SEVERITY_ICONS,
   HUB_SECTION_ICONS,
-  SMARTCRM_ICONS,
-  attentionObjectEmoji,
-  healthStatusEmoji,
-  searchEntityEmoji,
+  healthStatusScanIcon,
   type SmartCRMIconName,
 } from "@/lib/smartcrm-visual-language";
 import {
@@ -26,12 +49,79 @@ import {
   WORKSPACE_PANEL_HEADER_WRAPPER,
 } from "@/lib/workspace-design-system";
 
-const SIZE_CLASS = {
-  xs: "text-[10px]",
-  sm: "text-xs",
-  md: "text-sm",
-  lg: "text-base",
-} as const;
+/** Pixel size per icon slot. Matches the sidebar's line-icon scale. */
+const SIZE_PX = { xs: 12, sm: 14, md: 16, lg: 20 } as const;
+
+type IconSize = keyof typeof SIZE_PX;
+
+/**
+ * One icon system. Every object, action and state icon in SmartCRM resolves
+ * to a Lucide line icon — the same family the sidebar uses — so icons share
+ * stroke, colour tokens and dark-mode behaviour. No emoji in product UI.
+ */
+const LUCIDE_BY_NAME: Record<SmartCRMIconName, LucideIcon> = {
+  contact: User,
+  company: Building2,
+  opportunity: TrendingUp,
+  document: FileText,
+  documentSet: FolderClosed,
+  email: Mail,
+  phone: Phone,
+  location: MapPin,
+  website: Globe,
+  meeting: CalendarDays,
+  needsAttention: TriangleAlert,
+  urgent: CircleAlert,
+  waiting: Clock,
+  healthy: CircleCheck,
+  completed: Check,
+  value: Coins,
+  stage: TrendingUp,
+  probability: Dices,
+  opNumber: Bookmark,
+  edit: Pencil,
+  search: Search,
+  activity: CalendarDays,
+  add: Plus,
+  project: FolderKanban,
+};
+
+const OBJECT_TYPE_ICON: Record<AttentionObjectType, SmartCRMIconName> = {
+  Company: "company",
+  Contact: "contact",
+  Opportunity: "opportunity",
+  Activity: "meeting",
+  Document: "document",
+  DocumentSet: "documentSet",
+  TransmissionPackage: "documentSet",
+  CommercialBaseline: "document",
+  Tender: "search",
+};
+
+const SEARCH_ENTITY_ICON: Record<SearchEntityType, SmartCRMIconName> = {
+  company: "company",
+  contact: "contact",
+  deal: "opportunity",
+  activity: "meeting",
+  document: "document",
+  document_set: "documentSet",
+  transmission: "documentSet",
+  attention: "needsAttention",
+  note: "edit",
+  raw_material: "documentSet",
+};
+
+/**
+ * Severity icon + colour are decided together so the symbol can never
+ * contradict its word (no green tick beside "Needs attention").
+ */
+const SEVERITY_ICON: Record<AttentionSeverity, { name: SmartCRMIconName; className: string; label: string }> = {
+  urgent: { name: "urgent", className: "text-red-600", label: "Urgent" },
+  needs_attention: { name: "needsAttention", className: "text-amber-600", label: "Needs attention" },
+  waiting: { name: "waiting", className: "text-carbon-blue/65", label: "Waiting" },
+  healthy: { name: "healthy", className: "text-emerald-600", label: "Healthy" },
+  completed: { name: "completed", className: "text-carbon-blue/65", label: "Completed" },
+};
 
 export function SmartCRMIcon({
   name,
@@ -40,20 +130,21 @@ export function SmartCRMIcon({
   label,
 }: {
   name: SmartCRMIconName;
-  size?: keyof typeof SIZE_CLASS;
+  size?: IconSize;
   className?: string;
   /** Accessible label when icon carries meaning alone */
   label?: string;
 }) {
+  const Icon = LUCIDE_BY_NAME[name];
   return (
-    <span
-      className={`inline-block shrink-0 leading-none ${SIZE_CLASS[size]} ${className}`}
+    <Icon
+      size={SIZE_PX[size]}
+      strokeWidth={1.75}
+      className={`inline-block shrink-0 ${className}`}
       role={label ? "img" : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
-    >
-      {SMARTCRM_ICONS[name]}
-    </span>
+    />
   );
 }
 
@@ -63,17 +154,17 @@ export function SeverityIcon({
   className = "",
 }: {
   severity: AttentionSeverity;
-  size?: keyof typeof SIZE_CLASS;
+  size?: IconSize;
   className?: string;
 }) {
+  const meta = SEVERITY_ICON[severity];
   return (
-    <span
-      className={`inline-block shrink-0 leading-none ${SIZE_CLASS[size]} ${className}`}
-      aria-label={severity.replace("_", " ")}
-      role="img"
-    >
-      {ATTENTION_SEVERITY_ICONS[severity]}
-    </span>
+    <SmartCRMIcon
+      name={meta.name}
+      size={size}
+      className={`${meta.className} ${className}`}
+      label={meta.label}
+    />
   );
 }
 
@@ -83,17 +174,10 @@ export function ObjectTypeIcon({
   className = "",
 }: {
   objectType: AttentionObjectType;
-  size?: keyof typeof SIZE_CLASS;
+  size?: IconSize;
   className?: string;
 }) {
-  return (
-    <span
-      className={`inline-block shrink-0 leading-none ${SIZE_CLASS[size]} ${className}`}
-      aria-hidden
-    >
-      {attentionObjectEmoji(objectType)}
-    </span>
-  );
+  return <SmartCRMIcon name={OBJECT_TYPE_ICON[objectType]} size={size} className={className} />;
 }
 
 export function SearchEntityIcon({
@@ -102,15 +186,17 @@ export function SearchEntityIcon({
   className = "",
 }: {
   entityType: SearchEntityType;
-  size?: keyof typeof SIZE_CLASS;
+  size?: IconSize;
   className?: string;
 }) {
-  return (
-    <span className={`inline-block shrink-0 leading-none ${SIZE_CLASS[size]} ${className}`} aria-hidden>
-      {searchEntityEmoji(entityType)}
-    </span>
-  );
+  return <SmartCRMIcon name={SEARCH_ENTITY_ICON[entityType]} size={size} className={className} />;
 }
+
+const HEALTH_SEVERITY: Record<ReturnType<typeof healthStatusScanIcon>, AttentionSeverity> = {
+  healthy: "healthy",
+  needsAttention: "needs_attention",
+  urgent: "urgent",
+};
 
 export function HealthStatusIcon({
   status,
@@ -118,21 +204,19 @@ export function HealthStatusIcon({
   className = "",
 }: {
   status: string;
-  size?: keyof typeof SIZE_CLASS;
+  size?: IconSize;
   className?: string;
 }) {
   return (
-    <span
-      className={`inline-block shrink-0 leading-none ${SIZE_CLASS[size]} ${className}`}
-      aria-label={`Health: ${status}`}
-      role="img"
-    >
-      {healthStatusEmoji(status)}
-    </span>
+    <SeverityIcon
+      severity={HEALTH_SEVERITY[healthStatusScanIcon(status)]}
+      size={size}
+      className={className}
+    />
   );
 }
 
-/** Icon before scannable label text — e.g. 📧 Email */
+/** Icon before scannable label text — e.g. [mail] Email */
 export function IconLabel({
   icon,
   children,
@@ -142,11 +226,11 @@ export function IconLabel({
   icon: SmartCRMIconName;
   children: ReactNode;
   className?: string;
-  iconSize?: keyof typeof SIZE_CLASS;
+  iconSize?: IconSize;
 }) {
   return (
     <span className={`inline-flex min-w-0 max-w-full items-center gap-1.5 ${className}`}>
-      <SmartCRMIcon name={icon} size={iconSize} />
+      <SmartCRMIcon name={icon} size={iconSize} className="text-current opacity-60" />
       <span className="min-w-0 truncate">{children}</span>
     </span>
   );
@@ -166,7 +250,7 @@ export function ActionableField({
     <span
       className={`inline-flex items-center gap-2 text-[13px] text-carbon-blue/70 ${className}`}
     >
-      <SmartCRMIcon name={icon} size="sm" />
+      <SmartCRMIcon name={icon} size="sm" className="opacity-60" />
       <span className="min-w-0">{children}</span>
     </span>
   );
@@ -187,7 +271,7 @@ export function WorkspaceHubSection({
 
   return (
     <section id={id} className="border-t border-carbon-blue/10 px-6 py-5">
-      <h2 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+      <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
         {sectionIcon ? <SmartCRMIcon name={sectionIcon} size="xs" /> : null}
         {title}
       </h2>
@@ -263,11 +347,13 @@ export function WorkspacePanel({
   const headerContent = (
     <>
       {collapsible ? (
-        <span className="w-3 shrink-0 text-[10px] leading-none text-carbon-blue/45" aria-hidden>
-          {expanded ? "▼" : "▶"}
-        </span>
+        expanded ? (
+          <ChevronDown size={12} strokeWidth={2} className="shrink-0 text-carbon-blue/65" aria-hidden />
+        ) : (
+          <ChevronRight size={12} strokeWidth={2} className="shrink-0 text-carbon-blue/65" aria-hidden />
+        )
       ) : null}
-      {sectionIcon ? <SmartCRMIcon name={sectionIcon} size="sm" /> : null}
+      {sectionIcon ? <SmartCRMIcon name={sectionIcon} size="sm" className="text-carbon-blue/55" /> : null}
       <span>{titleLabel}</span>
     </>
   );

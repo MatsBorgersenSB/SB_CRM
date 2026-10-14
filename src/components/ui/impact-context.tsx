@@ -9,12 +9,12 @@ export function ImpactContext({
 
   return (
     <div className="mt-3 border-l-2 border-carbon-blue/10 pl-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/35">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/50">
         {label}
       </p>
       <ul className="mt-1.5 space-y-1">
         {items.map((item) => (
-          <li key={item} className="text-[11px] leading-relaxed text-carbon-blue/55">
+          <li key={item} className="text-[12px] leading-relaxed text-carbon-blue/55">
             {item}
           </li>
         ))}

@@ -24,13 +24,13 @@ export function DashboardRelationshipAttention({
           <h2 className="text-sm font-semibold text-carbon-blue">
             Relationships Needing Attention
           </h2>
-          <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+          <p className="mt-0.5 text-[12px] text-carbon-blue/65">
             Ranked by health score and urgency
           </p>
         </div>
         <Link
           href="/companies"
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-upcycle-orange"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-upcycle-orange"
         >
           View all
           <ArrowRight className="size-3" />
@@ -38,7 +38,7 @@ export function DashboardRelationshipAttention({
       </header>
 
       {items.length === 0 ? (
-        <p className="px-4 py-8 text-center text-xs text-carbon-blue/45">
+        <p className="px-4 py-8 text-center text-xs text-carbon-blue/65">
           All relationships are healthy.
         </p>
       ) : (
@@ -56,30 +56,30 @@ export function DashboardRelationshipAttention({
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span
-                        className={`border px-1.5 py-0.5 text-[9px] font-bold tabular-nums ${HEALTH_STATUS_STYLES[item.healthStatus]}`}
+                        className={`border px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${HEALTH_STATUS_STYLES[item.healthStatus]}`}
                       >
                         {item.healthScore}
                       </span>
-                      <span className="text-[10px] font-medium text-carbon-blue/50">
+                      <span className="text-[11px] font-medium text-carbon-blue/50">
                         {item.healthStatus}
                       </span>
                       <RelationshipTrendBadge trend={item.trend} />
                     </div>
                   </div>
                   <span
-                    className={`shrink-0 text-[9px] font-semibold uppercase tracking-wider ${
+                    className={`shrink-0 text-[10px] font-semibold uppercase tracking-wider ${
                       item.priority === "critical"
                         ? "text-red-600"
                         : item.priority === "high"
                           ? "text-upcycle-orange"
-                          : "text-carbon-blue/45"
+                          : "text-carbon-blue/65"
                     }`}
                   >
                     {REASON_LABEL[item.reason]}
                   </span>
                 </div>
-                <p className="mt-1.5 text-[11px] text-carbon-blue/55">{item.detail}</p>
-                <p className="mt-1 text-[10px] font-medium text-carbon-blue/65">
+                <p className="mt-1.5 text-[12px] text-carbon-blue/55">{item.detail}</p>
+                <p className="mt-1 text-[11px] font-medium text-carbon-blue/65">
                   → {item.recommendedAction.action}
                 </p>
               </Link>

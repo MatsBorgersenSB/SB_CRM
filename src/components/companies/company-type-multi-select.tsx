@@ -8,6 +8,7 @@ import {
   canonicalizeCompanyType,
   getCompanyTypeMeta,
 } from "@/types/company-type";
+import { CompanyTypeIcon } from "@/components/companies/company-type-icon";
 
 type CompanyTypeMultiSelectProps = {
   value: CompanyType[];
@@ -98,8 +99,8 @@ export function CompanyTypeMultiSelect({
 
   const labelClass =
     density === "compact"
-      ? "text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40"
-      : "text-[10px] font-bold uppercase tracking-[0.14em] text-upcycle-orange/80";
+      ? "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+      : "text-[11px] font-bold uppercase tracking-[0.14em] text-upcycle-orange/80";
 
   return (
     <div ref={rootRef} className="relative w-full">
@@ -130,7 +131,7 @@ export function CompanyTypeMultiSelect({
             ? placeholder
             : `${selected.length} type${selected.length === 1 ? "" : "s"} selected`}
         </span>
-        <ChevronsUpDown className="size-3.5 shrink-0 text-carbon-blue/35" aria-hidden />
+        <ChevronsUpDown className="size-3.5 shrink-0 text-carbon-blue/50" aria-hidden />
       </button>
 
       {selected.length > 0 ? (
@@ -140,9 +141,9 @@ export function CompanyTypeMultiSelect({
             return (
               <span
                 key={type}
-                className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[11px] font-semibold text-upcycle-orange"
+                className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[12px] font-semibold text-upcycle-orange"
               >
-                <span aria-hidden>{meta.emoji}</span>
+                <CompanyTypeIcon icon={meta.icon} />
                 {meta.label}
                 <button
                   type="button"
@@ -172,13 +173,13 @@ export function CompanyTypeMultiSelect({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Filter types…"
-              className="w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange"
+              className="w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
               autoFocus
             />
           </div>
           <ul className="max-h-56 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <li className="px-3 py-2 text-[12px] text-carbon-blue/45">No matching types</li>
+              <li className="px-3 py-2 text-[13px] text-carbon-blue/65">No matching types</li>
             ) : (
               filtered.map((type) => {
                 const meta = getCompanyTypeMeta(type);
@@ -190,10 +191,10 @@ export function CompanyTypeMultiSelect({
                       role="option"
                       aria-selected={isSelected}
                       onClick={() => toggle(type)}
-                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04]"
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04]"
                     >
                       <span className="inline-flex items-center gap-2">
-                        <span aria-hidden>{meta.emoji}</span>
+                        <CompanyTypeIcon icon={meta.icon} />
                         {meta.label}
                       </span>
                       {isSelected ? (

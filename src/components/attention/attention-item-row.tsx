@@ -43,14 +43,14 @@ export function AttentionItemRow({
           <ImpactContext items={[item.recommendation]} />
 
           {item.companyName && item.objectType !== "Company" ? (
-            <p className="mt-1 flex items-center gap-1 text-[10px] text-carbon-blue/40">
+            <p className="mt-1 flex items-center gap-1 text-[11px] text-carbon-blue/60">
               <SmartCRMIcon name="company" size="xs" />
               {item.companyName}
             </p>
           ) : null}
 
           {item.dueDate ? (
-            <p className="mt-1 flex items-center gap-1 text-[10px] text-carbon-blue/40">
+            <p className="mt-1 flex items-center gap-1 text-[11px] text-carbon-blue/60">
               <SmartCRMIcon name="meeting" size="xs" />
               Due {new Date(item.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
             </p>
@@ -86,7 +86,7 @@ export function AttentionSeverityGroup({
 
   return (
     <section>
-      <h3 className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/45">
+      <h3 className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/65">
         <SeverityIcon severity={severity} />
         {label}
         <span className="font-normal text-carbon-blue/30">({items.length})</span>

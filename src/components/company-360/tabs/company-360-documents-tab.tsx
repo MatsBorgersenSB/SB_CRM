@@ -35,7 +35,7 @@ export function Company360DocumentsTab({
       <section className="dashboard-card flex min-h-[280px] flex-col items-center justify-center px-6 py-12 text-center">
         <FileText className="size-8 text-carbon-blue/20" strokeWidth={1.5} />
         <p className="mt-3 text-sm font-medium text-carbon-blue/70">No documents yet</p>
-        <p className="mt-1 max-w-sm text-xs text-carbon-blue/45">
+        <p className="mt-1 max-w-sm text-xs text-carbon-blue/65">
           SmartDocs appear in context — grouped by purpose, not folders.
         </p>
       </section>
@@ -50,7 +50,7 @@ export function Company360DocumentsTab({
         <section key={category} className="dashboard-card">
           <header className="border-b border-carbon-blue/8 px-5 py-3">
             <h2 className="text-sm font-semibold text-carbon-blue">{category}</h2>
-            <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+            <p className="mt-0.5 text-[12px] text-carbon-blue/65">
               {docs.length} document{docs.length === 1 ? "" : "s"} in context
             </p>
           </header>
@@ -65,7 +65,7 @@ export function Company360DocumentsTab({
                     className="flex items-start gap-4 px-5 py-4 transition-colors hover:bg-carbon-blue/[0.02]"
                   >
                     <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center border border-carbon-blue/10 bg-carbon-blue/[0.02]">
-                      <FileText className="size-4 text-carbon-blue/40" strokeWidth={1.75} />
+                      <FileText className="size-4 text-carbon-blue/60" strokeWidth={1.75} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -75,7 +75,7 @@ export function Company360DocumentsTab({
                         {intel ? (
                           <>
                             <span
-                              className={`border px-1.5 py-0.5 text-[9px] font-bold tabular-nums ${DOCUMENT_HEALTH_STYLES[intel.healthStatus]}`}
+                              className={`border px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${DOCUMENT_HEALTH_STYLES[intel.healthStatus]}`}
                             >
                               {intel.healthScore}
                             </span>
@@ -85,18 +85,18 @@ export function Company360DocumentsTab({
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         {doc.DocType ? (
-                          <span className="border border-upcycle-orange/25 bg-upcycle-orange/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
+                          <span className="border border-upcycle-orange/25 bg-upcycle-orange/8 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
                             {doc.DocType}
                           </span>
                         ) : null}
                         {doc.Revision ? (
-                          <span className="font-mono text-[10px] text-carbon-blue/45">
+                          <span className="font-mono text-[11px] text-carbon-blue/65">
                             Rev {doc.Revision}
                           </span>
                         ) : null}
                       </div>
                       {intel ? (
-                        <p className="mt-1.5 line-clamp-1 text-[10px] text-carbon-blue/45">
+                        <p className="mt-1.5 line-clamp-1 text-[11px] text-carbon-blue/65">
                           → {intel.nextBestAction.action}
                         </p>
                       ) : null}

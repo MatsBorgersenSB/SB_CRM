@@ -51,7 +51,7 @@ const STATUS_LABELS: Record<EventPlanningContact["status"], string> = {
 const PRIORITY_STYLES: Record<EventPlanningContact["priority"], string> = {
   high: "text-upcycle-orange",
   medium: "text-carbon-blue/60",
-  low: "text-carbon-blue/40",
+  low: "text-carbon-blue/60",
 };
 
 export function EventPlanningWorkspaceView({
@@ -82,7 +82,7 @@ export function EventPlanningWorkspaceView({
       <div className={WORKSPACE_SURFACE}>
         <Link
           href="/growth/events"
-          className="text-[11px] font-medium text-carbon-blue/45 transition-colors hover:text-upcycle-orange"
+          className="text-[12px] font-medium text-carbon-blue/65 transition-colors hover:text-upcycle-orange"
         >
           ← Events
         </Link>
@@ -153,13 +153,13 @@ export function EventPlanningWorkspaceView({
     <div className={`${WORKSPACE_SURFACE} ${EDITORIAL_GAP_BLOCK}`}>
       <Link
         href="/growth/events"
-        className="text-[11px] font-medium text-carbon-blue/45 transition-colors hover:text-upcycle-orange"
+        className="text-[12px] font-medium text-carbon-blue/65 transition-colors hover:text-upcycle-orange"
       >
         ← Events
       </Link>
 
       {eventPassed ? (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2.5 text-[12px] text-carbon-blue/70">
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2.5 text-[13px] text-carbon-blue/70">
           This event has passed. Capture who you met, or archive it. Do not keep a meeting-suite task
           for a finished show.
         </p>
@@ -179,12 +179,12 @@ export function EventPlanningWorkspaceView({
                   <span className="font-normal text-carbon-blue/55"> · {target.companyName}</span>
                 </p>
                 {target.dealName ? (
-                  <p className="text-[11px] text-carbon-blue/50">Deal: {target.dealName}</p>
+                  <p className="text-[12px] text-carbon-blue/50">Deal: {target.dealName}</p>
                 ) : null}
-                <p className="mt-1 text-[11px] text-upcycle-orange">{offerLabel(target.offer)}</p>
+                <p className="mt-1 text-[12px] text-upcycle-orange">{offerLabel(target.offer)}</p>
                 <p className={`mt-1 ${EDITORIAL_BODY}`}>{target.agenda}</p>
                 <div className="mt-2 flex flex-wrap gap-3">
-                  <Link href={target.companyHref} className="text-[11px] font-semibold text-upcycle-orange hover:underline">
+                  <Link href={target.companyHref} className="text-[12px] font-semibold text-upcycle-orange hover:underline">
                     Open company
                   </Link>
                   {target.contactEmail ? (
@@ -194,12 +194,12 @@ export function EventPlanningWorkspaceView({
                         `${workspace.event.name} — 20 minutes on a paid bankability pack`,
                         `Hello ${target.contactName ?? ""},\n\n${target.agenda}\n\nWould you have 20 minutes at ${workspace.event.name}, or a call beforehand?\n`,
                       )}
-                      className="text-[11px] font-semibold text-upcycle-orange hover:underline"
+                      className="text-[12px] font-semibold text-upcycle-orange hover:underline"
                     >
                       Open in Outlook
                     </a>
                   ) : (
-                    <span className="text-[11px] text-carbon-blue/40">No email on file — do not invent one</span>
+                    <span className="text-[12px] text-carbon-blue/60">No email on file — do not invent one</span>
                   )}
                 </div>
               </li>
@@ -221,7 +221,7 @@ export function EventPlanningWorkspaceView({
               {workspace.focusQuestions.map((question) => (
                 <span
                   key={question}
-                  className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2.5 py-1 text-[11px] font-medium text-carbon-blue/65"
+                  className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2.5 py-1 text-[12px] font-medium text-carbon-blue/65"
                 >
                   {question}
                 </span>
@@ -270,7 +270,7 @@ export function EventPlanningWorkspaceView({
                       </div>
                     </div>
                     <p className={`mt-2 ${EDITORIAL_BODY}`}>
-                      <span className="text-carbon-blue/40">Why: </span>
+                      <span className="text-carbon-blue/60">Why: </span>
                       {signal.whyMeet}
                     </p>
                     <p className={`mt-1 ${EDITORIAL_META}`}>
@@ -337,7 +337,7 @@ export function EventPlanningWorkspaceView({
                           {company.inCrm ? " · In CRM" : " · Prospect"}
                         </p>
                       </div>
-                      <span className="text-[11px] font-semibold text-upcycle-orange">
+                      <span className="text-[12px] font-semibold text-upcycle-orange">
                         {company.relevanceScore}% relevant
                       </span>
                     </div>
@@ -355,7 +355,7 @@ export function EventPlanningWorkspaceView({
                         onClick={() =>
                           handleAddCompany(company.id, company.name, company.discovery)
                         }
-                        className="mt-3 text-[12px] font-medium text-upcycle-orange hover:text-carbon-blue"
+                        className="mt-3 text-[13px] font-medium text-upcycle-orange hover:text-carbon-blue"
                       >
                         Add company
                       </button>
@@ -400,7 +400,7 @@ export function EventPlanningWorkspaceView({
                 </p>
               ) : null}
               <div className="mt-4 border-l-2 border-upcycle-orange/30 pl-3">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-upcycle-orange/80">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange/80">
                   Why this event matters
                 </p>
                 <ul className="mt-2 space-y-1">
@@ -467,7 +467,7 @@ function DiscoveryLinks({ discovery }: { discovery: EventContactDiscovery }) {
           href={link.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
+          className="inline-flex items-center gap-1 text-[12px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
         >
           {link.label.includes("@") ? <Mail className="size-3" /> : null}
           {link.label.startsWith("+") ? <Phone className="size-3" /> : null}
@@ -506,13 +506,13 @@ function RecommendationCard({
           <p className={`mt-0.5 ${EDITORIAL_META}`}>{recommendation.companyName}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-carbon-blue/35">#{recommendation.priority}</span>
+          <span className="text-[11px] font-bold text-carbon-blue/50">#{recommendation.priority}</span>
           <SmartAssistConfidenceLabel confidence={recommendation.confidence} />
         </div>
       </div>
 
       <p className={`mt-3 ${EDITORIAL_BODY}`}>
-        <span className="text-carbon-blue/40">Why: </span>
+        <span className="text-carbon-blue/60">Why: </span>
         {recommendation.whyContact}
       </p>
 
@@ -562,7 +562,7 @@ function ContactRow({
             {contact.jobTitle ? ` · ${contact.jobTitle}` : ""}
           </p>
         </div>
-        <span className={`text-[10px] font-bold uppercase tracking-wider ${PRIORITY_STYLES[contact.priority]}`}>
+        <span className={`text-[11px] font-bold uppercase tracking-wider ${PRIORITY_STYLES[contact.priority]}`}>
           {contact.priority}
         </span>
       </div>
@@ -595,7 +595,7 @@ function ActionButton({ onClick, children }: { onClick: () => void; children: Re
     <button
       type="button"
       onClick={onClick}
-      className="text-[12px] font-medium text-upcycle-orange transition-colors hover:text-carbon-blue"
+      className="text-[13px] font-medium text-upcycle-orange transition-colors hover:text-carbon-blue"
     >
       {children}
     </button>

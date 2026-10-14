@@ -50,7 +50,7 @@ export function CompanyOverviewPanel({
             key={field.label}
             className="grid grid-cols-[108px_1fr] border-b border-carbon-blue/10 last:border-b-0"
           >
-            <dt className="border-r border-carbon-blue/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <dt className="border-r border-carbon-blue/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               {field.label}
             </dt>
             <dd className="px-3 py-2 text-xs text-carbon-blue">{field.value}</dd>
@@ -60,7 +60,7 @@ export function CompanyOverviewPanel({
 
       <section className="border border-carbon-blue/10">
         <header className="border-b border-carbon-blue/10 px-3 py-1.5">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Linked Plant Deals
           </h3>
         </header>
@@ -74,7 +74,7 @@ export function CompanyOverviewPanel({
               <p className="mt-0.5 text-xs font-semibold text-carbon-blue">
                 {pipeline.reactorDesignCapacity.toLocaleString("en-US")} kg/h
               </p>
-              <p className="mt-0.5 truncate text-[10px] text-upcycle-orange">
+              <p className="mt-0.5 truncate text-[11px] text-upcycle-orange">
                 {pipeline.currentMilestone}
               </p>
             </div>
@@ -84,7 +84,7 @@ export function CompanyOverviewPanel({
 
       <section className="border border-carbon-blue/10">
         <header className="border-b border-carbon-blue/10 px-3 py-1.5">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Active Feedstock Tracks
           </h3>
         </header>

@@ -43,7 +43,7 @@ export function ContactTable({
   return (
     <section className="border border-carbon-blue/15 bg-white">
       <header className="border-b border-carbon-blue/10 px-3 py-2">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
           Global Contact Directory
         </h2>
       </header>
@@ -62,7 +62,7 @@ export function ContactTable({
               {tableHeaders.map((header) => (
                 <th
                   key={header}
-                  className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+                  className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
                 >
                   {header}
                 </th>
@@ -93,7 +93,7 @@ export function ContactTable({
                     >
                       {displayName}
                     </ContactLink>
-                    <p className="mt-0.5 font-mono text-[9px] text-carbon-blue/45">
+                    <p className="mt-0.5 font-mono text-[10px] text-carbon-blue/65">
                       {record.contact.ContactID}
                     </p>
                   </td>
@@ -101,7 +101,7 @@ export function ContactTable({
                     {record.contact.JobTitle || "—"}
                   </td>
                   <td className="px-2 py-1">
-                    <span className="inline-flex items-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/70">
+                    <span className="inline-flex items-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70">
                       {record.contact.Role}
                     </span>
                   </td>
@@ -109,22 +109,22 @@ export function ContactTable({
                     <CompanyLink companyId={record.companyId} className="text-xs font-semibold text-carbon-blue">
                       {record.companyName}
                     </CompanyLink>
-                    <p className="mt-0.5 font-mono text-[9px] text-carbon-blue/45">
+                    <p className="mt-0.5 font-mono text-[10px] text-carbon-blue/65">
                       {record.companyId}
                     </p>
                   </td>
                   <td className="px-2 py-1" onClick={(event) => event.stopPropagation()}>
-                    <EmailActionMenu email={record.contact.Email} className="block truncate font-mono text-[10px] text-carbon-blue/65" />
-                    <PhoneActionMenu phone={record.contact.Phone} className="mt-0.5 block truncate font-mono text-[10px] text-carbon-blue/65" />
+                    <EmailActionMenu email={record.contact.Email} className="block truncate font-mono text-[11px] text-carbon-blue/65" />
+                    <PhoneActionMenu phone={record.contact.Phone} className="mt-0.5 block truncate font-mono text-[11px] text-carbon-blue/65" />
                     {record.contact.Mobile ? (
-                      <PhoneActionMenu phone={record.contact.Mobile} className="mt-0.5 block truncate font-mono text-[10px] text-carbon-blue/50" />
+                      <PhoneActionMenu phone={record.contact.Mobile} className="mt-0.5 block truncate font-mono text-[11px] text-carbon-blue/50" />
                     ) : null}
                   </td>
                   <td className="px-2 py-1">
-                    <span className="text-[10px] font-semibold text-carbon-blue/70">
+                    <span className="text-[11px] font-semibold text-carbon-blue/70">
                       {record.contact.Status}
                     </span>
-                    <p className="mt-0.5 text-[9px] text-carbon-blue/45">
+                    <p className="mt-0.5 text-[10px] text-carbon-blue/65">
                       {record.contact.RelationshipLevel}
                     </p>
                   </td>
@@ -141,14 +141,14 @@ export function ContactTable({
                           ) : (
                             <span
                               key={`${key}-${pipelineId}`}
-                              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 font-mono text-[9px] text-upcycle-orange"
+                              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 font-mono text-[10px] text-upcycle-orange"
                             >
                               {pipelineId}
                             </span>
                           ),
                         )
                       ) : (
-                        <span className="text-[10px] text-carbon-blue/40">—</span>
+                        <span className="text-[11px] text-carbon-blue/60">—</span>
                       )}
                     </div>
                   </td>

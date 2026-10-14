@@ -754,7 +754,7 @@ export function WorkspaceDocumentsPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="text-[12px] text-carbon-blue/60">{workspaceDocumentsLinkSummary(context)}</p>
+        <p className="text-[13px] text-carbon-blue/60">{workspaceDocumentsLinkSummary(context)}</p>
         <ViewInSharePointButton
           fileUrl={importedSharePointUrl}
           companyId={sharePointCompanyId}
@@ -777,10 +777,10 @@ export function WorkspaceDocumentsPanel({
         }}
       />
 
-      {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
+      {error ? <p className="text-[13px] text-red-600">{error}</p> : null}
 
       {createdDocuments.length > 0 ? (
-        <div className="border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-3 text-[12px] text-carbon-blue">
+        <div className="border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-3 text-[13px] text-carbon-blue">
           {createdDocuments.length === 1 ? (
             <>
               Created{" "}
@@ -827,24 +827,24 @@ export function WorkspaceDocumentsPanel({
 
       {mode === "browse" ? (
         loading ? (
-          <p className="text-sm text-carbon-blue/45">Loading documents…</p>
+          <p className="text-sm text-carbon-blue/65">Loading documents…</p>
         ) : rows.length === 0 ? (
           <div {...onDropZone} className={`${dropZoneClass} px-6 py-10`}>
-            <p className="text-sm text-carbon-blue/45">
+            <p className="text-sm text-carbon-blue/65">
               No documents in this workspace yet. Create or import SmartDocs to get started.
             </p>
             {!readOnly ? (
               <>
-                <p className="mt-3 text-[12px] font-medium text-carbon-blue">
+                <p className="mt-3 text-[13px] font-medium text-carbon-blue">
                   Drag & drop files here
                 </p>
-                <p className="mt-1 text-[11px] text-carbon-blue/50">
+                <p className="mt-1 text-[12px] text-carbon-blue/50">
                   Drop one or many — SmartAssist classifies each; you confirm.
                 </p>
                 <input
                   type="file"
                   multiple
-                  className="mt-3 text-[11px] text-carbon-blue/70"
+                  className="mt-3 text-[12px] text-carbon-blue/70"
                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
                   onChange={(event) => {
                     handleFilePick(event.target.files);
@@ -858,10 +858,10 @@ export function WorkspaceDocumentsPanel({
           <div className={`${WORKSPACE_PANEL_SURFACE} overflow-hidden p-0`}>
             {!readOnly ? (
               <div {...onDropZone} className={`${dropZoneClass} m-4 mb-0 py-5`}>
-                <p className="text-[12px] font-medium text-carbon-blue">
+                <p className="text-[13px] font-medium text-carbon-blue">
                   Drop more files to import
                 </p>
-                <p className="mt-1 text-[11px] text-carbon-blue/50">
+                <p className="mt-1 text-[12px] text-carbon-blue/50">
                   Multiple documents welcome — review each suggestion, then confirm.
                 </p>
               </div>
@@ -901,7 +901,7 @@ export function WorkspaceDocumentsPanel({
               </div>
             ) : null}
             {displayedRows.length === 0 ? (
-              <p className="px-6 py-10 text-center text-sm text-carbon-blue/45">
+              <p className="px-6 py-10 text-center text-sm text-carbon-blue/65">
                 No documents match your filters. Try clearing search or filters.
               </p>
             ) : (
@@ -929,7 +929,7 @@ export function WorkspaceDocumentsPanel({
       {mode === "create" && !readOnly ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
           {isProjectScope ? (
-            <p className="mb-3 text-[11px] text-carbon-blue/55">
+            <p className="mb-3 text-[12px] text-carbon-blue/55">
               Project documents use PRJ-… identity and file under SharePoint{" "}
               <span className="font-mono">{projectSharePointPath}</span>. Category and type are
               written on the SharePoint item.
@@ -937,7 +937,7 @@ export function WorkspaceDocumentsPanel({
           ) : null}
           {companyOwnedEnabled && !isProjectScope ? (
             <label className="mb-3 block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Ownership
               </span>
               <select
@@ -948,7 +948,7 @@ export function WorkspaceDocumentsPanel({
                   setPresetIndex(0);
                   setDocumentName("");
                 }}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
               >
                 <option value="company">
                   Company document (no opportunity required)
@@ -966,13 +966,13 @@ export function WorkspaceDocumentsPanel({
           context.scope !== "opportunity" &&
           dealOptions.length > 1 ? (
             <label className="mb-3 block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Link to opportunity
               </span>
               <select
                 value={resolvedDealId}
                 onChange={(event) => setTargetDealId(event.target.value)}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
               >
                 {dealOptions.map((deal) => (
                   <option key={deal.id} value={deal.id}>
@@ -984,7 +984,7 @@ export function WorkspaceDocumentsPanel({
           ) : null}
 
           <label className="block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
               Document type
             </span>
             <select
@@ -993,7 +993,7 @@ export function WorkspaceDocumentsPanel({
                 setPresetIndex(Number(event.target.value));
                 setDocumentName("");
               }}
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
             >
               {documentPresets.map((item, index) => (
                 <option key={item.label} value={index}>
@@ -1004,7 +1004,7 @@ export function WorkspaceDocumentsPanel({
           </label>
 
           <label className="mt-3 block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
               Document name
             </span>
             <input
@@ -1012,12 +1012,12 @@ export function WorkspaceDocumentsPanel({
               value={documentName}
               onChange={(event) => setDocumentName(event.target.value)}
               placeholder={nameSuggestions?.primary ?? preset.label}
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
             />
           </label>
 
           {identityPreview ? (
-            <p className="mt-3 text-[11px] text-carbon-blue/55">
+            <p className="mt-3 text-[12px] text-carbon-blue/55">
               SmartDoc ID{" "}
               <span className="font-mono font-semibold text-carbon-blue">
                 {identityPreview.documentId}
@@ -1029,11 +1029,11 @@ export function WorkspaceDocumentsPanel({
             type="button"
             disabled={saving || !canSubmitDocuments}
             onClick={() => void handleCreate()}
-            className="mt-4 border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold text-white disabled:opacity-50"
+            className="mt-4 border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
           >
             {saving ? "Creating…" : "Create SmartDoc"}
           </button>
-          <p className="mt-2 text-[11px] text-carbon-blue/45">
+          <p className="mt-2 text-[12px] text-carbon-blue/65">
             {isProjectScope
               ? "Project documents use PRJ-… identity. Category and type are tagged in SharePoint on first import."
               : useCompanyOwnership
@@ -1046,13 +1046,13 @@ export function WorkspaceDocumentsPanel({
       {mode === "import" && !readOnly ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
           {isProjectScope ? (
-            <p className="mb-3 text-[11px] text-carbon-blue/55">
+            <p className="mb-3 text-[12px] text-carbon-blue/55">
               Files import to this project and SharePoint{" "}
               <span className="font-mono">{projectSharePointPath}</span>
               . Confirm category and type — they are written onto the SharePoint file.
             </p>
           ) : useCompanyOwnership ? (
-            <p className="mb-3 text-[11px] text-carbon-blue/55">
+            <p className="mb-3 text-[12px] text-carbon-blue/55">
               Files import to {context.companyName || "this company"} and SharePoint{" "}
               <span className="font-mono">
                 /Companies/{context.companyName || "…"}/Documents/
@@ -1062,7 +1062,7 @@ export function WorkspaceDocumentsPanel({
           ) : null}
           {companyOwnedEnabled && !isProjectScope ? (
             <label className="mb-3 block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Ownership
               </span>
               <select
@@ -1071,7 +1071,7 @@ export function WorkspaceDocumentsPanel({
                   const next = event.target.value as "company" | "opportunity";
                   setOwnershipMode(next);
                 }}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
               >
                 <option value="company">
                   Company document — CO-… identity (e.g. Dorset SUQ)
@@ -1081,7 +1081,7 @@ export function WorkspaceDocumentsPanel({
                   {dealOptions.length === 0 ? " (none linked)" : ""}
                 </option>
               </select>
-              <p className="mt-1 text-[11px] text-carbon-blue/45">
+              <p className="mt-1 text-[12px] text-carbon-blue/65">
                 Supplier quotations stay on the company. No fake opportunity required.
               </p>
             </label>
@@ -1091,13 +1091,13 @@ export function WorkspaceDocumentsPanel({
             <p className="text-sm font-medium text-carbon-blue">
               Drag & drop files here
             </p>
-            <p className="mt-1 text-[11px] text-carbon-blue/50">
+            <p className="mt-1 text-[12px] text-carbon-blue/50">
               Drop several at once — SmartAssist classifies each; you confirm.
             </p>
             <input
               type="file"
               multiple
-              className="mt-3 text-[11px] text-carbon-blue/70"
+              className="mt-3 text-[12px] text-carbon-blue/70"
               accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
               onChange={(event) => {
                 handleFilePick(event.target.files);
@@ -1107,7 +1107,7 @@ export function WorkspaceDocumentsPanel({
           </div>
 
           {classifying ? (
-            <p className="mt-4 text-[12px] text-carbon-blue/55">
+            <p className="mt-4 text-[13px] text-carbon-blue/55">
               SmartAssist is classifying documents…
             </p>
           ) : null}
@@ -1117,12 +1117,12 @@ export function WorkspaceDocumentsPanel({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Sparkles className="size-3.5 text-upcycle-orange" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange">
                     SmartAssist · {importQueue.length} document
                     {importQueue.length === 1 ? "" : "s"}
                   </p>
                 </div>
-                <p className="text-[11px] text-carbon-blue/50">
+                <p className="text-[12px] text-carbon-blue/50">
                   Review each row, then import all.
                 </p>
               </div>
@@ -1137,20 +1137,20 @@ export function WorkspaceDocumentsPanel({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate font-mono text-[10px] text-carbon-blue/45">
+                        <p className="truncate font-mono text-[11px] text-carbon-blue/65">
                           {item.originalFileName}
                         </p>
-                        <p className="mt-0.5 text-[11px] text-carbon-blue/60">{item.reason}</p>
+                        <p className="mt-0.5 text-[12px] text-carbon-blue/60">{item.reason}</p>
                         {item.status === "importing" ? (
-                          <p className="mt-1 text-[11px] font-medium text-upcycle-orange">
+                          <p className="mt-1 text-[12px] font-medium text-upcycle-orange">
                             Importing to SharePoint…
                           </p>
                         ) : null}
                         {item.status === "error" && item.error ? (
-                          <p className="mt-1 text-[11px] text-red-600">{item.error}</p>
+                          <p className="mt-1 text-[12px] text-red-600">{item.error}</p>
                         ) : null}
                         {item.status === "done" && item.result ? (
-                          <p className="mt-1 text-[11px] text-emerald-700">
+                          <p className="mt-1 text-[12px] text-emerald-700">
                             Imported as{" "}
                             <span className="font-mono">{item.result.SmartDocID}</span>
                           </p>
@@ -1160,7 +1160,7 @@ export function WorkspaceDocumentsPanel({
                         type="button"
                         disabled={saving || item.status === "importing"}
                         onClick={() => removeQueueItem(item.id)}
-                        className="shrink-0 text-[11px] font-semibold text-carbon-blue/45 hover:text-carbon-blue disabled:opacity-40"
+                        className="shrink-0 text-[12px] font-semibold text-carbon-blue/65 hover:text-carbon-blue disabled:opacity-40"
                       >
                         Remove
                       </button>
@@ -1168,7 +1168,7 @@ export function WorkspaceDocumentsPanel({
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="block">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                           Category
                         </span>
                         <select
@@ -1183,7 +1183,7 @@ export function WorkspaceDocumentsPanel({
                               error: undefined,
                             });
                           }}
-                          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue disabled:opacity-60"
                         >
                           {SMARTDOC_CATEGORIES.map((category) => (
                             <option key={category} value={category}>
@@ -1194,7 +1194,7 @@ export function WorkspaceDocumentsPanel({
                       </label>
 
                       <label className="block">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                           Document type
                         </span>
                         <select
@@ -1209,7 +1209,7 @@ export function WorkspaceDocumentsPanel({
                               error: undefined,
                             });
                           }}
-                          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue disabled:opacity-60"
                         >
                           {types.map((type) => (
                             <option key={type} value={type}>
@@ -1222,7 +1222,7 @@ export function WorkspaceDocumentsPanel({
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="block">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                           Origin
                         </span>
                         <select
@@ -1235,7 +1235,7 @@ export function WorkspaceDocumentsPanel({
                               error: undefined,
                             })
                           }
-                          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue disabled:opacity-60"
                         >
                           {SMARTDOC_ORIGINS.map((origin) => (
                             <option key={origin} value={origin}>
@@ -1247,7 +1247,7 @@ export function WorkspaceDocumentsPanel({
 
                       {item.Origin === "external" ? (
                         <label className="block">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                             Counterparty
                           </span>
                           <input
@@ -1262,12 +1262,12 @@ export function WorkspaceDocumentsPanel({
                                 error: undefined,
                               })
                             }
-                            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue disabled:opacity-60"
                           />
                         </label>
                       ) : (
                         <div className="flex items-end">
-                          <p className="pb-2 text-[11px] text-carbon-blue/45">
+                          <p className="pb-2 text-[12px] text-carbon-blue/65">
                             Produced by Standard Bio
                           </p>
                         </div>
@@ -1275,7 +1275,7 @@ export function WorkspaceDocumentsPanel({
                     </div>
 
                     <label className="block">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                         File name
                       </span>
                       <input
@@ -1289,12 +1289,12 @@ export function WorkspaceDocumentsPanel({
                             error: undefined,
                           })
                         }
-                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue disabled:opacity-60"
+                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue disabled:opacity-60"
                       />
                     </label>
 
                     {previewId ? (
-                      <p className="text-[11px] text-carbon-blue/55">
+                      <p className="text-[12px] text-carbon-blue/55">
                         SmartDoc ID{" "}
                         <span className="font-mono font-semibold text-carbon-blue">
                           {previewId}
@@ -1315,7 +1315,7 @@ export function WorkspaceDocumentsPanel({
                       : undefined
                   }
                   onClick={() => void handleImportAll()}
-                  className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold text-white disabled:opacity-50"
+                  className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
                 >
                   {saving
                     ? "Uploading to SharePoint…"
@@ -1327,13 +1327,13 @@ export function WorkspaceDocumentsPanel({
                   type="button"
                   disabled={saving}
                   onClick={clearImportQueue}
-                  className="px-3 py-2 text-[11px] font-semibold text-carbon-blue/55 hover:text-carbon-blue disabled:opacity-40"
+                  className="px-3 py-2 text-[12px] font-semibold text-carbon-blue/55 hover:text-carbon-blue disabled:opacity-40"
                 >
                   Clear all
                 </button>
               </div>
               {!canSubmitDocuments && submitBlockedReason ? (
-                <p className="mt-2 text-[12px] text-thermal-red">{submitBlockedReason}</p>
+                <p className="mt-2 text-[13px] text-thermal-red">{submitBlockedReason}</p>
               ) : null}
             </div>
           ) : null}

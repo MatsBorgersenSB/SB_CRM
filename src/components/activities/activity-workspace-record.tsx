@@ -137,7 +137,7 @@ export function ActivityWorkspaceRecord({
                     <li key={person.name} className={`${EDITORIAL_BODY} text-carbon-blue/70`}>
                       {person.name}
                       {person.role ? (
-                        <span className="text-carbon-blue/45"> — {person.role}</span>
+                        <span className="text-carbon-blue/65"> — {person.role}</span>
                       ) : null}
                     </li>
                   ))}

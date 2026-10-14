@@ -100,7 +100,7 @@ export function ProjectWorkspaceHeader({
           aria-label="Project context"
           className={`sticky top-0 z-20 ${STICKY_NEGATIVE_MARGIN} border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 py-2.5 backdrop-blur-sm`}
         >
-          <div className="flex min-w-0 items-center gap-2 overflow-x-auto text-[12px] text-carbon-blue/75 sm:gap-3">
+          <div className="flex min-w-0 items-center gap-2 overflow-x-auto text-[13px] text-carbon-blue/75 sm:gap-3">
             <CompactField label="Project" value={project.name} emphasize />
             <CompactDivider />
             <CompactField label="Account" value={accountLabel} />
@@ -265,7 +265,7 @@ function CompactField({
           value
         ) : (
           <>
-            <span className="text-[11px] font-medium text-carbon-blue/40">{label}</span>
+            <span className="text-[12px] font-medium text-carbon-blue/60">{label}</span>
             <span className="mt-0.5 block truncate">{value}</span>
           </>
         )}

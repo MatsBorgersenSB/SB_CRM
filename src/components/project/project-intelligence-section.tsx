@@ -13,10 +13,10 @@ export function ProjectIntelligenceSection({
     <div className="flex flex-col gap-4">
       <div className="border border-upcycle-orange/20 bg-upcycle-orange/[0.04] p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
             SmartAssist Project Intelligence
           </p>
-          <span className="text-[10px] text-carbon-blue/40">
+          <span className="text-[11px] text-carbon-blue/60">
             {PROJECT_WORKSPACE_LIGHT.roles.join(" · ")}
           </span>
         </div>
@@ -64,7 +64,7 @@ function InsightCard({
           : "border-carbon-blue/10 bg-white"
       }`}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
         {title}
       </p>
       <p className="mt-2 text-sm leading-relaxed text-carbon-blue/75">{body}</p>

@@ -31,7 +31,7 @@ export function AnalyticsInsightCards({
           className="border border-carbon-blue/15 bg-white px-3 py-2.5"
         >
           <div className="mb-2 h-0.5 w-8 bg-upcycle-orange/70" />
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             {card.label}
           </p>
           <p className={`mt-1 text-xs font-semibold tabular-nums ${card.accent}`}>

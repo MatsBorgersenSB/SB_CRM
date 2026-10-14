@@ -55,7 +55,7 @@ export function ActivitiesShell({
         <div className="flex min-w-0 items-center gap-4">
           <div className="min-w-0">
             <h1 className="text-sm font-semibold text-carbon-blue">Activities</h1>
-            <span className="hidden text-[11px] text-carbon-blue/40 sm:inline">{active.hint}</span>
+            <span className="hidden text-[12px] text-carbon-blue/60 sm:inline">{active.hint}</span>
           </div>
           <nav aria-label="Activities view" className="inline-flex border border-carbon-blue/12 bg-white">
             {MODES.map((item) => (

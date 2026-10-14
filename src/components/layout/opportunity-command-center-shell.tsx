@@ -68,7 +68,7 @@ export function OpportunityCommandCenterShell({
             <div className="flex items-center gap-3">
               <Link
                 href="/opportunities"
-                className="text-[10px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
+                className="text-[11px] font-semibold text-carbon-blue/65 hover:text-upcycle-orange"
               >
                 Table view
               </Link>
@@ -90,7 +90,7 @@ export function OpportunityCommandCenterShell({
                     className="block border border-upcycle-orange/25 bg-upcycle-orange/[0.03] px-4 py-3 hover:bg-upcycle-orange/[0.06]"
                   >
                     <p className="text-sm font-semibold text-carbon-blue">{topDeal.dealName}</p>
-                    <p className="mt-1 text-[11px] text-carbon-blue/55">{topDeal.nextBestAction.action}</p>
+                    <p className="mt-1 text-[12px] text-carbon-blue/55">{topDeal.nextBestAction.action}</p>
                   </Link>
                 ) : undefined
               }

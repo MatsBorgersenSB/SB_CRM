@@ -84,7 +84,7 @@ export function DealDocumentSetsPanel({
       <header className="flex items-center justify-between gap-2 border-b border-carbon-blue/10 px-3 py-2">
         <div className="flex items-center gap-1.5">
           <Layers className="size-3.5 text-upcycle-orange" />
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Document sets ({quotationSets.length})
           </p>
         </div>
@@ -92,7 +92,7 @@ export function DealDocumentSetsPanel({
           <button
             type="button"
             onClick={() => setShowCreate((value) => !value)}
-            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
           >
             <FolderPlus className="size-3" />
             Create set
@@ -103,7 +103,7 @@ export function DealDocumentSetsPanel({
       {showCreate && !readOnly ? (
         <div className="space-y-2 border-b border-carbon-blue/8 bg-carbon-blue/[0.02] px-3 py-3">
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Set type
             </span>
             <select
@@ -125,19 +125,19 @@ export function DealDocumentSetsPanel({
             type="button"
             disabled={creating}
             onClick={() => void handleCreate()}
-            className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+            className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
           >
             {creating ? "Creating…" : "Create document set"}
           </button>
         </div>
       ) : null}
 
-      {error ? <p className="px-3 py-2 text-[10px] text-red-600">{error}</p> : null}
+      {error ? <p className="px-3 py-2 text-[11px] text-red-600">{error}</p> : null}
 
       {loading ? (
-        <p className="px-3 py-4 text-[11px] text-carbon-blue/50">Loading document sets…</p>
+        <p className="px-3 py-4 text-[12px] text-carbon-blue/50">Loading document sets…</p>
       ) : quotationSets.length === 0 ? (
-        <p className="px-3 py-4 text-[11px] text-carbon-blue/50">
+        <p className="px-3 py-4 text-[12px] text-carbon-blue/50">
           No quotation document sets for this deal yet.
         </p>
       ) : (
@@ -148,17 +148,17 @@ export function DealDocumentSetsPanel({
                 <div className="min-w-0">
                   <Link
                     href={documentSet360Href(set.documentSetId)}
-                    className="font-mono text-[10px] font-semibold text-upcycle-orange hover:underline"
+                    className="font-mono text-[11px] font-semibold text-upcycle-orange hover:underline"
                   >
                     {set.documentSetId}
                   </Link>
                   <p className="mt-0.5 text-xs font-semibold text-carbon-blue">{set.title}</p>
-                  <p className="mt-0.5 text-[10px] text-carbon-blue/50">
+                  <p className="mt-0.5 text-[11px] text-carbon-blue/50">
                     {set.typeLabel} · {set.members.length} slot{set.members.length === 1 ? "" : "s"}
                   </p>
                 </div>
                 <span
-                  className={`shrink-0 border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${DOCUMENT_SET_STATUS_STYLES[set.documentSetStatus]}`}
+                  className={`shrink-0 border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${DOCUMENT_SET_STATUS_STYLES[set.documentSetStatus]}`}
                 >
                   {set.documentSetStatus}
                 </span>

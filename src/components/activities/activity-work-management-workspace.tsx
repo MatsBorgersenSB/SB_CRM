@@ -27,7 +27,7 @@ import type { Activity } from "@/types/activity";
 import type { StandardBioUserRecord } from "@/types/user-access";
 
 const NEW_BUTTON_CLASS =
-  "inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
+  "inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
 
 export function ActivityWorkManagementWorkspace({
   activities: initialActivities,
@@ -247,7 +247,7 @@ function EmptyActivities({ onNew }: { onNew: () => void }) {
         </button>
         <Link
           href="/activities?mode=calendar"
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-carbon-blue/55 hover:text-carbon-blue"
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-carbon-blue/55 hover:text-carbon-blue"
         >
           <CalendarDays className="size-3.5" strokeWidth={2} />
           Open the calendar

@@ -147,7 +147,7 @@ export function SectorTagManager({
     );
 
   const compact = density === "outlook";
-  const pillText = compact ? "text-[10px]" : "text-[11px]";
+  const pillText = compact ? "text-[11px]" : "text-[12px]";
   const pillPad = compact ? "px-1.5 py-0.5" : "px-2 py-0.5";
 
   const menu =
@@ -179,7 +179,7 @@ export function SectorTagManager({
                   }
                 }}
                 placeholder="Search or create…"
-                className="w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange"
+                className="w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
                 autoFocus
               />
             </div>
@@ -190,7 +190,7 @@ export function SectorTagManager({
                     type="button"
                     role="option"
                     onClick={() => addSector(preset)}
-                    className="flex w-full items-center px-3 py-1.5 text-left text-[12px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04]"
+                    className="flex w-full items-center px-3 py-1.5 text-left text-[13px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04]"
                   >
                     {preset}
                   </button>
@@ -202,14 +202,14 @@ export function SectorTagManager({
                     type="button"
                     role="option"
                     onClick={() => addSector(customLabel)}
-                    className="flex w-full items-center px-3 py-1.5 text-left text-[12px] text-upcycle-orange transition-colors hover:bg-upcycle-orange/[0.06]"
+                    className="flex w-full items-center px-3 py-1.5 text-left text-[13px] text-upcycle-orange transition-colors hover:bg-upcycle-orange/[0.06]"
                   >
                     Create “{customLabel}”
                   </button>
                 </li>
               ) : null}
               {availablePresets.length === 0 && !canCreateCustom ? (
-                <li className="px-3 py-2 text-[12px] text-carbon-blue/45">
+                <li className="px-3 py-2 text-[13px] text-carbon-blue/65">
                   {q ? "No matching sectors" : "All presets assigned"}
                 </li>
               ) : null}
@@ -273,7 +273,7 @@ export function SectorTagManager({
       </div>
 
       {error ? (
-        <p className="mt-1 text-[10px] text-thermal-red">{error}</p>
+        <p className="mt-1 text-[11px] text-thermal-red">{error}</p>
       ) : null}
 
       {menu}

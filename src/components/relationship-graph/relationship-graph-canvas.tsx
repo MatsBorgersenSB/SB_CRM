@@ -126,7 +126,7 @@ export function RelationshipGraphCanvas({ graph }: RelationshipGraphCanvasProps)
                 <text
                   y={node.size / 2 + 14}
                   textAnchor="middle"
-                  className="fill-carbon-blue text-[9px] font-semibold"
+                  className="fill-carbon-blue text-[10px] font-semibold"
                   style={{ fontSize: node.kind === "company" ? 11 : 9 }}
                 >
                   {node.label.length > 22 ? `${node.label.slice(0, 20)}…` : node.label}
@@ -155,7 +155,7 @@ export function RelationshipGraphCanvas({ graph }: RelationshipGraphCanvasProps)
             ["material", "Materials"],
           ] as const
         ).map(([kind, label]) => (
-          <span key={kind} className="inline-flex items-center gap-1.5 text-[10px] text-carbon-blue/50">
+          <span key={kind} className="inline-flex items-center gap-1.5 text-[11px] text-carbon-blue/50">
             <span
               className="size-2 rounded-full"
               style={{ backgroundColor: GRAPH_NODE_COLORS[kind] }}
@@ -163,7 +163,7 @@ export function RelationshipGraphCanvas({ graph }: RelationshipGraphCanvasProps)
             {label}
           </span>
         ))}
-        <span className="text-[10px] text-carbon-blue/35">· Edge thickness = relationship strength</span>
+        <span className="text-[11px] text-carbon-blue/50">· Edge thickness = relationship strength</span>
       </div>
     </div>
   );
@@ -174,7 +174,7 @@ export function RelationshipGraphNodeLink({ node }: { node: GraphNode }) {
   return (
     <Link
       href={node.href}
-      className="mt-2 inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
+      className="mt-2 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
     >
       Open {node.kind} →
     </Link>

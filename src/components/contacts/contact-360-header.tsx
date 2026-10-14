@@ -30,9 +30,9 @@ function localTimeString(timezone: string | undefined, now: Date): string | null
 }
 
 const ACTION_PRIMARY =
-  "inline-flex shrink-0 items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
+  "inline-flex shrink-0 items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
 const ACTION_SECONDARY =
-  "inline-flex shrink-0 items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange";
+  "inline-flex shrink-0 items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange";
 
 /**
  * Contact 360 hero — who, what matters, what next.
@@ -81,7 +81,7 @@ export function Contact360Header({
             <SmartCRMIcon name="contact" size="lg" label="Contact" />
             <span className="truncate">{displayName}</span>
             {contact.IsArchived ? (
-              <span className="shrink-0 border border-carbon-blue/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <span className="shrink-0 border border-carbon-blue/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Archived
               </span>
             ) : null}
@@ -103,14 +103,14 @@ export function Contact360Header({
               <EmailActionMenu email={contact.Email} />
             </ActionableField>
           ) : (
-            <p className="text-carbon-blue/45">No email on file</p>
+            <p className="text-carbon-blue/65">No email on file</p>
           )}
           {phone ? (
             <ActionableField icon="phone">
               <PhoneActionMenu phone={phone} />
             </ActionableField>
           ) : (
-            <p className="text-carbon-blue/45">No phone on file</p>
+            <p className="text-carbon-blue/65">No phone on file</p>
           )}
         </div>
 
@@ -174,7 +174,7 @@ export function Contact360Header({
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {/* Buying role — a decision the user can make here in two seconds. */}
-          <label className="inline-flex items-center gap-2 text-[11px] font-medium text-carbon-blue/70">
+          <label className="inline-flex items-center gap-2 text-[12px] font-medium text-carbon-blue/70">
             <span className={buyingRoleUnknown ? "text-upcycle-orange" : undefined}>
               {buyingRoleUnknown
                 ? `Is ${firstName} a decision maker at ${companyName}?`
@@ -190,7 +190,7 @@ export function Contact360Header({
                     setBuyingRoleBusy(false),
                   );
                 }}
-                className={`border bg-white px-2 py-1 text-[11px] font-medium outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 ${
+                className={`border bg-white px-2 py-1 text-[12px] font-medium outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 ${
                   buyingRoleUnknown
                     ? "border-upcycle-orange/40 text-upcycle-orange"
                     : "border-carbon-blue/15 text-carbon-blue"
@@ -203,7 +203,7 @@ export function Contact360Header({
             )}
           </label>
           {localTime ? (
-            <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[11px] font-medium text-carbon-blue/70">
+            <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[12px] font-medium text-carbon-blue/70">
               Local time {localTime}
             </span>
           ) : null}

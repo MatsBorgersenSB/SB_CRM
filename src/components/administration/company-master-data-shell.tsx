@@ -19,14 +19,14 @@ export function CompanyMasterDataShell({ company, companies }: { company: Compan
   return (
     <WorkspaceChrome>
         <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-          <div className="min-w-0 truncate text-[11px] text-carbon-blue/55">
-            <Link href="/administration" className="font-semibold text-carbon-blue/45 hover:text-upcycle-orange">
+          <div className="min-w-0 truncate text-[12px] text-carbon-blue/55">
+            <Link href="/administration" className="font-semibold text-carbon-blue/65 hover:text-upcycle-orange">
               Administration
             </Link>
             <span className="text-carbon-blue/25"> / </span>
             <Link
               href={`/administration/companies/${company.CompanyID}`}
-              className="font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
+              className="font-semibold text-carbon-blue/65 hover:text-upcycle-orange"
             >
               Companies
             </Link>
@@ -42,7 +42,7 @@ export function CompanyMasterDataShell({ company, companies }: { company: Compan
               Full company record for administration — not shown in daily relationship workflows.
             </p>
             <CompanyIdentityOverview identity={identity} />
-            <p className="mt-4 text-[11px] text-carbon-blue/40">
+            <p className="mt-4 text-[12px] text-carbon-blue/60">
               <Link href={`/companies/${company.CompanyID}`} className="font-semibold text-upcycle-orange hover:underline">
                 Return to company workspace →
               </Link>

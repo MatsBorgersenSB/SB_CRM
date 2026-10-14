@@ -9,7 +9,7 @@ export function RelationshipGraphInsightsPanel({ insights }: { insights: GraphIn
     return (
       <div className="dashboard-card px-5 py-6">
         <p className="text-sm font-semibold text-carbon-blue">Graph intelligence</p>
-        <p className="mt-2 text-[11px] text-carbon-blue/45">
+        <p className="mt-2 text-[12px] text-carbon-blue/65">
           No structural risks detected — relationship network appears connected.
         </p>
       </div>
@@ -22,13 +22,13 @@ export function RelationshipGraphInsightsPanel({ insights }: { insights: GraphIn
     <section className="dashboard-card overflow-hidden">
       <header className="border-b border-carbon-blue/8 px-5 py-3">
         <h2 className="text-sm font-semibold text-carbon-blue">Graph intelligence</h2>
-        <p className="mt-0.5 text-[11px] text-carbon-blue/45">Structural risks in your network</p>
+        <p className="mt-0.5 text-[12px] text-carbon-blue/65">Structural risks in your network</p>
       </header>
 
       <div className="px-5 py-4">
         <div className="flex items-center gap-2">
           <span
-            className={`inline-flex border px-1.5 py-0.5 text-[9px] font-semibold uppercase ${
+            className={`inline-flex border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
               topInsight.severity === "critical"
                 ? "border-red-500/30 bg-red-500/8 text-red-700"
                 : topInsight.severity === "warning"
@@ -40,7 +40,7 @@ export function RelationshipGraphInsightsPanel({ insights }: { insights: GraphIn
           </span>
           <p className="text-sm font-medium text-carbon-blue">{topInsight.label}</p>
         </div>
-        <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/55">{topInsight.detail}</p>
+        <p className="mt-2 text-[12px] leading-relaxed text-carbon-blue/55">{topInsight.detail}</p>
       </div>
 
       {insights.length > 1 ? (
@@ -54,7 +54,7 @@ export function RelationshipGraphInsightsPanel({ insights }: { insights: GraphIn
               <li key={insight.id}>
                 <div className="flex items-center gap-2">
                   <span
-                    className={`inline-flex border px-1.5 py-0.5 text-[9px] font-semibold uppercase ${
+                    className={`inline-flex border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
                       insight.severity === "critical"
                         ? "border-red-500/30 bg-red-500/8 text-red-700"
                         : insight.severity === "warning"
@@ -66,7 +66,7 @@ export function RelationshipGraphInsightsPanel({ insights }: { insights: GraphIn
                   </span>
                   <p className="text-sm font-medium text-carbon-blue">{insight.label}</p>
                 </div>
-                <p className="mt-1 text-[11px] text-carbon-blue/55">{insight.detail}</p>
+                <p className="mt-1 text-[12px] text-carbon-blue/55">{insight.detail}</p>
               </li>
             ))}
           </ul>
@@ -80,7 +80,7 @@ export function RelationshipGraphInsightsPanel({ insights }: { insights: GraphIn
       >
         <ul className="space-y-2">
           {insights.map((insight) => (
-            <li key={insight.id} className="text-[10px] text-carbon-blue/45">
+            <li key={insight.id} className="text-[11px] text-carbon-blue/65">
               <span className="font-semibold text-carbon-blue/55">{insight.label}:</span>{" "}
               {getGraphInsightExplanation(insight.type)}
             </li>

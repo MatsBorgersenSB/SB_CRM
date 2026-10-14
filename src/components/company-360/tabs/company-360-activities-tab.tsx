@@ -21,13 +21,13 @@ export function Company360ActivitiesTab({
       <header className="flex items-center justify-between border-b border-carbon-blue/8 px-5 py-4">
         <div>
           <h2 className="text-sm font-semibold text-carbon-blue">Activity timeline</h2>
-          <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+          <p className="mt-0.5 text-[12px] text-carbon-blue/65">
             Chronological relationship history — no spreadsheets, just context
           </p>
         </div>
         <Link
           href="/activities"
-          className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
+          className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
         >
           <Plus className="size-3.5" />
           Record interaction

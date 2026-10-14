@@ -36,7 +36,7 @@ export function FilterTransparencyBar({
       aria-live="polite"
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="min-w-0 text-[12px] font-medium text-carbon-blue/75">
+        <p className="min-w-0 text-[13px] font-medium text-carbon-blue/75">
           Showing{" "}
           <span className="tabular-nums text-carbon-blue">{filteredCount}</span> of{" "}
           <span className="tabular-nums text-carbon-blue">{totalCount}</span> {entityLabel}
@@ -46,7 +46,7 @@ export function FilterTransparencyBar({
 
       {hasActiveFilters ? (
         <div className="mt-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
             Active Filters
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -55,13 +55,13 @@ export function FilterTransparencyBar({
                 key={chip.id}
                 type="button"
                 onClick={chip.onRemove}
-                className="group inline-flex max-w-full items-center gap-1.5 border border-upcycle-orange/25 bg-upcycle-orange/[0.06] px-2 py-1 text-left text-[11px] text-carbon-blue transition-colors hover:border-upcycle-orange/45 hover:bg-upcycle-orange/[0.1]"
+                className="group inline-flex max-w-full items-center gap-1.5 border border-upcycle-orange/25 bg-upcycle-orange/[0.06] px-2 py-1 text-left text-[12px] text-carbon-blue transition-colors hover:border-upcycle-orange/45 hover:bg-upcycle-orange/[0.1]"
                 aria-label={`Remove filter ${chip.label}: ${chip.value}`}
               >
                 <span className="font-semibold text-carbon-blue/55">{chip.label}:</span>
                 <span className="truncate font-medium">{chip.value}</span>
                 <X
-                  className="size-3 shrink-0 text-carbon-blue/35 group-hover:text-upcycle-orange"
+                  className="size-3 shrink-0 text-carbon-blue/50 group-hover:text-upcycle-orange"
                   strokeWidth={2}
                   aria-hidden
                 />
@@ -72,7 +72,7 @@ export function FilterTransparencyBar({
               <button
                 type="button"
                 onClick={onClearAll}
-                className="text-[11px] font-semibold text-upcycle-orange underline-offset-2 hover:underline"
+                className="text-[12px] font-semibold text-upcycle-orange underline-offset-2 hover:underline"
               >
                 Clear All Filters
               </button>

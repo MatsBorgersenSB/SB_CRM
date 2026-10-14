@@ -103,7 +103,7 @@ function stanceBadgeClass(stance: SentimentStance): string {
     case "neutral":
       return "border-carbon-blue/20 bg-carbon-blue/[0.04] text-carbon-blue/70";
     default:
-      return "border-carbon-blue/15 bg-white text-carbon-blue/45";
+      return "border-carbon-blue/15 bg-white text-carbon-blue/65";
   }
 }
 
@@ -236,7 +236,7 @@ export function InfluenceMatrix({
   return (
     <section aria-label="Influence mapping" className="flex flex-col gap-4">
       <div>
-        <p className="text-[11px] font-medium text-carbon-blue/45">FS-006 Influence Mapping</p>
+        <p className="text-[12px] font-medium text-carbon-blue/65">FS-006 Influence Mapping</p>
         <h3 className="mt-1 text-base font-semibold text-carbon-blue">
           Stakeholder influence matrix
         </h3>
@@ -247,14 +247,14 @@ export function InfluenceMatrix({
       </div>
 
       <div className="flex flex-wrap items-end gap-3 border border-carbon-blue/10 bg-white px-3 py-3">
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Influence
           <select
             value={influenceFilter}
             onChange={(event) =>
               setInfluenceFilter(event.target.value as "all" | InfluenceLevel)
             }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             <option value="all">All levels</option>
             {INFLUENCE_OPTIONS.map((option) => (
@@ -264,12 +264,12 @@ export function InfluenceMatrix({
             ))}
           </select>
         </label>
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Stance
           <select
             value={stanceFilter}
             onChange={(event) => setStanceFilter(event.target.value as "all" | SentimentStance)}
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             <option value="all">All stances</option>
             {STANCE_OPTIONS.map((option) => (
@@ -297,13 +297,13 @@ export function InfluenceMatrix({
       />
 
       {error ? (
-        <p className="border border-thermal-red/25 bg-thermal-red/[0.06] px-3 py-2 text-[12px] text-thermal-red">
+        <p className="border border-thermal-red/25 bg-thermal-red/[0.06] px-3 py-2 text-[13px] text-thermal-red">
           {error}
         </p>
       ) : null}
 
       {loading ? (
-        <p className="text-[13px] text-carbon-blue/45">Loading influence profiles…</p>
+        <p className="text-[13px] text-carbon-blue/65">Loading influence profiles…</p>
       ) : profiles.length === 0 ? (
         <p className="border border-carbon-blue/10 bg-white px-4 py-6 text-[13px] text-carbon-blue/55">
           No influence profiles yet. Seeded opportunities include sample profiles — or add
@@ -319,16 +319,16 @@ export function InfluenceMatrix({
               >
                 <div className="mb-3 flex items-baseline justify-between gap-2">
                   <div>
-                    <p className="text-[12px] font-semibold text-carbon-blue">{quadrant.title}</p>
-                    <p className="text-[11px] text-carbon-blue/50">{quadrant.subtitle}</p>
+                    <p className="text-[13px] font-semibold text-carbon-blue">{quadrant.title}</p>
+                    <p className="text-[12px] text-carbon-blue/50">{quadrant.subtitle}</p>
                   </div>
-                  <span className="tabular-nums text-[11px] text-carbon-blue/40">
+                  <span className="tabular-nums text-[12px] text-carbon-blue/60">
                     {grouped[quadrant.id].length}
                   </span>
                 </div>
                 <div className="flex flex-col gap-2">
                   {grouped[quadrant.id].length === 0 ? (
-                    <p className="text-[11px] text-carbon-blue/35">Empty</p>
+                    <p className="text-[12px] text-carbon-blue/50">Empty</p>
                   ) : (
                     grouped[quadrant.id].map((profile) => (
                       <InfluenceCard
@@ -347,8 +347,8 @@ export function InfluenceMatrix({
 
           {grouped.unmapped.length > 0 ? (
             <div className="border border-dashed border-carbon-blue/20 bg-white px-3 py-3">
-              <p className="text-[12px] font-semibold text-carbon-blue">Needs placement</p>
-              <p className="mb-2 text-[11px] text-carbon-blue/50">
+              <p className="text-[13px] font-semibold text-carbon-blue">Needs placement</p>
+              <p className="mb-2 text-[12px] text-carbon-blue/50">
                 Influence and stance still unknown — set both to place on the matrix.
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -391,19 +391,19 @@ function InfluenceCard({
           <p className="truncate text-[13px] font-semibold text-carbon-blue">
             {profile.contact.fullName}
           </p>
-          <p className="truncate text-[11px] text-carbon-blue/55">
+          <p className="truncate text-[12px] text-carbon-blue/55">
             {profile.contact.jobTitle?.trim() || "Role unknown"}
           </p>
         </div>
         <span
-          className={`shrink-0 border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${stanceBadgeClass(profile.stance)}`}
+          className={`shrink-0 border px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] ${stanceBadgeClass(profile.stance)}`}
         >
           {labelize(profile.stance)}
         </span>
       </div>
 
       <div className={`mt-2 flex flex-wrap gap-2 ${ATTIO_GROUP_ACTIONS}`}>
-        <label className="flex min-w-[7.5rem] flex-1 flex-col gap-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
+        <label className="flex min-w-[7.5rem] flex-1 flex-col gap-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
           Influence
           <select
             value={profile.influenceLevel}
@@ -413,7 +413,7 @@ function InfluenceCard({
                 influenceLevel: event.target.value as InfluenceLevel,
               })
             }
-            className="border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] font-medium normal-case tracking-normal text-carbon-blue disabled:opacity-60"
+            className="border border-carbon-blue/15 bg-white px-2 py-1 text-[13px] font-medium normal-case tracking-normal text-carbon-blue disabled:opacity-60"
           >
             {INFLUENCE_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -422,7 +422,7 @@ function InfluenceCard({
             ))}
           </select>
         </label>
-        <label className="flex min-w-[7.5rem] flex-1 flex-col gap-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
+        <label className="flex min-w-[7.5rem] flex-1 flex-col gap-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
           Stance
           <select
             value={profile.stance}
@@ -432,7 +432,7 @@ function InfluenceCard({
                 stance: event.target.value as SentimentStance,
               })
             }
-            className="border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] font-medium normal-case tracking-normal text-carbon-blue disabled:opacity-60"
+            className="border border-carbon-blue/15 bg-white px-2 py-1 text-[13px] font-medium normal-case tracking-normal text-carbon-blue disabled:opacity-60"
           >
             {STANCE_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -443,7 +443,7 @@ function InfluenceCard({
         </label>
       </div>
       {saving ? (
-        <p className="mt-1.5 text-[10px] text-carbon-blue/40">Saving…</p>
+        <p className="mt-1.5 text-[11px] text-carbon-blue/60">Saving…</p>
       ) : null}
     </article>
   );

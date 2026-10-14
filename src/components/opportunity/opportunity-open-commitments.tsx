@@ -26,7 +26,7 @@ export function OpportunityOpenCommitments({
 
   if (open.length === 0) {
     return (
-      <p className="text-[11px] text-carbon-blue/45">
+      <p className="text-[12px] text-carbon-blue/65">
         No open commitments on this opportunity.
       </p>
     );
@@ -45,15 +45,15 @@ export function OpportunityOpenCommitments({
               }`}
             >
               <div className="min-w-0">
-                <p className="truncate text-[11px] font-medium text-carbon-blue">
+                <p className="truncate text-[12px] font-medium text-carbon-blue">
                   {activity.NextAction || activity.Subject}
                 </p>
-                <p className="text-[10px] text-carbon-blue/45">{activity.Subject}</p>
+                <p className="text-[11px] text-carbon-blue/65">{activity.Subject}</p>
               </div>
               <div className="shrink-0 text-right">
                 {activity.NextActionDate ? (
                   <p
-                    className={`text-[10px] font-medium ${
+                    className={`text-[11px] font-medium ${
                       overdue ? "text-red-700" : "text-carbon-blue/50"
                     }`}
                   >
@@ -62,7 +62,7 @@ export function OpportunityOpenCommitments({
                   </p>
                 ) : null}
                 {overdue ? (
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-red-600">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-red-600">
                     Action required
                   </span>
                 ) : null}
@@ -74,7 +74,7 @@ export function OpportunityOpenCommitments({
       {open.length > 6 ? (
         <Link
           href={`/opportunities/${encodeURIComponent(dealId)}?tab=activities`}
-          className="inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
+          className="inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
         >
           View all {open.length} commitments →
         </Link>

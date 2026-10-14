@@ -47,16 +47,16 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       <header className="relative z-10 flex items-center justify-between px-6 py-5 sm:px-10">
         <div>
           <p className="text-lg font-semibold tracking-tight">Standard Bio</p>
-          <p className="mt-0.5 text-[11px] uppercase tracking-[0.18em] text-white/45">
+          <p className="mt-0.5 text-[12px] uppercase tracking-[0.18em] text-white/45">
             Upcycling carbon
           </p>
         </div>
-        <p className="hidden text-[11px] text-white/40 sm:block">Microsoft 365 · Entra ID</p>
+        <p className="hidden text-[12px] text-white/40 sm:block">Microsoft 365 · Entra ID</p>
       </header>
 
       <main className="relative z-10 flex flex-1 items-center justify-center px-6 py-12">
         <div className="w-full max-w-md border border-white/10 bg-white/[0.04] p-8 backdrop-blur-sm sm:p-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-upcycle-orange">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-upcycle-orange">
             SmartCRM
           </p>
           <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-[28px]">
@@ -69,14 +69,14 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
           {message ? (
             <p
-              className="mt-5 border border-thermal-red/40 bg-thermal-red/10 px-3 py-2 text-[12px] text-thermal-red"
+              className="mt-5 border border-thermal-red/40 bg-thermal-red/10 px-3 py-2 text-[13px] text-thermal-red"
               role="alert"
             >
               {message}
             </p>
           ) : null}
 
-          <p className="mt-5 border border-white/15 bg-white/[0.03] px-3 py-2 text-[11px] text-white/55">
+          <p className="mt-5 border border-white/15 bg-white/[0.03] px-3 py-2 text-[12px] text-white/55">
             Use this page only: <code className="text-white/80">/auth/signin</code>
             <br />
             Not <code className="text-white/40">/api/auth/signin</code> (that path causes CORS
@@ -92,15 +92,15 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             Sign in with Microsoft 365 (Standard Bio Account)
           </a>
 
-          <p className="mt-3 text-center text-[11px] text-white/40">
+          <p className="mt-3 text-center text-[12px] text-white/40">
             You will be redirected to Microsoft to authenticate.
           </p>
 
-          <p className="mt-6 break-all text-center text-[10px] text-white/30">
+          <p className="mt-6 break-all text-center text-[11px] text-white/30">
             Start URL: {startHref}
           </p>
 
-          <p className="mt-2 text-center text-[10px] text-white/25">
+          <p className="mt-2 text-center text-[11px] text-white/25">
             If the button does nothing, open{" "}
             <a href={startHref} className="underline">
               this Microsoft start link

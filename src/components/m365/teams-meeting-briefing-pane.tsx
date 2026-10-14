@@ -101,7 +101,7 @@ export function TeamsMeetingBriefingPane() {
   if (state.status === "loading") {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-white px-6">
-        <p className="text-[12px] text-carbon-blue/50">Preparing meeting briefing…</p>
+        <p className="text-[13px] text-carbon-blue/50">Preparing meeting briefing…</p>
       </div>
     );
   }
@@ -110,11 +110,11 @@ export function TeamsMeetingBriefingPane() {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
         <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
             SmartCRM · Meeting Briefing
           </p>
           <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+          <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
             {state.message}
           </p>
           <button
@@ -124,7 +124,7 @@ export function TeamsMeetingBriefingPane() {
                 window.location.reload();
               })
             }
-            className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+            className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
           >
             Sign In to SmartCRM
           </button>
@@ -136,11 +136,11 @@ export function TeamsMeetingBriefingPane() {
   if (state.status === "empty") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM · Meeting Briefing
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">Choose who you are meeting</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">{state.message}</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">{state.message}</p>
       </div>
     );
   }
@@ -148,14 +148,14 @@ export function TeamsMeetingBriefingPane() {
   if (state.status === "not-found") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM · Meeting Briefing
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">Not ready to brief</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
           This contact is not in SmartCRM yet. Add them via Relationship Intake first.
         </p>
-        <p className="mt-3 text-[10px] text-carbon-blue/35">{state.email}</p>
+        <p className="mt-3 text-[11px] text-carbon-blue/50">{state.email}</p>
       </div>
     );
   }
@@ -164,7 +164,7 @@ export function TeamsMeetingBriefingPane() {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
         <p className="text-sm font-semibold text-carbon-blue">SmartCRM unavailable</p>
-        <p className="mt-1 text-[11px] text-carbon-blue/50">{state.message}</p>
+        <p className="mt-1 text-[12px] text-carbon-blue/50">{state.message}</p>
       </div>
     );
   }

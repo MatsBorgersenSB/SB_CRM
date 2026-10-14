@@ -133,21 +133,21 @@ function DiscoveryAnswerRow({
         onChange={(event) => setDraft(event.target.value)}
         rows={3}
         placeholder="Type the answer from your discovery conversation…"
-        className="mt-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue/80 placeholder:text-carbon-blue/35"
+        className="mt-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue/80 placeholder:text-carbon-blue/50"
       />
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button
           type="button"
           disabled={saving || !dirty}
           onClick={() => void onSave()}
-          className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-45"
+          className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-45"
         >
           {saving ? "Saving…" : savedValue ? "Update answer" : "Save answer"}
         </button>
         {savedFlash ? (
-          <span className="text-[11px] font-medium text-emerald-700">Saved</span>
+          <span className="text-[12px] font-medium text-emerald-700">Saved</span>
         ) : null}
-        {error ? <span className="text-[11px] text-thermal-red">{error}</span> : null}
+        {error ? <span className="text-[12px] text-thermal-red">{error}</span> : null}
       </div>
     </li>
   );

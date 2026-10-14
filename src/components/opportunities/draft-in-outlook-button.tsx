@@ -100,12 +100,12 @@ export function DraftInOutlookButton({
         onClick={() => void onClick()}
         className={
           className ||
-          "border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white hover:brightness-105 disabled:opacity-50"
+          "border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white hover:brightness-105 disabled:opacity-50"
         }
       >
         {busy ? "Opening Outlook…" : label}
       </button>
-      {error ? <p className="text-[10px] text-thermal-red">{error}</p> : null}
+      {error ? <p className="text-[11px] text-thermal-red">{error}</p> : null}
     </div>
   );
 }

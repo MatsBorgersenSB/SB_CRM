@@ -1,33 +1,38 @@
 /**
  * SmartCRM Visual Language (Phase 4D.6)
- * Consistent scan-friendly icons across all workspaces.
+ * Semantic icon names shared across all workspaces.
+ *
+ * Icons render as Lucide line icons via `@/components/ui/smartcrm-icon`
+ * — the same family as the sidebar. The registry below is the list of
+ * semantic names; the text value is a plain-text fallback for non-UI
+ * contexts (logs, exports) and must never be used as a visual glyph.
  */
 
 export const SMARTCRM_ICONS = {
-  contact: "👤",
-  company: "🏢",
-  opportunity: "🎯",
-  document: "📄",
-  documentSet: "📁",
-  email: "📧",
-  phone: "📞",
-  location: "📍",
-  website: "🌐",
-  meeting: "📅",
-  needsAttention: "⚠",
-  urgent: "🔥",
-  waiting: "⏳",
-  healthy: "✅",
-  completed: "✓",
-  value: "💰",
-  stage: "📈",
-  probability: "🎲",
-  opNumber: "🔖",
-  edit: "✏️",
-  search: "🔍",
-  activity: "📅",
-  add: "➕",
-  project: "🚀",
+  contact: "contact",
+  company: "company",
+  opportunity: "opportunity",
+  document: "document",
+  documentSet: "document set",
+  email: "email",
+  phone: "phone",
+  location: "location",
+  website: "website",
+  meeting: "meeting",
+  needsAttention: "needs attention",
+  urgent: "urgent",
+  waiting: "waiting",
+  healthy: "healthy",
+  completed: "completed",
+  value: "value",
+  stage: "stage",
+  probability: "probability",
+  opNumber: "opportunity number",
+  edit: "edit",
+  search: "search",
+  activity: "activity",
+  add: "add",
+  project: "project",
 } as const;
 
 export type SmartCRMIconName = keyof typeof SMARTCRM_ICONS;
@@ -130,22 +135,33 @@ export const HUB_SECTION_ICONS: Record<string, SmartCRMIconName> = {
 
 export type RelationshipHealthScanIcon = "healthy" | "needsAttention" | "urgent";
 
+/**
+ * Map any health label (relationship, project, opportunity) onto a scan icon.
+ * The symbol must never contradict the word, so anything that is not clearly
+ * healthy resolves to a warning rather than a tick.
+ */
 export function healthStatusScanIcon(
   status: string,
 ): RelationshipHealthScanIcon {
-  if (status === "At Risk") return "urgent";
-  if (status === "Weak") return "needsAttention";
-  return "healthy";
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "at risk" || normalized === "critical") return "urgent";
+  if (
+    normalized === "weak" ||
+    normalized === "needs attention" ||
+    normalized === "warning" ||
+    normalized === "fair"
+  ) {
+    return "needsAttention";
+  }
+  if (
+    normalized === "healthy" ||
+    normalized === "strong" ||
+    normalized === "strategic" ||
+    normalized === "good" ||
+    normalized === "stable"
+  ) {
+    return "healthy";
+  }
+  return "needsAttention";
 }
 
-export function healthStatusEmoji(status: string): string {
-  return SMARTCRM_ICONS[healthStatusScanIcon(status)];
-}
-
-export function attentionObjectEmoji(objectType: AttentionObjectTypeKey): string {
-  return ATTENTION_OBJECT_ICONS[objectType];
-}
-
-export function searchEntityEmoji(entityType: SearchEntityTypeKey): string {
-  return SEARCH_ENTITY_ICONS[entityType];
-}

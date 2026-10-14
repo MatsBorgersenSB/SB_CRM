@@ -21,7 +21,7 @@ const ATTENTION_STYLES = {
   overdue: "border-thermal-red/30 bg-thermal-red/[0.06] text-thermal-red",
   due_today: "border-upcycle-orange/30 bg-upcycle-orange/[0.06] text-upcycle-orange",
   attention: "border-upcycle-orange/25 bg-upcycle-orange/[0.05] text-upcycle-orange",
-  on_track: "border-carbon-blue/12 bg-carbon-blue/[0.02] text-carbon-blue/45",
+  on_track: "border-carbon-blue/12 bg-carbon-blue/[0.02] text-carbon-blue/65",
 } as const;
 
 export function ActivityIntelligentTable({
@@ -135,7 +135,7 @@ function ActivityIntelligentTableRow({
     >
       <WorkspaceTableBodyCell>
         {isPrimaryFocus ? (
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-upcycle-orange">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-upcycle-orange">
             Primary focus
           </p>
         ) : null}
@@ -146,7 +146,7 @@ function ActivityIntelligentTableRow({
         >
           {row.headline}
         </Link>
-        <p className="mt-1 truncate text-[11px] text-carbon-blue/45">
+        <p className="mt-1 truncate text-[12px] text-carbon-blue/65">
           {[
             row.companyLabel,
             row.dealLabel !== "—" ? row.dealLabel : null,
@@ -163,23 +163,23 @@ function ActivityIntelligentTableRow({
 
       <WorkspaceTableBodyCell>
         <span
-          className={`inline-flex border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ATTENTION_STYLES[attention.tone]}`}
+          className={`inline-flex border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${ATTENTION_STYLES[attention.tone]}`}
         >
           {attention.label}
         </span>
-        <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-carbon-blue/65">
+        <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/65">
           {row.whyItMatters}
         </p>
       </WorkspaceTableBodyCell>
 
       <WorkspaceTableBodyCell>
-        <p className="line-clamp-2 text-[12px] leading-relaxed text-carbon-blue/70">
+        <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/70">
           {row.blockingProgress}
         </p>
       </WorkspaceTableBodyCell>
 
       <WorkspaceTableBodyCell>
-        <p className="line-clamp-2 text-[12px] font-medium leading-relaxed text-carbon-blue/85">
+        <p className="line-clamp-2 text-[13px] font-medium leading-relaxed text-carbon-blue/85">
           {row.recommendedAction}
         </p>
       </WorkspaceTableBodyCell>
@@ -202,7 +202,7 @@ function ActivityIntelligentTableRow({
             />
           </div>
         ) : (
-          <span className="text-[11px] text-carbon-blue/35">—</span>
+          <span className="text-[12px] text-carbon-blue/50">—</span>
         )}
       </WorkspaceTableBodyCell>
     </WorkspaceTableBodyRow>
@@ -218,7 +218,7 @@ function DueLabel({ row }: { row: ActivityIntelligentRow }) {
         ? "text-upcycle-orange font-medium"
         : "text-carbon-blue/50";
 
-  return <span className={`text-[12px] tabular-nums ${className}`}>{label}</span>;
+  return <span className={`text-[13px] tabular-nums ${className}`}>{label}</span>;
 }
 
 function attentionMeta(row: ActivityIntelligentRow): {

@@ -15,18 +15,18 @@ export function CompanyDuplicateHintBanner({
 
   return (
     <section className="border border-upcycle-orange/30 bg-upcycle-orange/[0.04] px-4 py-3">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
         Possible duplicate · {hint.confidence}
       </p>
       <p className="mt-1 text-sm font-medium text-carbon-blue">
         May be the same as {hint.otherNames.join(", ") || "another company"}
       </p>
-      <p className="mt-0.5 text-[11px] text-carbon-blue/55">
+      <p className="mt-0.5 text-[12px] text-carbon-blue/55">
         {hint.reasons.slice(0, 2).join(" · ")}
       </p>
       <Link
         href={hint.managerHref}
-        className="mt-2 inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+        className="mt-2 inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white"
       >
         Review in Duplicate Manager
       </Link>

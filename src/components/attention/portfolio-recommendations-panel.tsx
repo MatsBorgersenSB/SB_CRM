@@ -43,7 +43,7 @@ export function PortfolioRecommendationsPanel({
 
   if (openItems.length === 0) {
     return (
-      <p className="text-sm text-carbon-blue/45">
+      <p className="text-sm text-carbon-blue/65">
         No open portfolio recommendations — you have decided what matters for now.
       </p>
     );
@@ -101,10 +101,10 @@ export function PortfolioRecommendationsPanel({
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-carbon-blue">{item.action}</p>
-                <p className="mt-0.5 text-[12px] text-carbon-blue/55">
+                <p className="mt-0.5 text-[13px] text-carbon-blue/55">
                   {item.companyName}
                   {item.reason ? (
-                    <span className="text-carbon-blue/40"> — {item.reason}</span>
+                    <span className="text-carbon-blue/60"> — {item.reason}</span>
                   ) : null}
                 </p>
               </div>
@@ -114,14 +114,14 @@ export function PortfolioRecommendationsPanel({
                   <button
                     type="button"
                     onClick={() => beginDecision(key, "yes")}
-                    className="border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white"
+                    className="border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white"
                   >
                     Yes
                   </button>
                   <button
                     type="button"
                     onClick={() => beginDecision(key, "no")}
-                    className="border border-carbon-blue/20 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70"
+                    className="border border-carbon-blue/20 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70"
                   >
                     No
                   </button>
@@ -131,13 +131,13 @@ export function PortfolioRecommendationsPanel({
 
             {expanded ? (
               <div className="mt-3 border-t border-carbon-blue/8 pt-3">
-                <p className="mb-2 text-[11px] font-medium text-carbon-blue/70">
+                <p className="mb-2 text-[12px] font-medium text-carbon-blue/70">
                   {pendingDecision === "yes"
                     ? "Yes — open this company and act on the recommendation."
                     : "No — tell SmartCRM why so it stops suggesting this."}
                 </p>
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                     Comment{pendingDecision === "no" ? " (required)" : " (optional)"}
                   </span>
                   <textarea
@@ -150,10 +150,10 @@ export function PortfolioRecommendationsPanel({
                         ? 'e.g. "Not a sales target" or "Already handled"'
                         : 'e.g. "Calling them this afternoon"'
                     }
-                    className="mt-1.5 w-full resize-none border border-carbon-blue/12 bg-white px-2.5 py-2 text-[12px] text-carbon-blue placeholder:text-carbon-blue/35 focus:border-upcycle-orange/50 focus:outline-none"
+                    className="mt-1.5 w-full resize-none border border-carbon-blue/12 bg-white px-2.5 py-2 text-[13px] text-carbon-blue placeholder:text-carbon-blue/50 focus:border-upcycle-orange/50 focus:outline-none"
                   />
                   {pendingDecision === "no" ? (
-                    <span className="mt-1 block text-[9px] text-carbon-blue/40">
+                    <span className="mt-1 block text-[10px] text-carbon-blue/60">
                       At least {PORTFOLIO_DECISION_NOTE_MIN} characters
                       {trimmed.length > 0 ? ` · ${trimmed.length}` : ""}
                     </span>
@@ -161,7 +161,7 @@ export function PortfolioRecommendationsPanel({
                 </label>
 
                 {error ? (
-                  <p className="mt-2 text-[11px] text-thermal-red">{error}</p>
+                  <p className="mt-2 text-[12px] text-thermal-red">{error}</p>
                 ) : null}
 
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -169,7 +169,7 @@ export function PortfolioRecommendationsPanel({
                     type="button"
                     disabled={!canConfirm}
                     onClick={() => confirm(item)}
-                    className={`border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider disabled:opacity-40 ${
+                    className={`border px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider disabled:opacity-40 ${
                       pendingDecision === "yes"
                         ? "border-upcycle-orange bg-upcycle-orange text-white"
                         : "border-carbon-blue/20 bg-white text-carbon-blue/70"
@@ -185,7 +185,7 @@ export function PortfolioRecommendationsPanel({
                       setNote("");
                       setError(null);
                     }}
-                    className="px-2 py-1.5 text-[10px] font-semibold text-carbon-blue/45 hover:text-carbon-blue"
+                    className="px-2 py-1.5 text-[11px] font-semibold text-carbon-blue/65 hover:text-carbon-blue"
                   >
                     Cancel
                   </button>

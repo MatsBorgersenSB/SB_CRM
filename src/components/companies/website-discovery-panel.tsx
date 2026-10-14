@@ -364,10 +364,10 @@ export function WebsiteDiscoveryPanel({
       {embedded ? null : (
         <div className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-2">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Website Discovery
             </p>
-            <p className="text-[10px] text-carbon-blue/45">
+            <p className="text-[11px] text-carbon-blue/65">
               {context === "contact"
                 ? "Discover people on a company site — always see progress, never silent imports."
                 : "Paste a URL — live discovery, transparent import, actionable next steps."}
@@ -379,7 +379,7 @@ export function WebsiteDiscoveryPanel({
               setOpen((value) => !value);
               if (open) reset();
             }}
-            className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:bg-upcycle-orange/[0.04] hover:text-upcycle-orange"
+            className="border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:bg-upcycle-orange/[0.04] hover:text-upcycle-orange"
           >
             {open ? "Close" : "Discover"}
           </button>
@@ -391,7 +391,7 @@ export function WebsiteDiscoveryPanel({
           <WorkflowHero phase={phase} error={error} />
 
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Website URL
             </span>
             <div className="mt-1 flex gap-2">
@@ -407,14 +407,14 @@ export function WebsiteDiscoveryPanel({
                 type="button"
                 disabled={!url.trim() || busy || phase === "complete"}
                 onClick={() => void handleDiscover()}
-                className="shrink-0 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange disabled:opacity-50"
+                className="shrink-0 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange disabled:opacity-50"
               >
                 {phase === "discovering" ? "Discovering…" : "Analyze"}
               </button>
             </div>
           </label>
 
-          {error ? <p className="text-[11px] text-thermal-red">{error}</p> : null}
+          {error ? <p className="text-[12px] text-thermal-red">{error}</p> : null}
 
           {phase === "discovering" ? (
             <DiscoveryProgressView stepIndex={discoveryStepIndex} stats={liveStats} />
@@ -488,7 +488,7 @@ export function WebsiteDiscoveryPanel({
           {toast ? (
             <div
               role="status"
-              className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 border border-emerald-600/30 bg-emerald-700 px-4 py-2.5 text-[12px] font-semibold text-white shadow-lg"
+              className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 border border-emerald-600/30 bg-emerald-700 px-4 py-2.5 text-[13px] font-semibold text-white shadow-lg"
             >
               {toast}
             </div>
@@ -513,12 +513,12 @@ function WorkflowHero({ phase, error }: { phase: PanelPhase; error: string | nul
 
   return (
     <div className="rounded-lg border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
-      <p className="text-[9px] font-bold uppercase tracking-wider text-upcycle-orange">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
         Live workflow
       </p>
-      <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/70">{headline}</p>
+      <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/70">{headline}</p>
       {error ? null : (
-        <p className="mt-1 text-[10px] text-carbon-blue/45">No silent imports. No hidden processing.</p>
+        <p className="mt-1 text-[11px] text-carbon-blue/65">No silent imports. No hidden processing.</p>
       )}
     </div>
   );
@@ -535,7 +535,7 @@ function DiscoveryProgressView({
 }) {
   return (
     <div className="space-y-3 border border-carbon-blue/10 bg-white p-3">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         Discovery {complete ? "Complete" : "In Progress"}
       </p>
       <ul className="space-y-1.5">
@@ -576,14 +576,14 @@ function DiscoveryStepRow({
       ? "text-emerald-700"
       : state === "active"
         ? "text-upcycle-orange"
-        : "text-carbon-blue/35";
+        : "text-carbon-blue/50";
 
   return (
-    <li className={`flex items-center gap-2 text-[11px] ${tone}`}>
+    <li className={`flex items-center gap-2 text-[12px] ${tone}`}>
       <span className="w-4 shrink-0 text-center font-semibold" aria-hidden>
         {icon}
       </span>
-      <span className={state === "pending" ? "text-carbon-blue/45" : "font-medium"}>{label}</span>
+      <span className={state === "pending" ? "text-carbon-blue/65" : "font-medium"}>{label}</span>
     </li>
   );
 }
@@ -599,21 +599,21 @@ function ImportProgressView({ progress }: { progress: ImportProgressState }) {
 
   return (
     <div className="space-y-3 border border-upcycle-orange/20 bg-upcycle-orange/[0.03] p-3">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
         {companyOnly ? "Importing Company" : "Importing Company & Contacts"}
       </p>
 
       {progress.companyDone ? (
-        <p className="text-[11px] font-medium text-emerald-700">
+        <p className="text-[12px] font-medium text-emerald-700">
           Company {progress.companyCreated ? "Created" : "Updated"} ✓
         </p>
       ) : (
-        <p className="text-[11px] text-carbon-blue/60">Updating company record…</p>
+        <p className="text-[12px] text-carbon-blue/60">Updating company record…</p>
       )}
 
       {!companyOnly ? (
         <div>
-          <div className="mb-1 flex justify-between text-[10px] text-carbon-blue/55">
+          <div className="mb-1 flex justify-between text-[11px] text-carbon-blue/55">
             <span>Contacts Imported</span>
             <span>
               {progress.processed} / {progress.total}
@@ -625,20 +625,20 @@ function ImportProgressView({ progress }: { progress: ImportProgressState }) {
               style={{ width: `${percent}%` }}
             />
           </div>
-          <p className="mt-1 text-[10px] tabular-nums text-carbon-blue/45">{percent}%</p>
+          <p className="mt-1 text-[11px] tabular-nums text-carbon-blue/65">{percent}%</p>
         </div>
       ) : null}
 
       {progress.currentContact ? (
         <div className="rounded-md border border-carbon-blue/10 bg-white px-2.5 py-2">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Current Contact
           </p>
-          <p className="mt-0.5 text-[12px] font-semibold text-carbon-blue">
+          <p className="mt-0.5 text-[13px] font-semibold text-carbon-blue">
             {progress.currentContact.name}
           </p>
           {progress.currentContact.jobTitle ? (
-            <p className="text-[10px] text-carbon-blue/50">{progress.currentContact.jobTitle}</p>
+            <p className="text-[11px] text-carbon-blue/50">{progress.currentContact.jobTitle}</p>
           ) : null}
         </div>
       ) : null}
@@ -657,7 +657,7 @@ function CompletionView({
 }) {
   return (
     <div className="space-y-3 border border-emerald-500/25 bg-emerald-500/[0.04] p-3">
-      <p className="text-[11px] font-bold text-emerald-800">Import Complete</p>
+      <p className="text-[12px] font-bold text-emerald-800">Import Complete</p>
 
       <dl className="grid gap-2 sm:grid-cols-2">
         <Stat
@@ -672,7 +672,7 @@ function CompletionView({
       </dl>
 
       {completion.errors.length > 0 ? (
-        <ul className="space-y-1 text-[10px] text-thermal-red">
+        <ul className="space-y-1 text-[11px] text-thermal-red">
           {completion.errors.map((item) => (
             <li key={item}>{item}</li>
           ))}
@@ -681,7 +681,7 @@ function CompletionView({
 
       {insights ? (
         <div className="space-y-2 border-t border-carbon-blue/10 pt-2">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Intelligence
           </p>
           {insights.keyStakeholders.length > 0 ? (
@@ -700,20 +700,20 @@ function CompletionView({
       <div className="flex flex-wrap gap-2 pt-1">
         <Link
           href={company360Href(completion.company)}
-          className="inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+          className="inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white"
         >
           View Company
         </Link>
         <Link
           href={company360Href(completion.company, "contacts")}
-          className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange/30"
+          className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange/30"
         >
           View Imported Contacts
         </Link>
         <button
           type="button"
           onClick={onStartOver}
-          className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+          className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
         >
           New Discovery
         </button>
@@ -742,7 +742,7 @@ function PreviewPanel({
   return (
     <div className="space-y-3 border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3">
       <div>
-        <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Company Found
         </p>
         <p className="mt-1 text-sm font-semibold text-carbon-blue">
@@ -752,13 +752,13 @@ function PreviewPanel({
           )}
         </p>
         {discovery.matchedCompanyId ? (
-          <p className="mt-1 text-[10px] text-carbon-blue/50">
+          <p className="mt-1 text-[11px] text-carbon-blue/50">
             Matches {discovery.matchedCompanyId}
             {discovery.matchedCompanyName ? ` · ${discovery.matchedCompanyName}` : ""} — import updates
             fields.
           </p>
         ) : (
-          <p className="mt-1 text-[10px] text-carbon-blue/50">New company — import will create the record.</p>
+          <p className="mt-1 text-[11px] text-carbon-blue/50">New company — import will create the record.</p>
         )}
       </div>
 
@@ -798,7 +798,7 @@ function PreviewPanel({
 
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Contacts Found — select who to import
           </p>
           {discovery.contacts.length > 0 ? (
@@ -806,14 +806,14 @@ function PreviewPanel({
               <button
                 type="button"
                 onClick={onSelectAll}
-                className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
+                className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
               >
                 Select all
               </button>
               <button
                 type="button"
                 onClick={onClearSelection}
-                className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:underline"
+                className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:underline"
               >
                 Clear
               </button>
@@ -844,21 +844,21 @@ function PreviewPanel({
                         {contact.name}
                       </span>
                       {contact.jobTitle ? (
-                        <span className="mt-0.5 block text-[11px] text-carbon-blue/60">
+                        <span className="mt-0.5 block text-[12px] text-carbon-blue/60">
                           {contact.jobTitle}
                         </span>
                       ) : null}
                       {contact.email ? (
-                        <span className="mt-1 block truncate font-mono text-[10px] text-carbon-blue/50">
+                        <span className="mt-1 block truncate font-mono text-[11px] text-carbon-blue/50">
                           {contact.email}
                         </span>
                       ) : null}
                       {contact.phone ? (
-                        <span className="mt-0.5 block font-mono text-[10px] text-carbon-blue/50">
+                        <span className="mt-0.5 block font-mono text-[11px] text-carbon-blue/50">
                           {contact.phone}
                         </span>
                       ) : (
-                        <span className="mt-0.5 block text-[10px] text-carbon-blue/35">
+                        <span className="mt-0.5 block text-[11px] text-carbon-blue/50">
                           No phone found
                         </span>
                       )}
@@ -869,7 +869,7 @@ function PreviewPanel({
             })}
           </ul>
         ) : (
-          <p className="mt-2 text-[11px] text-carbon-blue/50">
+          <p className="mt-2 text-[12px] text-carbon-blue/50">
             No named contacts found — you can still import the company.
           </p>
         )}
@@ -878,7 +878,7 @@ function PreviewPanel({
       <button
         type="button"
         onClick={onImport}
-        className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white"
+        className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white"
       >
         {selectedContactIds.size === 0
           ? "Import Company Only"
@@ -891,8 +891,8 @@ function PreviewPanel({
 function InsightList({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold text-carbon-blue">{title}</p>
-      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[10px] text-carbon-blue/60">
+      <p className="text-[11px] font-semibold text-carbon-blue">{title}</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px] text-carbon-blue/60">
         {items.map((item) => (
           <li key={item}>{item}</li>
         ))}
@@ -904,8 +904,8 @@ function InsightList({ title, items }: { title: string; items: string[] }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">{label}</dt>
-      <dd className="mt-0.5 text-[12px] font-semibold tabular-nums text-carbon-blue">{value}</dd>
+      <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">{label}</dt>
+      <dd className="mt-0.5 text-[13px] font-semibold tabular-nums text-carbon-blue">{value}</dd>
     </div>
   );
 }
@@ -921,8 +921,8 @@ function PreviewField({
 }) {
   return (
     <div className={className}>
-      <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">{label}</dt>
-      <dd className="mt-0.5 text-[11px] text-carbon-blue/75">{value.trim() ? value : "—"}</dd>
+      <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">{label}</dt>
+      <dd className="mt-0.5 text-[12px] text-carbon-blue/75">{value.trim() ? value : "—"}</dd>
     </div>
   );
 }

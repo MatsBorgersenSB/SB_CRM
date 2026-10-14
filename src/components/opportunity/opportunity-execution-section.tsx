@@ -16,7 +16,7 @@ export function OpportunityExecutionSection({
   return (
     <section id={id} className="dashboard-card p-4 sm:p-5">
       <header className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
           {title}
           {count !== undefined ? (
             <span className="ml-1.5 font-semibold tabular-nums text-carbon-blue/55">

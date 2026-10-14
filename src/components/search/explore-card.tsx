@@ -8,6 +8,7 @@ import type {
   ExploreSource,
 } from "@/lib/smartassist/explore/types";
 import type { CompanyType } from "@/types/company-type";
+import { Building2, Globe, Landmark, Mail, type LucideIcon } from "lucide-react";
 
 type ExploreCardProps = {
   result: ExploreResult;
@@ -19,22 +20,23 @@ type ExploreCardProps = {
   busy: boolean;
 };
 
-const SOURCE_ICON: Record<ExploreSource["kind"], string> = {
-  crm: "🏢",
-  registry: "🏛",
-  website: "🌐",
-  internal: "📨",
+const SOURCE_ICON: Record<ExploreSource["kind"], LucideIcon> = {
+  crm: Building2,
+  registry: Landmark,
+  website: Globe,
+  internal: Mail,
 };
 
 function SourceChip({ source }: { source: ExploreSource }) {
+  const Icon = SOURCE_ICON[source.kind];
   const body = (
     <>
-      <span aria-hidden>{SOURCE_ICON[source.kind]}</span>
+      <Icon size={11} strokeWidth={1.75} aria-hidden />
       <span>{source.label}</span>
     </>
   );
   const className =
-    "inline-flex items-center gap-1 border px-1.5 py-0.5 text-[10px] transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange";
+    "inline-flex items-center gap-1 border px-1.5 py-0.5 text-[11px] transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange";
   if (source.url) {
     return (
       <a
@@ -57,7 +59,7 @@ function SourceChip({ source }: { source: ExploreSource }) {
 
 function SectionTitle({ children }: { children: string }) {
   return (
-    <p className="text-[9px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--command-muted)" }}>
+    <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--command-muted)" }}>
       {children}
     </p>
   );
@@ -141,11 +143,11 @@ function CompanyCard({
           <SectionTitle>What we found</SectionTitle>
           <ul className="mt-1.5 space-y-1">
             {result.found.facts.map((fact, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px]" style={{ color: "var(--command-text)" }}>
+              <li key={i} className="flex items-start gap-2 text-[13px]" style={{ color: "var(--command-text)" }}>
                 <span className="mt-[3px] size-1.5 shrink-0 rounded-full bg-upcycle-orange/70" aria-hidden />
                 <span className="flex-1">
                   {fact.text}{" "}
-                  <span className="text-[10px]" style={{ color: "var(--command-muted)" }}>
+                  <span className="text-[11px]" style={{ color: "var(--command-muted)" }}>
                     — {sourceLabel(result.sources, fact.sourceId)}
                   </span>
                 </span>
@@ -158,7 +160,7 @@ function CompanyCard({
       {result.found.alternatives.length > 0 ? (
         <section>
           <SectionTitle>Could also be</SectionTitle>
-          <ul className="mt-1.5 space-y-0.5 text-[11px]" style={{ color: "var(--command-muted)" }}>
+          <ul className="mt-1.5 space-y-0.5 text-[12px]" style={{ color: "var(--command-muted)" }}>
             {result.found.alternatives.map((alt) => (
               <li key={alt.registrationNumber}>
                 {alt.legalName} · {alt.registrationNumber}
@@ -180,7 +182,7 @@ function CompanyCard({
               return (
                 <li key={person.id}>
                   <label
-                    className={`flex items-start gap-2 text-[12px] ${selectable ? "cursor-pointer" : ""}`}
+                    className={`flex items-start gap-2 text-[13px] ${selectable ? "cursor-pointer" : ""}`}
                     style={{ color: "var(--command-text)" }}
                   >
                     {selectable ? (
@@ -196,7 +198,7 @@ function CompanyCard({
                     <span className="flex-1">
                       <span className="font-medium">{person.name}</span>
                       {person.role ? <span style={{ color: "var(--command-muted)" }}> · {person.role}</span> : null}
-                      <span className="block text-[10px]" style={{ color: "var(--command-muted)" }}>
+                      <span className="block text-[11px]" style={{ color: "var(--command-muted)" }}>
                         {[person.email, person.phone].filter(Boolean).join(" · ") ||
                           `No contact details — ${sourceLabel(result.sources, person.sourceId)}`}
                       </span>
@@ -214,7 +216,7 @@ function CompanyCard({
           <SectionTitle>In our mail, files and Teams</SectionTitle>
           <ul className="mt-1.5 space-y-1">
             {result.known.internal.slice(0, 4).map((hit) => (
-              <li key={hit.id} className="text-[11px]">
+              <li key={hit.id} className="text-[12px]">
                 <a
                   href={hit.webUrl}
                   target="_blank"
@@ -238,7 +240,7 @@ function CompanyCard({
           <SectionTitle>{"What we don't know"}</SectionTitle>
           <ul className="mt-1.5 space-y-1">
             {result.unknown.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px]" style={{ color: "var(--command-muted)" }}>
+              <li key={i} className="flex items-start gap-2 text-[13px]" style={{ color: "var(--command-muted)" }}>
                 <span className="mt-[3px] size-1.5 shrink-0 rounded-full border border-current" aria-hidden />
                 <span>{item}</span>
               </li>
@@ -254,7 +256,7 @@ function CompanyCard({
         <SectionTitle>Next</SectionTitle>
 
         {imported ? (
-          <p className="mt-1.5 text-[12px]" style={{ color: "var(--command-text)" }}>
+          <p className="mt-1.5 text-[13px]" style={{ color: "var(--command-text)" }}>
             {imported.created ? "Added to SmartCRM" : "Already in SmartCRM — linked"} as {companyType}
             {imported.peopleImported > 0
               ? ` with ${imported.peopleImported} ${imported.peopleImported === 1 ? "person" : "people"}`
@@ -269,7 +271,7 @@ function CompanyCard({
             </button>
           </p>
         ) : known ? (
-          <p className="mt-1.5 text-[12px]" style={{ color: "var(--command-text)" }}>
+          <p className="mt-1.5 text-[13px]" style={{ color: "var(--command-text)" }}>
             <button
               type="button"
               onClick={() => onNavigate(known.href)}
@@ -280,12 +282,12 @@ function CompanyCard({
           </p>
         ) : result.next.canImport ? (
           <div className="mt-2 flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-[10px]" style={{ color: "var(--command-muted)" }}>
+            <label className="flex flex-col gap-1 text-[11px]" style={{ color: "var(--command-muted)" }}>
               What kind of relationship is this?
               <select
                 value={companyType}
                 onChange={(event) => setCompanyType(event.target.value as CompanyType)}
-                className="border bg-transparent px-2 py-1.5 text-[12px] outline-none"
+                className="border bg-transparent px-2 py-1.5 text-[13px] outline-none"
                 style={{ borderColor: "var(--command-border)", color: "var(--command-text)" }}
               >
                 {result.next.typeOptions.map((option) => (
@@ -299,7 +301,7 @@ function CompanyCard({
               type="button"
               disabled={importing || busy}
               onClick={() => void handleImport()}
-              className="border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-40"
+              className="border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[13px] font-semibold text-white disabled:opacity-40"
             >
               {importing
                 ? "Adding…"
@@ -308,13 +310,13 @@ function CompanyCard({
                   }`}
             </button>
             {peopleWithDetails === 0 && result.found.people.length > 0 ? (
-              <span className="text-[10px]" style={{ color: "var(--command-muted)" }}>
+              <span className="text-[11px]" style={{ color: "var(--command-muted)" }}>
                 People without contact details are unticked; tick to import them anyway.
               </span>
             ) : null}
           </div>
         ) : (
-          <p className="mt-1.5 text-[12px]" style={{ color: "var(--command-muted)" }}>
+          <p className="mt-1.5 text-[13px]" style={{ color: "var(--command-muted)" }}>
             Nothing confirmed enough to import yet.
           </p>
         )}
@@ -332,14 +334,14 @@ function CompanyCard({
               value={website}
               onChange={(event) => setWebsite(event.target.value)}
               placeholder="Know their website? Paste it and I'll read it"
-              className="min-w-0 flex-1 border bg-transparent px-2 py-1.5 text-[12px] outline-none placeholder:opacity-50"
+              className="min-w-0 flex-1 border bg-transparent px-2 py-1.5 text-[13px] outline-none placeholder:opacity-50"
               style={{ borderColor: "var(--command-border)", color: "var(--command-text)" }}
               disabled={busy}
             />
             <button
               type="submit"
               disabled={busy || !website.trim()}
-              className="border px-2.5 py-1.5 text-[11px] font-semibold disabled:opacity-40"
+              className="border px-2.5 py-1.5 text-[12px] font-semibold disabled:opacity-40"
               style={{ borderColor: "var(--command-border)", color: "var(--command-text)" }}
             >
               Read it
@@ -347,12 +349,12 @@ function CompanyCard({
           </form>
         ) : null}
 
-        {error ? <p className="mt-2 text-[11px] text-orange-700">{error}</p> : null}
+        {error ? <p className="mt-2 text-[12px] text-orange-700">{error}</p> : null}
       </section>
 
       {result.sources.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <span className="text-[10px]" style={{ color: "var(--command-muted)" }}>
+          <span className="text-[11px]" style={{ color: "var(--command-muted)" }}>
             Sources
           </span>
           {result.sources.map((source) => (
@@ -375,7 +377,7 @@ function UnsupportedCard({ result }: { result: Exclude<ExploreResult, CompanyExp
           <SectionTitle>In our mail, files and Teams</SectionTitle>
           <ul className="mt-1.5 space-y-1">
             {result.known.internal.slice(0, 5).map((hit) => (
-              <li key={hit.id} className="text-[11px]">
+              <li key={hit.id} className="text-[12px]">
                 <a
                   href={hit.webUrl}
                   target="_blank"
@@ -397,7 +399,7 @@ function UnsupportedCard({ result }: { result: Exclude<ExploreResult, CompanyExp
         <SectionTitle>{"What we don't know"}</SectionTitle>
         <ul className="mt-1.5 space-y-1">
           {result.unknown.map((item, i) => (
-            <li key={i} className="text-[12px]" style={{ color: "var(--command-muted)" }}>
+            <li key={i} className="text-[13px]" style={{ color: "var(--command-muted)" }}>
               {item}
             </li>
           ))}

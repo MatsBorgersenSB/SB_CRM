@@ -24,7 +24,7 @@ const THREAT_COLORS = {
   critical: "text-red-700",
   high: "text-amber-700",
   medium: "text-carbon-blue/60",
-  low: "text-carbon-blue/40",
+  low: "text-carbon-blue/60",
 } as const;
 
 export function CompetitorIntelligenceWorkspaceView({
@@ -46,7 +46,7 @@ export function CompetitorIntelligenceWorkspaceView({
       <div className={WORKSPACE_SURFACE}>
         <Link
           href={competitiveLandscapeHref()}
-          className="text-[11px] font-medium text-carbon-blue/45 transition-colors hover:text-upcycle-orange"
+          className="text-[12px] font-medium text-carbon-blue/65 transition-colors hover:text-upcycle-orange"
         >
           ← Competitive landscape
         </Link>
@@ -59,7 +59,7 @@ export function CompetitorIntelligenceWorkspaceView({
     <div className={`${WORKSPACE_SURFACE} ${EDITORIAL_GAP_BLOCK}`}>
       <Link
         href={competitiveLandscapeHref()}
-        className="text-[11px] font-medium text-carbon-blue/45 transition-colors hover:text-upcycle-orange"
+        className="text-[12px] font-medium text-carbon-blue/65 transition-colors hover:text-upcycle-orange"
       >
         ← Competitive landscape
       </Link>
@@ -80,11 +80,11 @@ function CompetitorWorkspace({ understanding }: { understanding: CompetitorUnder
           <h1 className={`mt-2 ${EDITORIAL_HERO}`}>{profile.companyName}</h1>
           <p className={`mt-2 ${EDITORIAL_META}`}>{profile.positioning}</p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${THREAT_COLORS[profile.threatLevel]}`}>
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${THREAT_COLORS[profile.threatLevel]}`}>
               {profile.threatLevel} threat · {profile.competitorClass}
             </span>
             {profile.href.startsWith("/companies/") ? (
-              <Link href={profile.href} className="text-[11px] font-medium text-upcycle-orange hover:text-carbon-blue">
+              <Link href={profile.href} className="text-[12px] font-medium text-upcycle-orange hover:text-carbon-blue">
                 View in CRM →
               </Link>
             ) : null}
@@ -123,7 +123,7 @@ function CompetitorWorkspace({ understanding }: { understanding: CompetitorUnder
                 <article key={insight.id} className="border border-carbon-blue/8 px-3 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     {insight.topic ? (
-                      <span className="text-[11px] font-medium text-carbon-blue/45">{insight.topic}</span>
+                      <span className="text-[12px] font-medium text-carbon-blue/65">{insight.topic}</span>
                     ) : null}
                     <SmartAssistCategoryBadge category={insight.category} />
                   </div>
@@ -192,11 +192,11 @@ function CompetitorWorkspace({ understanding }: { understanding: CompetitorUnder
                 {understanding.nextBestDecision.action}
               </p>
               <p className={`mt-3 ${EDITORIAL_BODY}`}>
-                <span className="text-carbon-blue/40">Why: </span>
+                <span className="text-carbon-blue/60">Why: </span>
                 {understanding.nextBestDecision.why}
               </p>
               <p className={`mt-2 ${EDITORIAL_BODY}`}>
-                <span className="text-carbon-blue/40">Expected impact: </span>
+                <span className="text-carbon-blue/60">Expected impact: </span>
                 {understanding.nextBestDecision.expectedImpact}
               </p>
               <div className="mt-3">

@@ -67,16 +67,16 @@ export default function TeamsPostMeetingPage() {
 
   return (
     <main className="min-h-[100dvh] space-y-4 bg-white px-4 py-5">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
         SmartCRM · Post-meeting
       </p>
       <h1 className="text-base font-semibold text-carbon-blue">Capture meeting notes</h1>
-      <p className="text-[12px] text-carbon-blue/55">
+      <p className="text-[13px] text-carbon-blue/55">
         Paste a Teams transcript or notes. SmartCRM proposes commitments — nothing is
         saved as confirmed until you Approve on the opportunity.
       </p>
 
-      <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <label className="block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         Opportunity
       </label>
       <select
@@ -95,7 +95,7 @@ export default function TeamsPostMeetingPage() {
       {opportunityId ? (
         <MeetingNotesAnalyzer opportunityId={opportunityId} role={user.role} />
       ) : (
-        <p className="text-[11px] text-carbon-blue/45">
+        <p className="text-[12px] text-carbon-blue/65">
           Choose the opportunity this meeting belongs to.
         </p>
       )}

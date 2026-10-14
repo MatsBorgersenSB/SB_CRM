@@ -9,7 +9,7 @@ export function LivingRecordStrip({
   if (items.length === 0) return null;
 
   return (
-    <p className="text-[11px] leading-relaxed text-carbon-blue/55">
+    <p className="text-[12px] leading-relaxed text-carbon-blue/55">
       {items.map((item, index) => (
         <span key={item.label}>
           {index > 0 ? " · " : null}

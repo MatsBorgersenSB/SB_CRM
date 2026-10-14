@@ -6,8 +6,8 @@ import type { StandardBioUserRecord } from "@/types/user-access";
 const STATUS_STYLES: Record<StandardBioUserRecord["status"], string> = {
   active: "text-upcycle-orange",
   disabled: "text-thermal-red",
-  inactive: "text-carbon-blue/40",
-  archived: "text-carbon-blue/35",
+  inactive: "text-carbon-blue/60",
+  archived: "text-carbon-blue/50",
 };
 
 export function UsersTable({
@@ -21,8 +21,8 @@ export function UsersTable({
 }) {
   return (
     <div className="overflow-x-auto border border-carbon-blue/10">
-      <table className="w-full min-w-[720px] text-left text-[12px]">
-        <thead className="border-b border-carbon-blue/8 bg-carbon-blue/[0.02] text-[9px] font-bold uppercase tracking-[0.1em] text-carbon-blue/40">
+      <table className="w-full min-w-[720px] text-left text-[13px]">
+        <thead className="border-b border-carbon-blue/8 bg-carbon-blue/[0.02] text-[10px] font-bold uppercase tracking-[0.1em] text-carbon-blue/60">
           <tr>
             <th className="px-4 py-2.5">User</th>
             <th className="px-4 py-2.5">Role</th>
@@ -44,7 +44,7 @@ export function UsersTable({
             >
               <td className="px-4 py-3">
                 <p className="font-medium text-carbon-blue">{user.displayName}</p>
-                <p className="text-[10px] text-carbon-blue/45">
+                <p className="text-[11px] text-carbon-blue/65">
                   {user.userId} · {user.email}
                 </p>
               </td>

@@ -14,7 +14,6 @@ import {
 } from "@/types/contact";
 import { BuyingRoleSelect } from "@/components/contacts/contact-form-fields";
 import { CompanyLink, ContactLink, EmailActionMenu } from "@/components/relationship/relationship-links";
-import { IconLabel } from "@/components/ui/smartcrm-icon";
 import {
   WorkspaceTable,
   WorkspaceTableBody,
@@ -49,37 +48,29 @@ export function ContactsOperationsTable({
 }) {
   if (records.length === 0) {
     return (
-      <p className="text-sm text-carbon-blue/45">
+      <p className="text-sm text-carbon-blue/65">
         No contacts match this filter. Try another view or broaden your search.
       </p>
     );
   }
 
   return (
-    <div className="w-full overflow-x-auto">
-      <WorkspaceTable className="min-w-[56rem]">
+    <div className="w-full">
+      <WorkspaceTable>
         <colgroup>
-          <col className="w-[26%]" />
-          <col className="w-[20%]" />
-          <col className="w-[16%]" />
-          <col className="w-[22%]" />
-          <col className="w-[16%]" />
+          <col className="w-[27%]" />
+          <col className="w-[19%]" />
+          <col className="w-[18%]" />
+          <col className="w-[21%]" />
+          <col className="w-[15%]" />
         </colgroup>
         <WorkspaceTableHead>
           <WorkspaceTableHeadRow>
-            <WorkspaceTableHeadCell>
-              <IconLabel icon="contact" iconSize="xs">
-                Name
-              </IconLabel>
-            </WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell>Name</WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell>Role</WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell>Buying role</WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>
-              <IconLabel icon="meeting" iconSize="xs">
-                Last touch
-              </IconLabel>
-            </WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell>Last touch</WorkspaceTableHeadCell>
           </WorkspaceTableHeadRow>
         </WorkspaceTableHead>
         <WorkspaceTableBody>
@@ -102,12 +93,13 @@ export function ContactsOperationsTable({
                     <ContactLink
                       contactId={record.contact.ContactID}
                       companyId={record.companyId}
+                      showIcon={false}
                       className={`${textTruncate} font-semibold text-carbon-blue hover:text-upcycle-orange`}
                     >
                       {getContactDisplayName(record.contact)}
                     </ContactLink>
                     {record.contact.IsArchived ? (
-                      <span className="shrink-0 border border-carbon-blue/15 px-1 text-[10px] uppercase tracking-wide text-carbon-blue/50">
+                      <span className="shrink-0 border border-carbon-blue/15 px-1 text-[11px] uppercase tracking-wide text-carbon-blue/50">
                         Archived
                       </span>
                     ) : null}
@@ -115,7 +107,8 @@ export function ContactsOperationsTable({
                   {record.contact.Email ? (
                     <EmailActionMenu
                       email={record.contact.Email}
-                      className={`${textTruncate} max-w-full text-[11px] text-carbon-blue/50`}
+                      showIcon={false}
+                      className={`${textTruncate} max-w-full text-[13px] text-carbon-blue/60`}
                     />
                   ) : null}
                 </WorkspaceTableBodyCell>
@@ -134,6 +127,7 @@ export function ContactsOperationsTable({
                 <WorkspaceTableBodyCell className={cellTruncate}>
                   <CompanyLink
                     companyId={record.companyId}
+                    showIcon={false}
                     className={`${textTruncate} text-carbon-blue/75 hover:text-upcycle-orange`}
                   >
                     {record.companyName}
@@ -171,16 +165,13 @@ function BuyingRoleCell({
 
   if (!onContactUpdate) {
     return (
-      <span
-        className={
-          unknown ? `${textTruncate} font-medium text-upcycle-orange` : `${textTruncate} text-carbon-blue/70`
-        }
-      >
-        {buyingRole ?? "Unknown"}
+      <span className={`${textTruncate} ${unknown ? "text-carbon-blue/65" : "text-carbon-blue/75"}`}>
+        {unknown ? "Not set" : buyingRole}
       </span>
     );
   }
 
+  // Unknown is the normal state for most people — a quiet dashed affordance, not an alarm.
   return (
     <BuyingRoleSelect
       value={buyingRole}
@@ -191,8 +182,10 @@ function BuyingRoleCell({
           buyingRole: (next ?? "") as BuyingRole,
         }).finally(() => setBusy(false));
       }}
-      className={`w-full min-w-0 border bg-white px-1.5 py-1 text-[12px] outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 ${
-        unknown ? "border-upcycle-orange/35 text-upcycle-orange" : "border-carbon-blue/15 text-carbon-blue"
+      className={`w-full min-w-0 bg-transparent px-1.5 py-1 text-[13px] outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 ${
+        unknown
+          ? "border border-dashed border-carbon-blue/25 text-carbon-blue/50 hover:border-carbon-blue/45"
+          : "border border-transparent text-carbon-blue hover:border-carbon-blue/20"
       }`}
     />
   );

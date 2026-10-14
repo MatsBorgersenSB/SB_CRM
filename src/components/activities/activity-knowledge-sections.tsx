@@ -92,12 +92,12 @@ export function ActivityKnowledgeSections({ activity }: { activity: Activity }) 
                 <span>
                   {action.text}
                   {action.dueDate ? (
-                    <span className="ml-1 text-xs text-carbon-blue/45">
+                    <span className="ml-1 text-xs text-carbon-blue/65">
                       · Due {formatDueDate(action.dueDate)}
                     </span>
                   ) : null}
                   {action.status ? (
-                    <span className="ml-1 text-xs text-carbon-blue/40">· {action.status}</span>
+                    <span className="ml-1 text-xs text-carbon-blue/60">· {action.status}</span>
                   ) : null}
                 </span>
               </li>
@@ -115,11 +115,11 @@ export function ActivityKnowledgeSections({ activity }: { activity: Activity }) 
                 className="flex items-start justify-between gap-2 text-sm text-carbon-blue/80"
               >
                 <span className="flex items-center gap-2">
-                  <User className="size-4 shrink-0 text-carbon-blue/40" />
+                  <User className="size-4 shrink-0 text-carbon-blue/60" />
                   {stakeholder.name}
                 </span>
                 {stakeholder.role ? (
-                  <span className="text-xs text-carbon-blue/45">{stakeholder.role}</span>
+                  <span className="text-xs text-carbon-blue/65">{stakeholder.role}</span>
                 ) : null}
               </li>
             ))}
@@ -146,7 +146,7 @@ export function ActivityKnowledgeSections({ activity }: { activity: Activity }) 
               <Link
                 key={deal.Title}
                 href={`/opportunities/${encodeURIComponent(deal.Title)}`}
-                className="inline-flex items-center gap-1.5 border border-carbon-blue/10 px-2.5 py-1 font-mono text-[11px] text-upcycle-orange hover:border-upcycle-orange/30"
+                className="inline-flex items-center gap-1.5 border border-carbon-blue/10 px-2.5 py-1 font-mono text-[12px] text-upcycle-orange hover:border-upcycle-orange/30"
               >
                 <Workflow className="size-3" />
                 {deal.Title}
@@ -173,7 +173,7 @@ export function ActivityKnowledgeSections({ activity }: { activity: Activity }) 
               <p className="text-sm text-carbon-blue/80">
                 {memory.smartAssistAssessment.summary}
               </p>
-              <p className="mt-2 text-xs text-carbon-blue/45">
+              <p className="mt-2 text-xs text-carbon-blue/65">
                 Completeness: {memory.smartAssistAssessment.completenessScore}% · Confidence:{" "}
                 {memory.smartAssistAssessment.confidence}
               </p>
@@ -217,7 +217,7 @@ function KnowledgeSectionCard({
 
   return (
     <section className={`dashboard-card p-5 ${className}`}>
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
         {label}
       </h2>
       <div className="mt-3">{children}</div>

@@ -24,13 +24,13 @@ export function OpportunitySmartAssistBrief({
           <Bot className="size-4" strokeWidth={2} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-upcycle-orange">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
             SmartAssist Opportunity Brief · {dealName}
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {QUESTIONS.map((question) => (
               <div key={question.key} className="min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-carbon-blue/35">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-carbon-blue/50">
                   {question.label}
                 </p>
                 {question.key === "forgetting" ? (
@@ -38,14 +38,14 @@ export function OpportunitySmartAssistBrief({
                     {brief.forgetting.map((item) => (
                       <li
                         key={item}
-                        className="text-[11px] leading-snug text-carbon-blue/70"
+                        className="text-[12px] leading-snug text-carbon-blue/70"
                       >
                         · {item}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-1 text-[12px] font-medium leading-snug text-carbon-blue">
+                  <p className="mt-1 text-[13px] font-medium leading-snug text-carbon-blue">
                     {brief[question.key]}
                   </p>
                 )}

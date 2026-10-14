@@ -23,24 +23,18 @@ const PRIORITY_STYLES: Record<
   },
 };
 
-function focusEmoji(priority: FocusPriority): string {
-  if (priority === "critical") return "🔴";
-  if (priority === "high") return "🟠";
-  return "🟢";
-}
-
 export function DashboardFocusHero({ items }: { items: FocusItem[] }) {
   return (
     <section className="dashboard-card overflow-hidden">
       <header className="flex items-center justify-between border-b border-carbon-blue/8 px-5 py-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
             Command Center
           </p>
           <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-carbon-blue">
             Today&apos;s Focus
           </h2>
-          <p className="mt-1 text-xs text-carbon-blue/45">
+          <p className="mt-1 text-xs text-carbon-blue/65">
             What needs your attention right now
           </p>
         </div>
@@ -56,7 +50,7 @@ export function DashboardFocusHero({ items }: { items: FocusItem[] }) {
       {items.length === 0 ? (
         <div className="flex min-h-[200px] flex-col items-center justify-center px-6 py-10 text-center">
           <p className="text-base font-medium text-carbon-blue/70">All clear</p>
-          <p className="mt-1 max-w-sm text-sm text-carbon-blue/45">
+          <p className="mt-1 max-w-sm text-sm text-carbon-blue/65">
             No overdue actions or urgent opportunities. Your relationships are on track.
           </p>
         </div>
@@ -70,16 +64,14 @@ export function DashboardFocusHero({ items }: { items: FocusItem[] }) {
                   href={item.href}
                   className={`group flex items-start gap-4 px-5 py-4 transition-colors hover:${style.bg} hover:bg-carbon-blue/[0.02]`}
                 >
-                  <span className="mt-1 text-base leading-none" aria-hidden>
-                    {focusEmoji(item.priority)}
-                  </span>
+                  <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${style.dot}`} aria-hidden />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-carbon-blue group-hover:text-upcycle-orange">
                       {item.title}
                     </p>
                     <p className="mt-0.5 text-xs text-carbon-blue/55">{item.subtitle}</p>
                     {item.companyName ? (
-                      <p className="mt-1 text-[11px] font-medium text-carbon-blue/40">
+                      <p className="mt-1 text-[12px] font-medium text-carbon-blue/60">
                         {item.companyName}
                       </p>
                     ) : null}

@@ -165,7 +165,7 @@ export function ActionMenuItem({
   external?: boolean;
 }) {
   const className =
-    "block w-full px-3 py-1.5 text-left text-[11px] text-carbon-blue/75 hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange";
+    "block w-full px-3 py-1.5 text-left text-[12px] text-carbon-blue/75 hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange";
 
   if (href) {
     return (

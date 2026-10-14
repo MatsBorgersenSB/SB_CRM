@@ -39,7 +39,7 @@ export function ContactsWorkspaceHeader({
           <SmartCRMIcon name="contact" size="md" label="Contacts" />
           People
         </h1>
-        <p className="mt-1 text-[11px] text-carbon-blue/50">
+        <p className="mt-1 text-[12px] text-carbon-blue/50">
           The people behind the relationships — their role, their buying role, and when we last spoke.
         </p>
       </div>

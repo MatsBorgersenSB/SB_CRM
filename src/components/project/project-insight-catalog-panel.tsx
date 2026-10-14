@@ -44,7 +44,7 @@ export function ProjectInsightCatalogPanel({
             >
               <p className={EDITORIAL_LABEL}>{INSIGHT_CATEGORY_LABELS[section.label]}</p>
               {items.length === 0 ? (
-                <p className={`mt-2 ${EDITORIAL_EMPTY} text-[12px]`}>None yet</p>
+                <p className={`mt-2 ${EDITORIAL_EMPTY} text-[13px]`}>None yet</p>
               ) : (
                 <ul className="mt-3 space-y-3">
                   {items.slice(0, compact ? 3 : 6).map((insight) => (
@@ -53,7 +53,7 @@ export function ProjectInsightCatalogPanel({
                 </ul>
               )}
               {compact && items.length > 3 ? (
-                <p className="mt-2 text-[11px] text-carbon-blue/45">
+                <p className="mt-2 text-[12px] text-carbon-blue/65">
                   +{items.length - 3} more in full view
                 </p>
               ) : null}

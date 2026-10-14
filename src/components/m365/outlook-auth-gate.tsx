@@ -290,16 +290,16 @@ function SignInToSmartCrmCard({
   return (
     <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
       <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
           Relationship intelligence stays in SmartCRM. Sign in with your Microsoft work
           account — then this pane answers what matters and what to do next.
         </p>
         {verifying ? (
-          <p className="mt-3 text-[10px] text-carbon-blue/40">Checking session…</p>
+          <p className="mt-3 text-[11px] text-carbon-blue/60">Checking session…</p>
         ) : null}
         <button
           type="button"
@@ -308,18 +308,18 @@ function SignInToSmartCrmCard({
               openSignInInBrowser(signInUrl);
             });
           }}
-          className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+          className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
         >
           Sign In to SmartCRM
         </button>
-        <p className="mt-3 text-[10px] leading-relaxed text-carbon-blue/45">
+        <p className="mt-3 text-[11px] leading-relaxed text-carbon-blue/65">
           Use the button above inside Outlook. Opening sign-in in a separate browser tab
           cannot pass the session into this pane.
         </p>
         {traceLines.length > 0 ? (
           <div className="mt-3 border border-carbon-blue/10 bg-white/60 p-2">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/50">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/50">
                 Temporary auth trace
               </p>
               <button
@@ -334,7 +334,7 @@ function SignInToSmartCrmCard({
                       setCopyState("failed");
                     });
                 }}
-                className="text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange"
+                className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange"
               >
                 {copyState === "copied"
                   ? "Copied"
@@ -343,7 +343,7 @@ function SignInToSmartCrmCard({
                     : "Copy trace"}
               </button>
             </div>
-            <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap text-[9px] leading-relaxed text-carbon-blue/55">
+            <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap text-[10px] leading-relaxed text-carbon-blue/55">
               {traceText}
             </pre>
           </div>
@@ -530,7 +530,7 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
         data-smartcrm-connecting=""
         className="flex h-[100dvh] items-center justify-center bg-white px-6"
       >
-        <p className="text-[12px] text-carbon-blue/50">Connecting to SmartCRM…</p>
+        <p className="text-[13px] text-carbon-blue/50">Connecting to SmartCRM…</p>
       </div>
     );
   }
@@ -538,11 +538,11 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
   if (state.status === "wrong-host") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">Wrong add-in host</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
           This task pane is loading from{" "}
           <span className="font-medium text-carbon-blue">{state.host}</span>, which is
           not supported for Outlook sign-in. Remove older/preview add-ins, then
@@ -563,15 +563,15 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
   if (state.status === "error") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">Session check failed</p>
-        <p className="mt-1 text-[11px] text-carbon-blue/50">{state.message}</p>
+        <p className="mt-1 text-[12px] text-carbon-blue/50">{state.message}</p>
         <button
           type="button"
           onClick={() => void checkSession("hard")}
-          className="mt-4 border border-carbon-blue/15 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue"
+          className="mt-4 border border-carbon-blue/15 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue"
         >
           Retry
         </button>

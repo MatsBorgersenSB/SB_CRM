@@ -58,7 +58,7 @@ const INPUT =
   "mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40 disabled:bg-carbon-blue/[0.03] disabled:text-carbon-blue/70";
 const TEXTAREA =
   "mt-1 w-full resize-none border border-carbon-blue/12 bg-carbon-blue/[0.015] px-3 py-2.5 text-sm leading-relaxed text-carbon-blue outline-none focus:border-upcycle-orange/40";
-const LABEL = "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40";
+const LABEL = "text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60";
 const SECONDARY_BUTTON =
   "border border-carbon-blue/15 bg-white px-3 py-2 text-left text-xs font-medium text-carbon-blue hover:border-upcycle-orange/40 disabled:opacity-40";
 
@@ -460,7 +460,7 @@ function ActivityForm({
               {eventProposal ? (
                 <div className="border border-carbon-blue/12 bg-white">
                   <div className="border-b border-carbon-blue/8 px-3 py-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange">
                       SmartAssist found this event
                     </p>
                     <p className="mt-1 text-sm font-semibold text-carbon-blue">
@@ -509,14 +509,14 @@ function ActivityForm({
                   {eventReading ? "Reading…" : "Let SmartAssist read it"}
                 </button>
               )}
-              {eventError ? <p className="text-[11px] text-orange-800">{eventError}</p> : null}
+              {eventError ? <p className="text-[12px] text-orange-800">{eventError}</p> : null}
             </div>
           ) : null}
 
           <label className="block">
             <span className={LABEL}>{isEvent ? "Event name" : "Title"}</span>
             {eventFromAssist ? (
-              <span className="ml-2 text-[10px] font-semibold text-upcycle-orange">
+              <span className="ml-2 text-[11px] font-semibold text-upcycle-orange">
                 Proposed by SmartAssist — check and adjust
               </span>
             ) : null}
@@ -600,7 +600,7 @@ function ActivityForm({
                 />
               </label>
               {eventThemes.length ? (
-                <p className="-mt-2 text-[11px] text-carbon-blue/55">Themes · {eventThemes.join(" · ")}</p>
+                <p className="-mt-2 text-[12px] text-carbon-blue/55">Themes · {eventThemes.join(" · ")}</p>
               ) : null}
             </>
           ) : (
@@ -864,7 +864,7 @@ function ActivityForm({
             </div>
           )}
 
-          {error ? <p className="text-[11px] text-orange-800">{error}</p> : null}
+          {error ? <p className="text-[12px] text-orange-800">{error}</p> : null}
         </div>
 
         <footer className="flex items-center justify-end gap-2 border-t border-carbon-blue/10 px-5 py-3">

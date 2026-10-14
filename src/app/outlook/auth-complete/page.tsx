@@ -100,7 +100,7 @@ export default function OutlookAuthCompletePage() {
 
   return (
     <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-white px-6 text-center">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
         SmartCRM
       </p>
       {state.status === "working" ? (
@@ -108,7 +108,7 @@ export default function OutlookAuthCompletePage() {
           <h1 className="mt-2 text-base font-semibold text-carbon-blue">
             Finishing sign-in…
           </h1>
-          <p className="mt-1 max-w-sm text-[12px] text-carbon-blue/50">
+          <p className="mt-1 max-w-sm text-[13px] text-carbon-blue/50">
             Returning you to the Outlook task pane.
           </p>
         </>
@@ -118,7 +118,7 @@ export default function OutlookAuthCompletePage() {
           <h1 className="mt-2 text-base font-semibold text-carbon-blue">
             You&apos;re signed in
           </h1>
-          <p className="mt-1 max-w-sm text-[12px] text-carbon-blue/50">
+          <p className="mt-1 max-w-sm text-[13px] text-carbon-blue/50">
             You can close this window and return to Outlook.
           </p>
         </>
@@ -128,10 +128,10 @@ export default function OutlookAuthCompletePage() {
           <h1 className="mt-2 text-base font-semibold text-carbon-blue">
             Sign-in incomplete
           </h1>
-          <p className="mt-1 max-w-sm text-[12px] text-carbon-blue/50">{state.message}</p>
+          <p className="mt-1 max-w-sm text-[13px] text-carbon-blue/50">{state.message}</p>
           <a
             href={`/auth/signin?callbackUrl=${encodeURIComponent("/outlook/auth-complete")}`}
-            className="mt-4 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white"
+            className="mt-4 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white"
           >
             Try again
           </a>

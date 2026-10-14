@@ -61,7 +61,7 @@ export function Company360RelationshipPulse({ snapshot }: { snapshot: Company360
                   {signal.label}
                 </p>
                 {signal.detail ? (
-                  <p className="mt-0.5 text-[11px] text-carbon-blue/55">{signal.detail}</p>
+                  <p className="mt-0.5 text-[12px] text-carbon-blue/55">{signal.detail}</p>
                 ) : null}
                 <ImpactContext items={signal.impact} />
               </li>

@@ -291,7 +291,7 @@ export function OpportunitiesOperationsShell({
 
             <div className={`mt-6 ${EDITORIAL_GAP_BLOCK}`}>
               <div>
-                <p className="text-[11px] font-medium text-carbon-blue/45">Attention management</p>
+                <p className="text-[12px] font-medium text-carbon-blue/65">Attention management</p>
                 <h2 className="mt-1 text-lg font-semibold leading-snug tracking-tight text-carbon-blue">
                   {workspace.understanding.headline}
                 </h2>

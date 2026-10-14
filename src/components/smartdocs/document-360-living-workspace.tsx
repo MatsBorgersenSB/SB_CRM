@@ -32,19 +32,19 @@ export function Document360LivingWorkspace({
       <WorkspacePanel title="Business Context">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/55">Opportunity</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/55">Opportunity</p>
             <p className="mt-1 text-sm font-semibold text-carbon-blue">{businessContext.dealName}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/55">Client</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/55">Client</p>
             <p className="mt-1 text-sm text-carbon-blue/75">{businessContext.clientName}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/55">Stage</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/55">Stage</p>
             <p className="mt-1 text-sm text-carbon-blue/75">{businessContext.commercialStage}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/55">PL Number</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/55">PL Number</p>
             <p className="mt-1 font-mono text-sm text-carbon-blue/65">{businessContext.plNumber}</p>
           </div>
         </div>

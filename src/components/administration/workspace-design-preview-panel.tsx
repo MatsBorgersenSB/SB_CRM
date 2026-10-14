@@ -13,7 +13,7 @@ function ReadinessBadge({ score }: { score: number }) {
         : "border-thermal-red/25 bg-thermal-red/[0.06] text-thermal-red";
 
   return (
-    <span className={`border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${tone}`}>
+    <span className={`border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${tone}`}>
       {score}% ready
     </span>
   );
@@ -32,7 +32,7 @@ export function WorkspaceDesignPreviewPanel({
     <div className="flex flex-col gap-5 border border-upcycle-orange/20 bg-upcycle-orange/[0.03] p-4 sm:p-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
             SmartAssist · Workspace Design
           </p>
           <h3 className="mt-1 text-base font-semibold text-carbon-blue">{design.readinessLabel}</h3>
@@ -56,7 +56,7 @@ export function WorkspaceDesignPreviewPanel({
                 : "border-carbon-blue/10 bg-white/80"
             }`}
           >
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               {vital.label}
             </p>
             <p className="mt-0.5 text-sm font-semibold text-carbon-blue">{vital.value}</p>
@@ -65,7 +65,7 @@ export function WorkspaceDesignPreviewPanel({
       </div>
 
       <div>
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Architecture layers
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -79,12 +79,12 @@ export function WorkspaceDesignPreviewPanel({
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold text-carbon-blue">{layer.label}</p>
-                <span className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                <p className="text-[12px] font-semibold text-carbon-blue">{layer.label}</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/65">
                   {layer.configured ? "Aligned" : "Configure"}
                 </span>
               </div>
-              <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/60">{layer.summary}</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/60">{layer.summary}</p>
             </article>
           ))}
         </div>
@@ -92,7 +92,7 @@ export function WorkspaceDesignPreviewPanel({
 
       {design.recommendations.length > 0 ? (
         <div>
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Recommended actions
           </p>
           <div className="grid gap-3 xl:grid-cols-2">
@@ -104,12 +104,12 @@ export function WorkspaceDesignPreviewPanel({
       ) : null}
 
       <div>
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Next steps
         </p>
         <ul className="space-y-1.5">
           {design.nextSteps.map((step) => (
-            <li key={step} className="text-[12px] text-carbon-blue/65">
+            <li key={step} className="text-[13px] text-carbon-blue/65">
               · {step}
             </li>
           ))}
@@ -118,12 +118,12 @@ export function WorkspaceDesignPreviewPanel({
 
       {onApprove ? (
         <div className="border-t border-carbon-blue/10 pt-4">
-          <p className="mb-3 text-[12px] text-carbon-blue/55">{WORKSPACE_ARCHITECT.mantra}</p>
+          <p className="mb-3 text-[13px] text-carbon-blue/55">{WORKSPACE_ARCHITECT.mantra}</p>
           <button
             type="button"
             disabled={approving || design.approved}
             onClick={onApprove}
-            className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {design.approved
               ? "Design approved"

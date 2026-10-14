@@ -22,7 +22,7 @@ import {
 export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[] }) {
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-carbon-blue/45">
+      <p className="text-sm text-carbon-blue/65">
         No companies match this filter. Try another view or broaden your search.
       </p>
     );
@@ -57,13 +57,13 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
                 {row.companyName}
               </Link>
               {row.locationLabel && row.locationLabel !== "—" ? (
-                <span className="block truncate text-[11px] text-carbon-blue/45">
+                <span className="block truncate text-[12px] text-carbon-blue/65">
                   {row.locationLabel}
                 </span>
               ) : null}
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
-              <CompanyTypeBadges types={row.companyTypes} size="sm" />
+              <CompanyTypeBadges types={row.companyTypes} size="sm" compact />
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
               {row.attentionLabel ? (
@@ -72,7 +72,7 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
                   <span className="line-clamp-2 text-carbon-blue/80">{row.attentionLabel}</span>
                 </span>
               ) : (
-                <span className="text-carbon-blue/35">—</span>
+                <span className="text-carbon-blue/50">—</span>
               )}
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell className="text-right">
@@ -82,12 +82,12 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
                   className="block font-semibold tabular-nums text-carbon-blue hover:text-upcycle-orange"
                 >
                   {row.pipelineValueLabel}
-                  <span className="block text-[11px] font-normal text-carbon-blue/45">
+                  <span className="block text-[12px] font-normal text-carbon-blue/65">
                     {row.openOpportunities} open
                   </span>
                 </Link>
               ) : (
-                <span className="text-carbon-blue/35">—</span>
+                <span className="text-carbon-blue/50">—</span>
               )}
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
@@ -99,7 +99,7 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
                   {row.ownerLabel}
                 </Link>
               ) : (
-                <span className="text-carbon-blue/35">—</span>
+                <span className="text-carbon-blue/50">—</span>
               )}
             </WorkspaceTableBodyCell>
           </WorkspaceTableBodyRow>

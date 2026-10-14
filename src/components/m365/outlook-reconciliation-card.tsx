@@ -72,18 +72,18 @@ export function OutlookReconciliationCard({
       <header className="border-b border-carbon-blue/10 px-3 py-2.5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-upcycle-orange">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
               Outlook activity found
             </p>
             <h3 className="text-sm font-semibold text-carbon-blue">{candidate.entityLabel}</h3>
             {candidate.companyName ? (
-              <p className="mt-0.5 text-[10px] text-carbon-blue/50">{candidate.companyName}</p>
+              <p className="mt-0.5 text-[11px] text-carbon-blue/50">{candidate.companyName}</p>
             ) : null}
           </div>
           {!compact ? (
             <Link
               href={candidate.resolutionHref}
-              className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
+              className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
             >
               Open →
             </Link>
@@ -93,7 +93,7 @@ export function OutlookReconciliationCard({
 
       <dl className="grid gap-2 px-3 py-3 sm:grid-cols-2">
         <div>
-          <dt className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+          <dt className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
             Emails
           </dt>
           <dd className="mt-0.5 text-xs font-semibold text-carbon-blue">
@@ -101,7 +101,7 @@ export function OutlookReconciliationCard({
           </dd>
         </div>
         <div>
-          <dt className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+          <dt className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
             Last email
           </dt>
           <dd className="mt-0.5 text-xs text-carbon-blue/70">
@@ -110,7 +110,7 @@ export function OutlookReconciliationCard({
         </div>
         {candidate.outlookTeamsMeetingCount > 0 ? (
           <div>
-            <dt className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+            <dt className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
               Teams meetings
             </dt>
             <dd className="mt-0.5 text-xs text-carbon-blue/70">
@@ -120,7 +120,7 @@ export function OutlookReconciliationCard({
         ) : null}
         {candidate.outlookCalendarEventCount > 0 ? (
           <div>
-            <dt className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+            <dt className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
               Calendar events
             </dt>
             <dd className="mt-0.5 text-xs text-carbon-blue/70">
@@ -129,7 +129,7 @@ export function OutlookReconciliationCard({
           </div>
         ) : null}
         <div className="sm:col-span-2">
-          <dt className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+          <dt className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
             CRM activity
           </dt>
           <dd className="mt-0.5 text-xs text-carbon-blue/70">
@@ -141,10 +141,10 @@ export function OutlookReconciliationCard({
       </dl>
 
       <div className="border-t border-carbon-blue/8 bg-upcycle-orange/[0.03] px-3 py-2.5">
-        <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
           Recommendation
         </p>
-        <p className="mt-0.5 text-[11px] text-carbon-blue/70">{candidate.recommendedAction}</p>
+        <p className="mt-0.5 text-[12px] text-carbon-blue/70">{candidate.recommendedAction}</p>
 
         <div className="mt-2 flex flex-wrap gap-1.5">
           {IMPORT_ACTIONS.map((action) => (
@@ -153,15 +153,15 @@ export function OutlookReconciliationCard({
               type="button"
               disabled={busy !== null}
               onClick={() => void handleImport(action.mode)}
-              className="border border-upcycle-orange/30 bg-white px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange transition-colors hover:bg-upcycle-orange/10 disabled:opacity-50"
+              className="border border-upcycle-orange/30 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange transition-colors hover:bg-upcycle-orange/10 disabled:opacity-50"
             >
               {busy === action.mode ? "Importing…" : action.label}
             </button>
           ))}
         </div>
 
-        {error ? <p className="mt-2 text-[11px] text-thermal-red">{error}</p> : null}
-        {success ? <p className="mt-2 text-[11px] text-upcycle-orange">{success}</p> : null}
+        {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
+        {success ? <p className="mt-2 text-[12px] text-upcycle-orange">{success}</p> : null}
       </div>
     </article>
   );

@@ -117,7 +117,7 @@ export function AppShell({ initialPipelines, companies, activities }: AppShellPr
             <h1 className="text-sm font-semibold text-carbon-blue">Deals</h1>
             <Link
               href="/opportunities"
-              className="text-[10px] font-semibold text-upcycle-orange hover:underline"
+              className="text-[11px] font-semibold text-upcycle-orange hover:underline"
             >
               Opportunity Command Center
             </Link>

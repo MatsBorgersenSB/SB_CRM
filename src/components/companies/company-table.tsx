@@ -45,7 +45,7 @@ export function CompanyTable({
             {tableHeaders.map((header) => (
               <th
                 key={header}
-                className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+                className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
               >
                 {header}
               </th>
@@ -66,20 +66,20 @@ export function CompanyTable({
                 >
                   {summary.company.Title}
                 </CompanyLink>
-                <p className="mt-0.5 font-mono text-[9px] text-carbon-blue/35">
+                <p className="mt-0.5 font-mono text-[10px] text-carbon-blue/50">
                   {summary.company.code || summary.company.CompanyID}
                 </p>
               </td>
-              <td className="px-3 py-2.5 text-[11px] text-carbon-blue/70">
+              <td className="px-3 py-2.5 text-[12px] text-carbon-blue/70">
                 {summary.company.Industry}
               </td>
-              <td className="px-3 py-2.5 text-[11px] text-carbon-blue/60">
+              <td className="px-3 py-2.5 text-[12px] text-carbon-blue/60">
                 {formatCompanyLocation(summary.company)}
               </td>
               <td className="px-3 py-2.5">
                 <div className="flex items-center gap-1.5">
                   <span
-                    className={`inline-flex min-w-8 items-center justify-center border px-1 py-0.5 text-[10px] font-bold tabular-nums ${HEALTH_STATUS_STYLES[summary.healthStatus]}`}
+                    className={`inline-flex min-w-8 items-center justify-center border px-1 py-0.5 text-[11px] font-bold tabular-nums ${HEALTH_STATUS_STYLES[summary.healthStatus]}`}
                   >
                     {summary.healthScore}
                   </span>
@@ -89,17 +89,17 @@ export function CompanyTable({
               <td className="px-3 py-2.5">
                 <RelationshipTrendBadge trend={summary.trend} />
               </td>
-              <td className="px-3 py-2.5 text-[11px] text-carbon-blue/65">
+              <td className="px-3 py-2.5 text-[12px] text-carbon-blue/65">
                 {summary.lastContactLabel}
               </td>
               <td
-                className={`px-3 py-2.5 text-[11px] font-medium tabular-nums ${
+                className={`px-3 py-2.5 text-[12px] font-medium tabular-nums ${
                   summary.openActions > 0 ? "text-upcycle-orange" : "text-carbon-blue/65"
                 }`}
               >
                 {summary.openActions}
               </td>
-              <td className="px-3 py-2.5 text-[11px] font-medium tabular-nums text-carbon-blue/65">
+              <td className="px-3 py-2.5 text-[12px] font-medium tabular-nums text-carbon-blue/65">
                 {summary.activeDeals}
               </td>
             </tr>

@@ -38,11 +38,11 @@ function KpiCard({
   return (
     <div className="border border-carbon-blue/15 bg-white px-3 py-3">
       <div className="mb-2 h-0.5 w-8 bg-upcycle-orange/70" />
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {label}
       </p>
       <p className="mt-1 text-lg font-semibold tabular-nums text-carbon-blue">{value}</p>
-      {hint ? <p className="mt-1 text-[10px] text-carbon-blue/45">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-[11px] text-carbon-blue/65">{hint}</p> : null}
     </div>
   );
 }
@@ -63,13 +63,13 @@ function BreakdownBars({
       </div>
       <div className="space-y-3 px-4 py-4">
         {rows.length === 0 ? (
-          <p className="text-[12px] text-slate-500">No data yet.</p>
+          <p className="text-[13px] text-slate-500">No data yet.</p>
         ) : (
           rows.map((row) => {
             const width = row.max > 0 ? Math.max(4, Math.round((row.value / row.max) * 100)) : 0;
             return (
               <div key={row.label}>
-                <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
+                <div className="mb-1 flex items-center justify-between gap-2 text-[12px]">
                   <span className="font-medium text-slate-700 dark:text-slate-200">
                     {row.label}
                   </span>
@@ -237,12 +237,12 @@ export function AnalyticsReportingWorkspace({
           <h1 className="text-sm font-semibold text-carbon-blue">
             Analytics & Reporting
           </h1>
-          <p className="text-[10px] text-carbon-blue/45">
+          <p className="text-[11px] text-carbon-blue/65">
             FS-014 · Pipeline win/loss, velocity, and weighted forecast
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="border border-carbon-blue/15 bg-carbon-blue/[0.03] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/60">
+          <span className="border border-carbon-blue/15 bg-carbon-blue/[0.03] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             {enterpriseRole}
           </span>
           <RoleSwitcher companies={companies} />
@@ -252,9 +252,9 @@ export function AnalyticsReportingWorkspace({
       <main className="flex-1 overflow-auto p-3">
         <div className="flex flex-col gap-3">
           {loading ? (
-            <p className="text-[12px] text-carbon-blue/50">Loading analytics…</p>
+            <p className="text-[13px] text-carbon-blue/50">Loading analytics…</p>
           ) : error ? (
-            <p className="text-[12px] text-thermal-red">{error}</p>
+            <p className="text-[13px] text-thermal-red">{error}</p>
           ) : overview && winLoss && velocity && forecast ? (
             <>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -301,7 +301,7 @@ export function AnalyticsReportingWorkspace({
                       <h2 className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">
                         Deal export
                       </h2>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[12px] text-slate-500">
                         Filter by date, stage, and owner — then download CSV.
                       </p>
                     </div>
@@ -309,7 +309,7 @@ export function AnalyticsReportingWorkspace({
                       type="button"
                       disabled={!canExport || exporting}
                       onClick={() => void downloadCsv()}
-                      className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                       title={
                         canExport
                           ? "Download CSV report"
@@ -324,37 +324,37 @@ export function AnalyticsReportingWorkspace({
 
                 <div className="space-y-3 px-4 py-4">
                   {!canExport ? (
-                    <p className="text-[11px] text-amber-700">
+                    <p className="text-[12px] text-amber-700">
                       CSV export is restricted to ADMIN and MANAGER roles. Your enterprise role
                       is {enterpriseRole}.
                     </p>
                   ) : null}
 
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                       From
                       <input
                         type="date"
                         value={from}
                         onChange={(event) => setFrom(event.target.value)}
-                        className="border border-carbon-blue/15 px-2 py-1.5 text-[12px] font-medium normal-case tracking-normal text-carbon-blue"
+                        className="border border-carbon-blue/15 px-2 py-1.5 text-[13px] font-medium normal-case tracking-normal text-carbon-blue"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                       To
                       <input
                         type="date"
                         value={to}
                         onChange={(event) => setTo(event.target.value)}
-                        className="border border-carbon-blue/15 px-2 py-1.5 text-[12px] font-medium normal-case tracking-normal text-carbon-blue"
+                        className="border border-carbon-blue/15 px-2 py-1.5 text-[13px] font-medium normal-case tracking-normal text-carbon-blue"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                       Stage
                       <select
                         value={stage}
                         onChange={(event) => setStage(event.target.value)}
-                        className="border border-carbon-blue/15 px-2 py-1.5 text-[12px] font-medium normal-case tracking-normal text-carbon-blue"
+                        className="border border-carbon-blue/15 px-2 py-1.5 text-[13px] font-medium normal-case tracking-normal text-carbon-blue"
                       >
                         <option value="">All stages</option>
                         {stageOptions.map((value) => (
@@ -364,25 +364,25 @@ export function AnalyticsReportingWorkspace({
                         ))}
                       </select>
                     </label>
-                    <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                       Owner
                       <input
                         type="text"
                         value={owner}
                         onChange={(event) => setOwner(event.target.value)}
                         placeholder="Name or id…"
-                        className="border border-carbon-blue/15 px-2 py-1.5 text-[12px] font-medium normal-case tracking-normal text-carbon-blue"
+                        className="border border-carbon-blue/15 px-2 py-1.5 text-[13px] font-medium normal-case tracking-normal text-carbon-blue"
                       />
                     </label>
                   </div>
 
                   {exportError ? (
-                    <p className="text-[11px] text-thermal-red">{exportError}</p>
+                    <p className="text-[12px] text-thermal-red">{exportError}</p>
                   ) : null}
 
                   <div className="overflow-x-auto border border-carbon-blue/10">
-                    <table className="min-w-full text-left text-[11px]">
-                      <thead className="bg-carbon-blue/[0.03] text-[9px] uppercase tracking-wider text-carbon-blue/45">
+                    <table className="min-w-full text-left text-[12px]">
+                      <thead className="bg-carbon-blue/[0.03] text-[10px] uppercase tracking-wider text-carbon-blue/65">
                         <tr>
                           <th className="px-3 py-2 font-semibold">Metric</th>
                           <th className="px-3 py-2 font-semibold">Value</th>

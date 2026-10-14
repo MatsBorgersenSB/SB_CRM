@@ -72,12 +72,12 @@ export function GrowthDashboard({ snapshot }: { snapshot: GrowthIntelligenceSnap
 
       {operatingLoop.unknowns.length > 0 ? (
         <section className="dashboard-card p-4 sm:p-5">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             What we don’t know
           </h2>
           <ul className="mt-3 space-y-1.5">
             {operatingLoop.unknowns.map((item) => (
-              <li key={item} className="text-[12px] leading-relaxed text-carbon-blue/65">
+              <li key={item} className="text-[13px] leading-relaxed text-carbon-blue/65">
                 {item}
               </li>
             ))}
@@ -88,12 +88,12 @@ export function GrowthDashboard({ snapshot }: { snapshot: GrowthIntelligenceSnap
       {liveDeals.length > 0 ? (
         <section className="dashboard-card p-4 sm:p-5">
           <header className="mb-3 flex items-center justify-between">
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
               Live pipeline
             </h2>
             <Link
               href="/opportunities"
-              className="text-[10px] font-semibold text-upcycle-orange hover:underline"
+              className="text-[11px] font-semibold text-upcycle-orange hover:underline"
             >
               All opportunities
             </Link>
@@ -105,13 +105,13 @@ export function GrowthDashboard({ snapshot }: { snapshot: GrowthIntelligenceSnap
                   href={deal.href}
                   className="block rounded-lg border border-carbon-blue/10 px-3 py-2.5 hover:border-upcycle-orange/20"
                 >
-                  <p className="text-[12px] font-semibold text-carbon-blue">{deal.name}</p>
-                  <p className="mt-0.5 text-[11px] text-carbon-blue/55">
+                  <p className="text-[13px] font-semibold text-carbon-blue">{deal.name}</p>
+                  <p className="mt-0.5 text-[12px] text-carbon-blue/55">
                     {deal.companyName} · {deal.status}
                   </p>
-                  <p className="mt-1 text-[11px] text-carbon-blue/70">Next: {deal.nextStep}</p>
+                  <p className="mt-1 text-[12px] text-carbon-blue/70">Next: {deal.nextStep}</p>
                   {deal.offer ? (
-                    <p className="mt-1 text-[11px] font-medium text-upcycle-orange">
+                    <p className="mt-1 text-[12px] font-medium text-upcycle-orange">
                       Offer: {deal.offer}
                       {deal.offerWhy ? ` — ${deal.offerWhy}` : ""}
                     </p>
@@ -137,7 +137,7 @@ function OperatingSection({
 }) {
   return (
     <section className="dashboard-card p-4 sm:p-5">
-      <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
         {title}
       </h2>
       {actions.length === 0 ? (
@@ -151,13 +151,13 @@ function OperatingSection({
                 className="block rounded-lg border border-carbon-blue/10 px-3 py-2.5 hover:border-upcycle-orange/20"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="text-[12px] font-semibold text-carbon-blue">{action.title}</p>
-                  <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+                  <p className="text-[13px] font-semibold text-carbon-blue">{action.title}</p>
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
                     {EVIDENCE_LABEL[action.evidence]}
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/60">{action.why}</p>
-                <p className="mt-1 text-[11px] font-medium text-upcycle-orange">{action.next}</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/60">{action.why}</p>
+                <p className="mt-1 text-[12px] font-medium text-upcycle-orange">{action.next}</p>
                 <GrowthImpactBlock items={[action.impact]} />
               </Link>
             </li>

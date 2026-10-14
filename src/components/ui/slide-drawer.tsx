@@ -42,7 +42,7 @@ type SlideDrawerProps = {
 
 function DocIntelligenceBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+    <span className="inline-flex items-center border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange">
       {label}
     </span>
   );
@@ -101,7 +101,7 @@ function SmartDocsColumnList({ document }: { document: SmartDocsDocument }) {
           key={row.key}
           className="grid grid-cols-[96px_1fr] border-b border-carbon-blue/10 last:border-b-0"
         >
-          <dt className="border-r border-carbon-blue/10 px-2 py-1.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <dt className="border-r border-carbon-blue/10 px-2 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             {row.key}
           </dt>
           <dd className="min-w-0 px-2 py-1.5">
@@ -109,7 +109,7 @@ function SmartDocsColumnList({ document }: { document: SmartDocsDocument }) {
               <DocIntelligenceBadge label={row.value} />
             ) : (
               <span
-                className={`block truncate text-[10px] text-carbon-blue ${
+                className={`block truncate text-[11px] text-carbon-blue ${
                   row.key === "FileLeafRef" ? "font-mono" : ""
                 }`}
                 title={row.value}
@@ -255,10 +255,10 @@ function DocumentUploadZone({
       className="mb-3 border border-carbon-blue/10"
     >
       <div className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-1.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           SmartDocs Parse
         </p>
-        <span className="font-mono text-[9px] text-carbon-blue/45">Gemini 3.5 Flash</span>
+        <span className="font-mono text-[10px] text-carbon-blue/65">Gemini 3.5 Flash</span>
       </div>
 
       <div
@@ -301,14 +301,14 @@ function DocumentUploadZone({
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium text-carbon-blue">
+            <p className="text-[12px] font-medium text-carbon-blue">
               {parsing
                 ? "Analyzing document…"
                 : isDragOver
                   ? "Release to parse"
                   : "Drop file or click to upload"}
             </p>
-            <p className="mt-0.5 truncate font-mono text-[10px] text-carbon-blue/45">
+            <p className="mt-0.5 truncate font-mono text-[11px] text-carbon-blue/65">
               {fileName ?? "PL-1042_Financial-Invoice.01 Q3 Report.pdf"}
             </p>
           </div>
@@ -384,7 +384,7 @@ export function SlideDrawer({
         <header className="flex items-start justify-between border-b border-carbon-blue/10 px-4 py-3">
           <div className="min-w-0">
             {subtitle ? (
-              <p className="truncate font-mono text-[10px] text-carbon-blue/45">
+              <p className="truncate font-mono text-[11px] text-carbon-blue/65">
                 {subtitle}
               </p>
             ) : null}
@@ -406,7 +406,7 @@ export function SlideDrawer({
             <button
               type="button"
               onClick={onBack}
-              className="mb-3 border border-carbon-blue/10 px-2 py-1 text-[10px] font-medium text-carbon-blue/55 transition-colors hover:border-carbon-blue/20 hover:text-carbon-blue"
+              className="mb-3 border border-carbon-blue/10 px-2 py-1 text-[11px] font-medium text-carbon-blue/55 transition-colors hover:border-carbon-blue/20 hover:text-carbon-blue"
             >
               ← {backLabel ?? "Back"}
             </button>

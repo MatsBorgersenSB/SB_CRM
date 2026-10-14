@@ -41,7 +41,7 @@ export function OpportunitiesWorkspaceHeader({
             <SmartCRMIcon name="opportunity" size="md" label="Opportunities" />
             Opportunities
           </h1>
-          <p className="mt-1 text-[11px] text-carbon-blue/50">{subtitle}</p>
+          <p className="mt-1 text-[12px] text-carbon-blue/50">{subtitle}</p>
         </div>
       </div>
     );
@@ -54,7 +54,7 @@ export function OpportunitiesWorkspaceHeader({
           <SmartCRMIcon name="opportunity" size="md" label="Opportunities" />
           Opportunities
         </h1>
-        <p className="mt-1 text-[11px] text-carbon-blue/50">{subtitle}</p>
+        <p className="mt-1 text-[12px] text-carbon-blue/50">{subtitle}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -100,7 +100,7 @@ function WorkspaceAction({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+      className={`inline-flex items-center border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
         primary
           ? active
             ? "border-upcycle-orange bg-upcycle-orange text-white"

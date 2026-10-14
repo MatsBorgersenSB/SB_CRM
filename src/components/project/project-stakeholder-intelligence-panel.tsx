@@ -40,17 +40,17 @@ export function ProjectStakeholderIntelligencePanel({
 
       <div className="flex flex-wrap items-center gap-4 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-4 py-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Stakeholder coverage
           </p>
           <p className="text-[22px] font-semibold tabular-nums text-carbon-blue">
             {intelligence.coverageScore}
-            <span className="text-[13px] font-medium text-carbon-blue/45"> / 100</span>
+            <span className="text-[13px] font-medium text-carbon-blue/65"> / 100</span>
           </p>
-          <p className="text-[12px] text-carbon-blue/55">{intelligence.coverageLabel}</p>
+          <p className="text-[13px] text-carbon-blue/55">{intelligence.coverageLabel}</p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Relationship health
           </p>
           <p className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-medium text-carbon-blue">
@@ -62,7 +62,7 @@ export function ProjectStakeholderIntelligencePanel({
 
       {execution && !compact ? (
         <section>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/55">
             Execution intelligence
           </p>
           <div className="grid gap-4 lg:grid-cols-2">
@@ -70,17 +70,17 @@ export function ProjectStakeholderIntelligencePanel({
               const items = execution[section.items];
               return (
                 <div key={section.key} className="border border-carbon-blue/10 px-3 py-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                  <p className="text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                     {section.label}
                   </p>
                   {items.length === 0 ? (
-                    <p className="mt-2 text-[12px] text-carbon-blue/45">Not assigned yet.</p>
+                    <p className="mt-2 text-[13px] text-carbon-blue/65">Not assigned yet.</p>
                   ) : (
                     <ul className="mt-2 flex flex-col gap-2">
                       {items.map((entry) => (
-                        <li key={entry.id} className="text-[12px]">
+                        <li key={entry.id} className="text-[13px]">
                           <span className="font-semibold text-carbon-blue">{entry.name}</span>
-                          <span className="text-carbon-blue/45"> · {entry.role}</span>
+                          <span className="text-carbon-blue/65"> · {entry.role}</span>
                           <p className="text-carbon-blue/60">{entry.detail}</p>
                         </li>
                       ))}
@@ -95,7 +95,7 @@ export function ProjectStakeholderIntelligencePanel({
 
       {execution && (execution.blocked.length > 0 || execution.missing.length > 0) ? (
         <section>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/55">
             Blocked & missing
           </p>
           {execution.blocked.length > 0 ? (
@@ -108,13 +108,13 @@ export function ProjectStakeholderIntelligencePanel({
                     />
                   </div>
                   <p className="mt-2 text-[13px] font-semibold text-carbon-blue">{blocker.label}</p>
-                  <p className="mt-1 text-[12px] text-carbon-blue/55">{blocker.detail}</p>
+                  <p className="mt-1 text-[13px] text-carbon-blue/55">{blocker.detail}</p>
                 </div>
               ))}
             </div>
           ) : null}
           {execution.missing.length > 0 ? (
-            <ul className="flex flex-col gap-1 text-[12px] text-carbon-blue/65">
+            <ul className="flex flex-col gap-1 text-[13px] text-carbon-blue/65">
               {execution.missing.map((item) => (
                 <li key={item}>· {item}</li>
               ))}
@@ -125,7 +125,7 @@ export function ProjectStakeholderIntelligencePanel({
 
       {intelligence.missingRoles.length > 0 ? (
         <section>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/55">
             SmartAssist stakeholder gaps
           </p>
           <div className="flex flex-col gap-3">
@@ -138,9 +138,9 @@ export function ProjectStakeholderIntelligencePanel({
                   <SmartAssistConfidenceLabel confidence={gap.severity === "critical" ? "high" : "medium"} />
                 </div>
                 <p className="mt-2 text-[13px] font-semibold text-carbon-blue">{gap.label}</p>
-                <p className="mt-1 text-[12px] text-carbon-blue/55">{gap.impact}</p>
+                <p className="mt-1 text-[13px] text-carbon-blue/55">{gap.impact}</p>
                 {!compact ? (
-                  <p className="mt-1 text-[12px] text-carbon-blue/70">{gap.recommendedAction}</p>
+                  <p className="mt-1 text-[13px] text-carbon-blue/70">{gap.recommendedAction}</p>
                 ) : null}
               </div>
             ))}
@@ -150,13 +150,13 @@ export function ProjectStakeholderIntelligencePanel({
 
       {!compact && intelligence.influenceMap.length > 0 ? (
         <section>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/55">
             Influence map
           </p>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-carbon-blue/10 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <tr className="border-b border-carbon-blue/10 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   <th className="px-2 py-2">Stakeholder</th>
                   <th className="px-2 py-2">Role</th>
                   <th className="px-2 py-2">Organization</th>
@@ -180,15 +180,15 @@ export function ProjectStakeholderIntelligencePanel({
 
       {!compact && (intelligence.roles?.length ?? 0) > 0 ? (
         <section>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/55">
             Roles
           </p>
           <ul className="flex flex-col gap-1.5">
             {intelligence.roles.map((entry) => (
-              <li key={entry.stakeholderId} className="text-[12px] text-carbon-blue/70">
+              <li key={entry.stakeholderId} className="text-[13px] text-carbon-blue/70">
                 <span className="font-semibold text-carbon-blue">{entry.name}</span>
-                <span className="text-carbon-blue/45"> · {entry.role}</span>
-                <span className="text-carbon-blue/40"> · {entry.organizationName}</span>
+                <span className="text-carbon-blue/65"> · {entry.role}</span>
+                <span className="text-carbon-blue/60"> · {entry.organizationName}</span>
               </li>
             ))}
           </ul>
@@ -197,14 +197,14 @@ export function ProjectStakeholderIntelligencePanel({
 
       {!compact && intelligence.responsibilities.length > 0 ? (
         <section>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/55">
             Responsibilities
           </p>
           <ul className="flex flex-col gap-2">
             {intelligence.responsibilities.map((entry) => (
-              <li key={entry.stakeholderId} className="border border-carbon-blue/8 px-3 py-2 text-[12px]">
+              <li key={entry.stakeholderId} className="border border-carbon-blue/8 px-3 py-2 text-[13px]">
                 <span className="font-semibold text-carbon-blue">{entry.name}</span>
-                <span className="text-carbon-blue/45"> · {entry.role}</span>
+                <span className="text-carbon-blue/65"> · {entry.role}</span>
                 <p className="mt-1 text-carbon-blue/65">{entry.responsibilities}</p>
               </li>
             ))}

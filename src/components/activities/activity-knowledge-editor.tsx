@@ -81,13 +81,13 @@ export function ActivityKnowledgeEditor({
     return (
       <div>
         <div className="mb-4 flex items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Structured knowledge object
           </p>
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-carbon-blue/12 px-2.5 py-1 text-[10px] font-semibold text-carbon-blue/60 hover:bg-carbon-blue/[0.03]"
+            className="inline-flex items-center gap-1 rounded-md border border-carbon-blue/12 px-2.5 py-1 text-[11px] font-semibold text-carbon-blue/60 hover:bg-carbon-blue/[0.03]"
           >
             <Pencil className="size-3" strokeWidth={2} />
             Edit knowledge
@@ -148,7 +148,7 @@ export function ActivityKnowledgeEditor({
         ) : null}
         {assessment ? (
           <div className="rounded-md border border-upcycle-orange/20 bg-upcycle-orange/[0.03] p-3">
-            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-upcycle-orange">
               <Bot className="size-3" />
               SmartAssist Assessment
             </p>
@@ -162,7 +162,7 @@ export function ActivityKnowledgeEditor({
           type="button"
           disabled={saving}
           onClick={() => void handleSave()}
-          className="inline-flex items-center gap-1 rounded-md bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"
         >
           <Save className="size-3.5" />
           {saving ? "Saving…" : "Save knowledge"}
@@ -170,7 +170,7 @@ export function ActivityKnowledgeEditor({
         <button
           type="button"
           onClick={() => setEditing(false)}
-          className="rounded-md border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/55"
+          className="rounded-md border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/55"
         >
           Cancel
         </button>
@@ -194,7 +194,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {label}
       </span>
       {multiline ? (

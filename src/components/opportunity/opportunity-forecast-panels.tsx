@@ -22,7 +22,7 @@ export function OpportunityRevenueForecastPanel({
     <section className="dashboard-card overflow-hidden border-t-2 border-violet-500/20">
       <header className="border-b border-carbon-blue/8 px-5 py-4">
         <h2 className="text-sm font-semibold text-carbon-blue">Revenue forecast</h2>
-        <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+        <p className="mt-0.5 text-[12px] text-carbon-blue/65">
           Pipeline value, intelligence-weighted forecast, and at-risk revenue
         </p>
       </header>
@@ -36,7 +36,7 @@ export function OpportunityRevenueForecastPanel({
             key={cell.label}
             className="flex flex-col gap-1 bg-[var(--dashboard-card)] px-5 py-4"
           >
-            <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               {cell.label}
             </dt>
             <dd
@@ -46,7 +46,7 @@ export function OpportunityRevenueForecastPanel({
             >
               {cell.value}
             </dd>
-            <dd className="text-[10px] text-carbon-blue/40">
+            <dd className="text-[11px] text-carbon-blue/60">
               {cell.label === "At risk revenue"
                 ? `${forecast.atRiskDealCount} deals flagged`
                 : `${forecast.dealCount} active opportunities`}
@@ -69,7 +69,7 @@ export function OpportunityHealthDistributionPanel({
     <section className="dashboard-card overflow-hidden">
       <header className="border-b border-carbon-blue/8 px-5 py-4">
         <h2 className="text-sm font-semibold text-carbon-blue">Opportunity health distribution</h2>
-        <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+        <p className="mt-0.5 text-[12px] text-carbon-blue/65">
           Portfolio health across all active opportunities
         </p>
       </header>
@@ -79,9 +79,9 @@ export function OpportunityHealthDistributionPanel({
           const count = row?.count ?? 0;
           return (
             <li key={status} className="space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
+              <div className="flex items-center justify-between text-[12px]">
                 <span
-                  className={`border px-1.5 py-0.5 text-[9px] font-semibold uppercase ${OPPORTUNITY_HEALTH_STYLES[status]}`}
+                  className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${OPPORTUNITY_HEALTH_STYLES[status]}`}
                 >
                   {status}
                 </span>

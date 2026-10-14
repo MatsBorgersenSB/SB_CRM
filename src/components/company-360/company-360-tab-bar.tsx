@@ -34,10 +34,10 @@ export function Company360TabBar({
                 key={tab.id}
                 type="button"
                 onClick={() => onChange(tab.id)}
-                className={`relative shrink-0 px-4 py-3 text-[11px] font-semibold tracking-wide transition-colors ${
+                className={`relative shrink-0 px-4 py-3 text-[12px] font-semibold tracking-wide transition-colors ${
                   selected
                     ? "text-upcycle-orange"
-                    : "text-carbon-blue/45 hover:bg-carbon-blue/[0.02] hover:text-carbon-blue/70"
+                    : "text-carbon-blue/65 hover:bg-carbon-blue/[0.02] hover:text-carbon-blue/70"
                 }`}
               >
                 {tab.label}
@@ -57,7 +57,7 @@ export function Company360TabBar({
         </div>
       </div>
       {activeDefinition ? (
-        <p className="border-t border-carbon-blue/8 px-4 py-2 text-[11px] text-carbon-blue/50">
+        <p className="border-t border-carbon-blue/8 px-4 py-2 text-[12px] text-carbon-blue/50">
           {activeDefinition.description}
         </p>
       ) : null}

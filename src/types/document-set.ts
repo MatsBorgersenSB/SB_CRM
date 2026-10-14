@@ -58,7 +58,7 @@ export const DOCUMENT_SET_STATUS_STYLES: Record<DocumentSetStatus, string> = {
   Released: "border-sky-500/25 bg-sky-500/10 text-sky-700",
   Transmitted: "border-violet-500/25 bg-violet-500/10 text-violet-700",
   Accepted: "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange",
-  Superseded: "border-carbon-blue/15 bg-carbon-blue/[0.04] text-carbon-blue/45",
+  Superseded: "border-carbon-blue/15 bg-carbon-blue/[0.04] text-carbon-blue/65",
 };
 
 export function documentSetTypeLabel(kind: CommercialPackageKind): string {

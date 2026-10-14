@@ -53,11 +53,11 @@ export function CollapsibleSection({
             {title}
           </p>
           {description ? (
-            <p className="mt-0.5 text-[11px] text-carbon-blue/45">{description}</p>
+            <p className="mt-0.5 text-[12px] text-carbon-blue/65">{description}</p>
           ) : null}
         </div>
         <ChevronDown
-          className={`mt-0.5 size-4 shrink-0 text-carbon-blue/35 transition-transform ${
+          className={`mt-0.5 size-4 shrink-0 text-carbon-blue/50 transition-transform ${
             open ? "rotate-180" : ""
           }`}
         />

@@ -21,20 +21,20 @@ export function RevenueOpportunityCard({ opp }: { opp: OpportunityRevenueAssessm
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-semibold text-carbon-blue">{opp.dealName}</p>
-          <p className="text-[10px] text-carbon-blue/50">
+          <p className="truncate text-[12px] font-semibold text-carbon-blue">{opp.dealName}</p>
+          <p className="text-[11px] text-carbon-blue/50">
             {opp.companyName ?? "Unlinked"} · Tier {opp.qualificationTier}
           </p>
         </div>
-        <span className="shrink-0 text-[10px] font-bold tabular-nums text-carbon-blue/60">
+        <span className="shrink-0 text-[11px] font-bold tabular-nums text-carbon-blue/60">
           {opp.probabilityOfSuccess}%
         </span>
       </div>
-      <p className="mt-1 text-[10px] text-carbon-blue/55">
+      <p className="mt-1 text-[11px] text-carbon-blue/55">
         {formatDealValue(opp.currency as PipelineRow["currency"], opp.revenuePotential)} lifetime ·{" "}
         {opp.expectedRevenueWindow}
       </p>
-      <p className="mt-0.5 text-[9px] text-carbon-blue/40">
+      <p className="mt-0.5 text-[10px] text-carbon-blue/60">
         {FORECAST_BUCKET_LABELS[opp.forecastBucket]}
       </p>
     </Link>
@@ -57,7 +57,7 @@ export function RevenueForecastPanel({
   return (
     <article className="dashboard-card p-4 sm:p-5">
       <header className="flex items-center justify-between gap-2">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-carbon-blue/40">
+        <h3 className="text-[12px] font-bold uppercase tracking-[0.1em] text-carbon-blue/60">
           {forecast.horizonLabel}
         </h3>
         <span className="text-sm font-bold tabular-nums text-carbon-blue">
@@ -81,10 +81,10 @@ export function RevenueForecastPanel({
       <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {segments.map((seg) => (
           <div key={seg.key}>
-            <dt className="text-[8px] font-bold uppercase tracking-wider text-carbon-blue/35">
+            <dt className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
               {FORECAST_BUCKET_LABELS[seg.key]}
             </dt>
-            <dd className="text-[11px] font-semibold tabular-nums text-carbon-blue">
+            <dd className="text-[12px] font-semibold tabular-nums text-carbon-blue">
               {formatDealValue(forecast.currency as PipelineRow["currency"], seg.value)}
             </dd>
           </div>
@@ -100,19 +100,19 @@ export function SalesPathStrip({ path }: { path: OpportunityRevenueAssessment["s
       {path.map((stage, index) => (
         <div key={stage.id} className="flex items-center gap-1">
           <span
-            className={`rounded px-2 py-0.5 text-[9px] font-semibold ${
+            className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
               stage.status === "completed"
                 ? "bg-emerald-500/15 text-emerald-800"
                 : stage.status === "current"
                   ? "bg-upcycle-orange/15 text-upcycle-orange"
-                  : "bg-carbon-blue/5 text-carbon-blue/40"
+                  : "bg-carbon-blue/5 text-carbon-blue/60"
             }`}
             title={`${stage.probability}%`}
           >
             {stage.label}
           </span>
           {index < path.length - 1 ? (
-            <span className="text-[9px] text-carbon-blue/25">→</span>
+            <span className="text-[10px] text-carbon-blue/25">→</span>
           ) : null}
         </div>
       ))}

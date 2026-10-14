@@ -16,9 +16,9 @@ export function OpportunityWhatMattersNow({ items }: { items: OpportunityMatterI
           key={item.id}
           className={`rounded-lg border px-3 py-2.5 ${SEVERITY_STYLES[item.severity]}`}
         >
-          <p className="text-[11px] font-semibold leading-snug">{item.label}</p>
+          <p className="text-[12px] font-semibold leading-snug">{item.label}</p>
           {item.detail ? (
-            <p className="mt-0.5 text-[10px] leading-relaxed opacity-75">{item.detail}</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed opacity-75">{item.detail}</p>
           ) : null}
         </li>
       ))}

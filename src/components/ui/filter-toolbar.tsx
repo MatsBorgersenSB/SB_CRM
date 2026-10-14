@@ -92,7 +92,7 @@ function FilterDropdown({
         aria-haspopup="listbox"
         aria-controls={listId}
         onClick={() => setOpen((current) => !current)}
-        className={`inline-flex h-8 items-center gap-1 border px-2.5 text-[11px] font-semibold transition-colors ${
+        className={`inline-flex h-8 items-center gap-1 border px-2.5 text-[12px] font-semibold transition-colors ${
           active
             ? "border-upcycle-orange/35 bg-upcycle-orange/[0.08] text-upcycle-orange"
             : "border-carbon-blue/12 bg-white text-carbon-blue/70 hover:border-carbon-blue/25 hover:text-carbon-blue"
@@ -182,7 +182,7 @@ function FilterOptionRow({
       role="option"
       aria-selected={selected}
       onClick={onSelect}
-      className={`flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-[11px] transition-colors hover:bg-carbon-blue/[0.04] ${
+      className={`flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-[12px] transition-colors hover:bg-carbon-blue/[0.04] ${
         selected ? "font-semibold text-carbon-blue" : "text-carbon-blue/75"
       }`}
     >
@@ -196,13 +196,13 @@ function FilterOptionRow({
             }`}
             aria-hidden
           >
-            {selected ? <span className="text-[8px]">✓</span> : null}
+            {selected ? <span className="text-[10px]">✓</span> : null}
           </span>
         ) : null}
         {label}
       </span>
       {count !== undefined && count > 0 ? (
-        <span className="tabular-nums text-[10px] text-carbon-blue/40">{count}</span>
+        <span className="tabular-nums text-[11px] text-carbon-blue/60">{count}</span>
       ) : null}
     </button>
   );
@@ -314,7 +314,7 @@ export function FilterToolbar({
         {onSearchChange ? (
           <div className="relative ml-auto min-w-[10rem] flex-1 sm:max-w-xs">
             <Search
-              className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/35"
+              className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50"
               strokeWidth={1.75}
             />
             <input
@@ -322,13 +322,13 @@ export function FilterToolbar({
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="h-8 w-full border border-carbon-blue/12 bg-white py-0 pl-7 pr-7 text-[11px] text-carbon-blue outline-none transition-colors focus:border-upcycle-orange/40 focus:ring-1 focus:ring-upcycle-orange/20"
+              className="h-8 w-full border border-carbon-blue/12 bg-white py-0 pl-7 pr-7 text-[12px] text-carbon-blue outline-none transition-colors focus:border-upcycle-orange/40 focus:ring-1 focus:ring-upcycle-orange/20"
             />
             {search ? (
               <button
                 type="button"
                 onClick={() => onSearchChange("")}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-carbon-blue/35 hover:text-carbon-blue"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-carbon-blue/50 hover:text-carbon-blue"
                 aria-label="Clear search"
               >
                 <X className="size-3" strokeWidth={2} />

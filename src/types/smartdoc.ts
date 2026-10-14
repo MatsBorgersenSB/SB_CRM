@@ -184,8 +184,12 @@ export const DOCUMENT_HEALTH_STYLES: Record<DocumentHealthStatus, string> = {
   "At Risk": "border-red-500/30 bg-red-500/10 text-red-700",
 };
 
-export const MISSING_DOC_ICONS: Record<MissingDocumentStatus, string> = {
-  present: "✅",
-  missing: "⚠",
-  critical_missing: "❌",
+/** Severity each missing-document state maps to — rendered via `SeverityIcon`. */
+export const MISSING_DOC_SEVERITY: Record<
+  MissingDocumentStatus,
+  "healthy" | "needs_attention" | "urgent"
+> = {
+  present: "healthy",
+  missing: "needs_attention",
+  critical_missing: "urgent",
 };

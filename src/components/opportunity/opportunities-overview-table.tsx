@@ -11,17 +11,24 @@ import {
 import { DealLink } from "@/components/relationship/relationship-links";
 import { IconLabel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import {
-  CLOSE_DATE_STATUS_ICON,
   CLOSE_DATE_STATUS_LABEL,
+  CLOSE_DATE_STATUS_TONE,
   formatExpectedCloseDate,
   getCloseDateStatus,
   getProbabilityStatus,
   opportunityStageLabel,
-  PROBABILITY_STATUS_ICON,
   PROBABILITY_STATUS_LABEL,
+  PROBABILITY_STATUS_TONE,
   sortOpportunities,
   type OpportunitySortKey,
+  type StatusTone,
 } from "@/lib/opportunity-overview";
+
+const TONE_DOT_CLASS: Record<StatusTone, string> = {
+  bad: "bg-red-500",
+  warn: "bg-amber-500",
+  good: "bg-emerald-500",
+};
 
 type SortDirection = "asc" | "desc";
 
@@ -45,14 +52,14 @@ function SortHeader({
       <button
         type="button"
         onClick={onClick}
-        className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
-          active ? "text-upcycle-orange" : "text-carbon-blue/45 hover:text-carbon-blue"
+        className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
+          active ? "text-upcycle-orange" : "text-carbon-blue/65 hover:text-carbon-blue"
         } ${align === "right" ? "ml-auto" : ""}`}
       >
         {icon ? <SmartCRMIcon name={icon} size="xs" /> : null}
         {label}
         {active ? (
-          <span className="text-[9px] opacity-70" aria-hidden>
+          <span className="text-[10px] opacity-70" aria-hidden>
             {direction === "asc" ? "↑" : "↓"}
           </span>
         ) : null}
@@ -62,19 +69,17 @@ function SortHeader({
 }
 
 function StatusCell({
-  icon,
+  tone,
   label,
   detail,
 }: {
-  icon: string;
+  tone: StatusTone;
   label: string;
   detail: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 truncate text-[12px] text-carbon-blue/70">
-      <span className="shrink-0" aria-hidden>
-        {icon}
-      </span>
+    <span className="inline-flex items-center gap-1.5 truncate text-[13px] text-carbon-blue/70">
+      <span className={`size-2 shrink-0 rounded-full ${TONE_DOT_CLASS[tone]}`} aria-hidden />
       <span className="sr-only">{label}</span>
       <span className="truncate">{detail}</span>
     </span>
@@ -117,7 +122,7 @@ export function OpportunitiesOverviewTable({
   };
 
   if (deals.length === 0) {
-    return <p className="text-sm text-carbon-blue/45">No opportunities yet.</p>;
+    return <p className="text-sm text-carbon-blue/65">No opportunities yet.</p>;
   }
 
   return (
@@ -136,7 +141,7 @@ export function OpportunitiesOverviewTable({
             <IconLabel
               icon="opportunity"
               iconSize="xs"
-              className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+              className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
             >
               Opportunity
             </IconLabel>
@@ -198,24 +203,24 @@ export function OpportunitiesOverviewTable({
                   </span>
                 </DealLink>
               </td>
-              <td className="px-3 py-2.5 text-right text-[12px] font-semibold tabular-nums text-carbon-blue">
+              <td className="px-3 py-2.5 text-right text-[13px] font-semibold tabular-nums text-carbon-blue">
                 {formatDealValue(deal.currency, deal.salesValue)}
               </td>
               <td className="px-3 py-2.5">
                 {closeStatus ? (
                   <StatusCell
-                    icon={CLOSE_DATE_STATUS_ICON[closeStatus]}
+                    tone={CLOSE_DATE_STATUS_TONE[closeStatus]}
                     label={CLOSE_DATE_STATUS_LABEL[closeStatus]}
                     detail={formatExpectedCloseDate(deal.expectedCloseDate)}
                   />
                 ) : (
-                  <span className="text-[12px] text-carbon-blue/35">—</span>
+                  <span className="text-[13px] text-carbon-blue/50">—</span>
                 )}
               </td>
-              <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/70">{stageLabel}</td>
+              <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/70">{stageLabel}</td>
               <td className="px-3 py-2.5 text-right">
                 <StatusCell
-                  icon={PROBABILITY_STATUS_ICON[probStatus]}
+                  tone={PROBABILITY_STATUS_TONE[probStatus]}
                   label={PROBABILITY_STATUS_LABEL[probStatus]}
                   detail={formatProbability(deal.probability)}
                 />
@@ -224,7 +229,7 @@ export function OpportunitiesOverviewTable({
                 <DealLink
                   dealId={deal.id}
                   showIcon={false}
-                  className="block truncate font-mono text-[11px] text-carbon-blue/55 hover:text-upcycle-orange"
+                  className="block truncate font-mono text-[12px] text-carbon-blue/55 hover:text-upcycle-orange"
                 >
                   {opportunityPublicCode(deal)}
                 </DealLink>

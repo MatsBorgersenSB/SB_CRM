@@ -119,7 +119,7 @@ export function ContactDetailPanel({
     <div className="flex flex-col gap-3">
       <article className="border border-carbon-blue/10 bg-white">
         <header className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Contact Card
           </p>
           <button
@@ -129,7 +129,7 @@ export function ContactDetailPanel({
               setDeleteConfirmOpen(false);
               setEditOpen((open) => !open);
             }}
-            className="border border-carbon-blue/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/60 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+            className="border border-carbon-blue/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
           >
             {editOpen ? "Cancel" : "Edit Contact"}
           </button>
@@ -170,31 +170,31 @@ export function ContactDetailPanel({
         ) : null}
         <div className="px-3 py-2.5">
           <p className="text-xs font-semibold text-carbon-blue">{displayName}</p>
-          <p className="mt-0.5 text-[10px] text-carbon-blue/55">
+          <p className="mt-0.5 text-[11px] text-carbon-blue/55">
             <CompanyLink companyId={record.companyId}>{record.companyName}</CompanyLink>
             <span className="mx-1 text-carbon-blue/25">·</span>
             <span className="font-mono">{record.companyId}</span>
           </p>
           <div className="mt-2 flex flex-wrap gap-1">
-            <span className="inline-flex items-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/70">
+            <span className="inline-flex items-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70">
               {record.contact.Role}
             </span>
-            <span className="inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[9px] font-semibold text-carbon-blue/55">
+            <span className="inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[10px] font-semibold text-carbon-blue/55">
               {record.contact.Status}
             </span>
-            <span className="inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[9px] font-semibold text-carbon-blue/55">
+            <span className="inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[10px] font-semibold text-carbon-blue/55">
               {record.contact.EmploymentStatus ?? "Active"}
             </span>
-            <span className="inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[9px] font-semibold text-carbon-blue/55">
+            <span className="inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[10px] font-semibold text-carbon-blue/55">
               {record.contact.RelationshipLevel}
             </span>
           </div>
           {record.contact.JobTitle ? (
-            <p className="mt-2 text-[10px] text-carbon-blue/60">
+            <p className="mt-2 text-[11px] text-carbon-blue/60">
               {record.contact.JobTitle}
             </p>
           ) : null}
-          <div className="mt-3 flex flex-wrap gap-3 text-[11px]">
+          <div className="mt-3 flex flex-wrap gap-3 text-[12px]">
             {record.contact.Email ? <EmailActionMenu email={record.contact.Email} /> : null}
             {record.contact.Phone ? <PhoneActionMenu phone={record.contact.Phone} /> : null}
             {record.contact.Mobile ? <PhoneActionMenu phone={record.contact.Mobile} /> : null}
@@ -249,7 +249,7 @@ export function ContactDetailPanel({
       </article>
       <section className="border border-carbon-blue/10">
         <header className="border-b border-carbon-blue/10 px-3 py-1.5">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Linked Deals
           </h3>
         </header>
@@ -265,7 +265,7 @@ export function ContactDetailPanel({
               ) : (
                 <span
                   key={`${record.companyId}-${record.contact.ContactID}-${pipelineId}`}
-                  className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 font-mono text-[9px] text-upcycle-orange"
+                  className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 font-mono text-[10px] text-upcycle-orange"
                 >
                   {pipelineId}
                 </span>

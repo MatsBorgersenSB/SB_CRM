@@ -45,10 +45,10 @@ export function GrowthIntelligenceChrome({
               <Link
                 key={section.id}
                 href={section.href}
-                className={`relative shrink-0 px-3 py-2.5 text-[11px] font-semibold tracking-wide transition-colors ${
+                className={`relative shrink-0 px-3 py-2.5 text-[12px] font-semibold tracking-wide transition-colors ${
                   active
                     ? "text-upcycle-orange"
-                    : "text-carbon-blue/45 hover:text-carbon-blue/70"
+                    : "text-carbon-blue/65 hover:text-carbon-blue/70"
                 }`}
               >
                 {section.label}
@@ -60,7 +60,7 @@ export function GrowthIntelligenceChrome({
           })}
         </div>
         {activeSection ? (
-          <p className="border-t border-carbon-blue/6 px-4 py-2 text-[11px] text-carbon-blue/50">
+          <p className="border-t border-carbon-blue/6 px-4 py-2 text-[12px] text-carbon-blue/50">
             {activeSection.description}
           </p>
         ) : null}

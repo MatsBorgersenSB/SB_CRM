@@ -178,7 +178,7 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
   if (phase.status === "loading") {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-white px-6">
-        <p className="text-[12px] text-carbon-blue/50">Loading assign options…</p>
+        <p className="text-[13px] text-carbon-blue/50">Loading assign options…</p>
       </div>
     );
   }
@@ -190,7 +190,7 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
         <button
           type="button"
           onClick={() => void openOutlookSignInDialog(() => window.location.reload())}
-          className="mt-4 border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+          className="mt-4 border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
         >
           Sign In
         </button>
@@ -201,7 +201,7 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
   if (phase.status === "need-email") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM · Assign message
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">Who is this about?</p>
@@ -223,11 +223,11 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
             setEmail(next);
             void load(next, conversationId || `teams-${Date.now()}`);
           }}
-          className="mt-3 border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+          className="mt-3 border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
         >
           Continue
         </button>
-        {error ? <p className="mt-2 text-[11px] text-red-700">{error}</p> : null}
+        {error ? <p className="mt-2 text-[12px] text-red-700">{error}</p> : null}
       </div>
     );
   }
@@ -248,7 +248,7 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
         <p className="text-sm font-semibold text-carbon-blue">Unable to assign</p>
-        <p className="mt-1 text-[11px] text-carbon-blue/50">{phase.message}</p>
+        <p className="mt-1 text-[12px] text-carbon-blue/50">{phase.message}</p>
       </div>
     );
   }
@@ -258,14 +258,14 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
 
   return (
     <div className="min-h-[100dvh] space-y-4 bg-white px-4 py-5">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
         SmartCRM · Assign message
       </p>
       <div>
         <p className="text-sm font-semibold text-carbon-blue">
           {ctx.contactName || email}
         </p>
-        <p className="text-[11px] text-carbon-blue/50">
+        <p className="text-[12px] text-carbon-blue/50">
           {ctx.companyName}
           {ctx.relationshipPosture ? ` · ${ctx.relationshipPosture}` : ""}
         </p>
@@ -289,7 +289,7 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
                       : "",
                 );
               }}
-              className={`border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider ${
+              className={`border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider ${
                 linkKind === kind
                   ? "border-upcycle-orange bg-upcycle-orange text-white"
                   : "border-carbon-blue/15 text-carbon-blue/60"
@@ -302,7 +302,7 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
       </div>
 
       {!opportunityEligible ? (
-        <p className="text-[11px] text-carbon-blue/45">
+        <p className="text-[12px] text-carbon-blue/65">
           Not a sell-to relationship — keep on company or project (no opportunity).
         </p>
       ) : null}
@@ -345,12 +345,12 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
           (linkKind === "opportunity" && !selectedId)
         }
         onClick={() => void assign()}
-        className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"
+        className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"
       >
         {busy ? "Assigning…" : "Assign"}
       </button>
-      {status ? <p className="text-[11px] text-carbon-blue/70">{status}</p> : null}
-      {error ? <p className="text-[11px] text-red-700">{error}</p> : null}
+      {status ? <p className="text-[12px] text-carbon-blue/70">{status}</p> : null}
+      {error ? <p className="text-[12px] text-red-700">{error}</p> : null}
     </div>
   );
 }

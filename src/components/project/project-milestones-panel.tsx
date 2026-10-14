@@ -19,14 +19,14 @@ function formatDate(value: string): string {
 
 export function ProjectMilestonesPanel({ milestones }: { milestones: ProjectMilestone[] }) {
   if (milestones.length === 0) {
-    return <p className="text-sm text-carbon-blue/45">No milestones defined.</p>;
+    return <p className="text-sm text-carbon-blue/65">No milestones defined.</p>;
   }
 
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-carbon-blue/10 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <tr className="border-b border-carbon-blue/10 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             <th className="px-2 py-2 font-semibold">Milestone</th>
             <th className="px-2 py-2 font-semibold">Owner</th>
             <th className="px-2 py-2 font-semibold">Status</th>

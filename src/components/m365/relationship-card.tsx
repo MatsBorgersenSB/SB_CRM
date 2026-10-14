@@ -21,7 +21,7 @@ import type { CoPilotActionProposal } from "@/types/smartassist-copilot";
 
 function BlockLabel({ children }: { children: string }) {
   return (
-    <h3 className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/38">
+    <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/38">
       {children}
     </h3>
   );
@@ -66,7 +66,7 @@ function CardActions({
           {...(outlookHost
             ? { target: "_blank" as const, rel: "noopener noreferrer" as const }
             : {})}
-          className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+          className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
         >
           Execute in Planner
         </a>
@@ -75,7 +75,7 @@ function CardActions({
         <button
           type="button"
           onClick={onNoAction}
-          className="inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-carbon-blue/35 hover:text-carbon-blue"
+          className="inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-carbon-blue/35 hover:text-carbon-blue"
         >
           No Action
         </button>
@@ -84,7 +84,7 @@ function CardActions({
         <button
           type="button"
           onClick={onCreateOpportunity}
-          className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+          className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
         >
           Create opportunity
         </button>
@@ -117,14 +117,14 @@ function SmartCrm360Links({
         <a
           href={companyHref}
           {...linkProps}
-          className="text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
+          className="text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
         >
           Company 360
         </a>
       ) : (
         <Link
           href={payload.deepLink}
-          className="text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
+          className="text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
         >
           Company 360
         </Link>
@@ -134,14 +134,14 @@ function SmartCrm360Links({
           <a
             href={contactHref}
             {...linkProps}
-            className="text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
+            className="text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
           >
             Contact 360
           </a>
         ) : (
           <Link
             href={payload.contactDeepLink!}
-            className="text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
+            className="text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange"
           >
             Contact 360
           </Link>
@@ -257,7 +257,7 @@ export function RelationshipCard({
         className={`space-y-3 ${outlookHost ? "min-h-0 flex-1 overflow-y-auto px-4 py-3" : "px-5 py-5"}`}
       >
         {outlookHost ? (
-          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
             SmartCRM
           </p>
         ) : null}
@@ -265,7 +265,7 @@ export function RelationshipCard({
         <section aria-label="Relationship Health">
           <BlockLabel>Relationship Health</BlockLabel>
           {outlookHost ? (
-            <p className="mt-1.5 text-[12px] font-semibold leading-snug text-carbon-blue">
+            <p className="mt-1.5 text-[13px] font-semibold leading-snug text-carbon-blue">
               {card.meta.whatMatters}
             </p>
           ) : null}
@@ -292,16 +292,16 @@ export function RelationshipCard({
           <BlockLabel>Top Risk</BlockLabel>
           {card.topRisk ? (
             <div className="mt-2 border border-upcycle-orange/25 bg-upcycle-orange/[0.03] px-3 py-2.5">
-              <p className="text-[12px] font-semibold leading-snug text-carbon-blue">
+              <p className="text-[13px] font-semibold leading-snug text-carbon-blue">
                 {card.topRisk.label}
               </p>
               {card.topRisk.detail ? (
-                <p className="mt-0.5 text-[10px] text-carbon-blue/50">{card.topRisk.detail}</p>
+                <p className="mt-0.5 text-[11px] text-carbon-blue/50">{card.topRisk.detail}</p>
               ) : null}
               <ImpactContext items={card.topRisk.impact} />
             </div>
           ) : (
-            <p className="mt-2 text-[11px] text-carbon-blue/45">No critical risks detected</p>
+            <p className="mt-2 text-[12px] text-carbon-blue/65">No critical risks detected</p>
           )}
         </section>
 
@@ -330,10 +330,10 @@ export function RelationshipCard({
             </>
           ) : (
             <div className="mt-2 space-y-2">
-              <p className="text-[12px] font-semibold leading-snug text-carbon-blue">
+              <p className="text-[13px] font-semibold leading-snug text-carbon-blue">
                 No action for now
               </p>
-              <p className="text-[10px] leading-relaxed text-carbon-blue/50">
+              <p className="text-[11px] leading-relaxed text-carbon-blue/50">
                 You chose not to act. SmartAssist will not push this recommendation again.
               </p>
               {outlookHost ? (
@@ -354,7 +354,7 @@ export function RelationshipCard({
             <p className="mt-2 text-base font-semibold tabular-nums text-carbon-blue/80">
               {card.openOpportunities.count}
             </p>
-            <p className="text-[10px] text-carbon-blue/45">
+            <p className="text-[11px] text-carbon-blue/65">
               {card.openOpportunities.valueLabel}
             </p>
             <ImpactContext items={card.openOpportunities.impact} />
@@ -364,7 +364,7 @@ export function RelationshipCard({
             <p className="mt-2 text-base font-semibold tabular-nums text-carbon-blue/80">
               {card.openCommitments.count}
             </p>
-            <p className="text-[10px] text-carbon-blue/45">
+            <p className="text-[11px] text-carbon-blue/65">
               {card.openCommitments.stateLabel}
             </p>
             <ImpactContext items={card.openCommitments.impact} />

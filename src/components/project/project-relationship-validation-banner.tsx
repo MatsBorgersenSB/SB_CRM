@@ -22,9 +22,9 @@ export function ProjectRelationshipValidationBanner({
         <SmartAssistConfidenceLabel confidence="medium" />
       </div>
       <p className="mt-2 text-[13px] font-semibold text-carbon-blue">{validation.message}</p>
-      <p className="mt-1 text-[12px] text-carbon-blue/65">{validation.detail}</p>
+      <p className="mt-1 text-[13px] text-carbon-blue/65">{validation.detail}</p>
       {!compact ? (
-        <p className="mt-1 text-[12px] text-carbon-blue/55">{validation.recommendedAction}</p>
+        <p className="mt-1 text-[13px] text-carbon-blue/55">{validation.recommendedAction}</p>
       ) : null}
     </div>
   );

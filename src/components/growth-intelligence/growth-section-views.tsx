@@ -14,10 +14,10 @@ import { MarketFactsPanel } from "@/components/growth-intelligence/market-facts-
 const RECOMMENDATION_COLORS = {
   attend: "text-green-700",
   monitor: "text-amber-700",
-  skip: "text-carbon-blue/40",
+  skip: "text-carbon-blue/60",
   join: "text-green-700",
   evaluate: "text-amber-700",
-  decline: "text-carbon-blue/40",
+  decline: "text-carbon-blue/60",
 } as const;
 
 export function GrowthCompetitorsView({ snapshot }: { snapshot: GrowthIntelligenceSnapshot }) {
@@ -46,7 +46,7 @@ export function GrowthEventsView({ snapshot }: { snapshot: GrowthIntelligenceSna
       ))}
       {passed.length > 0 ? (
         <section>
-          <h2 className="mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Passed — review or archive
           </h2>
           <div className="flex flex-col gap-3">
@@ -79,13 +79,13 @@ function EventCard({
           >
             {event.name}
           </Link>
-          <p className="text-[11px] text-carbon-blue/50">
+          <p className="text-[12px] text-carbon-blue/50">
             {event.location} · {event.dateLabel}
           </p>
         </div>
         <span
-          className={`text-[10px] font-bold uppercase tracking-wider ${
-            passed ? "text-carbon-blue/40" : RECOMMENDATION_COLORS[event.recommendation]
+          className={`text-[11px] font-bold uppercase tracking-wider ${
+            passed ? "text-carbon-blue/60" : RECOMMENDATION_COLORS[event.recommendation]
           }`}
         >
           {passed ? "Passed" : event.recommendation}
@@ -111,26 +111,26 @@ function EventCard({
               key={`${target.eventId}-${target.companyName}-${target.contactName ?? "unnamed"}`}
               className="rounded-lg border border-carbon-blue/10 px-3 py-2"
             >
-              <p className="text-[12px] font-semibold text-carbon-blue">
+              <p className="text-[13px] font-semibold text-carbon-blue">
                 {target.contactName ?? "Name a person first"}
                 <span className="font-normal text-carbon-blue/55"> · {target.companyName}</span>
               </p>
               {target.contactRole ? (
-                <p className="text-[11px] text-carbon-blue/50">{target.contactRole}</p>
+                <p className="text-[12px] text-carbon-blue/50">{target.contactRole}</p>
               ) : null}
-              <p className="mt-1 text-[11px] text-upcycle-orange">{offerLabel(target.offer)}</p>
-              <p className="mt-0.5 text-[11px] text-carbon-blue/65">{target.agenda}</p>
+              <p className="mt-1 text-[12px] text-upcycle-orange">{offerLabel(target.offer)}</p>
+              <p className="mt-0.5 text-[12px] text-carbon-blue/65">{target.agenda}</p>
             </li>
           ))}
         </ul>
       ) : !passed && event.recommendation === "attend" ? (
-        <p className="mt-3 text-[11px] text-carbon-blue/50">
+        <p className="mt-3 text-[12px] text-carbon-blue/50">
           No named meeting targets yet. Classify sell-to companies and add contacts before requesting meetings.
         </p>
       ) : null}
 
       {event.competitivePresence.length > 0 ? (
-        <p className="mt-3 text-[10px] text-carbon-blue/50">
+        <p className="mt-3 text-[11px] text-carbon-blue/50">
           Competitive presence (strategy note): {event.competitivePresence.join(" · ")}
         </p>
       ) : null}
@@ -140,11 +140,11 @@ function EventCard({
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-carbon-blue/8 pt-4">
         <Link
           href={eventPlanningHref(event.id)}
-          className="text-[12px] font-semibold text-upcycle-orange hover:text-carbon-blue"
+          className="text-[13px] font-semibold text-upcycle-orange hover:text-carbon-blue"
         >
           {passed ? "Open for outcome capture →" : "Open planning workspace →"}
         </Link>
-        <span className="text-[10px] text-carbon-blue/40">Named CRM companies only</span>
+        <span className="text-[11px] text-carbon-blue/60">Named CRM companies only</span>
       </div>
     </article>
   );
@@ -157,17 +157,17 @@ export function GrowthMembershipsView({ snapshot }: { snapshot: GrowthIntelligen
         <article key={membership.id} className="dashboard-card p-4 sm:p-5">
           <header className="flex flex-wrap items-start justify-between gap-2">
             <h3 className="text-sm font-semibold text-carbon-blue">{membership.name}</h3>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${RECOMMENDATION_COLORS[membership.recommendation]}`}>
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${RECOMMENDATION_COLORS[membership.recommendation]}`}>
               {membership.recommendation}
             </span>
           </header>
-          <p className="mt-2 text-[11px] text-carbon-blue/60">{membership.commercialPotential}</p>
+          <p className="mt-2 text-[12px] text-carbon-blue/60">{membership.commercialPotential}</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
             <Metric label="Decision makers" value={membership.decisionMakerAccess} />
             <Metric label="Partners" value={membership.partnerAccess} />
             <Metric label="Influence" value={membership.marketInfluence} />
           </div>
-          <p className="mt-2 text-[10px] text-carbon-blue/45">Timing: {membership.timing}</p>
+          <p className="mt-2 text-[11px] text-carbon-blue/65">Timing: {membership.timing}</p>
           <GrowthImpactBlock items={membership.impact} />
         </article>
       ))}
@@ -180,7 +180,7 @@ export function GrowthMarketSegmentsView({ snapshot }: { snapshot: GrowthIntelli
     <WorkspaceStack>
       {snapshot.liveDeals.length > 0 ? (
         <section className="dashboard-card p-4 sm:p-5">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Named opportunities in the registry
           </h2>
           <ul className="mt-3 space-y-2">
@@ -188,7 +188,7 @@ export function GrowthMarketSegmentsView({ snapshot }: { snapshot: GrowthIntelli
               <li key={deal.id}>
                 <Link
                   href={deal.href}
-                  className="block text-[12px] font-medium text-carbon-blue hover:text-upcycle-orange"
+                  className="block text-[13px] font-medium text-carbon-blue hover:text-upcycle-orange"
                 >
                   {deal.name}
                   <span className="font-normal text-carbon-blue/50"> · {deal.companyName}</span>
@@ -207,14 +207,14 @@ export function GrowthMarketSegmentsView({ snapshot }: { snapshot: GrowthIntelli
           <header className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="text-sm font-semibold text-carbon-blue">{segment.name}</h3>
-              <p className="text-[11px] text-carbon-blue/50">{segment.geography}</p>
+              <p className="text-[12px] text-carbon-blue/50">{segment.geography}</p>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/60">
               {segment.trend}
             </span>
           </header>
-          <p className="mt-2 text-[11px] text-carbon-blue/65">{segment.summary}</p>
-          <p className="mt-2 text-[10px] font-medium uppercase tracking-wider text-carbon-blue/40">
+          <p className="mt-2 text-[12px] text-carbon-blue/65">{segment.summary}</p>
+          <p className="mt-2 text-[11px] font-medium uppercase tracking-wider text-carbon-blue/60">
             Strategy note — not a live pipeline count
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -235,13 +235,13 @@ export function GrowthMarketingChannelsView({ snapshot }: { snapshot: GrowthInte
         <article key={channel.id} className="dashboard-card p-4 sm:p-5">
           <header className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
-              <span className="flex size-7 items-center justify-center rounded-full bg-upcycle-orange/10 text-[11px] font-bold text-upcycle-orange">
+              <span className="flex size-7 items-center justify-center rounded-full bg-upcycle-orange/10 text-[12px] font-bold text-upcycle-orange">
                 #{channel.rank}
               </span>
               <h3 className="text-sm font-semibold text-carbon-blue">{channel.name}</h3>
             </div>
           </header>
-          <p className="mt-2 text-[11px] text-carbon-blue/60">{channel.summary}</p>
+          <p className="mt-2 text-[12px] text-carbon-blue/60">{channel.summary}</p>
           <GrowthImpactBlock items={channel.impact} />
         </article>
       ))}
@@ -274,7 +274,7 @@ export function GrowthPartnerEcosystemView({ snapshot }: { snapshot: GrowthIntel
             </h3>
             <CompanyTypeBadges types={partner.types} size="sm" />
           </div>
-          <p className="mt-2 text-[11px] text-carbon-blue/60">{partner.strategicValue}</p>
+          <p className="mt-2 text-[12px] text-carbon-blue/60">{partner.strategicValue}</p>
         </Link>
       ))}
     </WorkspaceStack>
@@ -299,23 +299,23 @@ export function GrowthStrategicInitiativesView({ snapshot }: { snapshot: GrowthI
           <header className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="text-sm font-semibold text-carbon-blue">{initiative.name}</h3>
-              <p className="text-[11px] text-carbon-blue/50">
+              <p className="text-[12px] text-carbon-blue/50">
                 {initiative.owner} · {initiative.horizon}
               </p>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/60">
               {initiative.status}
             </span>
           </header>
-          <p className="mt-2 text-[11px] text-carbon-blue/65">{initiative.summary}</p>
-          <p className="mt-2 text-[10px] font-medium text-upcycle-orange">
+          <p className="mt-2 text-[12px] text-carbon-blue/65">{initiative.summary}</p>
+          <p className="mt-2 text-[11px] font-medium text-upcycle-orange">
             Next: {initiative.nextMilestone}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {initiative.outcomes.map((outcome) => (
               <span
                 key={outcome}
-                className="rounded-full border border-carbon-blue/10 px-2 py-0.5 text-[9px] text-carbon-blue/55"
+                className="rounded-full border border-carbon-blue/10 px-2 py-0.5 text-[10px] text-carbon-blue/55"
               >
                 {outcome}
               </span>
@@ -344,22 +344,22 @@ export function GrowthMarketIntelligenceView({ snapshot }: { snapshot: GrowthInt
           <article key={card.id} className="dashboard-card p-4 sm:p-5">
             <header className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
                   {card.category.replace(/_/g, " ")} · {card.geography} · {card.asOf}
                 </p>
                 <h3 className="mt-1 text-sm font-semibold text-carbon-blue">{card.title}</h3>
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/40">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/60">
                 {card.evidence === "observed" ? "Observed in CRM" : "Unverified"}
               </span>
             </header>
-            <p className="mt-2 text-[11px] text-carbon-blue/65">{card.fact}</p>
-            <p className="mt-2 text-[10px] text-carbon-blue/45">Source: {card.sourceLabel}</p>
-            <p className="mt-2 text-[11px] font-medium text-upcycle-orange">
+            <p className="mt-2 text-[12px] text-carbon-blue/65">{card.fact}</p>
+            <p className="mt-2 text-[11px] text-carbon-blue/65">Source: {card.sourceLabel}</p>
+            <p className="mt-2 text-[12px] font-medium text-upcycle-orange">
               {offerLabel(card.offerImplication)} — {card.offerWhy}
             </p>
             {card.relatedDeals.length > 0 ? (
-              <p className="mt-2 text-[11px] text-carbon-blue/60">
+              <p className="mt-2 text-[12px] text-carbon-blue/60">
                 Pipeline:{" "}
                 {card.relatedDeals.map((deal, index) => (
                   <span key={deal.id}>
@@ -373,7 +373,7 @@ export function GrowthMarketIntelligenceView({ snapshot }: { snapshot: GrowthInt
             ) : null}
             <Link
               href={card.nextHref}
-              className="mt-3 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
+              className="mt-3 inline-block text-[12px] font-semibold text-upcycle-orange hover:underline"
             >
               {card.nextAction}
             </Link>
@@ -383,15 +383,15 @@ export function GrowthMarketIntelligenceView({ snapshot }: { snapshot: GrowthInt
 
       {unsourced.length > 0 ? (
         <details className="dashboard-card p-4 sm:p-5">
-          <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
             Unsourced strategy notes — not primary intelligence
           </summary>
           <ul className="mt-3 space-y-3">
             {unsourced.map((item) => (
               <li key={item.id}>
-                <p className="text-[12px] font-semibold text-carbon-blue/70">{item.title}</p>
-                <p className="mt-1 text-[11px] text-carbon-blue/50">{item.summary}</p>
-                <p className="mt-1 text-[10px] text-carbon-blue/40">No source. Do not brief from this card.</p>
+                <p className="text-[13px] font-semibold text-carbon-blue/70">{item.title}</p>
+                <p className="mt-1 text-[12px] text-carbon-blue/50">{item.summary}</p>
+                <p className="mt-1 text-[11px] text-carbon-blue/60">No source. Do not brief from this card.</p>
               </li>
             ))}
           </ul>
@@ -412,8 +412,8 @@ function Metric({
 }) {
   return (
     <div className={`rounded-lg border px-2.5 py-2 ${highlight ? "border-amber-500/30 bg-amber-500/[0.04]" : "border-carbon-blue/8"}`}>
-      <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">{label}</p>
-      <p className="mt-0.5 text-[11px] font-medium capitalize text-carbon-blue">{value}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">{label}</p>
+      <p className="mt-0.5 text-[12px] font-medium capitalize text-carbon-blue">{value}</p>
     </div>
   );
 }

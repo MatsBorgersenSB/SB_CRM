@@ -45,7 +45,7 @@ function OpportunityKeyAttribute({
 }) {
   return (
     <div className={`${ATTIO_PILL} cursor-default`}>
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
         {label}
       </dt>
       <dd className="min-w-0 font-medium text-slate-800 dark:text-slate-100">
@@ -56,7 +56,7 @@ function OpportunityKeyAttribute({
 }
 
 function StripEmpty({ children }: { children: string }) {
-  return <p className="text-[13px] text-carbon-blue/45">{children}</p>;
+  return <p className="text-[13px] text-carbon-blue/65">{children}</p>;
 }
 
 function PeopleOverviewStrip({
@@ -180,7 +180,7 @@ function OpportunitiesOverviewStrip({
           <button
             type="button"
             onClick={() => setCreateRequestId((value) => value + 1)}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-upcycle-orange transition-colors hover:text-carbon-blue"
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-upcycle-orange transition-colors hover:text-carbon-blue"
           >
             <SmartCRMIcon name="add" size="xs" />
             Create Opportunity
@@ -227,7 +227,7 @@ function OpportunitiesOverviewStrip({
                       <button
                         type="button"
                         onClick={() => setDeleteDealId(deal.id)}
-                        className="text-[11px] font-semibold text-thermal-red hover:underline"
+                        className="text-[12px] font-semibold text-thermal-red hover:underline"
                       >
                         Delete
                       </button>

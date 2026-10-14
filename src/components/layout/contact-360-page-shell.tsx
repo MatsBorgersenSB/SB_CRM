@@ -271,14 +271,14 @@ export function Contact360PageShell({
   return (
     <WorkspaceChrome>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="min-w-0 truncate text-[11px] text-carbon-blue/55">
-          <Link href="/contacts" className="font-semibold text-carbon-blue/45 hover:text-upcycle-orange">
+        <div className="min-w-0 truncate text-[12px] text-carbon-blue/55">
+          <Link href="/contacts" className="font-semibold text-carbon-blue/65 hover:text-upcycle-orange">
             Contacts
           </Link>
           <span className="text-carbon-blue/25"> / </span>
           <span className="font-semibold text-carbon-blue">{displayName}</span>
           {record.contact.IsArchived ? (
-            <span className="ml-2 border border-carbon-blue/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+            <span className="ml-2 border border-carbon-blue/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/65">
               Archived
             </span>
           ) : null}

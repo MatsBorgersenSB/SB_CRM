@@ -214,7 +214,7 @@ function DashboardShellContent({
                       >
                         <span className="font-medium">{activity.Subject}</span>
                         {activity.Company?.Title ? (
-                          <span className="text-carbon-blue/35"> · {activity.Company.Title}</span>
+                          <span className="text-carbon-blue/50"> · {activity.Company.Title}</span>
                         ) : null}
                       </Link>
                     </li>

@@ -18,11 +18,11 @@ export function OutlookStaticSignInFallback() {
       style={{ display: "none" }}
     >
       <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
           Relationship intelligence stays in SmartCRM. Sign in with your Microsoft work account —
           then this pane answers what matters and what to do next.
         </p>
@@ -30,11 +30,11 @@ export function OutlookStaticSignInFallback() {
           href={signInUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider text-white"
+          className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-white"
         >
           Sign In to SmartCRM
         </a>
-        <p className="mt-3 text-center text-[10px] text-carbon-blue/40">
+        <p className="mt-3 text-center text-[11px] text-carbon-blue/60">
           If this pane stayed on Connecting, open sign-in above.
         </p>
       </div>

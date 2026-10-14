@@ -108,7 +108,7 @@ export function ProjectsOperationsShell({ projects }: { projects: Project[] }) {
   return (
     <WorkspaceChrome>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2 truncate text-[11px] text-carbon-blue/50">
+        <div className="flex min-w-0 items-center gap-2 truncate text-[12px] text-carbon-blue/50">
           <SmartCRMIcon name="project" size="xs" />
           <span className="font-medium text-carbon-blue/70">Projects</span>
         </div>
@@ -126,7 +126,7 @@ export function ProjectsOperationsShell({ projects }: { projects: Project[] }) {
               <p className="mt-2 max-w-3xl text-sm leading-relaxed text-carbon-blue/65">
                 {PROJECT_WORKSPACE_LIGHT.description}
               </p>
-              <p className="mt-1 text-[11px] text-carbon-blue/40">{PROJECT_WORKSPACE_LIGHT.mantra}</p>
+              <p className="mt-1 text-[12px] text-carbon-blue/60">{PROJECT_WORKSPACE_LIGHT.mantra}</p>
             </div>
             <ProjectCreateButton />
           </div>

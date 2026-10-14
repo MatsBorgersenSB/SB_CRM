@@ -74,7 +74,7 @@ export function DealTeamSection({
   return (
     <section className="border border-carbon-blue/10">
       <header className="border-b border-carbon-blue/10 px-3 py-1.5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Deal Team
         </h3>
       </header>
@@ -111,13 +111,13 @@ export function DealTeamSection({
               <div className="mt-1">
                 <EmailActionMenu
                   email={member.contact.Email}
-                  className="block truncate font-mono text-[10px] text-carbon-blue/50"
+                  className="block truncate font-mono text-[11px] text-carbon-blue/50"
                 />
               </div>
               <div className="mt-0.5">
                 <PhoneActionMenu
                   phone={member.contact.Phone || member.contact.Mobile}
-                  className="font-mono text-[10px] text-carbon-blue/50"
+                  className="font-mono text-[11px] text-carbon-blue/50"
                 />
               </div>
             </article>
@@ -138,7 +138,7 @@ export function DealTeamSection({
             {assignOpen ? (
               <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-2">
                 <label className="block">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                     Contact
                   </span>
                   <select

@@ -116,7 +116,7 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
           >
             Add User — SmartAssist
           </p>
-          <p className="mt-1 text-[11px] text-carbon-blue/50">
+          <p className="mt-1 text-[12px] text-carbon-blue/50">
             {ASSISTED_EVERYTHING.smartAssistRole} {ASSISTED_EVERYTHING.mantra}
           </p>
         </div>
@@ -131,7 +131,7 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
                     key={fn}
                     type="button"
                     onClick={() => handleSelectFunction(fn)}
-                    className="border border-carbon-blue/12 px-3 py-2.5 text-left text-[12px] font-medium text-carbon-blue transition-colors hover:border-upcycle-orange hover:bg-upcycle-orange/[0.04]"
+                    className="border border-carbon-blue/12 px-3 py-2.5 text-left text-[13px] font-medium text-carbon-blue transition-colors hover:border-upcycle-orange hover:bg-upcycle-orange/[0.04]"
                   >
                     {fn}
                   </button>
@@ -143,10 +143,10 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
           {step === "details" && recommendation ? (
             <>
               <div className="border border-upcycle-orange/20 bg-upcycle-orange/[0.04] p-3">
-                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
                   SmartAssist recommends
                 </p>
-                <ul className="mt-2 space-y-1 text-[11px] text-carbon-blue/75">
+                <ul className="mt-2 space-y-1 text-[12px] text-carbon-blue/75">
                   <li>
                     <span className="font-semibold text-carbon-blue">Role:</span>{" "}
                     {recommendation.roleLabel}
@@ -160,38 +160,38 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
                     {recommendation.ownershipScopeLabel}
                   </li>
                 </ul>
-                <p className="mt-2 text-[10px] text-carbon-blue/50">{recommendation.rationale}</p>
+                <p className="mt-2 text-[11px] text-carbon-blue/50">{recommendation.rationale}</p>
               </div>
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Display name
                 </span>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
-                  className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue"
                   placeholder="Full name"
                 />
               </label>
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Email
                 </span>
                 <input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue"
                   placeholder="name@standardbio.com"
                 />
               </label>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                     Team
                   </span>
                   <select
@@ -199,7 +199,7 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
                     onChange={(event) =>
                       setTeam(event.target.value as (typeof USER_TEAMS)[number])
                     }
-                    className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
+                    className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue"
                   >
                     {USER_TEAMS.map((value) => (
                       <option key={value} value={value}>
@@ -210,7 +210,7 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
                 </label>
 
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                     License
                   </span>
                   <select
@@ -218,7 +218,7 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
                     onChange={(event) =>
                       setLicense(event.target.value as (typeof USER_LICENSES)[number])
                     }
-                    className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
+                    className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue"
                   >
                     {USER_LICENSES.map((value) => (
                       <option key={value} value={value}>
@@ -229,11 +229,11 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
                 </label>
               </div>
 
-              <p className="text-[10px] text-carbon-blue/45">
+              <p className="text-[11px] text-carbon-blue/65">
                 Role: {USER_ROLE_LABELS[recommendation.role]} · Function: {businessFunction}
               </p>
 
-              {error ? <p className="text-[11px] text-thermal-red">{error}</p> : null}
+              {error ? <p className="text-[12px] text-thermal-red">{error}</p> : null}
             </>
           ) : null}
         </div>
@@ -242,7 +242,7 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
           <button
             type="button"
             onClick={handleClose}
-            className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+            className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
           >
             Cancel
           </button>
@@ -251,7 +251,7 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
               <button
                 type="button"
                 onClick={() => setStep("function")}
-                className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+                className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
               >
                 Back
               </button>
@@ -261,7 +261,7 @@ export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardP
                 type="button"
                 disabled={submitting || !displayName.trim() || !email.trim()}
                 onClick={() => void handleCreate()}
-                className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+                className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
               >
                 {submitting ? "Creating…" : "Create user"}
               </button>

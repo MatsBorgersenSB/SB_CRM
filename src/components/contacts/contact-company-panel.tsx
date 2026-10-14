@@ -43,14 +43,14 @@ export function ContactCompanyPanel({
         </h2>
 
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2.5 py-1 text-[12px] font-medium text-carbon-blue">
+          <span className="inline-flex items-center gap-1.5 border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2.5 py-1 text-[13px] font-medium text-carbon-blue">
             <HealthStatusIcon status={summary.healthStatus} />
             {summary.healthStatus}
           </span>
-          <span className="border border-carbon-blue/10 px-2.5 py-1 text-[12px] font-medium text-carbon-blue/70">
+          <span className="border border-carbon-blue/10 px-2.5 py-1 text-[13px] font-medium text-carbon-blue/70">
             {company.Status}
           </span>
-          <span className="text-[12px] text-carbon-blue/55">{company.Industry || "—"}</span>
+          <span className="text-[13px] text-carbon-blue/55">{company.Industry || "—"}</span>
         </div>
       </div>
 

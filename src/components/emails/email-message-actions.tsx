@@ -8,10 +8,10 @@ import { stashSmartAssistPrefill } from "@/lib/smart-assist-prefill";
 import type { UserRole } from "@/types/auth";
 
 const PRIMARY_ACTION_CLASS =
-  "inline-flex items-center border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50";
+  "inline-flex items-center border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50";
 
 const SECONDARY_ACTION_CLASS =
-  "inline-flex items-center border border-carbon-blue/20 bg-white px-2.5 py-1 text-[11px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange/50 hover:text-upcycle-orange disabled:opacity-50";
+  "inline-flex items-center border border-carbon-blue/20 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange/50 hover:text-upcycle-orange disabled:opacity-50";
 
 function replySubject(subject: string): string {
   return /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`;
@@ -171,7 +171,7 @@ export function EmailMessageActions({
           </>
         )}
       </div>
-      {replyError ? <p className="mt-1 text-[10px] text-thermal-red">{replyError}</p> : null}
+      {replyError ? <p className="mt-1 text-[11px] text-thermal-red">{replyError}</p> : null}
     </div>
   );
 }

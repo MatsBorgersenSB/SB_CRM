@@ -30,11 +30,11 @@ export function ContactRelationshipPortfolioPanel({
   return (
     <div className="flex flex-col gap-3">
       <div className="border border-upcycle-orange/20 bg-upcycle-orange/[0.04] px-3 py-2.5">
-        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
           SmartAssist · {CONTACT_RELATIONSHIP_INTELLIGENCE.title}
         </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/70">{portfolio.summary}</p>
-        <p className="mt-1 text-[10px] italic text-carbon-blue/50">
+        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/70">{portfolio.summary}</p>
+        <p className="mt-1 text-[11px] italic text-carbon-blue/50">
           {CONTACT_RELATIONSHIP_INTELLIGENCE.mantra}
         </p>
       </div>
@@ -49,7 +49,7 @@ export function ContactRelationshipPortfolioPanel({
           ] as const
         ).map(([label, count]) => (
           <div key={label} className="border border-carbon-blue/10 bg-white px-3 py-2">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
               {label}
             </p>
             <p className="mt-0.5 text-lg font-semibold tabular-nums text-carbon-blue">{count}</p>
@@ -73,10 +73,10 @@ export function ContactRelationshipPortfolioPanel({
                   >
                     {row.contactName}
                   </Link>
-                  <p className="mt-0.5 text-[10px] text-carbon-blue/50">{row.companyName}</p>
-                  <p className="mt-1 text-[11px] text-carbon-blue/65">{row.topInsightTitle}</p>
+                  <p className="mt-0.5 text-[11px] text-carbon-blue/50">{row.companyName}</p>
+                  <p className="mt-1 text-[12px] text-carbon-blue/65">{row.topInsightTitle}</p>
                 </div>
-                <span className="shrink-0 border border-carbon-blue/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                <span className="shrink-0 border border-carbon-blue/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                   {row.insightCount} signal{row.insightCount === 1 ? "" : "s"}
                 </span>
               </div>

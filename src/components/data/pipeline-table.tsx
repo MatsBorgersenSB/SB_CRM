@@ -93,7 +93,7 @@ type PipelineTableProps = {
 
 function EnterpriseRoleBadge({ role }: { role: CompanyRole }) {
   return (
-    <span className="inline-flex items-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-1.5 py-0.5 text-[9px] font-semibold text-carbon-blue/75">
+    <span className="inline-flex items-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-carbon-blue/75">
       {role}
     </span>
   );
@@ -118,7 +118,7 @@ function PhaseGateSelect({
     <select
       autoFocus
       defaultValue={status}
-      className="w-full border border-upcycle-orange bg-white px-1 py-0 text-[10px] text-carbon-blue outline-none"
+      className="w-full border border-upcycle-orange bg-white px-1 py-0 text-[11px] text-carbon-blue outline-none"
       onBlur={(event) => onCommit(event.target.value)}
       onChange={(event) => onCommit(event.target.value)}
       onKeyDown={(event) => {
@@ -184,7 +184,7 @@ function ProbabilityBadge({
     <button
       type="button"
       onDoubleClick={onStartEdit}
-      className={`inline-flex min-w-[40px] items-center justify-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-carbon-blue/75 ${
+      className={`inline-flex min-w-[40px] items-center justify-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-carbon-blue/75 ${
         focused ? "ring-1 ring-upcycle-orange/40 ring-inset" : ""
       }`}
     >
@@ -376,7 +376,7 @@ export function PipelineTable({
 
     if (field === "id") {
       return (
-        <span className="font-mono text-[11px] text-carbon-blue/55">{row.id}</span>
+        <span className="font-mono text-[12px] text-carbon-blue/55">{row.id}</span>
       );
     }
 
@@ -451,7 +451,7 @@ export function PipelineTable({
     >
       <section className="border border-carbon-blue/15 bg-white">
         <header className="border-b border-carbon-blue/10 px-3 py-2">
-          <h2 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Active Deals Pipeline
           </h2>
         </header>
@@ -475,7 +475,7 @@ export function PipelineTable({
                 {headerGroup.headers.map((header, index) => (
                   <th
                     key={`th-pyro-${index}`}
-                    className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+                    className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
                   >
                     {flexRender(
                       header.column.columnDef.header,

@@ -73,11 +73,11 @@ function SummaryCard({
 
   return (
     <article className={`rounded-lg border p-3 ${border}`}>
-      <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">{label}</p>
       <p className="mt-1 text-xl font-bold tabular-nums text-carbon-blue">{value}</p>
-      <p className="mt-1 text-[11px] leading-snug text-carbon-blue/70">{detail}</p>
+      <p className="mt-1 text-[12px] leading-snug text-carbon-blue/70">{detail}</p>
       {sub ? (
-        <p className="mt-1 line-clamp-2 text-[10px] text-carbon-blue/45">{sub}</p>
+        <p className="mt-1 line-clamp-2 text-[11px] text-carbon-blue/65">{sub}</p>
       ) : null}
     </article>
   );

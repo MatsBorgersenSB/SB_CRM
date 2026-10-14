@@ -68,7 +68,7 @@ export function Company360ActionsBar({
         aria-label="Account tools"
         title="Account tools"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center border border-carbon-blue/12 px-2 py-1 text-[11px] font-semibold tracking-wider text-carbon-blue/50 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+        className="inline-flex items-center border border-carbon-blue/12 px-2 py-1 text-[12px] font-semibold tracking-wider text-carbon-blue/50 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
       >
         ···
       </button>
@@ -116,7 +116,7 @@ function OverflowItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="block w-full px-3 py-1.5 text-left text-[11px] text-carbon-blue/75 hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange"
+      className="block w-full px-3 py-1.5 text-left text-[12px] text-carbon-blue/75 hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange"
     >
       {label}
     </button>

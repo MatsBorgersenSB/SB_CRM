@@ -27,7 +27,7 @@ export function SmartDocsIntelligenceRow({ item }: { item: SmartDocsIntelligence
             </p>
             <DocumentHealthBadge status={item.healthStatus} />
           </div>
-          <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/55">
+          <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/55">
             {item.nextBestAction.action}
           </p>
           <ImpactContext items={impact} />
@@ -56,7 +56,7 @@ export function MissingCriticalDocumentRow({
       <p className="text-sm font-semibold text-carbon-blue group-hover:text-upcycle-orange">
         {item.entityName}
       </p>
-      <p className="mt-1 text-[11px] font-medium text-red-600">{item.label}</p>
+      <p className="mt-1 text-[12px] font-medium text-red-600">{item.label}</p>
       <ImpactContext items={[item.detail, "Required documentation gap on active deal or account"]} />
     </Link>
   );

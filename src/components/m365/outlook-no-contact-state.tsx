@@ -268,12 +268,12 @@ export function OutlookNoContactState({
   return (
     <>
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
 
         {phase === "loading" ? (
-          <p className="mt-2 text-[11px] text-carbon-blue/50">
+          <p className="mt-2 text-[12px] text-carbon-blue/50">
             {variant === "compose"
               ? "Checking SmartCRM for this recipient…"
               : "Checking SmartCRM for this relationship…"}
@@ -283,46 +283,46 @@ export function OutlookNoContactState({
         {phase === "error" ? (
           <>
             <p className="mt-2 text-sm font-semibold text-carbon-blue">Unable to prepare</p>
-            <p className="mt-1 text-[11px] text-carbon-blue/50">{error}</p>
+            <p className="mt-1 text-[12px] text-carbon-blue/50">{error}</p>
           </>
         ) : null}
 
         {phase === "propose" && proposal?.resolutionKind === "internal_colleague" ? (
           <>
             <p className="mt-2 text-sm font-semibold text-carbon-blue">Standard Bio colleague</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+            <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
               {proposal.decisionQuestion}
             </p>
-            <p className="mt-3 text-[12px] font-medium text-carbon-blue">
+            <p className="mt-3 text-[13px] font-medium text-carbon-blue">
               {proposal.colleague?.displayName || proposal.displayName || email}
             </p>
-            <p className="mt-0.5 text-[10px] text-carbon-blue/40">{proposal.email}</p>
+            <p className="mt-0.5 text-[11px] text-carbon-blue/60">{proposal.email}</p>
             {proposal.colleague?.knownUser ? (
-              <p className="mt-3 text-[11px] text-carbon-blue/70">
+              <p className="mt-3 text-[12px] text-carbon-blue/70">
                 Already a SmartCRM user
                 {proposal.colleague.team ? ` · ${proposal.colleague.team}` : ""}
                 {proposal.colleague.userId ? ` · ${proposal.colleague.userId}` : ""}
               </p>
             ) : (
-              <p className="mt-3 text-[11px] text-carbon-blue/70">
+              <p className="mt-3 text-[12px] text-carbon-blue/70">
                 Not in Users & Access yet.
               </p>
             )}
-            <p className="mt-2 text-[10px] leading-relaxed text-carbon-blue/45">
+            <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/65">
               {proposal.decisionImpact}
             </p>
             <a
               href={buildSmartCrmUrl("/administration/users-access")}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+              className="mt-5 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
             >
               Open Users & Access
             </a>
             <button
               type="button"
               onClick={onContactCreated}
-              className="mt-3 border border-carbon-blue/15 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+              className="mt-3 border border-carbon-blue/15 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
             >
               Continue in Outlook
             </button>
@@ -332,13 +332,13 @@ export function OutlookNoContactState({
         {phase === "dismissed" ? (
           <>
             <p className="mt-2 text-sm font-semibold text-carbon-blue">Left unchanged</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+            <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
               Nothing was created. You can add this relationship later from Outlook.
             </p>
             <button
               type="button"
               onClick={() => setPhase("propose")}
-              className="mt-5 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue"
+              className="mt-5 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue"
             >
               Review again
             </button>
@@ -348,7 +348,7 @@ export function OutlookNoContactState({
         {phase === "done" && created ? (
           <>
             <p className="mt-2 text-sm font-semibold text-carbon-blue">Added to SmartCRM</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+            <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
               {created.companyCreated
                 ? "Contact and company created — stay in Outlook, or open SmartCRM."
                 : "Contact linked to the existing company."}
@@ -364,7 +364,7 @@ export function OutlookNoContactState({
               )}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+              className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
             >
               View contact in SmartCRM
             </a>
@@ -372,14 +372,14 @@ export function OutlookNoContactState({
               href={buildSmartCrmUrl(companyHref(created.companyId))}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+              className="mt-3 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
             >
               View company in SmartCRM
             </a>
             <button
               type="button"
               onClick={onContactCreated}
-              className="mt-3 border border-carbon-blue/15 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+              className="mt-3 border border-carbon-blue/15 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
             >
               Continue in Outlook
             </button>
@@ -387,7 +387,7 @@ export function OutlookNoContactState({
               <button
                 type="button"
                 onClick={() => setOpportunityOpen(true)}
-                className="mt-3 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+                className="mt-3 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
               >
                 Create opportunity
               </button>
@@ -403,57 +403,57 @@ export function OutlookNoContactState({
               {proposal.companyResolved ? "Add contact?" : "New relationship"}
             </p>
             {variant === "compose" ? (
-              <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+              <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
                 This recipient is not in SmartCRM yet. Add them so you can assign this mail.
               </p>
             ) : (
-              <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+              <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
                 {proposal.decisionQuestion}
               </p>
             )}
             {variant === "compose" ? (
-              <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/50">
+              <p className="mt-2 text-[12px] leading-relaxed text-carbon-blue/50">
                 {proposal.decisionQuestion}
               </p>
             ) : null}
-            <p className="mt-3 text-[12px] font-medium text-carbon-blue">
+            <p className="mt-3 text-[13px] font-medium text-carbon-blue">
               {proposal.displayName || email}
             </p>
-            <p className="mt-0.5 text-[10px] text-carbon-blue/40">{proposal.email}</p>
+            <p className="mt-0.5 text-[11px] text-carbon-blue/60">{proposal.email}</p>
             {proposal.enrichment.suggestions.length > 0 ? (
               <dl className="mt-3 space-y-1 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Found in this email
                 </p>
                 {proposal.enrichment.suggestions.map((item) => (
-                  <div key={item.id} className="flex gap-2 text-[11px] text-carbon-blue/75">
-                    <dt className="shrink-0 font-semibold text-carbon-blue/45">{item.label}</dt>
+                  <div key={item.id} className="flex gap-2 text-[12px] text-carbon-blue/75">
+                    <dt className="shrink-0 font-semibold text-carbon-blue/65">{item.label}</dt>
                     <dd className="min-w-0 whitespace-pre-wrap break-words">{item.value}</dd>
                   </div>
                 ))}
               </dl>
             ) : null}
-            <p className="mt-3 text-[11px] text-carbon-blue/70">
+            <p className="mt-3 text-[12px] text-carbon-blue/70">
               {proposal.companyResolved
                 ? `Company already in SmartCRM: ${proposal.companyName}`
                 : proposal.companyName
                   ? `Suggested company: ${proposal.companyName}`
                   : "Company: not yet known"}
             </p>
-            <p className="mt-2 text-[10px] leading-relaxed text-carbon-blue/45">
+            <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/65">
               {proposal.decisionImpact}
             </p>
             <button
               type="button"
               onClick={handleYes}
-              className="mt-5 border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+              className="mt-5 border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
             >
               {proposal.companyResolved ? "Yes, add contact" : "Yes — create company & contact"}
             </button>
             <button
               type="button"
               onClick={handleNo}
-              className="mt-3 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue"
+              className="mt-3 border border-carbon-blue/20 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue"
             >
               No — leave unchanged
             </button>
@@ -461,7 +461,7 @@ export function OutlookNoContactState({
               href={buildSmartCrmUrl("/companies")}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45 hover:text-upcycle-orange"
+              className="mt-3 text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65 hover:text-upcycle-orange"
             >
               Open SmartCRM
             </a>
@@ -473,36 +473,36 @@ export function OutlookNoContactState({
             <p className="text-sm font-semibold text-carbon-blue">
               {showMatchedCompany ? "Confirm add contact" : "Confirm create"}
             </p>
-            <p className="text-[11px] text-carbon-blue/50">
+            <p className="text-[12px] text-carbon-blue/50">
               {showMatchedCompany
                 ? `${proposal.companyName} is already in SmartCRM. Choose a role, then add the contact.`
                 : "SmartAssist prepared this draft. Nothing is saved until you create."}
             </p>
 
             <label className="block">
-              <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                 Role
               </span>
               <ContactRoleSelect
                 value={role}
                 onChange={(value) => setRole(value)}
                 allowEmpty
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
               />
             </label>
 
             {acceptedSuggestions && acceptedSuggestions.length > 0 ? (
               <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Captured from email signature
                 </p>
                 <ul className="mt-1.5 space-y-1">
                   {acceptedSuggestions.map((item) => (
                     <li
                       key={item.id}
-                      className="flex gap-2 text-[11px] text-carbon-blue/75"
+                      className="flex gap-2 text-[12px] text-carbon-blue/75"
                     >
-                      <span className="shrink-0 font-semibold text-carbon-blue/45">
+                      <span className="shrink-0 font-semibold text-carbon-blue/65">
                         {item.label}
                       </span>
                       <span className="min-w-0 whitespace-pre-wrap break-words">
@@ -516,11 +516,11 @@ export function OutlookNoContactState({
 
             {showMatchedCompany ? (
               <div>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Link to company
                 </span>
                 <div className="mt-1 flex items-center justify-between gap-2 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
-                  <p className="text-[12px] font-medium text-carbon-blue">
+                  <p className="text-[13px] font-medium text-carbon-blue">
                     {proposal.companyOptions?.find((item) => item.id === pickedCompanyId)
                       ?.name ?? proposal.companyName}
                   </p>
@@ -530,12 +530,12 @@ export function OutlookNoContactState({
                       setPickedCompanyId(null);
                       setCreateNewCompany(false);
                     }}
-                    className="shrink-0 border border-carbon-blue/15 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+                    className="shrink-0 border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
                   >
                     Change
                   </button>
                 </div>
-                <p className="mt-1 text-[10px] text-carbon-blue/45">
+                <p className="mt-1 text-[11px] text-carbon-blue/65">
                   Existing company — this contact will be added here.
                 </p>
               </div>
@@ -577,18 +577,18 @@ export function OutlookNoContactState({
                   }}
                 />
                 {createNewCompany ? (
-                  <p className="-mt-1 text-[10px] text-carbon-blue/45">
+                  <p className="-mt-1 text-[11px] text-carbon-blue/65">
                     A new company named “{companyName.trim()}” will be created.
                   </p>
                 ) : (
-                  <p className="-mt-1 text-[10px] text-carbon-blue/45">
+                  <p className="-mt-1 text-[11px] text-carbon-blue/65">
                     Pick the existing company when it is already in SmartCRM.
                   </p>
                 )}
                 {createNewCompany ? (
                   <>
                     <label className="block">
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                         Relationship type
                       </span>
                       <select
@@ -596,7 +596,7 @@ export function OutlookNoContactState({
                         onChange={(event) =>
                           setCompanyType(event.target.value as CompanyType | "")
                         }
-                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                       >
                         <option value="">What kind of company?…</option>
                         {COMPANY_TYPE_SELECT_OPTIONS.map((option) => (
@@ -607,14 +607,14 @@ export function OutlookNoContactState({
                       </select>
                     </label>
                     <label className="block">
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                         Industry
                       </span>
                       <IndustrySelect
                         value={industry}
                         onChange={(value) => setIndustry(value)}
                         allowEmpty
-                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                       />
                     </label>
                   </>
@@ -627,7 +627,7 @@ export function OutlookNoContactState({
               proposal.projectOptions.length > 0) ? (
               <div className="space-y-2 border-t border-carbon-blue/8 pt-3">
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                     Connect this thread (optional)
                   </span>
                   <select
@@ -650,7 +650,7 @@ export function OutlookNoContactState({
                         setSelectedLinkId(id);
                       }
                     }}
-                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                    className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                   >
                     <option value="none">Do not link yet</option>
                     {proposal.opportunityOptions.length > 0 ? (
@@ -680,7 +680,7 @@ export function OutlookNoContactState({
                   </select>
                 </label>
                 {proposal.opportunityOptions.length === 0 ? (
-                  <p className="text-[10px] text-carbon-blue/45">
+                  <p className="text-[11px] text-carbon-blue/65">
                     No open opportunities on this company yet.
                   </p>
                 ) : null}
@@ -695,10 +695,10 @@ export function OutlookNoContactState({
               />
             ) : null}
 
-            {error ? <p className="text-[11px] text-red-600">{error}</p> : null}
+            {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
 
             {!showMatchedCompany && createNewCompany && (!industry || !companyType) ? (
-              <p className="text-[11px] text-carbon-blue/55">
+              <p className="text-[12px] text-carbon-blue/55">
                 Choose relationship type and industry, then create.
               </p>
             ) : null}
@@ -712,7 +712,7 @@ export function OutlookNoContactState({
                   (!createNewCompany || !industry || !companyType || !companyName.trim()))
               }
               onClick={() => void handleCreate()}
-              className="w-full border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"
+              className="w-full border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"
             >
               {busy
                 ? showMatchedCompany
@@ -726,7 +726,7 @@ export function OutlookNoContactState({
               type="button"
               disabled={busy}
               onClick={() => setPhase("propose")}
-              className="w-full border border-carbon-blue/15 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+              className="w-full border border-carbon-blue/15 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
             >
               Back
             </button>

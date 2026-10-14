@@ -21,9 +21,9 @@ export function NextBestActionCard({
 }) {
   if (compact) {
     return (
-      <div className="text-[11px] leading-relaxed text-carbon-blue/55">
+      <div className="text-[12px] leading-relaxed text-carbon-blue/55">
         <span
-          className={`inline-flex border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${PRIORITY_STYLES[action.priority]}`}
+          className={`inline-flex border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${PRIORITY_STYLES[action.priority]}`}
         >
           {action.priority}
         </span>
@@ -36,10 +36,10 @@ export function NextBestActionCard({
   const body = (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[9px] font-semibold uppercase tracking-wider opacity-70">
+        <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
           {prominent ? "Recommended action" : "Next best action"}
         </p>
-        <span className="text-[9px] font-semibold uppercase tracking-wider opacity-60">
+        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-60">
           {action.priority} priority
         </span>
       </div>
@@ -51,12 +51,12 @@ export function NextBestActionCard({
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
             href={action.href}
-            className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
+            className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
           >
             Open in SmartCRM
           </Link>
           {action.plannerEligible ? (
-            <span className="text-[10px] text-carbon-blue/40">· Planner eligible</span>
+            <span className="text-[11px] text-carbon-blue/60">· Planner eligible</span>
           ) : null}
         </div>
       ) : null}

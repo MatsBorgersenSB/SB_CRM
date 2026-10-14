@@ -34,16 +34,16 @@ export function OpportunityCommandCenterSection({
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-carbon-blue">{title}</h2>
-            <span className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-carbon-blue/55">
+            <span className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-carbon-blue/55">
               {count}
             </span>
           </div>
-          <p className="mt-0.5 text-[11px] text-carbon-blue/45">{description}</p>
+          <p className="mt-0.5 text-[12px] text-carbon-blue/65">{description}</p>
         </div>
         {href ? (
           <Link
             href={href}
-            className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-upcycle-orange"
+            className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-upcycle-orange"
           >
             View
             <ArrowRight className="size-3" />
@@ -51,7 +51,7 @@ export function OpportunityCommandCenterSection({
         ) : null}
       </header>
       {count === 0 ? (
-        <p className="px-4 py-8 text-center text-xs text-carbon-blue/45">{emptyMessage}</p>
+        <p className="px-4 py-8 text-center text-xs text-carbon-blue/65">{emptyMessage}</p>
       ) : (
         children
       )}

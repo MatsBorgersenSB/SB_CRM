@@ -56,7 +56,7 @@ export function AttentionActionButtons({
         </IconLabel>
       }
       align="right"
-      className="text-[11px] font-semibold text-upcycle-orange"
+      className="text-[12px] font-semibold text-upcycle-orange"
     >
       {actions.map((action) => (
         <AttentionActionEntries
@@ -150,8 +150,8 @@ function AttentionActionButton({
   asMenuItem?: boolean;
 }) {
   const className = asMenuItem
-    ? "block w-full px-3 py-1.5 text-left text-[11px] font-medium text-carbon-blue hover:bg-carbon-blue/[0.04]"
-    : `inline-flex items-center gap-1 border border-carbon-blue/12 px-2.5 py-1 text-[10px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange ${
+    ? "block w-full px-3 py-1.5 text-left text-[12px] font-medium text-carbon-blue hover:bg-carbon-blue/[0.04]"
+    : `inline-flex items-center gap-1 border border-carbon-blue/12 px-2.5 py-1 text-[11px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange ${
         compact ? "" : ""
       }`;
 
@@ -191,7 +191,7 @@ function AttentionActionButton({
       <ActionMenu
         label={label}
         align="right"
-        className="text-[10px] font-semibold text-carbon-blue"
+        className="text-[11px] font-semibold text-carbon-blue"
       >
         <ActionMenuItem href={m365ComposeHref(action.email)} external>
           <IconLabel icon="email" iconSize="xs">

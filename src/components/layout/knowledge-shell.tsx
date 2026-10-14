@@ -177,7 +177,7 @@ export function KnowledgeShell({
               hero.actionHref ? (
                 <Link
                   href={hero.actionHref}
-                  className="inline-flex border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold text-white hover:bg-upcycle-orange/90"
+                  className="inline-flex border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold text-white hover:bg-upcycle-orange/90"
                 >
                   {hero.actionLabel}
                 </Link>
@@ -222,12 +222,12 @@ export function KnowledgeShell({
               </div>
 
               {rows.length === 0 ? (
-                <p className="px-1 py-8 text-center text-sm text-carbon-blue/45">
+                <p className="px-1 py-8 text-center text-sm text-carbon-blue/65">
                   Nothing filed yet. Import from a company, contact, opportunity, or project
                   workspace.
                 </p>
               ) : displayedRows.length === 0 ? (
-                <p className="px-1 py-8 text-center text-sm text-carbon-blue/45">
+                <p className="px-1 py-8 text-center text-sm text-carbon-blue/65">
                   No documents match your filters. Try clearing search or filters.
                 </p>
               ) : (

@@ -14,7 +14,7 @@ export function ActivityIntelligencePanel({ intelligence }: ActivityIntelligence
     <div className="dashboard-card flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap gap-6">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Open follow-ups
           </p>
           <p className="mt-1 text-2xl font-semibold tabular-nums text-carbon-blue">
@@ -22,7 +22,7 @@ export function ActivityIntelligencePanel({ intelligence }: ActivityIntelligence
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Overdue
           </p>
           <p
@@ -37,7 +37,7 @@ export function ActivityIntelligencePanel({ intelligence }: ActivityIntelligence
 
       {intelligence.upcomingActions.length > 0 ? (
         <div className="min-w-0 flex-1 sm:max-w-md sm:border-l sm:border-carbon-blue/8 sm:pl-6">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Next due
           </p>
           <ul className="mt-2 space-y-2">
@@ -47,7 +47,7 @@ export function ActivityIntelligencePanel({ intelligence }: ActivityIntelligence
                 className="flex items-start justify-between gap-3 text-xs"
               >
                 <span className="truncate text-carbon-blue/80">{activity.NextAction}</span>
-                <span className="shrink-0 font-mono text-[10px] text-carbon-blue/45">
+                <span className="shrink-0 font-mono text-[11px] text-carbon-blue/65">
                   {formatDueDate(activity.NextActionDate)}
                 </span>
               </li>

@@ -53,7 +53,7 @@ export function WorkspaceAddMenu<T extends string>({
       <button
         type="button"
         onClick={() => onSelect(null)}
-        className="inline-flex items-center gap-2 border border-upcycle-orange/40 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+        className="inline-flex items-center gap-2 border border-upcycle-orange/40 bg-upcycle-orange/10 px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
         title="Close"
       >
         {active.label}
@@ -69,7 +69,7 @@ export function WorkspaceAddMenu<T extends string>({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
+        className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
       >
         {label}
       </button>
@@ -90,14 +90,14 @@ export function WorkspaceAddMenu<T extends string>({
               className="block w-full px-3 py-2 text-left hover:bg-carbon-blue/[0.04]"
             >
               <span
-                className={`block text-[12px] font-semibold ${
+                className={`block text-[13px] font-semibold ${
                   item.primary ? "text-upcycle-orange" : "text-carbon-blue"
                 }`}
               >
                 {item.label}
               </span>
               {item.hint ? (
-                <span className="block text-[11px] text-carbon-blue/55">{item.hint}</span>
+                <span className="block text-[12px] text-carbon-blue/55">{item.hint}</span>
               ) : null}
             </button>
           ))}

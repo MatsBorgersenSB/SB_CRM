@@ -94,17 +94,17 @@ export function TaskShareControl({
         onClick={() => setOpen((value) => !value)}
         className={
           compact
-            ? "inline-flex items-center gap-1 text-[10px] font-semibold text-carbon-blue/55 hover:text-upcycle-orange"
-            : "inline-flex items-center gap-1.5 border border-carbon-blue/15 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange"
+            ? "inline-flex items-center gap-1 text-[11px] font-semibold text-carbon-blue/55 hover:text-upcycle-orange"
+            : "inline-flex items-center gap-1.5 border border-carbon-blue/15 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange"
         }
       >
         <Share2 className="size-3" strokeWidth={2} />
         Share
         {shared.length > 0 ? (
-          <span className="text-carbon-blue/40">({shared.length})</span>
+          <span className="text-carbon-blue/60">({shared.length})</span>
         ) : null}
         {sharedWithMe ? (
-          <span className="text-[9px] font-medium normal-case text-upcycle-orange">
+          <span className="text-[10px] font-medium normal-case text-upcycle-orange">
             with you
           </span>
         ) : null}
@@ -114,15 +114,15 @@ export function TaskShareControl({
         <div className="absolute right-0 z-40 mt-1 w-72 border border-carbon-blue/15 bg-white p-3 shadow-lg">
           <div className="mb-2 flex items-start justify-between gap-2">
             <div>
-              <p className="text-[11px] font-semibold text-carbon-blue">Share task</p>
-              <p className="mt-0.5 text-[10px] text-carbon-blue/50">
+              <p className="text-[12px] font-semibold text-carbon-blue">Share task</p>
+              <p className="mt-0.5 text-[11px] text-carbon-blue/50">
                 Colleagues can follow this task. Assignee stays the owner.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="text-carbon-blue/40 hover:text-carbon-blue"
+              className="text-carbon-blue/60 hover:text-carbon-blue"
             >
               <X className="size-3.5" />
             </button>
@@ -133,7 +133,7 @@ export function TaskShareControl({
               value={pickId}
               disabled={busy || shareOptions.length === 0}
               onChange={(event) => setPickId(event.target.value)}
-              className="min-w-0 flex-1 border border-carbon-blue/15 px-2 py-1.5 text-[11px]"
+              className="min-w-0 flex-1 border border-carbon-blue/15 px-2 py-1.5 text-[12px]"
             >
               <option value="">
                 {shareOptions.length === 0 ? "Everyone already shared" : "Add colleague…"}
@@ -148,7 +148,7 @@ export function TaskShareControl({
               type="button"
               disabled={busy || !pickId}
               onClick={() => void addPerson()}
-              className="border border-upcycle-orange bg-upcycle-orange px-2 py-1.5 text-[10px] font-semibold text-white disabled:opacity-40"
+              className="border border-upcycle-orange bg-upcycle-orange px-2 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40"
             >
               Add
             </button>
@@ -159,14 +159,14 @@ export function TaskShareControl({
               {shared.map((person) => (
                 <li
                   key={person.Id}
-                  className="flex items-center justify-between gap-2 text-[11px] text-carbon-blue/75"
+                  className="flex items-center justify-between gap-2 text-[12px] text-carbon-blue/75"
                 >
                   <span className="truncate">{person.Title}</span>
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => void removePerson(person.Id)}
-                    className="text-[10px] font-semibold text-carbon-blue/40 hover:text-thermal-red"
+                    className="text-[11px] font-semibold text-carbon-blue/60 hover:text-thermal-red"
                   >
                     Remove
                   </button>
@@ -174,35 +174,35 @@ export function TaskShareControl({
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-[10px] text-carbon-blue/45">Not shared with anyone yet.</p>
+            <p className="mt-2 text-[11px] text-carbon-blue/65">Not shared with anyone yet.</p>
           )}
 
           <div className="mt-3 flex flex-wrap gap-2 border-t border-carbon-blue/8 pt-2">
             <button
               type="button"
               onClick={() => void copyLink()}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold text-carbon-blue/60 hover:text-upcycle-orange"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-carbon-blue/60 hover:text-upcycle-orange"
             >
               {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
               {copied ? "Copied" : "Copy link"}
             </button>
             <a
               href={taskShareMailtoHref(activity)}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold text-carbon-blue/60 hover:text-upcycle-orange"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-carbon-blue/60 hover:text-upcycle-orange"
             >
               <Mail className="size-3" />
               Email
             </a>
             <a
               href={taskAbsoluteUrl(activity.ActivityID)}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold text-carbon-blue/60 hover:text-upcycle-orange"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-carbon-blue/60 hover:text-upcycle-orange"
             >
               <Link2 className="size-3" />
               Open
             </a>
           </div>
 
-          {error ? <p className="mt-2 text-[10px] text-thermal-red">{error}</p> : null}
+          {error ? <p className="mt-2 text-[11px] text-thermal-red">{error}</p> : null}
         </div>
       ) : null}
     </div>
@@ -230,7 +230,7 @@ export function TaskShareWithPicker({
 
   return (
     <div className="space-y-2">
-      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40">
+      <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-carbon-blue/60">
         Share with
       </span>
       {value.length > 0 ? (
@@ -238,14 +238,14 @@ export function TaskShareWithPicker({
           {value.map((person) => (
             <li
               key={person.Id}
-              className="inline-flex items-center gap-1 border border-carbon-blue/15 bg-carbon-blue/[0.03] px-2 py-0.5 text-[11px] text-carbon-blue"
+              className="inline-flex items-center gap-1 border border-carbon-blue/15 bg-carbon-blue/[0.03] px-2 py-0.5 text-[12px] text-carbon-blue"
             >
               {person.Title}
               <button
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(value.filter((entry) => entry.Id !== person.Id))}
-                className="text-carbon-blue/40 hover:text-thermal-red"
+                className="text-carbon-blue/60 hover:text-thermal-red"
               >
                 <X className="size-3" />
               </button>
@@ -260,7 +260,7 @@ export function TaskShareWithPicker({
           const person = findStandardBioUserOption(options, Number(event.target.value));
           if (person) onChange([...value, person]);
         }}
-        className="w-full border border-carbon-blue/15 px-2.5 py-2 text-[12px]"
+        className="w-full border border-carbon-blue/15 px-2.5 py-2 text-[13px]"
       >
         <option value="">
           {available.length === 0 ? "No more colleagues to add" : "Add colleague…"}
@@ -271,7 +271,7 @@ export function TaskShareWithPicker({
           </option>
         ))}
       </select>
-      <p className="text-[9px] text-carbon-blue/40">
+      <p className="text-[10px] text-carbon-blue/60">
         Shared colleagues can follow the task. Assign to remains the owner.
       </p>
     </div>

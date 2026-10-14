@@ -16,10 +16,10 @@ export function DealStageTrack({ status }: { status: PipelineStatus }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange">
           {status}
         </span>
-        <span className="text-[9px] font-medium text-carbon-blue/40">
+        <span className="text-[10px] font-medium text-carbon-blue/60">
           {LIFECYCLE_LABELS[lifecycle]} phase
         </span>
       </div>

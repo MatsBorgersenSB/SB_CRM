@@ -35,7 +35,7 @@ export default function ConversionsPage() {
         <header className="flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/15 bg-white px-4">
           <h1 className="text-sm font-semibold text-carbon-blue">Conversions</h1>
           <div className="flex items-center gap-2">
-            <span className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-upcycle-orange">
+            <span className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-upcycle-orange">
               {batches.length}
             </span>
             <ThemeToggle />
@@ -50,7 +50,7 @@ export default function ConversionsPage() {
                   key={metric.label}
                   className="border border-carbon-blue/15 bg-white px-3 py-2.5"
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                     {metric.label}
                   </p>
                   <p className="mt-1 text-xs font-semibold tabular-nums text-carbon-blue">

@@ -8,22 +8,22 @@ function TopRiskPanel({ risk }: { risk: M365RiskBlock | null }) {
   if (!risk) {
     return (
       <section className="border border-carbon-blue/8 px-4 py-3">
-        <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
           Top risk
         </h3>
-        <p className="mt-2 text-[11px] text-carbon-blue/45">No critical account risks</p>
+        <p className="mt-2 text-[12px] text-carbon-blue/65">No critical account risks</p>
       </section>
     );
   }
 
   return (
     <section className="border border-upcycle-orange/25 bg-upcycle-orange/[0.03] px-4 py-3">
-      <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
         Top risk
       </h3>
       <p className="mt-2 text-sm font-medium text-carbon-blue">{risk.label}</p>
       {risk.detail ? (
-        <p className="mt-0.5 text-[11px] text-carbon-blue/50">{risk.detail}</p>
+        <p className="mt-0.5 text-[12px] text-carbon-blue/50">{risk.detail}</p>
       ) : null}
       <ImpactContext items={risk.impact} />
     </section>
@@ -45,7 +45,7 @@ export function AccountWorkspace({
     <article className={shell}>
       <div className="space-y-4 px-5 py-5">
         {variant === "teams" ? (
-          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
             SmartCRM · Account Workspace
           </p>
         ) : null}
@@ -59,10 +59,10 @@ export function AccountWorkspace({
         />
 
         <section className="border border-carbon-blue/8 px-4 py-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
             Relationship snapshot
           </h3>
-          <p className="mt-2 text-[12px] leading-relaxed text-carbon-blue/60">
+          <p className="mt-2 text-[13px] leading-relaxed text-carbon-blue/60">
             {payload.relationshipSnapshot}
           </p>
         </section>
@@ -73,7 +73,7 @@ export function AccountWorkspace({
 
         {payload.openOpportunities.length > 0 ? (
           <section>
-            <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               Open opportunities
             </h3>
             <ul className="mt-2 space-y-2">
@@ -85,7 +85,7 @@ export function AccountWorkspace({
                   >
                     {opp.label}
                   </Link>
-                  <p className="mt-0.5 text-[10px] text-carbon-blue/40">
+                  <p className="mt-0.5 text-[11px] text-carbon-blue/60">
                     {opp.stage} · {opp.valueLabel}
                   </p>
                   <ImpactContext items={opp.impact} />
@@ -97,7 +97,7 @@ export function AccountWorkspace({
 
         {payload.recentActivity.length > 0 ? (
           <section>
-            <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               Recent activity
             </h3>
             <ul className="mt-2 space-y-1.5">
@@ -105,11 +105,11 @@ export function AccountWorkspace({
                 <li key={activity.id}>
                   <Link
                     href={activity.href}
-                    className="text-[11px] text-carbon-blue/60 hover:text-upcycle-orange"
+                    className="text-[12px] text-carbon-blue/60 hover:text-upcycle-orange"
                   >
                     {activity.label}
                   </Link>
-                  <span className="ml-2 text-[10px] text-carbon-blue/35">
+                  <span className="ml-2 text-[11px] text-carbon-blue/50">
                     {activity.occurredLabel}
                   </span>
                 </li>
@@ -120,7 +120,7 @@ export function AccountWorkspace({
 
         {payload.knowledgeAtRisk.length > 0 ? (
           <section>
-            <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               Knowledge at risk
             </h3>
             <ul className="mt-2 space-y-2">

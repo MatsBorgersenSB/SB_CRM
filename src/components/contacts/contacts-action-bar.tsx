@@ -81,13 +81,13 @@ export function ContactsActionBar({
     <section className={embedded ? "" : "border border-carbon-blue/15 bg-white"}>
       {embedded ? null : (
         <div className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Entity Actions
           </p>
           <button
             type="button"
             onClick={() => setCreateOpen(!createOpen)}
-            className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:bg-upcycle-orange/[0.04] hover:text-upcycle-orange focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-upcycle-orange/40"
+            className="border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/30 hover:bg-upcycle-orange/[0.04] hover:text-upcycle-orange focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-upcycle-orange/40"
           >
             + New Contact
           </button>
@@ -123,7 +123,7 @@ export function ContactsActionBar({
             >
               Cancel
             </button>
-            <span className="text-[10px] text-carbon-blue/40">Esc</span>
+            <span className="text-[11px] text-carbon-blue/60">Esc</span>
           </div>
         </div>
       ) : null}

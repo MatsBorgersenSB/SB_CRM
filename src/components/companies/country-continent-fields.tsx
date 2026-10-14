@@ -8,9 +8,9 @@ import {
 } from "@/lib/geo/country-continent";
 
 const LABEL_COMPACT =
-  "text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40";
+  "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60";
 const LABEL_COMFORTABLE =
-  "text-[10px] font-bold uppercase tracking-[0.14em] text-upcycle-orange/80";
+  "text-[11px] font-bold uppercase tracking-[0.14em] text-upcycle-orange/80";
 
 const FIELD_COMPACT =
   "mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40";
@@ -133,7 +133,7 @@ export function CountryContinentFields({
           ))}
         </datalist>
         {isCustom ? (
-          <p className="mt-1 text-[10px] text-carbon-blue/45">
+          <p className="mt-1 text-[11px] text-carbon-blue/65">
             Custom country — not in the standard list. Continent can be set manually.
           </p>
         ) : null}

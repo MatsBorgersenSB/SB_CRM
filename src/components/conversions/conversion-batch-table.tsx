@@ -5,7 +5,7 @@ export function ConversionBatchTable({ batches }: { batches: ConversionBatch[] }
   return (
     <section className="border border-carbon-blue/15 bg-white">
       <header className="border-b border-carbon-blue/10 px-3 py-2">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
           Historical Facility Batches
         </h2>
       </header>
@@ -24,7 +24,7 @@ export function ConversionBatchTable({ batches }: { batches: ConversionBatch[] }
                 (header) => (
                   <th
                     key={header}
-                    className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+                    className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
                   >
                     {header}
                   </th>
@@ -38,11 +38,11 @@ export function ConversionBatchTable({ batches }: { batches: ConversionBatch[] }
                 key={batch.id}
                 className="border-b border-carbon-blue/10 last:border-b-0 hover:bg-flame/10"
               >
-                <td className="px-2 py-1 font-mono text-[11px] text-carbon-blue/55">
+                <td className="px-2 py-1 font-mono text-[12px] text-carbon-blue/55">
                   {batch.id}
                 </td>
                 <td className="px-2 py-1 text-xs text-carbon-blue">{batch.feedstock}</td>
-                <td className="px-2 py-1 font-mono text-[11px] text-carbon-blue">
+                <td className="px-2 py-1 font-mono text-[12px] text-carbon-blue">
                   {batch.throughput}
                 </td>
                 <td className="px-2 py-1">

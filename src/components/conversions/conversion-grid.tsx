@@ -10,10 +10,10 @@ export function ConversionGrid({ data }: { data: MonthlyConversion[] }) {
   return (
     <section className="border border-carbon-blue/15 bg-white">
       <header className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-2">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
           Facility Conversions
         </h2>
-        <div className="flex items-center gap-3 font-mono text-[9px] text-carbon-blue/40">
+        <div className="flex items-center gap-3 font-mono text-[10px] text-carbon-blue/60">
           <span className="flex items-center gap-1">
             <span className="size-2 bg-upcycle-orange" />
             High
@@ -45,7 +45,7 @@ export function ConversionGrid({ data }: { data: MonthlyConversion[] }) {
                 </div>
               ))}
             </div>
-            <p className="border-t border-carbon-blue/10 py-1 text-center font-mono text-[9px] text-carbon-blue/45">
+            <p className="border-t border-carbon-blue/10 py-1 text-center font-mono text-[10px] text-carbon-blue/65">
               {month.label}
             </p>
           </div>

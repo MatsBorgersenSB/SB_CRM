@@ -67,7 +67,7 @@ export function DashboardFocusLayout({ data, briefing, user }: DashboardFocusPro
               className={`block border px-4 py-3 transition-opacity hover:opacity-90 ${NEXT_BEST_ACTION_PRIORITY_STYLES[topAction.priority]}`}
             >
               <p className="text-sm font-semibold">{topAction.action}</p>
-              <p className="mt-1 text-[11px] opacity-75">{topAction.companyName}</p>
+              <p className="mt-1 text-[12px] opacity-75">{topAction.companyName}</p>
             </Link>
           ) : undefined
         }
@@ -106,7 +106,7 @@ export function DashboardFocusLayout({ data, briefing, user }: DashboardFocusPro
                   className={`block border px-4 py-3 ${NEXT_BEST_ACTION_PRIORITY_STYLES[item.priority]}`}
                 >
                   <p className="text-sm font-semibold">{item.action}</p>
-                  <p className="mt-1 text-[11px] opacity-75">{item.companyName}</p>
+                  <p className="mt-1 text-[12px] opacity-75">{item.companyName}</p>
                 </Link>
               </li>
             ))}
@@ -145,7 +145,7 @@ export function DashboardFocusLayout({ data, briefing, user }: DashboardFocusPro
                   className="text-sm text-carbon-blue/70 hover:text-upcycle-orange"
                 >
                   <span className="font-medium">{activity.Subject}</span>
-                  <span className="text-carbon-blue/35">
+                  <span className="text-carbon-blue/50">
                     {" "}
                     · {formatRelativeTime(activity.ActivityDate)}
                   </span>

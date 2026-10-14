@@ -14,7 +14,7 @@ const SEVERITY_LABELS = {
 export function OpportunityCriticalRisks({ risks }: { risks: OpportunityCriticalRisk[] }) {
   if (risks.length === 0) {
     return (
-      <p className="text-[11px] text-carbon-blue/45">
+      <p className="text-[12px] text-carbon-blue/65">
         No critical risks flagged — continue executing recommended actions.
       </p>
     );
@@ -32,19 +32,19 @@ export function OpportunityCriticalRisks({ risks }: { risks: OpportunityCritical
                     ? "text-red-600"
                     : risk.severity === "high"
                       ? "text-amber-600"
-                      : "text-carbon-blue/40"
+                      : "text-carbon-blue/60"
                 }`}
                 strokeWidth={2}
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-[11px] font-semibold text-carbon-blue">{risk.label}</p>
-                  <span className="shrink-0 text-[8px] font-bold uppercase tracking-wider text-carbon-blue/35">
+                  <p className="text-[12px] font-semibold text-carbon-blue">{risk.label}</p>
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
                     {SEVERITY_LABELS[risk.severity]}
                   </span>
                 </div>
                 {risk.detail ? (
-                  <p className="mt-0.5 text-[10px] text-carbon-blue/55">{risk.detail}</p>
+                  <p className="mt-0.5 text-[11px] text-carbon-blue/55">{risk.detail}</p>
                 ) : null}
                 {risk.impact.length > 0 ? (
                   <div className="mt-1.5">

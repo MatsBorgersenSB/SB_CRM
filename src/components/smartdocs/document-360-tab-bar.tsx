@@ -20,10 +20,10 @@ export function Document360TabBar({ active, onChange }: Document360TabBarProps) 
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`relative shrink-0 px-4 py-3 text-[11px] font-semibold tracking-wide transition-colors ${
+            className={`relative shrink-0 px-4 py-3 text-[12px] font-semibold tracking-wide transition-colors ${
               selected
                 ? "text-upcycle-orange"
-                : "text-carbon-blue/45 hover:bg-carbon-blue/[0.02] hover:text-carbon-blue/70"
+                : "text-carbon-blue/65 hover:bg-carbon-blue/[0.02] hover:text-carbon-blue/70"
             }`}
           >
             {tab.label}

@@ -14,11 +14,11 @@ function ActivityBucket({
 }) {
   return (
     <div className={`border p-3 ${tone}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {title} · {activities.length}
       </p>
       {activities.length === 0 ? (
-        <p className="mt-2 text-[12px] text-carbon-blue/40">None</p>
+        <p className="mt-2 text-[13px] text-carbon-blue/60">None</p>
       ) : (
         <ul className="mt-2 flex flex-col gap-1.5">
           {activities.slice(0, 5).map((activity) => (
@@ -29,11 +29,11 @@ function ActivityBucket({
               >
                 {activity.Subject || activity.ActivityType}
               </Link>
-              <p className="text-[11px] text-carbon-blue/45">{activity.ActionStatus}</p>
+              <p className="text-[12px] text-carbon-blue/65">{activity.ActionStatus}</p>
             </li>
           ))}
           {activities.length > 5 ? (
-            <li className="text-[11px] text-carbon-blue/40">+{activities.length - 5} more</li>
+            <li className="text-[12px] text-carbon-blue/60">+{activities.length - 5} more</li>
           ) : null}
         </ul>
       )}

@@ -30,7 +30,7 @@ export function BusinessImpactCard({
   if (compact) {
     return (
       <div className="space-y-1.5">
-        <p className="text-[10px] font-semibold text-carbon-blue">{recommendation.entityName}</p>
+        <p className="text-[11px] font-semibold text-carbon-blue">{recommendation.entityName}</p>
         <ImpactRow label="Impact" value={recommendation.impact} />
         <ImpactRow label="Action" value={recommendation.recommendedAction} accent />
       </div>
@@ -40,8 +40,8 @@ export function BusinessImpactCard({
   return (
     <article className="space-y-2">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-semibold text-carbon-blue">{recommendation.entityName}</p>
-        <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-carbon-blue/35">
+        <p className="text-[12px] font-semibold text-carbon-blue">{recommendation.entityName}</p>
+        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
           {CATEGORY_LABEL[recommendation.category]}
         </span>
       </div>
@@ -50,7 +50,7 @@ export function BusinessImpactCard({
       <ImpactRow label="Recommended Action" value={recommendation.recommendedAction} accent />
       <ImpactRow label="Estimated Effort" value={recommendation.estimatedEffort} />
       <ImpactRow label="Expected Outcome" value={recommendation.expectedOutcome} />
-      <p className={`text-[9px] font-semibold uppercase tracking-wider ${priorityClass(recommendation.priority)}`}>
+      <p className={`text-[10px] font-semibold uppercase tracking-wider ${priorityClass(recommendation.priority)}`}>
         Priority: {recommendation.priority}
       </p>
     </article>
@@ -68,9 +68,9 @@ function ImpactRow({
 }) {
   return (
     <div>
-      <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">{label}</p>
       <p
-        className={`mt-0.5 text-[10px] leading-relaxed ${
+        className={`mt-0.5 text-[11px] leading-relaxed ${
           accent ? "font-medium text-upcycle-orange" : "text-carbon-blue/65"
         }`}
       >

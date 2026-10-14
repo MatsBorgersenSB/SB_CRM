@@ -21,7 +21,7 @@ export function DashboardNextBestActions({
         </div>
         <Link
           href="/companies"
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-upcycle-orange"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-upcycle-orange"
         >
           All companies
           <ArrowRight className="size-3" />
@@ -29,7 +29,7 @@ export function DashboardNextBestActions({
       </header>
 
       {items.length === 0 ? (
-        <p className="px-5 py-8 text-center text-xs text-carbon-blue/45">
+        <p className="px-5 py-8 text-center text-xs text-carbon-blue/65">
           All relationships are on track.
         </p>
       ) : (

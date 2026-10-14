@@ -14,20 +14,20 @@ import {
 
 function BlockLabel({ children }: { children: string }) {
   return (
-    <h3 className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/45">
+    <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/65">
       {children}
     </h3>
   );
 }
 
 const PRIMARY_BTN =
-  "inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50";
+  "inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50";
 
 const SECONDARY_BTN =
-  "inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/45 hover:text-upcycle-orange";
+  "inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/45 hover:text-upcycle-orange";
 
 const TEXT_LINK =
-  "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange";
+  "text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange";
 
 function RiskRow({ risk }: { risk: M365RiskBlock }) {
   const severityStyles =
@@ -39,9 +39,9 @@ function RiskRow({ risk }: { risk: M365RiskBlock }) {
 
   return (
     <li className={`border px-3 py-2 ${severityStyles}`}>
-      <p className="text-[12px] font-medium text-carbon-blue">{risk.label}</p>
+      <p className="text-[13px] font-medium text-carbon-blue">{risk.label}</p>
       {risk.detail ? (
-        <p className="mt-0.5 text-[11px] leading-relaxed text-carbon-blue/55">{risk.detail}</p>
+        <p className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/55">{risk.detail}</p>
       ) : null}
       <ImpactContext items={risk.impact} />
     </li>
@@ -133,7 +133,7 @@ export function MeetingBriefing({
       >
         <header>
           {outlookHost ? (
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
               SmartCRM · Meeting Briefing
             </p>
           ) : null}
@@ -141,9 +141,9 @@ export function MeetingBriefing({
             {payload.companyName}
           </p>
           {whoLine ? (
-            <p className="mt-0.5 text-[12px] text-carbon-blue/65">{whoLine}</p>
+            <p className="mt-0.5 text-[13px] text-carbon-blue/65">{whoLine}</p>
           ) : null}
-          <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/55">
+          <p className="mt-2 text-[12px] leading-relaxed text-carbon-blue/55">
             {payload.relationshipSummary}
           </p>
         </header>
@@ -164,7 +164,7 @@ export function MeetingBriefing({
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <BlockLabel>Next best action</BlockLabel>
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange/80">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange/80">
               {payload.nextBestAction.priority} priority
             </span>
           </div>
@@ -176,7 +176,7 @@ export function MeetingBriefing({
           {payload.counterpartyEmail ? (
             <div className="mt-3 space-y-2 border-t border-upcycle-orange/20 pt-3">
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/45">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/65">
                   Reply language
                 </span>
                 <select
@@ -184,7 +184,7 @@ export function MeetingBriefing({
                   onChange={(event) =>
                     setReplyLanguage(event.target.value as MeetingReplyLanguageCode)
                   }
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue outline-none focus:border-upcycle-orange"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue outline-none focus:border-upcycle-orange"
                 >
                   {MEETING_REPLY_LANGUAGES.map((lang) => (
                     <option key={lang.code} value={lang.code}>
@@ -204,17 +204,17 @@ export function MeetingBriefing({
               <button
                 type="button"
                 onClick={() => setShowDraftPreview((open) => !open)}
-                className="w-full text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
+                className="w-full text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
               >
                 {showDraftPreview ? "Hide draft preview" : "Preview draft"}
               </button>
               {showDraftPreview ? (
-                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap border border-carbon-blue/10 bg-white px-2.5 py-2 font-sans text-[11px] leading-relaxed text-carbon-blue/75">
+                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap border border-carbon-blue/10 bg-white px-2.5 py-2 font-sans text-[12px] leading-relaxed text-carbon-blue/75">
                   {replyDraft.bodyPlain}
                 </pre>
               ) : null}
               {replyError ? (
-                <p className="text-[10px] text-thermal-red">{replyError}</p>
+                <p className="text-[11px] text-thermal-red">{replyError}</p>
               ) : null}
             </div>
           ) : null}
@@ -260,13 +260,13 @@ export function MeetingBriefing({
           {payload.whatChanged.length > 0 ? (
             <ul className="mt-2 space-y-1">
               {payload.whatChanged.map((line) => (
-                <li key={line} className="text-[12px] leading-relaxed text-carbon-blue/65">
+                <li key={line} className="text-[13px] leading-relaxed text-carbon-blue/65">
                   {line}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-[12px] text-carbon-blue/45">No material changes since last touch.</p>
+            <p className="mt-2 text-[13px] text-carbon-blue/65">No material changes since last touch.</p>
           )}
         </section>
 
@@ -283,13 +283,13 @@ export function MeetingBriefing({
                       outlookHost={outlookHost}
                       className="text-[13px] font-semibold text-carbon-blue hover:text-upcycle-orange"
                     />
-                    <span className="shrink-0 text-[11px] font-medium tabular-nums text-carbon-blue/55">
+                    <span className="shrink-0 text-[12px] font-medium tabular-nums text-carbon-blue/55">
                       {opp.valueLabel}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-[11px] text-carbon-blue/45">{opp.stage}</p>
+                  <p className="mt-0.5 text-[12px] text-carbon-blue/65">{opp.stage}</p>
                   {opp.impact[0] ? (
-                    <p className="mt-1.5 text-[11px] leading-relaxed text-carbon-blue/60">
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-carbon-blue/60">
                       {opp.impact[0]}
                     </p>
                   ) : null}
@@ -297,7 +297,7 @@ export function MeetingBriefing({
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-[12px] text-carbon-blue/45">No open opportunities.</p>
+            <p className="mt-2 text-[13px] text-carbon-blue/65">No open opportunities.</p>
           )}
         </section>
 
@@ -311,7 +311,7 @@ export function MeetingBriefing({
                   <button
                     type="button"
                     onClick={() => setMoreRisksOpen((open) => !open)}
-                    className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
+                    className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
                   >
                     {moreRisksOpen
                       ? "Hide other risks"
@@ -328,20 +328,20 @@ export function MeetingBriefing({
               ) : null}
             </ul>
           ) : (
-            <p className="mt-2 text-[12px] text-carbon-blue/45">No urgent risks flagged.</p>
+            <p className="mt-2 text-[13px] text-carbon-blue/65">No urgent risks flagged.</p>
           )}
         </section>
 
         <section aria-label="Discussion Topics">
           <BlockLabel>Discussion topics</BlockLabel>
           {payload.discussionTopics.length > 0 ? (
-            <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[12px] leading-relaxed text-carbon-blue/70">
+            <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[13px] leading-relaxed text-carbon-blue/70">
               {payload.discussionTopics.map((topic) => (
                 <li key={topic}>{topic}</li>
               ))}
             </ol>
           ) : (
-            <p className="mt-2 text-[12px] text-carbon-blue/45">No discussion topics suggested.</p>
+            <p className="mt-2 text-[13px] text-carbon-blue/65">No discussion topics suggested.</p>
           )}
         </section>
       </div>

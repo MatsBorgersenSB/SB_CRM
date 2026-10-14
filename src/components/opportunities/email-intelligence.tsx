@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Paperclip } from "lucide-react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
@@ -385,7 +386,7 @@ export function EmailIntelligence({
     <section aria-label="Email intelligence" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-medium text-carbon-blue/45">
+          <p className="text-[12px] font-medium text-carbon-blue/65">
             FS-009 Email & Interaction Intelligence
           </p>
           <h3 className="mt-1 text-base font-semibold text-carbon-blue">
@@ -410,7 +411,7 @@ export function EmailIntelligence({
                 );
               }
             }}
-            className="shrink-0 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white hover:brightness-105"
+            className="shrink-0 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white hover:brightness-105"
           >
             {composeOpen ? "Close compose" : "New mail in Outlook"}
           </button>
@@ -419,20 +420,20 @@ export function EmailIntelligence({
 
       {composeOpen && !readOnly ? (
         <div className="border border-upcycle-orange/25 bg-upcycle-orange/[0.03] px-3 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
             New mail · tagged to {scopeTagLabel}
           </p>
-          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
             Decide first · opens tagged Outlook draft
           </p>
-          <p className="mt-1 text-[12px] text-carbon-blue/55">
+          <p className="mt-1 text-[13px] text-carbon-blue/55">
             Opens an Outlook draft with the SmartCRM category for{" "}
             {scopeKind === "project" ? "this project" : "this opportunity"}. Sync
             keeps the link after you send. Already writing in Outlook? Use Assign
             mail on the compose ribbon.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-            <label className="block text-[11px] font-semibold text-carbon-blue/55">
+            <label className="block text-[12px] font-semibold text-carbon-blue/55">
               To
               {composeRecipientOptions.length > 0 ? (
                 <select
@@ -445,7 +446,7 @@ export function EmailIntelligence({
                     const value = event.target.value;
                     if (value) setComposeTo(value);
                   }}
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
                 >
                   <option value="">Choose project person…</option>
                   {composeRecipientOptions.map((row) => (
@@ -463,19 +464,19 @@ export function EmailIntelligence({
                 value={composeTo}
                 onChange={(event) => setComposeTo(event.target.value)}
                 placeholder="name@company.com"
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
               />
-              <span className="mt-1 block text-[10px] font-normal text-carbon-blue/45">
+              <span className="mt-1 block text-[11px] font-normal text-carbon-blue/65">
                 Pick an external project contact, or type any address. Opens Outlook with that To.
               </span>
             </label>
-            <label className="block text-[11px] font-semibold text-carbon-blue/55">
+            <label className="block text-[12px] font-semibold text-carbon-blue/55">
               Subject
               <input
                 type="text"
                 value={composeSubject}
                 onChange={(event) => setComposeSubject(event.target.value)}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
               />
             </label>
             <div className="flex items-end">
@@ -494,14 +495,14 @@ export function EmailIntelligence({
       ) : null}
 
       <div className="flex flex-wrap items-end gap-3 border border-carbon-blue/10 bg-white px-3 py-3">
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Sentiment
           <select
             value={sentimentFilter}
             onChange={(event) =>
               setSentimentFilter(event.target.value as "all" | SentimentGrade)
             }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             <option value="all">All sentiments</option>
             <option value="positive">Positive</option>
@@ -510,42 +511,42 @@ export function EmailIntelligence({
             <option value="negative">Negative</option>
           </select>
         </label>
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Direction
           <select
             value={directionFilter}
             onChange={(event) =>
               setDirectionFilter(event.target.value as "all" | "inbound" | "outbound")
             }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             <option value="all">Inbound + outbound</option>
             <option value="inbound">Inbound only</option>
             <option value="outbound">Outbound only</option>
           </select>
         </label>
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Outlook source
           <select
             value={deletedFilter}
             onChange={(event) =>
               setDeletedFilter(event.target.value as "all" | "active" | "deleted")
             }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             <option value="all">All (incl. deleted)</option>
             <option value="active">Active in Outlook</option>
             <option value="deleted">Deleted in Outlook</option>
           </select>
         </label>
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Domains
           <select
             value={domainFilter}
             onChange={(event) =>
               setDomainFilter(event.target.value as "all" | "external" | "internal_only")
             }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             <option value="external">External (default)</option>
             <option value="all">All domains</option>
@@ -573,13 +574,13 @@ export function EmailIntelligence({
       />
 
       {error ? (
-        <p className="border border-thermal-red/25 bg-thermal-red/[0.06] px-3 py-2 text-[12px] text-thermal-red">
+        <p className="border border-thermal-red/25 bg-thermal-red/[0.06] px-3 py-2 text-[13px] text-thermal-red">
           {error}
         </p>
       ) : null}
 
       {loading ? (
-        <p className="text-[13px] text-carbon-blue/45">Loading emails…</p>
+        <p className="text-[13px] text-carbon-blue/65">Loading emails…</p>
       ) : totalMessages === 0 ? (
         <div className="space-y-2 border border-carbon-blue/10 bg-white px-4 py-6 text-[13px] leading-relaxed text-carbon-blue/55">
           <p>
@@ -606,13 +607,13 @@ export function EmailIntelligence({
                 className="group rounded-lg border border-slate-200/80 bg-white px-4 py-4 shadow-sm transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700"
               >
                 <header className="border-b border-carbon-blue/8 pb-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
                     SmartAssist thread summary
                   </p>
                   <h4 className="mt-1 text-[15px] font-semibold text-carbon-blue">
                     {summary?.subject ?? thread.messages[0]?.subject ?? "Conversation"}
                   </h4>
-                  <p className="mt-1 text-[12px] text-carbon-blue/55">
+                  <p className="mt-1 text-[13px] text-carbon-blue/55">
                     {summary?.messageCount ?? thread.messages.length} messages · Latest{" "}
                     {formatSentAt(
                       summary?.latestSentAt ??
@@ -623,7 +624,7 @@ export function EmailIntelligence({
 
                   {summary ? (
                     <div className="mt-3 border border-upcycle-orange/20 bg-upcycle-orange/[0.04] px-3 py-2.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
                         Key commercial takeaways
                       </p>
                       <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[13px] leading-relaxed text-carbon-blue">
@@ -634,7 +635,7 @@ export function EmailIntelligence({
 
                       {summary.riskAlerts.length > 0 ? (
                         <div className="mt-3 border-t border-amber-500/20 pt-2.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700">
                             Disengagement / risk alerts
                           </p>
                           <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[13px] leading-relaxed text-amber-900">
@@ -644,7 +645,7 @@ export function EmailIntelligence({
                           </ul>
                           {!readOnly ? (
                             <div className={`mt-3 ${ATTIO_GROUP_ACTIONS}`}>
-                              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/45">
+                              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/65">
                                 Confirmed action — outbound execution
                               </p>
                               <DraftInOutlookButton
@@ -670,7 +671,7 @@ export function EmailIntelligence({
                 </header>
 
                 <section className="pt-3" aria-label="Email timeline">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
                     Interaction thread
                   </p>
                   <ol className="mt-3 flex flex-col gap-3">
@@ -689,7 +690,7 @@ export function EmailIntelligence({
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-1.5">
                                 <span
-                                  className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.05em] ${
+                                  className={`border px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.05em] ${
                                     message.isOutbound
                                       ? "border-upcycle-orange/30 bg-upcycle-orange/[0.08] text-upcycle-orange"
                                       : "border-carbon-blue/20 bg-white text-carbon-blue/70"
@@ -699,7 +700,7 @@ export function EmailIntelligence({
                                 </span>
                                 {message.isDeletedInSource ? (
                                   <span
-                                    className="border border-carbon-blue/25 bg-white px-1.5 py-0.5 text-[10px] font-semibold tracking-[0.04em] text-carbon-blue/65"
+                                    className="border border-carbon-blue/25 bg-white px-1.5 py-0.5 text-[11px] font-semibold tracking-[0.04em] text-carbon-blue/65"
                                     title={
                                       message.deletedAtInSource
                                         ? `Deleted in Outlook at ${formatSentAt(message.deletedAtInSource)}`
@@ -712,7 +713,7 @@ export function EmailIntelligence({
                                 {message.opportunityId &&
                                 (message.opportunityCode || message.opportunityName) ? (
                                   <span
-                                    className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/55"
+                                    className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[11px] font-medium text-carbon-blue/55"
                                     title="Linked opportunity"
                                   >
                                     Opportunity:{" "}
@@ -723,32 +724,32 @@ export function EmailIntelligence({
                                 ) : null}
                                 {message.projectId && message.projectName ? (
                                   <span
-                                    className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/55"
+                                    className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[11px] font-medium text-carbon-blue/55"
                                     title="Linked project"
                                   >
                                     Project: {message.projectName}
                                   </span>
                                 ) : null}
                                 {!message.opportunityId && !message.projectId ? (
-                                  <span className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/40">
+                                  <span className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-1.5 py-0.5 text-[11px] font-medium text-carbon-blue/60">
                                     Not linked
                                   </span>
                                 ) : null}
                                 {(message.senderIsExternal ?? false) ? (
-                                  <span className="border border-amber-500/30 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-amber-800">
+                                  <span className="border border-amber-500/30 bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-amber-800">
                                     External sender
                                   </span>
                                 ) : (
-                                  <span className="border border-carbon-blue/15 bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-carbon-blue/50">
+                                  <span className="border border-carbon-blue/15 bg-white px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-carbon-blue/50">
                                     Internal sender
                                   </span>
                                 )}
                                 {message.isInternalOnly ? (
-                                  <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/45">
+                                  <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-1.5 py-0.5 text-[11px] font-medium text-carbon-blue/65">
                                     Internal-only thread
                                   </span>
                                 ) : null}
-                                <span className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/70">
+                                <span className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[11px] font-medium text-carbon-blue/70">
                                   From {shortAddress(message.senderEmail)}
                                   {message.senderIsInternal ? " (internal)" : " (external)"}
                                 </span>
@@ -759,7 +760,7 @@ export function EmailIntelligence({
                                 }))).map((recipient) => (
                                   <span
                                     key={`${message.id}-${recipient.email}`}
-                                    className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/55"
+                                    className="border border-carbon-blue/12 bg-white px-1.5 py-0.5 text-[11px] font-medium text-carbon-blue/55"
                                   >
                                     To {shortAddress(recipient.email)}
                                     {recipient.isInternal ? " (internal)" : " (external)"}
@@ -796,14 +797,14 @@ export function EmailIntelligence({
                                       <button
                                         type="button"
                                         onClick={() => setPreviewAttachment(attachment)}
-                                        className="inline-flex max-w-full items-center gap-1 border border-carbon-blue/15 bg-white px-2 py-1 text-left text-[11px] font-medium text-carbon-blue hover:border-upcycle-orange/40 hover:text-upcycle-orange"
+                                        className="inline-flex max-w-full items-center gap-1 border border-carbon-blue/15 bg-white px-2 py-1 text-left text-[12px] font-medium text-carbon-blue hover:border-upcycle-orange/40 hover:text-upcycle-orange"
                                         title={
                                           attachment.hasContent
                                             ? "Open preview / download"
                                             : "Metadata only — content not stored"
                                         }
                                       >
-                                        <span aria-hidden>📎</span>
+                                        <Paperclip size={12} strokeWidth={1.75} className="shrink-0" aria-hidden />
                                         <span className="truncate">
                                           {attachment.name} [{formatFileSize(attachment.sizeBytes)}]
                                         </span>
@@ -812,7 +813,7 @@ export function EmailIntelligence({
                                   ))}
                                 </ul>
                               ) : null}
-                              <p className="mt-2 text-[11px] text-carbon-blue/45">
+                              <p className="mt-2 text-[12px] text-carbon-blue/65">
                                 {formatSentAt(message.sentAt)}
                                 {message.contactName
                                   ? ` · Contact: ${message.contactName}`
@@ -824,7 +825,7 @@ export function EmailIntelligence({
                                     type="button"
                                     disabled={busy}
                                     onClick={() => void purgeEmail(message.id)}
-                                    className="border border-carbon-blue/20 bg-white px-2.5 py-1 text-[11px] font-semibold text-carbon-blue/70 hover:border-thermal-red/40 hover:text-thermal-red disabled:opacity-50"
+                                    className="border border-carbon-blue/20 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue/70 hover:border-thermal-red/40 hover:text-thermal-red disabled:opacity-50"
                                   >
                                     {busy ? "Purging…" : "Purge from SmartCRM"}
                                   </button>
@@ -832,7 +833,7 @@ export function EmailIntelligence({
                               ) : null}
                             </div>
                             <span
-                              className={`shrink-0 border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] ${sentimentBadgeClass(message.sentiment)}`}
+                              className={`shrink-0 border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] ${sentimentBadgeClass(message.sentiment)}`}
                             >
                               {labelize(message.sentiment)}
                             </span>
@@ -862,13 +863,13 @@ export function EmailIntelligence({
           >
             <div className="flex items-start justify-between gap-3 border-b border-carbon-blue/10 px-4 py-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
                   SmartDocs attachment
                 </p>
                 <h4 className="mt-1 truncate text-[15px] font-semibold text-carbon-blue">
                   {previewAttachment.name}
                 </h4>
-                <p className="mt-0.5 text-[12px] text-carbon-blue/55">
+                <p className="mt-0.5 text-[13px] text-carbon-blue/55">
                   {previewAttachment.mimeType || "Unknown type"} ·{" "}
                   {formatFileSize(previewAttachment.sizeBytes)} · {previewAttachment.source}
                 </p>
@@ -876,7 +877,7 @@ export function EmailIntelligence({
               <button
                 type="button"
                 onClick={() => setPreviewAttachment(null)}
-                className="shrink-0 border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold text-carbon-blue/70"
+                className="shrink-0 border border-carbon-blue/15 px-2 py-1 text-[12px] font-semibold text-carbon-blue/70"
               >
                 Close
               </button>
@@ -904,7 +905,7 @@ export function EmailIntelligence({
                     download={previewAttachment.name}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white"
+                    className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white"
                   >
                     Download
                   </a>
@@ -912,7 +913,7 @@ export function EmailIntelligence({
                 <button
                   type="button"
                   onClick={() => setPreviewAttachment(null)}
-                  className="border border-carbon-blue/20 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/70"
+                  className="border border-carbon-blue/20 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/70"
                 >
                   Dismiss
                 </button>

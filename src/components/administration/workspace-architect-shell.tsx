@@ -51,7 +51,7 @@ export function WorkspaceArchitectShell({
   return (
     <>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] text-carbon-blue/55">
+        <div className="flex min-w-0 items-center gap-2 text-[12px] text-carbon-blue/55">
           <Link href="/administration" className="font-semibold hover:text-upcycle-orange">
             Administration
           </Link>
@@ -90,7 +90,7 @@ export function WorkspaceArchitectShell({
             action={
               <Link
                 href="/administration/assisted-configuration"
-                className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+                className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
               >
                 View architecture audit
               </Link>
@@ -108,14 +108,14 @@ export function WorkspaceArchitectShell({
 
           <WorkspacePanel title="Implementation Details" collapsible defaultCollapsed>
             <p className="mb-3 text-sm text-carbon-blue/55">{WORKSPACE_ARCHITECT.principle}</p>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               You never need to configure
             </p>
             <div className="flex flex-wrap gap-2">
               {WORKSPACE_ARCHITECT.hiddenImplementationDetails.map((detail) => (
                 <span
                   key={detail}
-                  className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2 py-1 text-[10px] font-medium text-carbon-blue/50"
+                  className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2 py-1 text-[11px] font-medium text-carbon-blue/50"
                 >
                   {detail}
                 </span>
@@ -133,7 +133,7 @@ export function WorkspaceArchitectShell({
                 type="button"
                 disabled={approving || session.design.approved}
                 onClick={() => void handleApprove()}
-                className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {session.design.approved
                   ? "Design approved"

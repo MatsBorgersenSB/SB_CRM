@@ -26,7 +26,7 @@ export function EditorialSection({
       {hasItems ? (
         <div className="mt-4">{children}</div>
       ) : (
-        <p className="mt-3 text-[14px] leading-relaxed text-carbon-blue/45">{emptyLabel}</p>
+        <p className="mt-3 text-[14px] leading-relaxed text-carbon-blue/65">{emptyLabel}</p>
       )}
     </section>
   );

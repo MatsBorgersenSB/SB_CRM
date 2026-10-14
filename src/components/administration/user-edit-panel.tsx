@@ -163,7 +163,7 @@ export function UserEditPanel({
       <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
         <div className="mb-3 flex items-start justify-between gap-2">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/60">
               User lifecycle
             </p>
             <p className="text-sm font-semibold text-carbon-blue">{user.userId}</p>
@@ -171,7 +171,7 @@ export function UserEditPanel({
           <button
             type="button"
             onClick={onClose}
-            className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45 hover:text-carbon-blue"
+            className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65 hover:text-carbon-blue"
           >
             Close
           </button>
@@ -181,7 +181,7 @@ export function UserEditPanel({
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block sm:col-span-2">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               Display name
             </span>
             <input
@@ -189,12 +189,12 @@ export function UserEditPanel({
               value={displayName}
               disabled={!canManage}
               onChange={(event) => setDisplayName(event.target.value)}
-              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
+              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
             />
           </label>
 
           <label className="block sm:col-span-2">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               Email
             </span>
             <input
@@ -202,19 +202,19 @@ export function UserEditPanel({
               value={email}
               disabled={!canManage}
               onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
+              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
             />
           </label>
 
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               Role
             </span>
             <select
               value={role}
               disabled={!canManage}
               onChange={(event) => setRole(event.target.value)}
-              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
+              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
             >
               <option value="">No role</option>
               {Object.entries(USER_ROLE_LABELS).map(([value, label]) => (
@@ -226,7 +226,7 @@ export function UserEditPanel({
           </label>
 
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               Status
             </span>
             <select
@@ -235,7 +235,7 @@ export function UserEditPanel({
               onChange={(event) =>
                 setStatus(event.target.value as StandardBioUserRecord["status"])
               }
-              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
+              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
             >
               <option value="active">Active</option>
               <option value="disabled">Disabled</option>
@@ -245,14 +245,14 @@ export function UserEditPanel({
           </label>
 
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               Team
             </span>
             <select
               value={team}
               disabled={!canManage}
               onChange={(event) => setTeam(event.target.value as (typeof USER_TEAMS)[number])}
-              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
+              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
             >
               {USER_TEAMS.map((value) => (
                 <option key={value} value={value}>
@@ -263,14 +263,14 @@ export function UserEditPanel({
           </label>
 
           <label className="block">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               License
             </span>
             <select
               value={license}
               disabled={!canManage}
               onChange={(event) => setLicense(event.target.value as (typeof USER_LICENSES)[number])}
-              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
+              className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue disabled:bg-carbon-blue/[0.02]"
             >
               {USER_LICENSES.map((value) => (
                 <option key={value} value={value}>
@@ -281,7 +281,7 @@ export function UserEditPanel({
           </label>
         </div>
 
-        {error ? <p className="mt-3 text-[11px] text-thermal-red">{error}</p> : null}
+        {error ? <p className="mt-3 text-[12px] text-thermal-red">{error}</p> : null}
 
         {canManage ? (
           <div className="mt-4 flex flex-wrap gap-2">
@@ -289,7 +289,7 @@ export function UserEditPanel({
               type="button"
               disabled={submitting}
               onClick={() => void handleSave()}
-              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
             >
               Save changes
             </button>
@@ -299,7 +299,7 @@ export function UserEditPanel({
                   type="button"
                   disabled={submitting}
                   onClick={() => setLifecycleMode("transfer")}
-                  className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70"
+                  className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70"
                 >
                   Transfer ownership
                 </button>
@@ -307,7 +307,7 @@ export function UserEditPanel({
                   type="button"
                   disabled={submitting}
                   onClick={() => setLifecycleMode("replace")}
-                  className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70"
+                  className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70"
                 >
                   Replace user
                 </button>
@@ -318,7 +318,7 @@ export function UserEditPanel({
                 type="button"
                 disabled={submitting}
                 onClick={() => void handleDisable()}
-                className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+                className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
               >
                 Disable user
               </button>
@@ -328,7 +328,7 @@ export function UserEditPanel({
                 type="button"
                 disabled={submitting}
                 onClick={() => void handleArchive()}
-                className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+                className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
               >
                 Archive user
               </button>
@@ -337,7 +337,7 @@ export function UserEditPanel({
               type="button"
               disabled={submitting || Boolean(analysis?.hasOwnership)}
               onClick={() => void handleDelete()}
-              className="border border-thermal-red/30 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-thermal-red disabled:opacity-40"
+              className="border border-thermal-red/30 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-thermal-red disabled:opacity-40"
               title={
                 analysis?.hasOwnership
                   ? "Transfer ownership before deleting"
@@ -348,7 +348,7 @@ export function UserEditPanel({
             </button>
           </div>
         ) : (
-          <p className="mt-3 text-[11px] text-carbon-blue/45">Read-only — superuser required to edit.</p>
+          <p className="mt-3 text-[12px] text-carbon-blue/65">Read-only — superuser required to edit.</p>
         )}
       </div>
 

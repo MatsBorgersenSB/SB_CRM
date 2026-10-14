@@ -76,10 +76,10 @@ export function DashboardKpiGrid({ kpis }: { kpis: DashboardKpis }) {
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               {card.label}
             </p>
-            <span className="text-carbon-blue/35 transition-colors group-hover:text-upcycle-orange">
+            <span className="text-carbon-blue/50 transition-colors group-hover:text-upcycle-orange">
               {card.icon}
             </span>
           </div>

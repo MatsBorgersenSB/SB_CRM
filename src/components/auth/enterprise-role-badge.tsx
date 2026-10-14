@@ -31,7 +31,7 @@ export function EnterpriseRoleBadge({
   return (
     <span
       className={`inline-flex items-center border px-1.5 py-0.5 font-semibold uppercase tracking-wider ${
-        compact ? "text-[8px]" : "text-[9px]"
+        compact ? "text-[10px]" : "text-[10px]"
       } ${styles[role] ?? styles.REP}`}
       title={`Enterprise role: ${role}`}
     >

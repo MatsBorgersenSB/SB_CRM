@@ -34,7 +34,7 @@ export function ExecutiveKpiRibbon({ kpis }: { kpis: ExecutivePipelineKpis }) {
   return (
     <section className="border border-carbon-blue/15 bg-white">
       <header className="border-b border-carbon-blue/10 px-3 py-2">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
           Executive Industrial KPI Summary
         </h2>
       </header>
@@ -42,13 +42,13 @@ export function ExecutiveKpiRibbon({ kpis }: { kpis: ExecutivePipelineKpis }) {
         {cards.map((card, index) => (
           <div key={`kpi-ribbon-${index}`} className="bg-white px-3 py-2.5">
             <div className="mb-2 h-0.5 w-8 bg-upcycle-orange/70" />
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               {card.label}
             </p>
             <p className={`mt-1 text-sm font-semibold tabular-nums ${card.accent}`}>
               {card.value}
             </p>
-            <p className="mt-0.5 text-[9px] text-carbon-blue/45">{card.detail}</p>
+            <p className="mt-0.5 text-[10px] text-carbon-blue/65">{card.detail}</p>
           </div>
         ))}
       </div>
