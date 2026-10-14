@@ -235,7 +235,7 @@ function buildCompaniesNoActivityAnswer(ctx: SmartSearchContext): AskSearchResul
       name: row.companyName,
       typeLabel: row.healthStatus,
       contextPreview: `${row.locationLabel} · Last contact ${row.lastContactLabel}`,
-      lastActivityLabel: row.attentionLabel,
+      lastActivityLabel: row.attentionLabel ?? row.lastContactLabel,
       lastActivityAt: "",
       href: row.companyHref,
       searchText: row.companyName.toLowerCase(),

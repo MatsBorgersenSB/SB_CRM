@@ -72,6 +72,7 @@ const RULE_KIND_MAP: Record<string, CoPilotActionKind> = {
   create_new_opportunity: "create_opportunity",
   classify_relationship: "classify_company",
   supplier_follow_through: "schedule_follow_up",
+  make_first_contact: "draft_email",
 };
 
 const RULE_SOURCE_MAP: Record<string, CoPilotSourceType> = {
@@ -89,6 +90,7 @@ const RULE_SOURCE_MAP: Record<string, CoPilotSourceType> = {
   create_new_opportunity: "opportunity",
   classify_relationship: "relationship",
   supplier_follow_through: "relationship",
+  make_first_contact: "relationship",
 };
 
 function impactForSeverity(severity: AttentionItem["severity"]): string {

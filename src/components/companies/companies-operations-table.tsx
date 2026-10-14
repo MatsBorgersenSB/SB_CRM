@@ -104,10 +104,14 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell className="text-carbon-blue/70">{row.lastContactLabel}</WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
-              <span className="inline-flex min-w-0 items-center gap-1.5">
-                <SeverityIcon severity={row.attentionSeverity} size="sm" />
-                <span className="truncate text-carbon-blue/70">{row.attentionLabel}</span>
-              </span>
+              {row.attentionLabel ? (
+                <span className="inline-flex min-w-0 items-center gap-1.5" title={row.attentionLabel}>
+                  <SeverityIcon severity={row.attentionSeverity} size="sm" />
+                  <span className="truncate text-carbon-blue/70">{row.attentionLabel}</span>
+                </span>
+              ) : (
+                <span className="text-carbon-blue/35">—</span>
+              )}
             </WorkspaceTableBodyCell>
           </WorkspaceTableBodyRow>
         ))}

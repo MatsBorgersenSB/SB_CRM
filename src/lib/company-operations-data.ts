@@ -1,5 +1,5 @@
 import { getActivitiesForCompany, isFollowUpOpen, isFollowUpOverdue } from "@/lib/activity-utils";
-import { buildCompanyAttentionItems } from "@/lib/smart-attention-engine";
+import { composeCompanyWhatMatters } from "@/lib/company-what-matters";
 import { buildCompanySummariesForCompanies } from "@/lib/relationship-intelligence";
 import {
   correspondenceMapFromRecord,
@@ -8,7 +8,7 @@ import {
 import { daysBetween } from "@/lib/relative-time";
 import type { Activity } from "@/types/activity";
 import type { AuthUser } from "@/types/auth";
-import type { AttentionItem, AttentionSeverity } from "@/types/attention-item";
+import type { AttentionSeverity } from "@/types/attention-item";
 import { SEVERITY_RANK } from "@/types/attention-item";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
@@ -102,7 +102,8 @@ export type CompanyOperationsRow = {
   pipelineValueLabel: string;
   lastContactLabel: string;
   attentionSeverity: AttentionSeverity;
-  attentionLabel: string;
+  /** One sentence — what matters for this company. Null means nothing worth saying; render "—". */
+  attentionLabel: string | null;
   attentionRuleId: string | null;
   companyHref: string;
   opportunitiesHref: string;
@@ -138,80 +139,6 @@ function isOpenOpportunity(deal: PipelineRow | undefined): boolean {
   return Boolean(
     deal && deal.status !== "Live Production" && deal.status !== "Scheduled Maintenance",
   );
-}
-
-function pickTopAttentionItem(items: AttentionItem[]): AttentionItem | null {
-  if (items.length === 0) return null;
-  return [...items].sort(
-    (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity],
-  )[0]!;
-}
-
-function attentionFromCompany(
-  topItem: AttentionItem | null,
-  healthStatus: RelationshipHealthStatus,
-  healthScore: number,
-  hasSignal: boolean,
-): {
-  severity: AttentionSeverity;
-  label: string;
-  needsAttention: boolean;
-  ruleId: string | null;
-} {
-  if (topItem && SEVERITY_RANK[topItem.severity] <= SEVERITY_RANK.needs_attention) {
-    return {
-      severity: topItem.severity,
-      label: topItem.suggestedAiAction,
-      needsAttention: true,
-      ruleId: topItem.ruleId ?? null,
-    };
-  }
-
-  // A score computed from nothing is not a health problem; don't flag it as one.
-  if (!hasSignal) {
-    return topItem
-      ? {
-          severity: topItem.severity,
-          label: topItem.suggestedAiAction,
-          needsAttention: false,
-          ruleId: topItem.ruleId ?? null,
-        }
-      : { severity: "healthy", label: "Nothing recorded yet", needsAttention: false, ruleId: null };
-  }
-
-  if (healthStatus === "At Risk" || healthScore < 50) {
-    return {
-      severity: healthScore < 30 ? "urgent" : "needs_attention",
-      label: topItem?.suggestedAiAction ?? "Strengthen relationship health",
-      needsAttention: true,
-      ruleId: topItem?.ruleId ?? "risk_threshold_exceeded",
-    };
-  }
-
-  if (healthStatus === "Weak") {
-    return {
-      severity: "needs_attention",
-      label: topItem?.suggestedAiAction ?? "Relationship needs attention",
-      needsAttention: true,
-      ruleId: topItem?.ruleId ?? "weak_health",
-    };
-  }
-
-  if (topItem) {
-    return {
-      severity: topItem.severity,
-      label: topItem.suggestedAiAction,
-      needsAttention: topItem.severity === "urgent" || topItem.severity === "needs_attention",
-      ruleId: topItem.ruleId ?? null,
-    };
-  }
-
-  return {
-    severity: "healthy",
-    label: "On track",
-    needsAttention: false,
-    ruleId: null,
-  };
 }
 
 export function buildCompanyOperationsWorkspace(
@@ -252,16 +179,23 @@ export function buildCompanyOperationsWorkspace(
     );
     const hasMissingStakeholders = company.contacts.length === 0;
 
-    const attentionItems = buildCompanyAttentionItems(
+    const openPipelineRows = openDeals.filter((deal): deal is PipelineRow => Boolean(deal));
+    const whatMatters = composeCompanyWhatMatters({
       company,
-      pipelines,
+      companyActivities,
       activities,
-      commercialPackages,
-      companies,
-      correspondenceMap.get(company.CompanyID) ?? null,
-    );
-    const topAttention = pickTopAttentionItem(attentionItems);
-    const attention = attentionFromCompany(topAttention, healthStatus, healthScore, hasSignal);
+      openDeals: openPipelineRows,
+      lastContactAt: lastContactAt ?? null,
+    });
+    const attention = whatMatters
+      ? {
+          severity: whatMatters.severity,
+          label: whatMatters.sentence,
+          needsAttention:
+            whatMatters.severity === "urgent" || whatMatters.severity === "needs_attention",
+          ruleId: whatMatters.ruleId as string,
+        }
+      : { severity: "healthy" as AttentionSeverity, label: null, needsAttention: false, ruleId: null };
 
     const openOpportunities = openDeals.length;
     const isOwnedByUser =
