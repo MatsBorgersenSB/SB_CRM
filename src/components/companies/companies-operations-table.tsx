@@ -3,7 +3,6 @@
 import Link from "next/link";
 import type { CompanyOperationsRow } from "@/lib/company-operations-data";
 import { CompanyTypeBadges } from "@/components/companies/company-type-badges";
-import { RelationshipHealthBadge } from "@/components/relationship/relationship-health-display";
 import { SeverityIcon } from "@/components/ui/smartcrm-icon";
 import {
   WorkspaceTable,
@@ -15,6 +14,11 @@ import {
   WorkspaceTableHeadRow,
 } from "@/components/ui/workspace-table";
 
+/**
+ * Companies list — five columns, one decision per row.
+ * Company · Posture · What matters · Pipeline · Owner
+ * Health, location and last touch live on the Company 360; the sentence carries the signal here.
+ */
 export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[] }) {
   if (rows.length === 0) {
     return (
@@ -27,27 +31,19 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
   return (
     <WorkspaceTable>
       <colgroup>
+        <col className="w-[22%]" />
         <col className="w-[16%]" />
-        <col className="w-[14%]" />
-        <col className="w-[10%]" />
-        <col className="w-[10%]" />
-        <col className="w-[10%]" />
-        <col className="w-[9%]" />
-        <col className="w-[10%]" />
-        <col className="w-[10%]" />
-        <col className="w-[11%]" />
+        <col className="w-[38%]" />
+        <col className="w-[12%]" />
+        <col className="w-[12%]" />
       </colgroup>
       <WorkspaceTableHead>
         <WorkspaceTableHeadRow>
           <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Company Type</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Account Owner</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Location</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Health</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell align="right">Open Opportunities</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell align="right">Pipeline Value</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Last Contact</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Attention</WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell>Posture</WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell>What matters</WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell align="right">Pipeline</WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell>Owner</WorkspaceTableHeadCell>
         </WorkspaceTableHeadRow>
       </WorkspaceTableHead>
       <WorkspaceTableBody>
@@ -60,9 +56,39 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
               >
                 {row.companyName}
               </Link>
+              {row.locationLabel && row.locationLabel !== "—" ? (
+                <span className="block truncate text-[11px] text-carbon-blue/45">
+                  {row.locationLabel}
+                </span>
+              ) : null}
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
               <CompanyTypeBadges types={row.companyTypes} size="sm" />
+            </WorkspaceTableBodyCell>
+            <WorkspaceTableBodyCell>
+              {row.attentionLabel ? (
+                <span className="inline-flex min-w-0 max-w-full items-center gap-1.5" title={row.attentionLabel}>
+                  <SeverityIcon severity={row.attentionSeverity} size="sm" />
+                  <span className="truncate text-carbon-blue/80">{row.attentionLabel}</span>
+                </span>
+              ) : (
+                <span className="text-carbon-blue/35">—</span>
+              )}
+            </WorkspaceTableBodyCell>
+            <WorkspaceTableBodyCell className="text-right">
+              {row.openOpportunities > 0 ? (
+                <Link
+                  href={row.opportunitiesHref}
+                  className="block font-semibold tabular-nums text-carbon-blue hover:text-upcycle-orange"
+                >
+                  {row.pipelineValueLabel}
+                  <span className="block text-[11px] font-normal text-carbon-blue/45">
+                    {row.openOpportunities} open
+                  </span>
+                </Link>
+              ) : (
+                <span className="text-carbon-blue/35">—</span>
+              )}
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
               {row.ownerQueueHref && row.ownerLabel ? (
@@ -72,43 +98,6 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
                 >
                   {row.ownerLabel}
                 </Link>
-              ) : (
-                <span className="text-carbon-blue/35">—</span>
-              )}
-            </WorkspaceTableBodyCell>
-            <WorkspaceTableBodyCell className="truncate text-carbon-blue/70">
-              {row.locationLabel}
-            </WorkspaceTableBodyCell>
-            <WorkspaceTableBodyCell>
-              <div className="flex flex-col gap-1">
-                <RelationshipHealthBadge status={row.healthStatus} hasSignal={row.hasSignal} />
-                {row.hasSignal ? (
-                  <span className="text-[10px] tabular-nums text-carbon-blue/45">{row.healthScore}/100</span>
-                ) : null}
-              </div>
-            </WorkspaceTableBodyCell>
-            <WorkspaceTableBodyCell className="text-right">
-              {row.openOpportunities > 0 ? (
-                <Link
-                  href={row.opportunitiesHref}
-                  className="font-semibold tabular-nums text-carbon-blue hover:text-upcycle-orange"
-                >
-                  {row.openOpportunities}
-                </Link>
-              ) : (
-                <span className="tabular-nums text-carbon-blue/35">0</span>
-              )}
-            </WorkspaceTableBodyCell>
-            <WorkspaceTableBodyCell className="text-right font-semibold tabular-nums text-carbon-blue">
-              {row.pipelineValueLabel}
-            </WorkspaceTableBodyCell>
-            <WorkspaceTableBodyCell className="text-carbon-blue/70">{row.lastContactLabel}</WorkspaceTableBodyCell>
-            <WorkspaceTableBodyCell>
-              {row.attentionLabel ? (
-                <span className="inline-flex min-w-0 items-center gap-1.5" title={row.attentionLabel}>
-                  <SeverityIcon severity={row.attentionSeverity} size="sm" />
-                  <span className="truncate text-carbon-blue/70">{row.attentionLabel}</span>
-                </span>
               ) : (
                 <span className="text-carbon-blue/35">—</span>
               )}
