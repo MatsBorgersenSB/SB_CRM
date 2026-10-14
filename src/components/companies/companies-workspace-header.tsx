@@ -1,6 +1,7 @@
 "use client";
 
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { WorkspaceAddMenu, type WorkspaceAddMenuItem } from "@/components/ui/workspace-add-menu";
 import { canCreateCompany } from "@/lib/permissions";
 import type { UserRole } from "@/types/auth";
 
@@ -17,6 +18,13 @@ type CompaniesWorkspaceHeaderProps = {
   onToolChange: (tool: CompaniesWorkspaceTool) => void;
 };
 
+const ADD_ITEMS: WorkspaceAddMenuItem<NonNullable<CompaniesWorkspaceTool>>[] = [
+  { id: "new-company", label: "New company", hint: "Type it in yourself", primary: true },
+  { id: "quick-import", label: "Quick import", hint: "From a registry number or name" },
+  { id: "website-discovery", label: "Website discovery", hint: "Read a company website" },
+  { id: "bulk-import", label: "Bulk import", hint: "Paste or upload a list" },
+];
+
 export function CompaniesWorkspaceHeader({
   role,
   activeTool,
@@ -24,77 +32,21 @@ export function CompaniesWorkspaceHeader({
 }: CompaniesWorkspaceHeaderProps) {
   const canManage = canCreateCompany(role);
 
-  const toggle = (tool: CompaniesWorkspaceTool) => {
-    onToolChange(activeTool === tool ? null : tool);
-  };
-
   return (
-    <div className="space-y-3">
+    <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-carbon-blue sm:text-2xl">
           <SmartCRMIcon name="company" size="md" label="Companies" />
           Companies
         </h1>
         <p className="mt-1 text-[11px] text-carbon-blue/50">
-          Create, import, discover, search, and open accounts — actions first, not statistics.
+          Every relationship we hold — what kind it is, what matters now, and who owns it.
         </p>
       </div>
 
       {canManage ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <WorkspaceAction
-            label="+ New Company"
-            active={activeTool === "new-company"}
-            onClick={() => toggle("new-company")}
-            primary
-          />
-          <WorkspaceAction
-            label="+ Quick Import"
-            active={activeTool === "quick-import"}
-            onClick={() => toggle("quick-import")}
-          />
-          <WorkspaceAction
-            label="Website Discovery"
-            active={activeTool === "website-discovery"}
-            onClick={() => toggle("website-discovery")}
-          />
-          <WorkspaceAction
-            label="Bulk Import"
-            active={activeTool === "bulk-import"}
-            onClick={() => toggle("bulk-import")}
-          />
-        </div>
+        <WorkspaceAddMenu items={ADD_ITEMS} activeTool={activeTool} onSelect={onToolChange} />
       ) : null}
     </div>
-  );
-}
-
-function WorkspaceAction({
-  label,
-  active,
-  onClick,
-  primary = false,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  primary?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
-        primary
-          ? active
-            ? "border-upcycle-orange bg-upcycle-orange text-white"
-            : "border-upcycle-orange bg-upcycle-orange text-white hover:bg-upcycle-orange/90"
-          : active
-            ? "border-upcycle-orange/40 bg-upcycle-orange/10 text-upcycle-orange"
-            : "border-carbon-blue/12 text-carbon-blue/65 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-      }`}
-    >
-      {label}
-    </button>
   );
 }
