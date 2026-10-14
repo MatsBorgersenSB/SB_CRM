@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ActivitiesShell } from "@/components/layout/activities-shell";
 import {
   readLiveActivities,
@@ -18,11 +19,13 @@ export default async function ActivitiesPage() {
   ]);
 
   return (
-    <ActivitiesShell
-      activities={activities}
-      companies={companies}
-      pipelines={pipelines}
-      assignableUsers={assignableUsers}
-    />
+    <Suspense fallback={null}>
+      <ActivitiesShell
+        activities={activities}
+        companies={companies}
+        pipelines={pipelines}
+        assignableUsers={assignableUsers}
+      />
+    </Suspense>
   );
 }

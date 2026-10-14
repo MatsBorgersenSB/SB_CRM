@@ -9,7 +9,7 @@ import {
 
 const actions = [
   {
-    label: "Record Interaction",
+    label: "Log a meeting or call",
     href: "/activities",
     icon: Clock3,
     primary: true,

@@ -60,10 +60,10 @@ const navItems: NavItem[] = [
     section: "work",
   },
   {
-    label: "Calendar",
-    href: "/calendar",
+    label: "Activities",
+    href: "/activities",
     icon: CalendarDays,
-    match: (p) => p.startsWith("/calendar"),
+    match: (p) => p.startsWith("/activities") || p.startsWith("/calendar"),
     section: "work",
   },
   {
