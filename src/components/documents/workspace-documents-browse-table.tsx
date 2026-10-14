@@ -37,10 +37,10 @@ export function WorkspaceDocumentsBrowseTable({
     <div className="w-full">
       <WorkspaceTable>
         <colgroup>
-          <col className={onDelete ? "w-[40%]" : "w-[44%]"} />
-          <col className="w-[16%]" />
+          <col className={onDelete ? "w-[38%]" : "w-[42%]"} />
+          <col className="w-[15%]" />
           <col className={onDelete ? "w-[24%]" : "w-[28%]"} />
-          <col className="w-[12%]" />
+          <col className="w-[15%]" />
           {onDelete ? <col className="w-[8%]" /> : null}
         </colgroup>
         <WorkspaceTableHead>
@@ -94,7 +94,7 @@ export function WorkspaceDocumentsBrowseTable({
                     row.relatedObjectLabel
                   )}
                 </WorkspaceTableBodyCell>
-                <WorkspaceTableBodyCell className="text-right tabular-nums text-carbon-blue/70">
+                <WorkspaceTableBodyCell className="whitespace-nowrap text-right tabular-nums text-carbon-blue/70">
                   {row.modifiedLabel}
                 </WorkspaceTableBodyCell>
                 {onDelete ? (

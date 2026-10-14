@@ -32,15 +32,15 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
     <WorkspaceTable>
       <colgroup>
         <col className="w-[22%]" />
-        <col className="w-[16%]" />
-        <col className="w-[38%]" />
-        <col className="w-[12%]" />
-        <col className="w-[12%]" />
+        <col className="w-[14%]" />
+        <col className="w-[36%]" />
+        <col className="w-[13%]" />
+        <col className="w-[15%]" />
       </colgroup>
       <WorkspaceTableHead>
         <WorkspaceTableHeadRow>
           <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Posture</WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell>Relationship</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>What matters</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell align="right">Pipeline</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>Owner</WorkspaceTableHeadCell>
@@ -69,11 +69,9 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
               {row.attentionLabel ? (
                 <span className="flex min-w-0 max-w-full items-start gap-1.5" title={row.attentionLabel}>
                   <SeverityIcon severity={row.attentionSeverity} size="sm" className="mt-0.5 shrink-0" />
-                  <span className="line-clamp-2 text-carbon-blue/80">{row.attentionLabel}</span>
+                  <span className="line-clamp-2 text-carbon-blue">{row.attentionLabel}</span>
                 </span>
-              ) : (
-                <span className="text-carbon-blue/50">—</span>
-              )}
+              ) : null}
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell className="text-right">
               {row.openOpportunities > 0 ? (
@@ -82,24 +80,23 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
                   className="block font-semibold tabular-nums text-carbon-blue hover:text-upcycle-orange"
                 >
                   {row.pipelineValueLabel}
-                  <span className="block text-[12px] font-normal text-carbon-blue/65">
+                  <span className="block text-[13px] font-normal text-carbon-blue/65">
                     {row.openOpportunities} open
                   </span>
                 </Link>
-              ) : (
-                <span className="text-carbon-blue/50">—</span>
-              )}
+              ) : null}
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
               {row.ownerQueueHref && row.ownerLabel ? (
                 <Link
                   href={row.ownerQueueHref}
-                  className="block truncate text-carbon-blue/75 hover:text-upcycle-orange"
+                  className="block truncate text-carbon-blue hover:text-upcycle-orange"
+                  title={row.ownerLabel}
                 >
                   {row.ownerLabel}
                 </Link>
               ) : (
-                <span className="text-carbon-blue/50">—</span>
+                <span className="text-carbon-blue/65">Unassigned</span>
               )}
             </WorkspaceTableBodyCell>
           </WorkspaceTableBodyRow>

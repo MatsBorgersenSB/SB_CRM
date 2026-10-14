@@ -47,11 +47,11 @@ export function OpportunitiesOperationsTable({
     <div className="w-full">
       <WorkspaceTable>
         <colgroup>
+          <col className="w-[23%]" />
+          <col className="w-[27%]" />
           <col className="w-[24%]" />
-          <col className="w-[28%]" />
-          <col className="w-[26%]" />
           <col className="w-[12%]" />
-          <col className="w-[10%]" />
+          <col className="w-[14%]" />
         </colgroup>
         <WorkspaceTableHead>
           <WorkspaceTableHeadRow>
