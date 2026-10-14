@@ -219,6 +219,7 @@ export function canAccessRoute(role: UserRole, href: string): boolean {
       href === "/companies" ||
       href === "/contacts" ||
       href === "/activities" ||
+      href === "/calendar" ||
       href === "/deals" ||
       href === "/opportunities" ||
       href === "/projects" ||

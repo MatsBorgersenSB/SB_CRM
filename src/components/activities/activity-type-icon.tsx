@@ -7,13 +7,15 @@ import {
   Factory,
   Mail,
   MessageSquare,
+  Mic,
   MoreHorizontal,
   Phone,
+  Presentation,
   StickyNote,
   Users,
   Video,
 } from "lucide-react";
-import type { ActivityType } from "@/types/activity";
+import type { ActivityType, SmartActivityType } from "@/types/activity";
 import { WORKSPACE_ACTIVITY_TYPES } from "@/types/activity";
 
 const ICON_MAP: Record<ActivityType, typeof Phone> = {
@@ -28,6 +30,8 @@ const ICON_MAP: Record<ActivityType, typeof Phone> = {
   "Commercial Review": Cog,
   Task: CheckSquare,
   Note: StickyNote,
+  Tradeshow: Presentation,
+  Seminar: Mic,
   Other: MoreHorizontal,
 };
 
@@ -43,6 +47,8 @@ const COLOR_MAP: Record<ActivityType, string> = {
   "Commercial Review": "bg-carbon-blue/8 text-carbon-blue border-carbon-blue/15",
   Task: "bg-upcycle-orange/10 text-upcycle-orange border-upcycle-orange/25",
   Note: "bg-carbon-blue/5 text-carbon-blue/70 border-carbon-blue/10",
+  Tradeshow: "bg-amber-500/10 text-amber-800 border-amber-600/25",
+  Seminar: "bg-emerald-500/10 text-emerald-800 border-emerald-700/25",
   Other: "bg-carbon-blue/5 text-carbon-blue/60 border-carbon-blue/10",
 };
 
@@ -68,18 +74,20 @@ export function ActivityTypeIcon({
 }
 
 export const ACTIVITY_TYPE_OPTIONS: {
-  type: ActivityType;
+  type: SmartActivityType;
   label: string;
   emoji: string;
 }[] = [
-  { type: "Meeting", label: "Meeting", emoji: "🤝" },
-  { type: "Teams Meeting", label: "Teams Meeting", emoji: "🎥" },
-  { type: "Phone Call", label: "Phone Call", emoji: "📞" },
-  { type: "Email Follow-Up", label: "Email Follow-Up", emoji: "📧" },
-  { type: "Site Visit", label: "Site Visit", emoji: "🏭" },
-  { type: "Commercial Review", label: "Commercial Review", emoji: "📊" },
-  { type: "Task", label: "Task", emoji: "✅" },
-  { type: "Note", label: "Note", emoji: "📝" },
+  { type: "MEETING", label: "Meeting", emoji: "🤝" },
+  { type: "TEAMS_MEETING", label: "Teams Meeting", emoji: "🎥" },
+  { type: "PHONE_CALL", label: "Phone Call", emoji: "📞" },
+  { type: "EMAIL_FOLLOW_UP", label: "Email Follow-Up", emoji: "📧" },
+  { type: "SITE_VISIT", label: "Site Visit", emoji: "🏭" },
+  { type: "COMMERCIAL_REVIEW", label: "Commercial Review", emoji: "📊" },
+  { type: "TASK", label: "Task", emoji: "✅" },
+  { type: "NOTE", label: "Note", emoji: "📝" },
+  { type: "TRADESHOW", label: "Tradeshow", emoji: "🎪" },
+  { type: "SEMINAR", label: "Seminar", emoji: "🎤" },
 ];
 
 /** Legacy types still available in filters */

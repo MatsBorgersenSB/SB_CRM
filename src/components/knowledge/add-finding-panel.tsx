@@ -15,6 +15,7 @@ import {
   type SourceFindingDecision,
   type SourceFindingPreview,
 } from "@/lib/source-findings";
+import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
 
 export function AddFindingPanel({
   targetLabel,
@@ -24,6 +25,7 @@ export function AddFindingPanel({
   onReadDocuments,
   mode = "default",
   companyId,
+  knownFieldIds,
 }: {
   /** e.g. "this opportunity" / "this company" */
   targetLabel: string;
@@ -34,6 +36,8 @@ export function AddFindingPanel({
   /** Competitor 360 — one Collect CTA, high-value facts only. */
   mode?: "default" | "competitor";
   companyId?: string;
+  /** Understanding fields already answered — do not ask to validate these again. */
+  knownFieldIds?: readonly UnderstandingFieldId[];
 }) {
   const { user } = useAuth();
   const canAdd = canUploadSmartDocs(user.role) || user.role === "admin";
@@ -42,6 +46,7 @@ export function AddFindingPanel({
   const [collecting, setCollecting] = useState(false);
   const [readingDocs, setReadingDocs] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [claimBusy, setClaimBusy] = useState<string | null>(null);
   const isCompetitor = mode === "competitor";
 
@@ -125,8 +130,14 @@ export function AddFindingPanel({
         kind: url ? "url" : "note",
         claims: preview.claims,
       });
-      await onFindingsChange(appendSourceFinding(findings, finding));
+      const next = appendSourceFinding(findings, finding, knownFieldIds);
+      await onFindingsChange(next);
       setDraft("");
+      if (url && pendingClaimCount(next) <= pendingClaimCount(findings)) {
+        setNotice(`Already on ${targetLabel}. Nothing new to validate.`);
+      } else {
+        setNotice(null);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not add finding");
     } finally {
@@ -148,9 +159,14 @@ export function AddFindingPanel({
       }
       let next = findings;
       for (const finding of proposed) {
-        next = appendSourceFinding(next, finding);
+        next = appendSourceFinding(next, finding, knownFieldIds);
       }
       await onFindingsChange(next);
+      if (pendingClaimCount(next) <= pendingClaimCount(findings)) {
+        setNotice(`Already on ${targetLabel}. Nothing new to validate.`);
+      } else {
+        setNotice(null);
+      }
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Could not read attached documents",
@@ -228,7 +244,10 @@ export function AddFindingPanel({
           <textarea
             id="finding-input"
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              if (notice) setNotice(null);
+            }}
             rows={isCompetitor ? 2 : 3}
             placeholder={
               isCompetitor
@@ -275,7 +294,7 @@ export function AddFindingPanel({
             <span className="text-[12px] text-carbon-blue/50">
               {isCompetitor
                 ? "Confirm what we know · skip slogans"
-                : "Ctrl+Enter to add · Confirm each fact after it appears"}
+                : "Ctrl+Enter to add · Confirm each new fact"}
             </span>
           </div>
         </div>
@@ -288,6 +307,11 @@ export function AddFindingPanel({
       {error ? (
         <p className="mt-2 text-[12px] font-medium text-red-700" role="alert">
           {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="mt-2 text-[12px] font-medium text-carbon-blue/70" role="status">
+          {notice}
         </p>
       ) : null}
 
@@ -320,6 +344,11 @@ export function AddFindingPanel({
                   {finding.url}
                 </a>
               ) : null}
+              {finding.claims.filter((row) => row.decision !== "dismissed").length === 0 ? (
+                <p className="mt-2 text-[12px] text-carbon-blue/55">
+                  Already on {targetLabel}. Nothing new to validate.
+                </p>
+              ) : (
               <ul className="mt-2 space-y-2">
                 {finding.claims
                   .filter((row) => row.decision !== "dismissed")
@@ -329,7 +358,13 @@ export function AddFindingPanel({
                         {claim.statement}
                       </p>
                       <p className="mt-0.5 text-[12px] text-carbon-blue/55">{claim.impact}</p>
-                      {claim.decision === "confirmed" ? (
+                      {!claim.decision &&
+                      claim.fieldId &&
+                      knownFieldIds?.includes(claim.fieldId) ? (
+                        <p className="mt-1 text-[11px] font-semibold text-carbon-blue/55">
+                          Already on {targetLabel}
+                        </p>
+                      ) : claim.decision === "confirmed" ? (
                         <p className="mt-1 text-[11px] font-semibold text-emerald-700">
                           {isCompetitor
                             ? "Confirmed as what we know"
@@ -358,6 +393,7 @@ export function AddFindingPanel({
                     </li>
                   ))}
               </ul>
+              )}
             </li>
           ))}
         </ul>
@@ -369,6 +405,13 @@ export function AddFindingPanel({
         </p>
       )}
     </section>
+  );
+}
+
+function pendingClaimCount(findings: SourceFinding[]): number {
+  return findings.reduce(
+    (sum, finding) => sum + finding.claims.filter((claim) => !claim.decision).length,
+    0,
   );
 }
 

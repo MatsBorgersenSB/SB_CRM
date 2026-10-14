@@ -39,6 +39,7 @@ import { WorkspaceStack } from "@/components/ui/workspace-main";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
 import type { OpportunityDiscoveryQuestionItem } from "@/lib/opportunity-workspace-intelligence";
 import type { SourceFinding } from "@/lib/source-findings";
+import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 
 const LEGACY_HASH_TO_ACTION: Record<string, OpportunityActionTab> = {
   activities: "activities",
@@ -197,6 +198,32 @@ export function Deal360LivingWorkspace({
     },
     [onPipelinePatch, pipeline.understanding],
   );
+
+  const handleReadDocuments = useCallback(async (): Promise<SourceFinding[]> => {
+    const response = await fetch(
+      `/api/deals/${encodeURIComponent(pipeline.id)}/findings/from-documents`,
+      {
+        method: "POST",
+        headers: {
+          [AUTH_ROLE_HEADER]: role,
+        },
+      },
+    );
+    const payload = (await response.json().catch(() => null)) as {
+      findings?: SourceFinding[];
+      unread?: Array<{ name: string; reason: string }>;
+      error?: string;
+    } | null;
+    if (!response.ok) {
+      throw new Error(payload?.error || "Could not read documents");
+    }
+    const unread = payload?.unread ?? [];
+    const proposed = Array.isArray(payload?.findings) ? payload.findings : [];
+    if (proposed.length === 0 && unread.length > 0) {
+      throw new Error(unread[0]?.reason || "Could not read the filed documents");
+    }
+    return proposed;
+  }, [pipeline.id, role]);
 
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, "");
@@ -373,6 +400,7 @@ export function Deal360LivingWorkspace({
           onPipelinePatch ? handleSaveDiscoveryAnswer : undefined
         }
         onSaveFindings={onPipelinePatch ? handleSaveFindings : undefined}
+        onReadDocuments={onPipelinePatch ? handleReadDocuments : undefined}
         role={role}
         influenceReadOnly={dealTeam.readOnly}
       />

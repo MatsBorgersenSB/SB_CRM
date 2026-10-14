@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
 import { TaskCreateModal } from "@/components/activities/task-create-modal";
 import { ActivityWorkManagementWorkspace } from "@/components/activities/activity-work-management-workspace";
@@ -60,7 +60,16 @@ import {
 import type { FilterDefinition } from "@/types/workspace-filters";
 import { normalizeMultiFilter, normalizeSingleFilter } from "@/types/workspace-filters";
 
-const ACTIVITY_FILTER_KEYS = ["view", "type", "status", "company"] as const;
+const ACTIVITY_FILTER_KEYS = ["view", "type", "status", "company", "deal"] as const;
+
+/** Full workspace link that keeps the current company / deal scope. */
+function fullWorkspaceHref(context?: ActivityWorkspaceContext): string {
+  const params = new URLSearchParams();
+  if (context?.dealId) params.set("deal", context.dealId);
+  else if (context?.companyId) params.set("company", context.companyId);
+  const qs = params.toString();
+  return qs ? `/activities?${qs}` : "/activities";
+}
 
 type SmartActivityWorkspaceProps = {
   activities: Activity[];
@@ -120,11 +129,13 @@ export function SmartActivityWorkspace({
         const types = normalizeMultiFilter(patch.filters.type);
         const status = normalizeSingleFilter(patch.filters.status, "");
         const companyId = normalizeSingleFilter(patch.filters.company, "");
+        const dealId = normalizeSingleFilter(patch.filters.deal, "");
         setFilters((current) => ({
           ...current,
           quickFilter: view,
           status: status as ActivityFilters["status"],
           companyId: companyId || current.companyId,
+          dealId: dealId || current.dealId,
         }));
         if (types.length > 0) setSelectedTypes(types);
       }
@@ -271,8 +282,20 @@ export function SmartActivityWorkspace({
         })),
       });
     }
+    if (!context?.dealId) {
+      defs.push({
+        id: "deal",
+        label: "Opportunity",
+        mode: "single",
+        emptyValue: "",
+        options: pipelines.map((row) => ({
+          value: row.id,
+          label: `${row.id} — ${row.assetName}`,
+        })),
+      });
+    }
     return defs;
-  }, [companies, context?.companyId, quickFilterCounts]);
+  }, [companies, pipelines, context?.companyId, context?.dealId, quickFilterCounts]);
 
   const toolbarValues = useMemo(
     () => ({
@@ -280,8 +303,9 @@ export function SmartActivityWorkspace({
       type: selectedTypes,
       status: filters.status,
       company: filters.companyId,
+      deal: filters.dealId,
     }),
-    [filters.quickFilter, filters.status, filters.companyId, selectedTypes],
+    [filters.quickFilter, filters.status, filters.companyId, filters.dealId, selectedTypes],
   );
 
   const handleToolbarFilterChange = useCallback((id: string, value: string | string[]) => {
@@ -307,6 +331,13 @@ export function SmartActivityWorkspace({
       setFilters((current) => ({
         ...current,
         companyId: normalizeSingleFilter(value, ""),
+      }));
+      return;
+    }
+    if (id === "deal") {
+      setFilters((current) => ({
+        ...current,
+        dealId: normalizeSingleFilter(value, ""),
       }));
     }
   }, []);
@@ -400,8 +431,9 @@ export function SmartActivityWorkspace({
       type: [] as string[],
       status: "",
       company: context?.companyId ?? "",
+      deal: context?.dealId ?? "",
     }),
-    [context?.companyId],
+    [context?.companyId, context?.dealId],
   );
 
   const handleClearAllFilters = useCallback(() => {
@@ -455,6 +487,15 @@ export function SmartActivityWorkspace({
           />
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {isPage ? null : (
+            <Link
+              href={fullWorkspaceHref(context)}
+              className="inline-flex shrink-0 items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-2 text-xs font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
+            >
+              <CalendarDays className="size-3.5" strokeWidth={2} />
+              All activities
+            </Link>
+          )}
           {context?.contactName || context?.dealName ? (
             <GenerateAiDraftControl
               draftContext={{
@@ -557,15 +598,6 @@ export function SmartActivityWorkspace({
           emptyMessage=""
         />
       </ActivityWorkspaceSection>
-
-      {isPage ? null : (
-        <Link
-          href="/activities"
-          className="inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
-        >
-          Open full activity workspace →
-        </Link>
-      )}
 
       <ActivityCreateWizard
         open={wizardOpen}

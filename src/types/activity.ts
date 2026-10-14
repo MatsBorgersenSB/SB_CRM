@@ -12,7 +12,103 @@ export type ActivityType =
   | "Commercial Review"
   | "Task"
   | "Note"
+  | "Tradeshow"
+  | "Seminar"
   | "Other";
+
+/**
+ * Prisma `ActivityType` for the SmartAssist activity engine.
+ * SharePoint display labels stay on `ActivityType` above.
+ */
+export const SMART_ACTIVITY_TYPES = [
+  "MEETING",
+  "TEAMS_MEETING",
+  "PHONE_CALL",
+  "EMAIL_FOLLOW_UP",
+  "SITE_VISIT",
+  "COMMERCIAL_REVIEW",
+  "TASK",
+  "NOTE",
+  "TRADESHOW",
+  "SEMINAR",
+] as const;
+
+export type SmartActivityType = (typeof SMART_ACTIVITY_TYPES)[number];
+
+/** Schedule shape used later by calendar vs floating work surfaces. */
+export const ACTIVITY_TYPE_CATEGORIES = {
+  TIME_BOUND_ACTIVITIES: [
+    "MEETING",
+    "TEAMS_MEETING",
+    "SITE_VISIT",
+    "COMMERCIAL_REVIEW",
+    "TRADESHOW",
+    "SEMINAR",
+  ],
+  FLOATING_ACTIVITIES: ["PHONE_CALL", "EMAIL_FOLLOW_UP", "TASK", "NOTE"],
+} as const satisfies Record<string, readonly SmartActivityType[]>;
+
+export const TIME_BOUND_ACTIVITIES =
+  ACTIVITY_TYPE_CATEGORIES.TIME_BOUND_ACTIVITIES;
+export const FLOATING_ACTIVITIES =
+  ACTIVITY_TYPE_CATEGORIES.FLOATING_ACTIVITIES;
+
+/** Tradeshow and seminar occupy whole days, with no start or end hour. */
+export const ALL_DAY_ACTIVITY_TYPES = ["TRADESHOW", "SEMINAR"] as const satisfies readonly SmartActivityType[];
+
+export function isAllDayActivityType(
+  type: string,
+): type is (typeof ALL_DAY_ACTIVITY_TYPES)[number] {
+  return (ALL_DAY_ACTIVITY_TYPES as readonly string[]).includes(type);
+}
+
+/** Display labels for the SharePoint activity record. */
+export const SMART_ACTIVITY_DISPLAY: Record<SmartActivityType, ActivityType> = {
+  MEETING: "Meeting",
+  TEAMS_MEETING: "Teams Meeting",
+  PHONE_CALL: "Phone Call",
+  EMAIL_FOLLOW_UP: "Email Follow-Up",
+  SITE_VISIT: "Site Visit",
+  COMMERCIAL_REVIEW: "Commercial Review",
+  TASK: "Task",
+  NOTE: "Note",
+  TRADESHOW: "Tradeshow",
+  SEMINAR: "Seminar",
+};
+
+export function smartActivityLabel(type: SmartActivityType): string {
+  return SMART_ACTIVITY_DISPLAY[type];
+}
+
+export function toSmartActivityType(value: string | null | undefined): SmartActivityType | "" {
+  if (!value) return "";
+  if ((SMART_ACTIVITY_TYPES as readonly string[]).includes(value)) {
+    return value as SmartActivityType;
+  }
+  const match = (Object.entries(SMART_ACTIVITY_DISPLAY) as [SmartActivityType, ActivityType][]).find(
+    ([, label]) => label === value,
+  );
+  return match?.[0] ?? "";
+}
+
+/** Light JSON stored on `Activity.aiContext`. */
+export type ActivityAiContext = Record<string, unknown>;
+
+/** Prisma `Activity` row. Company and opportunity links are optional. */
+export type ActivityEngineRecord = {
+  id: string;
+  activityType: SmartActivityType;
+  title: string;
+  startDate: Date | null;
+  endDate: Date | null;
+  isAiProposed: boolean;
+  completedAt: Date | null;
+  aiContext: ActivityAiContext | null;
+  companyId: string | null;
+  opportunityId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export type ActionStatus =
   | "Planned"
@@ -48,6 +144,8 @@ export const WORKSPACE_ACTIVITY_TYPES: ActivityType[] = [
   "Commercial Review",
   "Task",
   "Note",
+  "Tradeshow",
+  "Seminar",
 ];
 
 export const ACTIVITY_TYPES: ActivityType[] = [
@@ -62,6 +160,8 @@ export const ACTIVITY_TYPES: ActivityType[] = [
   "Commercial Review",
   "Task",
   "Note",
+  "Tradeshow",
+  "Seminar",
   "Other",
 ];
 

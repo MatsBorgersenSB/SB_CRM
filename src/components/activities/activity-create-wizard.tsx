@@ -7,10 +7,15 @@ import type { AuthUser } from "@/types/auth";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type {
-  ActivityType,
   CreateActivityInput,
   ActionStatus,
   ActivityPriority,
+  SmartActivityType,
+} from "@/types/activity";
+import {
+  isAllDayActivityType,
+  SMART_ACTIVITY_DISPLAY,
+  toSmartActivityType,
 } from "@/types/activity";
 import {
   ACTION_STATUSES,
@@ -25,6 +30,8 @@ import {
   parseMemoryLines,
 } from "@/lib/relationship-memory";
 import { ActivityKnowledgeCapturePanel } from "@/components/activities/activity-knowledge-capture-panel";
+import { SmartAssistResolutionCard } from "@/components/smartassist/SmartAssistResolutionCard";
+import type { SmartAssistResolution } from "@/lib/smartassist/omniOrchestrator";
 import { TaskAssigneeSelect } from "@/components/activities/task-assignee-select";
 import { TaskShareWithPicker } from "@/components/activities/task-share-control";
 import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
@@ -54,8 +61,24 @@ const STEPS = {
 
 function combineDateTime(date: string, time: string): string {
   if (!date) return new Date().toISOString();
-  if (!time) return `${date}T09:00:00`;
-  return `${date}T${time}:00`;
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = (time || "09:00").split(":").map(Number);
+  if (!year || !month || !day) return new Date().toISOString();
+  return new Date(year, month - 1, day, hour || 0, minute || 0, 0, 0).toISOString();
+}
+
+function inclusiveDayCount(start: string, end: string): number {
+  const [startYear, startMonth, startDay] = start.split("-").map(Number);
+  const [endYear, endMonth, endDay] = end.split("-").map(Number);
+  if (!startYear || !endYear) return 1;
+  const startUtc = Date.UTC(startYear, (startMonth || 1) - 1, startDay || 1);
+  const endUtc = Date.UTC(endYear, (endMonth || 1) - 1, endDay || 1);
+  return Math.max(1, Math.round((endUtc - startUtc) / 86_400_000) + 1);
+}
+
+function endOfLocalDay(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year || 1970, (month || 1) - 1, day || 1, 23, 59, 0, 0).toISOString();
 }
 
 function extractPresetCompanyId(
@@ -100,7 +123,7 @@ export function ActivityCreateWizard({
   const [step, setStep] = useState<WizardStep>(1);
   const [mode, setMode] = useState<WizardMode>("plan");
   const [saving, setSaving] = useState(false);
-  const [activityType, setActivityType] = useState<ActivityType | "">("");
+  const [activityType, setActivityType] = useState<SmartActivityType | "">("");
   const [companyId, setCompanyId] = useState("");
   const [contactId, setContactId] = useState("");
   const [dealId, setDealId] = useState("");
@@ -113,6 +136,7 @@ export function ActivityCreateWizard({
   const [agreedActionsText, setAgreedActionsText] = useState("");
   const [risksText, setRisksText] = useState("");
   const [planDate, setPlanDate] = useState("");
+  const [planEndDate, setPlanEndDate] = useState("");
   const [planTime, setPlanTime] = useState("09:00");
   const [durationMinutes, setDurationMinutes] = useState("60");
   const [priority, setPriority] = useState<ActivityPriority>("Normal");
@@ -125,6 +149,9 @@ export function ActivityCreateWizard({
     useState<SmartAssistAssessment | null>(null);
   const [assignee, setAssignee] = useState<SharePointPerson | null>(null);
   const [sharedWith, setSharedWith] = useState<SharePointPerson[]>([]);
+  const [resolution, setResolution] = useState<SmartAssistResolution | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState("");
 
   const assigneeOptions = useMemo(() => {
     const me = defaultOwner
@@ -137,7 +164,7 @@ export function ActivityCreateWizard({
     if (!open) return;
     setStep(1);
     setMode(preset?.ActionStatus === "Completed" ? "record" : "plan");
-    setActivityType(preset?.ActivityType ?? "");
+    setActivityType(toSmartActivityType(preset?.ActivityType));
     setCompanyId(extractPresetCompanyId(preset));
     setContactId(extractPresetContactId(preset));
     setDealId(extractPresetDealId(preset));
@@ -162,7 +189,9 @@ export function ActivityCreateWizard({
     setPriority(preset?.Priority ?? "Normal");
     setDurationMinutes(String(preset?.DurationMinutes ?? 60));
     const today = new Date().toISOString().slice(0, 10);
-    setPlanDate(preset?.ActivityDate?.slice(0, 10) ?? today);
+    const presetDate = preset?.ActivityDate?.slice(0, 10) ?? today;
+    setPlanDate(presetDate);
+    setPlanEndDate(presetDate);
     setPlanTime(preset?.ActivityDate?.slice(11, 16) || "09:00");
     setAssignee(
       defaultOwner
@@ -170,6 +199,8 @@ export function ActivityCreateWizard({
         : preset?.ActivityOwner ?? null,
     );
     setSharedWith(preset?.SharedWith ?? []);
+    setResolution(null);
+    setResolveError("");
   }, [open, preset, defaultOwner]);
 
   const selectedCompany = companies.find((c) => c.CompanyID === companyId);
@@ -189,7 +220,9 @@ export function ActivityCreateWizard({
         : step === 3
           ? mode === "plan"
             ? Boolean(subject.trim()) &&
-              (activityType !== "Task" || Boolean(assignee))
+              (activityType !== "TASK" || Boolean(assignee)) &&
+              (!isAllDayActivityType(activityType) ||
+                (Boolean(planDate) && Boolean(planEndDate) && planEndDate >= planDate))
             : Boolean(subject.trim() && notes.trim())
           : !followUp || Boolean(nextAction.trim());
 
@@ -213,6 +246,7 @@ export function ActivityCreateWizard({
   const resetForm = () => {
     setStep(1);
     setActivityType("");
+    setPlanEndDate("");
     setCompanyId("");
     setContactId("");
     setDealId("");
@@ -243,34 +277,47 @@ export function ActivityCreateWizard({
 
   const handleSubmit = async () => {
     if (!activityType) return;
+    const displayType = SMART_ACTIVITY_DISPLAY[activityType];
+    const allDay = isAllDayActivityType(activityType);
 
     setSaving(true);
     try {
       const activityDate =
         mode === "plan"
-          ? combineDateTime(planDate, planTime)
+          ? allDay
+            ? combineDateTime(planDate, "00:00")
+            : combineDateTime(planDate, planTime)
           : new Date().toISOString();
+      const plannedEnd =
+        mode === "plan"
+          ? allDay
+            ? endOfLocalDay(planEndDate || planDate)
+            : new Date(
+                new Date(activityDate).getTime() +
+                  (Number(durationMinutes) || 60) * 60_000,
+              ).toISOString()
+          : null;
 
       const owner =
-        activityType === "Task"
+        activityType === "TASK"
           ? assignee
           : defaultOwner
             ? { Id: defaultOwner.id, Title: defaultOwner.displayName }
             : null;
 
-      if (activityType === "Task" && !owner) {
+      if (activityType === "TASK" && !owner) {
         setSaving(false);
         return;
       }
 
       await syncActivityCreate({
-        ActivityType: activityType,
+        ActivityType: displayType,
         ActivityDate: activityDate,
         Subject: subject.trim(),
         Summary: summary.trim() || subject.trim(),
         ActivityDescription:
           notes.trim() ||
-          (mode === "plan" ? `Planned ${activityType.toLowerCase()}.` : ""),
+          (mode === "plan" ? `Planned ${displayType.toLowerCase()}.` : ""),
         KeyDecisions: parseMemoryLines(keyDecisionsText),
         AgreedActions: parseAgreedActions(agreedActionsText),
         Risks: parseMemoryLines(risksText),
@@ -290,19 +337,24 @@ export function ActivityCreateWizard({
             ]
           : [],
         ActivityOwner: owner,
-        SharedWith: activityType === "Task" ? sharedWith : undefined,
-        DurationMinutes: mode === "plan" ? Number(durationMinutes) || undefined : undefined,
+        SharedWith: activityType === "TASK" ? sharedWith : undefined,
+        DurationMinutes:
+          mode === "plan"
+            ? allDay
+              ? inclusiveDayCount(planDate, planEndDate || planDate) * 24 * 60
+              : Number(durationMinutes) || undefined
+            : undefined,
         Priority: mode === "plan" ? priority : undefined,
-        M365Targets: inferM365Targets(activityType),
-        ActionRequired: activityType === "Task" ? true : followUp,
+        M365Targets: inferM365Targets(displayType),
+        ActionRequired: activityType === "TASK" ? true : followUp,
         NextAction:
-          activityType === "Task"
+          activityType === "TASK"
             ? subject.trim()
             : followUp
               ? nextAction.trim()
               : "",
         NextActionDate:
-          activityType === "Task"
+          activityType === "TASK"
             ? planDate || activityDate.slice(0, 10)
             : followUp
               ? dueDate
@@ -310,13 +362,31 @@ export function ActivityCreateWizard({
         ActionStatus: followUp
           ? followUpStatus
           : mode === "plan"
-            ? activityType === "Task"
+            ? activityType === "TASK"
               ? "Open"
               : trackingStatus
             : "Completed",
         ActionOutcome: "",
         SmartAssistAssessment: smartAssistAssessment ?? undefined,
       });
+      if (mode === "plan" && planDate) {
+        try {
+          await fetch("/api/calendar/activities", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: activityType,
+              title: subject.trim(),
+              startDate: activityDate,
+              endDate: plannedEnd,
+              companyCode: companyId || null,
+              opportunityCode: dealId || null,
+            }),
+          });
+        } catch {
+          // The activity record is already saved. The calendar can catch up later.
+        }
+      }
       onCreated();
       onClose();
       resetForm();
@@ -367,12 +437,17 @@ export function ActivityCreateWizard({
 
         <div className="flex-1 overflow-y-auto p-4">
           {step === 1 ? (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-4 gap-2">
               {ACTIVITY_TYPE_OPTIONS.map((opt) => (
                 <button
                   key={opt.type}
                   type="button"
-                  onClick={() => setActivityType(opt.type)}
+                  onClick={() => {
+                    setActivityType(opt.type);
+                    if (isAllDayActivityType(opt.type)) {
+                      setPlanEndDate((current) => current || planDate);
+                    }
+                  }}
                   className={`flex flex-col items-center gap-2 border p-3 text-center transition-all duration-150 ${
                     activityType === opt.type
                       ? "border-upcycle-orange/40 bg-upcycle-orange/[0.06] ring-1 ring-upcycle-orange/20"
@@ -477,44 +552,83 @@ export function ActivityCreateWizard({
                   className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm font-medium text-carbon-blue outline-none focus:border-upcycle-orange/40"
                 />
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="block">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                    Date
-                  </span>
-                  <input
-                    type="date"
-                    value={planDate}
-                    onChange={(e) => setPlanDate(e.target.value)}
-                    className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                    Time
-                  </span>
-                  <input
-                    type="time"
-                    value={planTime}
-                    onChange={(e) => setPlanTime(e.target.value)}
-                    className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                  />
-                </label>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <label className="block">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                    Duration (min)
-                  </span>
-                  <input
-                    type="number"
-                    min={15}
-                    step={15}
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(e.target.value)}
-                    className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                  />
-                </label>
+              {isAllDayActivityType(activityType) ? (
+                <div className="grid gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                        Start date
+                      </span>
+                      <input
+                        type="date"
+                        value={planDate}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setPlanDate(next);
+                          setPlanEndDate((current) => (current && current >= next ? current : next));
+                        }}
+                        className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                        End date
+                      </span>
+                      <input
+                        type="date"
+                        value={planEndDate}
+                        min={planDate}
+                        onChange={(e) => setPlanEndDate(e.target.value)}
+                        className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-carbon-blue/50">
+                    Full day or several days. No start or end time.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                      Date
+                    </span>
+                    <input
+                      type="date"
+                      value={planDate}
+                      onChange={(e) => setPlanDate(e.target.value)}
+                      className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                      Time
+                    </span>
+                    <input
+                      type="time"
+                      value={planTime}
+                      onChange={(e) => setPlanTime(e.target.value)}
+                      className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                    />
+                  </label>
+                </div>
+              )}
+              <div className={`grid gap-2 ${isAllDayActivityType(activityType) ? "grid-cols-2" : "grid-cols-3"}`}>
+                {isAllDayActivityType(activityType) ? null : (
+                  <label className="block">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                      Duration (min)
+                    </span>
+                    <input
+                      type="number"
+                      min={15}
+                      step={15}
+                      value={durationMinutes}
+                      onChange={(e) => setDurationMinutes(e.target.value)}
+                      className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                    />
+                  </label>
+                )}
                 <label className="block">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
                     Priority
@@ -548,7 +662,7 @@ export function ActivityCreateWizard({
                   </select>
                 </label>
               </div>
-              {activityType === "Task" ? (
+              {activityType === "TASK" ? (
                 <>
                   <TaskAssigneeSelect
                     value={assignee}
@@ -581,11 +695,57 @@ export function ActivityCreateWizard({
               {activityType ? (
                 <p className="text-[10px] text-carbon-blue/45">
                   M365 ready:{" "}
-                  {Object.entries(inferM365Targets(activityType))
+                  {Object.entries(
+                    inferM365Targets(SMART_ACTIVITY_DISPLAY[activityType]),
+                  )
                     .filter(([, enabled]) => enabled)
                     .map(([key]) => key)
                     .join(", ") || "local only"}
                 </p>
+              ) : null}
+              {!companyId && (subject.trim() || notes.trim()) ? (
+                <div className="grid gap-2">
+                  {!resolution ? (
+                    <button
+                      type="button"
+                      disabled={resolving}
+                      onClick={() => {
+                        const taskDescription = [subject, notes].filter((part) => part.trim()).join("\n");
+                        setResolving(true);
+                        setResolveError("");
+                        void fetch("/api/smartassist/omni-resolve", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            taskDescription,
+                            dateLimit: planEndDate || planDate || undefined,
+                          }),
+                        })
+                          .then(async (response) => {
+                            if (!response.ok) throw new Error("resolve failed");
+                            const payload = (await response.json()) as {
+                              resolution?: SmartAssistResolution;
+                            };
+                            if (!payload.resolution) throw new Error("empty resolution");
+                            setResolution(payload.resolution);
+                          })
+                          .catch(() => setResolveError("SmartAssist kunne ikke hente innsikt."))
+                          .finally(() => setResolving(false));
+                      }}
+                      className="border border-carbon-blue/15 bg-white px-3 py-2 text-left text-xs font-medium text-carbon-blue hover:border-upcycle-orange/40"
+                    >
+                      {resolving ? "Henter innsikt…" : "✨ Be SmartAssist om innsikt/leverandører"}
+                    </button>
+                  ) : (
+                    <SmartAssistResolutionCard
+                      resolution={resolution}
+                      onDismiss={() => setResolution(null)}
+                    />
+                  )}
+                  {resolveError ? (
+                    <p className="text-[11px] text-orange-800">{resolveError}</p>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           ) : null}
@@ -593,7 +753,7 @@ export function ActivityCreateWizard({
           {step === 3 && mode === "record" ? (
             <div className="grid gap-3">
               <ActivityKnowledgeCapturePanel
-                activityType={activityType}
+                activityType={activityType ? SMART_ACTIVITY_DISPLAY[activityType] : ""}
                 subject={subject}
                 company={selectedCompany}
                 deal={selectedDeal}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  CalendarDays,
   FileText,
   FolderKanban,
   LayoutDashboard,
@@ -56,6 +57,13 @@ const navItems: NavItem[] = [
     href: "/opportunities",
     icon: TrendingUp,
     match: (p) => p.startsWith("/opportunities") || p.startsWith("/deals"),
+    section: "work",
+  },
+  {
+    label: "Activities",
+    href: "/activities",
+    icon: CalendarDays,
+    match: (p) => p.startsWith("/activities") || p.startsWith("/calendar"),
     section: "work",
   },
   {

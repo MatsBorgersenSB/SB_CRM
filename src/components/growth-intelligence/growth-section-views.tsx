@@ -9,6 +9,7 @@ import { eventPlanningHref } from "@/types/event-planning";
 import { isEventPast } from "@/lib/growth-event-timing";
 import type { GrowthIntelligenceSnapshot } from "@/types/growth-intelligence";
 import { offerLabel, type GrowthMeetingTarget } from "@/types/growth-super-skills";
+import { MarketFactsPanel } from "@/components/growth-intelligence/market-facts-panel";
 
 const RECOMMENDATION_COLORS = {
   attend: "text-green-700",
@@ -333,6 +334,7 @@ export function GrowthMarketIntelligenceView({ snapshot }: { snapshot: GrowthInt
 
   return (
     <WorkspaceStack>
+      <MarketFactsPanel />
       {cards.length === 0 ? (
         <p className="dashboard-card px-4 py-6 text-[13px] text-carbon-blue/50">
           No live market evidence yet. Unknown stays unknown — we will not invent regulation or competitor news.
