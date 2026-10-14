@@ -15,8 +15,17 @@ export type UnifiedEuropeanCompany = {
   industryCode?: string;
   industryDescription?: string;
   executives?: string[];
+  /** Website as declared to the register, when the register carries one. */
+  website?: string;
   /** Human-readable registry provenance. */
   sourceRegistry: string;
+};
+
+/** A named officer from a public register (board, CEO, contact person). */
+export type RegistryOfficer = {
+  name: string;
+  /** Role as the register describes it, e.g. "Daglig leder", "Styrets leder". */
+  role: string;
 };
 
 export type RegistryAdapterId =
