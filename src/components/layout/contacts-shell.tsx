@@ -28,7 +28,8 @@ import {
   type CorrespondenceByCompanyId,
 } from "@/lib/company-correspondence";
 import { filterCompaniesForUser } from "@/lib/permissions";
-import { getContactDisplayName } from "@/types/contact";
+import { syncCompanyContact } from "@/lib/sync-company";
+import { getContactDisplayName, type UpdateContactInput } from "@/types/contact";
 import { CONTACT_LIST_ROLES, CONTACT_STATUSES, RELATIONSHIP_LEVELS } from "@/types/contact";
 import type { Activity } from "@/types/activity";
 import type { OutlookEvidenceRecord } from "@/types/outlook-reconciliation";
@@ -258,6 +259,26 @@ export function ContactsShell({
     [router, upsertCompany],
   );
 
+  // Inline edits from the list (buying role) — persist, then swap the contact in place.
+  const handleContactUpdate = useCallback(
+    async (companyId: string, contactId: string, patch: UpdateContactInput) => {
+      const updated = await syncCompanyContact(companyId, contactId, patch);
+      setCompanyRows((current) =>
+        current.map((company) =>
+          company.CompanyID === companyId
+            ? {
+                ...company,
+                contacts: company.contacts.map((contact) =>
+                  contact.ContactID === contactId ? updated : contact,
+                ),
+              }
+            : company,
+        ),
+      );
+    },
+    [],
+  );
+
   return (
     <WorkspaceChrome>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
@@ -354,6 +375,7 @@ export function ContactsShell({
               records={filteredRecords}
               activities={activities}
               lastMailByEmail={lastMailByEmail}
+              onContactUpdate={handleContactUpdate}
             />
           </WorkspacePanel>
 
