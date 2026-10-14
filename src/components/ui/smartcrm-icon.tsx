@@ -26,6 +26,7 @@ import {
   TrendingUp,
   TriangleAlert,
   User,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -61,6 +62,7 @@ type IconSize = keyof typeof SIZE_PX;
  */
 const LUCIDE_BY_NAME: Record<SmartCRMIconName, LucideIcon> = {
   contact: User,
+  people: Users,
   company: Building2,
   opportunity: TrendingUp,
   document: FileText,

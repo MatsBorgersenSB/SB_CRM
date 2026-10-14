@@ -144,14 +144,14 @@ export function buildWorkspaceDocumentFilterDefinitions(
   ];
 
   const statusOptions = [
-    { value: "all", label: "All statuses" },
-    { value: "in_set", label: "In document set" },
-    { value: "library", label: "In library" },
+    { value: "all", label: "Filed anywhere" },
+    { value: "in_set", label: "On an opportunity" },
+    { value: "library", label: "In the library" },
     ...(rows.some((row) => row.statusKind === "company")
-      ? [{ value: "company", label: "Company owned" }]
+      ? [{ value: "company", label: "On a company" }]
       : []),
     ...(rows.some((row) => row.statusKind === "activity_link")
-      ? [{ value: "activity_link", label: "Activity links" }]
+      ? [{ value: "activity_link", label: "On an activity" }]
       : []),
   ];
 
@@ -170,10 +170,10 @@ export function buildWorkspaceDocumentFilterDefinitions(
     mode: "single",
     emptyValue: "all",
     options: [
-      { value: "all", label: "All origins" },
-      { value: "standard_bio", label: "Standard Bio" },
+      { value: "all", label: "Any origin" },
+      { value: "standard_bio", label: "Ours" },
       { value: "external", label: "External" },
-      { value: "unknown", label: "Unknown" },
+      { value: "unknown", label: "Origin not set" },
     ],
   });
 
@@ -200,14 +200,14 @@ export function buildWorkspaceDocumentFilterDefinitions(
   filters.push(
     {
       id: "status",
-      label: "Status",
+      label: "Filed on",
       mode: "single",
       emptyValue: "all",
       options: statusOptions,
     },
     {
       id: "recency",
-      label: "Modified",
+      label: "Added",
       mode: "single",
       emptyValue: "all",
       options: recencyOptions,
@@ -229,11 +229,14 @@ export function toggleDocumentSort(
   return { ...current, sortKey: column, sortDir: defaultDir };
 }
 
+/**
+ * Columns the browse table shows. Version (always "Rev 01") and the
+ * where-it-is-filed "status" are not columns: the first has one value, the
+ * second is a filter, not a fact about the document.
+ */
 export const DOCUMENT_SORT_COLUMNS: Array<{ key: WorkspaceDocumentSortKey; label: string }> = [
   { key: "name", label: "Document" },
   { key: "docType", label: "Type" },
-  { key: "version", label: "Version" },
-  { key: "status", label: "Status" },
-  { key: "relatedObjectLabel", label: "Related object" },
-  { key: "modifiedAt", label: "Modified date" },
+  { key: "relatedObjectLabel", label: "Related to" },
+  { key: "modifiedAt", label: "Added" },
 ];

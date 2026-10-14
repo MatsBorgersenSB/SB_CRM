@@ -2,14 +2,14 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { WorkspaceDocumentsBrowseTable } from "@/components/documents/workspace-documents-browse-table";
 import { MissingCriticalDocumentRow } from "@/components/smartdocs/smartdocs-intelligence-row";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { IntelligenceLead } from "@/components/ui/intelligence-lead";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
-import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
+import { WorkspacePageTitle } from "@/components/ui/workspace-page-title";
+import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
@@ -94,7 +94,6 @@ export function KnowledgeShell({
   const missing = smartDocs.missingCriticalDocuments;
   const topMissing = missing[0];
   const topRisk = smartDocs.knowledgeAtRisk[0];
-  const hasAttention = missing.length > 0 || Boolean(topRisk);
 
   const filterDefinitions = useMemo(
     () => buildWorkspaceDocumentFilterDefinitions(rows),
@@ -110,6 +109,8 @@ export function KnowledgeShell({
     setTableQuery(defaultDocumentTableQuery());
   }, []);
 
+  // Only speak when there is something to say: a missing critical document
+  // or a document whose knowledge is at risk. Otherwise the list is enough.
   const hero = useMemo(() => {
     if (topMissing) {
       return {
@@ -127,65 +128,56 @@ export function KnowledgeShell({
         actionLabel: "Open document",
       };
     }
-    if (rows.length === 0) {
-      return {
-        title: "No SmartDocs in the library yet",
-        summary:
-          "File documents on a company, contact, opportunity, or project. SharePoint keeps the file; SmartCRM keeps category, type, and identity.",
-        actionHref: "/companies",
-        actionLabel: "Open a company to import",
-      };
-    }
-    return {
-      title: `${rows.length} document${rows.length === 1 ? "" : "s"} in the library`,
-      summary:
-        "Open a file for detail and SharePoint, or go to a company or opportunity to import.",
-      actionHref: undefined,
-      actionLabel: undefined,
-    };
-  }, [rows.length, topMissing, topRisk]);
+    return null;
+  }, [topMissing, topRisk]);
 
   return (
     <WorkspaceChrome>
-      <WorkspaceHeader
-        scope="Knowledge workspace"
-        title="SmartDocs"
-        context="Find, file, and act on organizational documents"
-        actions={<RoleSwitcher companies={scopedCompanies} />}
-      />
+      <WorkspaceTopBar icon="document" title="Knowledge" />
 
       <WorkspaceMain>
         <WorkspaceStack>
-          <IntelligenceLead
-            eyebrow="Attention"
-            title={hero.title}
-            summary={hero.summary}
-            vitals={[
-              { label: "Documents", value: String(rows.length) },
-              {
-                label: "Missing",
-                value: String(missing.length),
-                highlight: missing.length > 0,
-              },
-              {
-                label: "At risk",
-                value: String(smartDocs.overview.atRiskCount),
-                highlight: smartDocs.overview.atRiskCount > 0,
-              },
-            ]}
-            action={
-              hero.actionHref ? (
-                <Link
-                  href={hero.actionHref}
-                  className="inline-flex border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold text-white hover:bg-upcycle-orange/90"
-                >
-                  {hero.actionLabel}
-                </Link>
-              ) : undefined
-            }
-          />
+          <section className="dashboard-card p-4 sm:p-6">
+            <WorkspacePageTitle
+              icon="document"
+              title="Knowledge"
+              subtitle="The documents behind our relationships and deals — what we hold, where it lives, and what is still missing."
+            />
+          </section>
 
-          {hasAttention && missing.length > 0 ? (
+          {hero ? (
+            <IntelligenceLead
+              eyebrow="Needs attention"
+              title={hero.title}
+              summary={hero.summary}
+              vitals={[
+                ...(missing.length > 0
+                  ? [{ label: "Missing", value: String(missing.length), highlight: true }]
+                  : []),
+                ...(smartDocs.overview.atRiskCount > 0
+                  ? [
+                      {
+                        label: "At risk",
+                        value: String(smartDocs.overview.atRiskCount),
+                        highlight: true,
+                      },
+                    ]
+                  : []),
+              ]}
+              action={
+                hero.actionHref ? (
+                  <Link
+                    href={hero.actionHref}
+                    className="inline-flex border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[13px] font-semibold text-white hover:bg-upcycle-orange/90"
+                  >
+                    {hero.actionLabel}
+                  </Link>
+                ) : undefined
+              }
+            />
+          ) : null}
+
+          {missing.length > 0 ? (
             <WorkspacePanel title="Needs a document" count={missing.length}>
               <div className="-mx-6 -my-5">
                 {missing.slice(0, 3).map((item) => (

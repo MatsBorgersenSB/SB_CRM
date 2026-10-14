@@ -42,6 +42,7 @@ import type { AttentionItem } from "@/types/attention-item";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { StandardBioUserRecord } from "@/types/user-access";
+import type { SyncedMailSummary } from "@/lib/email-intelligence-data";
 import type {
   ActionStatus,
   Activity,
@@ -84,6 +85,8 @@ type SmartActivityWorkspaceProps = {
   showSuggestions?: boolean;
   /** Assignable users for New Task / Task assignee. */
   assignableUsers?: StandardBioUserRecord[];
+  /** What Outlook mail SmartCRM already holds — so an empty plan never reads as "nothing here". */
+  syncedMail?: SyncedMailSummary;
 };
 
 function contextPreset(context?: ActivityWorkspaceContext): Partial<CreateActivityInput> {
@@ -108,6 +111,7 @@ export function SmartActivityWorkspace({
   showCopilot = true,
   showSuggestions = true,
   assignableUsers = [],
+  syncedMail,
 }: SmartActivityWorkspaceProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -455,6 +459,7 @@ export function SmartActivityWorkspace({
         pipelines={pipelines}
         assignableUsers={assignableUsers}
         onActivitiesChange={onActivitiesChange}
+        syncedMail={syncedMail}
       />
     );
   }

@@ -98,6 +98,21 @@ export const SMARTDOC_IDENTITY_EXPLANATION =
 
 export type { SmartDocIdentityPreview, SmartDocNameSuggestions };
 
+const LEADING_IDENTITY_PATTERN =
+  /^((?:PL|CO|PRJ)-[A-Z0-9]+(?:-[A-Z0-9]+)*-[A-Z]-[A-Z]{2,4}-\d{4})\s+(.+)$/i;
+
+/**
+ * Split a stored display name like "CO-1028-G-ME-0002 IBTC Terminology v3"
+ * into the human title and the SmartDoc code, so UI can show the title
+ * first and the code as secondary metadata. Names without a leading code
+ * come back unchanged with `code` undefined.
+ */
+export function splitSmartDocDisplayName(name: string): { title: string; code?: string } {
+  const match = LEADING_IDENTITY_PATTERN.exec(name.trim());
+  if (!match) return { title: name.trim() };
+  return { title: match[2]!.trim(), code: match[1]!.toUpperCase() };
+}
+
 export function resolveTypeCode(docType: string): string {
   const mapped = SMARTDOC_IDENTITY_TYPE_CODES[docType];
   if (mapped) return mapped;

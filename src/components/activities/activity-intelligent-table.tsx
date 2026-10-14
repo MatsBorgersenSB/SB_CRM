@@ -17,11 +17,12 @@ import {
   WorkspaceTableHeadRow,
 } from "@/components/ui/workspace-table";
 
-const ATTENTION_STYLES = {
-  overdue: "border-thermal-red/30 bg-thermal-red/[0.06] text-thermal-red",
-  due_today: "border-upcycle-orange/30 bg-upcycle-orange/[0.06] text-upcycle-orange",
-  attention: "border-upcycle-orange/25 bg-upcycle-orange/[0.05] text-upcycle-orange",
-  on_track: "border-carbon-blue/12 bg-carbon-blue/[0.02] text-carbon-blue/65",
+/** Attention as one coloured dot in front of the blocker; the title names it. */
+const ATTENTION_DOT = {
+  overdue: "bg-thermal-red",
+  due_today: "bg-upcycle-orange",
+  attention: "bg-upcycle-orange",
+  on_track: "bg-emerald-500",
 } as const;
 
 export function ActivityIntelligentTable({
@@ -54,21 +55,19 @@ export function ActivityIntelligentTable({
   }
 
   const table = (
-    <div className="overflow-x-auto">
-      <WorkspaceTable className="min-w-[960px]">
+    <div className="w-full">
+      <WorkspaceTable>
           <colgroup>
-            <col className="w-[20%]" />
-            <col className="w-[22%]" />
-            <col className="w-[20%]" />
-            <col className="w-[18%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
+            <col className="w-[30%]" />
+            <col className="w-[26%]" />
+            <col className="w-[24%]" />
+            <col className="w-[11%]" />
+            <col className="w-[9%]" />
           </colgroup>
           <WorkspaceTableHead>
             <WorkspaceTableHeadRow>
               <WorkspaceTableHeadCell>Activity</WorkspaceTableHeadCell>
-              <WorkspaceTableHeadCell>Attention</WorkspaceTableHeadCell>
-              <WorkspaceTableHeadCell>Blocking progress</WorkspaceTableHeadCell>
+              <WorkspaceTableHeadCell>What&apos;s blocking</WorkspaceTableHeadCell>
               <WorkspaceTableHeadCell>Next step</WorkspaceTableHeadCell>
               <WorkspaceTableHeadCell align="right">Due</WorkspaceTableHeadCell>
               <WorkspaceTableHeadCell>Share</WorkspaceTableHeadCell>
@@ -134,19 +133,14 @@ function ActivityIntelligentTableRow({
       onClick={() => onOpen?.(row.activity.ActivityID)}
     >
       <WorkspaceTableBodyCell>
-        {isPrimaryFocus ? (
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-upcycle-orange">
-            Primary focus
-          </p>
-        ) : null}
         <Link
           href={href}
           onClick={(event) => event.stopPropagation()}
-          className="block text-[13px] font-semibold leading-snug text-carbon-blue hover:text-upcycle-orange"
+          className="block text-[14px] font-semibold leading-snug text-carbon-blue hover:text-upcycle-orange"
         >
           {row.headline}
         </Link>
-        <p className="mt-1 truncate text-[12px] text-carbon-blue/65">
+        <p className="mt-1 truncate text-[13px] text-carbon-blue/65">
           {[
             row.companyLabel,
             row.dealLabel !== "—" ? row.dealLabel : null,
@@ -162,24 +156,21 @@ function ActivityIntelligentTableRow({
       </WorkspaceTableBodyCell>
 
       <WorkspaceTableBodyCell>
-        <span
-          className={`inline-flex border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${ATTENTION_STYLES[attention.tone]}`}
-        >
-          {attention.label}
-        </span>
-        <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/65">
-          {row.whyItMatters}
-        </p>
+        <div className="flex items-start gap-2">
+          <span
+            className={`mt-[7px] size-2 shrink-0 rounded-full ${ATTENTION_DOT[attention.tone]}`}
+            title={attention.label}
+            aria-label={attention.label}
+            role="img"
+          />
+          <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue">
+            {row.blockingProgress}
+          </p>
+        </div>
       </WorkspaceTableBodyCell>
 
       <WorkspaceTableBodyCell>
-        <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/70">
-          {row.blockingProgress}
-        </p>
-      </WorkspaceTableBodyCell>
-
-      <WorkspaceTableBodyCell>
-        <p className="line-clamp-2 text-[13px] font-medium leading-relaxed text-carbon-blue/85">
+        <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue">
           {row.recommendedAction}
         </p>
       </WorkspaceTableBodyCell>
@@ -201,29 +192,27 @@ function ActivityIntelligentTableRow({
               compact
             />
           </div>
-        ) : (
-          <span className="text-[12px] text-carbon-blue/50">—</span>
-        )}
+        ) : null}
       </WorkspaceTableBodyCell>
     </WorkspaceTableBodyRow>
   );
 }
 
 function DueLabel({ row }: { row: ActivityIntelligentRow }) {
-  const label = row.timingLabel ?? "—";
+  if (!row.timingLabel) return null;
   const className =
     row.priority === "urgent"
       ? "text-thermal-red font-semibold"
       : row.priority === "high"
         ? "text-upcycle-orange font-medium"
-        : "text-carbon-blue/50";
+        : "text-carbon-blue/70";
 
-  return <span className={`text-[13px] tabular-nums ${className}`}>{label}</span>;
+  return <span className={`text-[13px] tabular-nums ${className}`}>{row.timingLabel}</span>;
 }
 
 function attentionMeta(row: ActivityIntelligentRow): {
   label: string;
-  tone: keyof typeof ATTENTION_STYLES;
+  tone: keyof typeof ATTENTION_DOT;
 } {
   if (row.timingLabel === "Overdue") {
     return { label: "Overdue", tone: "overdue" };
@@ -232,7 +221,7 @@ function attentionMeta(row: ActivityIntelligentRow): {
     return { label: "Due today", tone: "due_today" };
   }
   if (row.requiresAttention) {
-    return { label: "Attention", tone: "attention" };
+    return { label: "Needs attention", tone: "attention" };
   }
   return { label: "On track", tone: "on_track" };
 }

@@ -284,18 +284,23 @@ function buildRow(
   };
 }
 
-function buildUnderstandingSnapshot(
+/**
+ * One-line reading of a set of opportunity rows. Callers pass the rows the
+ * user is actually looking at, so the headline and the table always agree.
+ */
+export function buildOpportunityUnderstandingSnapshot(
   rows: OpportunityOperationsRow[],
 ): OpportunityUnderstandingSnapshot {
   const sorted = sortOpportunityOperationsRows(rows);
   const primaryFocus = sorted[0] ?? null;
   const requiresAttentionCount = rows.filter((row) => row.needsAttention).length;
   const validationGapsCount = rows.reduce((sum, row) => sum + row.validationGapsCount, 0);
+  const count = `${rows.length} opportunit${rows.length === 1 ? "y" : "ies"}`;
 
   if (!primaryFocus) {
     return {
-      headline: "No open opportunities",
-      subline: "Opportunity understanding will appear as deals are added.",
+      headline: "No open opportunities in this view",
+      subline: "Change the view or add an opportunity to see what needs attention.",
       requiresAttentionCount: 0,
       validationGapsCount: 0,
       primaryFocus: null,
@@ -304,27 +309,30 @@ function buildUnderstandingSnapshot(
 
   if (requiresAttentionCount === 0) {
     return {
-      headline: "Understanding is stable across the portfolio",
-      subline: `${rows.length} opportunit${rows.length === 1 ? "y" : "ies"} ranked below.`,
+      headline: "Nothing needs attention right now",
+      subline: `${count} in this view, all on track.`,
       requiresAttentionCount: 0,
       validationGapsCount,
       primaryFocus,
     };
   }
 
+  const attention = `${requiresAttentionCount} need${requiresAttentionCount === 1 ? "s" : ""} attention`;
   const headline =
     validationGapsCount > 0
-      ? `${requiresAttentionCount} require attention · ${validationGapsCount} validation gap${validationGapsCount === 1 ? "" : "s"}`
-      : `${requiresAttentionCount} require attention`;
+      ? `${attention} · ${validationGapsCount} open question${validationGapsCount === 1 ? "" : "s"}`
+      : attention;
 
   return {
     headline,
-    subline: `${rows.length} opportunit${rows.length === 1 ? "y" : "ies"} ranked below — detail in table.`,
+    subline: `${count} in this view, most urgent first.`,
     requiresAttentionCount,
     validationGapsCount,
     primaryFocus,
   };
 }
+
+const buildUnderstandingSnapshot = buildOpportunityUnderstandingSnapshot;
 
 export function buildOpportunityOperationsWorkspace(
   pipelines: PipelineRow[],
