@@ -6,6 +6,7 @@ import { deal360Href } from "@/types/relationship-navigation";
 import { computeExecutivePipelineKpis } from "@/lib/pipeline-kpis";
 import {
   computeActivityIntelligence,
+  getActivitiesForCompany,
   isFollowUpOpen,
   isFollowUpOverdue,
 } from "@/lib/activity-utils";
@@ -105,6 +106,8 @@ export type CompanyRelationshipSummary = {
   healthLabel: RelationshipHealthLabel;
   healthScore: number;
   healthStatus: RelationshipHealthStatus;
+  /** False when nothing has been recorded — show "No data yet", not a status. */
+  hasSignal: boolean;
   trend: RelationshipTrend;
   healthReport: RelationshipHealthReport;
   lastContactAt: string | null;
@@ -175,17 +178,16 @@ function isDueToday(activity: Activity): boolean {
   );
 }
 
+/** Matches by company ID (and contact IDs), not by display title. */
 function getLastActivityForCompany(
-  companyTitle: string,
+  company: Company,
   activities: Activity[],
 ): Activity | undefined {
-  return activities
-    .filter((a) => a.Company?.Title === companyTitle)
-    .sort(
-      (a, b) =>
-        parseActivityDate(b.ActivityDate).getTime() -
-        parseActivityDate(a.ActivityDate).getTime(),
-    )[0];
+  return getActivitiesForCompany(activities, company).sort(
+    (a, b) =>
+      parseActivityDate(b.ActivityDate).getTime() -
+      parseActivityDate(a.ActivityDate).getTime(),
+  )[0];
 }
 
 function getLastActivityForDeal(dealId: string, activities: Activity[]): Activity | undefined {
@@ -325,9 +327,14 @@ export function buildCompanySummariesForCompanies(
   companies: Company[],
   activities: Activity[],
   pipelines: PipelineRow[],
+  correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>,
 ): CompanyRelationshipSummary[] {
-  return buildCompanySummaries(companies, activities, pipelines).sort(
-    (a, b) => a.healthScore - b.healthScore,
+  return buildCompanySummaries(companies, activities, pipelines, correspondenceByCompanyId).sort(
+    (a, b) => {
+      // Real signal first; "No data yet" rows should not masquerade as the weakest relationships.
+      if (a.hasSignal !== b.hasSignal) return a.hasSignal ? -1 : 1;
+      return a.healthScore - b.healthScore;
+    },
   );
 }
 
@@ -335,24 +342,24 @@ function buildRelationshipAttention(
   companies: Company[],
   activities: Activity[],
   pipelines: PipelineRow[],
+  correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>,
 ): RelationshipAttention[] {
   const items: RelationshipAttention[] = [];
 
   for (const company of companies) {
-    const lastActivity = getLastActivityForCompany(company.Title, activities);
-    const daysSinceContact = lastActivity
-      ? daysBetween(lastActivity.ActivityDate)
-      : Infinity;
-
-    const openFollowUps = activities.filter(
-      (a) =>
-        a.Company?.Title === company.Title &&
-        isFollowUpOpen(a),
+    const correspondence = correspondenceByCompanyId?.get(company.CompanyID) ?? null;
+    const lastActivity = getLastActivityForCompany(company, activities);
+    const lastTouchAt = laterIso(
+      lastActivity?.ActivityDate ?? null,
+      correspondence?.lastSentAt ?? null,
     );
+    const daysSinceContact = lastTouchAt ? daysBetween(lastTouchAt) : Infinity;
+
+    const openFollowUps = getActivitiesForCompany(activities, company).filter(isFollowUpOpen);
 
     const overdue = openFollowUps.filter(isFollowUpOverdue);
     if (overdue.length > 0) {
-      const health = computeRelationshipHealth(company, activities, pipelines);
+      const health = computeRelationshipHealth(company, activities, pipelines, { correspondence });
       items.push({
         companyId: company.CompanyID,
         companyName: company.Title,
@@ -378,7 +385,7 @@ function buildRelationshipAttention(
     });
 
     if (stalledDeals.length > 0) {
-      const health = computeRelationshipHealth(company, activities, pipelines);
+      const health = computeRelationshipHealth(company, activities, pipelines, { correspondence });
       items.push({
         companyId: company.CompanyID,
         companyName: company.Title,
@@ -395,12 +402,12 @@ function buildRelationshipAttention(
     }
 
     if (daysSinceContact >= COLD_CONTACT_DAYS) {
-      const health = computeRelationshipHealth(company, activities, pipelines);
+      const health = computeRelationshipHealth(company, activities, pipelines, { correspondence });
       items.push({
         companyId: company.CompanyID,
         companyName: company.Title,
         reason: "no_recent_contact",
-        detail: `Last contact: ${formatDaysAgo(lastActivity?.ActivityDate ?? null)} · Score ${health.score}`,
+        detail: `Last contact: ${formatDaysAgo(lastTouchAt)} · Score ${health.score}`,
         priority: daysSinceContact >= 60 ? "critical" : "high",
         href: `/companies/${company.CompanyID}`,
         healthScore: health.score,
@@ -432,15 +439,13 @@ function buildCompanySummaries(
     const healthReport = computeRelationshipHealth(company, activities, pipelines, {
       correspondence,
     });
-    const lastActivity = getLastActivityForCompany(company.Title, activities);
+    const lastActivity = getLastActivityForCompany(company, activities);
     const lastContactAt = laterIso(
       lastActivity?.ActivityDate ?? null,
       correspondence?.lastSentAt ?? null,
     );
 
-    const openActions = activities.filter(
-      (a) => a.Company?.Title === company.Title && isFollowUpOpen(a),
-    ).length;
+    const openActions = getActivitiesForCompany(activities, company).filter(isFollowUpOpen).length;
 
     const activeDeals = company.pipelineIds.filter((id) => {
       const deal = pipelines.find((p) => p.id === id);
@@ -452,6 +457,7 @@ function buildCompanySummaries(
       healthLabel: legacyHealthLabelFromReport(healthReport),
       healthScore: healthReport.score,
       healthStatus: healthReport.status,
+      hasSignal: healthReport.hasSignal,
       trend: healthReport.trend,
       healthReport,
       lastContactAt,
@@ -513,6 +519,7 @@ export function buildRelationshipCommandCenter(
       companies,
       activities,
       pipelines,
+      options?.correspondence,
     ),
     companySummaries: summaries,
     nextBestActions,

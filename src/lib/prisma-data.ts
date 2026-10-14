@@ -479,26 +479,12 @@ export async function readLiveCommercialPackages() {
 }
 
 export async function readLiveOutlookEvidence() {
-  const evidence = await readJsonOutlookEvidence();
-  if (shouldFallbackToJsonPortfolio()) return evidence;
-
-  const portfolio = await readLivePortfolio();
-  const companyIds = new Set(
-    portfolio.companies.flatMap((company) =>
-      [company.CompanyID, company.code].filter(
-        (value): value is string => Boolean(value?.trim()),
-      ),
-    ),
-  );
-  const dealIds = new Set(portfolio.pipelines.map((pipeline) => pipeline.id));
-
-  return evidence.filter((row) => {
-    if (row.companyId && companyIds.has(row.companyId)) return true;
-    if (row.dealId && dealIds.has(row.dealId)) return true;
-    if (row.entityType === "company" && companyIds.has(row.entityId)) return true;
-    if (row.entityType === "opportunity" && dealIds.has(row.entityId)) return true;
-    return false;
-  });
+  // Reality First: the JSON evidence is a seeded simulation of a connected mailbox.
+  // Against the live database, real mail lives in EmailMessageRecord (see company-correspondence-data).
+  // Letting the seed through produced fictional "Outlook activity found" for live companies whose
+  // codes happened to collide with seed ids.
+  if (!shouldFallbackToJsonPortfolio()) return [];
+  return readJsonOutlookEvidence();
 }
 
 export async function readLiveInventory(): Promise<InventoryDb> {

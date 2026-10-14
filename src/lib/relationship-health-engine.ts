@@ -60,6 +60,11 @@ export type RelationshipHealthReport = {
   components: HealthScoreComponent[];
   summary: string;
   isNewRelationship: boolean;
+  /**
+   * False when there is nothing to score — no activity, no mail, no opportunity.
+   * A score without signal is noise; surfaces must show "No data yet" instead of a status.
+   */
+  hasSignal: boolean;
   /** Latest CRM activity or Outlook mail — used by NBA recency. */
   lastTouchAt: string | null;
   /** Rule-based next step — extension point for future intelligence modules. */
@@ -415,6 +420,15 @@ export function computeRelationshipHealth(
 
   const isNewRelationship =
     !hasEffectiveContact && company.contacts.length === 0 && company.pipelineIds.length === 0;
+  const hasSignal =
+    companyActivities.length > 0 ||
+    mailCount > 0 ||
+    (touchpoints.includesOutlook &&
+      touchpoints.outlookEmailCount +
+        touchpoints.outlookTeamsCount +
+        touchpoints.outlookCalendarCount >
+        0) ||
+    company.pipelineIds.length > 0;
 
   const recency = scoreContactRecency(lastContactDays, hasEffectiveContact);
   if (mailCount > 0) {
@@ -476,9 +490,11 @@ export function computeRelationshipHealth(
     .slice(0, 2)
     .map((c) => c.label.toLowerCase());
 
-  const summary = isNewRelationship
-    ? "New relationship — establish contact and record first interaction."
-    : `${status} relationship · ${trend.toLowerCase()} trend · score driven by ${weakest.join(" and ")}.`;
+  const summary = !hasSignal
+    ? "No interactions, mail or opportunities recorded yet — nothing to score."
+    : isNewRelationship
+      ? "New relationship — establish contact and record first interaction."
+      : `${status} relationship · ${trend.toLowerCase()} trend · score driven by ${weakest.join(" and ")}.`;
 
   const draft: Omit<RelationshipHealthReport, "recommendedAction"> = {
     score,
@@ -487,6 +503,7 @@ export function computeRelationshipHealth(
     components,
     summary,
     isNewRelationship,
+    hasSignal,
     lastTouchAt: effectiveLastDate,
   };
 
@@ -528,6 +545,11 @@ export function getHealthScoreExplanation(): string {
     "Next Best Actions are rule-based — no AI."
   );
 }
+
+/** Shown wherever a status badge would otherwise claim a health we cannot know. */
+export const HEALTH_NO_SIGNAL_LABEL = "No data yet";
+export const HEALTH_NO_SIGNAL_STYLE =
+  "border-carbon-blue/15 bg-carbon-blue/[0.03] text-carbon-blue/50";
 
 export const HEALTH_STATUS_STYLES: Record<
   RelationshipHealthStatus,

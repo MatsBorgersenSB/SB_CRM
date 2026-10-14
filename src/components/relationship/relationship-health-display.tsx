@@ -1,6 +1,8 @@
 import type { RelationshipHealthReport } from "@/lib/relationship-health-engine";
 import {
   getHealthScoreExplanation,
+  HEALTH_NO_SIGNAL_LABEL,
+  HEALTH_NO_SIGNAL_STYLE,
   HEALTH_STATUS_STYLES,
   TREND_STYLES,
   type NextBestAction,
@@ -23,11 +25,24 @@ function actionLabel(action: RecommendedAction | NextBestAction): string {
 
 export function RelationshipHealthBadge({
   status,
+  hasSignal = true,
   className = "",
 }: {
   status: RelationshipHealthStatus;
+  /** Pass `report.hasSignal`; when false the badge says "No data yet" instead of a status. */
+  hasSignal?: boolean;
   className?: string;
 }) {
+  if (!hasSignal) {
+    return (
+      <span
+        className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${HEALTH_NO_SIGNAL_STYLE} ${className}`}
+        title="No interactions, mail or opportunities recorded yet"
+      >
+        {HEALTH_NO_SIGNAL_LABEL}
+      </span>
+    );
+  }
   return (
     <span
       className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${HEALTH_STATUS_STYLES[status]} ${className}`}

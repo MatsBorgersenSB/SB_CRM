@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { CompaniesOperationsShell } from "@/components/layout/companies-operations-shell";
+import { compactCorrespondenceForLists } from "@/lib/company-correspondence";
+import { loadCorrespondenceEvidenceByCompanyId } from "@/lib/company-correspondence-data";
 import {
   readLiveActivities,
   readLiveCommercialPackages,
@@ -16,6 +18,11 @@ export default async function CompaniesPage() {
     readLiveCommercialPackages(),
   ]);
 
+  // Synced Outlook mail counts as a touch — the list must say the same as the 360.
+  const correspondence = compactCorrespondenceForLists(
+    await loadCorrespondenceEvidenceByCompanyId(companies, { take: 1000 }),
+  );
+
   return (
     <Suspense fallback={null}>
       <CompaniesOperationsShell
@@ -23,6 +30,7 @@ export default async function CompaniesPage() {
         pipelines={pipelines}
         activities={activities}
         commercialPackages={commercialPackages}
+        correspondence={correspondence}
       />
     </Suspense>
   );

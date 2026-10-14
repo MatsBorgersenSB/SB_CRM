@@ -34,6 +34,7 @@ import {
   type CompanyOperationsFilter,
 } from "@/lib/company-operations-data";
 import { filterCompaniesForUser } from "@/lib/permissions";
+import type { CorrespondenceByCompanyId } from "@/lib/company-correspondence";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
@@ -47,6 +48,8 @@ type CompaniesOperationsShellProps = {
   pipelines: PipelineRow[];
   activities: Activity[];
   commercialPackages: CommercialPackage[];
+  /** Synced Outlook mail recency by CompanyID — counts as a touch in health and last contact. */
+  correspondence?: CorrespondenceByCompanyId | null;
 };
 
 const COMPANY_HEALTH_FILTERS = [
@@ -70,6 +73,7 @@ export function CompaniesOperationsShell({
   pipelines,
   activities,
   commercialPackages,
+  correspondence = null,
 }: CompaniesOperationsShellProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -107,8 +111,9 @@ export function CompaniesOperationsShell({
         activities,
         commercialPackages,
         user,
+        correspondence,
       ),
-    [visibleCompanies, pipelines, activities, commercialPackages, user],
+    [visibleCompanies, pipelines, activities, commercialPackages, user, correspondence],
   );
 
   const ownerOptions = useMemo(() => {

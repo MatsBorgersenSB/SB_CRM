@@ -20,6 +20,7 @@ export function Contact360StatusPanel({
   lastInteractionDate,
   lastInteractionSource,
   healthStatus,
+  healthHasSignal = true,
   employmentBusy,
   onEmploymentStatusChange,
   editing = false,
@@ -29,6 +30,8 @@ export function Contact360StatusPanel({
   lastInteractionDate?: string;
   lastInteractionSource?: ContactLastTouchSource | null;
   healthStatus: RelationshipHealthStatus;
+  /** False when the company has nothing recorded — show "No data yet" instead of a status. */
+  healthHasSignal?: boolean;
   employmentBusy?: boolean;
   onEmploymentStatusChange: (status: EmploymentStatus) => void;
   editing?: boolean;
@@ -92,8 +95,8 @@ export function Contact360StatusPanel({
           </dt>
           <dd className="mt-1">
             <span className="inline-flex items-center gap-1.5 border border-carbon-blue/10 bg-white px-2.5 py-1 text-[12px] font-medium text-carbon-blue">
-              <HealthStatusIcon status={healthStatus} />
-              {healthStatus}
+              {healthHasSignal ? <HealthStatusIcon status={healthStatus} /> : null}
+              {healthHasSignal ? healthStatus : "No data yet"}
               {companyName ? (
                 <span className="font-normal text-carbon-blue/45"> · {companyName}</span>
               ) : null}

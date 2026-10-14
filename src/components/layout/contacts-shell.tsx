@@ -23,6 +23,10 @@ import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
 import type { Company, Contact } from "@/lib/companies-data";
 import { getGlobalContactRecords } from "@/lib/contact-utils";
+import {
+  lastMailByEmailFromRecord,
+  type CorrespondenceByCompanyId,
+} from "@/lib/company-correspondence";
 import { filterCompaniesForUser } from "@/lib/permissions";
 import { getContactDisplayName } from "@/types/contact";
 import { CONTACT_LIST_ROLES, CONTACT_STATUSES, RELATIONSHIP_LEVELS } from "@/types/contact";
@@ -38,6 +42,8 @@ type ContactsShellProps = {
   pipelines: PipelineRow[];
   activities: Activity[];
   outlookEvidence: OutlookEvidenceRecord[];
+  /** Synced Outlook mail recency by CompanyID — gives each person a real last touch. */
+  correspondence?: CorrespondenceByCompanyId | null;
 };
 
 const CONTACT_FILTER_KEYS = ["company", "role", "status", "relationship"] as const;
@@ -54,9 +60,11 @@ export function ContactsShell({
   pipelines,
   activities,
   outlookEvidence,
+  correspondence = null,
 }: ContactsShellProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const lastMailByEmail = useMemo(() => lastMailByEmailFromRecord(correspondence), [correspondence]);
   const [companyRows, setCompanyRows] = useState(companies);
   const [pipelineRows, setPipelineRows] = useState(pipelines);
   const [toolbarFilters, setToolbarFilters] = useState<WorkspaceFilterValues>(DEFAULT_FILTERS);
@@ -342,7 +350,11 @@ export function ContactsShell({
                 Show archived contacts
               </label>
             </div>
-            <ContactsOperationsTable records={filteredRecords} activities={activities} />
+            <ContactsOperationsTable
+              records={filteredRecords}
+              activities={activities}
+              lastMailByEmail={lastMailByEmail}
+            />
           </WorkspacePanel>
 
           <WorkspacePanel title="Relationship Intelligence" id="relationship-intelligence" collapsible>

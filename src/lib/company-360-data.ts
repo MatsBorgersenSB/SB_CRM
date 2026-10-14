@@ -36,6 +36,8 @@ export type Company360Header = {
   status: Company["Status"];
   healthScore: number;
   healthStatus: RelationshipHealthStatus;
+  /** False when nothing is recorded — say "No data yet", never claim a health. */
+  hasSignal: boolean;
   trend: RelationshipTrend;
   lastContactLabel: string;
   openActions: number;
@@ -370,6 +372,7 @@ export function buildCompany360Snapshot(
     status: company.Status,
     healthScore: summary.healthScore,
     healthStatus: summary.healthStatus,
+    hasSignal: summary.hasSignal,
     trend: summary.trend,
     lastContactLabel: summary.lastContactLabel,
     openActions: summary.openActions,
@@ -422,6 +425,7 @@ export function fallbackCompany360Snapshot(company: Company): Company360Snapshot
         status: safe.Status,
         healthScore: 0,
         healthStatus: "Weak",
+        hasSignal: false,
         trend: "Stable",
         lastContactLabel: "Unknown",
         openActions: 0,
@@ -435,6 +439,7 @@ export function fallbackCompany360Snapshot(company: Company): Company360Snapshot
         healthLabel: "Needs Attention",
         healthScore: 0,
         healthStatus: "Weak",
+        hasSignal: false,
         trend: "Stable",
         lastContactAt: null,
         lastContactLabel: "Unknown",
@@ -447,6 +452,7 @@ export function fallbackCompany360Snapshot(company: Company): Company360Snapshot
           components: [],
           summary: "Relationship intelligence could not be scored for this company.",
           isNewRelationship: false,
+          hasSignal: false,
           lastTouchAt: null,
           recommendedAction: emptyAction,
         },
@@ -467,6 +473,7 @@ export function fallbackCompany360Snapshot(company: Company): Company360Snapshot
           components: [],
           summary: "Relationship intelligence could not be scored for this company.",
           isNewRelationship: false,
+          hasSignal: false,
           lastTouchAt: null,
           recommendedAction: emptyAction,
         },

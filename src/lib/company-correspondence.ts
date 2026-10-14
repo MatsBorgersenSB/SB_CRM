@@ -46,6 +46,51 @@ export const EMPTY_CORRESPONDENCE: CompanyCorrespondenceEvidence = {
   lastSentByEmail: {},
 };
 
+/**
+ * Serialisable, list-sized evidence: recency and who we have written to — no mail text.
+ * Keyed by CompanyID so it can cross the server → client boundary.
+ */
+export type CorrespondenceByCompanyId = Record<string, CompanyCorrespondenceEvidence>;
+
+export function compactCorrespondenceForLists(
+  evidence: Map<string, CompanyCorrespondenceEvidence>,
+): CorrespondenceByCompanyId {
+  const out: CorrespondenceByCompanyId = {};
+  for (const [companyId, value] of evidence) {
+    if (value.messageCount === 0) continue;
+    out[companyId] = {
+      ...EMPTY_CORRESPONDENCE,
+      messageCount: value.messageCount,
+      lastSentAt: value.lastSentAt,
+      projectLinkedCount: value.projectLinkedCount,
+      projectNames: value.projectNames,
+      correspondentEmails: value.correspondentEmails,
+      lastSentByEmail: value.lastSentByEmail,
+    };
+  }
+  return out;
+}
+
+export function correspondenceMapFromRecord(
+  record: CorrespondenceByCompanyId | null | undefined,
+): Map<string, CompanyCorrespondenceEvidence> {
+  return new Map(Object.entries(record ?? {}));
+}
+
+/** Latest mail per contact (by lowercased email) across all companies. */
+export function lastMailByEmailFromRecord(
+  record: CorrespondenceByCompanyId | null | undefined,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const evidence of Object.values(record ?? {})) {
+    for (const [email, sentAt] of Object.entries(evidence.lastSentByEmail ?? {})) {
+      const current = out[email];
+      if (!current || Date.parse(sentAt) > Date.parse(current)) out[email] = sentAt;
+    }
+  }
+  return out;
+}
+
 export function hasCorrespondence(
   evidence: CompanyCorrespondenceEvidence | null | undefined,
 ): boolean {

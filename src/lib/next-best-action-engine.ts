@@ -69,6 +69,8 @@ export type NextBestActionInputs = {
   contactCount: number;
   deals: NextBestActionDealInput[];
   isNewRelationship: boolean;
+  /** False when nothing is recorded; rules must not quote a score then. */
+  hasSignal: boolean;
 };
 
 export type RelationshipHealthSnapshot = {
@@ -79,6 +81,8 @@ export type RelationshipHealthSnapshot = {
   summary: string;
   isNewRelationship: boolean;
   lastTouchAt?: string | null;
+  /** Optional for callers passing a partial snapshot; absence means "assume signal". */
+  hasSignal?: boolean;
 };
 
 export type NextBestActionContext = {
@@ -247,6 +251,7 @@ export function buildNextBestActionInputs(ctx: NextBestActionContext): NextBestA
     contactCount: ctx.company.contacts.length,
     deals,
     isNewRelationship: ctx.report.isNewRelationship,
+    hasSignal: ctx.report.hasSignal ?? true,
   };
 }
 
@@ -440,7 +445,7 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
       return {
         id: `nba-pipeline-${inputs.companyId}`,
         action: "Create New Opportunity",
-        reason: `Commercial target with ${inputs.contactCount} contact${inputs.contactCount === 1 ? "" : "s"} and no active sales opportunity — clarify whether a deal should exist (health ${inputs.healthScore}/100).`,
+        reason: `Commercial target with ${inputs.contactCount} contact${inputs.contactCount === 1 ? "" : "s"} and no active sales opportunity — clarify whether a deal should exist${inputs.hasSignal ? ` (health ${inputs.healthScore}/100)` : ""}.`,
         priority: inputs.healthScore >= 75 ? "Medium" : "Low",
         confidenceScore: inputs.healthScore >= 75 ? 76 : 68,
         ruleId: "create_new_opportunity",

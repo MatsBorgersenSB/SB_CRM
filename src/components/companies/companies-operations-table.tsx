@@ -81,8 +81,10 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
               <div className="flex flex-col gap-1">
-                <RelationshipHealthBadge status={row.healthStatus} />
-                <span className="text-[10px] tabular-nums text-carbon-blue/45">{row.healthScore}/100</span>
+                <RelationshipHealthBadge status={row.healthStatus} hasSignal={row.hasSignal} />
+                {row.hasSignal ? (
+                  <span className="text-[10px] tabular-nums text-carbon-blue/45">{row.healthScore}/100</span>
+                ) : null}
               </div>
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell className="text-right">
