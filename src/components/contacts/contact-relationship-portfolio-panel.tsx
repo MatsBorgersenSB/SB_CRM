@@ -2,12 +2,17 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { analyzeContactRelationshipPortfolio } from "@/lib/contact-lifecycle-engine";
-import { CONTACT_RELATIONSHIP_INTELLIGENCE } from "@/lib/smart-assist-config";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 
+/**
+ * People who changed role or company, or who look like duplicates.
+ * Renders nothing when there is nothing to report — silence beats a row
+ * of zero counters.
+ */
 export function ContactRelationshipPortfolioPanel({
   companies,
   pipelines,
@@ -27,38 +32,18 @@ export function ContactRelationshipPortfolioPanel({
     [companies, pipelines, activities],
   );
 
+  if (portfolio.contacts.length === 0) return null;
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="border border-upcycle-orange/20 bg-upcycle-orange/[0.04] px-3 py-2.5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
-          SmartAssist · {CONTACT_RELATIONSHIP_INTELLIGENCE.title}
-        </p>
-        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/70">{portfolio.summary}</p>
-      </div>
+    <WorkspacePanel
+      title="What changed"
+      count={portfolio.contacts.length}
+      id="relationship-intelligence"
+      collapsible
+    >
+      <div className="flex flex-col gap-3">
+        <p className="text-[13px] leading-relaxed text-carbon-blue/70">{portfolio.summary}</p>
 
-      <div className="grid gap-2 sm:grid-cols-4">
-        {(
-          [
-            ["Role changes", portfolio.totals.roleChanges],
-            ["Company changes", portfolio.totals.companyChanges],
-            ["Duplicates", portfolio.totals.duplicates],
-            ["Opportunities", portfolio.totals.opportunities],
-          ] as const
-        ).map(([label, count]) => (
-          <div key={label} className="border border-carbon-blue/10 bg-white px-3 py-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
-              {label}
-            </p>
-            <p className="mt-0.5 text-lg font-semibold tabular-nums text-carbon-blue">{count}</p>
-          </div>
-        ))}
-      </div>
-
-      {portfolio.contacts.length === 0 ? (
-        <p className="px-1 text-xs text-carbon-blue/50">
-          No lifecycle signals detected across the contact portfolio.
-        </p>
-      ) : (
         <ul className="divide-y divide-carbon-blue/8 border border-carbon-blue/10 bg-white">
           {portfolio.contacts.slice(0, 8).map((row) => (
             <li key={`${row.companyId}-${row.contactId}`} className="px-3 py-2.5">
@@ -66,21 +51,23 @@ export function ContactRelationshipPortfolioPanel({
                 <div className="min-w-0">
                   <Link
                     href={row.resolutionHref}
-                    className="text-xs font-semibold text-carbon-blue hover:text-upcycle-orange"
+                    className="text-[13px] font-semibold text-carbon-blue hover:text-upcycle-orange"
                   >
                     {row.contactName}
                   </Link>
-                  <p className="mt-0.5 text-[11px] text-carbon-blue/50">{row.companyName}</p>
-                  <p className="mt-1 text-[12px] text-carbon-blue/65">{row.topInsightTitle}</p>
+                  <p className="mt-0.5 text-[13px] text-carbon-blue/65">{row.companyName}</p>
+                  <p className="mt-1 text-[13px] text-carbon-blue">{row.topInsightTitle}</p>
                 </div>
-                <span className="shrink-0 border border-carbon-blue/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/65">
-                  {row.insightCount} signal{row.insightCount === 1 ? "" : "s"}
-                </span>
+                {row.insightCount > 1 ? (
+                  <span className="shrink-0 text-[13px] text-carbon-blue/65">
+                    +{row.insightCount - 1} more
+                  </span>
+                ) : null}
               </div>
             </li>
           ))}
         </ul>
-      )}
-    </div>
+      </div>
+    </WorkspacePanel>
   );
 }

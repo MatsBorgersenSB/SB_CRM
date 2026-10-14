@@ -25,6 +25,7 @@ import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Activity } from "@/types/activity";
 import type { StandardBioUserRecord } from "@/types/user-access";
+import type { SyncedMailSummary } from "@/lib/email-intelligence-data";
 
 const NEW_BUTTON_CLASS =
   "inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
@@ -35,12 +36,14 @@ export function ActivityWorkManagementWorkspace({
   pipelines,
   assignableUsers = [],
   onActivitiesChange,
+  syncedMail,
 }: {
   activities: Activity[];
   companies: Company[];
   pipelines: PipelineRow[];
   assignableUsers?: StandardBioUserRecord[];
   onActivitiesChange?: () => void;
+  syncedMail?: SyncedMailSummary;
 }) {
   const router = useRouter();
   const { user } = useAuth();
@@ -162,7 +165,7 @@ export function ActivityWorkManagementWorkspace({
   return (
     <div className={`flex flex-col ${EDITORIAL_GAP_BLOCK}`}>
       {isEmpty ? (
-        <EmptyActivities onNew={() => setCreateOpen(true)} />
+        <EmptyActivities onNew={() => setCreateOpen(true)} syncedMail={syncedMail} />
       ) : (
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -226,19 +229,47 @@ export function ActivityWorkManagementWorkspace({
   );
 }
 
-/** Nothing planned yet: one thing to do, nothing to filter. */
-function EmptyActivities({ onNew }: { onNew: () => void }) {
+/**
+ * Nothing planned yet: one thing to do, nothing to filter. If Outlook mail
+ * has been synced, say so — the relationship record is not empty, only the
+ * plan is.
+ */
+function EmptyActivities({
+  onNew,
+  syncedMail,
+}: {
+  onNew: () => void;
+  syncedMail?: SyncedMailSummary;
+}) {
+  const mailCount = syncedMail?.messageCount ?? 0;
+  const latestMail = syncedMail?.latestSentAt
+    ? new Date(syncedMail.latestSentAt).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      })
+    : null;
+
   return (
     <section className={`${WORKSPACE_PANEL_SURFACE} flex flex-col items-start gap-4 px-6 py-10 sm:px-8`}>
       <div className="max-w-xl">
         <h2 className="text-lg font-semibold leading-snug tracking-tight text-carbon-blue">
           Nothing planned yet
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-carbon-blue/60">
-          Plan a meeting, a call, or a task — or paste a link to an event and SmartAssist will
-          read the name, dates and place for you. Everything you add shows up here and on the
-          calendar.
-        </p>
+        {mailCount > 0 ? (
+          <p className="mt-2 text-sm leading-relaxed text-carbon-blue/70">
+            SmartCRM is already following your Outlook mail — {mailCount.toLocaleString("en-GB")}{" "}
+            message{mailCount === 1 ? "" : "s"}
+            {latestMail ? `, the latest from ${latestMail}` : ""}. You can see them on each company
+            and person. What is missing here is the plan: meetings, calls, and tasks you intend to
+            do.
+          </p>
+        ) : (
+          <p className="mt-2 text-sm leading-relaxed text-carbon-blue/70">
+            Plan a meeting, a call, or a task — or paste a link to an event and SmartAssist will
+            read the name, dates and place for you. Everything you add shows up here and on the
+            calendar.
+          </p>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={onNew} className={NEW_BUTTON_CLASS}>

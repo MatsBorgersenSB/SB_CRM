@@ -28,6 +28,7 @@ import {
   type CorrespondenceByCompanyId,
 } from "@/lib/company-correspondence";
 import { filterCompaniesForUser } from "@/lib/permissions";
+import { analyzeOutlookReconciliation } from "@/lib/outlook-reconciliation-engine";
 import { syncCompanyContact } from "@/lib/sync-company";
 import { getContactDisplayName, type UpdateContactInput } from "@/types/contact";
 import { CONTACT_LIST_ROLES, CONTACT_STATUSES, RELATIONSHIP_LEVELS } from "@/types/contact";
@@ -158,6 +159,17 @@ export function ContactsShell({
       },
     ],
     [scopedCompanies, roleFilterOptions],
+  );
+
+  const outlookAudit = useMemo(
+    () =>
+      analyzeOutlookReconciliation({
+        companies: scopedCompanies,
+        pipelines: pipelineRows,
+        activities,
+        outlookEvidence,
+      }),
+    [scopedCompanies, pipelineRows, activities, outlookEvidence],
   );
 
   const filteredRecords = useMemo(() => {
@@ -373,22 +385,28 @@ export function ContactsShell({
             />
           </WorkspacePanel>
 
-          <WorkspacePanel title="Relationship Intelligence" id="relationship-intelligence" collapsible>
-            <ContactRelationshipPortfolioPanel
-              companies={scopedCompanies}
-              pipelines={pipelineRows}
-              activities={activities}
-            />
-          </WorkspacePanel>
+          <ContactRelationshipPortfolioPanel
+            companies={scopedCompanies}
+            pipelines={pipelineRows}
+            activities={activities}
+          />
 
-          <WorkspacePanel title="Outlook Reconciliation" id="reconciliation" collapsible defaultCollapsed>
-            <MissingTouchpointsPanel
-              companies={scopedCompanies}
-              pipelines={pipelineRows}
-              activities={activities}
-              outlookEvidence={outlookEvidence}
-            />
-          </WorkspacePanel>
+          {outlookAudit.missingTouchpoints.length > 0 ? (
+            <WorkspacePanel
+              title="Seen in Outlook, not in SmartCRM"
+              count={outlookAudit.missingTouchpoints.length}
+              id="reconciliation"
+              collapsible
+              defaultCollapsed
+            >
+              <MissingTouchpointsPanel
+                companies={scopedCompanies}
+                pipelines={pipelineRows}
+                activities={activities}
+                outlookEvidence={outlookEvidence}
+              />
+            </WorkspacePanel>
+          ) : null}
         </WorkspaceStack>
       </WorkspaceMain>
     </WorkspaceChrome>

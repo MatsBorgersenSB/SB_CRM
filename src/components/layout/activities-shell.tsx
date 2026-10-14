@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Activity } from "@/types/activity";
+import type { SyncedMailSummary } from "@/lib/email-intelligence-data";
 import type { StandardBioUserRecord } from "@/types/user-access";
 
 type ActivitiesShellProps = {
@@ -19,6 +20,7 @@ type ActivitiesShellProps = {
   companies: Company[];
   pipelines: PipelineRow[];
   assignableUsers?: StandardBioUserRecord[];
+  syncedMail?: SyncedMailSummary;
 };
 
 type ActivitiesMode = "work" | "calendar";
@@ -37,6 +39,7 @@ export function ActivitiesShell({
   companies,
   pipelines,
   assignableUsers = [],
+  syncedMail,
 }: ActivitiesShellProps) {
   const searchParams = useSearchParams();
   const mode = readMode(searchParams.get("mode"));
@@ -83,6 +86,7 @@ export function ActivitiesShell({
               companies={companies}
               pipelines={pipelines}
               assignableUsers={assignableUsers}
+              syncedMail={syncedMail}
               variant="page"
             />
           </WorkspaceStack>

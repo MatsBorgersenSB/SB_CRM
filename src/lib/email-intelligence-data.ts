@@ -471,6 +471,35 @@ export function buildEmailThreadSummary(
   };
 }
 
+export type SyncedMailSummary = {
+  /** Synced, non-deleted messages across the whole mailbox sync. */
+  messageCount: number;
+  /** ISO timestamp of the most recent synced message, if any. */
+  latestSentAt: string | null;
+};
+
+/**
+ * How much Outlook mail SmartCRM already holds. Cheap: one count, one
+ * max. Used by surfaces that would otherwise claim "nothing here yet"
+ * while the mail sync is full of relationship evidence.
+ */
+export async function readSyncedMailSummary(): Promise<SyncedMailSummary> {
+  try {
+    const prisma = getPrisma();
+    const [messageCount, latest] = await Promise.all([
+      prisma.emailMessageRecord.count({ where: { isDeletedInSource: false } }),
+      prisma.emailMessageRecord.findFirst({
+        where: { isDeletedInSource: false },
+        orderBy: { sentAt: "desc" },
+        select: { sentAt: true },
+      }),
+    ]);
+    return { messageCount, latestSentAt: latest?.sentAt.toISOString() ?? null };
+  } catch {
+    return { messageCount: 0, latestSentAt: null };
+  }
+}
+
 /**
  * Load EmailMessageRecord rows for an opportunity, oldest → newest within threads.
  */
