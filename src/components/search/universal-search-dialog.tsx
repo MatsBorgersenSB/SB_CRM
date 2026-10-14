@@ -26,10 +26,19 @@ import {
   matchSearchCommands,
 } from "@/lib/smart-search-ask-engine";
 import { buildRelationshipBundles } from "@/lib/smart-search-relationship";
+import { parseExploreIntent } from "@/lib/smartassist/explore/intent";
+import type { ExploreResult } from "@/lib/smartassist/explore/types";
 import { useAuth } from "@/context/auth-context";
+import { ExploreCard } from "@/components/search/explore-card";
 import { SearchEntityIcon, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
+
+type ExploreState =
+  | { status: "idle" }
+  | { status: "loading"; question: string }
+  | { status: "done"; question: string; result: ExploreResult; explorationId: string | null }
+  | { status: "error"; question: string; message: string };
 
 type UniversalSearchDialogProps = {
   open: boolean;
@@ -172,6 +181,58 @@ export function UniversalSearchDialog({
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<SmartSearchMode>("search");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [exploreState, setExplore] = useState<ExploreState>({ status: "idle" });
+  // A changed question makes the exploration stale — derived, not synced.
+  const explore: ExploreState =
+    exploreState.status !== "idle" && exploreState.question !== query.trim()
+      ? { status: "idle" }
+      : exploreState;
+
+  const accountOwner = useMemo(
+    () => (user ? { Id: user.id, Title: user.displayName } : null),
+    [user],
+  );
+
+  const exploreIntent = useMemo(() => (query.trim() ? parseExploreIntent(query) : null), [query]);
+
+  const runExplore = useCallback(
+    async (question: string, websiteHint?: string) => {
+      setMode("ask");
+      setExplore({ status: "loading", question });
+      try {
+        const response = await fetch("/api/smartassist/explore", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, websiteHint: websiteHint ?? null }),
+        });
+        const payload = (await response.json()) as {
+          success: boolean;
+          result?: ExploreResult;
+          explorationId?: string | null;
+          error?: string;
+        };
+        if (!response.ok || !payload.success || !payload.result) {
+          const message =
+            payload.error === "NOT_UNDERSTOOD"
+              ? "I couldn't tell what to explore. Try a company name, e.g. “Explore Romerike Biogass”."
+              : payload.error === "AUTH_REQUIRED"
+                ? "Sign in to explore outside SmartCRM."
+                : payload.error || "Exploration failed.";
+          setExplore({ status: "error", question, message });
+          return;
+        }
+        setExplore({
+          status: "done",
+          question,
+          result: payload.result,
+          explorationId: payload.explorationId ?? null,
+        });
+      } catch {
+        setExplore({ status: "error", question, message: "Exploration failed. Try again." });
+      }
+    },
+    [],
+  );
 
   const scopedIndex = useMemo(
     () => filterSearchIndexForUser(index, user, companies, pipelines),
@@ -233,6 +294,7 @@ export function UniversalSearchDialog({
     setQuery("");
     setMode("search");
     setActiveIndex(0);
+    setExplore({ status: "idle" });
     const frame = requestAnimationFrame(() => inputRef.current?.focus());
     return () => cancelAnimationFrame(frame);
   }, [open]);
@@ -280,21 +342,27 @@ export function UniversalSearchDialog({
       }
 
       if (event.key === "Enter") {
+        if (explore.status === "done" || explore.status === "loading") return;
+        if ((event.target as HTMLElement | null)?.tagName === "INPUT" && inputRef.current !== event.target) return;
         event.preventDefault();
         if (flatResults[activeIndex]) {
           navigate(flatResults[activeIndex]);
           return;
         }
-        if (mode === "ask" && askResult?.actionHref) {
+        if (mode === "ask" && askResult?.actionHref && askResult.items.length > 0) {
           router.push(askResult.actionHref);
           onClose();
+          return;
+        }
+        if (exploreIntent && query.trim()) {
+          void runExplore(query.trim());
         }
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, flatResults, activeIndex, navigate, onClose, mode, askResult, router]);
+  }, [open, flatResults, activeIndex, navigate, onClose, mode, askResult, router, explore.status, exploreIntent, query, runExplore]);
 
   useEffect(() => {
     const activeEl = listRef.current?.querySelector('[data-active="true"]');
@@ -360,7 +428,7 @@ export function UniversalSearchDialog({
             onChange={(event) => setQuery(event.target.value)}
             placeholder={
               mode === "ask"
-                ? "Ask a question — e.g. Which opportunities need attention?"
+                ? "Ask — e.g. Which opportunities need attention? or Explore Romerike Biogass"
                 : "Find companies, contacts, opportunities, documents, attention…"
             }
             aria-label={mode === "ask" ? "Ask SmartCRM" : "Search SmartCRM"}
@@ -425,7 +493,58 @@ export function UniversalSearchDialog({
             </div>
           ) : null}
 
-          {mode === "ask" && askResult ? (
+          {mode === "ask" && explore.status === "loading" ? (
+            <section className="px-4 py-3">
+              <div
+                className="border px-4 py-3"
+                style={{ borderColor: "var(--command-border)", background: "var(--command-subtle)" }}
+              >
+                <p className="text-sm font-medium" style={{ color: "var(--command-text)" }}>
+                  Looking in SmartCRM, the public registers, their website and our mail…
+                </p>
+                <p className="mt-1 text-[11px]" style={{ color: "var(--command-muted)" }}>
+                  Usually 5–15 seconds. Nothing is created until you say so.
+                </p>
+              </div>
+            </section>
+          ) : null}
+
+          {mode === "ask" && explore.status === "error" ? (
+            <section className="px-4 py-3">
+              <div
+                className="border px-4 py-3"
+                style={{ borderColor: "var(--command-border)", background: "var(--command-subtle)" }}
+              >
+                <p className="text-sm" style={{ color: "var(--command-text)" }}>
+                  {explore.message}
+                </p>
+              </div>
+            </section>
+          ) : null}
+
+          {mode === "ask" && explore.status === "done" ? (
+            <section className="px-4 py-3">
+              <div
+                className="border px-4 py-3"
+                style={{ borderColor: "var(--command-border)", background: "var(--command-subtle)" }}
+              >
+                <ExploreCard
+                  result={explore.result}
+                  explorationId={explore.explorationId}
+                  accountOwner={accountOwner}
+                  busy={false}
+                  onAddWebsite={(url) => void runExplore(explore.question, url)}
+                  onImported={() => router.refresh()}
+                  onNavigate={(href) => {
+                    router.push(href);
+                    onClose();
+                  }}
+                />
+              </div>
+            </section>
+          ) : null}
+
+          {mode === "ask" && askResult && explore.status === "idle" ? (
             <section className="px-4 py-3">
               <div
                 className="border px-4 py-3"
@@ -434,23 +553,50 @@ export function UniversalSearchDialog({
                   background: "var(--command-subtle)",
                 }}
               >
-                <p className="text-sm font-medium leading-relaxed" style={{ color: "var(--command-text)" }}>
-                  {askResult.answer}
-                </p>
-                <p className="mt-2 text-[11px]" style={{ color: "var(--command-muted)" }}>
-                  Recommended:{" "}
-                  {askResult.actionHref ? (
-                    <Link
-                      href={askResult.actionHref}
-                      onClick={onClose}
-                      className="font-semibold text-upcycle-orange hover:underline"
-                    >
-                      {askResult.recommendedAction}
-                    </Link>
-                  ) : (
-                    <span className="font-semibold">{askResult.recommendedAction}</span>
-                  )}
-                </p>
+                {askResult.items.length > 0 ? (
+                  <>
+                    <p className="text-sm font-medium leading-relaxed" style={{ color: "var(--command-text)" }}>
+                      {askResult.answer}
+                    </p>
+                    <p className="mt-2 text-[11px]" style={{ color: "var(--command-muted)" }}>
+                      Recommended:{" "}
+                      {askResult.actionHref ? (
+                        <Link
+                          href={askResult.actionHref}
+                          onClick={onClose}
+                          className="font-semibold text-upcycle-orange hover:underline"
+                        >
+                          {askResult.recommendedAction}
+                        </Link>
+                      ) : (
+                        <span className="font-semibold">{askResult.recommendedAction}</span>
+                      )}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm font-medium leading-relaxed" style={{ color: "var(--command-text)" }}>
+                    {exploreIntent
+                      ? "Nothing in SmartCRM answers that yet."
+                      : askResult.answer}
+                  </p>
+                )}
+                {exploreIntent ? (
+                  <button
+                    type="button"
+                    onClick={() => void runExplore(query.trim())}
+                    className="mt-3 inline-flex items-center gap-2 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-upcycle-orange/90"
+                  >
+                    {exploreIntent.kind === "company"
+                      ? `Explore ${exploreIntent.subject} outside SmartCRM`
+                      : "Ask SmartAssist to explore this"}
+                    <kbd className="border border-white/40 px-1 font-mono text-[9px]">↵</kbd>
+                  </button>
+                ) : null}
+                {exploreIntent?.kind === "company" ? (
+                  <p className="mt-1.5 text-[10px]" style={{ color: "var(--command-muted)" }}>
+                    Public registers · their website · our mail, files and Teams. You approve anything that gets added.
+                  </p>
+                ) : null}
               </div>
             </section>
           ) : null}
@@ -531,20 +677,31 @@ export function UniversalSearchDialog({
           ) : null}
 
           {flatResults.length === 0 ? (
-            <p
-              className="px-4 py-10 text-center text-xs"
-              style={{ color: "var(--command-muted)" }}
-            >
-              {mode === "ask"
-                ? query.trim()
-                  ? "No answer available — try rephrasing your question."
-                  : "Ask SmartCRM about your portfolio, relationships, and commercial progress."
-                : query.trim()
-                  ? `No results for "${query}"`
-                  : index.length === 0
-                    ? "Loading command center…"
-                    : "Start typing to find anything…"}
-            </p>
+            mode === "ask" && (explore.status !== "idle" || askResult) ? null : (
+              <div className="px-4 py-10 text-center text-xs" style={{ color: "var(--command-muted)" }}>
+                <p>
+                  {mode === "ask"
+                    ? query.trim()
+                      ? "No answer available — try rephrasing your question."
+                      : "Ask SmartCRM about your portfolio, relationships, and commercial progress."
+                    : query.trim()
+                      ? `No results for "${query}"`
+                      : index.length === 0
+                        ? "Loading command center…"
+                        : "Start typing to find anything…"}
+                </p>
+                {mode === "search" && query.trim() && commandMatches.length === 0 && exploreIntent?.kind === "company" ? (
+                  <button
+                    type="button"
+                    onClick={() => void runExplore(query.trim())}
+                    className="mt-3 inline-flex items-center gap-2 border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
+                    style={{ borderColor: "var(--command-border)", color: "var(--command-text)" }}
+                  >
+                    ✨ Explore “{exploreIntent.subject}” outside SmartCRM
+                  </button>
+                ) : null}
+              </div>
+            )
           ) : (
             (mode === "ask"
               ? [{ entityType: "company" as const, label: "Related Results", items: flatResults }]

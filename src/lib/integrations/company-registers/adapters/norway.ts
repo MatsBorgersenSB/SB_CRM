@@ -6,12 +6,14 @@ import {
 } from "@/lib/integrations/company-registers/http";
 import type {
   RegistryAdapter,
+  RegistryOfficer,
   UnifiedEuropeanCompany,
 } from "@/lib/integrations/company-registers/types";
 
 type BrregEnhet = {
   organisasjonsnummer?: string;
   navn?: string;
+  hjemmeside?: string;
   organisasjonsform?: { beskrivelse?: string };
   naeringskode1?: { kode?: string; beskrivelse?: string };
   forretningsadresse?: {
@@ -54,8 +56,62 @@ function mapEnhet(enhet: BrregEnhet): UnifiedEuropeanCompany | null {
     city: cleanText(address?.poststed) || undefined,
     industryCode: cleanText(enhet.naeringskode1?.kode) || undefined,
     industryDescription: cleanText(enhet.naeringskode1?.beskrivelse) || undefined,
+    website: cleanText(enhet.hjemmeside) || undefined,
     sourceRegistry: "Brønnøysundregistrene (NO)",
   });
+}
+
+type BrregRolle = {
+  type?: { kode?: string; beskrivelse?: string };
+  person?: {
+    navn?: { fornavn?: string; mellomnavn?: string; etternavn?: string };
+    erDoed?: boolean;
+  };
+  enhet?: unknown;
+  fratraadt?: boolean;
+};
+
+type BrregRoller = {
+  rollegrupper?: Array<{
+    type?: { kode?: string; beskrivelse?: string };
+    roller?: BrregRolle[];
+  }>;
+};
+
+/** Role groups that are not people we would ever contact about business. */
+const SKIPPED_ROLE_GROUPS = new Set(["REVI", "REGN", "KOMP", "KDEB", "KENK", "FFØR"]);
+
+/**
+ * Named officers for a Norwegian organisation number — CEO, chair, board,
+ * contact person. Public data; resigned and deceased holders are excluded.
+ */
+export async function fetchNorwayOfficers(orgnr: string): Promise<RegistryOfficer[]> {
+  const id = orgnr.replace(/\s/g, "");
+  if (!/^\d{9}$/.test(id)) return [];
+  const data = await fetchRegistryJson<BrregRoller>(
+    `https://data.brreg.no/enhetsregisteret/api/enheter/${id}/roller`,
+  );
+  const officers: RegistryOfficer[] = [];
+  const seen = new Set<string>();
+  for (const group of data?.rollegrupper ?? []) {
+    const groupCode = cleanText(group.type?.kode);
+    if (SKIPPED_ROLE_GROUPS.has(groupCode)) continue;
+    for (const role of group.roller ?? []) {
+      if (role.fratraadt || role.person?.erDoed || role.enhet) continue;
+      const navn = role.person?.navn;
+      const name = [navn?.fornavn, navn?.mellomnavn, navn?.etternavn]
+        .map(cleanText)
+        .filter(Boolean)
+        .join(" ");
+      if (!name) continue;
+      const roleLabel = firstString(role.type?.beskrivelse, group.type?.beskrivelse);
+      const key = `${name}|${roleLabel}`.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      officers.push({ name, role: roleLabel });
+    }
+  }
+  return officers;
 }
 
 export const norwayAdapter: RegistryAdapter = {

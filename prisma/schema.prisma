@@ -984,6 +984,25 @@ model Tender {
 }
 
 /// Confirmed or dismissed sector market facts. The card text lives in code; only the decision is stored.
+/// SmartAssist "Ask" explorations — every answer becomes reusable knowledge.
+model SmartAssistExploration {
+  id        String   @id @default(uuid())
+  question  String
+  /// company | suppliers | regulation
+  intent    String
+  subject   String
+  /// Full ExploreResult as shown to the user, including sources.
+  result    Json
+  askedBy   String
+  /// Set when the user imported the company from this exploration.
+  companyId String?
+  createdAt DateTime @default(now())
+
+  @@index([subject])
+  @@index([createdAt])
+  @@map("smartassist_explorations")
+}
+
 model MarketFactDecision {
   factId    String   @id
   decision  String
