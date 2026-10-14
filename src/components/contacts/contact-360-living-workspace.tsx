@@ -297,6 +297,7 @@ export function Contact360LivingWorkspace({
           companyName={record.companyName}
           lastInteractionDate={verdict.lastInteractionAt ?? undefined}
           healthStatus={relationshipSummary.healthStatus}
+          healthHasSignal={relationshipSummary.hasSignal}
           employmentBusy={employmentBusy}
           onEmploymentStatusChange={(status) => void handleEmploymentStatusChange(status)}
           trailing={contactTools}

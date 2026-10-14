@@ -1,6 +1,7 @@
 "use client";
 
 import { getActivitiesForContact } from "@/lib/activity-utils";
+import { laterIso } from "@/lib/contact-360-verdict";
 import { formatLastContact, formatRelativeTime } from "@/lib/relative-time";
 import type { GlobalContactRecord } from "@/lib/contact-utils";
 import { getContactDisplayName } from "@/types/contact";
@@ -28,9 +29,12 @@ const textTruncate = "block min-w-0 truncate";
 export function ContactsOperationsTable({
   records,
   activities,
+  lastMailByEmail = {},
 }: {
   records: GlobalContactRecord[];
   activities: Activity[];
+  /** Lowercased email → latest synced Outlook mail with that person. */
+  lastMailByEmail?: Record<string, string>;
 }) {
   if (records.length === 0) {
     return (
@@ -91,6 +95,10 @@ export function ContactsOperationsTable({
               record.contact.ContactID,
               record.contact,
             )[0];
+            const lastMailAt = record.contact.Email
+              ? lastMailByEmail[record.contact.Email.trim().toLowerCase()] ?? null
+              : null;
+            const lastTouchAt = laterIso(lastActivity?.ActivityDate ?? null, lastMailAt);
             const role = record.contact.JobTitle || record.contact.Role || "—";
 
             return (
@@ -156,10 +164,8 @@ export function ContactsOperationsTable({
                   </span>
                 </WorkspaceTableBodyCell>
                 <WorkspaceTableBodyCell className={`${cellTruncate} text-carbon-blue/55`}>
-                  <span className={textTruncate}>
-                    {lastActivity
-                      ? formatRelativeTime(lastActivity.ActivityDate)
-                      : formatLastContact(null)}
+                  <span className={textTruncate} title={lastMailAt && lastTouchAt === lastMailAt ? "Latest synced Outlook mail" : undefined}>
+                    {lastTouchAt ? formatRelativeTime(lastTouchAt) : formatLastContact(null)}
                   </span>
                 </WorkspaceTableBodyCell>
               </WorkspaceTableBodyRow>

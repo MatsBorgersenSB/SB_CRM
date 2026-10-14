@@ -1,6 +1,10 @@
 import { getActivitiesForCompany, isFollowUpOpen, isFollowUpOverdue } from "@/lib/activity-utils";
 import { buildCompanyAttentionItems } from "@/lib/smart-attention-engine";
 import { buildCompanySummariesForCompanies } from "@/lib/relationship-intelligence";
+import {
+  correspondenceMapFromRecord,
+  type CorrespondenceByCompanyId,
+} from "@/lib/company-correspondence";
 import { daysBetween } from "@/lib/relative-time";
 import type { Activity } from "@/types/activity";
 import type { AuthUser } from "@/types/auth";
@@ -91,6 +95,8 @@ export type CompanyOperationsRow = {
   locationLabel: string;
   healthScore: number;
   healthStatus: RelationshipHealthStatus;
+  /** False when nothing is recorded — render "No data yet", never a status or score. */
+  hasSignal: boolean;
   openOpportunities: number;
   pipelineValue: number;
   pipelineValueLabel: string;
@@ -145,6 +151,7 @@ function attentionFromCompany(
   topItem: AttentionItem | null,
   healthStatus: RelationshipHealthStatus,
   healthScore: number,
+  hasSignal: boolean,
 ): {
   severity: AttentionSeverity;
   label: string;
@@ -158,6 +165,18 @@ function attentionFromCompany(
       needsAttention: true,
       ruleId: topItem.ruleId ?? null,
     };
+  }
+
+  // A score computed from nothing is not a health problem; don't flag it as one.
+  if (!hasSignal) {
+    return topItem
+      ? {
+          severity: topItem.severity,
+          label: topItem.suggestedAiAction,
+          needsAttention: false,
+          ruleId: topItem.ruleId ?? null,
+        }
+      : { severity: "healthy", label: "Nothing recorded yet", needsAttention: false, ruleId: null };
   }
 
   if (healthStatus === "At Risk" || healthScore < 50) {
@@ -201,11 +220,19 @@ export function buildCompanyOperationsWorkspace(
   activities: Activity[],
   commercialPackages: CommercialPackage[],
   user: AuthUser,
+  correspondence?: CorrespondenceByCompanyId | null,
 ): CompanyOperationsWorkspace {
-  const summaries = buildCompanySummariesForCompanies(companies, activities, pipelines);
+  const correspondenceMap = correspondenceMapFromRecord(correspondence);
+  const summaries = buildCompanySummariesForCompanies(
+    companies,
+    activities,
+    pipelines,
+    correspondenceMap,
+  );
 
   const rows = summaries.map((summary) => {
-    const { company, healthScore, healthStatus, lastContactLabel } = summary;
+    const { company, healthScore, healthStatus, hasSignal, lastContactLabel, lastContactAt } =
+      summary;
     const ownerLabel = company.AccountOwner?.Title ?? null;
 
     const openDeals = company.pipelineIds
@@ -216,10 +243,8 @@ export function buildCompanyOperationsWorkspace(
     const dominantCurrency = openDeals.find((deal) => deal?.currency)?.currency ?? "EUR";
 
     const companyActivities = getActivitiesForCompany(activities, company);
-    const lastActivity = companyActivities.sort(
-      (a, b) => new Date(b.ActivityDate).getTime() - new Date(a.ActivityDate).getTime(),
-    )[0];
-    const daysSinceContact = lastActivity ? daysBetween(lastActivity.ActivityDate) : Infinity;
+    // Last touch = latest of CRM activity and synced Outlook mail (already merged in the summary).
+    const daysSinceContact = lastContactAt ? daysBetween(lastContactAt) : Infinity;
     const isColdContact = daysSinceContact >= COLD_CONTACT_DAYS;
 
     const hasOverdueCommitments = companyActivities.some(
@@ -233,9 +258,10 @@ export function buildCompanyOperationsWorkspace(
       activities,
       commercialPackages,
       companies,
+      correspondenceMap.get(company.CompanyID) ?? null,
     );
     const topAttention = pickTopAttentionItem(attentionItems);
-    const attention = attentionFromCompany(topAttention, healthStatus, healthScore);
+    const attention = attentionFromCompany(topAttention, healthStatus, healthScore, hasSignal);
 
     const openOpportunities = openDeals.length;
     const isOwnedByUser =
@@ -246,10 +272,9 @@ export function buildCompanyOperationsWorkspace(
       attention.ruleId === "no_activity" ||
       isColdContact;
 
+    const isWeak = hasSignal && (healthStatus === "Weak" || healthStatus === "At Risk");
     const matchesWeakHealthAttention =
-      healthStatus === "Weak" ||
-      healthStatus === "At Risk" ||
-      attention.ruleId === "risk_threshold_exceeded";
+      isWeak || attention.ruleId === "risk_threshold_exceeded";
 
     return {
       companyId: company.CompanyID,
@@ -260,6 +285,7 @@ export function buildCompanyOperationsWorkspace(
       locationLabel: formatCompanyLocation(company),
       healthScore,
       healthStatus,
+      hasSignal,
       openOpportunities,
       pipelineValue,
       pipelineValueLabel:
@@ -272,9 +298,9 @@ export function buildCompanyOperationsWorkspace(
       opportunitiesHref: company360Href(company, "opportunities"),
       ownerQueueHref: ownerLabel ? `/?owner=${encodeURIComponent(ownerLabel)}` : null,
       needsAttention: attention.needsAttention,
-      isHealthy: HEALTHY_STATUSES.has(healthStatus) && !attention.needsAttention,
-      isWeak: healthStatus === "Weak" || healthStatus === "At Risk",
-      isStrategic: healthStatus === "Strategic",
+      isHealthy: hasSignal && HEALTHY_STATUSES.has(healthStatus) && !attention.needsAttention,
+      isWeak,
+      isStrategic: hasSignal && healthStatus === "Strategic",
       hasActiveOpportunities: openOpportunities > 0,
       hasNoOpportunities: openOpportunities === 0,
       isColdContact,
@@ -408,7 +434,9 @@ export function sortCompanyOperationsRows(rows: CompanyOperationsRow[]): Company
   return [...rows].sort((a, b) => {
     const attentionDiff = SEVERITY_RANK[a.attentionSeverity] - SEVERITY_RANK[b.attentionSeverity];
     if (attentionDiff !== 0) return attentionDiff;
-    if (a.healthScore !== b.healthScore) return a.healthScore - b.healthScore;
+    // Within a severity, relationships we actually know something about come first.
+    if (a.hasSignal !== b.hasSignal) return a.hasSignal ? -1 : 1;
+    if (a.hasSignal && a.healthScore !== b.healthScore) return a.healthScore - b.healthScore;
     return a.companyName.localeCompare(b.companyName);
   });
 }

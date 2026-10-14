@@ -252,7 +252,7 @@ function buildCompanyAttention(
         sourceObjectName: company.Title,
         objectType: "Company",
         severity: daysSince >= 60 ? "urgent" : "needs_attention",
-        recommendation: `Last contact ${formatLastContact(lastTouchAt, daysSince)} — relationship is cooling (health ${health.score}/100).`,
+        recommendation: `Last contact ${formatLastContact(lastTouchAt, daysSince)} — relationship is cooling${health.hasSignal ? ` (health ${health.score}/100)` : ""}.`,
         suggestedAiAction: "Schedule Follow-Up Call",
         href: company360Href(company.CompanyID),
         companyId: company.CompanyID,

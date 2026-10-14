@@ -45,6 +45,7 @@ export function Contact360Header({
   companyName,
   lastInteractionDate,
   healthStatus,
+  healthHasSignal = true,
   employmentBusy,
   onEmploymentStatusChange,
   editing = false,
@@ -56,6 +57,7 @@ export function Contact360Header({
   companyName: string;
   lastInteractionDate?: string;
   healthStatus: RelationshipHealthStatus;
+  healthHasSignal?: boolean;
   employmentBusy?: boolean;
   onEmploymentStatusChange: (status: EmploymentStatus) => void;
   editing?: boolean;
@@ -195,6 +197,7 @@ export function Contact360Header({
         lastInteractionDate={lastInteractionDate}
         lastInteractionSource={verdict?.lastInteractionSource ?? null}
         healthStatus={healthStatus}
+        healthHasSignal={healthHasSignal}
         employmentBusy={employmentBusy}
         onEmploymentStatusChange={onEmploymentStatusChange}
         editing={editing}

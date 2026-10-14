@@ -28,7 +28,8 @@ function buildRelationshipStatusStory(header: Company360Header): string {
     parts.push(header.companyTypesLabel.trim());
   }
 
-  parts.push(`${header.healthStatus} relationship`);
+  // Claim a health only when there is something to score. Otherwise say so.
+  parts.push(header.hasSignal ? `${header.healthStatus} relationship` : "No interactions recorded yet");
 
   return parts.join(" · ");
 }
@@ -85,7 +86,7 @@ export function CompanyWorkspaceHeader({
       </div>
 
       <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-snug text-carbon-blue/70">
-        <HealthStatusIcon status={header.healthStatus} size="sm" />
+        {header.hasSignal ? <HealthStatusIcon status={header.healthStatus} size="sm" /> : null}
         <span>{statusStory}</span>
       </p>
 
