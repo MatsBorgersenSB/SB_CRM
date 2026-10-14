@@ -4,6 +4,15 @@ import type { SmartActivityType } from "@/types/activity";
 export type CalendarSector = (typeof COMPANY_SECTOR_PRESETS)[number];
 
 /** Lightweight calendar row. Company and opportunity are name and amount only. */
+/** Where, link, who runs it, why we go. Stored on `Activity.aiContext` for tradeshows and seminars. */
+export type CalendarEventDetails = {
+  location: string | null;
+  website: string | null;
+  organizer: string | null;
+  objective: string | null;
+  themes: string[];
+};
+
 export type CalendarActivity = {
   id: string;
   title: string;
@@ -12,6 +21,7 @@ export type CalendarActivity = {
   endDate: string | null;
   isAiProposed: boolean;
   completedAt: string | null;
+  event: CalendarEventDetails | null;
   companyId: string | null;
   opportunityId: string | null;
   company: {

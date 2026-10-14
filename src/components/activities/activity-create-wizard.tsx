@@ -32,6 +32,7 @@ import {
 import { ActivityKnowledgeCapturePanel } from "@/components/activities/activity-knowledge-capture-panel";
 import { SmartAssistResolutionCard } from "@/components/smartassist/SmartAssistResolutionCard";
 import type { SmartAssistResolution } from "@/lib/smartassist/omniOrchestrator";
+import type { EventProposal } from "@/lib/smartassist/eventExtract";
 import { TaskAssigneeSelect } from "@/components/activities/task-assignee-select";
 import { TaskShareWithPicker } from "@/components/activities/task-share-control";
 import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
@@ -56,8 +57,21 @@ type ActivityCreateWizardProps = {
 
 const STEPS = {
   plan: ["Activity type", "Related objects", "Plan details", "Follow-up"],
+  event: ["Activity type", "Event", "Event details", "Follow-up"],
   record: ["Interaction", "Stakeholders & links", "Knowledge capture", "What happens next"],
 } as const;
+
+const INPUT_CLASS =
+  "mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40";
+const LABEL_CLASS = "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40";
+
+function formatProposalDates(proposal: EventProposal): string {
+  if (!proposal.startDate) return "Dates not found";
+  const fmt = (value: string) =>
+    new Date(`${value}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  if (!proposal.endDate || proposal.endDate === proposal.startDate) return fmt(proposal.startDate);
+  return `${fmt(proposal.startDate)} – ${fmt(proposal.endDate)}`;
+}
 
 function combineDateTime(date: string, time: string): string {
   if (!date) return new Date().toISOString();
@@ -152,6 +166,73 @@ export function ActivityCreateWizard({
   const [resolution, setResolution] = useState<SmartAssistResolution | null>(null);
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState("");
+  // Tradeshow / seminar: where the event lives and what SmartAssist read from it.
+  const [eventSource, setEventSource] = useState("");
+  const [eventProposal, setEventProposal] = useState<EventProposal | null>(null);
+  const [eventReading, setEventReading] = useState(false);
+  const [eventError, setEventError] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventWebsite, setEventWebsite] = useState("");
+  const [eventOrganizer, setEventOrganizer] = useState("");
+  const [eventThemes, setEventThemes] = useState<string[]>([]);
+  const [eventFromAssist, setEventFromAssist] = useState(false);
+
+  const isEvent = Boolean(activityType) && isAllDayActivityType(activityType);
+
+  const clearEventState = () => {
+    setEventSource("");
+    setEventProposal(null);
+    setEventReading(false);
+    setEventError("");
+    setEventLocation("");
+    setEventWebsite("");
+    setEventOrganizer("");
+    setEventThemes([]);
+    setEventFromAssist(false);
+  };
+
+  const readEventSource = () => {
+    const source = eventSource.trim();
+    if (!source) return;
+    const looksLikeUrl = /^(https?:\/\/)?[\w.-]+\.[a-z]{2,}(\/\S*)?$/i.test(source) && !/\s/.test(source);
+    setEventReading(true);
+    setEventError("");
+    void fetch("/api/smartassist/extract-event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(looksLikeUrl ? { url: source } : { text: source }),
+    })
+      .then(async (response) => {
+        const payload = (await response.json()) as { proposal?: EventProposal; error?: string };
+        if (!response.ok || !payload.proposal) {
+          throw new Error(payload.error ?? "EXTRACTION_FAILED");
+        }
+        setEventProposal(payload.proposal);
+      })
+      .catch((error: Error) => {
+        setEventError(
+          error.message === "NOTHING_FOUND"
+            ? "SmartAssist could not find an event name or dates there. Paste the invitation text instead, or fill in the details yourself."
+            : "SmartAssist could not read that source right now. You can still fill in the details yourself.",
+        );
+      })
+      .finally(() => setEventReading(false));
+  };
+
+  const applyEventProposal = (proposal: EventProposal) => {
+    if (proposal.title) setSubject(proposal.title);
+    if (proposal.startDate) {
+      setPlanDate(proposal.startDate);
+      setPlanEndDate(proposal.endDate ?? proposal.startDate);
+    }
+    setEventLocation(proposal.location ?? "");
+    setEventWebsite(proposal.website ?? "");
+    setEventOrganizer(proposal.organizer ?? "");
+    setEventThemes(proposal.themes);
+    setNotes((current) => current.trim() || proposal.summary);
+    setEventFromAssist(true);
+    setStep(3);
+  };
 
   const assigneeOptions = useMemo(() => {
     const me = defaultOwner
@@ -201,6 +282,14 @@ export function ActivityCreateWizard({
     setSharedWith(preset?.SharedWith ?? []);
     setResolution(null);
     setResolveError("");
+    setEventSource("");
+    setEventProposal(null);
+    setEventError("");
+    setEventLocation("");
+    setEventWebsite("");
+    setEventOrganizer("");
+    setEventThemes([]);
+    setEventFromAssist(false);
   }, [open, preset, defaultOwner]);
 
   const selectedCompany = companies.find((c) => c.CompanyID === companyId);
@@ -208,7 +297,7 @@ export function ActivityCreateWizard({
   const selectedDeal = pipelines.find((p) => p.id === dealId);
   const selectedContact = contacts.find((c) => c.ContactID === contactId);
 
-  const stepLabels = STEPS[mode];
+  const stepLabels = mode === "plan" && isEvent ? STEPS.event : STEPS[mode];
 
   const contextLocked = Boolean(extractPresetDealId(preset) || extractPresetProjectId(preset));
 
@@ -216,7 +305,9 @@ export function ActivityCreateWizard({
     step === 1
       ? Boolean(activityType)
       : step === 2
-        ? Boolean(companyId || contactId || dealId || projectId)
+        ? mode === "plan" && isEvent
+          ? true
+          : Boolean(companyId || contactId || dealId || projectId)
         : step === 3
           ? mode === "plan"
             ? Boolean(subject.trim()) &&
@@ -273,6 +364,7 @@ export function ActivityCreateWizard({
         : null,
     );
     setSharedWith([]);
+    clearEventState();
   };
 
   const handleSubmit = async () => {
@@ -310,14 +402,27 @@ export function ActivityCreateWizard({
         return;
       }
 
+      const eventLines = allDay
+        ? [
+            eventLocation.trim() ? `Where: ${eventLocation.trim()}` : null,
+            eventOrganizer.trim() ? `Organiser: ${eventOrganizer.trim()}` : null,
+            eventWebsite.trim() ? `Event page: ${eventWebsite.trim()}` : null,
+            eventThemes.length ? `Themes: ${eventThemes.join(", ")}` : null,
+          ].filter((line): line is string => Boolean(line))
+        : [];
+      const description = [
+        notes.trim() || (mode === "plan" ? `Planned ${displayType.toLowerCase()}.` : ""),
+        ...eventLines,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
       await syncActivityCreate({
         ActivityType: displayType,
         ActivityDate: activityDate,
         Subject: subject.trim(),
         Summary: summary.trim() || subject.trim(),
-        ActivityDescription:
-          notes.trim() ||
-          (mode === "plan" ? `Planned ${displayType.toLowerCase()}.` : ""),
+        ActivityDescription: description,
         KeyDecisions: parseMemoryLines(keyDecisionsText),
         AgreedActions: parseAgreedActions(agreedActionsText),
         Risks: parseMemoryLines(risksText),
@@ -381,6 +486,16 @@ export function ActivityCreateWizard({
               endDate: plannedEnd,
               companyCode: companyId || null,
               opportunityCode: dealId || null,
+              isAiProposed: allDay && eventFromAssist,
+              event: allDay
+                ? {
+                    location: eventLocation.trim() || null,
+                    website: eventWebsite.trim() || null,
+                    organizer: eventOrganizer.trim() || null,
+                    objective: notes.trim() || null,
+                    themes: eventThemes,
+                  }
+                : null,
             }),
           });
         } catch {
@@ -463,7 +578,80 @@ export function ActivityCreateWizard({
             </div>
           ) : null}
 
-          {step === 2 ? (
+          {step === 2 && mode === "plan" && isEvent ? (
+            <div className="grid gap-3">
+              <label className="block">
+                <span className={LABEL_CLASS}>Event link or invitation</span>
+                <textarea
+                  value={eventSource}
+                  onChange={(e) => setEventSource(e.target.value)}
+                  rows={3}
+                  placeholder="Paste the event web address, or the text of the invitation email"
+                  className="mt-1 w-full resize-none border border-carbon-blue/12 bg-carbon-blue/[0.015] px-3 py-2.5 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                />
+              </label>
+              {!eventProposal ? (
+                <button
+                  type="button"
+                  disabled={eventReading || !eventSource.trim()}
+                  onClick={readEventSource}
+                  className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-2 text-left text-xs font-semibold text-upcycle-orange disabled:opacity-40"
+                >
+                  {eventReading ? "Reading the event…" : "✨ Let SmartAssist read it"}
+                </button>
+              ) : (
+                <div className="border border-carbon-blue/12 bg-white">
+                  <div className="border-b border-carbon-blue/8 px-3 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+                      ⚡ SmartAssist found this event
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-carbon-blue">
+                      {eventProposal.title || "Name not found"}
+                    </p>
+                    <p className="text-xs text-carbon-blue/70">
+                      {formatProposalDates(eventProposal)}
+                      {eventProposal.location ? ` · ${eventProposal.location}` : ""}
+                    </p>
+                    {eventProposal.organizer ? (
+                      <p className="text-xs text-carbon-blue/50">Organised by {eventProposal.organizer}</p>
+                    ) : null}
+                  </div>
+                  <div className="grid gap-2 px-3 py-2 text-xs text-carbon-blue/80">
+                    {eventProposal.summary ? <p>{eventProposal.summary}</p> : null}
+                    {eventProposal.themes.length ? (
+                      <p className="text-carbon-blue/55">{eventProposal.themes.join(" · ")}</p>
+                    ) : null}
+                    {!eventProposal.found.dates ? (
+                      <p className="text-orange-800">Dates were not stated — add them on the next step.</p>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-t border-carbon-blue/8 px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => setEventProposal(null)}
+                      className="text-xs text-carbon-blue/50 hover:text-carbon-blue"
+                    >
+                      ✕ Not this
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyEventProposal(eventProposal)}
+                      className="border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white"
+                    >
+                      Use this event
+                    </button>
+                  </div>
+                </div>
+              )}
+              {eventError ? <p className="text-[11px] text-orange-800">{eventError}</p> : null}
+              <p className="text-[11px] text-carbon-blue/50">
+                SmartAssist proposes the name, dates, and place. You confirm before anything is saved. Or skip
+                and fill in the details yourself.
+              </p>
+            </div>
+          ) : null}
+
+          {step === 2 && !(mode === "plan" && isEvent) ? (
             <div className="grid gap-3">
               {contextLocked ? (
                 <div className="border border-upcycle-orange/25 bg-upcycle-orange/[0.04] px-3 py-2.5">
@@ -538,7 +726,130 @@ export function ActivityCreateWizard({
             </div>
           ) : null}
 
-          {step === 3 && mode === "plan" ? (
+          {step === 3 && mode === "plan" && isEvent ? (
+            <div className="grid gap-3">
+              {eventFromAssist ? (
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+                  ⚡ Proposed by SmartAssist — check and adjust
+                </p>
+              ) : null}
+              <label className="block">
+                <span className={LABEL_CLASS}>Event name</span>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder={activityType === "SEMINAR" ? "Seminar or conference name" : "Tradeshow or fair name"}
+                  className={`${INPUT_CLASS} font-medium`}
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className={LABEL_CLASS}>First day</span>
+                  <input
+                    type="date"
+                    value={planDate}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setPlanDate(next);
+                      setPlanEndDate((current) => (current && current >= next ? current : next));
+                    }}
+                    className={INPUT_CLASS}
+                  />
+                </label>
+                <label className="block">
+                  <span className={LABEL_CLASS}>Last day</span>
+                  <input
+                    type="date"
+                    value={planEndDate}
+                    min={planDate}
+                    onChange={(e) => setPlanEndDate(e.target.value)}
+                    className={INPUT_CLASS}
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className={LABEL_CLASS}>Where</span>
+                  <input
+                    type="text"
+                    value={eventLocation}
+                    onChange={(e) => setEventLocation(e.target.value)}
+                    placeholder="City, Country"
+                    className={INPUT_CLASS}
+                  />
+                </label>
+                <label className="block">
+                  <span className={LABEL_CLASS}>Organiser</span>
+                  <input
+                    type="text"
+                    value={eventOrganizer}
+                    onChange={(e) => setEventOrganizer(e.target.value)}
+                    placeholder="Who runs it"
+                    className={INPUT_CLASS}
+                  />
+                </label>
+              </div>
+              <label className="block">
+                <span className={LABEL_CLASS}>Event page</span>
+                <input
+                  type="url"
+                  value={eventWebsite}
+                  onChange={(e) => setEventWebsite(e.target.value)}
+                  placeholder="https://"
+                  className={INPUT_CLASS}
+                />
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Why we go</span>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Who we want to meet, what we want to learn, what we want to show"
+                  className="mt-1 w-full resize-none border border-carbon-blue/12 bg-carbon-blue/[0.015] px-3 py-2.5 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                />
+              </label>
+              {eventThemes.length ? (
+                <p className="text-[11px] text-carbon-blue/55">Themes · {eventThemes.join(" · ")}</p>
+              ) : null}
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className={LABEL_CLASS}>Priority</span>
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value as ActivityPriority)}
+                    className={INPUT_CLASS}
+                  >
+                    {ACTIVITY_PRIORITIES.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {!contextLocked ? (
+                  <label className="block">
+                    <span className={LABEL_CLASS}>Related opportunity (optional)</span>
+                    <select
+                      value={dealId}
+                      onChange={(e) => handleDealChange(e.target.value)}
+                      className={INPUT_CLASS}
+                    >
+                      <option value="">None</option>
+                      {pipelines.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.id} — {p.assetName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {step === 3 && mode === "plan" && !isEvent ? (
             <div className="grid gap-3">
               <label className="block">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
