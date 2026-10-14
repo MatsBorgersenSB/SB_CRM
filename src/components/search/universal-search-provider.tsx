@@ -7,7 +7,10 @@ import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { SearchIndexItem } from "@/types/universal-search";
 import { UniversalSearchDialog } from "@/components/search/universal-search-dialog";
-import { UniversalSearchContext } from "@/context/universal-search-context";
+import {
+  UniversalSearchContext,
+  type UniversalSearchOpenOptions,
+} from "@/context/universal-search-context";
 
 type SearchIndexPayload = {
   index: SearchIndexItem[];
@@ -21,6 +24,7 @@ type SearchIndexPayload = {
 
 export function UniversalSearchProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [openOptions, setOpenOptions] = useState<UniversalSearchOpenOptions | null>(null);
   const [index, setIndex] = useState<SearchIndexItem[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [pipelines, setPipelines] = useState<PipelineRow[]>([]);
@@ -62,7 +66,10 @@ export function UniversalSearchProvider({ children }: { children: ReactNode }) {
 
   const value = {
     open,
-    openSearch: () => setOpen(true),
+    openSearch: (options?: UniversalSearchOpenOptions) => {
+      setOpenOptions(options ?? null);
+      setOpen(true);
+    },
     closeSearch: () => setOpen(false),
     toggleSearch: () => setOpen((current) => !current),
   };
@@ -72,7 +79,12 @@ export function UniversalSearchProvider({ children }: { children: ReactNode }) {
       {children}
       <UniversalSearchDialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setOpen(false);
+          setOpenOptions(null);
+        }}
+        initialMode={openOptions?.mode}
+        initialQuery={openOptions?.query}
         index={index}
         companies={companies}
         pipelines={pipelines}

@@ -43,6 +43,10 @@ type ExploreState =
 type UniversalSearchDialogProps = {
   open: boolean;
   onClose: () => void;
+  /** Mode to start in when opened programmatically (e.g. "Ask SmartAssist" buttons). */
+  initialMode?: SmartSearchMode;
+  /** Pre-filled, editable text when opened programmatically. */
+  initialQuery?: string;
   index: SearchIndexItem[];
   companies: Company[];
   pipelines: PipelineRow[];
@@ -168,6 +172,8 @@ function SearchResultRow({
 export function UniversalSearchDialog({
   open,
   onClose,
+  initialMode,
+  initialQuery,
   index,
   companies,
   pipelines,
@@ -291,13 +297,16 @@ export function UniversalSearchDialog({
 
   useEffect(() => {
     if (!open) return;
-    setQuery("");
-    setMode("search");
+    setQuery(initialQuery ?? "");
+    setMode(initialMode ?? "search");
     setActiveIndex(0);
     setExplore({ status: "idle" });
-    const frame = requestAnimationFrame(() => inputRef.current?.focus());
+    const frame = requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    });
     return () => cancelAnimationFrame(frame);
-  }, [open]);
+  }, [open, initialMode, initialQuery]);
 
   useEffect(() => {
     setActiveIndex(0);

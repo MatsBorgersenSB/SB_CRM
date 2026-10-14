@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Search,
   Settings,
+  Sparkles,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -126,10 +127,10 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="border-b border-border/60 px-3 py-3">
+      <div className="flex flex-col gap-1.5 border-b border-border/60 px-3 py-3">
         <button
           type="button"
-          onClick={openSearch}
+          onClick={() => openSearch({ mode: "search" })}
           className={cn(
             "flex w-full items-center gap-2 rounded-md border border-border/60 bg-muted/50 px-2.5 py-2",
             "text-left text-xs text-muted-foreground transition-colors",
@@ -137,12 +138,24 @@ export function Sidebar() {
           )}
         >
           <Search className="size-3.5 shrink-0" strokeWidth={2} />
-          <span className="flex-1">Search or Ask…</span>
+          <span className="flex-1">Search…</span>
           <kbd className="font-mono text-[9px] text-muted-foreground/70">
             {typeof navigator !== "undefined" && navigator.platform.toLowerCase().includes("mac")
               ? "⌘K"
               : "Ctrl+K"}
           </kbd>
+        </button>
+        <button
+          type="button"
+          onClick={() => openSearch({ mode: "ask" })}
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md border border-upcycle-orange/30 bg-upcycle-orange/[0.06] px-2.5 py-2",
+            "text-left text-xs font-medium text-upcycle-orange transition-colors",
+            "hover:bg-upcycle-orange/[0.12]",
+          )}
+        >
+          <Sparkles className="size-3.5 shrink-0" strokeWidth={2} />
+          <span className="flex-1">Ask SmartAssist</span>
         </button>
       </div>
 
