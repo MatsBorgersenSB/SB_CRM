@@ -66,6 +66,8 @@ model Company {
   meetings      MeetingRecord[]
   /// FS-006 company-owned SmartDocs / uploaded document records
   documents     DocumentRecord[]
+  /// SmartAssist activity engine. Optional — a company remains valid with no activities.
+  activities    Activity[]
 
   // FS-010 Growth & Expansion Intelligence
   healthRecords    AccountHealthRecord[]
@@ -152,7 +154,7 @@ model Contact {
   targetRelationships Relationship[] @relation("TargetContact")
 
   // Intelligence Relations (FS-006 & FS-007)
-  influenceProfiles    StakeholderInfluenceProfile[]
+  influenceProfiles     StakeholderInfluenceProfile[]
   decisionMakerProfiles DecisionMakerProfile[]
 
   // FS-008 Meeting Intelligence
@@ -207,13 +209,13 @@ model Relationship {
   statusReason       String?
   sourceType         String             @default("user_created") // user_created | smartassist_suggested | meeting_intelligence etc.
 
-  strengthScore   Int?    @default(0)  // System-computed (0-100)
+  strengthScore   Int?    @default(0) // System-computed (0-100)
   confidenceScore Int?    @default(50) // System-computed (0-100)
   ownerId         String?
   notes           String?
 
   aiSummary      String?
-  aiInsights     String[]                  @default([])
+  aiInsights     String[]  @default([])
   lastAnalyzedAt DateTime?
 
   interactions RelationshipInteraction[]
@@ -229,7 +231,7 @@ model RelationshipInteraction {
   id              String       @id @default(uuid())
   relationshipId  String
   relationship    Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
-  type            String       // meeting | call | email | introduction | note
+  type            String // meeting | call | email | introduction | note
   interactionDate DateTime
   summary         String?
   createdBy       String
@@ -263,7 +265,9 @@ enum OpportunityStage {
 
 model Opportunity {
   id                String            @id @default(uuid())
-  /** Public tracking code, e.g. PL-1007 — used in UI and SmartDoc IDs. */
+  /**
+   * Public tracking code, e.g. PL-1007 — used in UI and SmartDoc IDs.
+   */
   code              String?           @unique
   name              String
   companyId         String
@@ -290,11 +294,14 @@ model Opportunity {
   insights OpportunityInsight[]
 
   // FS-006 & FS-007 Intelligence Relations
-  influenceProfiles    StakeholderInfluenceProfile[]
+  influenceProfiles     StakeholderInfluenceProfile[]
   decisionMakerProfiles DecisionMakerProfile[]
 
   // FS-008 Meeting Intelligence
   meetings MeetingRecord[]
+
+  /// SmartAssist activity engine. Optional — an opportunity remains valid with no activities.
+  activities Activity[]
 
   // FS-009 Email & Interaction Intelligence
   emailMessages EmailMessageRecord[]
@@ -309,8 +316,8 @@ model Opportunity {
   workflowExecutions WorkflowExecution[]
 
   // SharePoint Online — opportunity document folder (single source of truth)
-  sharepointFolderId  String?
-  sharepointFolderUrl String?
+  sharepointFolderId   String?
+  sharepointFolderUrl  String?
   sharepointFolderPath String?
 
   promotedTenders Tender[] @relation("TenderPromotedOpportunity")
@@ -328,7 +335,7 @@ model OpportunityInsight {
   id              String      @id @default(uuid())
   opportunityId   String
   opportunity     Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  type            String      // stakeholder_risk | relationship_gap | activity_stagnation | next_best_action
+  type            String // stakeholder_risk | relationship_gap | activity_stagnation | next_best_action
   observation     String
   reasoning       String
   recommendation  String
@@ -337,6 +344,51 @@ model OpportunityInsight {
   createdAt       DateTime    @default(now())
 
   @@map("opportunity_insights")
+}
+
+// ==========================================
+// SmartAssist Activity Engine
+// ==========================================
+
+enum ActivityType {
+  MEETING
+  TEAMS_MEETING
+  PHONE_CALL
+  EMAIL_FOLLOW_UP
+  SITE_VISIT
+  COMMERCIAL_REVIEW
+  TASK
+  NOTE
+  TRADESHOW
+  SEMINAR
+}
+
+model Activity {
+  id           String       @id @default(uuid())
+  activityType ActivityType
+  title        String       @default("")
+  /// Calendar placement. Absent for floating work (calls, follow-ups, tasks, notes).
+  startDate    DateTime?
+  endDate      DateTime?
+  /// Ghost block proposed by SmartAssist and not yet accepted.
+  isAiProposed Boolean      @default(false)
+  completedAt  DateTime?
+  /// Light payload: Graph API snippets, temporal warnings, or sourcing suggestions.
+  aiContext    Json?
+
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([opportunityId])
+  @@index([activityType])
+  @@index([startDate])
+  @@map("activities")
 }
 
 // ==========================================
@@ -531,14 +583,18 @@ model EmailMessageRecord {
   conversationId    String
   opportunityId     String?
   opportunity       Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
-  /** Project Workspace Light id (`project_workspace.id` — no FK; projects are soft-linked). */
+  /**
+   * Project Workspace Light id (`project_workspace.id` — no FK; projects are soft-linked).
+   */
   projectId         String?
   projectName       String?
   contactId         String?
   contact           Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
   subject           String
   bodyPreview       String?
-  /** Outlook deep link from Graph (`webLink`) — Open in Outlook. */
+  /**
+   * Outlook deep link from Graph (`webLink`) — Open in Outlook.
+   */
   webLink           String?
   senderEmail       String
   recipientEmails   String[]
@@ -576,22 +632,22 @@ model EmailIngestExclusion {
 
 /// SmartDocs / commercial file ingested from M365 email (Gap 4).
 model DocumentRecord {
-  id                   String   @id @default(uuid())
+  id                   String  @id @default(uuid())
   name                 String
   mimeType             String?
   sizeBytes            Int?
-  source               String   @default("m365_email") // m365_email | upload | manual
+  source               String  @default("m365_email") // m365_email | upload | manual
   externalAttachmentId String?
-  contentBase64        String?  // Optional local cache for small files; SharePoint is SoT
-  sharepointItemId     String?  // Graph drive item id when filed in SharePoint
-  sharepointWebUrl     String?  // Browser URL in SharePoint Online
+  contentBase64        String? // Optional local cache for small files; SharePoint is SoT
+  sharepointItemId     String? // Graph drive item id when filed in SharePoint
+  sharepointWebUrl     String? // Browser URL in SharePoint Online
 
   /// Opportunity link when deal-owned / deal-linked (optional for company-owned FS-006).
   opportunityId  String?
-  opportunity    Opportunity?       @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  opportunity    Opportunity?        @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
   /// Company owner for company-owned SmartDocs (FS-006).
   companyId      String?
-  company        Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  company        Company?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
   emailMessageId String?
   emailMessage   EmailMessageRecord? @relation(fields: [emailMessageId], references: [id], onDelete: Cascade)
 
@@ -619,22 +675,22 @@ enum IntegrationProvider {
 }
 
 model ExternalIntegration {
-  id               String              @id @default(uuid())
-  provider         IntegrationProvider @default(m365_graph)
-  tenantId         String?             // Microsoft Entra ID (Azure AD) Tenant ID
-  userObjectId     String?             // M365 User Object ID
-  accessToken      String?             // Encrypted OAuth Access Token (AES-256-GCM)
-  refreshToken     String?             // Encrypted OAuth Refresh Token (AES-256-GCM)
-  tokenExpiresAt   DateTime?
-  deltaSyncToken   String?             // M365 Graph Delta Sync Token for incremental sync
+  id             String              @id @default(uuid())
+  provider       IntegrationProvider @default(m365_graph)
+  tenantId       String? // Microsoft Entra ID (Azure AD) Tenant ID
+  userObjectId   String? // M365 User Object ID
+  accessToken    String? // Encrypted OAuth Access Token (AES-256-GCM)
+  refreshToken   String? // Encrypted OAuth Refresh Token (AES-256-GCM)
+  tokenExpiresAt DateTime?
+  deltaSyncToken String? // M365 Graph Delta Sync Token for incremental sync
 
-  status           String              @default("active") // active | revoked | error
-  lastSyncedAt     DateTime?
+  status       String    @default("active") // active | revoked | error
+  lastSyncedAt DateTime?
 
   webhookSubscriptions WebhookSubscription[]
 
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("external_integrations")
 }
@@ -768,8 +824,6 @@ model WorkflowExecution {
   @@map("workflow_executions")
 }
 
-
-
 // ==========================================
 // FS-013: Enterprise Security, RBAC & Audit Logging
 // ==========================================
@@ -781,12 +835,12 @@ enum Role {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
+  id        String     @id @default(cuid())
+  email     String     @unique
   name      String?
-  role      Role      @default(REP)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  role      Role       @default(REP)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   auditLogs AuditLog[]
 
   @@index([role])
@@ -844,7 +898,9 @@ model ProjectWorkspace {
   id        String   @id
   name      String
   kind      String   @default("customer")
-  /** Full Project payload (milestones, stakeholders, discovery, etc.). */
+  /**
+   * Full Project payload (milestones, stakeholders, discovery, etc.).
+   */
   data      Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -894,24 +950,24 @@ model TeamsChannelBinding {
 
 /// Thermal Tender Ingestion — pyrolysis + torrefaction public notices.
 model Tender {
-  id                 String   @id @default(cuid())
-  externalId         String   @unique
-  source             String // TED | Doffin | Mercell | SAM
-  title              String
-  authorityName      String
-  country            String
-  publicationDate    DateTime
-  submissionDeadline DateTime
-  estimatedBudget    Float?
-  sectorTag          String // Timber & Forestry | Municipal & Sludge | Energy & Utilities
-  technologyType     String // Pyrolysis | Torrefaction | Both
-  summary            String   @db.Text
-  rawUrl             String?
-  status             String   @default("PENDING") // PENDING | PROMOTED | EXPIRED | DISMISSED
+  id                   String   @id @default(cuid())
+  externalId           String   @unique
+  source               String // TED | Doffin | Mercell | SAM
+  title                String
+  authorityName        String
+  country              String
+  publicationDate      DateTime
+  submissionDeadline   DateTime
+  estimatedBudget      Float?
+  sectorTag            String // Timber & Forestry | Municipal & Sludge | Energy & Utilities
+  technologyType       String // Pyrolysis | Torrefaction | Both
+  summary              String   @db.Text
+  rawUrl               String?
+  status               String   @default("PENDING") // PENDING | PROMOTED | EXPIRED | DISMISSED
   classifierConfidence Int?
 
-  promotedCompanyId String?
-  promotedCompany   Company? @relation("TenderPromotedCompany", fields: [promotedCompanyId], references: [id], onDelete: SetNull)
+  promotedCompanyId     String?
+  promotedCompany       Company?     @relation("TenderPromotedCompany", fields: [promotedCompanyId], references: [id], onDelete: SetNull)
   promotedOpportunityId String?
   promotedOpportunity   Opportunity? @relation("TenderPromotedOpportunity", fields: [promotedOpportunityId], references: [id], onDelete: SetNull)
 
@@ -931,4 +987,3 @@ model MarketFactDecision {
 
   @@map("market_fact_decisions")
 }
-
