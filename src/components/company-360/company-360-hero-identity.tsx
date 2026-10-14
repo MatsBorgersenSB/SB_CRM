@@ -64,7 +64,7 @@ export function CompanyHeroPrimaryFields({
   return (
     <dl className={`space-y-2 ${className}`}>
       {items.map((item) => (
-        <div key={item.label} className="text-[11px]">
+        <div key={item.label} className="text-[12px]">
           <dt className="font-semibold text-carbon-blue/50">{item.label}</dt>
           <dd className="mt-0.5 text-carbon-blue/75">
             {item.href ? (
@@ -90,7 +90,7 @@ export function CompanyHeroAddress({ identity }: { identity: CompanyHeroIdentity
   if (!identity.address?.trim()) return null;
 
   return (
-    <div className="text-[11px] sm:text-right">
+    <div className="text-[12px] sm:text-right">
       <p className="font-semibold text-carbon-blue/50">Address</p>
       <p className="mt-1 whitespace-pre-line leading-relaxed text-carbon-blue/75">
         {identity.address}
@@ -185,20 +185,20 @@ export function Company360HeroIdentity({
                   type="button"
                   disabled={deleting}
                   onClick={() => setDeleteConfirmOpen(true)}
-                  className="border border-thermal-red/30 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-thermal-red transition-colors hover:bg-thermal-red/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="border border-thermal-red/30 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-thermal-red transition-colors hover:bg-thermal-red/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Delete Company
                 </button>
               )
             ) : (
-              <p className="text-[11px] font-medium text-carbon-blue/55">
+              <p className="text-[12px] font-medium text-carbon-blue/55">
                 {COMPANY_DELETE_BLOCKED_MESSAGE}
               </p>
             )}
           </div>
         ) : null}
 
-        {error ? <p className="mt-2 text-[11px] text-red-700">{error}</p> : null}
+        {error ? <p className="mt-2 text-[12px] text-red-700">{error}</p> : null}
       </div>
     );
   }
@@ -214,7 +214,7 @@ export function Company360HeroIdentity({
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="inline-flex items-center gap-1 border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55 transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
+          className="inline-flex items-center gap-1 border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55 transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
         >
           <Pencil className="size-3" strokeWidth={2} />
           Edit

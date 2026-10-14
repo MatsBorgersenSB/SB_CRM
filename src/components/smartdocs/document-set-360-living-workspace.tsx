@@ -37,10 +37,10 @@ export function DocumentSet360LivingWorkspace({
               <SmartCRMIcon name="documentSet" size="lg" label="Document Set" />
               <span className="truncate">{documentSet.title}</span>
             </h1>
-            <p className="mt-2 font-mono text-[11px] text-carbon-blue/50">{documentSet.documentSetId}</p>
+            <p className="mt-2 font-mono text-[12px] text-carbon-blue/50">{documentSet.documentSetId}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span
-                className={`inline-flex border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${DOCUMENT_SET_STATUS_STYLES[documentSet.documentSetStatus]}`}
+                className={`inline-flex border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${DOCUMENT_SET_STATUS_STYLES[documentSet.documentSetStatus]}`}
               >
                 {documentSet.documentSetStatus}
               </span>

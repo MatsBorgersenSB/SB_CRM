@@ -91,10 +91,10 @@ function filterSummaries(
 }
 
 function toggleButtonClass(active: boolean): string {
-  return `border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+  return `border px-2 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
     active
       ? "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange"
-      : "border-carbon-blue/10 text-carbon-blue/45 hover:text-carbon-blue"
+      : "border-carbon-blue/10 text-carbon-blue/65 hover:text-carbon-blue"
   }`;
 }
 
@@ -137,7 +137,7 @@ export function CompanyDirectory({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-sm font-semibold text-carbon-blue">All companies</h2>
-            <p className="mt-0.5 text-[10px] text-carbon-blue/45">
+            <p className="mt-0.5 text-[11px] text-carbon-blue/65">
               {filtersActive
                 ? `${sorted.length} of ${summaries.length} shown`
                 : `${summaries.length} companies`}
@@ -147,7 +147,7 @@ export function CompanyDirectory({
             <button
               type="button"
               onClick={() => setShowExplanation((value) => !value)}
-              className="inline-flex items-center gap-1 border border-carbon-blue/10 px-2 py-1 text-[10px] font-semibold text-carbon-blue/55 hover:border-upcycle-orange/25 hover:text-upcycle-orange"
+              className="inline-flex items-center gap-1 border border-carbon-blue/10 px-2 py-1 text-[11px] font-semibold text-carbon-blue/55 hover:border-upcycle-orange/25 hover:text-upcycle-orange"
             >
               <Info className="size-3" />
               Score guide
@@ -157,10 +157,10 @@ export function CompanyDirectory({
                 type="button"
                 onClick={() => setView("grid")}
                 aria-label="Card view"
-                className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+                className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider ${
                   view === "grid"
                     ? "bg-upcycle-orange/10 text-upcycle-orange"
-                    : "text-carbon-blue/45 hover:text-carbon-blue"
+                    : "text-carbon-blue/65 hover:text-carbon-blue"
                 }`}
               >
                 <LayoutGrid className="size-3" />
@@ -170,10 +170,10 @@ export function CompanyDirectory({
                 type="button"
                 onClick={() => setView("table")}
                 aria-label="Table view"
-                className={`inline-flex items-center gap-1 border-l border-carbon-blue/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+                className={`inline-flex items-center gap-1 border-l border-carbon-blue/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider ${
                   view === "table"
                     ? "bg-upcycle-orange/10 text-upcycle-orange"
-                    : "text-carbon-blue/45 hover:text-carbon-blue"
+                    : "text-carbon-blue/65 hover:text-carbon-blue"
                 }`}
               >
                 <List className="size-3" />
@@ -195,13 +195,13 @@ export function CompanyDirectory({
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/35" />
+            <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50" />
             <input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search name, ID, industry, location…"
-              className="w-full border border-carbon-blue/10 bg-white py-1.5 pl-7 pr-2 text-xs text-carbon-blue placeholder:text-carbon-blue/35"
+              className="w-full border border-carbon-blue/10 bg-white py-1.5 pl-7 pr-2 text-xs text-carbon-blue placeholder:text-carbon-blue/50"
             />
           </label>
           <select
@@ -235,7 +235,7 @@ export function CompanyDirectory({
                 setHealthFilter("all");
                 setIndustryFilter("all");
               }}
-              className="shrink-0 text-[10px] font-semibold text-upcycle-orange hover:underline"
+              className="shrink-0 text-[11px] font-semibold text-upcycle-orange hover:underline"
             >
               Clear filters
             </button>
@@ -244,13 +244,13 @@ export function CompanyDirectory({
       </header>
 
       {showExplanation ? (
-        <div className="border-b border-carbon-blue/8 bg-carbon-blue/[0.02] px-4 py-3 text-[11px] leading-relaxed text-carbon-blue/55">
+        <div className="border-b border-carbon-blue/8 bg-carbon-blue/[0.02] px-4 py-3 text-[12px] leading-relaxed text-carbon-blue/55">
           {getHealthScoreExplanation()}
         </div>
       ) : null}
 
       {sorted.length === 0 ? (
-        <p className="px-5 py-8 text-center text-[11px] text-carbon-blue/50">
+        <p className="px-5 py-8 text-center text-[12px] text-carbon-blue/50">
           No companies match your filters.
         </p>
       ) : view === "table" ? (
@@ -269,7 +269,7 @@ export function CompanyDirectory({
                   <p className="text-sm font-semibold text-carbon-blue group-hover:text-upcycle-orange">
                     {summary.company.Title}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-carbon-blue/45">
+                  <p className="mt-0.5 text-[11px] text-carbon-blue/65">
                     {summary.company.Industry}
                   </p>
                 </div>
@@ -280,11 +280,11 @@ export function CompanyDirectory({
                 </span>
               </div>
 
-              <p className="line-clamp-2 text-[11px] leading-relaxed text-carbon-blue/55">
+              <p className="line-clamp-2 text-[12px] leading-relaxed text-carbon-blue/55">
                 {summary.healthReport.recommendedAction.action}
               </p>
 
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-upcycle-orange opacity-0 transition-opacity group-hover:opacity-100">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-upcycle-orange opacity-0 transition-opacity group-hover:opacity-100">
                 Open Company 360
                 <ArrowRight className="size-3" />
               </span>

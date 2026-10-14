@@ -220,7 +220,7 @@ export function ContactLifecycleWizard({
       >
         <header className="flex items-center justify-between border-b border-carbon-blue/10 px-4 py-3">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
               {mode === "transfer"
                 ? "Change company"
                 : mode === "position"
@@ -234,7 +234,7 @@ export function ContactLifecycleWizard({
           <button
             type="button"
             onClick={onClose}
-            className="text-xs font-semibold text-carbon-blue/45 hover:text-carbon-blue"
+            className="text-xs font-semibold text-carbon-blue/65 hover:text-carbon-blue"
           >
             Close
           </button>
@@ -243,12 +243,12 @@ export function ContactLifecycleWizard({
         <div className="space-y-3 px-4 py-4">
           {mode === "transfer" ? (
             <>
-              <p className="text-[11px] text-carbon-blue/65">
+              <p className="text-[12px] text-carbon-blue/65">
                 Relationship history is preserved across company changes — activities, timeline,
                 and transfer records remain linked to this person.
               </p>
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   New company
                 </span>
                 <select
@@ -268,7 +268,7 @@ export function ContactLifecycleWizard({
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                     New role
                   </span>
                   <ContactRoleSelect
@@ -278,7 +278,7 @@ export function ContactLifecycleWizard({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                     Employment status
                   </span>
                   <select
@@ -297,7 +297,7 @@ export function ContactLifecycleWizard({
                 </label>
               </div>
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Job title
                 </span>
                 <input
@@ -311,7 +311,7 @@ export function ContactLifecycleWizard({
               {loading ? (
                 <p className="text-xs text-carbon-blue/50">Loading preview…</p>
               ) : preview ? (
-                <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3 text-[11px] text-carbon-blue/70">
+                <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3 text-[12px] text-carbon-blue/70">
                   <p className="font-semibold text-carbon-blue">
                     Transfer to {preview.targetCompanyName}
                   </p>
@@ -326,12 +326,12 @@ export function ContactLifecycleWizard({
             </>
           ) : mode === "position" ? (
             <>
-              <p className="text-[11px] text-carbon-blue/65">
+              <p className="text-[12px] text-carbon-blue/65">
                 Update role and job title at the current company. The contact timeline records
                 this position change — relationship history is preserved.
               </p>
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Role
                 </span>
                 <ContactRoleSelect
@@ -341,7 +341,7 @@ export function ContactLifecycleWizard({
                 />
               </label>
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Job title / position
                 </span>
                 <input
@@ -354,12 +354,12 @@ export function ContactLifecycleWizard({
             </>
           ) : (
             <>
-              <p className="text-[11px] text-carbon-blue/65">
+              <p className="text-[12px] text-carbon-blue/65">
                 Merge combines relationship history into this contact. The secondary record will
                 be removed after activities are rewired.
               </p>
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Merge with
                 </span>
                 <select
@@ -376,7 +376,7 @@ export function ContactLifecycleWizard({
               </label>
               {duplicateCandidates.length === 0 ? (
                 <label className="block">
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                     Contact ID to merge
                   </span>
                   <input

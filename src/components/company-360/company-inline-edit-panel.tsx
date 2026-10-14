@@ -20,7 +20,7 @@ const EDIT_FIELD_CLASS =
   "mt-1 w-full rounded-md border-2 border-upcycle-orange/25 bg-white px-3 py-2 text-carbon-blue outline-none transition-colors focus:border-upcycle-orange focus:ring-2 focus:ring-upcycle-orange/20";
 
 const EDIT_LABEL_CLASS =
-  "text-[10px] font-bold uppercase tracking-[0.14em] text-upcycle-orange/80";
+  "text-[11px] font-bold uppercase tracking-[0.14em] text-upcycle-orange/80";
 
 export function CompanyInlineEditPanel({
   company,
@@ -148,7 +148,7 @@ export function CompanyInlineEditPanel({
             <Pencil className="size-4 text-upcycle-orange" strokeWidth={2} />
           </span>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-upcycle-orange">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-upcycle-orange">
               Editing company
             </p>
             <p className="text-[13px] font-medium text-carbon-blue/70">
@@ -247,7 +247,7 @@ export function CompanyInlineEditPanel({
                 type="button"
                 disabled={saving || autofilling}
                 onClick={() => void handleAutoFillLocation()}
-                className="rounded-md border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md border border-carbon-blue/20 bg-white px-3 py-2 text-[12px] font-bold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {autofilling ? "Filling…" : "Auto-Fill Location"}
               </button>
@@ -337,7 +337,7 @@ export function CompanyInlineEditPanel({
             placeholder="biochar, nordics, priority"
             className={`${EDIT_FIELD_CLASS} text-[13px]`}
           />
-          <p className="mt-1 text-[10px] text-carbon-blue/45">Separate tags with commas</p>
+          <p className="mt-1 text-[11px] text-carbon-blue/65">Separate tags with commas</p>
         </label>
 
         <label className="block">
@@ -371,7 +371,7 @@ export function CompanyInlineEditPanel({
           </select>
         </label>
 
-        {error ? <p className="text-[12px] font-medium text-red-700">{error}</p> : null}
+        {error ? <p className="text-[13px] font-medium text-red-700">{error}</p> : null}
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-upcycle-orange/20 bg-white/60 px-4 py-3 sm:px-5">
@@ -403,7 +403,7 @@ function EditActions({
         type="button"
         onClick={() => void onSave()}
         disabled={saving || !canSave}
-        className="rounded-md border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-md border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-bold uppercase tracking-wider text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
       >
         {saving ? "Saving…" : "Save changes"}
       </button>
@@ -411,7 +411,7 @@ function EditActions({
         type="button"
         onClick={onCancel}
         disabled={saving}
-        className="rounded-md border border-carbon-blue/20 bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/60 transition-colors hover:border-carbon-blue/35 hover:text-carbon-blue"
+        className="rounded-md border border-carbon-blue/20 bg-white px-4 py-2 text-[12px] font-bold uppercase tracking-wider text-carbon-blue/60 transition-colors hover:border-carbon-blue/35 hover:text-carbon-blue"
       >
         Cancel
       </button>

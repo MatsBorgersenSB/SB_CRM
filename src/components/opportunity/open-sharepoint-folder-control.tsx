@@ -145,7 +145,7 @@ export function OpenSharePointFolderControl({
   if (loading && !url) {
     return (
       <span
-        className={`inline-flex items-center border border-[#0284c7]/20 bg-[#0284c7]/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#38bdf8]/70 ${className}`}
+        className={`inline-flex items-center border border-[#0284c7]/20 bg-[#0284c7]/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#38bdf8]/70 ${className}`}
       >
         SharePoint: Checking…
       </span>
@@ -158,7 +158,7 @@ export function OpenSharePointFolderControl({
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className={`inline-flex items-center gap-1.5 border border-[#0284c7]/30 bg-[#0284c7]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#38bdf8] transition-colors hover:bg-[#0284c7]/20 ${className}`}
+        className={`inline-flex items-center gap-1.5 border border-[#0284c7]/30 bg-[#0284c7]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#38bdf8] transition-colors hover:bg-[#0284c7]/20 ${className}`}
       >
         <ExternalLink className="size-3 shrink-0" aria-hidden />
         Open SharePoint Folder
@@ -169,7 +169,7 @@ export function OpenSharePointFolderControl({
   if (!dealId) {
     return (
       <span
-        className={`inline-flex items-center border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40 ${className}`}
+        className={`inline-flex items-center border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60 ${className}`}
         title="Folder will appear after Graph/Azure provision completes"
       >
         SharePoint: Pending Azure
@@ -184,17 +184,17 @@ export function OpenSharePointFolderControl({
         disabled={busy}
         onClick={() => void handleProvision()}
         title="Create Documents/Opportunities/{Company}/{Deal} in SharePoint"
-        className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <FolderPlus className="size-3 shrink-0" aria-hidden />
         {busy ? "Creating folder…" : "Create SharePoint Folder"}
       </button>
       {error ? (
-        <span className="max-w-[280px] text-[10px] leading-snug text-thermal-red" role="alert">
+        <span className="max-w-[280px] text-[11px] leading-snug text-thermal-red" role="alert">
           {error}
         </span>
       ) : (
-        <span className="text-[9px] text-carbon-blue/35">
+        <span className="text-[10px] text-carbon-blue/50">
           Path: Documents / Opportunities / …
         </span>
       )}

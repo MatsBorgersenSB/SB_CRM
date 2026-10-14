@@ -23,8 +23,8 @@ function BriefItemRow({ item }: { item: CopilotBriefItem }) {
     <>
       <SeverityDot severity={item.severity} />
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold text-carbon-blue">{item.label}</p>
-        <p className="mt-0.5 text-[10px] leading-relaxed text-carbon-blue/50">{item.detail}</p>
+        <p className="text-[12px] font-semibold text-carbon-blue">{item.label}</p>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-carbon-blue/50">{item.detail}</p>
       </div>
     </>
   );
@@ -48,11 +48,11 @@ function RecommendationRow({ rec }: { rec: CopilotRecommendation }) {
     <div
       className={`border px-3 py-2.5 ${NEXT_BEST_ACTION_PRIORITY_STYLES[rec.priority]}`}
     >
-      <p className="text-[9px] font-semibold uppercase tracking-wider opacity-70">
+      <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
         {rec.priority} priority
       </p>
-      <p className="mt-0.5 text-[11px] font-semibold">{rec.action}</p>
-      <p className="mt-0.5 text-[10px] leading-relaxed opacity-80">{rec.reason}</p>
+      <p className="mt-0.5 text-[12px] font-semibold">{rec.action}</p>
+      <p className="mt-0.5 text-[11px] leading-relaxed opacity-80">{rec.reason}</p>
     </div>
   );
 
@@ -79,17 +79,17 @@ function CopilotSection({
   if (items.length === 0) {
     return empty ? (
       <div>
-        <h3 className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+        <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
           {title}
         </h3>
-        <p className="mt-1.5 text-[10px] text-carbon-blue/40">{empty}</p>
+        <p className="mt-1.5 text-[11px] text-carbon-blue/60">{empty}</p>
       </div>
     ) : null;
   }
 
   return (
     <div>
-      <h3 className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+      <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
         {title}
       </h3>
       <ul className="mt-2 space-y-0.5">
@@ -107,7 +107,7 @@ function RecommendationsSection({ recs }: { recs: CopilotRecommendation[] }) {
   if (recs.length === 0) return null;
   return (
     <div>
-      <h3 className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+      <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
         Recommended actions
       </h3>
       <div className="mt-2 space-y-2">
@@ -149,14 +149,14 @@ function CompanyBriefingView({
 }) {
   return (
     <>
-      <p className="text-[11px] leading-relaxed text-carbon-blue/60">
+      <p className="text-[12px] leading-relaxed text-carbon-blue/60">
         {briefing.relationshipSummary}
       </p>
-      <div className="flex gap-4 text-[10px]">
+      <div className="flex gap-4 text-[11px]">
         <span className="font-semibold tabular-nums text-carbon-blue">
           Health {briefing.healthScore}
         </span>
-        <span className="text-carbon-blue/45">{briefing.healthStatus}</span>
+        <span className="text-carbon-blue/65">{briefing.healthStatus}</span>
       </div>
       <CopilotSection title="Risks" items={briefing.risks} empty="No active risk signals." />
       <CopilotSection
@@ -182,7 +182,7 @@ function OpportunityBriefingView({
   return (
     <>
       {!briefing.portfolioMode && briefing.healthScore !== undefined ? (
-        <div className="flex flex-wrap gap-3 text-[10px]">
+        <div className="flex flex-wrap gap-3 text-[11px]">
           <span className="font-semibold tabular-nums text-carbon-blue">
             Health {briefing.healthScore}
           </span>
@@ -214,8 +214,8 @@ function DocumentBriefingView({
 }) {
   return (
     <>
-      <p className="text-[11px] leading-relaxed text-carbon-blue/60">{briefing.businessImpact}</p>
-      <div className="text-[10px] font-semibold text-upcycle-orange">
+      <p className="text-[12px] leading-relaxed text-carbon-blue/60">{briefing.businessImpact}</p>
+      <div className="text-[11px] font-semibold text-upcycle-orange">
         {briefing.impactLevel} business impact
       </div>
       <CopilotSection title="Dependencies" items={briefing.dependencies} />
@@ -245,16 +245,16 @@ export function SmartCRMCopilotPanel({ briefing }: { briefing: CopilotBriefing }
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-upcycle-orange" strokeWidth={1.75} />
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               SmartCRM Copilot
             </p>
-            <p className="text-[11px] font-semibold text-carbon-blue">
+            <p className="text-[12px] font-semibold text-carbon-blue">
               {CONTEXT_LABELS[briefing.context]}
             </p>
           </div>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-carbon-blue/65">{briefing.headline}</p>
-        <p className="mt-1 text-[9px] text-carbon-blue/35">
+        <p className="mt-1 text-[10px] text-carbon-blue/50">
           {timestamp} · {briefing.source === "rule" ? "Intelligence engines" : "AI enhanced"}
         </p>
       </header>
@@ -267,7 +267,7 @@ export function SmartCRMCopilotPanel({ briefing }: { briefing: CopilotBriefing }
       </div>
 
       <footer className="mt-auto border-t border-carbon-blue/8 px-4 py-2.5">
-        <p className="text-[9px] leading-relaxed text-carbon-blue/35">{getCopilotExplanation()}</p>
+        <p className="text-[10px] leading-relaxed text-carbon-blue/50">{getCopilotExplanation()}</p>
       </footer>
     </aside>
   );

@@ -171,7 +171,7 @@ export function ContactProjectRolesTable({
   return (
     <div className="space-y-3">
       {roles.length === 0 ? (
-        <p className="text-sm text-carbon-blue/45">
+        <p className="text-sm text-carbon-blue/65">
           No project roles yet. Add {getContactDisplayName(contact)} to a project from here.
         </p>
       ) : (
@@ -189,21 +189,21 @@ export function ContactProjectRolesTable({
                 <IconLabel
                   icon="project"
                   iconSize="xs"
-                  className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+                  className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
                 >
                   Project
                 </IconLabel>
               </th>
-              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Role
               </th>
-              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Project role
               </th>
-              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Influence
               </th>
-              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Status
               </th>
             </tr>
@@ -221,17 +221,17 @@ export function ContactProjectRolesTable({
                     </span>
                   </ProjectLink>
                 </td>
-                <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/70">
+                <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/70">
                   {entry.categoryLabel}
                 </td>
-                <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/70">
+                <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/70">
                   {entry.projectRole}
                 </td>
-                <td className="px-3 py-2.5 text-[12px] text-carbon-blue/55">
+                <td className="px-3 py-2.5 text-[13px] text-carbon-blue/55">
                   {entry.influence ?? "—"}
                 </td>
                 <td className="px-3 py-2.5">
-                  <span className="inline-flex items-center gap-1.5 text-[12px] text-carbon-blue/70">
+                  <span className="inline-flex items-center gap-1.5 text-[13px] text-carbon-blue/70">
                     <HealthStatusIcon status={entry.projectHealth} size="xs" />
                     {entry.projectStatus}
                   </span>
@@ -245,15 +245,15 @@ export function ContactProjectRolesTable({
       {canManage ? (
         assignOpen ? (
           <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3">
-            <p className="text-[11px] font-semibold text-carbon-blue">
+            <p className="text-[12px] font-semibold text-carbon-blue">
               Add to existing project
             </p>
-            <p className="mt-0.5 text-[10px] text-carbon-blue/50">
+            <p className="mt-0.5 text-[11px] text-carbon-blue/50">
               Search a project — no need to open it first.
             </p>
 
             <label className="relative mt-3 block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Project
               </span>
               <input
@@ -275,12 +275,12 @@ export function ContactProjectRolesTable({
                   setSelectedProjectId("");
                   setPickerOpen(true);
                 }}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
               />
               {pickerOpen ? (
                 <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto border border-carbon-blue/15 bg-white shadow-md">
                   {filteredProjects.length === 0 ? (
-                    <li className="px-3 py-2 text-[11px] text-carbon-blue/50">
+                    <li className="px-3 py-2 text-[12px] text-carbon-blue/50">
                       {availableProjects.length === 0
                         ? "Already on all active projects, or no projects exist."
                         : "No projects match your search."}
@@ -297,10 +297,10 @@ export function ContactProjectRolesTable({
                             setPickerOpen(false);
                           }}
                         >
-                          <span className="text-[12px] font-medium text-carbon-blue">
+                          <span className="text-[13px] font-medium text-carbon-blue">
                             {project.name}
                           </span>
-                          <span className="text-[10px] text-carbon-blue/45">
+                          <span className="text-[11px] text-carbon-blue/65">
                             {project.id} · {project.status}
                           </span>
                         </button>
@@ -313,14 +313,14 @@ export function ContactProjectRolesTable({
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                   Role on project
                 </span>
                 <select
                   value={stakeholderRole}
                   disabled={busy}
                   onChange={(event) => setStakeholderRole(event.target.value)}
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
                 >
                   {roleOptions.map((option) => (
                     <option key={option} value={option}>
@@ -330,7 +330,7 @@ export function ContactProjectRolesTable({
                 </select>
               </label>
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                   Influence
                 </span>
                 <select
@@ -339,7 +339,7 @@ export function ContactProjectRolesTable({
                   onChange={(event) =>
                     setInfluence(event.target.value as StakeholderInfluence)
                   }
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
                 >
                   {INFLUENCE_OPTIONS.map((option) => (
                     <option key={option} value={option}>
@@ -351,7 +351,7 @@ export function ContactProjectRolesTable({
             </div>
 
             {error ? (
-              <p className="mt-2 text-[11px] text-thermal-red">{error}</p>
+              <p className="mt-2 text-[12px] text-thermal-red">{error}</p>
             ) : null}
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -359,7 +359,7 @@ export function ContactProjectRolesTable({
                 type="button"
                 disabled={busy || !selectedProjectId}
                 onClick={() => void handleAdd()}
-                className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
+                className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"
               >
                 {busy ? "Adding…" : "Add to project"}
               </button>
@@ -371,14 +371,14 @@ export function ContactProjectRolesTable({
                   setError(null);
                   setPickerOpen(false);
                 }}
-                className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/60"
+                className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/60"
               >
                 Cancel
               </button>
               {selectedProject ? (
                 <a
                   href={project360Href(selectedProject.id)}
-                  className="px-2 py-1.5 text-[11px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
+                  className="px-2 py-1.5 text-[12px] font-semibold text-carbon-blue/65 hover:text-upcycle-orange"
                 >
                   Open project
                 </a>
@@ -389,7 +389,7 @@ export function ContactProjectRolesTable({
           <button
             type="button"
             onClick={() => setAssignOpen(true)}
-            className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+            className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
           >
             + Add to project
           </button>

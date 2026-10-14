@@ -46,7 +46,7 @@ function MemorySection({
 
   return (
     <div className={`border-l-2 pl-3 ${border}`}>
-      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
         {label}
       </p>
       <div className="mt-1.5">{children}</div>
@@ -65,8 +65,8 @@ function LinkChip({
   label: string;
   mono?: boolean;
 }) {
-  const className = `inline-flex items-center gap-1 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-2 py-0.5 text-[10px] font-medium text-carbon-blue/65 transition-colors hover:border-upcycle-orange/25 hover:text-upcycle-orange ${
-    mono ? "font-mono text-[9px]" : ""
+  const className = `inline-flex items-center gap-1 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-2 py-0.5 text-[11px] font-medium text-carbon-blue/65 transition-colors hover:border-upcycle-orange/25 hover:text-upcycle-orange ${
+    mono ? "font-mono text-[10px]" : ""
   }`;
 
   if (href) {
@@ -135,13 +135,13 @@ export function ActivityCard({
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-carbon-blue/45">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-carbon-blue/65">
                       {activity.ActivityType}
                     </span>
                     {activity.Company?.Title ? (
                       <>
                         <span className="text-carbon-blue/20">·</span>
-                        <span className="text-[10px] font-medium text-carbon-blue/55">
+                        <span className="text-[11px] font-medium text-carbon-blue/55">
                           {activity.Company.Title}
                         </span>
                       </>
@@ -162,7 +162,7 @@ export function ActivityCard({
                     </Link>
                   )}
 
-                  <p className="mt-0.5 text-[10px] text-carbon-blue/40">
+                  <p className="mt-0.5 text-[11px] text-carbon-blue/60">
                     {formatActivityDateTime(activity.ActivityDate)}
                     {activity.ActivityOwner?.Title ? (
                       <>
@@ -174,11 +174,11 @@ export function ActivityCard({
                 </div>
 
                 {overdue ? (
-                  <span className="shrink-0 border border-red-500/30 bg-red-500/8 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-red-700">
+                  <span className="shrink-0 border border-red-500/30 bg-red-500/8 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-700">
                     Overdue
                   </span>
                 ) : memory.whatHappensNext ? (
-                  <span className="shrink-0 border border-upcycle-orange/25 bg-upcycle-orange/8 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
+                  <span className="shrink-0 border border-upcycle-orange/25 bg-upcycle-orange/8 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
                     Action due
                   </span>
                 ) : null}
@@ -191,7 +191,7 @@ export function ActivityCard({
                       {memory.summary}
                     </p>
                     {memory.whatHappened !== memory.summary ? (
-                      <p className="mt-1.5 text-[11px] leading-relaxed text-carbon-blue/55">
+                      <p className="mt-1.5 text-[12px] leading-relaxed text-carbon-blue/55">
                         {memory.whatHappened}
                       </p>
                     ) : null}
@@ -238,7 +238,7 @@ export function ActivityCard({
                         {memory.whatHappensNext}
                       </p>
                       {memory.whatHappensNextDue ? (
-                        <p className="mt-0.5 text-[10px] text-carbon-blue/50">
+                        <p className="mt-0.5 text-[11px] text-carbon-blue/50">
                           Due {formatDueDate(memory.whatHappensNextDue)}
                         </p>
                       ) : null}
@@ -307,7 +307,7 @@ export function ActivityCard({
               <button
                 type="button"
                 onClick={() => onSelect(activity)}
-                className="inline-flex items-center gap-1 text-[10px] font-semibold text-carbon-blue/40 transition-colors hover:text-upcycle-orange"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-carbon-blue/60 transition-colors hover:text-upcycle-orange"
               >
                 Full context
                 <ArrowRight className="size-3" />
@@ -315,7 +315,7 @@ export function ActivityCard({
             ) : (
               <Link
                 href={detailHref}
-                className="inline-flex items-center gap-1 text-[10px] font-semibold text-carbon-blue/40 transition-colors hover:text-upcycle-orange"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-carbon-blue/60 transition-colors hover:text-upcycle-orange"
               >
                 Full context
                 <ArrowRight className="size-3" />

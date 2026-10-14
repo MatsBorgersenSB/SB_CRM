@@ -155,7 +155,7 @@ export function ViewInSharePointButton({
     }
   };
 
-  const linkClass = `inline-flex items-center gap-1.5 border border-[#0284c7]/30 bg-[#0284c7]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#38bdf8] transition-colors hover:bg-[#0284c7]/20 ${className}`;
+  const linkClass = `inline-flex items-center gap-1.5 border border-[#0284c7]/30 bg-[#0284c7]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#38bdf8] transition-colors hover:bg-[#0284c7]/20 ${className}`;
 
   if (href) {
     return (
@@ -169,7 +169,7 @@ export function ViewInSharePointButton({
   if (loading) {
     return (
       <span
-        className={`inline-flex items-center border border-[#0284c7]/20 bg-[#0284c7]/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#38bdf8]/70 ${className}`}
+        className={`inline-flex items-center border border-[#0284c7]/20 bg-[#0284c7]/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#38bdf8]/70 ${className}`}
       >
         SharePoint: Checking…
       </span>
@@ -186,13 +186,13 @@ export function ViewInSharePointButton({
         type="button"
         disabled={busy}
         onClick={() => void handleEnsureAndOpen()}
-        className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <ExternalLink className="size-3 shrink-0" aria-hidden />
         {busy ? "Opening…" : "View in SharePoint"}
       </button>
       {error ? (
-        <span className="max-w-[280px] text-[10px] leading-snug text-thermal-red" role="alert">
+        <span className="max-w-[280px] text-[11px] leading-snug text-thermal-red" role="alert">
           {error}
         </span>
       ) : null}

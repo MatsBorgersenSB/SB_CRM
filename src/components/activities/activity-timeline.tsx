@@ -24,7 +24,7 @@ export function ActivityTimeline({
     return (
       <div className="flex flex-col items-center justify-center border border-dashed border-carbon-blue/15 bg-carbon-blue/[0.02] px-6 py-10 text-center">
         <p className="text-xs text-carbon-blue/50">{emptyMessage}</p>
-        <p className="mt-1 max-w-sm text-[11px] text-carbon-blue/40">
+        <p className="mt-1 max-w-sm text-[12px] text-carbon-blue/60">
           The timeline becomes the memory of every relationship.
         </p>
       </div>
@@ -37,7 +37,7 @@ export function ActivityTimeline({
     <div className="flex flex-col gap-8">
       {groups.map((group) => (
         <section key={group.label}>
-          <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
             {group.label}
           </h3>
           <div className="flex flex-col">

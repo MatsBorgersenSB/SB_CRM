@@ -72,10 +72,10 @@ export function OutlookActiveAssistApprove({
   if (choseNoAction) {
     return (
       <div className="mt-2 space-y-1.5">
-        <p className="text-[11px] font-medium leading-relaxed text-carbon-blue/70">
+        <p className="text-[12px] font-medium leading-relaxed text-carbon-blue/70">
           No action taken
         </p>
-        <p className="text-[10px] leading-relaxed text-carbon-blue/45">
+        <p className="text-[11px] leading-relaxed text-carbon-blue/65">
           You can keep reading mail — SmartAssist will not insist on this recommendation.
         </p>
       </div>
@@ -88,7 +88,7 @@ export function OutlookActiveAssistApprove({
         type="button"
         disabled={busy}
         onClick={() => void handleApprove()}
-        className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {busy ? "Applying…" : "Approve in SmartCRM"}
       </button>
@@ -96,14 +96,14 @@ export function OutlookActiveAssistApprove({
         type="button"
         disabled={busy}
         onClick={() => void handleNoAction()}
-        className="inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-carbon-blue/35 hover:text-carbon-blue disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-carbon-blue/35 hover:text-carbon-blue disabled:opacity-50"
       >
         {busy ? "Saving…" : "No Action"}
       </button>
       {message ? (
-        <p className="text-[10px] leading-relaxed text-emerald-700">{message}</p>
+        <p className="text-[11px] leading-relaxed text-emerald-700">{message}</p>
       ) : null}
-      {error ? <p className="text-[10px] leading-relaxed text-red-600">{error}</p> : null}
+      {error ? <p className="text-[11px] leading-relaxed text-red-600">{error}</p> : null}
     </div>
   );
 }

@@ -26,7 +26,7 @@ export function ActivityQuickFilters({
             key={filter.id}
             type="button"
             onClick={() => onChange(filter.id)}
-            className={`inline-flex items-center gap-1 border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+            className={`inline-flex items-center gap-1 border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
               isActive
                 ? "border-upcycle-orange/35 bg-upcycle-orange/10 text-upcycle-orange"
                 : "border-carbon-blue/10 bg-white text-carbon-blue/55 hover:border-carbon-blue/20 hover:text-carbon-blue"
@@ -35,7 +35,7 @@ export function ActivityQuickFilters({
             {filter.label}
             {count !== undefined && count > 0 ? (
               <span
-                className={`tabular-nums ${isActive ? "text-upcycle-orange" : "text-carbon-blue/35"}`}
+                className={`tabular-nums ${isActive ? "text-upcycle-orange" : "text-carbon-blue/50"}`}
               >
                 ({count})
               </span>
@@ -61,7 +61,7 @@ export function ActivitySearchBar({
   return (
     <div className="relative">
       <Search
-        className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/35"
+        className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50"
         strokeWidth={1.75}
       />
       <input

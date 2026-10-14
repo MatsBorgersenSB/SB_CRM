@@ -99,7 +99,7 @@ function commitmentStatusClass(status: CommitmentState): string {
     case "confirmed":
       return "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange";
     case "dismissed":
-      return "border-carbon-blue/15 bg-carbon-blue/[0.04] text-carbon-blue/45";
+      return "border-carbon-blue/15 bg-carbon-blue/[0.04] text-carbon-blue/65";
     case "completed":
       return "border-carbon-blue/20 bg-white text-carbon-blue/70";
     default:
@@ -258,7 +258,7 @@ export function MeetingIntelligence({
   return (
     <section aria-label="Meeting intelligence" className="flex flex-col gap-4">
       <div>
-        <p className="text-[11px] font-medium text-carbon-blue/45">FS-008 Meeting Intelligence</p>
+        <p className="text-[12px] font-medium text-carbon-blue/65">FS-008 Meeting Intelligence</p>
         <h3 className="mt-1 text-base font-semibold text-carbon-blue">Meetings & commitments</h3>
         <p className="mt-1 text-[13px] text-carbon-blue/55">
           Review synced meetings, resolve attendees against the Contact Registry, and confirm
@@ -273,12 +273,12 @@ export function MeetingIntelligence({
       />
 
       <div className="flex flex-wrap items-end gap-3 border border-carbon-blue/10 bg-white px-3 py-3">
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Sync status
           <select
             value={syncFilter}
             onChange={(event) => setSyncFilter(event.target.value as "all" | SyncStatus)}
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             <option value="all">All meetings</option>
             <option value="pending_review">Pending review</option>
@@ -286,28 +286,28 @@ export function MeetingIntelligence({
             <option value="ignored">Ignored</option>
           </select>
         </label>
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Commitments
           <select
             value={commitmentFilter}
             onChange={(event) =>
               setCommitmentFilter(event.target.value as "all" | "proposed" | "open")
             }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             <option value="all">Any</option>
             <option value="proposed">Has proposed</option>
             <option value="open">Has open</option>
           </select>
         </label>
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[11px] font-semibold text-carbon-blue/55">
+        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Domains
           <select
             value={domainFilter}
             onChange={(event) =>
               setDomainFilter(event.target.value as "all" | "external" | "internal_only")
             }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             <option value="external">External (default)</option>
             <option value="all">All domains</option>
@@ -333,13 +333,13 @@ export function MeetingIntelligence({
       />
 
       {error ? (
-        <p className="border border-thermal-red/25 bg-thermal-red/[0.06] px-3 py-2 text-[12px] text-thermal-red">
+        <p className="border border-thermal-red/25 bg-thermal-red/[0.06] px-3 py-2 text-[13px] text-thermal-red">
           {error}
         </p>
       ) : null}
 
       {loading ? (
-        <p className="text-[13px] text-carbon-blue/45">Loading meetings…</p>
+        <p className="text-[13px] text-carbon-blue/65">Loading meetings…</p>
       ) : meetings.length === 0 ? (
         <p className="border border-carbon-blue/10 bg-white px-4 py-6 text-[13px] text-carbon-blue/55">
           No meetings linked to this opportunity yet.
@@ -359,27 +359,27 @@ export function MeetingIntelligence({
               <header className="border-b border-carbon-blue/8 pb-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
                       Meeting timeline
                     </p>
                     <h4 className="mt-1 text-[15px] font-semibold text-carbon-blue">
                       {meeting.subject}
                     </h4>
-                    <p className="mt-1 text-[12px] text-carbon-blue/60">
+                    <p className="mt-1 text-[13px] text-carbon-blue/60">
                       {formatMeetingWhen(meeting.startTime, meeting.endTime)}
                     </p>
-                    <p className="mt-0.5 text-[12px] text-carbon-blue/50">
+                    <p className="mt-0.5 text-[13px] text-carbon-blue/50">
                       Organizer: {meeting.organizerEmail}
                       {meeting.location ? ` · ${meeting.location}` : ""}
                     </p>
                   </div>
-                  <span className="shrink-0 border border-carbon-blue/15 bg-carbon-blue/[0.03] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/55">
+                  <span className="shrink-0 border border-carbon-blue/15 bg-carbon-blue/[0.03] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/55">
                     {labelize(meeting.syncStatus)}
                   </span>
                 </div>
                 {meeting.aiSummary ? (
                   <div className="mt-3 border border-upcycle-orange/20 bg-upcycle-orange/[0.04] px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
                       AI meeting summary
                     </p>
                     <p className="mt-1 text-[13px] leading-relaxed text-carbon-blue">
@@ -387,7 +387,7 @@ export function MeetingIntelligence({
                     </p>
                   </div>
                 ) : (
-                  <p className="mt-3 text-[12px] text-carbon-blue/45">
+                  <p className="mt-3 text-[13px] text-carbon-blue/65">
                     No AI summary yet — summary appears after SmartAssist review.
                   </p>
                 )}
@@ -395,7 +395,7 @@ export function MeetingIntelligence({
 
               {/* 2. Attendee Resolution Badges */}
               <section className="border-b border-carbon-blue/8 py-3" aria-label="Attendees">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
                   Attendee resolution
                 </p>
                 <ul className="mt-2 flex flex-col gap-2">
@@ -408,7 +408,7 @@ export function MeetingIntelligence({
                         <p className="truncate text-[13px] font-semibold text-carbon-blue">
                           {participant.contactName || participant.name || participant.email}
                         </p>
-                        <p className="truncate text-[11px] text-carbon-blue/50">
+                        <p className="truncate text-[12px] text-carbon-blue/50">
                           {participant.email}
                           {participant.contactJobTitle
                             ? ` · ${participant.contactJobTitle}`
@@ -417,24 +417,24 @@ export function MeetingIntelligence({
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
                         {participant.isExternal ? (
-                          <span className="border border-carbon-blue/15 bg-carbon-blue/[0.04] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/55">
+                          <span className="border border-carbon-blue/15 bg-carbon-blue/[0.04] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/55">
                             External
                           </span>
                         ) : (
-                          <span className="border border-carbon-blue/15 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/50">
+                          <span className="border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/50">
                             Internal
                           </span>
                         )}
                         {participant.resolved ? (
-                          <span className="border border-emerald-600/30 bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-emerald-700">
+                          <span className="border border-emerald-600/30 bg-emerald-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-emerald-700">
                             Resolved Contact
                           </span>
                         ) : participant.isExternal ? (
-                          <span className="border border-amber-500/35 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-700">
+                          <span className="border border-amber-500/35 bg-amber-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-amber-700">
                             Unresolved External
                           </span>
                         ) : (
-                          <span className="border border-carbon-blue/20 bg-carbon-blue/[0.03] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/55">
+                          <span className="border border-carbon-blue/20 bg-carbon-blue/[0.03] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-carbon-blue/55">
                             Internal — Unlinked
                           </span>
                         )}
@@ -446,11 +446,11 @@ export function MeetingIntelligence({
 
               {/* 3. SmartAssist Action Commitments */}
               <section className="pt-3" aria-label="Commitments">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/40">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
                   SmartAssist action commitments
                 </p>
                 {meeting.commitments.length === 0 ? (
-                  <p className="mt-2 text-[12px] text-carbon-blue/45">
+                  <p className="mt-2 text-[13px] text-carbon-blue/65">
                     No proposed commitments for this meeting.
                   </p>
                 ) : (
@@ -468,13 +468,13 @@ export function MeetingIntelligence({
                               <p className="text-[13px] font-medium text-carbon-blue">
                                 {commitment.description}
                               </p>
-                              <p className="mt-1 text-[11px] text-carbon-blue/50">
+                              <p className="mt-1 text-[12px] text-carbon-blue/50">
                                 Owner: {commitment.ownerEmail} · Due{" "}
                                 {formatDueDate(commitment.dueDate)}
                               </p>
                             </div>
                             <span
-                              className={`shrink-0 border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] ${commitmentStatusClass(commitment.status)}`}
+                              className={`shrink-0 border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] ${commitmentStatusClass(commitment.status)}`}
                             >
                               {labelize(commitment.status)}
                             </span>
@@ -485,7 +485,7 @@ export function MeetingIntelligence({
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void updateCommitment(commitment.id, "confirmed")}
-                                className="rounded-md border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
+                                className="rounded-md border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"
                               >
                                 {busy ? "Saving…" : "Confirm"}
                               </button>
@@ -493,7 +493,7 @@ export function MeetingIntelligence({
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void updateCommitment(commitment.id, "dismissed")}
-                                className="rounded-md border border-slate-200/80 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:text-slate-900 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                                className="rounded-md border border-slate-200/80 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:text-slate-900 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
                               >
                                 Dismiss
                               </button>
@@ -516,7 +516,7 @@ export function MeetingIntelligence({
                               type="button"
                               disabled={busy}
                               onClick={() => void updateCommitment(commitment.id, "proposed")}
-                              className="mt-2 text-[11px] font-semibold text-carbon-blue/50 hover:text-upcycle-orange disabled:opacity-50"
+                              className="mt-2 text-[12px] font-semibold text-carbon-blue/50 hover:text-upcycle-orange disabled:opacity-50"
                             >
                               Restore as proposed
                             </button>

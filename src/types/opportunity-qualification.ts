@@ -27,7 +27,7 @@ export const QUALIFICATION_TIER_META: Record<
   D: {
     label: "Tier D",
     description: "Information seeker · low commitment · no visible business case",
-    color: "text-carbon-blue/45",
+    color: "text-carbon-blue/65",
   },
 };
 

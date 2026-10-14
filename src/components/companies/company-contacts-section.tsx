@@ -46,21 +46,21 @@ function ContactCard({
         }`}
       >
         <p className="text-xs font-semibold text-carbon-blue">{displayName}</p>
-        <p className="mt-0.5 font-mono text-[9px] text-carbon-blue/45">
+        <p className="mt-0.5 font-mono text-[10px] text-carbon-blue/65">
           {contact.ContactID}
         </p>
       </button>
       <div className="border-t border-carbon-blue/10 px-3 py-2.5">
         <div className="mb-2 flex flex-wrap gap-1">
-          <span className="inline-flex items-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/70">
+          <span className="inline-flex items-center border border-carbon-blue/20 bg-carbon-blue/[0.04] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70">
             {contact.Role}
           </span>
-          <span className="inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[9px] font-semibold text-carbon-blue/55">
+          <span className="inline-flex items-center border border-carbon-blue/15 px-2 py-0.5 text-[10px] font-semibold text-carbon-blue/55">
             {contact.Status}
           </span>
         </div>
         {contact.JobTitle ? (
-          <p className="mb-2 text-[10px] text-carbon-blue/60">{contact.JobTitle}</p>
+          <p className="mb-2 text-[11px] text-carbon-blue/60">{contact.JobTitle}</p>
         ) : null}
         <div
           onClick={(event) => event.stopPropagation()}
@@ -141,13 +141,13 @@ export function CompanyContactsSection({
   return (
     <section className="border border-carbon-blue/10">
       <header className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-1.5">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Primary Contacts
         </h3>
         <button
           type="button"
           onClick={() => setCreateOpen((open) => !open)}
-          className="border border-carbon-blue/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/60 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+          className="border border-carbon-blue/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
         >
           + New Contact
         </button>

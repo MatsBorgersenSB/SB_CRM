@@ -39,7 +39,7 @@ export function MarketFactsOnDeal({
 
   return (
     <section className="rounded-lg border border-carbon-blue/10 bg-white px-4 py-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/45">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/65">
         From the market
       </p>
       <h2 className="mt-1 text-[16px] font-semibold text-carbon-blue">
@@ -58,7 +58,7 @@ export function MarketFactsOnDeal({
         <ul className="mt-3 space-y-3">
           {rows.map((fact) => (
             <li key={fact.id} className="border-t border-carbon-blue/8 pt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                 {fact.placeLabel}
               </p>
               <p className="mt-0.5 text-[13px] font-semibold text-carbon-blue">{fact.title}</p>

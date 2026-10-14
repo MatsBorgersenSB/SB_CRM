@@ -34,18 +34,18 @@ function ClaimRow({
     <li className="border-t border-carbon-blue/8 py-2.5 first:border-t-0 first:pt-0">
       <p className="text-[13px] leading-snug text-carbon-blue">
         {confirmed ? (
-          <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <span className="mr-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Confirmed
           </span>
         ) : claim.confidence === "moderate" ? (
-          <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange/80">
+          <span className="mr-1.5 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange/80">
             Assumed
           </span>
         ) : null}
         {claim.statement}
       </p>
-      <p className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/55">{claim.impact}</p>
-      <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+      <p className="mt-0.5 text-[13px] leading-relaxed text-carbon-blue/55">{claim.impact}</p>
+      <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[12px]">
         {claim.sources.map((source) => (
           <Link
             key={source.id}
@@ -63,7 +63,7 @@ function ClaimRow({
               type="button"
               disabled={busy}
               onClick={() => onDecide("confirmed")}
-              className="inline-flex h-7 items-center border border-upcycle-orange/30 bg-upcycle-orange px-2.5 text-[11px] font-semibold text-white hover:bg-upcycle-orange/90 disabled:opacity-50"
+              className="inline-flex h-7 items-center border border-upcycle-orange/30 bg-upcycle-orange px-2.5 text-[12px] font-semibold text-white hover:bg-upcycle-orange/90 disabled:opacity-50"
             >
               Confirm
             </button>
@@ -73,7 +73,7 @@ function ClaimRow({
               type="button"
               disabled={busy}
               onClick={() => onDecide("dismissed")}
-              className="inline-flex h-7 items-center border border-carbon-blue/15 px-2.5 text-[11px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+              className="inline-flex h-7 items-center border border-carbon-blue/15 px-2.5 text-[12px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
             >
               Not now
             </button>
@@ -106,7 +106,7 @@ export function CompanyDocumentKnowledgePanel({
 
   if (snapshot.documentCount === 0 && snapshot.facts.length === 0) {
     return (
-      <p className="px-1 text-[12px] text-carbon-blue/50">
+      <p className="px-1 text-[13px] text-carbon-blue/50">
         No documents on file yet.{" "}
         <Link
           href={company360Href(companyId, "documents")}
@@ -153,17 +153,17 @@ export function CompanyDocumentKnowledgePanel({
   return (
     <section id="document-knowledge" className="dashboard-card overflow-hidden">
       <div className="px-6 py-5">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
           From documents
         </p>
-        <p className="mt-1 text-[12px] text-carbon-blue/50">
+        <p className="mt-1 text-[13px] text-carbon-blue/50">
           From the names and types of files on this company — not a full read of every PDF yet.
           Nothing is written onto the company until you confirm.
         </p>
 
         {snapshot.facts.length > 0 ? (
           <div className="mt-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/65">
               What we know
             </p>
             <ul className="mt-1">
@@ -184,7 +184,7 @@ export function CompanyDocumentKnowledgePanel({
 
         {snapshot.unknowns.length > 0 ? (
           <div className="mt-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/65">
               What we don&apos;t know
             </p>
             <ul className="mt-1">
@@ -205,7 +205,7 @@ export function CompanyDocumentKnowledgePanel({
 
         {snapshot.nextAction ? (
           <div className="mt-4 border-l-2 border-upcycle-orange/50 pl-3">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
               Next
             </p>
             <Link
@@ -214,14 +214,14 @@ export function CompanyDocumentKnowledgePanel({
             >
               {snapshot.nextAction.label}
             </Link>
-            <p className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/55">
+            <p className="mt-0.5 text-[13px] leading-relaxed text-carbon-blue/55">
               {snapshot.nextAction.reason}
             </p>
           </div>
         ) : null}
 
         {snapshot.facts.length === 0 && snapshot.unknowns.length === 0 ? (
-          <p className="mt-3 text-[12px] text-carbon-blue/50">
+          <p className="mt-3 text-[13px] text-carbon-blue/50">
             {snapshot.documentCount} document{snapshot.documentCount === 1 ? "" : "s"} on
             file.{" "}
             <Link
@@ -233,7 +233,7 @@ export function CompanyDocumentKnowledgePanel({
           </p>
         ) : null}
 
-        {error ? <p className="mt-3 text-[12px] text-red-700">{error}</p> : null}
+        {error ? <p className="mt-3 text-[13px] text-red-700">{error}</p> : null}
       </div>
     </section>
   );

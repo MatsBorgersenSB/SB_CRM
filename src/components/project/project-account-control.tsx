@@ -92,11 +92,11 @@ export function ProjectAccountControl({
             </option>
           ))}
         </select>
-        <div className="flex flex-wrap gap-2 text-[11px]">
+        <div className="flex flex-wrap gap-2 text-[12px]">
           <button
             type="button"
             onClick={() => setMode("view")}
-            className="font-semibold text-carbon-blue/45 hover:text-carbon-blue"
+            className="font-semibold text-carbon-blue/65 hover:text-carbon-blue"
           >
             Cancel
           </button>
@@ -115,14 +115,14 @@ export function ProjectAccountControl({
           {accountLabel}
         </CompanyLink>
       ) : (
-        <span className="text-carbon-blue/45">No account linked</span>
+        <span className="text-carbon-blue/65">No account linked</span>
       )}
-      <div className="flex flex-wrap gap-x-2 gap-y-1 text-[11px] font-semibold">
+      <div className="flex flex-wrap gap-x-2 gap-y-1 text-[12px] font-semibold">
         <button
           type="button"
           disabled={saving}
           onClick={() => setMode("change")}
-          className="text-carbon-blue/45 hover:text-carbon-blue disabled:opacity-50"
+          className="text-carbon-blue/65 hover:text-carbon-blue disabled:opacity-50"
         >
           {accountCompanyId ? "Change" : "Add account"}
         </button>
@@ -135,7 +135,7 @@ export function ProjectAccountControl({
               type="button"
               disabled={saving}
               onClick={() => setMode("replace")}
-              className="text-carbon-blue/45 hover:text-carbon-blue disabled:opacity-50"
+              className="text-carbon-blue/65 hover:text-carbon-blue disabled:opacity-50"
             >
               Replace
             </button>
@@ -146,7 +146,7 @@ export function ProjectAccountControl({
               type="button"
               disabled={saving}
               onClick={() => void handleRemove()}
-              className="text-carbon-blue/45 hover:text-red-600 disabled:opacity-50"
+              className="text-carbon-blue/65 hover:text-red-600 disabled:opacity-50"
             >
               Remove
             </button>
@@ -160,7 +160,7 @@ export function ProjectAccountControl({
             <button
               type="button"
               onClick={onAddOrganization}
-              className="text-carbon-blue/45 hover:text-upcycle-orange"
+              className="text-carbon-blue/65 hover:text-upcycle-orange"
             >
               Add organization
             </button>

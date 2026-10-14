@@ -122,7 +122,7 @@ export function OpportunityWorkspaceHeader({
       <div className={`${ATTIO_SURFACE_HEADER} flex items-center justify-between gap-3`}>
         <nav
           aria-label="Breadcrumb"
-          className="flex min-w-0 flex-wrap items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400"
+          className="flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400"
         >
           <Link
             href="/opportunities"
@@ -151,7 +151,7 @@ export function OpportunityWorkspaceHeader({
             <h1 className="truncate text-[22px] font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-[24px]">
               {pipeline.assetName}
             </h1>
-            <p className="mt-1 font-mono text-[12px] text-slate-500 dark:text-slate-400">
+            <p className="mt-1 font-mono text-[13px] text-slate-500 dark:text-slate-400">
               {opportunityPublicCode(pipeline)}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -166,7 +166,7 @@ export function OpportunityWorkspaceHeader({
                   companyId={company.CompanyID}
                   className={`${ATTIO_PILL_STATIC} hover:border-slate-300 hover:bg-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-800`}
                 >
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
                     Account
                   </span>
                   <span className="font-medium text-slate-700 dark:text-slate-200">
@@ -175,7 +175,7 @@ export function OpportunityWorkspaceHeader({
                 </CompanyLink>
               ) : (
                 <span className={ATTIO_PILL_STATIC}>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
                     Account
                   </span>
                   <span>—</span>
@@ -197,7 +197,7 @@ export function OpportunityWorkspaceHeader({
                   opportunityId={pipeline.id}
                   role={role}
                   label="New mail in Outlook"
-                  className="inline-flex items-center border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-upcycle-orange hover:text-upcycle-orange dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                  className="inline-flex items-center border border-slate-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-slate-700 hover:border-upcycle-orange hover:text-upcycle-orange dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                 />
               ) : null}
             </div>
@@ -274,7 +274,7 @@ function AttributePill({
 }) {
   return (
     <div className={`${ATTIO_PILL} group/pill cursor-default`}>
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
         {label}
       </dt>
       <dd className="min-w-0 font-medium text-slate-800 dark:text-slate-100">{children}</dd>
@@ -311,7 +311,7 @@ function OwnerSelect({
         const selected = choices.find((option) => option.Id === Number(event.target.value));
         if (selected) void onChange(selected);
       }}
-      className="max-w-[10rem] cursor-pointer border-0 bg-transparent py-0 pl-0 pr-4 text-[12px] font-medium text-slate-800 outline-none dark:text-slate-100"
+      className="max-w-[10rem] cursor-pointer border-0 bg-transparent py-0 pl-0 pr-4 text-[13px] font-medium text-slate-800 outline-none dark:text-slate-100"
       aria-label="Opportunity owner"
     >
       {!owner ? <option value="">Select owner</option> : null}
@@ -355,7 +355,7 @@ function EditableCloseDate({
         ref={inputRef}
         type="date"
         defaultValue={toDateInputValue(value)}
-        className="w-full min-w-0 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+        className="w-full min-w-0 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[13px] text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
         onBlur={() => setEditing(false)}
         onChange={(event) => {
           const next = event.target.value || undefined;
@@ -418,7 +418,7 @@ function EditableValue({
         type="text"
         inputMode="numeric"
         defaultValue={rawValue}
-        className={`w-full min-w-[6rem] rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 ${className}`}
+        className={`w-full min-w-[6rem] rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[13px] text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 ${className}`}
         onBlur={(event) => {
           onCommit(event.target.value);
           setEditing(false);
@@ -492,7 +492,7 @@ function OpportunityDeleteControl({
           loading={deleting}
         />
         {error ? (
-          <p className="mt-2 text-[11px] font-medium text-thermal-red" role="alert">
+          <p className="mt-2 text-[12px] font-medium text-thermal-red" role="alert">
             {error}
           </p>
         ) : null}
@@ -504,7 +504,7 @@ function OpportunityDeleteControl({
     <button
       type="button"
       onClick={() => setConfirmOpen(true)}
-      className="shrink-0 border border-thermal-red/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-thermal-red hover:bg-thermal-red/[0.06] dark:border-thermal-red/40 dark:bg-slate-900"
+      className="shrink-0 border border-thermal-red/40 bg-white px-2.5 py-1 text-[12px] font-semibold text-thermal-red hover:bg-thermal-red/[0.06] dark:border-thermal-red/40 dark:bg-slate-900"
     >
       Delete opportunity
     </button>

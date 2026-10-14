@@ -16,13 +16,13 @@ function CheckRow({ check }: { check: ValidationCheck }) {
   return (
     <li className="flex items-start justify-between gap-3 border-b border-carbon-blue/6 py-2.5 last:border-0">
       <div className="min-w-0">
-        <p className="text-[11px] leading-snug text-carbon-blue/75">{check.label}</p>
+        <p className="text-[12px] leading-snug text-carbon-blue/75">{check.label}</p>
         {check.detail ? (
-          <p className="mt-0.5 text-[10px] leading-relaxed text-carbon-blue/40">{check.detail}</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-carbon-blue/60">{check.detail}</p>
         ) : null}
       </div>
       <span
-        className={`shrink-0 border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${STATUS_STYLES[check.status]}`}
+        className={`shrink-0 border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${STATUS_STYLES[check.status]}`}
       >
         {STATUS_LABEL[check.status]}
       </span>
@@ -36,18 +36,18 @@ export function M365ValidationPanel({ validation }: { validation: M365SurfaceVal
       <div className="border-b border-carbon-blue/8 px-5 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               Validation
             </p>
             <h2 className="mt-1 text-sm font-semibold text-carbon-blue">{validation.surface}</h2>
           </div>
           <span
-            className={`border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${STATUS_STYLES[validation.overall]}`}
+            className={`border px-2 py-1 text-[11px] font-semibold uppercase tracking-wider ${STATUS_STYLES[validation.overall]}`}
           >
             {STATUS_LABEL[validation.overall]}
           </span>
         </div>
-        <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/50">
+        <p className="mt-2 text-[12px] leading-relaxed text-carbon-blue/50">
           Hierarchy · clarity · scanability · actionability — before Outlook and Teams build.
         </p>
       </div>
@@ -55,7 +55,7 @@ export function M365ValidationPanel({ validation }: { validation: M365SurfaceVal
       <div className="divide-y divide-carbon-blue/8">
         {validation.sections.map((section) => (
           <section key={section.title} className="px-5 py-4">
-            <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
               {section.title}
             </h3>
             <ul className="mt-2">

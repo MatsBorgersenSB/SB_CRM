@@ -92,7 +92,7 @@ export function ContactRoleSelect({
               setAdding(false);
               setDraft("");
             }}
-            className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange disabled:opacity-50"
+            className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange disabled:opacity-50"
           >
             Save role
           </button>
@@ -103,7 +103,7 @@ export function ContactRoleSelect({
               setAdding(false);
               setDraft("");
             }}
-            className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+            className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
           >
             Cancel
           </button>

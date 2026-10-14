@@ -52,14 +52,14 @@ function SortHeader({
       <button
         type="button"
         onClick={onClick}
-        className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
-          active ? "text-upcycle-orange" : "text-carbon-blue/45 hover:text-carbon-blue"
+        className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
+          active ? "text-upcycle-orange" : "text-carbon-blue/65 hover:text-carbon-blue"
         } ${align === "right" ? "ml-auto" : ""}`}
       >
         {icon ? <SmartCRMIcon name={icon} size="xs" /> : null}
         {label}
         {active ? (
-          <span className="text-[9px] opacity-70" aria-hidden>
+          <span className="text-[10px] opacity-70" aria-hidden>
             {direction === "asc" ? "↑" : "↓"}
           </span>
         ) : null}
@@ -78,7 +78,7 @@ function StatusCell({
   detail: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 truncate text-[12px] text-carbon-blue/70">
+    <span className="inline-flex items-center gap-1.5 truncate text-[13px] text-carbon-blue/70">
       <span className={`size-2 shrink-0 rounded-full ${TONE_DOT_CLASS[tone]}`} aria-hidden />
       <span className="sr-only">{label}</span>
       <span className="truncate">{detail}</span>
@@ -122,7 +122,7 @@ export function OpportunitiesOverviewTable({
   };
 
   if (deals.length === 0) {
-    return <p className="text-sm text-carbon-blue/45">No opportunities yet.</p>;
+    return <p className="text-sm text-carbon-blue/65">No opportunities yet.</p>;
   }
 
   return (
@@ -141,7 +141,7 @@ export function OpportunitiesOverviewTable({
             <IconLabel
               icon="opportunity"
               iconSize="xs"
-              className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+              className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
             >
               Opportunity
             </IconLabel>
@@ -203,7 +203,7 @@ export function OpportunitiesOverviewTable({
                   </span>
                 </DealLink>
               </td>
-              <td className="px-3 py-2.5 text-right text-[12px] font-semibold tabular-nums text-carbon-blue">
+              <td className="px-3 py-2.5 text-right text-[13px] font-semibold tabular-nums text-carbon-blue">
                 {formatDealValue(deal.currency, deal.salesValue)}
               </td>
               <td className="px-3 py-2.5">
@@ -214,10 +214,10 @@ export function OpportunitiesOverviewTable({
                     detail={formatExpectedCloseDate(deal.expectedCloseDate)}
                   />
                 ) : (
-                  <span className="text-[12px] text-carbon-blue/35">—</span>
+                  <span className="text-[13px] text-carbon-blue/50">—</span>
                 )}
               </td>
-              <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/70">{stageLabel}</td>
+              <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/70">{stageLabel}</td>
               <td className="px-3 py-2.5 text-right">
                 <StatusCell
                   tone={PROBABILITY_STATUS_TONE[probStatus]}
@@ -229,7 +229,7 @@ export function OpportunitiesOverviewTable({
                 <DealLink
                   dealId={deal.id}
                   showIcon={false}
-                  className="block truncate font-mono text-[11px] text-carbon-blue/55 hover:text-upcycle-orange"
+                  className="block truncate font-mono text-[12px] text-carbon-blue/55 hover:text-upcycle-orange"
                 >
                   {opportunityPublicCode(deal)}
                 </DealLink>

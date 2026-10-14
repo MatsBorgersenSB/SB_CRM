@@ -2,7 +2,7 @@ import type { PipelineRow } from "@/types/pipeline";
 
 function SavedBadge() {
   return (
-    <span className="inline-flex items-center border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
+    <span className="inline-flex items-center border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
       Saved
     </span>
   );
@@ -17,7 +17,7 @@ export function SmartDocsComplianceLedger({
     return (
       <section className="border border-carbon-blue/15 bg-white">
         <header className="border-b border-carbon-blue/10 px-3 py-2">
-          <h2 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             SmartDocs Compliance Queue
           </h2>
         </header>
@@ -31,7 +31,7 @@ export function SmartDocsComplianceLedger({
   return (
     <section className="border border-carbon-blue/15 bg-white">
       <header className="border-b border-carbon-blue/10 px-3 py-2">
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
           SmartDocs Compliance Queue
         </h2>
       </header>
@@ -48,7 +48,7 @@ export function SmartDocsComplianceLedger({
               {["ClientLookup", "DocType", "Status"].map((header) => (
                 <th
                   key={header}
-                  className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+                  className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
                 >
                   {header}
                 </th>
@@ -61,11 +61,11 @@ export function SmartDocsComplianceLedger({
                 key={row.id}
                 className="border-b border-carbon-blue/10 last:border-b-0 hover:bg-flame/10"
               >
-                <td className="px-2 py-1.5 font-mono text-[11px] text-carbon-blue/55">
+                <td className="px-2 py-1.5 font-mono text-[12px] text-carbon-blue/55">
                   {row.ClientLookup}
                 </td>
                 <td className="px-2 py-1.5">
-                  <span className="inline-flex items-center border border-upcycle-orange/30 bg-upcycle-orange/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
+                  <span className="inline-flex items-center border border-upcycle-orange/30 bg-upcycle-orange/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
                     {row.DocType}
                   </span>
                 </td>

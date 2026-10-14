@@ -24,7 +24,7 @@ function Section({
 }) {
   return (
     <section className="border-t border-carbon-blue/8 pt-3 first:border-t-0 first:pt-0">
-      <h4 className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">{title}</h4>
+      <h4 className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">{title}</h4>
       <div className="mt-2">{children}</div>
     </section>
   );
@@ -32,7 +32,7 @@ function Section({
 
 function BulletList({ items }: { items: DeepResearchBriefing["recentNews"] }) {
   if (items.length === 0) {
-    return <p className="text-[10px] text-carbon-blue/45">No signals recorded.</p>;
+    return <p className="text-[11px] text-carbon-blue/65">No signals recorded.</p>;
   }
 
   return (
@@ -42,7 +42,7 @@ function BulletList({ items }: { items: DeepResearchBriefing["recentNews"] }) {
           {item.href ? (
             <Link
               href={item.href}
-              className="block rounded-md px-1 py-0.5 text-[10px] font-medium text-carbon-blue hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange"
+              className="block rounded-md px-1 py-0.5 text-[11px] font-medium text-carbon-blue hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange"
             >
               {item.label}
               {item.detail ? (
@@ -50,12 +50,12 @@ function BulletList({ items }: { items: DeepResearchBriefing["recentNews"] }) {
               ) : null}
             </Link>
           ) : (
-            <div className="text-[10px] text-carbon-blue/75">
+            <div className="text-[11px] text-carbon-blue/75">
               <span className="font-medium text-carbon-blue">{item.label}</span>
               {item.detail ? (
                 <p className="mt-0.5 text-carbon-blue/50">{item.detail}</p>
               ) : null}
-              <span className="mt-0.5 block text-[9px] uppercase tracking-wide text-carbon-blue/30">
+              <span className="mt-0.5 block text-[10px] uppercase tracking-wide text-carbon-blue/30">
                 {item.source}
               </span>
             </div>
@@ -84,7 +84,7 @@ export function DeepResearchBriefingView({
   return (
     <article className="space-y-3">
       <header>
-        <p className="text-[9px] font-bold uppercase tracking-wider text-upcycle-orange">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
           Deep Research · {briefing.kind}
         </p>
         <h3 className="mt-1 text-[14px] font-semibold tracking-tight text-carbon-blue">
@@ -94,7 +94,7 @@ export function DeepResearchBriefingView({
           <Link
             href={briefing.href}
             onClick={onNavigate}
-            className="mt-1 inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
+            className="mt-1 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
           >
             Open in CRM →
           </Link>
@@ -109,41 +109,41 @@ export function DeepResearchBriefingView({
       />
 
       <Section title="Executive Summary">
-        <dl className="grid gap-1 text-[10px] text-carbon-blue/70">
+        <dl className="grid gap-1 text-[11px] text-carbon-blue/70">
           <div>
-            <dt className="text-carbon-blue/40">Company</dt>
+            <dt className="text-carbon-blue/60">Company</dt>
             <dd className="font-medium text-carbon-blue">{executiveSummary.subject}</dd>
           </div>
           {executiveSummary.industry ? (
             <div>
-              <dt className="text-carbon-blue/40">Industry</dt>
+              <dt className="text-carbon-blue/60">Industry</dt>
               <dd>{executiveSummary.industry}</dd>
             </div>
           ) : null}
           {executiveSummary.location ? (
             <div>
-              <dt className="text-carbon-blue/40">Location</dt>
+              <dt className="text-carbon-blue/60">Location</dt>
               <dd>{executiveSummary.location}</dd>
             </div>
           ) : null}
           {executiveSummary.size ? (
             <div>
-              <dt className="text-carbon-blue/40">Size</dt>
+              <dt className="text-carbon-blue/60">Size</dt>
               <dd>{executiveSummary.size}</dd>
             </div>
           ) : null}
           <div>
-            <dt className="text-carbon-blue/40">Business Focus</dt>
+            <dt className="text-carbon-blue/60">Business Focus</dt>
             <dd>{executiveSummary.businessFocus}</dd>
           </div>
         </dl>
-        <p className="mt-2 text-[10px] leading-relaxed text-carbon-blue/55">
+        <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/55">
           {executiveSummary.narrative}
         </p>
       </Section>
 
       <Section title="Why It Matters">
-        <ul className="list-disc space-y-1 pl-4 text-[10px] leading-relaxed text-carbon-blue/65">
+        <ul className="list-disc space-y-1 pl-4 text-[11px] leading-relaxed text-carbon-blue/65">
           {briefing.whyItMatters.map((line) => (
             <li key={line}>{line}</li>
           ))}
@@ -152,7 +152,7 @@ export function DeepResearchBriefingView({
 
       <Section title="Known Internal Relationship">
         {briefing.knownRelationship.relationshipHealth ? (
-          <p className="mb-2 text-[10px] text-carbon-blue/55">
+          <p className="mb-2 text-[11px] text-carbon-blue/55">
             {briefing.knownRelationship.relationshipHealth}
             {briefing.knownRelationship.lastContact
               ? ` · Last contact ${briefing.knownRelationship.lastContact}`
@@ -161,13 +161,13 @@ export function DeepResearchBriefingView({
         ) : null}
         {briefing.knownRelationship.opportunities.length > 0 ? (
           <div className="mb-2">
-            <p className="text-[9px] font-semibold text-carbon-blue/40">Opportunities</p>
+            <p className="text-[10px] font-semibold text-carbon-blue/60">Opportunities</p>
             <BulletList items={briefing.knownRelationship.opportunities} />
           </div>
         ) : null}
         {briefing.knownRelationship.activities.length > 0 ? (
           <div>
-            <p className="text-[9px] font-semibold text-carbon-blue/40">Activities</p>
+            <p className="text-[10px] font-semibold text-carbon-blue/60">Activities</p>
             <BulletList items={briefing.knownRelationship.activities} />
           </div>
         ) : null}
@@ -185,19 +185,19 @@ export function DeepResearchBriefingView({
         <div className="space-y-2">
           {briefing.risks.commercial.length > 0 ? (
             <div>
-              <p className="text-[9px] font-semibold text-carbon-blue/40">Commercial</p>
+              <p className="text-[10px] font-semibold text-carbon-blue/60">Commercial</p>
               <BulletList items={briefing.risks.commercial} />
             </div>
           ) : null}
           {briefing.risks.relationship.length > 0 ? (
             <div>
-              <p className="text-[9px] font-semibold text-carbon-blue/40">Relationship</p>
+              <p className="text-[10px] font-semibold text-carbon-blue/60">Relationship</p>
               <BulletList items={briefing.risks.relationship} />
             </div>
           ) : null}
           {briefing.risks.competitive.length > 0 ? (
             <div>
-              <p className="text-[9px] font-semibold text-carbon-blue/40">Competitive</p>
+              <p className="text-[10px] font-semibold text-carbon-blue/60">Competitive</p>
               <BulletList items={briefing.risks.competitive} />
             </div>
           ) : null}
@@ -214,12 +214,12 @@ export function DeepResearchBriefingView({
 
       <Section title="Overall Assessment">
         <div className={`rounded-lg border px-3 py-2.5 ${priorityStyles(overallAssessment.priority)}`}>
-          <p className="text-[10px] font-bold uppercase tracking-wide">
+          <p className="text-[11px] font-bold uppercase tracking-wide">
             {overallAssessment.priority} · {overallAssessment.strategicPriority}
           </p>
-          <p className="mt-1 text-[10px] leading-relaxed opacity-90">{overallAssessment.summary}</p>
+          <p className="mt-1 text-[11px] leading-relaxed opacity-90">{overallAssessment.summary}</p>
         </div>
-        <p className="mt-2 text-[9px] text-carbon-blue/35">
+        <p className="mt-2 text-[10px] text-carbon-blue/50">
           Sources: {briefing.sourcesUsed.join(" · ")}
         </p>
       </Section>

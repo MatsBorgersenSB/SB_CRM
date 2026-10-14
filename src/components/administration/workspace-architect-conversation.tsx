@@ -90,7 +90,7 @@ export function WorkspaceArchitectConversation({
   };
 
   if (!session) {
-    return <p className="text-sm text-carbon-blue/45">Starting conversation…</p>;
+    return <p className="text-sm text-carbon-blue/65">Starting conversation…</p>;
   }
 
   return (
@@ -112,7 +112,7 @@ export function WorkspaceArchitectConversation({
               }`}
             >
               {message.role === "assistant" ? (
-                <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-upcycle-orange">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
                   SmartAssist
                 </p>
               ) : null}
@@ -129,7 +129,7 @@ export function WorkspaceArchitectConversation({
       {!session.complete ? (
         <div className="border border-carbon-blue/10 bg-white p-4">
           {currentQuestion?.helper ? (
-            <p className="mb-2 text-[11px] text-carbon-blue/50">{currentQuestion.helper}</p>
+            <p className="mb-2 text-[12px] text-carbon-blue/50">{currentQuestion.helper}</p>
           ) : null}
           <textarea
             value={draft}
@@ -149,29 +149,29 @@ export function WorkspaceArchitectConversation({
               type="button"
               disabled={!draft.trim() || submitting}
               onClick={() => void handleSubmit()}
-              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? "Thinking…" : "Continue"}
             </button>
             <button
               type="button"
               onClick={handleRestart}
-              className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/55 hover:text-carbon-blue"
+              className="border border-carbon-blue/15 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/55 hover:text-carbon-blue"
             >
               Start over
             </button>
-            <span className="text-[10px] text-carbon-blue/40">
+            <span className="text-[11px] text-carbon-blue/60">
               {session.currentQuestionIndex + 1} of {WORKSPACE_DISCOVERY_QUESTIONS.length}
             </span>
           </div>
-          {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
+          {error ? <p className="mt-2 text-[13px] text-thermal-red">{error}</p> : null}
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={handleRestart}
-            className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/60 hover:text-carbon-blue"
+            className="border border-carbon-blue/15 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/60 hover:text-carbon-blue"
           >
             Start new conversation
           </button>

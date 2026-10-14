@@ -129,7 +129,7 @@ export function CompanyProjectsTable({
   return (
     <div className="flex flex-col gap-6">
       {projects.length === 0 ? (
-        <p className="text-sm text-carbon-blue/45">
+        <p className="text-sm text-carbon-blue/65">
           No linked projects yet.
         </p>
       ) : (
@@ -153,21 +153,21 @@ export function CompanyProjectsTable({
                 >
                   {project.name}
                 </ProjectLink>
-                <span className="inline-flex items-center gap-1.5 text-[12px] text-carbon-blue/60">
+                <span className="inline-flex items-center gap-1.5 text-[13px] text-carbon-blue/60">
                   <HealthStatusIcon status={project.health} size="xs" />
                   {project.status}
                 </span>
               </div>
 
               {companyTeam.length === 0 ? (
-                <p className="text-[12px] text-carbon-blue/45">
+                <p className="text-[13px] text-carbon-blue/65">
                   Company is linked. No people from this company are assigned on the
                   project yet.
                 </p>
               ) : (
                 <table className="min-w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-carbon-blue/10 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                    <tr className="border-b border-carbon-blue/10 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                       <th className="px-2 py-2 font-semibold">Contact</th>
                       <th className="px-2 py-2 font-semibold">Organization</th>
                       <th className="px-2 py-2 font-semibold">Project role</th>
@@ -225,13 +225,13 @@ export function CompanyProjectsTable({
             <button
               type="button"
               onClick={() => setLinkOpen(true)}
-              className="text-[12px] font-semibold text-upcycle-orange hover:underline"
+              className="text-[13px] font-semibold text-upcycle-orange hover:underline"
             >
               + Link to existing project
             </button>
           ) : (
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Link {company.Title} to a project
               </p>
               <div className="relative">
@@ -248,12 +248,12 @@ export function CompanyProjectsTable({
                   }}
                   onFocus={() => setPickerOpen(true)}
                   placeholder="Search projects…"
-                  className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                 />
                 {pickerOpen ? (
                   <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto border border-carbon-blue/15 bg-white shadow-sm">
                     {filteredProjects.length === 0 ? (
-                      <p className="px-3 py-2 text-[12px] text-carbon-blue/45">
+                      <p className="px-3 py-2 text-[13px] text-carbon-blue/65">
                         No matching projects.
                       </p>
                     ) : (
@@ -261,7 +261,7 @@ export function CompanyProjectsTable({
                         <button
                           key={project.id}
                           type="button"
-                          className="block w-full px-3 py-2 text-left text-[12px] text-carbon-blue hover:bg-upcycle-orange/10"
+                          className="block w-full px-3 py-2 text-left text-[13px] text-carbon-blue hover:bg-upcycle-orange/10"
                           onClick={() => {
                             setSelectedProjectId(project.id);
                             setProjectQuery(project.name);
@@ -269,7 +269,7 @@ export function CompanyProjectsTable({
                           }}
                         >
                           {project.name}
-                          <span className="ml-2 text-carbon-blue/40">{project.id}</span>
+                          <span className="ml-2 text-carbon-blue/60">{project.id}</span>
                         </button>
                       ))
                     )}
@@ -277,14 +277,14 @@ export function CompanyProjectsTable({
                 ) : null}
               </div>
               {error ? (
-                <p className="text-[12px] text-red-600">{error}</p>
+                <p className="text-[13px] text-red-600">{error}</p>
               ) : null}
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   disabled={busy || !selectedProject}
                   onClick={() => void handleLink()}
-                  className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange disabled:opacity-50"
+                  className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange disabled:opacity-50"
                 >
                   {busy ? "Linking…" : "Link project"}
                 </button>
@@ -297,7 +297,7 @@ export function CompanyProjectsTable({
                     setSelectedProjectId("");
                     setProjectQuery("");
                   }}
-                  className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/70"
+                  className="border border-carbon-blue/15 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/70"
                 >
                   Cancel
                 </button>
@@ -312,7 +312,7 @@ export function CompanyProjectsTable({
 
 export function CompanyProjectsOverviewTable({ projects }: { projects: Project[] }) {
   if (projects.length === 0) {
-    return <p className="text-sm text-carbon-blue/45">No linked projects.</p>;
+    return <p className="text-sm text-carbon-blue/65">No linked projects.</p>;
   }
 
   return (
@@ -327,20 +327,20 @@ export function CompanyProjectsOverviewTable({ projects }: { projects: Project[]
       <thead>
         <tr className="border-b border-carbon-blue/8 bg-carbon-blue/[0.03]">
           <th className="px-3 py-2 text-left">
-            <IconLabel icon="project" iconSize="xs" className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+            <IconLabel icon="project" iconSize="xs" className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
               Project
             </IconLabel>
           </th>
-          <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Status
           </th>
-          <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Priority
           </th>
-          <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Health
           </th>
-          <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Team
           </th>
         </tr>
@@ -355,15 +355,15 @@ export function CompanyProjectsOverviewTable({ projects }: { projects: Project[]
                 </span>
               </ProjectLink>
             </td>
-            <td className="px-3 py-2.5 text-[12px] text-carbon-blue/70">{project.status}</td>
-            <td className="px-3 py-2.5 text-[12px] text-carbon-blue/70">{project.priority}</td>
+            <td className="px-3 py-2.5 text-[13px] text-carbon-blue/70">{project.status}</td>
+            <td className="px-3 py-2.5 text-[13px] text-carbon-blue/70">{project.priority}</td>
             <td className="px-3 py-2.5">
-              <span className="inline-flex items-center gap-1.5 text-[12px] text-carbon-blue/70">
+              <span className="inline-flex items-center gap-1.5 text-[13px] text-carbon-blue/70">
                 <HealthStatusIcon status={project.health} size="xs" />
                 {project.health}
               </span>
             </td>
-            <td className="px-3 py-2.5 text-[12px] text-carbon-blue/55">
+            <td className="px-3 py-2.5 text-[13px] text-carbon-blue/55">
               {getProjectStakeholders(project).length}
             </td>
           </tr>

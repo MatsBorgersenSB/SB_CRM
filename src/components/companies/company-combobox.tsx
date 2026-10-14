@@ -116,7 +116,7 @@ export function CompanyCombobox({
 
   return (
     <div ref={rootRef} className="relative w-full">
-      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
         {label}
         {required ? " *" : null}
       </label>
@@ -141,11 +141,11 @@ export function CompanyCombobox({
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
-          className="w-full border border-carbon-blue/15 bg-white py-2 pl-3 pr-9 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 disabled:opacity-60"
+          className="w-full border border-carbon-blue/15 bg-white py-2 pl-3 pr-9 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 disabled:opacity-60"
           autoComplete="off"
         />
         <ChevronsUpDown
-          className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/35"
+          className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50"
           aria-hidden
         />
       </div>
@@ -157,7 +157,7 @@ export function CompanyCombobox({
           className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto border border-carbon-blue/12 bg-white shadow-lg"
         >
           {filteredCompanies.length === 0 && !showCreate ? (
-            <p className="px-3 py-2 text-[12px] text-carbon-blue/45">No matching companies</p>
+            <p className="px-3 py-2 text-[13px] text-carbon-blue/65">No matching companies</p>
           ) : null}
 
           {filteredCompanies.map((company) => (
@@ -171,12 +171,12 @@ export function CompanyCombobox({
                 setQuery(company.name);
                 setIsOpen(false);
               }}
-              className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04]"
+              className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04]"
             >
               <span className="min-w-0">
                 <span className="block truncate font-medium">{company.name}</span>
                 {company.domain ? (
-                  <span className="block truncate text-[10px] text-carbon-blue/40">
+                  <span className="block truncate text-[11px] text-carbon-blue/60">
                     {company.domain}
                   </span>
                 ) : null}
@@ -191,7 +191,7 @@ export function CompanyCombobox({
             <button
               type="button"
               onClick={() => void handleCreate()}
-              className="flex w-full items-center gap-2 border-t border-carbon-blue/8 px-3 py-2 text-left text-[12px] font-medium text-upcycle-orange transition-colors hover:bg-upcycle-orange/[0.06]"
+              className="flex w-full items-center gap-2 border-t border-carbon-blue/8 px-3 py-2 text-left text-[13px] font-medium text-upcycle-orange transition-colors hover:bg-upcycle-orange/[0.06]"
             >
               <Plus className="size-3.5 shrink-0" aria-hidden />
               <span>
@@ -201,7 +201,7 @@ export function CompanyCombobox({
           ) : null}
 
           {creating ? (
-            <p className="border-t border-carbon-blue/8 px-3 py-2 text-[12px] text-carbon-blue/50">
+            <p className="border-t border-carbon-blue/8 px-3 py-2 text-[13px] text-carbon-blue/50">
               Creating company…
             </p>
           ) : null}

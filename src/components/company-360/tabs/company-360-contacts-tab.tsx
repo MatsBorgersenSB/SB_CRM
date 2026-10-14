@@ -47,42 +47,42 @@ function ContactRelationshipCard({
             </ContactLink>
             <p className="mt-0.5 text-xs text-carbon-blue/55">{contact.JobTitle}</p>
           </div>
-          <span className="shrink-0 border border-carbon-blue/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+          <span className="shrink-0 border border-carbon-blue/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55">
             {contact.RelationshipLevel}
           </span>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
-          <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2 py-0.5 text-[9px] font-semibold text-carbon-blue/65">
+          <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2 py-0.5 text-[10px] font-semibold text-carbon-blue/65">
             {contact.Role}
           </span>
-          <span className="border border-carbon-blue/10 px-2 py-0.5 text-[9px] font-medium text-carbon-blue/45">
+          <span className="border border-carbon-blue/10 px-2 py-0.5 text-[10px] font-medium text-carbon-blue/65">
             {contact.Status}
           </span>
         </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-3 px-4 py-4">
-        <div className="space-y-1.5 text-[11px]">
+        <div className="space-y-1.5 text-[12px]">
           {contact.Email ? (
             <p className="flex items-center gap-2 text-carbon-blue/65">
-              <Mail className="size-3 shrink-0 text-carbon-blue/35" />
+              <Mail className="size-3 shrink-0 text-carbon-blue/50" />
               <EmailActionMenu email={contact.Email} />
             </p>
           ) : null}
           {contact.Phone || contact.Mobile ? (
             <p className="flex items-center gap-2 text-carbon-blue/65">
-              <Phone className="size-3 shrink-0 text-carbon-blue/35" />
+              <Phone className="size-3 shrink-0 text-carbon-blue/50" />
               <PhoneActionMenu phone={contact.Mobile || contact.Phone} />
             </p>
           ) : null}
         </div>
 
         <div className="mt-auto border-t border-carbon-blue/6 pt-3">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/35">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50">
             Last interaction
           </p>
-          <p className="mt-1 text-[11px] text-carbon-blue/60">
+          <p className="mt-1 text-[12px] text-carbon-blue/60">
             {lastActivity
               ? `${lastActivity.ActivityType} · ${formatRelativeTime(lastActivity.ActivityDate)}`
               : "No recorded activity"}
@@ -141,14 +141,14 @@ export function Company360ContactsTab({
       <header className="flex items-center justify-between border-b border-carbon-blue/8 px-5 py-4">
         <div>
           <h2 className="text-sm font-semibold text-carbon-blue">People</h2>
-          <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+          <p className="mt-0.5 text-[12px] text-carbon-blue/65">
             Relationship context for every contact at {company.Title}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setCreateOpen((open) => !open)}
-          className="inline-flex items-center gap-1 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+          className="inline-flex items-center gap-1 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
         >
           <Plus className="size-3.5" />
           New contact
@@ -172,7 +172,7 @@ export function Company360ContactsTab({
       {company.contacts.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
           <p className="text-sm font-medium text-carbon-blue/70">No contacts yet</p>
-          <p className="mt-1 max-w-sm text-xs text-carbon-blue/45">
+          <p className="mt-1 max-w-sm text-xs text-carbon-blue/65">
             Add the people who shape this relationship.
           </p>
         </div>
@@ -192,7 +192,7 @@ export function Company360ContactsTab({
       <footer className="border-t border-carbon-blue/8 px-5 py-3">
         <Link
           href="/contacts"
-          className="text-[11px] font-semibold text-upcycle-orange"
+          className="text-[12px] font-semibold text-upcycle-orange"
         >
           Open full contacts directory →
         </Link>

@@ -47,7 +47,7 @@ export function OutlookReconciliationWorkspace({
   return (
     <div className="flex flex-col gap-4">
       <header className="border border-carbon-blue/10 bg-white px-4 py-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-upcycle-orange">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-upcycle-orange">
           {OUTLOOK_RELATIONSHIP_RECONCILIATION.title}
         </p>
         <p className="mt-1 text-sm text-carbon-blue/70">
@@ -57,7 +57,7 @@ export function OutlookReconciliationWorkspace({
           {OUTLOOK_RELATIONSHIP_RECONCILIATION.detects.map((item) => (
             <li
               key={item}
-              className="border border-carbon-blue/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/55"
+              className="border border-carbon-blue/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55"
             >
               {item}
             </li>

@@ -266,8 +266,8 @@ export function CompanyOpportunitiesSection({
         onClick={openCreate}
         className={
           emphasis === "primary"
-            ? "inline-flex w-fit items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
-            : "inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+            ? "inline-flex w-fit items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+            : "inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
         }
       >
         <SmartCRMIcon name="add" size="xs" />
@@ -280,7 +280,7 @@ export function CompanyOpportunitiesSection({
       <button
         type="button"
         onClick={() => setLinkOpen(true)}
-        className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+        className="inline-flex w-fit items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
       >
         Link existing opportunity
       </button>
@@ -307,7 +307,7 @@ export function CompanyOpportunitiesSection({
         createTrigger(deals.length === 0 ? "primary" : "secondary")
       ) : deals.length === 0 && !createdDeal ? (
         <div className="flex flex-col gap-3 py-1">
-          <p className="text-sm text-carbon-blue/45">No opportunities yet.</p>
+          <p className="text-sm text-carbon-blue/65">No opportunities yet.</p>
           <div className="flex flex-wrap gap-2">
             {createTrigger("primary")}
             {linkTrigger}
@@ -330,7 +330,7 @@ export function CompanyOpportunitiesSection({
 
       {!createOnly && linkOpen && canManageStakeholders ? (
         <div className="border border-dashed border-carbon-blue/15 bg-white p-3">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Link existing opportunity to {company.Title}
           </p>
           <input
@@ -340,11 +340,11 @@ export function CompanyOpportunitiesSection({
               setSelectedLinkDealId("");
             }}
             placeholder="Search opportunities…"
-            className="mb-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+            className="mb-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
           />
           <div className="mb-3 max-h-40 overflow-auto border border-carbon-blue/10">
             {filteredLinkDeals.length === 0 ? (
-              <p className="px-3 py-2 text-[12px] text-carbon-blue/45">No matching opportunities.</p>
+              <p className="px-3 py-2 text-[13px] text-carbon-blue/65">No matching opportunities.</p>
             ) : (
               filteredLinkDeals.map((deal) => (
                 <button
@@ -354,7 +354,7 @@ export function CompanyOpportunitiesSection({
                     setSelectedLinkDealId(deal.id);
                     setLinkQuery(deal.assetName);
                   }}
-                  className={`block w-full px-3 py-2 text-left text-[12px] hover:bg-upcycle-orange/10 ${
+                  className={`block w-full px-3 py-2 text-left text-[13px] hover:bg-upcycle-orange/10 ${
                     selectedLinkDealId === deal.id
                       ? "bg-upcycle-orange/10 text-upcycle-orange"
                       : "text-carbon-blue"
@@ -365,13 +365,13 @@ export function CompanyOpportunitiesSection({
               ))
             )}
           </div>
-          {error ? <p className="mb-2 text-[12px] text-thermal-red">{error}</p> : null}
+          {error ? <p className="mb-2 text-[13px] text-thermal-red">{error}</p> : null}
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               disabled={linking || !selectedLinkDeal}
               onClick={() => void handleLinkExisting()}
-              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange disabled:opacity-50"
+              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange disabled:opacity-50"
             >
               {linking ? "Linking…" : "Link opportunity"}
             </button>
@@ -384,7 +384,7 @@ export function CompanyOpportunitiesSection({
                 setSelectedLinkDealId("");
                 setLinkQuery("");
               }}
-              className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/70"
+              className="border border-carbon-blue/15 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/70"
             >
               Cancel
             </button>
@@ -394,12 +394,12 @@ export function CompanyOpportunitiesSection({
 
       {createOpen && canCreate ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
-          <p className="mb-3 text-[12px] font-medium text-carbon-blue">
+          <p className="mb-3 text-[13px] font-medium text-carbon-blue">
             New opportunity for {company.Title}
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block sm:col-span-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Opportunity Name
               </span>
               <input
@@ -409,12 +409,12 @@ export function CompanyOpportunitiesSection({
                   setForm((current) => ({ ...current, assetName: event.target.value }))
                 }
                 placeholder="e.g. Ottem pyrolysis unit"
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                 autoFocus
               />
             </label>
             <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Opportunity Type
               </span>
               <select
@@ -425,7 +425,7 @@ export function CompanyOpportunitiesSection({
                     companyRole: event.target.value as CompanyRole,
                   }))
                 }
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
               >
                 {COMPANY_ROLES.map((role) => (
                   <option key={role} value={role}>
@@ -435,7 +435,7 @@ export function CompanyOpportunitiesSection({
               </select>
             </label>
             <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Expected Decision Date{" "}
                 <span className="font-medium normal-case">(optional)</span>
               </span>
@@ -448,7 +448,7 @@ export function CompanyOpportunitiesSection({
                     expectedCloseDate: event.target.value,
                   }))
                 }
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
               />
             </label>
             <div className="sm:col-span-2">
@@ -478,7 +478,7 @@ export function CompanyOpportunitiesSection({
               />
             </div>
           </div>
-          {error ? <p className="mt-3 text-[12px] text-thermal-red">{error}</p> : null}
+          {error ? <p className="mt-3 text-[13px] text-thermal-red">{error}</p> : null}
           <div className="mt-3 flex gap-2">
             <button
               type="button"
@@ -504,13 +504,13 @@ export function CompanyOpportunitiesSection({
 
       {createdDeal ? (
         <div className="border border-upcycle-orange/20 bg-upcycle-orange/[0.04] p-4">
-          <p className="text-[12px] font-medium text-carbon-blue">
+          <p className="text-[13px] font-medium text-carbon-blue">
             Opportunity created:{" "}
             <DealLink dealId={createdDeal.id} className="text-upcycle-orange hover:underline">
               {createdDeal.assetName}
             </DealLink>
           </p>
-          <p className="mt-1 text-[11px] text-carbon-blue/55">
+          <p className="mt-1 text-[12px] text-carbon-blue/55">
             {formatDealValue(createdDeal.currency, createdDeal.salesValue)}
             {createdDeal.expectedCloseDate
               ? ` · Decision target ${createdDeal.expectedCloseDate}`
@@ -521,12 +521,12 @@ export function CompanyOpportunitiesSection({
           {canManageStakeholders ? (
             stakeholderOpen ? (
               <div className="mt-4 border border-carbon-blue/10 bg-white p-3">
-                <p className="text-[11px] font-semibold text-carbon-blue">
+                <p className="text-[12px] font-semibold text-carbon-blue">
                   Add stakeholder from {company.Title}
                 </p>
                 {suggestedContacts.length > 0 ? (
                   <div className="mt-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                       Suggested contacts
                     </p>
                     <ul className="mt-2 flex flex-col gap-1.5">
@@ -537,7 +537,7 @@ export function CompanyOpportunitiesSection({
                             <button
                               type="button"
                               onClick={() => selectSuggestedContact(contact)}
-                              className={`w-full border px-3 py-2 text-left text-[12px] transition-colors ${
+                              className={`w-full border px-3 py-2 text-left text-[13px] transition-colors ${
                                 active
                                   ? "border-upcycle-orange/40 bg-upcycle-orange/10 text-carbon-blue"
                                   : "border-carbon-blue/10 text-carbon-blue/75 hover:border-upcycle-orange/25"
@@ -547,7 +547,7 @@ export function CompanyOpportunitiesSection({
                                 {getContactDisplayName(contact)}
                               </span>
                               {contact.JobTitle?.trim() || contact.Role?.trim() ? (
-                                <span className="mt-0.5 block text-[11px] text-carbon-blue/55">
+                                <span className="mt-0.5 block text-[12px] text-carbon-blue/55">
                                   {contact.JobTitle?.trim() || contact.Role?.trim()}
                                 </span>
                               ) : null}
@@ -558,14 +558,14 @@ export function CompanyOpportunitiesSection({
                     </ul>
                   </div>
                 ) : (
-                  <p className="mt-2 text-[12px] text-carbon-blue/45">
+                  <p className="mt-2 text-[13px] text-carbon-blue/65">
                     No contacts on this company yet. Add contacts first, then assign stakeholders.
                   </p>
                 )}
 
                 {suggestedContacts.length > 5 ? (
                   <label className="mt-3 block">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                       Or choose another contact
                     </span>
                     <select
@@ -577,7 +577,7 @@ export function CompanyOpportunitiesSection({
                         if (contact) selectSuggestedContact(contact);
                         else setSelectedContactId(event.target.value);
                       }}
-                      className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                      className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                     >
                       <option value="">Select contact…</option>
                       {suggestedContacts.map((contact) => (
@@ -599,12 +599,12 @@ export function CompanyOpportunitiesSection({
                 </div>
 
                 {selectedContact ? (
-                  <p className="mt-2 text-[11px] text-carbon-blue/55">
+                  <p className="mt-2 text-[12px] text-carbon-blue/55">
                     Suggested role from title: {suggestOpportunityRoleForContact(selectedContact)}
                   </p>
                 ) : null}
 
-                {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
+                {error ? <p className="mt-2 text-[13px] text-thermal-red">{error}</p> : null}
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -637,7 +637,7 @@ export function CompanyOpportunitiesSection({
                 <button
                   type="button"
                   onClick={() => setStakeholderOpen(true)}
-                  className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+                  className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
                 >
                   <SmartCRMIcon name="add" size="xs" />
                   Add Stakeholder
@@ -645,7 +645,7 @@ export function CompanyOpportunitiesSection({
                 <button
                   type="button"
                   onClick={() => setCreatedDeal(null)}
-                  className="px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/45 hover:text-carbon-blue"
+                  className="px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 hover:text-carbon-blue"
                 >
                   Dismiss
                 </button>
@@ -655,7 +655,7 @@ export function CompanyOpportunitiesSection({
             <button
               type="button"
               onClick={() => setCreatedDeal(null)}
-              className="mt-3 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/45 hover:text-carbon-blue"
+              className="mt-3 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 hover:text-carbon-blue"
             >
               Dismiss
             </button>

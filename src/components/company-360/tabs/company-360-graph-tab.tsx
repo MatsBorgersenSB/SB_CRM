@@ -19,7 +19,7 @@ function GraphInsightSummary({
 
   if (compact) {
     return (
-      <p className="text-[11px] leading-relaxed text-carbon-blue/55">
+      <p className="text-[12px] leading-relaxed text-carbon-blue/55">
         <span className="font-medium text-carbon-blue">
           {topContact?.label ?? `${graph.stats.contactCount} contacts`}
         </span>
@@ -34,18 +34,18 @@ function GraphInsightSummary({
 
   return (
     <section className="dashboard-card px-6 py-5">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
         Graph insight
       </p>
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
-          <dt className="text-[11px] text-carbon-blue/45">Who matters</dt>
+          <dt className="text-[12px] text-carbon-blue/65">Who matters</dt>
           <dd className="mt-1 text-sm font-medium text-carbon-blue">
             {topContact?.label ?? `${graph.stats.contactCount} contacts in network`}
           </dd>
         </div>
         <div>
-          <dt className="text-[11px] text-carbon-blue/45">What is connected</dt>
+          <dt className="text-[12px] text-carbon-blue/65">What is connected</dt>
           <dd className="mt-1 text-sm font-medium text-carbon-blue">
             {graph.stats.edgeCount} connections across {graph.stats.contactCount} contacts,{" "}
             {graph.stats.opportunityCount} opportunities, {graph.stats.documentCount} documents
@@ -85,7 +85,7 @@ export function Company360GraphTab({
         <section className="dashboard-card xl:col-span-2">
           <header className="border-b border-carbon-blue/8 px-6 py-5">
             <h2 className="text-sm font-semibold text-carbon-blue">Relationship network</h2>
-            <p className="mt-1 text-[11px] text-carbon-blue/45">{graph.summary}</p>
+            <p className="mt-1 text-[12px] text-carbon-blue/65">{graph.summary}</p>
           </header>
           <div className="px-4 py-6 sm:px-6">
             <RelationshipGraphCanvas graph={graph} />
@@ -103,7 +103,7 @@ export function Company360GraphTab({
               <ul className="divide-y divide-carbon-blue/6">
                 {graph.dependencies.slice(0, 5).map((dep) => (
                   <li key={dep.id} className="px-6 py-3.5">
-                    <p className="text-[11px] text-carbon-blue/70">
+                    <p className="text-[12px] text-carbon-blue/70">
                       <span className="font-medium text-carbon-blue">{dep.fromLabel}</span>
                       <span className="text-carbon-blue/30"> → </span>
                       <span className="font-medium text-carbon-blue">{dep.toLabel}</span>

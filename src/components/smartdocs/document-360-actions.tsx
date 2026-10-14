@@ -63,8 +63,8 @@ export function Document360Actions({ snapshot, layout = "card" }: Document360Act
 
   const buttonClass =
     layout === "hero"
-      ? "inline-flex items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange/30 hover:text-upcycle-orange"
-      : "inline-flex items-center gap-1.5 border border-carbon-blue/10 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-carbon-blue/75 hover:border-upcycle-orange/30 hover:text-upcycle-orange";
+      ? "inline-flex items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+      : "inline-flex items-center gap-1.5 border border-carbon-blue/10 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-carbon-blue/75 hover:border-upcycle-orange/30 hover:text-upcycle-orange";
 
   return (
     <div className="flex flex-wrap items-center gap-2">

@@ -85,12 +85,12 @@ export function DealCommercialBaselinePanel({
     <div className="flex flex-col gap-4">
       {view.actions.sendableQuotation || view.actions.canAccept ? (
         <section className="border border-carbon-blue/15 bg-carbon-blue/[0.02] px-3 py-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Commercial actions
           </p>
           {view.actions.sendableQuotation ? (
             <div className="mt-2 space-y-2">
-              <p className="text-[10px] text-carbon-blue/60">
+              <p className="text-[11px] text-carbon-blue/60">
                 Send{" "}
                 {COMMERCIAL_PACKAGE_KIND_LABELS[view.actions.sendableQuotation.kind]} to
                 create a transmission package.
@@ -100,13 +100,13 @@ export function DealCommercialBaselinePanel({
                 value={recipient}
                 onChange={(event) => setRecipient(event.target.value)}
                 placeholder="Recipient name <email@company.com>"
-                className="w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[11px] text-carbon-blue"
+                className="w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] text-carbon-blue"
               />
               <button
                 type="button"
                 disabled={busy !== null || !recipient.trim()}
                 onClick={() => void handleSend()}
-                className="border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+                className="border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
               >
                 {busy === "send" ? "Sending…" : "Send quotation"}
               </button>
@@ -114,30 +114,30 @@ export function DealCommercialBaselinePanel({
           ) : null}
           {view.actions.canAccept ? (
             <div className="mt-2">
-              <p className="text-[10px] text-carbon-blue/60">
+              <p className="text-[11px] text-carbon-blue/60">
                 Accept the transmitted package to freeze the commercial baseline.
               </p>
               <button
                 type="button"
                 disabled={busy !== null}
                 onClick={() => void handleAccept()}
-                className="mt-2 border border-carbon-blue bg-carbon-blue px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+                className="mt-2 border border-carbon-blue bg-carbon-blue px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
               >
                 {busy === "accept" ? "Accepting…" : "Accept quotation"}
               </button>
             </div>
           ) : null}
           {actionError ? (
-            <p className="mt-2 text-[10px] text-red-600">{actionError}</p>
+            <p className="mt-2 text-[11px] text-red-600">{actionError}</p>
           ) : null}
         </section>
       ) : null}
       <section className="border border-carbon-blue/10 bg-white">
         <header className="border-b border-carbon-blue/10 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Quotation Hierarchy
           </p>
-          <p className="text-[10px] text-carbon-blue/45">
+          <p className="text-[11px] text-carbon-blue/65">
             Deal {view.dealId} · each quotation is a document set
           </p>
         </header>
@@ -155,17 +155,17 @@ export function DealCommercialBaselinePanel({
                 <div>
                   <p className="text-xs font-semibold text-carbon-blue">{step.label}</p>
                   {step.package ? (
-                    <p className="mt-0.5 text-[10px] text-carbon-blue/55">
+                    <p className="mt-0.5 text-[11px] text-carbon-blue/55">
                       <CommercialPackageLink pkg={step.package}>
                         {step.package.title}
                       </CommercialPackageLink>
                     </p>
                   ) : (
-                    <p className="mt-0.5 text-[10px] text-carbon-blue/45">Not created</p>
+                    <p className="mt-0.5 text-[11px] text-carbon-blue/65">Not created</p>
                   )}
                 </div>
               {step.package ? (
-                <span className="shrink-0 border border-carbon-blue/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+                <span className="shrink-0 border border-carbon-blue/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55">
                   {step.package.members.length} files · {step.package.status}
                 </span>
               ) : null}
@@ -206,19 +206,19 @@ function NarrativeBlock({
         highlighted ? "border-upcycle-orange bg-upcycle-orange/[0.03]" : "border-upcycle-orange/30"
       }`}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange">
         {block.headline}
       </p>
       <p className="mt-1 text-xs font-medium text-carbon-blue">{block.answer}</p>
       {block.package ? (
-        <p className="mt-1 text-[10px]">
+        <p className="mt-1 text-[11px]">
           <CommercialPackageLink pkg={block.package}>{block.package.title}</CommercialPackageLink>
         </p>
       ) : null}
       {block.meetingNotes.length > 0 ? (
         <ul className="mt-2 space-y-0.5">
           {block.meetingNotes.map((note) => (
-            <li key={note} className="text-[10px] text-carbon-blue/60">
+            <li key={note} className="text-[11px] text-carbon-blue/60">
               {note}
             </li>
           ))}

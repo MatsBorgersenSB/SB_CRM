@@ -65,7 +65,7 @@ export function ContactLifecycleActionsBar({
         aria-label="Contact tools"
         title="Contact tools"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center border border-carbon-blue/12 px-2 py-1 text-[11px] font-semibold tracking-wider text-carbon-blue/50 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+        className="inline-flex items-center border border-carbon-blue/12 px-2 py-1 text-[12px] font-semibold tracking-wider text-carbon-blue/50 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
       >
         ···
       </button>
@@ -101,7 +101,7 @@ export function ContactLifecycleActionsBar({
           ) : null}
           {onEmploymentStatusChange && !editing ? (
             <div className="mt-1 border-t border-carbon-blue/8 px-3 pb-1.5 pt-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Employment
                 <select
                   value={contact.EmploymentStatus ?? normalizeEmploymentStatus(contact)}
@@ -109,7 +109,7 @@ export function ContactLifecycleActionsBar({
                   onChange={(event) =>
                     onEmploymentStatusChange(event.target.value as EmploymentStatus)
                   }
-                  className="mt-1 block w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] font-medium normal-case tracking-normal text-carbon-blue"
+                  className="mt-1 block w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] font-medium normal-case tracking-normal text-carbon-blue"
                 >
                   {EMPLOYMENT_STATUSES.map((status) => (
                     <option key={status} value={status}>
@@ -138,7 +138,7 @@ function OverflowItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="block w-full px-3 py-1.5 text-left text-[11px] text-carbon-blue/75 hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange"
+      className="block w-full px-3 py-1.5 text-left text-[12px] text-carbon-blue/75 hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange"
     >
       {label}
     </button>

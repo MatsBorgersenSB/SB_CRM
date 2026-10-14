@@ -366,7 +366,7 @@ export function priorityBadgeClass(priority?: string): string {
     case "High":
       return "text-upcycle-orange";
     case "Low":
-      return "text-carbon-blue/45";
+      return "text-carbon-blue/65";
     default:
       return "text-carbon-blue/60";
   }

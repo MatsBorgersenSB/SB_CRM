@@ -16,10 +16,10 @@ export function EntityTabBar({ tabs, active, onChange }: EntityTabBarProps) {
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`relative px-3 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
+            className={`relative px-3 py-2 text-[12px] font-semibold uppercase tracking-wider transition-colors ${
               selected
                 ? "text-upcycle-orange"
-                : "text-carbon-blue/45 hover:text-carbon-blue/70"
+                : "text-carbon-blue/65 hover:text-carbon-blue/70"
             }`}
           >
             {tab.label}

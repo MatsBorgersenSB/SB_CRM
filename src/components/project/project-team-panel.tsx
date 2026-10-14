@@ -228,21 +228,21 @@ export function ProjectTeamPanel({
         return (
           <section key={category} className={compact ? "" : "border-b border-carbon-blue/8 pb-6 last:border-b-0 last:pb-0"}>
             <div className="mb-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/55">
                 {label}
               </p>
               {!compact ? (
-                <p className="mt-0.5 text-[12px] text-carbon-blue/45">{CATEGORY_DESCRIPTIONS[category]}</p>
+                <p className="mt-0.5 text-[13px] text-carbon-blue/65">{CATEGORY_DESCRIPTIONS[category]}</p>
               ) : null}
             </div>
 
             {members.length === 0 ? (
-              <p className="text-sm text-carbon-blue/40">No one assigned yet.</p>
+              <p className="text-sm text-carbon-blue/60">No one assigned yet.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-carbon-blue/10 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                    <tr className="border-b border-carbon-blue/10 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                       <th className="px-2 py-2 font-semibold">Person</th>
                       <th className="px-2 py-2 font-semibold">Project role</th>
                       {isCustomerTeamCategory(category) ? (
@@ -267,7 +267,7 @@ export function ProjectTeamPanel({
                               <span className="font-medium text-carbon-blue">{member.name}</span>
                             )}
                             {member.companyName ? (
-                              <p className="text-[12px] text-carbon-blue/45">{member.companyName}</p>
+                              <p className="text-[13px] text-carbon-blue/65">{member.companyName}</p>
                             ) : null}
                           </div>
                         </td>
@@ -287,7 +287,7 @@ export function ProjectTeamPanel({
                               type="button"
                               disabled={removingId === member.id}
                               onClick={() => void handleRemove(member.id)}
-                              className="text-[11px] font-semibold text-carbon-blue/45 hover:text-red-600 disabled:opacity-50"
+                              className="text-[12px] font-semibold text-carbon-blue/65 hover:text-red-600 disabled:opacity-50"
                             >
                               {removingId === member.id ? "…" : "Remove"}
                             </button>
@@ -324,7 +324,7 @@ export function ProjectTeamPanel({
                   <button
                     type="button"
                     onClick={() => setActiveCategory(category)}
-                    className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+                    className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
                   >
                     <SmartCRMIcon name="add" size="xs" />
                     {allowsMultiple(category) ? `Add to ${label.toLowerCase()}` : `Assign ${label.toLowerCase()}`}
@@ -383,13 +383,13 @@ function AddMemberForm({
     <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
       {internal ? (
         <label className="block">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
             User
           </span>
           <select
             value={selectedUserId}
             onChange={(event) => onUserChange(event.target.value)}
-            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
           >
             <option value="">Select user…</option>
             {standardBioUsers.map((user) => (
@@ -401,13 +401,13 @@ function AddMemberForm({
         </label>
       ) : (
         <label className="block">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
             {linkedCompany ? `Contact from ${linkedCompany.Title}` : "Contact"}
           </span>
           <select
             value={selectedContactId}
             onChange={(event) => onContactChange(event.target.value)}
-            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
           >
             <option value="">Select contact…</option>
             {availableContacts.map((option) => (
@@ -421,7 +421,7 @@ function AddMemberForm({
       )}
 
       <label className="mt-3 block">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
           Project role
         </span>
         <input
@@ -429,19 +429,19 @@ function AddMemberForm({
           value={projectRole}
           onChange={(event) => onRoleChange(event.target.value)}
           placeholder="e.g. Delivery Lead"
-          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
         />
       </label>
 
       {!internal ? (
         <label className="mt-3 block">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
             Influence
           </span>
           <select
             value={influence}
             onChange={(event) => onInfluenceChange(event.target.value as StakeholderInfluence)}
-            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
           >
             {INFLUENCE_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -475,10 +475,10 @@ function InfluenceBadge({ influence }: { influence: StakeholderInfluence }) {
       ? "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange"
       : influence === "Medium"
         ? "border-carbon-blue/15 bg-carbon-blue/5 text-carbon-blue/70"
-        : "border-carbon-blue/10 bg-white text-carbon-blue/45";
+        : "border-carbon-blue/10 bg-white text-carbon-blue/65";
 
   return (
-    <span className={`inline-block border px-2 py-0.5 text-[11px] font-medium ${tone}`}>
+    <span className={`inline-block border px-2 py-0.5 text-[12px] font-medium ${tone}`}>
       {influence}
     </span>
   );

@@ -80,7 +80,7 @@ function ObjectiveBlock({
   return (
     <div className="border border-carbon-blue/10 bg-white p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
           {title}
         </p>
         <SmartAssistCategoryBadge category={category} />

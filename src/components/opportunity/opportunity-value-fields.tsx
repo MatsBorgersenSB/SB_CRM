@@ -11,7 +11,7 @@ import type { PipelineCurrency } from "@/types/pipeline";
 const CURRENCY_OPTIONS = listCurrenciesForSelect();
 
 const FIELD_CLASS =
-  "mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40";
+  "mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40";
 
 export function OpportunityValueFields({
   salesValue,
@@ -33,7 +33,7 @@ export function OpportunityValueFields({
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <label className="block min-w-0">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
           {valueLabel}
           {optional ? (
             <span className="font-medium normal-case"> (optional)</span>
@@ -52,7 +52,7 @@ export function OpportunityValueFields({
         />
       </label>
       <label className="block min-w-0">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
           Currency
         </span>
         <select

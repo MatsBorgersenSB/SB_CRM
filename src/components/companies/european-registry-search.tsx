@@ -114,7 +114,7 @@ export function EuropeanRegistrySearch({
   return (
     <div ref={rootRef} className={`relative ${className}`}>
       <label className="block">
-        <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           {label}
         </span>
         <input
@@ -137,11 +137,11 @@ export function EuropeanRegistrySearch({
         />
       </label>
       {loading ? (
-        <p className="mt-1 text-[10px] text-carbon-blue/45">Searching registries…</p>
+        <p className="mt-1 text-[11px] text-carbon-blue/65">Searching registries…</p>
       ) : null}
-      {error ? <p className="mt-1 text-[10px] text-thermal-red">{error}</p> : null}
+      {error ? <p className="mt-1 text-[11px] text-thermal-red">{error}</p> : null}
       {selectedLabel && !isOpen ? (
-        <p className="mt-1 text-[10px] text-carbon-blue/50">Selected: {selectedLabel}</p>
+        <p className="mt-1 text-[11px] text-carbon-blue/50">Selected: {selectedLabel}</p>
       ) : null}
       {isOpen && query.trim().length >= 2 && !loading ? (
         <ul
@@ -150,7 +150,7 @@ export function EuropeanRegistrySearch({
           className="absolute z-20 mt-1 max-h-56 w-full overflow-auto border border-carbon-blue/15 bg-white shadow-sm"
         >
           {results.length === 0 ? (
-            <li className="px-2 py-2 text-[11px] text-carbon-blue/45">
+            <li className="px-2 py-2 text-[12px] text-carbon-blue/65">
               No registry matches. Try a national number, VAT, or a legal form (AB, GmbH, Ltd, S.L., B.V.).
             </li>
           ) : (
@@ -165,13 +165,13 @@ export function EuropeanRegistrySearch({
                   <span className="text-xs font-semibold text-carbon-blue">
                     {company.legalName}
                   </span>
-                  <span className="text-[10px] text-carbon-blue/55">
+                  <span className="text-[11px] text-carbon-blue/55">
                     {company.registrationNumber}
                     {company.vatNumber ? ` · ${company.vatNumber}` : ""}
                     {" · "}
                     {[company.city, company.country].filter(Boolean).join(", ")}
                   </span>
-                  <span className="text-[9px] uppercase tracking-wider text-carbon-blue/35">
+                  <span className="text-[10px] uppercase tracking-wider text-carbon-blue/50">
                     {company.sourceRegistry}
                   </span>
                 </button>

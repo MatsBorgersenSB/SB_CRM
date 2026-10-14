@@ -318,14 +318,14 @@ export function ProjectStakeholdersRosterPanel({
         <button
           type="button"
           onClick={() => setMemberKind("contact")}
-          className={`px-2 py-1 text-[11px] font-semibold ${memberKind === "contact" ? "text-upcycle-orange" : "text-carbon-blue/45"}`}
+          className={`px-2 py-1 text-[12px] font-semibold ${memberKind === "contact" ? "text-upcycle-orange" : "text-carbon-blue/65"}`}
         >
           Contact
         </button>
         <button
           type="button"
           onClick={() => setMemberKind("user")}
-          className={`px-2 py-1 text-[11px] font-semibold ${memberKind === "user" ? "text-upcycle-orange" : "text-carbon-blue/45"}`}
+          className={`px-2 py-1 text-[12px] font-semibold ${memberKind === "user" ? "text-upcycle-orange" : "text-carbon-blue/65"}`}
         >
           Internal user
         </button>
@@ -333,11 +333,11 @@ export function ProjectStakeholdersRosterPanel({
 
       {memberKind === "user" ? (
         <label className="block">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">User</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">User</span>
           <select
             value={selectedUserId}
             onChange={(event) => setSelectedUserId(event.target.value)}
-            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
+            className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
           >
             <option value="">Select user…</option>
             {standardBioUsers.map((user) => (
@@ -390,13 +390,13 @@ export function ProjectStakeholdersRosterPanel({
       {memberKind === "contact" ? (
         <>
           <label className="mt-3 block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
               Organization
             </span>
             <select
               value={organizationId}
               onChange={(event) => setOrganizationId(event.target.value)}
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
             >
               {organizationOptions
                 .filter((option) => option.id !== INTERNAL_ORGANIZATION_ID)
@@ -408,13 +408,13 @@ export function ProjectStakeholdersRosterPanel({
             </select>
           </label>
           <label className="mt-3 block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
               Influence
             </span>
             <select
               value={influence}
               onChange={(event) => setInfluence(event.target.value as StakeholderInfluence)}
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
             >
               {INFLUENCE_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -427,19 +427,19 @@ export function ProjectStakeholdersRosterPanel({
       ) : null}
 
       <label className="mt-3 block">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
           Responsibilities (optional)
         </span>
         <input
           value={responsibilities}
           onChange={(event) => setResponsibilities(event.target.value)}
-          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
+          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
           placeholder="What this person owns on the project"
         />
       </label>
 
       {formError ? (
-        <p className="mt-3 text-[12px] text-thermal-red/90" role="alert">
+        <p className="mt-3 text-[13px] text-thermal-red/90" role="alert">
           {formError}
         </p>
       ) : null}
@@ -469,7 +469,7 @@ export function ProjectStakeholdersRosterPanel({
     <button
       type="button"
       onClick={() => setAssignOpen(true)}
-      className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+      className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
     >
       <SmartCRMIcon name="add" size="xs" />
       + Add Stakeholder
@@ -479,14 +479,14 @@ export function ProjectStakeholdersRosterPanel({
   return (
     <div className="flex flex-col gap-4">
       {stakeholders.length === 0 ? (
-        <p className="text-sm text-carbon-blue/45">
+        <p className="text-sm text-carbon-blue/65">
           No stakeholders assigned. Add contacts from the connected account or internal delivery team.
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-carbon-blue/10 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              <tr className="border-b border-carbon-blue/10 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                 <th className="px-2 py-2">Stakeholder</th>
                 <th className="px-2 py-2">Organization</th>
                 <th className="px-2 py-2">Role</th>
@@ -513,7 +513,7 @@ export function ProjectStakeholdersRosterPanel({
                         <span className="font-medium text-carbon-blue">{entry.name}</span>
                       )}
                       {entry.influence ? (
-                        <p className="text-[11px] text-carbon-blue/45">{entry.influence} influence</p>
+                        <p className="text-[12px] text-carbon-blue/65">{entry.influence} influence</p>
                       ) : null}
                     </td>
                     <td className="px-2 py-2.5 text-carbon-blue/70">
@@ -521,7 +521,7 @@ export function ProjectStakeholdersRosterPanel({
                         <select
                           value={editOrganizationId}
                           onChange={(event) => setEditOrganizationId(event.target.value)}
-                          className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px]"
+                          className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[13px]"
                         >
                           {organizationOptions.map((option) => (
                             <option key={option.id} value={option.id}>
@@ -544,7 +544,7 @@ export function ProjectStakeholdersRosterPanel({
                             onCustomRoleChange={setEditCustomRole}
                           />
                           <label className="block">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                               Influence
                             </span>
                             <select
@@ -552,7 +552,7 @@ export function ProjectStakeholdersRosterPanel({
                               onChange={(event) =>
                                 setEditInfluence(event.target.value as StakeholderInfluence)
                               }
-                              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px]"
+                              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[13px]"
                             >
                               {INFLUENCE_OPTIONS.map((option) => (
                                 <option key={option} value={option}>
@@ -572,7 +572,7 @@ export function ProjectStakeholdersRosterPanel({
                           <input
                             value={editResponsibilities}
                             onChange={(event) => setEditResponsibilities(event.target.value)}
-                            className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px]"
+                            className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[13px]"
                             placeholder="Responsibilities"
                           />
                         ) : (
@@ -587,14 +587,14 @@ export function ProjectStakeholdersRosterPanel({
                             <button
                               type="button"
                               onClick={() => void handleSaveEdit(entry.id)}
-                              className="text-[11px] font-semibold text-upcycle-orange"
+                              className="text-[12px] font-semibold text-upcycle-orange"
                             >
                               Save
                             </button>
                             <button
                               type="button"
                               onClick={() => setEditingId(null)}
-                              className="text-[11px] font-semibold text-carbon-blue/45"
+                              className="text-[12px] font-semibold text-carbon-blue/65"
                             >
                               Cancel
                             </button>
@@ -604,14 +604,14 @@ export function ProjectStakeholdersRosterPanel({
                             <button
                               type="button"
                               onClick={() => startEdit(entry)}
-                              className="text-[11px] font-semibold text-carbon-blue/45 hover:text-carbon-blue"
+                              className="text-[12px] font-semibold text-carbon-blue/65 hover:text-carbon-blue"
                             >
                               Edit
                             </button>
                             <button
                               type="button"
                               onClick={() => void handleRemove(entry.id)}
-                              className="text-[11px] font-semibold text-carbon-blue/45 hover:text-red-600"
+                              className="text-[12px] font-semibold text-carbon-blue/65 hover:text-red-600"
                             >
                               Remove
                             </button>
@@ -629,11 +629,11 @@ export function ProjectStakeholdersRosterPanel({
 
       {!readOnly && onChange && contactOptions.accountContacts.length > 0 ? (
         <section className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <p className="text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Suggested contacts
             {accountCompanyName ? ` · ${accountCompanyName}` : ""}
           </p>
-          <p className="mt-1 text-[12px] text-carbon-blue/55">
+          <p className="mt-1 text-[13px] text-carbon-blue/55">
             SmartAssist recommends contacts from the connected account. You decide who to add.
           </p>
           <ul className="mt-3 flex flex-col gap-2">
@@ -643,7 +643,7 @@ export function ProjectStakeholdersRosterPanel({
                   <p className="text-[13px] font-medium text-carbon-blue">
                     {getContactDisplayName(option.contact)}
                   </p>
-                  <p className="text-[11px] text-carbon-blue/45">
+                  <p className="text-[12px] text-carbon-blue/65">
                     {sanitizeDisplayText(option.contact.JobTitle) ||
                       sanitizeDisplayText(option.contact.Role) ||
                       option.companyName}
@@ -653,7 +653,7 @@ export function ProjectStakeholdersRosterPanel({
                   type="button"
                   disabled={saving}
                   onClick={() => void quickAddContact(option.contact.ContactID)}
-                  className="shrink-0 text-[11px] font-semibold text-upcycle-orange hover:text-carbon-blue disabled:opacity-50"
+                  className="shrink-0 text-[12px] font-semibold text-upcycle-orange hover:text-carbon-blue disabled:opacity-50"
                 >
                   Add
                 </button>
@@ -684,11 +684,11 @@ function RolePicker({
   return (
     <div>
       <label className="block">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">Role</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">Role</span>
         <select
           value={role}
           onChange={(event) => onRoleChange(event.target.value)}
-          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
+          className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
         >
           {roleOptions.map((option) => (
             <option key={option} value={option}>
@@ -703,7 +703,7 @@ function RolePicker({
           value={customRole}
           onChange={(event) => onCustomRoleChange(event.target.value)}
           placeholder="Enter custom role"
-          className="mt-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
+          className="mt-2 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
         />
       ) : null}
     </div>

@@ -140,7 +140,7 @@ function ContactRowActions({
       <ActionMenu
         align="right"
         label={
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-carbon-blue/45 hover:text-carbon-blue">
+          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-carbon-blue/65 hover:text-carbon-blue">
             ···
           </span>
         }
@@ -180,13 +180,13 @@ function ContactRowActions({
 
       {isReassignOpen ? (
         <div className="w-full min-w-[220px] border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3 text-left">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             Reassign contact
           </p>
           <select
             value={targetCompanyId}
             onChange={(event) => setTargetCompanyId(event.target.value)}
-            className="mt-2 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] text-carbon-blue"
+            className="mt-2 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] text-carbon-blue"
           >
             {reassignOptions.map((company) => (
               <option key={company.CompanyID} value={company.CompanyID}>
@@ -202,7 +202,7 @@ function ContactRowActions({
               type="button"
               disabled={busy || !targetCompanyId}
               onClick={() => void handleReassign()}
-              className="border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+              className="border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
             >
               {busy ? "Moving…" : "Move"}
             </button>
@@ -210,7 +210,7 @@ function ContactRowActions({
               type="button"
               disabled={busy}
               onClick={() => onActionChange(null)}
-              className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55"
+              className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55"
             >
               Cancel
             </button>
@@ -274,8 +274,8 @@ function BuyingRoleCell({
       <span
         className={
           isBuyingRoleUnknown(buyingRole)
-            ? "text-[12px] font-medium text-upcycle-orange"
-            : "text-[12px] text-carbon-blue/70"
+            ? "text-[13px] font-medium text-upcycle-orange"
+            : "text-[13px] text-carbon-blue/70"
         }
       >
         {buyingRole ?? "Unknown"}
@@ -288,7 +288,7 @@ function BuyingRoleCell({
       value={buyingRole}
       disabled={busy}
       onChange={(next) => void persist(next)}
-      className={`w-full min-w-0 border bg-white px-1.5 py-1 text-[12px] outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 ${
+      className={`w-full min-w-0 border bg-white px-1.5 py-1 text-[13px] outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 ${
         buyingRole && !isBuyingRoleUnknown(buyingRole)
           ? "border-carbon-blue/15 text-carbon-blue"
           : "border-upcycle-orange/35 text-upcycle-orange"
@@ -364,7 +364,7 @@ function ContactTableRow({
           </ContactLink>
           {contact.IsSuspicious ? (
             <span
-              className="shrink-0 border border-thermal-red/25 bg-thermal-red/[0.06] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-thermal-red"
+              className="shrink-0 border border-thermal-red/25 bg-thermal-red/[0.06] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-thermal-red"
               title="Flagged as suspicious — review name, email, or company match"
             >
               Suspicious
@@ -372,40 +372,40 @@ function ContactTableRow({
           ) : null}
         </div>
       </td>
-      <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/60">{roleLabel}</td>
+      <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/60">{roleLabel}</td>
       <td className="px-3 py-2.5">
         <BuyingRoleCell contact={contact} onContactUpdate={onContactUpdate} />
       </td>
-      <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/55" title={projectRoleLabel}>
+      <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/55" title={projectRoleLabel}>
         {projectRoleLabel}
       </td>
-      <td className="px-3 py-2.5 text-[12px]">
+      <td className="px-3 py-2.5 text-[13px]">
         {contact.Email ? (
           <EmailActionMenu email={contact.Email} />
         ) : (
-          <span className="text-carbon-blue/35">—</span>
+          <span className="text-carbon-blue/50">—</span>
         )}
       </td>
-      <td className="px-3 py-2.5 text-[12px]">
+      <td className="px-3 py-2.5 text-[13px]">
         {phone ? (
           <PhoneActionMenu phone={phone} />
         ) : (
-          <span className="text-carbon-blue/35">—</span>
+          <span className="text-carbon-blue/50">—</span>
         )}
       </td>
-      <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/50">
+      <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/50">
         {lastInteractionAt
           ? (
             <>
               {formatRelativeTime(lastInteractionAt)}
               {lastTouchIsOutlook ? (
-                <span className="text-carbon-blue/40"> · Outlook</span>
+                <span className="text-carbon-blue/60"> · Outlook</span>
               ) : null}
             </>
           )
           : "No interaction"}
         {contact.EmploymentStatus && contact.EmploymentStatus !== "Active" ? (
-          <span className="ml-2 border border-carbon-blue/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+          <span className="ml-2 border border-carbon-blue/15 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/65">
             {contact.EmploymentStatus}
           </span>
         ) : null}
@@ -512,13 +512,13 @@ export function CompanyContactsTable({
   };
 
   if (contacts.length === 0 && !onCreateContact) {
-    return <p className="text-sm text-carbon-blue/45">No contacts yet.</p>;
+    return <p className="text-sm text-carbon-blue/65">No contacts yet.</p>;
   }
 
   return (
     <div className="flex min-h-0 flex-col">
       {unknownBuyingRoleCount > 0 ? (
-        <p className="mb-2 text-[12px] text-upcycle-orange">
+        <p className="mb-2 text-[13px] text-upcycle-orange">
           {unknownBuyingRoleCount === 1
             ? "1 person's buying role is unknown."
             : `${unknownBuyingRoleCount} people's buying roles are unknown.`}{" "}
@@ -540,36 +540,36 @@ export function CompanyContactsTable({
           <thead>
             <tr className="border-b border-carbon-blue/8 bg-carbon-blue/[0.03]">
               <th className="px-3 py-2 text-left">
-                <IconLabel icon="contact" iconSize="xs" className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                <IconLabel icon="contact" iconSize="xs" className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                   Name
                 </IconLabel>
               </th>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Role
               </th>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Buying role
               </th>
-              <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Project roles
               </th>
               <th className="px-3 py-2 text-left">
-                <IconLabel icon="email" iconSize="xs" className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                <IconLabel icon="email" iconSize="xs" className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                   Email
                 </IconLabel>
               </th>
               <th className="px-3 py-2 text-left">
-                <IconLabel icon="phone" iconSize="xs" className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                <IconLabel icon="phone" iconSize="xs" className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                   Phone
                 </IconLabel>
               </th>
               <th className="px-3 py-2 text-left">
-                <IconLabel icon="meeting" iconSize="xs" className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                <IconLabel icon="meeting" iconSize="xs" className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                   Last Interaction
                 </IconLabel>
               </th>
               {canManage ? (
-                <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                   Actions
                 </th>
               ) : null}
@@ -597,7 +597,7 @@ export function CompanyContactsTable({
           </tbody>
         </table>
       ) : (
-        <p className="text-sm text-carbon-blue/45">No contacts yet.</p>
+        <p className="text-sm text-carbon-blue/65">No contacts yet.</p>
       )}
 
       {onCreateContact ? (
@@ -627,7 +627,7 @@ export function CompanyContactsTable({
             <button
               type="button"
               onClick={() => setCreateOpen(true)}
-              className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+              className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
             >
               <SmartCRMIcon name="add" size="xs" />
               Add Contact

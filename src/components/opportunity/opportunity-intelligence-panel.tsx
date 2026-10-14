@@ -47,7 +47,7 @@ export function OpportunityIntelligencePanel({
           <>
             <OpportunityHealthBadge status={intelligence.healthStatus} />
             <OpportunityMomentumBadge momentum={intelligence.momentum} />
-            <span className="text-[10px] font-semibold tabular-nums text-carbon-blue/55">
+            <span className="text-[11px] font-semibold tabular-nums text-carbon-blue/55">
               {intelligence.winProbability}% win
             </span>
           </>
@@ -57,8 +57,8 @@ export function OpportunityIntelligencePanel({
       />
 
       {topRisk ? (
-        <section className={`border px-3 py-2.5 text-[11px] ${RISK_STYLES[topRisk.severity]}`}>
-          <p className="text-[9px] font-semibold uppercase tracking-wider opacity-70">Top risk</p>
+        <section className={`border px-3 py-2.5 text-[12px] ${RISK_STYLES[topRisk.severity]}`}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">Top risk</p>
           <p className="mt-0.5 font-semibold">{topRisk.label}</p>
           <p className="mt-0.5 opacity-80">{topRisk.detail}</p>
         </section>
@@ -73,7 +73,7 @@ export function OpportunityIntelligencePanel({
             {intelligence.risks.slice(1).map((risk) => (
               <li
                 key={risk.id}
-                className={`border px-3 py-2 text-[11px] ${RISK_STYLES[risk.severity]}`}
+                className={`border px-3 py-2 text-[12px] ${RISK_STYLES[risk.severity]}`}
               >
                 <p className="font-semibold">{risk.label}</p>
                 <p className="mt-0.5 opacity-80">{risk.detail}</p>

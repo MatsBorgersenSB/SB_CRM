@@ -98,7 +98,7 @@ export function M365ConnectPanel() {
     <section className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
             Microsoft 365 · Graph
           </p>
           <p className="mt-1 text-[13px] font-semibold text-carbon-blue">
@@ -108,16 +108,16 @@ export function M365ConnectPanel() {
                 ? "Outlook & SharePoint connected"
                 : "Connect Outlook and SharePoint"}
           </p>
-          <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-carbon-blue/50">
+          <p className="mt-1 max-w-xl text-[12px] leading-relaxed text-carbon-blue/50">
             SmartCRM keeps identity in SSO. Graph tokens (mail + files) are stored encrypted
             separately so SharePoint can be the document backend for SmartDocs.
           </p>
-          {error ? <p className="mt-2 text-[11px] text-red-700/80">{error}</p> : null}
+          {error ? <p className="mt-2 text-[12px] text-red-700/80">{error}</p> : null}
           {syncMessage ? (
-            <p className="mt-2 text-[11px] text-emerald-700/90">{syncMessage}</p>
+            <p className="mt-2 text-[12px] text-emerald-700/90">{syncMessage}</p>
           ) : null}
           {status?.connected ? (
-            <p className="mt-2 text-[11px] text-carbon-blue/45">
+            <p className="mt-2 text-[12px] text-carbon-blue/65">
               SharePoint transport: {status.sharePoint.transport}
               {status.sharePoint.ready
                 ? " · site ready"
@@ -132,7 +132,7 @@ export function M365ConnectPanel() {
           {!status?.connected ? (
             <a
               href="/api/auth/m365/login"
-              className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+              className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
             >
               Connect Microsoft 365
             </a>
@@ -142,14 +142,14 @@ export function M365ConnectPanel() {
                 type="button"
                 disabled={syncing}
                 onClick={() => void syncNow()}
-                className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+                className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
               >
                 {syncing ? "Syncing…" : "Sync mail now"}
               </button>
               <button
                 type="button"
                 onClick={() => void reload()}
-                className="inline-flex items-center justify-center border border-carbon-blue/15 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue"
+                className="inline-flex items-center justify-center border border-carbon-blue/15 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue"
               >
                 Refresh status
               </button>
@@ -159,7 +159,7 @@ export function M365ConnectPanel() {
             href="/outlook-addin"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-center text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
+            className="text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
           >
             Open Outlook pane preview
           </a>

@@ -494,7 +494,7 @@ export function Company360LivingWorkspace({
       {showFoldedLine ? (
         <p
           id={opportunitiesEmpty ? "opportunities" : "projects"}
-          className="px-1 text-[12px] text-carbon-blue/50"
+          className="px-1 text-[13px] text-carbon-blue/50"
         >
           No {foldedLabels.join(" or ")} linked yet.{" "}
           <button
@@ -523,7 +523,7 @@ export function Company360LivingWorkspace({
         </WorkspacePanel>
       ) : null}
 
-      <p id="activities" className="px-1 text-[12px] text-carbon-blue/50">
+      <p id="activities" className="px-1 text-[13px] text-carbon-blue/50">
         {companyActivities.length === 0
           ? "No CRM activities yet. Outlook mail still counts as last touch."
           : `${companyActivities.length} logged ${companyActivities.length === 1 ? "activity" : "activities"}.`}{" "}

@@ -82,10 +82,10 @@ export function ActivityKnowledgeCapturePanel({
       <div className="flex items-start gap-2">
         <Bot className="mt-0.5 size-4 shrink-0 text-upcycle-orange" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-upcycle-orange">
             SmartAssist Knowledge Capture
           </p>
-          <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/60">
+          <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/60">
             SmartAssist drafts structured knowledge — what happened, agreements, decisions,
             commitments, risks, and next steps. Review and approve before saving.
           </p>
@@ -93,13 +93,13 @@ export function ActivityKnowledgeCapturePanel({
             type="button"
             disabled={!activityType || generating}
             onClick={handleGenerate}
-            className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             <Sparkles className="size-3.5" strokeWidth={2} />
             {generating ? "Generating…" : "Generate knowledge draft"}
           </button>
           {lastDraft ? (
-            <p className="mt-2 text-[10px] text-carbon-blue/45">
+            <p className="mt-2 text-[11px] text-carbon-blue/65">
               Draft ready — {lastDraft.assessment.completenessScore}% complete ·{" "}
               {lastDraft.decisions.length} decisions · {lastDraft.commitments.length} commitments
             </p>

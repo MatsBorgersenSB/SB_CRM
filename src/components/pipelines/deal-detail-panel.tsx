@@ -97,7 +97,7 @@ export function DealDetailPanel({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2 border border-carbon-blue/8 bg-carbon-blue/[0.02] px-3 py-2">
-        <p className="mr-auto text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <p className="mr-auto text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Documents
         </p>
         <OpenSharePointFolderControl
@@ -123,10 +123,10 @@ export function DealDetailPanel({
         <button
           type="button"
           onClick={() => setTab("documents")}
-          className="truncate border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-left text-[10px] text-carbon-blue hover:border-upcycle-orange/30"
+          className="truncate border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-left text-[11px] text-carbon-blue hover:border-upcycle-orange/30"
         >
           <span className="font-semibold text-upcycle-orange">Documents</span>
-          <span className="text-carbon-blue/45"> · {pipeline.FileLeafRef}</span>
+          <span className="text-carbon-blue/65"> · {pipeline.FileLeafRef}</span>
         </button>
       ) : null}
 
@@ -144,7 +144,7 @@ export function DealDetailPanel({
 
       <Link
         href={`/opportunities/${encodeURIComponent(pipeline.id)}`}
-        className="text-[10px] text-carbon-blue/45 hover:text-upcycle-orange hover:underline"
+        className="text-[11px] text-carbon-blue/65 hover:text-upcycle-orange hover:underline"
       >
         Open full Deal 360
       </Link>
@@ -159,7 +159,7 @@ export function DealDetailPanel({
       ) : null}
       {tab === "commercial" ? (
         commercialLoading || !commercialView ? (
-          <p className="text-[11px] text-carbon-blue/50">Loading commercial baseline…</p>
+          <p className="text-[12px] text-carbon-blue/50">Loading commercial baseline…</p>
         ) : (
           <DealCommercialBaselinePanel
             view={commercialView}

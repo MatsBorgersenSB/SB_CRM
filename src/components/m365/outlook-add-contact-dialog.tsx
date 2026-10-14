@@ -243,7 +243,7 @@ export function OutlookAddContactDialog({
           >
             {prepopulation?.colleague ? "Standard Bio colleague" : "Add to SmartCRM"}
           </p>
-          <p className="mt-1 text-[11px] text-carbon-blue/50">
+          <p className="mt-1 text-[12px] text-carbon-blue/50">
             {prepopulation?.colleague
               ? "Colleagues are SmartCRM users, not contacts."
               : "Confirm contact and company — nothing is created until you say so."}
@@ -252,94 +252,94 @@ export function OutlookAddContactDialog({
 
         <div className="max-h-[70dvh] space-y-3 overflow-y-auto px-4 py-4">
           {loading && !prepopulation ? (
-            <p className="text-[11px] text-carbon-blue/50">Preparing contact details…</p>
+            <p className="text-[12px] text-carbon-blue/50">Preparing contact details…</p>
           ) : prepopulation?.colleague ? (
             <>
-              <p className="text-[12px] font-medium text-carbon-blue">
+              <p className="text-[13px] font-medium text-carbon-blue">
                 {prepopulation.colleague.knownUser
                   ? prepopulation.colleague.displayName
                   : prepopulation.displayName}
               </p>
-              <p className="text-[10px] text-carbon-blue/40">{prepopulation.email}</p>
-              <p className="text-[11px] leading-relaxed text-carbon-blue/60">
+              <p className="text-[11px] text-carbon-blue/60">{prepopulation.email}</p>
+              <p className="text-[12px] leading-relaxed text-carbon-blue/60">
                 {prepopulation.colleague.knownUser
                   ? "They already have a user record. Do not add them to the Contact Registry."
                   : "If they need SmartCRM access, add them in Users & Access. Never as a contact."}
               </p>
-              {error ? <p className="text-[11px] text-thermal-red">{error}</p> : null}
+              {error ? <p className="text-[12px] text-thermal-red">{error}</p> : null}
             </>
           ) : (
             <>
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Name
                 </span>
                 <input
                   type="text"
                   readOnly
                   value={prepopulation?.displayName ?? displayName ?? ""}
-                  className="mt-1 w-full border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-[13px] text-carbon-blue"
                 />
               </label>
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Email
                 </span>
                 <input
                   type="email"
                   readOnly
                   value={prepopulation?.email ?? email}
-                  className="mt-1 w-full border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-[12px] text-carbon-blue/60"
+                  className="mt-1 w-full border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-[13px] text-carbon-blue/60"
                 />
               </label>
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Role
                 </span>
                 <ContactRoleSelect
                   value={role}
                   onChange={(value) => setRole(value)}
                   allowEmpty
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                 />
               </label>
 
               {showMatchedCompany ? (
                 <div>
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                     Link to company
                   </span>
                   <div className="mt-1 flex items-center justify-between gap-2 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
-                    <p className="text-[12px] font-medium text-carbon-blue">
+                    <p className="text-[13px] font-medium text-carbon-blue">
                       {prepopulation.companyName}
                     </p>
                     <button
                       type="button"
                       onClick={handleChangeCompany}
-                      className="shrink-0 border border-carbon-blue/15 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange hover:text-upcycle-orange"
+                      className="shrink-0 border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange hover:text-upcycle-orange"
                     >
                       Change
                     </button>
                   </div>
-                  <p className="mt-1 text-[10px] text-carbon-blue/45">
+                  <p className="mt-1 text-[11px] text-carbon-blue/65">
                     Existing company — contact will be linked here.
                   </p>
                 </div>
               ) : (
                 <>
                   <label className="block">
-                    <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                       Create company
                     </span>
                     <input
                       type="text"
                       value={companyName}
                       onChange={(event) => setCompanyName(event.target.value)}
-                      className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
+                      className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue"
                     />
-                    <p className="mt-1 text-[10px] text-carbon-blue/45">
+                    <p className="mt-1 text-[11px] text-carbon-blue/65">
                       {companyOverride
                         ? "A new company will be created with this name."
                         : (prepopulation?.companyHint ??
@@ -347,7 +347,7 @@ export function OutlookAddContactDialog({
                     </p>
                   </label>
                   <label className="block">
-                    <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                       Relationship type
                     </span>
                     <select
@@ -355,7 +355,7 @@ export function OutlookAddContactDialog({
                       onChange={(event) =>
                         setCompanyType(event.target.value as CompanyType | "")
                       }
-                      className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                      className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                     >
                       <option value="">What kind of company?…</option>
                       {COMPANY_TYPE_SELECT_OPTIONS.map((option) => (
@@ -364,19 +364,19 @@ export function OutlookAddContactDialog({
                         </option>
                       ))}
                     </select>
-                    <p className="mt-1 text-[10px] text-carbon-blue/45">
+                    <p className="mt-1 text-[11px] text-carbon-blue/65">
                       Supplier, Prospect, Partner… — this decides whether opportunities make sense.
                     </p>
                   </label>
                   <label className="block">
-                    <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                       Industry
                     </span>
                     <IndustrySelect
                       value={industry}
                       onChange={(value) => setIndustry(value)}
                       allowEmpty
-                      className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                      className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                     />
                   </label>
                 </>
@@ -391,14 +391,14 @@ export function OutlookAddContactDialog({
               ) : null}
 
               {acceptedSuggestions ? (
-                <p className="text-[10px] text-carbon-blue/45">
+                <p className="text-[11px] text-carbon-blue/65">
                   Signature details accepted — they will be saved with this contact.
                 </p>
               ) : null}
             </>
           )}
 
-          {error ? <p className="text-[11px] text-red-700">{error}</p> : null}
+          {error ? <p className="text-[12px] text-red-700">{error}</p> : null}
         </div>
 
         <div className="flex gap-2 border-t border-carbon-blue/8 px-4 py-3">
@@ -406,7 +406,7 @@ export function OutlookAddContactDialog({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex-1 border border-carbon-blue/15 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+            className="flex-1 border border-carbon-blue/15 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
           >
             {prepopulation?.colleague ? "Close" : "Cancel"}
           </button>
@@ -422,7 +422,7 @@ export function OutlookAddContactDialog({
               (!showMatchedCompany &&
                 (!companyName.trim() || !industry || !companyType))
             }
-            className="flex-1 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+            className="flex-1 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
           >
             {loading
               ? "Creating…"

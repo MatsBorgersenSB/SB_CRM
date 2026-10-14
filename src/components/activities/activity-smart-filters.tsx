@@ -42,7 +42,7 @@ export function ActivitySmartFilters({
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder="Search activities…"
-        className="w-full border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-1.5 text-[13px] text-carbon-blue outline-none placeholder:text-carbon-blue/35 focus:border-carbon-blue/20 sm:w-56"
+        className="w-full border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-1.5 text-[13px] text-carbon-blue outline-none placeholder:text-carbon-blue/50 focus:border-carbon-blue/20 sm:w-56"
       />
     </div>
   );

@@ -96,7 +96,7 @@ export function M365MailSyncHeaderButton({ compact = false }: { compact?: boolea
       {statusLabel && !compact ? (
         <span
           className={cn(
-            "hidden truncate text-[10px] sm:inline",
+            "hidden truncate text-[11px] sm:inline",
             error ? "text-destructive" : "text-muted-foreground",
           )}
           title={statusLabel}
@@ -123,7 +123,7 @@ export function M365MailSyncHeaderButton({ compact = false }: { compact?: boolea
       {compact && statusLabel ? (
         <span
           className={cn(
-            "truncate px-2 text-[10px]",
+            "truncate px-2 text-[11px]",
             error ? "text-destructive" : "text-muted-foreground",
           )}
           title={statusLabel}

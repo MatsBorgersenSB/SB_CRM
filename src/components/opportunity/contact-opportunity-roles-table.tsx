@@ -175,7 +175,7 @@ export function ContactOpportunityRolesTable({
   return (
     <div className="space-y-3">
       {roles.length === 0 ? (
-        <p className="text-sm text-carbon-blue/45">
+        <p className="text-sm text-carbon-blue/65">
           Not on an opportunity roster yet. Add {getContactDisplayName(contact)} to a deal
           from here.
         </p>
@@ -192,15 +192,15 @@ export function ContactOpportunityRolesTable({
                 <IconLabel
                   icon="opportunity"
                   iconSize="xs"
-                  className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+                  className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
                 >
                   Opportunity
                 </IconLabel>
               </th>
-              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Role
               </th>
-              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                 Status
               </th>
             </tr>
@@ -216,15 +216,15 @@ export function ContactOpportunityRolesTable({
                     <span className="text-[13px] font-semibold text-carbon-blue group-hover:text-upcycle-orange">
                       {entry.dealName}
                     </span>
-                    <span className="mt-0.5 block truncate font-mono text-[10px] text-carbon-blue/40">
+                    <span className="mt-0.5 block truncate font-mono text-[11px] text-carbon-blue/60">
                       {entry.dealCode}
                     </span>
                   </DealLink>
                 </td>
-                <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/70">
+                <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/70">
                   {entry.role}
                 </td>
-                <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/55">
+                <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/55">
                   {entry.status}
                 </td>
               </tr>
@@ -236,15 +236,15 @@ export function ContactOpportunityRolesTable({
       {canManage ? (
         assignOpen ? (
           <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3">
-            <p className="text-[11px] font-semibold text-carbon-blue">
+            <p className="text-[12px] font-semibold text-carbon-blue">
               Add to existing opportunity
             </p>
-            <p className="mt-0.5 text-[10px] text-carbon-blue/50">
+            <p className="mt-0.5 text-[11px] text-carbon-blue/50">
               Search a deal — no need to open it first.
             </p>
 
             <label className="relative mt-3 block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Opportunity
               </span>
               <input
@@ -262,12 +262,12 @@ export function ContactOpportunityRolesTable({
                   setSelectedDealId("");
                   setPickerOpen(true);
                 }}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
               />
               {pickerOpen ? (
                 <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto border border-carbon-blue/15 bg-white shadow-md">
                   {filteredDeals.length === 0 ? (
-                    <li className="px-3 py-2 text-[11px] text-carbon-blue/50">
+                    <li className="px-3 py-2 text-[12px] text-carbon-blue/50">
                       {availableDeals.length === 0
                         ? "Already on all opportunities, or none exist."
                         : "No opportunities match your search."}
@@ -284,10 +284,10 @@ export function ContactOpportunityRolesTable({
                             setPickerOpen(false);
                           }}
                         >
-                          <span className="text-[12px] font-medium text-carbon-blue">
+                          <span className="text-[13px] font-medium text-carbon-blue">
                             {deal.assetName}
                           </span>
-                          <span className="text-[10px] text-carbon-blue/45">
+                          <span className="text-[11px] text-carbon-blue/65">
                             {opportunityPublicCode(deal)} · {deal.status}
                             {companyDealIds.has(deal.id) ? " · This company" : ""}
                           </span>
@@ -300,14 +300,14 @@ export function ContactOpportunityRolesTable({
             </label>
 
             <label className="mt-3 block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Role on opportunity
               </span>
               <select
                 value={stakeholderRole}
                 disabled={busy}
                 onChange={(event) => setStakeholderRole(event.target.value)}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px]"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px]"
               >
                 {roleOptions.map((option) => (
                   <option key={option} value={option}>
@@ -318,7 +318,7 @@ export function ContactOpportunityRolesTable({
             </label>
 
             {error ? (
-              <p className="mt-2 text-[11px] text-thermal-red">{error}</p>
+              <p className="mt-2 text-[12px] text-thermal-red">{error}</p>
             ) : null}
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -326,7 +326,7 @@ export function ContactOpportunityRolesTable({
                 type="button"
                 disabled={busy || !selectedDealId}
                 onClick={() => void handleAdd()}
-                className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
+                className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"
               >
                 {busy ? "Adding…" : "Add to opportunity"}
               </button>
@@ -338,14 +338,14 @@ export function ContactOpportunityRolesTable({
                   setError(null);
                   setPickerOpen(false);
                 }}
-                className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/60"
+                className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/60"
               >
                 Cancel
               </button>
               {selectedDeal ? (
                 <a
                   href={deal360Href(selectedDeal.id)}
-                  className="px-2 py-1.5 text-[11px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
+                  className="px-2 py-1.5 text-[12px] font-semibold text-carbon-blue/65 hover:text-upcycle-orange"
                 >
                   Open opportunity
                 </a>
@@ -356,7 +356,7 @@ export function ContactOpportunityRolesTable({
           <button
             type="button"
             onClick={() => setAssignOpen(true)}
-            className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+            className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
           >
             + Add to opportunity
           </button>

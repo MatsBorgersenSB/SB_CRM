@@ -77,7 +77,7 @@ export function OutlookTenderRadarPane() {
   return (
     <div className="flex h-full flex-col gap-4 overflow-auto bg-background px-4 py-4">
       <div className="flex flex-col gap-1">
-        <p className="text-[11px] font-semibold tracking-tight text-primary">Tender Radar</p>
+        <p className="text-[12px] font-semibold tracking-tight text-primary">Tender Radar</p>
         <h1 className="font-semibold tracking-tight text-foreground">Top thermal notices</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
           Pyrolysis and torrefaction tenders still open. Promote only when this deserves a deal.

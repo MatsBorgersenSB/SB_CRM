@@ -2,7 +2,7 @@ import type { PipelineRow } from "@/types/pipeline";
 
 function DocBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center border border-upcycle-orange/30 bg-upcycle-orange/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-upcycle-orange">
+    <span className="inline-flex items-center border border-upcycle-orange/30 bg-upcycle-orange/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
       {label}
     </span>
   );
@@ -38,7 +38,7 @@ export function CompanySmartDocsTable({ documents }: { documents: PipelineRow[] 
             ].map((header) => (
               <th
                 key={header}
-                className="px-2 py-1.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+                className="px-2 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/65"
               >
                 {header}
               </th>
@@ -51,7 +51,7 @@ export function CompanySmartDocsTable({ documents }: { documents: PipelineRow[] 
               key={doc.id}
               className="border-b border-carbon-blue/10 last:border-b-0"
             >
-              <td className="px-2 py-1.5 font-mono text-[10px] text-carbon-blue/55">
+              <td className="px-2 py-1.5 font-mono text-[11px] text-carbon-blue/55">
                 {doc.ClientLookup}
               </td>
               <td className="px-2 py-1.5">
@@ -60,11 +60,11 @@ export function CompanySmartDocsTable({ documents }: { documents: PipelineRow[] 
               <td className="px-2 py-1.5">
                 {doc.DocType ? <DocBadge label={doc.DocType} /> : "—"}
               </td>
-              <td className="px-2 py-1.5 font-mono text-[10px] text-carbon-blue">
+              <td className="px-2 py-1.5 font-mono text-[11px] text-carbon-blue">
                 {doc.Revision ?? "—"}
               </td>
               <td
-                className="truncate px-2 py-1.5 font-mono text-[10px] text-carbon-blue/70"
+                className="truncate px-2 py-1.5 font-mono text-[11px] text-carbon-blue/70"
                 title={doc.FileLeafRef}
               >
                 {doc.FileLeafRef}

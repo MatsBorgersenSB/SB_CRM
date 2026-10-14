@@ -89,7 +89,7 @@ export function CompaniesShell({
           <h1 className="text-sm font-semibold text-carbon-blue">Companies</h1>
           <div className="flex items-center gap-3">
             <RoleSwitcher companies={companyRows} />
-            <span className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-upcycle-orange">
+            <span className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-upcycle-orange">
               {visibleCompanies.length}
             </span>
           </div>

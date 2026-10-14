@@ -107,14 +107,14 @@ export function ProjectStakeholdersPanel({
   return (
     <div className="flex flex-col gap-4">
       {stakeholders.length === 0 ? (
-        <p className="text-sm text-carbon-blue/45">
+        <p className="text-sm text-carbon-blue/65">
           No associated contacts yet. Add stakeholders who influence this project outcome.
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-carbon-blue/10 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              <tr className="border-b border-carbon-blue/10 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                 <th className="px-2 py-2 font-semibold">Contact</th>
                 <th className="px-2 py-2 font-semibold">Role</th>
                 <th className="px-2 py-2 font-semibold">Influence</th>
@@ -137,7 +137,7 @@ export function ProjectStakeholdersPanel({
                         <span className="font-medium text-carbon-blue">{stakeholder.name}</span>
                       )}
                       {stakeholder.companyName ? (
-                        <p className="text-[12px] text-carbon-blue/45">{stakeholder.companyName}</p>
+                        <p className="text-[13px] text-carbon-blue/65">{stakeholder.companyName}</p>
                       ) : null}
                     </div>
                   </td>
@@ -151,7 +151,7 @@ export function ProjectStakeholdersPanel({
                         type="button"
                         disabled={removingIndex === index}
                         onClick={() => void handleRemove(index)}
-                        className="text-[11px] font-semibold text-carbon-blue/45 hover:text-red-600 disabled:opacity-50"
+                        className="text-[12px] font-semibold text-carbon-blue/65 hover:text-red-600 disabled:opacity-50"
                       >
                         {removingIndex === index ? "…" : "Remove"}
                       </button>
@@ -168,17 +168,17 @@ export function ProjectStakeholdersPanel({
         <div>
           {assignOpen ? (
             <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
-              <p className="mb-2 text-[11px] text-carbon-blue/55">
+              <p className="mb-2 text-[12px] text-carbon-blue/55">
                 {linkedCompany
                   ? `Select a contact from ${linkedCompany.Title}`
                   : "Select a contact from your portfolio"}
               </p>
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">Contact</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">Contact</span>
                 <select
                   value={selectedContactId}
                   onChange={(event) => setSelectedContactId(event.target.value)}
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                 >
                   <option value="">Select contact…</option>
                   {availableContacts.map((option) => (
@@ -190,21 +190,21 @@ export function ProjectStakeholdersPanel({
                 </select>
               </label>
               <label className="mt-3 block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">Role on project</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">Role on project</span>
                 <input
                   type="text"
                   value={role}
                   onChange={(event) => setRole(event.target.value)}
                   placeholder="e.g. Project Sponsor"
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                 />
               </label>
               <label className="mt-3 block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">Influence</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">Influence</span>
                 <select
                   value={influence}
                   onChange={(event) => setInfluence(event.target.value as StakeholderInfluence)}
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                 >
                   {INFLUENCE_OPTIONS.map((option) => (
                     <option key={option} value={option}>
@@ -236,7 +236,7 @@ export function ProjectStakeholdersPanel({
               type="button"
               onClick={() => setAssignOpen(true)}
               disabled={availableContacts.length === 0}
-              className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:opacity-50"
             >
               <SmartCRMIcon name="add" size="xs" />
               Add Contact
@@ -254,10 +254,10 @@ function InfluenceBadge({ influence }: { influence: StakeholderInfluence }) {
       ? "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange"
       : influence === "Medium"
         ? "border-carbon-blue/15 bg-carbon-blue/5 text-carbon-blue/70"
-        : "border-carbon-blue/10 bg-white text-carbon-blue/45";
+        : "border-carbon-blue/10 bg-white text-carbon-blue/65";
 
   return (
-    <span className={`inline-block border px-2 py-0.5 text-[11px] font-medium ${tone}`}>
+    <span className={`inline-block border px-2 py-0.5 text-[12px] font-medium ${tone}`}>
       {influence}
     </span>
   );

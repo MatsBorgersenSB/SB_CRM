@@ -77,7 +77,7 @@ export function DealVelocityCard({ dealId }: { dealId: string }) {
     >
       <div className={`${ATTIO_SURFACE_HEADER} flex flex-wrap items-center justify-between gap-2`}>
         <div>
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
             FS-012 · Deal Velocity
           </p>
           <h2 className="mt-0.5 text-[13px] font-semibold text-slate-800 dark:text-slate-100">
@@ -86,7 +86,7 @@ export function DealVelocityCard({ dealId }: { dealId: string }) {
         </div>
         {!loading && data?.riskLevel ? (
           <span
-            className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${RISK_STYLES[risk]}`}
+            className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${RISK_STYLES[risk]}`}
           >
             {risk} risk · {data.velocityScore ?? "—"}/100
           </span>
@@ -95,13 +95,13 @@ export function DealVelocityCard({ dealId }: { dealId: string }) {
 
       <div className="px-4 py-3 sm:px-5">
         {loading ? (
-          <p className="text-[12px] text-slate-500">Scoring velocity…</p>
+          <p className="text-[13px] text-slate-500">Scoring velocity…</p>
         ) : error ? (
-          <p className="text-[12px] text-thermal-red">{error}</p>
+          <p className="text-[13px] text-thermal-red">{error}</p>
         ) : (
           <div className="space-y-3">
             {data?.summary ? (
-              <p className="text-[12px] leading-relaxed text-slate-600 dark:text-slate-300">
+              <p className="text-[13px] leading-relaxed text-slate-600 dark:text-slate-300">
                 {data.summary}
               </p>
             ) : null}
@@ -114,17 +114,17 @@ export function DealVelocityCard({ dealId }: { dealId: string }) {
                     className="border border-slate-200/80 bg-slate-50/50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/40"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100">
+                      <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">
                         {item.action}
                       </p>
-                      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                         {item.priority}
                       </span>
                     </div>
-                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
                       {item.reason}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-upcycle-orange/90">
+                    <p className="mt-0.5 text-[12px] text-upcycle-orange/90">
                       Impact: {item.impact}
                     </p>
                   </li>
@@ -133,7 +133,7 @@ export function DealVelocityCard({ dealId }: { dealId: string }) {
             ) : null}
 
             {data?.signals && data.signals.length > 0 ? (
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[11px] text-slate-400">
                 Signals: {data.signals.slice(0, 4).join(" · ")}
               </p>
             ) : null}

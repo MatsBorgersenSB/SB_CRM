@@ -48,7 +48,7 @@ export function ContactsOperationsTable({
 }) {
   if (records.length === 0) {
     return (
-      <p className="text-sm text-carbon-blue/45">
+      <p className="text-sm text-carbon-blue/65">
         No contacts match this filter. Try another view or broaden your search.
       </p>
     );
@@ -99,7 +99,7 @@ export function ContactsOperationsTable({
                       {getContactDisplayName(record.contact)}
                     </ContactLink>
                     {record.contact.IsArchived ? (
-                      <span className="shrink-0 border border-carbon-blue/15 px-1 text-[10px] uppercase tracking-wide text-carbon-blue/50">
+                      <span className="shrink-0 border border-carbon-blue/15 px-1 text-[11px] uppercase tracking-wide text-carbon-blue/50">
                         Archived
                       </span>
                     ) : null}
@@ -108,7 +108,7 @@ export function ContactsOperationsTable({
                     <EmailActionMenu
                       email={record.contact.Email}
                       showIcon={false}
-                      className={`${textTruncate} max-w-full text-[12px] text-carbon-blue/60`}
+                      className={`${textTruncate} max-w-full text-[13px] text-carbon-blue/60`}
                     />
                   ) : null}
                 </WorkspaceTableBodyCell>
@@ -165,7 +165,7 @@ function BuyingRoleCell({
 
   if (!onContactUpdate) {
     return (
-      <span className={`${textTruncate} ${unknown ? "text-carbon-blue/45" : "text-carbon-blue/75"}`}>
+      <span className={`${textTruncate} ${unknown ? "text-carbon-blue/65" : "text-carbon-blue/75"}`}>
         {unknown ? "Not set" : buyingRole}
       </span>
     );

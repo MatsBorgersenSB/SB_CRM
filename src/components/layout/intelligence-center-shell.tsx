@@ -57,7 +57,7 @@ function StalledDealRow({
       <p className="text-sm font-semibold text-carbon-blue group-hover:text-upcycle-orange">
         {item.dealName}
       </p>
-      <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+      <p className="mt-0.5 text-[12px] text-carbon-blue/65">
         {item.companyName} · {dealStageLabel(item.dealStage)} · {item.daysStalled}d stalled
       </p>
       <ImpactContext items={[item.nextBestAction, item.reason]} />

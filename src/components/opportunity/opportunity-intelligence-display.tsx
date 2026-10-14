@@ -22,7 +22,7 @@ export function OpportunityHealthBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${OPPORTUNITY_HEALTH_STYLES[status]} ${className}`}
+      className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${OPPORTUNITY_HEALTH_STYLES[status]} ${className}`}
     >
       {status}
     </span>
@@ -47,7 +47,7 @@ export function OpportunityMomentumBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider ${OPPORTUNITY_MOMENTUM_STYLES[momentum]} ${className}`}
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider ${OPPORTUNITY_MOMENTUM_STYLES[momentum]} ${className}`}
     >
       {icon} {momentum}
     </span>
@@ -95,14 +95,14 @@ export function OpportunityNextBestActionCard({
 }) {
   if (compact) {
     return (
-      <div className="text-[11px] leading-relaxed text-carbon-blue/55">
+      <div className="text-[12px] leading-relaxed text-carbon-blue/55">
         <span
-          className={`mr-1.5 inline-flex border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${NEXT_BEST_ACTION_PRIORITY_STYLES[action.priority]}`}
+          className={`mr-1.5 inline-flex border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${NEXT_BEST_ACTION_PRIORITY_STYLES[action.priority]}`}
         >
           {action.priority}
         </span>
         <span className="font-medium text-carbon-blue/75">{action.action}</span>
-        <span className="text-carbon-blue/45"> — {action.reason}</span>
+        <span className="text-carbon-blue/65"> — {action.reason}</span>
       </div>
     );
   }
@@ -111,11 +111,11 @@ export function OpportunityNextBestActionCard({
     <div
       className={`border px-4 py-3 ${NEXT_BEST_ACTION_PRIORITY_STYLES[action.priority]}`}
     >
-      <p className="text-[9px] font-semibold uppercase tracking-wider opacity-70">
+      <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
         Next best action
       </p>
       <p className="mt-1 text-sm font-semibold">{action.action}</p>
-      <p className="mt-1 text-[11px] leading-relaxed opacity-80">{action.reason}</p>
+      <p className="mt-1 text-[12px] leading-relaxed opacity-80">{action.reason}</p>
     </div>
   );
 }
@@ -133,7 +133,7 @@ export function OpportunityIntelligenceBreakdown({
       <ul className="space-y-2">
         {intelligence.components.map((component) => (
           <li key={component.id} className="space-y-1">
-            <div className="flex items-center justify-between gap-2 text-[11px]">
+            <div className="flex items-center justify-between gap-2 text-[12px]">
               <span className="font-medium text-carbon-blue/70">{component.label}</span>
               <span className="tabular-nums text-carbon-blue/50">
                 {component.score}
@@ -152,12 +152,12 @@ export function OpportunityIntelligenceBreakdown({
                 style={{ width: `${component.score}%` }}
               />
             </div>
-            <p className="text-[10px] text-carbon-blue/45">{component.detail}</p>
+            <p className="text-[11px] text-carbon-blue/65">{component.detail}</p>
           </li>
         ))}
       </ul>
       {showEngineFootnote ? (
-        <p className="border-t border-carbon-blue/8 pt-2 text-[10px] text-carbon-blue/40">
+        <p className="border-t border-carbon-blue/8 pt-2 text-[11px] text-carbon-blue/60">
           {getOpportunityIntelligenceExplanation()}
         </p>
       ) : null}

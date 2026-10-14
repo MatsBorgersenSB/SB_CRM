@@ -107,7 +107,7 @@ export function ContactCombobox({
 
   return (
     <div ref={rootRef} className="relative block">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+      <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
         {label}
       </span>
       <div className="relative mt-1">
@@ -126,9 +126,9 @@ export function ContactCombobox({
             setIsOpen(true);
             if (selectedContactId) onSelect(null);
           }}
-          className="w-full border border-carbon-blue/15 bg-white py-2 pl-3 pr-9 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange"
+          className="w-full border border-carbon-blue/15 bg-white py-2 pl-3 pr-9 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
         />
-        <ChevronsUpDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/35" />
+        <ChevronsUpDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50" />
       </div>
 
       {isOpen ? (
@@ -138,11 +138,11 @@ export function ContactCombobox({
           className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto border border-carbon-blue/15 bg-white shadow-md"
         >
           {filtered.length === 0 ? (
-            <li className="px-3 py-2 text-[11px] text-carbon-blue/50">{emptyMessage}</li>
+            <li className="px-3 py-2 text-[12px] text-carbon-blue/50">{emptyMessage}</li>
           ) : (
             <>
               {accountMatches.length > 0 ? (
-                <li className="border-b border-carbon-blue/8 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <li className="border-b border-carbon-blue/8 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   {groupAccountLabel}
                 </li>
               ) : null}
@@ -158,17 +158,17 @@ export function ContactCombobox({
                       setIsOpen(false);
                     }}
                   >
-                    <span className="text-[12px] font-medium text-carbon-blue">
+                    <span className="text-[13px] font-medium text-carbon-blue">
                       {getContactDisplayName(option.contact)}
                     </span>
-                    <span className="text-[10px] text-carbon-blue/45">
+                    <span className="text-[11px] text-carbon-blue/65">
                       {[option.companyName, option.contact.Email].filter(Boolean).join(" · ")}
                     </span>
                   </button>
                 </li>
               ))}
               {otherMatches.length > 0 ? (
-                <li className="border-b border-t border-carbon-blue/8 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <li className="border-b border-t border-carbon-blue/8 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   {groupOtherLabel}
                 </li>
               ) : null}
@@ -184,10 +184,10 @@ export function ContactCombobox({
                       setIsOpen(false);
                     }}
                   >
-                    <span className="text-[12px] font-medium text-carbon-blue">
+                    <span className="text-[13px] font-medium text-carbon-blue">
                       {getContactDisplayName(option.contact)}
                     </span>
-                    <span className="text-[10px] text-carbon-blue/45">
+                    <span className="text-[11px] text-carbon-blue/65">
                       {[option.companyName, option.contact.Email].filter(Boolean).join(" · ")}
                     </span>
                   </button>

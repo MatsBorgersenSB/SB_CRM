@@ -58,10 +58,10 @@ export const WORKSPACE_TABLE_HEAD_ROW_CLASS =
   "border-b-2 border-carbon-blue/10 bg-carbon-blue/[0.05]";
 
 export const WORKSPACE_TABLE_HEAD_CELL_CLASS =
-  "px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-carbon-blue/75";
+  "px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/75";
 
 export const WORKSPACE_TABLE_BODY_ROW_CLASS =
   "border-b border-carbon-blue/10 last:border-b-0 transition-colors hover:bg-carbon-blue/[0.03]";
 
 export const WORKSPACE_TABLE_BODY_CELL_CLASS =
-  "min-w-0 overflow-hidden px-3 py-3 text-[12px] text-carbon-blue/80";
+  "min-w-0 overflow-hidden px-3 py-3 text-[13px] text-carbon-blue/80";

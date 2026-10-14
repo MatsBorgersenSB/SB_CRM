@@ -99,8 +99,8 @@ export function SmartAssistResolutionCard({
   return (
     <section className="border border-border bg-white text-foreground">
       <header className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide">SmartAssist</p>
-        <span className={`px-2 py-0.5 text-[10px] font-medium ${pill.className}`}>{pill.label}</span>
+        <p className="text-[12px] font-semibold uppercase tracking-wide">SmartAssist</p>
+        <span className={`px-2 py-0.5 text-[11px] font-medium ${pill.className}`}>{pill.label}</span>
       </header>
       <div className="space-y-2 px-3 py-2 text-xs leading-relaxed">
         <p>{resolution.summary}</p>
@@ -139,14 +139,14 @@ export function SmartAssistResolutionCard({
           type="button"
           onClick={() => void runAction()}
           disabled={phase === "pending" || phase === "done"}
-          className="bg-foreground px-2.5 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
+          className="bg-foreground px-2.5 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"
         >
           {phase === "pending" ? `Adding ${createdCount ?? 0}…` : action.label}
         </button>
         <button
           type="button"
           onClick={onDismiss}
-          className="border border-border bg-white px-2.5 py-1.5 text-[11px] text-muted-foreground"
+          className="border border-border bg-white px-2.5 py-1.5 text-[12px] text-muted-foreground"
         >
           Dismiss
         </button>

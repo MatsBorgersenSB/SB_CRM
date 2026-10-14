@@ -246,7 +246,7 @@ export function DealStakeholdersTable({
   return (
     <div className="flex flex-col gap-4">
       {stakeholderRows.length === 0 ? (
-        <p className="text-sm text-carbon-blue/45">
+        <p className="text-sm text-carbon-blue/65">
           No stakeholders yet.
           {offeringIntel.suggestedStakeholderRoles.length > 0
             ? ` For ${offeringIntel.labels[0] ?? "selected offerings"}, start with ${offeringIntel.suggestedStakeholderRoles.slice(0, 2).join(" and ")}.`
@@ -310,7 +310,7 @@ export function DealStakeholdersTable({
                   ) : row.projectRole ? (
                     <StakeholderRoleBadge role={row.projectRole} />
                   ) : (
-                    <span className="truncate text-carbon-blue/45">{row.role}</span>
+                    <span className="truncate text-carbon-blue/65">{row.role}</span>
                   )}
                 </WorkspaceTableBodyCell>
                 {!compact ? (
@@ -329,14 +329,14 @@ export function DealStakeholdersTable({
                             type="button"
                             disabled={saving || !resolvedEditRole}
                             onClick={() => void handleSaveRole(row.member.contactId)}
-                            className="text-[11px] font-semibold text-upcycle-orange disabled:opacity-50"
+                            className="text-[12px] font-semibold text-upcycle-orange disabled:opacity-50"
                           >
                             Save
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditingId(null)}
-                            className="text-[11px] font-semibold text-carbon-blue/45 hover:text-carbon-blue"
+                            className="text-[12px] font-semibold text-carbon-blue/65 hover:text-carbon-blue"
                           >
                             Cancel
                           </button>
@@ -349,7 +349,7 @@ export function DealStakeholdersTable({
                               onClick={() =>
                                 startEdit(row.member.contactId, row.projectRole || row.role)
                               }
-                              className="text-[11px] font-semibold text-carbon-blue/55 hover:text-upcycle-orange"
+                              className="text-[12px] font-semibold text-carbon-blue/55 hover:text-upcycle-orange"
                             >
                               Edit role
                             </button>
@@ -359,7 +359,7 @@ export function DealStakeholdersTable({
                               type="button"
                               disabled={removingId === row.member.contactId}
                               onClick={() => void handleRemove(row.member.contactId)}
-                              className="text-[11px] font-semibold text-carbon-blue/45 hover:text-red-600 disabled:opacity-50"
+                              className="text-[12px] font-semibold text-carbon-blue/65 hover:text-red-600 disabled:opacity-50"
                             >
                               {removingId === row.member.contactId ? "…" : "Remove"}
                             </button>
@@ -379,7 +379,7 @@ export function DealStakeholdersTable({
         <div>
           {assignOpen ? (
             <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
-              <p className="mb-2 text-[11px] text-carbon-blue/55">
+              <p className="mb-2 text-[12px] text-carbon-blue/55">
                 {company
                   ? `Prioritize contacts from ${company.Title}`
                   : "Select a contact from your portfolio"}
@@ -387,7 +387,7 @@ export function DealStakeholdersTable({
 
               {company && companySuggested.length > 0 ? (
                 <div className="mb-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                     Suggested · {company.Title}
                   </p>
                   <ul className="mt-2 flex flex-col gap-1.5">
@@ -398,7 +398,7 @@ export function DealStakeholdersTable({
                           <button
                             type="button"
                             onClick={() => selectContact(option.contact.ContactID)}
-                            className={`w-full border px-3 py-2 text-left text-[12px] transition-colors ${
+                            className={`w-full border px-3 py-2 text-left text-[13px] transition-colors ${
                               active
                                 ? "border-upcycle-orange/40 bg-upcycle-orange/10 text-carbon-blue"
                                 : "border-carbon-blue/10 bg-white text-carbon-blue/75 hover:border-upcycle-orange/25"
@@ -408,7 +408,7 @@ export function DealStakeholdersTable({
                               {getContactDisplayName(option.contact)}
                             </span>
                             {option.contact.JobTitle?.trim() || option.contact.Role?.trim() ? (
-                              <span className="mt-0.5 block text-[11px] text-carbon-blue/55">
+                              <span className="mt-0.5 block text-[12px] text-carbon-blue/55">
                                 {option.contact.JobTitle?.trim() || option.contact.Role?.trim()}
                               </span>
                             ) : null}
@@ -421,13 +421,13 @@ export function DealStakeholdersTable({
               ) : null}
 
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                   Contact
                 </span>
                 <select
                   value={selectedContactId}
                   onChange={(event) => selectContact(event.target.value)}
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                 >
                   <option value="">Select contact…</option>
                   {availableContacts.map((option) => (
@@ -476,7 +476,7 @@ export function DealStakeholdersTable({
               type="button"
               onClick={() => setAssignOpen(true)}
               disabled={availableContacts.length === 0}
-              className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:opacity-50"
             >
               <SmartCRMIcon name="add" size="xs" />
               Add Stakeholder

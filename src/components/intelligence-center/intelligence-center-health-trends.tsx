@@ -29,12 +29,12 @@ export function IntelligenceCenterHealthTrends({
     <section className="dashboard-card overflow-hidden">
       <header className="border-b border-carbon-blue/8 px-5 py-4">
         <h2 className="text-sm font-semibold text-carbon-blue">Relationship health trends</h2>
-        <p className="mt-0.5 text-[11px] text-carbon-blue/45">{trends.narrative}</p>
+        <p className="mt-0.5 text-[12px] text-carbon-blue/65">{trends.narrative}</p>
       </header>
 
       <div className="grid gap-px bg-carbon-blue/6 lg:grid-cols-2">
         <div className="space-y-4 bg-[var(--dashboard-card)] p-5">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Health distribution
           </h3>
           <ul className="space-y-2.5">
@@ -44,9 +44,9 @@ export function IntelligenceCenterHealthTrends({
               const width = `${Math.round((count / maxStatus) * 100)}%`;
               return (
                 <li key={status} className="space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
+                  <div className="flex items-center justify-between text-[12px]">
                     <span
-                      className={`border px-1.5 py-0.5 text-[9px] font-semibold uppercase ${HEALTH_STATUS_STYLES[status]}`}
+                      className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${HEALTH_STATUS_STYLES[status]}`}
                     >
                       {status}
                     </span>
@@ -65,7 +65,7 @@ export function IntelligenceCenterHealthTrends({
         </div>
 
         <div className="space-y-4 bg-[var(--dashboard-card)] p-5">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Momentum distribution
           </h3>
           <ul className="space-y-2.5">
@@ -75,7 +75,7 @@ export function IntelligenceCenterHealthTrends({
               const width = `${Math.round((count / maxTrend) * 100)}%`;
               return (
                 <li key={trend} className="space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
+                  <div className="flex items-center justify-between text-[12px]">
                     <span className={`font-semibold uppercase tracking-wider ${TREND_STYLES[trend]}`}>
                       {trend === "Improving" ? "↑" : trend === "Declining" ? "↓" : "→"} {trend}
                     </span>
@@ -103,13 +103,13 @@ export function IntelligenceCenterHealthTrends({
       <div className="grid gap-px border-t border-carbon-blue/6 bg-carbon-blue/6 lg:grid-cols-2">
         <div className="bg-[var(--dashboard-card)]">
           <div className="flex items-center justify-between border-b border-carbon-blue/8 px-4 py-3">
-            <h3 className="text-[11px] font-semibold text-carbon-blue">Fastest improving</h3>
-            <Link href="/companies" className="text-[10px] font-semibold text-upcycle-orange">
+            <h3 className="text-[12px] font-semibold text-carbon-blue">Fastest improving</h3>
+            <Link href="/companies" className="text-[11px] font-semibold text-upcycle-orange">
               Directory
             </Link>
           </div>
           {trends.improving.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-carbon-blue/45">No improving trends detected.</p>
+            <p className="px-4 py-6 text-xs text-carbon-blue/65">No improving trends detected.</p>
           ) : (
             trends.improving.map((item) => (
               <IntelligenceCenterItemRow key={`improving-${item.id}`} item={item} />
@@ -119,13 +119,13 @@ export function IntelligenceCenterHealthTrends({
 
         <div className="bg-[var(--dashboard-card)]">
           <div className="flex items-center justify-between border-b border-carbon-blue/8 px-4 py-3">
-            <h3 className="text-[11px] font-semibold text-carbon-blue">Declining momentum</h3>
-            <Link href="/intelligence" className="text-[10px] font-semibold text-upcycle-orange">
+            <h3 className="text-[12px] font-semibold text-carbon-blue">Declining momentum</h3>
+            <Link href="/intelligence" className="text-[11px] font-semibold text-upcycle-orange">
               Refresh
             </Link>
           </div>
           {trends.declining.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-carbon-blue/45">No declining trends detected.</p>
+            <p className="px-4 py-6 text-xs text-carbon-blue/65">No declining trends detected.</p>
           ) : (
             trends.declining.map((item) => (
               <IntelligenceCenterItemRow key={`declining-${item.id}`} item={item} />

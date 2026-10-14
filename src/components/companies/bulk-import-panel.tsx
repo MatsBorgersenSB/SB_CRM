@@ -138,14 +138,14 @@ export function BulkImportPanel({
     <section className="border border-carbon-blue/15 bg-white">
       {embedded ? null : (
         <div className="border-b border-carbon-blue/10 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Bulk Import
           </p>
         </div>
       )}
 
       <div className="space-y-3 p-3">
-        <p className="text-[11px] text-carbon-blue/55">
+        <p className="text-[12px] text-carbon-blue/55">
           Paste multiple company blocks separated by a blank line. Each block is parsed and imported
           with visible progress — no silent imports.
         </p>
@@ -164,7 +164,7 @@ export function BulkImportPanel({
             type="button"
             disabled={!text.trim() || busy}
             onClick={() => void handleAnalyze()}
-            className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange disabled:opacity-50"
+            className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange disabled:opacity-50"
           >
             {phase === "analyzing" ? "Analyzing…" : "Analyze Blocks"}
           </button>
@@ -172,18 +172,18 @@ export function BulkImportPanel({
 
         {entries.length > 0 && (phase === "preview" || phase === "importing" || phase === "complete") ? (
           <div className="space-y-2 border border-carbon-blue/10 p-2">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               {entries.length} block{entries.length === 1 ? "" : "s"} detected
             </p>
             <ul className="max-h-48 space-y-1 overflow-y-auto">
               {entries.map((entry) => (
-                <li key={entry.id} className="flex items-center justify-between gap-2 text-[10px]">
+                <li key={entry.id} className="flex items-center justify-between gap-2 text-[11px]">
                   <span className="truncate font-medium text-carbon-blue">
                     {entry.preview?.extracted.companyName ||
                       entry.preview?.extracted.contactName ||
                       entry.rawText.split("\n")[0]}
                   </span>
-                  <span className={entry.error ? "text-thermal-red" : "text-carbon-blue/45"}>
+                  <span className={entry.error ? "text-thermal-red" : "text-carbon-blue/65"}>
                     {entry.error
                       ? entry.error
                       : entry.preview?.company.action === "create"
@@ -198,11 +198,11 @@ export function BulkImportPanel({
 
         {phase === "importing" ? (
           <div className="space-y-1 border border-upcycle-orange/20 bg-upcycle-orange/[0.03] p-2">
-            <p className="text-[10px] font-semibold text-upcycle-orange">
+            <p className="text-[11px] font-semibold text-upcycle-orange">
               Importing {progress.done} / {progress.total}
             </p>
             {progress.current ? (
-              <p className="text-[10px] text-carbon-blue/55">Current: {progress.current}</p>
+              <p className="text-[11px] text-carbon-blue/55">Current: {progress.current}</p>
             ) : null}
             <div className="h-1.5 overflow-hidden rounded-full bg-carbon-blue/10">
               <div
@@ -229,14 +229,14 @@ export function BulkImportPanel({
             <button
               type="button"
               onClick={() => void handleImport()}
-              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white"
             >
               Import All
             </button>
             <button
               type="button"
               onClick={reset}
-              className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+              className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
             >
               Start Over
             </button>
@@ -246,17 +246,17 @@ export function BulkImportPanel({
 
         {phase === "complete" ? (
           <div className="space-y-2 border border-emerald-500/25 bg-emerald-500/[0.04] p-3">
-            <p className="text-[11px] font-bold text-emerald-800">Bulk Import Complete</p>
-            <p className="text-[10px] text-carbon-blue/60">
+            <p className="text-[12px] font-bold text-emerald-800">Bulk Import Complete</p>
+            <p className="text-[11px] text-carbon-blue/60">
               {results.length} record{results.length === 1 ? "" : "s"} processed in{" "}
               {formatDuration(durationMs)}
             </p>
-            {error ? <p className="text-[10px] text-thermal-red">{error}</p> : null}
+            {error ? <p className="text-[11px] text-thermal-red">{error}</p> : null}
             <div className="flex flex-wrap gap-2">
               {results[0] ? (
                 <Link
                   href={company360Href(results[0].company)}
-                  className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+                  className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white"
                 >
                   View Latest Company
                 </Link>
@@ -267,7 +267,7 @@ export function BulkImportPanel({
                   setText("");
                   reset();
                 }}
-                className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+                className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
               >
                 New Bulk Import
               </button>

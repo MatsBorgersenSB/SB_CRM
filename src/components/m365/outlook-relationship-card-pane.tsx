@@ -55,7 +55,7 @@ export function OutlookRelationshipCardPane() {
   if (state.status === "loading") {
     return (
       <div className="flex h-full items-center justify-center bg-white px-6">
-        <p className="text-[12px] text-carbon-blue/50">Loading relationship intelligence…</p>
+        <p className="text-[13px] text-carbon-blue/50">Loading relationship intelligence…</p>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export function OutlookRelationshipCardPane() {
     return (
       <div className="flex h-full flex-col justify-center bg-white px-6">
         <p className="text-sm font-semibold text-carbon-blue">SmartCRM unavailable</p>
-        <p className="mt-1 text-[11px] text-carbon-blue/50">{state.message}</p>
+        <p className="mt-1 text-[12px] text-carbon-blue/50">{state.message}</p>
       </div>
     );
   }
@@ -73,11 +73,11 @@ export function OutlookRelationshipCardPane() {
     return (
       <div className="flex h-full flex-col justify-center bg-white px-6">
         <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
             SmartCRM
           </p>
           <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">{state.message}</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">{state.message}</p>
           <button
             type="button"
             onClick={() =>
@@ -85,7 +85,7 @@ export function OutlookRelationshipCardPane() {
                 window.location.reload();
               })
             }
-            className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+            className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
           >
             Sign In to SmartCRM
           </button>
@@ -97,11 +97,11 @@ export function OutlookRelationshipCardPane() {
   if (state.status === "empty") {
     return (
       <div className="flex h-full flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">No relationship context</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">{state.message}</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">{state.message}</p>
       </div>
     );
   }
@@ -110,11 +110,11 @@ export function OutlookRelationshipCardPane() {
     if (isAutomatedMailboxEmail(resolvedEmail)) {
       return (
         <div className="flex h-full flex-col justify-center bg-white px-6">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
             SmartCRM
           </p>
           <p className="mt-2 text-sm font-semibold text-carbon-blue">Not a person</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+          <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
             This address is a signing service, not a contact. Select mails from the
             person, then save them here.
           </p>
@@ -185,7 +185,7 @@ export function OutlookRelationshipCardPane() {
         href={buildSmartCrmUrl("/companies")}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
+        className="mt-4 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
       >
         Open SmartCRM
       </a>

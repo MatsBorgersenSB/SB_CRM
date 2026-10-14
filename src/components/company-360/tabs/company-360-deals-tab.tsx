@@ -99,10 +99,10 @@ function filterDeals(
 }
 
 function toggleButtonClass(active: boolean): string {
-  return `border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+  return `border px-2 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
     active
       ? "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange"
-      : "border-carbon-blue/10 text-carbon-blue/45 hover:text-carbon-blue"
+      : "border-carbon-blue/10 text-carbon-blue/65 hover:text-carbon-blue"
   }`;
 }
 
@@ -117,14 +117,14 @@ function Company360DealsCards({ deals }: { deals: PipelineRow[] }) {
           <header className="border-b border-carbon-blue/8 px-5 py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-mono text-[10px] text-carbon-blue/40">
+                <p className="font-mono text-[11px] text-carbon-blue/60">
                   {opportunityPublicCode(deal)}
                 </p>
                 <h3 className="mt-1 text-base font-semibold text-carbon-blue">
                   <DealLink dealId={deal.id}>{deal.assetName}</DealLink>
                 </h3>
               </div>
-              <span className="shrink-0 border border-carbon-blue/12 px-2 py-0.5 text-[9px] font-semibold text-carbon-blue/55">
+              <span className="shrink-0 border border-carbon-blue/12 px-2 py-0.5 text-[10px] font-semibold text-carbon-blue/55">
                 {deal.companyRole}
               </span>
             </div>
@@ -135,7 +135,7 @@ function Company360DealsCards({ deals }: { deals: PipelineRow[] }) {
 
             <dl className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Deal value
                 </dt>
                 <dd className="mt-0.5 font-semibold text-carbon-blue">
@@ -143,7 +143,7 @@ function Company360DealsCards({ deals }: { deals: PipelineRow[] }) {
                 </dd>
               </div>
               <div>
-                <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Weighted
                 </dt>
                 <dd className="mt-0.5 font-semibold text-upcycle-orange">
@@ -151,7 +151,7 @@ function Company360DealsCards({ deals }: { deals: PipelineRow[] }) {
                 </dd>
               </div>
               <div>
-                <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Probability
                 </dt>
                 <dd className="mt-0.5 font-semibold tabular-nums text-carbon-blue">
@@ -159,21 +159,21 @@ function Company360DealsCards({ deals }: { deals: PipelineRow[] }) {
                 </dd>
               </div>
               <div>
-                <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Feedstock
                 </dt>
                 <dd className="mt-0.5 font-medium text-carbon-blue/70">{deal.targetFeedstock}</dd>
               </div>
             </dl>
 
-            <p className="text-[11px] text-carbon-blue/50">
+            <p className="text-[12px] text-carbon-blue/50">
               Milestone:{" "}
               <span className="font-medium text-carbon-blue/70">{deal.currentMilestone}</span>
             </p>
           </div>
 
           <footer className="border-t border-carbon-blue/8 px-5 py-3">
-            <DealLink dealId={deal.id} className="text-[11px] font-semibold text-upcycle-orange">
+            <DealLink dealId={deal.id} className="text-[12px] font-semibold text-upcycle-orange">
               Open Deal 360 →
             </DealLink>
           </footer>
@@ -192,7 +192,7 @@ function Company360DealsTable({ deals }: { deals: PipelineRow[] }) {
             {["Deal", "Stage", "Value", "Weighted", "Prob.", "Milestone"].map((header) => (
               <th
                 key={header}
-                className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45"
+                className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65"
               >
                 {header}
               </th>
@@ -210,7 +210,7 @@ function Company360DealsTable({ deals }: { deals: PipelineRow[] }) {
                   <p className="text-xs font-semibold text-carbon-blue group-hover:text-upcycle-orange">
                     {deal.assetName}
                   </p>
-                  <p className="mt-0.5 font-mono text-[9px] text-carbon-blue/35">
+                  <p className="mt-0.5 font-mono text-[10px] text-carbon-blue/50">
                     {opportunityPublicCode(deal)}
                   </p>
                 </DealLink>
@@ -218,16 +218,16 @@ function Company360DealsTable({ deals }: { deals: PipelineRow[] }) {
               <td className="px-3 py-2.5">
                 <StatusBadge label={deal.status} variant={STATUS_VARIANT[deal.status]} />
               </td>
-              <td className="px-3 py-2.5 text-[11px] font-semibold tabular-nums text-carbon-blue">
+              <td className="px-3 py-2.5 text-[12px] font-semibold tabular-nums text-carbon-blue">
                 {formatDealValue(deal.currency, deal.salesValue)}
               </td>
-              <td className="px-3 py-2.5 text-[11px] font-semibold tabular-nums text-upcycle-orange">
+              <td className="px-3 py-2.5 text-[12px] font-semibold tabular-nums text-upcycle-orange">
                 {formatDealValue(deal.currency, weightedValue(deal))}
               </td>
-              <td className="px-3 py-2.5 text-[11px] tabular-nums text-carbon-blue/70">
+              <td className="px-3 py-2.5 text-[12px] tabular-nums text-carbon-blue/70">
                 {deal.probability}%
               </td>
-              <td className="max-w-[180px] truncate px-3 py-2.5 text-[11px] text-carbon-blue/60">
+              <td className="max-w-[180px] truncate px-3 py-2.5 text-[12px] text-carbon-blue/60">
                 {deal.currentMilestone}
               </td>
             </tr>
@@ -257,12 +257,12 @@ export function Company360DealsTab({ pipelines }: { pipelines: PipelineRow[] }) 
     return (
       <section className="dashboard-card flex min-h-[280px] flex-col items-center justify-center px-6 py-12 text-center">
         <p className="text-sm font-medium text-carbon-blue/70">No active opportunities</p>
-        <p className="mt-1 max-w-sm text-xs text-carbon-blue/45">
+        <p className="mt-1 max-w-sm text-xs text-carbon-blue/65">
           When deals are linked to this company, they appear here with full pipeline context.
         </p>
         <Link
           href="/opportunities"
-          className="mt-4 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange"
+          className="mt-4 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange"
         >
           Open pipeline
         </Link>
@@ -276,7 +276,7 @@ export function Company360DealsTab({ pipelines }: { pipelines: PipelineRow[] }) 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-sm font-semibold text-carbon-blue">Opportunities</h2>
-            <p className="mt-0.5 text-[10px] text-carbon-blue/45">
+            <p className="mt-0.5 text-[11px] text-carbon-blue/65">
               {filtersActive
                 ? `${sorted.length} of ${pipelines.length} shown`
                 : `${pipelines.length} deal${pipelines.length === 1 ? "" : "s"}`}
@@ -291,10 +291,10 @@ export function Company360DealsTab({ pipelines }: { pipelines: PipelineRow[] }) 
                 type="button"
                 onClick={() => setView("cards")}
                 aria-label="Card view"
-                className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+                className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider ${
                   view === "cards"
                     ? "bg-upcycle-orange/10 text-upcycle-orange"
-                    : "text-carbon-blue/45 hover:text-carbon-blue"
+                    : "text-carbon-blue/65 hover:text-carbon-blue"
                 }`}
               >
                 <LayoutGrid className="size-3" />
@@ -304,10 +304,10 @@ export function Company360DealsTab({ pipelines }: { pipelines: PipelineRow[] }) 
                 type="button"
                 onClick={() => setView("table")}
                 aria-label="Table view"
-                className={`inline-flex items-center gap-1 border-l border-carbon-blue/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+                className={`inline-flex items-center gap-1 border-l border-carbon-blue/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider ${
                   view === "table"
                     ? "bg-upcycle-orange/10 text-upcycle-orange"
-                    : "text-carbon-blue/45 hover:text-carbon-blue"
+                    : "text-carbon-blue/65 hover:text-carbon-blue"
                 }`}
               >
                 <List className="size-3" />
@@ -330,13 +330,13 @@ export function Company360DealsTab({ pipelines }: { pipelines: PipelineRow[] }) 
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/35" />
+            <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50" />
             <input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search deal, ID, feedstock, milestone…"
-              className="w-full border border-carbon-blue/10 bg-white py-1.5 pl-7 pr-2 text-xs text-carbon-blue placeholder:text-carbon-blue/35"
+              className="w-full border border-carbon-blue/10 bg-white py-1.5 pl-7 pr-2 text-xs text-carbon-blue placeholder:text-carbon-blue/50"
             />
           </label>
           <select
@@ -357,7 +357,7 @@ export function Company360DealsTab({ pipelines }: { pipelines: PipelineRow[] }) 
                 setSearch("");
                 setPhaseFilter("all");
               }}
-              className="shrink-0 text-[10px] font-semibold text-upcycle-orange hover:underline"
+              className="shrink-0 text-[11px] font-semibold text-upcycle-orange hover:underline"
             >
               Clear filters
             </button>
@@ -366,7 +366,7 @@ export function Company360DealsTab({ pipelines }: { pipelines: PipelineRow[] }) 
       </header>
 
       {sorted.length === 0 ? (
-        <p className="px-5 py-8 text-center text-[11px] text-carbon-blue/50">
+        <p className="px-5 py-8 text-center text-[12px] text-carbon-blue/50">
           No deals match your filters.
         </p>
       ) : view === "table" ? (

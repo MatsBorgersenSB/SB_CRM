@@ -451,11 +451,11 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
   if (phase.status === "auth-required") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">
+        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
           Sign in to assign this mail to an opportunity or project.
         </p>
         <button
@@ -465,7 +465,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
               window.location.reload();
             })
           }
-          className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+          className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
         >
           Sign In to SmartCRM
         </button>
@@ -486,17 +486,17 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-white p-4">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
         SmartCRM
       </p>
       <p className="mt-1 text-sm font-semibold text-carbon-blue">Assign this mail</p>
-      <p className="mt-1 text-[11px] leading-snug text-carbon-blue/55">
+      <p className="mt-1 text-[12px] leading-snug text-carbon-blue/55">
         Search SmartCRM for the person, or add them if they are new. Opportunity only
         appears for sell-to relationships (Customer / Prospect / Offtaker).
       </p>
 
       {phase.status === "loading" ? (
-        <p className="mt-4 text-[11px] text-carbon-blue/45">
+        <p className="mt-4 text-[12px] text-carbon-blue/65">
           {recipients.length === 0
             ? "Looking up contacts…"
             : "Reading recipients…"}
@@ -514,11 +514,11 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
 
       {newContactDraft ? (
         <div className="mt-3 space-y-2 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
-          <p className="text-[12px] font-medium text-carbon-blue">Add a new contact</p>
+          <p className="text-[13px] font-medium text-carbon-blue">Add a new contact</p>
           {newContactDraft.displayName ? (
-            <p className="text-[11px] text-carbon-blue/55">{newContactDraft.displayName}</p>
+            <p className="text-[12px] text-carbon-blue/55">{newContactDraft.displayName}</p>
           ) : null}
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Email
             <input
               type="email"
@@ -531,7 +531,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
                 );
               }}
               placeholder="kristy.pena@arciplug.com"
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
             />
           </label>
           <button
@@ -541,7 +541,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
               void loadForEmail(email, newContactDraft.displayName);
             }}
             disabled={!EMAIL_RE.test((newContactDraft.email || manualEmail).trim())}
-            className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
           >
             Continue
           </button>
@@ -550,14 +550,14 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
 
       {phase.status === "no-recipients" && !newContactDraft ? (
         <div className="mt-3 space-y-2">
-          <p className="text-[11px] leading-relaxed text-carbon-blue/55">
+          <p className="text-[12px] leading-relaxed text-carbon-blue/55">
             Outlook has not filled To yet. Search for the person above, or refresh if you
             already typed them in Outlook.
           </p>
           <button
             type="button"
             onClick={reload}
-            className="text-[11px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
+            className="text-[12px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
           >
             Refresh Outlook recipients
           </button>
@@ -565,7 +565,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
       ) : null}
 
       {recipients.length > 0 ? (
-        <label className="mt-4 block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <label className="mt-4 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Recipient
           <select
             value={selectedEmail}
@@ -574,7 +574,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
               setStatus(null);
               setError(null);
             }}
-            className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+            className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
           >
             {recipients.map((entry) => (
               <option key={entry.email} value={entry.email}>
@@ -589,7 +589,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
 
       {phase.status === "ready" ? (
         <div className="mt-4 space-y-2">
-          <p className="text-[11px] text-carbon-blue/55">
+          <p className="text-[12px] text-carbon-blue/55">
             {phase.context.contactName
               ? `${phase.context.contactName} · ${phase.context.companyName}`
               : phase.context.companyName}
@@ -623,7 +623,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
                   setStatus(null);
                   setError(null);
                 }}
-                className={`flex-1 border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-40 ${
+                className={`flex-1 border px-2 py-1 text-[11px] font-semibold uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-40 ${
                   linkKind === entry.kind
                     ? "border-upcycle-orange/40 bg-upcycle-orange/10 text-upcycle-orange"
                     : "border-carbon-blue/15 bg-white text-carbon-blue/50"
@@ -635,7 +635,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
           </div>
 
           {linkKind === "company" ? (
-            <p className="text-[11px] leading-snug text-carbon-blue/55">
+            <p className="text-[12px] leading-snug text-carbon-blue/55">
               Saves this draft on {phase.context.companyName} without linking an
               opportunity or project.
               {!opportunityEligible
@@ -643,12 +643,12 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
                 : ""}
             </p>
           ) : (
-            <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               {linkKind === "opportunity" ? "Opportunity" : "Project"}
               <select
                 value={selectedId}
                 onChange={(event) => setSelectedId(event.target.value)}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
               >
                 <option value="">Select…</option>
                 {options.map((option) => (
@@ -664,7 +664,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
             type="button"
             disabled={busy || (linkKind !== "company" && !selectedId)}
             onClick={() => void assignMail()}
-            className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
           >
             {busy
               ? "Assigning…"
@@ -675,8 +675,8 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
         </div>
       ) : null}
 
-      {status ? <p className="mt-3 text-[10px] text-emerald-700">{status}</p> : null}
-      {error ? <p className="mt-3 text-[10px] text-thermal-red">{error}</p> : null}
+      {status ? <p className="mt-3 text-[11px] text-emerald-700">{status}</p> : null}
+      {error ? <p className="mt-3 text-[11px] text-thermal-red">{error}</p> : null}
     </div>
   );
 }

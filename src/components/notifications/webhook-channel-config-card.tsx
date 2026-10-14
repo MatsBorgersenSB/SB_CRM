@@ -121,7 +121,7 @@ export function WebhookChannelConfigCard() {
       </p>
 
       <label className="block">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Slack webhook URL
         </span>
         <input
@@ -131,20 +131,20 @@ export function WebhookChannelConfigCard() {
             persist({ ...config, slackUrl: event.target.value })
           }
           placeholder="https://hooks.slack.com/services/…"
-          className="mt-1 w-full border border-carbon-blue/15 px-2 py-1.5 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange"
+          className="mt-1 w-full border border-carbon-blue/15 px-2 py-1.5 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
         />
         <button
           type="button"
           disabled={busy === "SLACK"}
           onClick={() => void testWebhook("SLACK")}
-          className="mt-2 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
+          className="mt-2 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
         >
           {busy === "SLACK" ? "Sending…" : "Send Slack test"}
         </button>
       </label>
 
       <label className="block">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Teams webhook URL
         </span>
         <input
@@ -154,20 +154,20 @@ export function WebhookChannelConfigCard() {
             persist({ ...config, teamsUrl: event.target.value })
           }
           placeholder="https://outlook.office.com/webhook/…"
-          className="mt-1 w-full border border-carbon-blue/15 px-2 py-1.5 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange"
+          className="mt-1 w-full border border-carbon-blue/15 px-2 py-1.5 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
         />
         <button
           type="button"
           disabled={busy === "TEAMS"}
           onClick={() => void testWebhook("TEAMS")}
-          className="mt-2 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
+          className="mt-2 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
         >
           {busy === "TEAMS" ? "Sending…" : "Send Teams test"}
         </button>
       </label>
 
-      {message ? <p className="text-[12px] text-emerald-700">{message}</p> : null}
-      {error ? <p className="text-[12px] text-thermal-red">{error}</p> : null}
+      {message ? <p className="text-[13px] text-emerald-700">{message}</p> : null}
+      {error ? <p className="text-[13px] text-thermal-red">{error}</p> : null}
     </div>
   );
 }

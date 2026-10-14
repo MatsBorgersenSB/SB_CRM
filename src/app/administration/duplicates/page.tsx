@@ -8,7 +8,7 @@ export default function DuplicateManagerPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-sm text-carbon-blue/45">
+        <div className="flex min-h-[40vh] items-center justify-center text-sm text-carbon-blue/65">
           Loading Duplicate Manager…
         </div>
       }

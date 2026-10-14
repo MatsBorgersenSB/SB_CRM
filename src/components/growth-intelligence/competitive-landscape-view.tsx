@@ -27,7 +27,7 @@ const THREAT_COLORS = {
   critical: "text-red-700",
   high: "text-amber-700",
   medium: "text-carbon-blue/60",
-  low: "text-carbon-blue/40",
+  low: "text-carbon-blue/60",
 } as const;
 
 const INTENSITY_COLORS = {
@@ -55,7 +55,7 @@ export function CompetitiveLandscapeView({
               {landscape.focusQuestions.map((question) => (
                 <span
                   key={question}
-                  className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2.5 py-1 text-[11px] font-medium text-carbon-blue/65"
+                  className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2.5 py-1 text-[12px] font-medium text-carbon-blue/65"
                 >
                   {question}
                 </span>
@@ -124,7 +124,7 @@ export function CompetitiveLandscapeView({
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <SmartAssistConfidenceLabel confidence={competitor.signalAssessment.confidence} />
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${THREAT_COLORS[competitor.profile.threatLevel]}`}>
+                        <span className={`text-[11px] font-bold uppercase tracking-wider ${THREAT_COLORS[competitor.profile.threatLevel]}`}>
                           {competitor.profile.threatLevel}
                         </span>
                       </div>
@@ -133,7 +133,7 @@ export function CompetitiveLandscapeView({
                     <p className={`mt-1 ${EDITORIAL_META}`}>{competitor.signalAssessment.confidenceReason}</p>
 
                     <p className={`mt-3 ${EDITORIAL_BODY}`}>
-                      <span className="text-carbon-blue/40">Why: </span>
+                      <span className="text-carbon-blue/60">Why: </span>
                       {competitor.whyWeCompete}
                     </p>
 
@@ -152,7 +152,7 @@ export function CompetitiveLandscapeView({
 
                     <Link
                       href={competitiveIntelligenceHref(competitor.profile.companyId)}
-                      className="mt-3 inline-block text-[12px] font-semibold text-upcycle-orange hover:text-carbon-blue"
+                      className="mt-3 inline-block text-[13px] font-semibold text-upcycle-orange hover:text-carbon-blue"
                     >
                       Open understanding workspace →
                     </Link>
@@ -188,11 +188,11 @@ export function CompetitiveLandscapeView({
                     <article key={decision.action} className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-4 py-3">
                       <p className="text-[14px] font-medium text-carbon-blue">{decision.action}</p>
                       <p className={`mt-2 ${EDITORIAL_META}`}>
-                        <span className="text-carbon-blue/40">Why: </span>
+                        <span className="text-carbon-blue/60">Why: </span>
                         {decision.why}
                       </p>
                       <p className={`mt-1 ${EDITORIAL_META}`}>
-                        <span className="text-carbon-blue/40">Impact: </span>
+                        <span className="text-carbon-blue/60">Impact: </span>
                         {decision.expectedImpact}
                       </p>
                       <div className="mt-2">
@@ -227,7 +227,7 @@ export function CompetitiveLandscapeView({
                   <article key={market.id}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-[13px] font-medium text-carbon-blue">{market.name}</p>
-                      <span className={`text-[10px] font-bold uppercase ${INTENSITY_COLORS[market.competitiveIntensity]}`}>
+                      <span className={`text-[11px] font-bold uppercase ${INTENSITY_COLORS[market.competitiveIntensity]}`}>
                         {market.competitiveIntensity}
                       </span>
                     </div>

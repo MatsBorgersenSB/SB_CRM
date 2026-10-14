@@ -16,16 +16,16 @@ export function Document360OverviewTab({ snapshot }: { snapshot: Document360Snap
   return (
     <div className="flex flex-col gap-4">
       <section className="dashboard-card px-5 py-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           Business context
         </p>
         <p className="mt-2 text-sm font-medium text-carbon-blue">
           {businessContext.dealName}
         </p>
-        <p className="mt-1 text-[11px] text-carbon-blue/55">
+        <p className="mt-1 text-[12px] text-carbon-blue/55">
           {businessContext.clientName} · {businessContext.commercialStage}
         </p>
-        <p className="mt-1 font-mono text-[10px] text-carbon-blue/40">{businessContext.plNumber}</p>
+        <p className="mt-1 font-mono text-[11px] text-carbon-blue/60">{businessContext.plNumber}</p>
       </section>
 
       {documentSet ? <Document360SetCard snapshot={snapshot} /> : null}

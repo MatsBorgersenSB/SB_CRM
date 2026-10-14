@@ -48,8 +48,8 @@ const BUSINESS_STATE_STYLES = {
   in_progress: "text-carbon-blue/70",
   requires_attention: "text-upcycle-orange/90",
   on_track: "text-carbon-blue/55",
-  completed: "text-carbon-blue/45",
-  cancelled: "text-carbon-blue/40",
+  completed: "text-carbon-blue/65",
+  cancelled: "text-carbon-blue/60",
 } as const;
 
 export function ActivityBriefingView({
@@ -112,7 +112,7 @@ export function ActivityBriefingView({
       <div className="flex items-center justify-between gap-4">
         <Link
           href="/activities"
-          className="text-[11px] font-medium text-carbon-blue/45 transition-colors hover:text-upcycle-orange"
+          className="text-[12px] font-medium text-carbon-blue/65 transition-colors hover:text-upcycle-orange"
         >
           ← Activities
         </Link>
@@ -129,7 +129,7 @@ export function ActivityBriefingView({
             <button
               type="button"
               onClick={onEdit}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-carbon-blue/45 transition-colors hover:text-carbon-blue"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-carbon-blue/65 transition-colors hover:text-carbon-blue"
             >
               <Pencil className="size-3" strokeWidth={2} />
               Edit
@@ -244,12 +244,12 @@ function ActivityWorkspace({
           <h1 className={`mt-3 ${EDITORIAL_HERO}`}>{briefing.name}</h1>
 
           <p className={`mt-2 ${EDITORIAL_META}`}>
-            <span className="text-carbon-blue/40">Regarding </span>
+            <span className="text-carbon-blue/60">Regarding </span>
             <ContextLinks briefing={briefing} />
           </p>
           {activity.ActivityType === "Task" && (activity.SharedWith?.length ?? 0) > 0 ? (
             <p className={`mt-2 ${EDITORIAL_META}`}>
-              <span className="text-carbon-blue/40">Shared with </span>
+              <span className="text-carbon-blue/60">Shared with </span>
               {activity.SharedWith!.map((person) => person.Title).join(", ")}
             </p>
           ) : null}

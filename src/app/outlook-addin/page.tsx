@@ -22,7 +22,7 @@ export default function OutlookAddinPage() {
               data-smartcrm-connecting=""
               className="flex h-[100dvh] items-center justify-center bg-white px-6"
             >
-              <p className="text-[12px] text-carbon-blue/50">Loading SmartCRM…</p>
+              <p className="text-[13px] text-carbon-blue/50">Loading SmartCRM…</p>
             </div>
           }
         >

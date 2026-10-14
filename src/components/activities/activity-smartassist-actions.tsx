@@ -166,11 +166,11 @@ function EmailPanel({
       </div>
       <dl className="mt-4 space-y-2 text-[13px] text-carbon-blue/55">
         <div>
-          <dt className="inline text-carbon-blue/40">To </dt>
+          <dt className="inline text-carbon-blue/60">To </dt>
           <dd className="inline text-carbon-blue/80">{email.to}</dd>
         </div>
         <div>
-          <dt className="inline text-carbon-blue/40">Subject </dt>
+          <dt className="inline text-carbon-blue/60">Subject </dt>
           <dd className="inline text-carbon-blue">{email.subject}</dd>
         </div>
       </dl>

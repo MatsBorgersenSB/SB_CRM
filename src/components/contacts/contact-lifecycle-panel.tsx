@@ -121,10 +121,10 @@ export function ContactLifecyclePanel({
     <div className="flex flex-col gap-3">
       <div className="border border-carbon-blue/10 bg-white">
         <header className="border-b border-carbon-blue/10 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             {CONTACT_RELATIONSHIP_INTELLIGENCE.title}
           </p>
-          <p className="mt-0.5 text-[10px] text-carbon-blue/50">
+          <p className="mt-0.5 text-[11px] text-carbon-blue/50">
             {CONTACT_RELATIONSHIP_INTELLIGENCE.principle}
           </p>
         </header>
@@ -135,28 +135,28 @@ export function ContactLifecyclePanel({
               <button
                 type="button"
                 onClick={() => setWizardMode("transfer")}
-                className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+                className="border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
               >
                 Change company
               </button>
               <button
                 type="button"
                 onClick={() => setWizardMode("position")}
-                className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+                className="border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
               >
                 Change position
               </button>
               <button
                 type="button"
                 onClick={() => setWizardMode("merge")}
-                className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+                className="border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
               >
                 Merge duplicates
               </button>
               <button
                 type="button"
                 onClick={() => setArchiveOpen(true)}
-                className="border border-carbon-blue/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+                className="border border-carbon-blue/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
               >
                 {contact.IsArchived ? "Restore contact" : "Archive contact"}
               </button>
@@ -164,7 +164,7 @@ export function ContactLifecyclePanel({
           ) : null}
 
           <label className="ml-auto flex items-center gap-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Employment status
             </span>
             <select
@@ -173,7 +173,7 @@ export function ContactLifecyclePanel({
               onChange={(event) =>
                 void handleEmploymentStatusChange(event.target.value as EmploymentStatus)
               }
-              className="border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue"
+              className="border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue"
             >
               {EMPLOYMENT_STATUSES.map((status) => (
                 <option key={status} value={status}>
@@ -185,7 +185,7 @@ export function ContactLifecyclePanel({
         </div>
 
         {contact.IsArchived ? (
-          <p className="border-b border-carbon-blue/10 bg-carbon-blue/[0.03] px-3 py-2 text-[11px] text-carbon-blue/55">
+          <p className="border-b border-carbon-blue/10 bg-carbon-blue/[0.03] px-3 py-2 text-[12px] text-carbon-blue/55">
             Archived — history preserved, hidden from default lists.
           </p>
         ) : null}
@@ -203,10 +203,10 @@ export function ContactLifecyclePanel({
 
       <section className="border border-carbon-blue/10 bg-white">
         <header className="border-b border-carbon-blue/10 px-3 py-2">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Contact timeline
           </h3>
-          <p className="mt-0.5 text-[10px] text-carbon-blue/45">
+          <p className="mt-0.5 text-[11px] text-carbon-blue/65">
             Previous employers, roles, and dates — preserved across company changes.
           </p>
         </header>

@@ -17,7 +17,7 @@ export function Document360RelationshipsTab({ snapshot }: { snapshot: Document36
         <p className="mt-2 text-sm leading-relaxed text-carbon-blue/65">
           {intelligence.insights.businessImpact}
         </p>
-        <p className="mt-2 text-[11px] text-carbon-blue/45">
+        <p className="mt-2 text-[12px] text-carbon-blue/65">
           {intelligence.insights.relationshipDependency}
         </p>
       </section>
@@ -25,13 +25,13 @@ export function Document360RelationshipsTab({ snapshot }: { snapshot: Document36
       <div className="grid gap-4 md:grid-cols-2">
         <section className="dashboard-card">
           <header className="flex items-center gap-2 border-b border-carbon-blue/8 px-5 py-3">
-            <Building2 className="size-4 text-carbon-blue/40" />
+            <Building2 className="size-4 text-carbon-blue/60" />
             <h2 className="text-sm font-semibold text-carbon-blue">
               Linked companies ({companies.length})
             </h2>
           </header>
           {companies.length === 0 ? (
-            <p className="px-5 py-6 text-xs text-carbon-blue/45">No linked companies.</p>
+            <p className="px-5 py-6 text-xs text-carbon-blue/65">No linked companies.</p>
           ) : (
             <ul className="divide-y divide-carbon-blue/6">
               {companies.map((c) => (
@@ -50,19 +50,19 @@ export function Document360RelationshipsTab({ snapshot }: { snapshot: Document36
 
         <section className="dashboard-card">
           <header className="flex items-center gap-2 border-b border-carbon-blue/8 px-5 py-3">
-            <User className="size-4 text-carbon-blue/40" />
+            <User className="size-4 text-carbon-blue/60" />
             <h2 className="text-sm font-semibold text-carbon-blue">
               Linked contacts ({contacts.length})
             </h2>
           </header>
           {contacts.length === 0 ? (
-            <p className="px-5 py-6 text-xs text-carbon-blue/45">No linked contacts.</p>
+            <p className="px-5 py-6 text-xs text-carbon-blue/65">No linked contacts.</p>
           ) : (
             <ul className="divide-y divide-carbon-blue/6">
               {contacts.map((c) => (
                 <li key={c.contactId} className="px-5 py-3">
                   <p className="text-sm font-medium text-carbon-blue">{c.name}</p>
-                  <p className="text-[10px] text-carbon-blue/45">{c.companyName}</p>
+                  <p className="text-[11px] text-carbon-blue/65">{c.companyName}</p>
                 </li>
               ))}
             </ul>

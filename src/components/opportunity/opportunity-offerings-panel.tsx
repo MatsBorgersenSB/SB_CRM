@@ -68,7 +68,7 @@ export function OpportunityOfferingsPanel({
             {offerings.map((offering) => (
               <span
                 key={offering.id}
-                className="inline-flex border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[12px] font-medium text-carbon-blue"
+                className="inline-flex border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[13px] font-medium text-carbon-blue"
                 title={OFFERING_CATEGORY_LABELS[offering.category]}
               >
                 {offering.name}
@@ -89,7 +89,7 @@ export function OpportunityOfferingsPanel({
         label="Selected offerings"
         helper="What Standard Bio is selling on this opportunity."
       />
-      {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
+      {error ? <p className="mt-2 text-[13px] text-thermal-red">{error}</p> : null}
     </section>
   );
 }

@@ -19,7 +19,7 @@ export function AssistantRecommendationCard({
     <div className="space-y-0">
       <div className="mb-2 flex flex-wrap items-start justify-between gap-2 px-0.5">
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
             {recommendation.eyebrow}
           </p>
           <h3 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
@@ -28,7 +28,7 @@ export function AssistantRecommendationCard({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span
-            className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${SEVERITY_STYLES[recommendation.severity]}`}
+            className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${SEVERITY_STYLES[recommendation.severity]}`}
           >
             {recommendation.severity}
           </span>
@@ -42,12 +42,12 @@ export function AssistantRecommendationCard({
         expectedOutcome={recommendation.expectedOutcome}
         footer={
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400">
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
               Direct resolution path
             </p>
             <Link
               href={recommendation.resolutionHref}
-              className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+              className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
             >
               {recommendation.resolutionLabel} →
             </Link>

@@ -23,7 +23,7 @@ export function Company360OverviewTab({ snapshot }: { snapshot: Company360Snapsh
       </CollapsibleSection>
 
       {recentActivity.length === 0 ? (
-        <p className="px-2 py-6 text-center text-sm text-carbon-blue/45">
+        <p className="px-2 py-6 text-center text-sm text-carbon-blue/65">
           No recent activity — check People or Pipeline for next steps.
         </p>
       ) : (
@@ -40,7 +40,7 @@ export function Company360OverviewTab({ snapshot }: { snapshot: Company360Snapsh
                   className="block text-sm text-carbon-blue/70 hover:text-upcycle-orange"
                 >
                   <span className="font-medium text-carbon-blue">{activity.Subject}</span>
-                  <span className="text-carbon-blue/40">
+                  <span className="text-carbon-blue/60">
                     {" "}
                     · {formatRelativeTime(activity.ActivityDate)}
                   </span>
@@ -50,7 +50,7 @@ export function Company360OverviewTab({ snapshot }: { snapshot: Company360Snapsh
           </ul>
           <Link
             href={company360Href(company.CompanyID, "contacts")}
-            className="mt-3 inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
+            className="mt-3 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
           >
             All contacts →
           </Link>

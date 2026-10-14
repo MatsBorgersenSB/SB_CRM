@@ -27,7 +27,7 @@ function FilterChip({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+      className={`border px-2 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
         active
           ? "border-upcycle-orange/35 bg-upcycle-orange/10 text-upcycle-orange"
           : "border-carbon-blue/10 text-carbon-blue/50 hover:text-carbon-blue"
@@ -48,7 +48,7 @@ function OfferingChip({
   disabled?: boolean;
 }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1 border border-carbon-blue/12 bg-carbon-blue/[0.03] py-1 pl-2.5 pr-1 text-[12px] text-carbon-blue">
+    <span className="inline-flex max-w-full items-center gap-1 border border-carbon-blue/12 bg-carbon-blue/[0.03] py-1 pl-2.5 pr-1 text-[13px] text-carbon-blue">
       <span className="truncate font-medium">{offering.name}</span>
       <span className="sr-only">({OFFERING_CATEGORY_LABELS[offering.category]})</span>
       {onRemove ? (
@@ -57,7 +57,7 @@ function OfferingChip({
           disabled={disabled}
           onClick={onRemove}
           aria-label={`Remove ${offering.name}`}
-          className="inline-flex size-5 shrink-0 items-center justify-center text-carbon-blue/40 transition-colors hover:text-thermal-red disabled:opacity-50"
+          className="inline-flex size-5 shrink-0 items-center justify-center text-carbon-blue/60 transition-colors hover:text-thermal-red disabled:opacity-50"
         >
           ×
         </button>
@@ -109,11 +109,11 @@ function CompactOfferingSelector({
   return (
     <div className="mt-2 border border-carbon-blue/12 bg-white p-3 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold text-carbon-blue">Add offering</p>
+        <p className="text-[12px] font-semibold text-carbon-blue">Add offering</p>
         <button
           type="button"
           onClick={onClose}
-          className="text-[11px] font-semibold text-carbon-blue/45 hover:text-carbon-blue"
+          className="text-[12px] font-semibold text-carbon-blue/65 hover:text-carbon-blue"
         >
           Done
         </button>
@@ -129,7 +129,7 @@ function CompactOfferingSelector({
           disabled={disabled}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search offerings…"
-          className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue placeholder:text-carbon-blue/35"
+          className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue placeholder:text-carbon-blue/50"
         />
       </label>
 
@@ -153,7 +153,7 @@ function CompactOfferingSelector({
 
       <ul className="mt-2 max-h-48 overflow-y-auto border-t border-carbon-blue/8 pt-2">
         {options.length === 0 ? (
-          <li className="px-1 py-2 text-[12px] text-carbon-blue/45">
+          <li className="px-1 py-2 text-[13px] text-carbon-blue/65">
             {selectedIds.length > 0 && !query.trim() && category === "all"
               ? "All offerings selected."
               : "No matching offerings."}
@@ -172,14 +172,14 @@ function CompactOfferingSelector({
                 className="flex w-full items-start justify-between gap-2 px-1 py-2 text-left transition-colors hover:bg-carbon-blue/[0.03] disabled:opacity-50"
               >
                 <span className="min-w-0">
-                  <span className="block text-[12px] font-semibold text-carbon-blue">
+                  <span className="block text-[13px] font-semibold text-carbon-blue">
                     {offering.name}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-carbon-blue/50">
+                  <span className="mt-0.5 block text-[12px] text-carbon-blue/50">
                     {OFFERING_CATEGORY_LABELS[offering.category]}
                   </span>
                 </span>
-                <span className="shrink-0 text-[11px] font-semibold text-upcycle-orange">
+                <span className="shrink-0 text-[12px] font-semibold text-upcycle-orange">
                   Add
                 </span>
               </button>
@@ -234,11 +234,11 @@ export function OpportunityOfferingsPicker({
   return (
     <div className="space-y-2">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
           {label}
         </p>
         {helper ? (
-          <p className="mt-1 text-[12px] text-carbon-blue/55">{helper}</p>
+          <p className="mt-1 text-[13px] text-carbon-blue/55">{helper}</p>
         ) : null}
       </div>
 
@@ -254,11 +254,11 @@ export function OpportunityOfferingsPicker({
           ))}
         </div>
       ) : (
-        <p className="text-[12px] text-carbon-blue/45">No offerings selected.</p>
+        <p className="text-[13px] text-carbon-blue/65">No offerings selected.</p>
       )}
 
       {required && selectedIds.length === 0 ? (
-        <p className="text-[12px] text-thermal-red/80">Select at least one offering.</p>
+        <p className="text-[13px] text-thermal-red/80">Select at least one offering.</p>
       ) : null}
 
       {addOpen && !disabled ? (
@@ -272,7 +272,7 @@ export function OpportunityOfferingsPicker({
         <button
           type="button"
           onClick={() => setAddOpen(true)}
-          className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+          className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange"
         >
           <SmartCRMIcon name="add" size="xs" />
           Add Offering

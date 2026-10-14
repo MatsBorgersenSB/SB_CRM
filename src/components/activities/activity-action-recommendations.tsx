@@ -110,7 +110,7 @@ export function ActivityActionRecommendationsPanel({
       </div>
 
       <p className={`mt-4 ${EDITORIAL_META}`}>
-        <span className="text-carbon-blue/40">Reason: </span>
+        <span className="text-carbon-blue/60">Reason: </span>
         {primary.reason}
       </p>
 
@@ -125,7 +125,7 @@ export function ActivityActionRecommendationsPanel({
                 key={alt.actionType}
                 type="button"
                 onClick={() => onSelectedTypeChange(alt.actionType)}
-                className={`text-[12px] font-medium transition-colors ${
+                className={`text-[13px] font-medium transition-colors ${
                   selectedType === alt.actionType
                     ? "text-upcycle-orange"
                     : "text-carbon-blue/50 hover:text-carbon-blue"
@@ -138,7 +138,7 @@ export function ActivityActionRecommendationsPanel({
               <button
                 type="button"
                 onClick={() => onSelectedTypeChange(null)}
-                className="text-[12px] font-medium text-carbon-blue/35 hover:text-carbon-blue"
+                className="text-[13px] font-medium text-carbon-blue/50 hover:text-carbon-blue"
               >
                 Reset
               </button>
@@ -278,7 +278,7 @@ function renderArtifact(
 }
 
 const actionButtonClass =
-  "inline-flex items-center border border-upcycle-orange/35 bg-upcycle-orange px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
+  "inline-flex items-center border border-upcycle-orange/35 bg-upcycle-orange px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
 
 function ActionButton({
   href,

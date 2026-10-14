@@ -44,7 +44,7 @@ export function Company360IdentityHeader({
       <div className="border-b border-carbon-blue/8 px-6 py-4">
         <Link
           href="/companies"
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-carbon-blue/45 transition-colors hover:text-upcycle-orange"
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-carbon-blue/65 transition-colors hover:text-upcycle-orange"
         >
           <ArrowLeft className="size-3.5" strokeWidth={2} />
           Companies
@@ -87,7 +87,7 @@ export function Company360IdentityHeader({
           )}
 
           {(header.location !== "—" || header.accountOwner) ? (
-            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-carbon-blue/50">
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-carbon-blue/50">
               {header.location !== "—" ? (
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="size-3 shrink-0" />

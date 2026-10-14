@@ -282,7 +282,7 @@ export function ContactsShell({
   return (
     <WorkspaceChrome>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] text-carbon-blue/55">
+        <div className="flex min-w-0 items-center gap-2 text-[12px] text-carbon-blue/55">
           <SmartCRMIcon name="contact" size="xs" />
           <span className="font-semibold text-carbon-blue">Contacts</span>
         </div>
@@ -362,7 +362,7 @@ export function ContactsShell({
                 extraActiveFilters={archivedFilterChip ? [archivedFilterChip] : undefined}
                 onClearAll={handleClearAllFilters}
               />
-              <label className="mt-2 flex items-center gap-2 px-6 text-[11px] text-carbon-blue/55">
+              <label className="mt-2 flex items-center gap-2 px-6 text-[12px] text-carbon-blue/55">
                 <input
                   type="checkbox"
                   checked={showArchived}

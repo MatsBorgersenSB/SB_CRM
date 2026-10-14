@@ -532,7 +532,7 @@ export function ContactRecentOutlook({
                   current === "external" ? "all" : "external",
                 )
               }
-              className="text-[11px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
+              className="text-[12px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
             >
               {domainFilter === "external" ? "Include internal" : "Hide internal"}
             </button>
@@ -540,7 +540,7 @@ export function ContactRecentOutlook({
           <button
             type="button"
             onClick={() => void load()}
-            className="text-[11px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
+            className="text-[12px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
           >
             Refresh
           </button>
@@ -560,7 +560,7 @@ export function ContactRecentOutlook({
 
       {!loading && commercialUnlinked.length >= 3 ? (
         <div className="mb-2 flex flex-wrap items-end gap-2 border border-carbon-blue/10 bg-white px-2 py-2">
-          <p className="w-full text-[12px] text-carbon-blue/70">
+          <p className="w-full text-[13px] text-carbon-blue/70">
             {commercialUnlinked.length} commercial conversations are not linked to
             work.
           </p>
@@ -582,7 +582,7 @@ export function ContactRecentOutlook({
                     : "Linked commercial conversations to the selected opportunity.",
                 );
               }}
-              className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
+              className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue disabled:opacity-50"
             >
               <option value="">Link to opportunity…</option>
               {opportunityOptions.map((option) => (
@@ -593,18 +593,18 @@ export function ContactRecentOutlook({
             </select>
           </label>
           {bulkBusy ? (
-            <span className="text-[11px] text-carbon-blue/45">Updating…</span>
+            <span className="text-[12px] text-carbon-blue/65">Updating…</span>
           ) : null}
         </div>
       ) : null}
 
-      {error ? <p className="text-[12px] text-red-700/80">{error}</p> : null}
+      {error ? <p className="text-[13px] text-red-700/80">{error}</p> : null}
       {statusMessage && !error ? (
-        <p className="text-[12px] text-carbon-blue/70">{statusMessage}</p>
+        <p className="text-[13px] text-carbon-blue/70">{statusMessage}</p>
       ) : null}
 
       {!loading && !error && visibleThreads.length === 0 ? (
-        <div className="space-y-1 text-[12px] leading-relaxed text-carbon-blue/55">
+        <div className="space-y-1 text-[13px] leading-relaxed text-carbon-blue/55">
           <p>
             No synced Outlook mail for this person yet
             {contactEmail ? ` (${contactEmail})` : ""}.
@@ -617,7 +617,7 @@ export function ContactRecentOutlook({
       ) : null}
 
       {domainMatched.length > visibleThreads.length ? (
-        <p className="mb-1 text-[11px] text-carbon-blue/45">
+        <p className="mb-1 text-[12px] text-carbon-blue/65">
           Showing the latest 8 of {domainMatched.length} conversations.
         </p>
       ) : null}
@@ -660,20 +660,20 @@ export function ContactRecentOutlook({
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="min-w-0 text-[13px] font-semibold text-carbon-blue">
-                      <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                      <span className="mr-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                         {latest.isOutbound ? "Out" : "In"}
                       </span>
                       {latest.isDeletedInSource ? (
-                        <span className="mr-1 text-carbon-blue/40">[Deleted in Outlook]</span>
+                        <span className="mr-1 text-carbon-blue/60">[Deleted in Outlook]</span>
                       ) : null}
                       {subject}
                     </p>
-                    <p className="shrink-0 text-[11px] text-carbon-blue/45">
+                    <p className="shrink-0 text-[12px] text-carbon-blue/65">
                       {stamp ? formatCompactDate(stamp) : "Date unknown"}
                     </p>
                   </div>
                   {expanded ? null : snippet ? (
-                    <p className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/55">
+                    <p className="mt-0.5 text-[13px] leading-relaxed text-carbon-blue/55">
                       {snippet}
                     </p>
                   ) : null}
@@ -704,7 +704,7 @@ export function ContactRecentOutlook({
                 {dealId && (latest.opportunityCode || latest.opportunityName) ? (
                   <Link
                     href={dealEmailsHref(dealId)}
-                    className="text-[11px] font-medium text-upcycle-orange hover:underline"
+                    className="text-[12px] font-medium text-upcycle-orange hover:underline"
                   >
                     {latest.opportunityCode
                       ? `${latest.opportunityCode} · ${latest.opportunityName ?? ""}`
@@ -714,7 +714,7 @@ export function ContactRecentOutlook({
                 {projectId && latest.projectName ? (
                   <Link
                     href={projectEmailsHref(projectId)}
-                    className="text-[11px] font-medium text-upcycle-orange hover:underline"
+                    className="text-[12px] font-medium text-upcycle-orange hover:underline"
                   >
                     {latest.projectName}
                   </Link>
@@ -723,13 +723,13 @@ export function ContactRecentOutlook({
                   <button
                     type="button"
                     onClick={() => setExpandedId(thread.conversationId)}
-                    className="text-[11px] font-medium text-carbon-blue/55 hover:text-upcycle-orange"
+                    className="text-[12px] font-medium text-carbon-blue/55 hover:text-upcycle-orange"
                   >
                     Link to work
                   </button>
                 ) : null}
                 {messageCount > 1 ? (
-                  <span className="text-[11px] text-carbon-blue/40">
+                  <span className="text-[12px] text-carbon-blue/60">
                     {messageCount} messages
                   </span>
                 ) : null}
@@ -738,11 +738,11 @@ export function ContactRecentOutlook({
               {expanded ? (
                 <div className="mt-2 space-y-2">
                   {risk ? (
-                    <p className="text-[11px] text-amber-800/90">Attention: {risk}</p>
+                    <p className="text-[12px] text-amber-800/90">Attention: {risk}</p>
                   ) : null}
 
                   {suggestion && !dealId ? (
-                    <p className="text-[12px] leading-relaxed text-carbon-blue/75">
+                    <p className="text-[13px] leading-relaxed text-carbon-blue/75">
                       This looks like {suggestion.label}.{" "}
                       <button
                         type="button"
@@ -770,7 +770,7 @@ export function ContactRecentOutlook({
 
                   <div className="grid gap-2 sm:grid-cols-2">
                     <label className="block min-w-0">
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                         Opportunity
                       </span>
                       <select
@@ -782,7 +782,7 @@ export function ContactRecentOutlook({
                             opportunityId: value ? value : null,
                           });
                         }}
-                        className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
+                        className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue disabled:opacity-50"
                       >
                         <option value="">Not linked</option>
                         {dealId &&
@@ -802,7 +802,7 @@ export function ContactRecentOutlook({
                     </label>
 
                     <label className="block min-w-0">
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                         Project
                       </span>
                       <select
@@ -814,7 +814,7 @@ export function ContactRecentOutlook({
                             projectId: value ? value : null,
                           });
                         }}
-                        className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue disabled:opacity-50"
+                        className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue disabled:opacity-50"
                       >
                         <option value="">Not linked</option>
                         {projectId &&
@@ -836,7 +836,7 @@ export function ContactRecentOutlook({
                     {dealId ? (
                       <Link
                         href={dealEmailsHref(dealId)}
-                        className="text-[11px] font-medium text-carbon-blue/55 hover:text-upcycle-orange"
+                        className="text-[12px] font-medium text-carbon-blue/55 hover:text-upcycle-orange"
                       >
                         Open opportunity
                       </Link>
@@ -844,7 +844,7 @@ export function ContactRecentOutlook({
                     {projectId ? (
                       <Link
                         href={projectEmailsHref(projectId)}
-                        className="text-[11px] font-medium text-carbon-blue/55 hover:text-upcycle-orange"
+                        className="text-[12px] font-medium text-carbon-blue/55 hover:text-upcycle-orange"
                       >
                         Open project emails
                       </Link>
@@ -853,7 +853,7 @@ export function ContactRecentOutlook({
                       type="button"
                       disabled={busy}
                       onClick={() => void removeThread(thread.conversationId)}
-                      className="text-[11px] font-medium text-carbon-blue/45 hover:text-thermal-red disabled:opacity-50"
+                      className="text-[12px] font-medium text-carbon-blue/65 hover:text-thermal-red disabled:opacity-50"
                     >
                       {purgingId === thread.conversationId
                         ? "Removing…"

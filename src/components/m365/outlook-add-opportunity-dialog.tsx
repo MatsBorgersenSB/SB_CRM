@@ -93,7 +93,7 @@ export function OutlookAddOpportunityDialog({
           >
             {createdDealId ? "Opportunity created" : "Create opportunity"}
           </p>
-          <p className="mt-1 text-[11px] text-carbon-blue/50">
+          <p className="mt-1 text-[12px] text-carbon-blue/50">
             {createdDealId
               ? "Open it in SmartCRM when you are ready."
               : `For ${companyName}. You confirm — SmartCRM does not invent the deal.`}
@@ -106,26 +106,26 @@ export function OutlookAddOpportunityDialog({
               href={buildSmartCrmUrl(deal360Href(createdDealId))}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white"
+              className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
             >
               Open opportunity
             </a>
           ) : (
             <>
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Company
                 </span>
                 <input
                   type="text"
                   readOnly
                   value={companyName}
-                  className="mt-1 w-full border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-[13px] text-carbon-blue"
                 />
               </label>
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Opportunity name
                 </span>
                 <input
@@ -133,12 +133,12 @@ export function OutlookAddOpportunityDialog({
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="e.g. Carbon Emergente — feedstock study"
-                  className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue"
                 />
               </label>
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Company role
                 </span>
                 <select
@@ -146,7 +146,7 @@ export function OutlookAddOpportunityDialog({
                   onChange={(event) =>
                     setCompanyRole(event.target.value as CompanyRole)
                   }
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                 >
                   {COMPANY_ROLES.map((option) => (
                     <option key={option} value={option}>
@@ -157,7 +157,7 @@ export function OutlookAddOpportunityDialog({
               </label>
 
               <div>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   Offerings in scope
                 </span>
                 <div className="mt-1">
@@ -174,7 +174,7 @@ export function OutlookAddOpportunityDialog({
             </>
           )}
 
-          {error ? <p className="text-[11px] text-red-700">{error}</p> : null}
+          {error ? <p className="text-[12px] text-red-700">{error}</p> : null}
         </div>
 
         <div className="flex gap-2 border-t border-carbon-blue/8 px-4 py-3">
@@ -182,7 +182,7 @@ export function OutlookAddOpportunityDialog({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex-1 border border-carbon-blue/15 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+            className="flex-1 border border-carbon-blue/15 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
           >
             {createdDealId ? "Done" : "Cancel"}
           </button>
@@ -191,7 +191,7 @@ export function OutlookAddOpportunityDialog({
               type="button"
               onClick={() => void handleSubmit()}
               disabled={!canSubmit}
-              className="flex-1 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+              className="flex-1 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
             >
               {loading ? "Creating…" : "Create opportunity"}
             </button>

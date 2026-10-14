@@ -144,7 +144,7 @@ export function UserLifecycleWizard({
           <p id="lifecycle-wizard-title" className="text-sm font-semibold text-carbon-blue">
             {title} — SmartAssist
           </p>
-          <p className="mt-1 text-[11px] text-carbon-blue/50">
+          <p className="mt-1 text-[12px] text-carbon-blue/50">
             Current owner: {user.displayName}. SmartAssist recommends successors based on team,
             role, territory, relationships, workload, and opportunity ownership.
           </p>
@@ -152,28 +152,28 @@ export function UserLifecycleWizard({
 
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {loading ? (
-            <p className="text-[11px] text-carbon-blue/50">Building ownership preview…</p>
+            <p className="text-[12px] text-carbon-blue/50">Building ownership preview…</p>
           ) : preview ? (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="border border-carbon-blue/10 p-3">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
                     Current owner
                   </p>
                   <p className="mt-1 text-sm font-semibold text-carbon-blue">
                     {preview.currentOwner.displayName}
                   </p>
-                  <p className="text-[10px] text-carbon-blue/45">{preview.currentOwner.userId}</p>
+                  <p className="text-[11px] text-carbon-blue/65">{preview.currentOwner.userId}</p>
                 </div>
                 <div className="border border-upcycle-orange/20 bg-upcycle-orange/[0.03] p-3">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-upcycle-orange">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
                     Suggested successor
                   </p>
                   <p className="mt-1 text-sm font-semibold text-carbon-blue">
                     {preview.suggestedNewOwner?.user.displayName ?? "—"}
                   </p>
                   {preview.suggestedNewOwner ? (
-                    <p className="mt-1 text-[10px] text-carbon-blue/55">
+                    <p className="mt-1 text-[11px] text-carbon-blue/55">
                       {preview.suggestedNewOwner.confidencePercent}% ·{" "}
                       {preview.suggestedNewOwner.rationale}
                     </p>
@@ -182,14 +182,14 @@ export function UserLifecycleWizard({
               </div>
 
               <div
-                className={`border px-3 py-2 text-[11px] ${RISK_STYLES[preview.riskLevel]}`}
+                className={`border px-3 py-2 text-[12px] ${RISK_STYLES[preview.riskLevel]}`}
               >
                 <span className="font-bold uppercase tracking-wider">{preview.riskLevel} risk</span>
                 <span className="ml-2">{preview.riskAssessment}</span>
               </div>
 
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
                   Affected records
                 </p>
                 <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
@@ -198,7 +198,7 @@ export function UserLifecycleWizard({
                       key={key}
                       className="border border-carbon-blue/8 bg-carbon-blue/[0.02] px-2 py-1.5 text-center"
                     >
-                      <p className="text-[8px] font-bold uppercase tracking-wider text-carbon-blue/35">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
                         {key}
                       </p>
                       <p className="text-sm font-semibold tabular-nums text-carbon-blue">{value}</p>
@@ -208,7 +208,7 @@ export function UserLifecycleWizard({
               </div>
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                   New owner
                 </span>
                 <select
@@ -216,7 +216,7 @@ export function UserLifecycleWizard({
                   onChange={(event) =>
                     setSelectedUserId(Number.parseInt(event.target.value, 10) || null)
                   }
-                  className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[12px] text-carbon-blue"
+                  className="mt-1 w-full border border-carbon-blue/15 px-3 py-2 text-[13px] text-carbon-blue"
                 >
                   <option value="">Select successor…</option>
                   {activeCandidates.map((candidate) => (
@@ -229,7 +229,7 @@ export function UserLifecycleWizard({
 
               {preview.successorRecommendations.length > 0 ? (
                 <div>
-                  <p className="mb-2 text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
                     SmartAssist recommendations
                   </p>
                   <div className="space-y-2">
@@ -245,14 +245,14 @@ export function UserLifecycleWizard({
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-[12px] font-medium text-carbon-blue">
+                          <span className="text-[13px] font-medium text-carbon-blue">
                             {rec.user.displayName}
                           </span>
-                          <span className="text-[10px] font-bold tabular-nums text-upcycle-orange">
+                          <span className="text-[11px] font-bold tabular-nums text-upcycle-orange">
                             {rec.confidencePercent}%
                           </span>
                         </div>
-                        <p className="mt-0.5 text-[10px] text-carbon-blue/55">{rec.rationale}</p>
+                        <p className="mt-0.5 text-[11px] text-carbon-blue/55">{rec.rationale}</p>
                       </button>
                     ))}
                   </div>
@@ -261,19 +261,19 @@ export function UserLifecycleWizard({
 
               {preview.previewChanges.length > 0 ? (
                 <div>
-                  <p className="mb-2 text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
                     Preview changes
                   </p>
                   <ul className="max-h-40 space-y-1 overflow-y-auto border border-carbon-blue/8 p-2">
                     {preview.previewChanges.slice(0, 12).map((change) => (
-                      <li key={`${change.entityType}-${change.entityId}`} className="text-[10px] text-carbon-blue/65">
+                      <li key={`${change.entityType}-${change.entityId}`} className="text-[11px] text-carbon-blue/65">
                         <span className="font-medium text-carbon-blue">{change.entityLabel}</span>
                         {" · "}
                         {change.field}: {change.from} → {change.to}
                       </li>
                     ))}
                     {preview.previewChanges.length > 12 ? (
-                      <li className="text-[10px] text-carbon-blue/40">
+                      <li className="text-[11px] text-carbon-blue/60">
                         +{preview.previewChanges.length - 12} more changes
                       </li>
                     ) : null}
@@ -283,14 +283,14 @@ export function UserLifecycleWizard({
             </>
           ) : null}
 
-          {error ? <p className="text-[11px] text-thermal-red">{error}</p> : null}
+          {error ? <p className="text-[12px] text-thermal-red">{error}</p> : null}
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-carbon-blue/8 px-4 py-3">
           <button
             type="button"
             onClick={onClose}
-            className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+            className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
           >
             Cancel
           </button>
@@ -298,7 +298,7 @@ export function UserLifecycleWizard({
             type="button"
             disabled={submitting || loading || !selectedUserId}
             onClick={() => void handleConfirm()}
-            className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+            className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
           >
             {submitting
               ? "Applying…"

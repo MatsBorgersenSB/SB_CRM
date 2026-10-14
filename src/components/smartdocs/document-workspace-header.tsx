@@ -35,7 +35,7 @@ export function DocumentWorkspaceHeader({
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <DocumentHealthBadge status={header.healthStatus} />
           <BusinessImpactBadge level={header.businessImpactLevel} />
-          <span className="border border-carbon-blue/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-carbon-blue">
+          <span className="border border-carbon-blue/10 px-2 py-0.5 font-mono text-[11px] font-semibold text-carbon-blue">
             v{header.currentVersion}
           </span>
         </div>
@@ -44,7 +44,7 @@ export function DocumentWorkspaceHeader({
       </div>
 
       <div className="flex shrink-0 flex-col gap-2 text-[13px] text-carbon-blue/65 lg:items-end lg:text-right">
-        <p className="font-mono text-[11px] font-semibold text-upcycle-orange">{header.documentId}</p>
+        <p className="font-mono text-[12px] font-semibold text-upcycle-orange">{header.documentId}</p>
         {memberOf && memberOfHref ? (
           <p>
             Member of{" "}
@@ -107,7 +107,7 @@ function DocumentDeleteControl({
           loading={deleting}
         />
         {error ? (
-          <p className="mt-2 text-[11px] font-medium text-thermal-red" role="alert">
+          <p className="mt-2 text-[12px] font-medium text-thermal-red" role="alert">
             {error}
           </p>
         ) : null}
@@ -119,7 +119,7 @@ function DocumentDeleteControl({
     <button
       type="button"
       onClick={() => setConfirmOpen(true)}
-      className="shrink-0 border border-thermal-red/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-thermal-red hover:bg-thermal-red/[0.06]"
+      className="shrink-0 border border-thermal-red/40 bg-white px-2.5 py-1 text-[12px] font-semibold text-thermal-red hover:bg-thermal-red/[0.06]"
     >
       Delete document
     </button>

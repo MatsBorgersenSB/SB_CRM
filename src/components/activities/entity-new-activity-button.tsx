@@ -28,10 +28,10 @@ function contextPreset(
 }
 
 const DEFAULT_BUTTON_CLASS =
-  "inline-flex shrink-0 items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
+  "inline-flex shrink-0 items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
 
 const SECONDARY_BUTTON_CLASS =
-  "inline-flex shrink-0 items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange";
+  "inline-flex shrink-0 items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange";
 
 function openSamePageDocumentsHash(href: string, event: MouseEvent<HTMLAnchorElement>) {
   if (typeof window === "undefined") return;
@@ -107,7 +107,7 @@ export function EntityNewActivityButton({
             <FileText className="size-3.5" strokeWidth={2} aria-hidden />
             Documents
             {typeof documentCount === "number" && documentCount > 0 ? (
-              <span className="text-carbon-blue/45">{documentCount}</span>
+              <span className="text-carbon-blue/65">{documentCount}</span>
             ) : null}
           </Link>
         ) : null}

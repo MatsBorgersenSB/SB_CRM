@@ -24,7 +24,7 @@ export function IntelligenceCenterSmartDocs({
             { label: "Critical gaps", value: overview.criticalMissingCount, accent: true },
           ].map((kpi) => (
             <div key={kpi.label} className="border border-carbon-blue/8 px-4 py-3">
-              <dt className="text-[9px] uppercase tracking-wider text-carbon-blue/40">{kpi.label}</dt>
+              <dt className="text-[10px] uppercase tracking-wider text-carbon-blue/60">{kpi.label}</dt>
               <dd
                 className={`text-xl font-semibold tabular-nums ${
                   kpi.accent ? "text-upcycle-orange" : "text-carbon-blue"
@@ -75,7 +75,7 @@ export function IntelligenceCenterSmartDocs({
         </IntelligenceCenterSection>
       </div>
 
-      <p className="text-center text-[11px] text-carbon-blue/45">
+      <p className="text-center text-[12px] text-carbon-blue/65">
         Open any row for Document 360 ·{" "}
         <Link href="/companies" className="font-semibold text-upcycle-orange hover:underline">
           Browse by company

@@ -49,7 +49,7 @@ export function StakeholderRoleSelect({
       {label ? (
         <label
           htmlFor={id}
-          className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45"
+          className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65"
         >
           {label}
         </label>
@@ -66,7 +66,7 @@ export function StakeholderRoleSelect({
           }
           onChange(next);
         }}
-        className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 disabled:opacity-50"
+        className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 disabled:opacity-50"
       >
         <option value="" disabled>
           Select role…
@@ -99,7 +99,7 @@ export function StakeholderRoleSelect({
           disabled={disabled}
           onChange={(event) => onChange(normalizeStakeholderRole(event.target.value))}
           placeholder="e.g. Legal Approver, Security Officer"
-          className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 disabled:opacity-50"
+          className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 disabled:opacity-50"
           aria-label="Custom stakeholder role"
           autoFocus
         />
@@ -124,7 +124,7 @@ export function StakeholderRoleBadge({
   return (
     <span
       title={label}
-      className={`inline-flex max-w-full items-center truncate border px-2 py-0.5 text-[10px] font-semibold ${
+      className={`inline-flex max-w-full items-center truncate border px-2 py-0.5 text-[11px] font-semibold ${
         isPreset
           ? "border-upcycle-orange/30 bg-upcycle-orange/10 uppercase tracking-wider text-upcycle-orange"
           : "border-carbon-blue/15 bg-carbon-blue/[0.04] normal-case tracking-normal text-carbon-blue/80"

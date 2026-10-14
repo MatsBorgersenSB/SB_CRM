@@ -23,13 +23,13 @@ export function OpportunitySmartAssistSummary({
           <Bot className="size-4" strokeWidth={2} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-upcycle-orange">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
             SmartAssist · {dealName}
           </p>
           <p className="mt-1 text-sm font-semibold leading-snug text-carbon-blue">
             {assessment.coreQuestions.shouldInvestResources}
           </p>
-          <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/60">
+          <p className="mt-2 text-[12px] leading-relaxed text-carbon-blue/60">
             {assessment.recommendation === "pursue" || assessment.recommendation === "qualify"
               ? `Commercial recommendation: ${VIABILITY_RECOMMENDATION_LABELS[assessment.recommendation]}. Contract probability ${assessment.contractProbabilityLabel}.`
               : `Commercial recommendation: ${VIABILITY_RECOMMENDATION_LABELS[assessment.recommendation]}. Review before investing more resources.`}
@@ -38,11 +38,11 @@ export function OpportunitySmartAssistSummary({
               : ""}
           </p>
           {primaryAction ? (
-            <p className="mt-2 text-[11px] font-medium text-upcycle-orange">
+            <p className="mt-2 text-[12px] font-medium text-upcycle-orange">
               Highest-impact next step: {primaryAction.action}
             </p>
           ) : null}
-          <p className="mt-2 text-[9px] text-carbon-blue/35">{SMARTASSIST_BUSINESS_IMPACT.advisorNote}</p>
+          <p className="mt-2 text-[10px] text-carbon-blue/50">{SMARTASSIST_BUSINESS_IMPACT.advisorNote}</p>
         </div>
       </div>
     </section>

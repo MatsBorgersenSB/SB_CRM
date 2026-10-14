@@ -412,7 +412,7 @@ function OverviewPanel({
               <button
                 type="button"
                 onClick={() => onAnswerNow(blocker.fieldId!)}
-                className="inline-flex rounded-md border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+                className="inline-flex rounded-md border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
               >
                 Answer Now
               </button>

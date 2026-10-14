@@ -31,7 +31,7 @@ export function ActivitySuggestedPanel({
     <section className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
       <div className="mb-3 flex items-center gap-2">
         <Lightbulb className="size-3.5 text-upcycle-orange" strokeWidth={2} />
-        <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/50">
+        <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-carbon-blue/50">
           SmartAssist Recommendations
         </h3>
       </div>
@@ -49,14 +49,14 @@ export function ActivitySuggestedPanel({
                 />
                 <p className="text-xs font-semibold text-carbon-blue">{suggestion.label}</p>
               </div>
-              <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/55">
+              <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/55">
                 {suggestion.reason}
               </p>
             </div>
             <button
               type="button"
               onClick={() => onExecuteSuggestion(suggestion)}
-              className="inline-flex shrink-0 items-center gap-1 border border-upcycle-orange/25 bg-upcycle-orange/10 px-2 py-1 text-[10px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+              className="inline-flex shrink-0 items-center gap-1 border border-upcycle-orange/25 bg-upcycle-orange/10 px-2 py-1 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
             >
               <Plus className="size-3" strokeWidth={2.5} />
               {ACTION_BUTTON_LABEL[suggestion.assistantKind]}

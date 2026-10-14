@@ -11,7 +11,7 @@ function KpiCell({
 }) {
   return (
     <div className="flex flex-col gap-1.5 border border-carbon-blue/8 bg-[var(--dashboard-card)] px-5 py-4">
-      <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {label}
       </dt>
       <dd
@@ -35,7 +35,7 @@ export function IntelligenceCenterOverviewRibbon({
   return (
     <header className="dashboard-card overflow-hidden">
       <div className="px-6 py-6">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
           What needs attention across your portfolio
         </p>
         <p className="mt-2 text-sm text-carbon-blue/55">

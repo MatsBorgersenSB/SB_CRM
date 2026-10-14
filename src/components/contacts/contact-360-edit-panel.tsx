@@ -159,7 +159,7 @@ export function Contact360EditPanel({
       <header className="mb-4 flex items-center gap-2">
         <SmartCRMIcon name="edit" size="sm" />
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
             Editing contact
           </p>
           <p className="text-sm font-semibold text-carbon-blue">
@@ -198,7 +198,7 @@ export function Contact360EditPanel({
           type="button"
           disabled={saving || !isContactFormValid(form)}
           onClick={() => void handleSave()}
-          className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
@@ -206,14 +206,14 @@ export function Contact360EditPanel({
           type="button"
           disabled={saving}
           onClick={onCancel}
-          className="border border-carbon-blue/15 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70 hover:border-carbon-blue/25"
+          className="border border-carbon-blue/15 bg-white px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/70 hover:border-carbon-blue/25"
         >
           Cancel
         </button>
       </div>
 
       {error ? (
-        <p className="mt-3 text-[12px] font-medium text-red-700" role="alert">
+        <p className="mt-3 text-[13px] font-medium text-red-700" role="alert">
           {error}
         </p>
       ) : null}
@@ -234,7 +234,7 @@ export function Contact360EditPanel({
               type="button"
               disabled={saving || deleting}
               onClick={() => setDeleteConfirmOpen(true)}
-              className="text-[11px] font-semibold text-thermal-red hover:underline"
+              className="text-[12px] font-semibold text-thermal-red hover:underline"
             >
               Delete contact
             </button>

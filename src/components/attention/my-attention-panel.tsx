@@ -35,7 +35,7 @@ export function MyAttentionPanel({ queue, limit = 20, ownerFilter }: MyAttention
 
   if (items.length === 0) {
     return (
-      <p className="text-sm text-carbon-blue/45">
+      <p className="text-sm text-carbon-blue/65">
         {ownerFilter
           ? `No attention items in ${ownerFilter}'s queue right now.`
           : "Nothing needs your attention right now. Your portfolio is healthy."}

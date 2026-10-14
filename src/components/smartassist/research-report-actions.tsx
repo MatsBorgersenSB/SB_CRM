@@ -77,10 +77,10 @@ export function ResearchReportActions({ briefing, companyId, dealId, contactId }
 
   return (
     <div className="rounded-lg border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2.5">
-      <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
         Research Report
       </p>
-      <p className="mt-1 text-[10px] leading-relaxed text-carbon-blue/55">
+      <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/55">
         Generate a structured report stored in SharePoint and searchable in the knowledge base.
       </p>
 
@@ -89,17 +89,17 @@ export function ResearchReportActions({ briefing, companyId, dealId, contactId }
           type="button"
           onClick={generateReport}
           disabled={busy}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-upcycle-orange px-3 py-1.5 text-[10px] font-semibold text-white disabled:opacity-60"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-60"
         >
           <FileText className="size-3" strokeWidth={2} />
           {busy ? "Generating…" : "Generate & Store Report"}
         </button>
       ) : (
         <div className="mt-2 space-y-2">
-          <p className="text-[10px] font-medium text-emerald-700">
+          <p className="text-[11px] font-medium text-emerald-700">
             Stored · {report.reportId} · {report.typeLabel}
           </p>
-          <p className="text-[9px] text-carbon-blue/45 truncate" title={report.metadata.sharePointUrl}>
+          <p className="text-[10px] text-carbon-blue/65 truncate" title={report.metadata.sharePointUrl}>
             SharePoint: {report.metadata.sharePointPath}
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -107,7 +107,7 @@ export function ResearchReportActions({ briefing, companyId, dealId, contactId }
               type="button"
               disabled={busy}
               onClick={() => downloadExport("docx")}
-              className="inline-flex items-center gap-1 rounded-md border border-carbon-blue/12 bg-white px-2 py-1 text-[9px] font-semibold text-carbon-blue hover:border-upcycle-orange/30"
+              className="inline-flex items-center gap-1 rounded-md border border-carbon-blue/12 bg-white px-2 py-1 text-[10px] font-semibold text-carbon-blue hover:border-upcycle-orange/30"
             >
               <Download className="size-3" strokeWidth={2} />
               DOCX
@@ -116,7 +116,7 @@ export function ResearchReportActions({ briefing, companyId, dealId, contactId }
               type="button"
               disabled={busy}
               onClick={() => downloadExport("pdf")}
-              className="inline-flex items-center gap-1 rounded-md border border-carbon-blue/12 bg-white px-2 py-1 text-[9px] font-semibold text-carbon-blue hover:border-upcycle-orange/30"
+              className="inline-flex items-center gap-1 rounded-md border border-carbon-blue/12 bg-white px-2 py-1 text-[10px] font-semibold text-carbon-blue hover:border-upcycle-orange/30"
             >
               <Download className="size-3" strokeWidth={2} />
               PDF
@@ -125,7 +125,7 @@ export function ResearchReportActions({ briefing, companyId, dealId, contactId }
               type="button"
               disabled={busy}
               onClick={() => downloadExport("sharepoint")}
-              className="inline-flex items-center gap-1 rounded-md border border-carbon-blue/12 bg-white px-2 py-1 text-[9px] font-semibold text-carbon-blue hover:border-upcycle-orange/30"
+              className="inline-flex items-center gap-1 rounded-md border border-carbon-blue/12 bg-white px-2 py-1 text-[10px] font-semibold text-carbon-blue hover:border-upcycle-orange/30"
             >
               <Share2 className="size-3" strokeWidth={2} />
               SharePoint Page
@@ -134,7 +134,7 @@ export function ResearchReportActions({ briefing, companyId, dealId, contactId }
         </div>
       )}
 
-      {error ? <p className="mt-2 text-[10px] text-red-600">{error}</p> : null}
+      {error ? <p className="mt-2 text-[11px] text-red-600">{error}</p> : null}
     </div>
   );
 }

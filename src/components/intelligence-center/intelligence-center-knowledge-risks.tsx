@@ -51,7 +51,7 @@ export function IntelligenceCenterKnowledgeRisks({
   return (
     <div className="space-y-8">
       <section className="dashboard-card px-6 py-7">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
           Knowledge assets
         </p>
         <h2 className="mt-3 text-xl font-semibold text-carbon-blue">
@@ -65,7 +65,7 @@ export function IntelligenceCenterKnowledgeRisks({
 
         {featured ? (
           <div className="mt-6 border-l-2 border-upcycle-orange/40 pl-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange/80">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange/80">
               Highest priority asset
             </p>
             <Link
@@ -74,7 +74,7 @@ export function IntelligenceCenterKnowledgeRisks({
             >
               {featured.document.displayName}
             </Link>
-            <p className="mt-1 text-[11px] text-carbon-blue/55">{featured.nextBestAction.action}</p>
+            <p className="mt-1 text-[12px] text-carbon-blue/55">{featured.nextBestAction.action}</p>
             <ImpactContext items={featuredImpact} />
           </div>
         ) : null}

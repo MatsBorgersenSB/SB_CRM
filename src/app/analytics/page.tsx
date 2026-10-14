@@ -40,7 +40,7 @@ export default async function AnalyticsPage() {
           <div className="mt-3 flex flex-col gap-3">
             <AnalyticsInsightCards insights={analytics.insights} />
             <section className="dashboard-card p-4">
-              <h2 className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/45">
+              <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-carbon-blue/65">
                 Company Classification
               </h2>
               <CompanyClassificationReport report={classification} />

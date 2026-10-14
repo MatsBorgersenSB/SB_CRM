@@ -145,13 +145,13 @@ export function WorkflowApprovalWorkspace({
     <section aria-label="Workflow approval queue" className="flex flex-col gap-4">
       <header className={`${ATTIO_SURFACE} overflow-hidden`}>
         <div className={ATTIO_SURFACE_HEADER}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
             FS-011 · Autonomous Workflow Engine
           </p>
           <h1 className="mt-0.5 text-[18px] font-semibold tracking-tight text-slate-900 dark:text-slate-50">
             Pending Action Approval Queue
           </h1>
-          <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
             SmartAssist proposes; you approve. No CRM side effects until Approve &amp; Execute.
           </p>
         </div>
@@ -177,7 +177,7 @@ export function WorkflowApprovalWorkspace({
             <h2 className="text-[13px] font-semibold text-slate-900 dark:text-slate-50">
               Executions
             </h2>
-            <p className="mt-0.5 text-[12px] text-slate-500">
+            <p className="mt-0.5 text-[13px] text-slate-500">
               Filter by status and trigger type (AD-001).
             </p>
           </div>
@@ -230,7 +230,7 @@ export function WorkflowApprovalWorkspace({
       </div>
 
       {error ? (
-        <p className="rounded-lg border border-thermal-red/25 bg-thermal-red/[0.06] px-3 py-2 text-[12px] text-thermal-red">
+        <p className="rounded-lg border border-thermal-red/25 bg-thermal-red/[0.06] px-3 py-2 text-[13px] text-thermal-red">
           {error}
         </p>
       ) : null}
@@ -270,7 +270,7 @@ function MetricCard({
 }) {
   return (
     <div className="rounded-lg border border-slate-200/80 bg-slate-50/50 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/50">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
         {label}
       </p>
       <p
@@ -278,7 +278,7 @@ function MetricCard({
       >
         {value}
       </p>
-      {hint ? <p className="mt-0.5 text-[10px] text-slate-400">{hint}</p> : null}
+      {hint ? <p className="mt-0.5 text-[11px] text-slate-400">{hint}</p> : null}
     </div>
   );
 }
@@ -314,10 +314,10 @@ function ExecutionCard({
               {labelizeTrigger(execution.triggerType)}
             </span>
             {execution.companyName ? (
-              <span className="text-[11px] text-slate-500">{execution.companyName}</span>
+              <span className="text-[12px] text-slate-500">{execution.companyName}</span>
             ) : null}
             {execution.opportunityName ? (
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[12px] text-slate-400">
                 · {execution.opportunityName}
               </span>
             ) : null}
@@ -329,7 +329,7 @@ function ExecutionCard({
                 type="button"
                 disabled={busy}
                 onClick={onApprove}
-                className="rounded-md border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="rounded-md border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {busy ? "Working…" : "Approve & Execute"}
               </button>
@@ -337,13 +337,13 @@ function ExecutionCard({
                 type="button"
                 disabled={busy}
                 onClick={onDismiss}
-                className="rounded-md border border-slate-200/80 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-800 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                className="rounded-md border border-slate-200/80 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-800 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
               >
                 Dismiss
               </button>
             </div>
           ) : (
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[12px] text-slate-400">
               {execution.executedAt
                 ? `Executed ${new Date(execution.executedAt).toLocaleString()}`
                 : execution.ruleName}

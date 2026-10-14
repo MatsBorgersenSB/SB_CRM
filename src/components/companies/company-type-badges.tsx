@@ -27,7 +27,7 @@ export function CompanyTypeBadges({
 }) {
   if (types.length === 0) return null;
 
-  const textClass = size === "sm" ? "text-[11px]" : "text-[12px]";
+  const textClass = size === "sm" ? "text-[12px]" : "text-[13px]";
   const padClass = size === "sm" ? "px-1.5 py-0.5" : "px-2 py-1";
   const chrome = compact
     ? "text-carbon-blue/70"

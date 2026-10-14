@@ -7,7 +7,7 @@ export function CapacityProgressBar({ value }: { value: number }) {
           style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
         />
       </div>
-      <span className="shrink-0 font-mono text-[10px] tabular-nums text-carbon-blue/70">
+      <span className="shrink-0 font-mono text-[11px] tabular-nums text-carbon-blue/70">
         {value}%
       </span>
     </div>

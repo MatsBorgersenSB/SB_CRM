@@ -34,19 +34,19 @@ export function ContactCareerTimeline({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs font-semibold text-carbon-blue">{entry.companyName}</p>
-              <p className="mt-0.5 text-[11px] text-carbon-blue/60">
+              <p className="mt-0.5 text-[12px] text-carbon-blue/60">
                 {entry.jobTitle || entry.role}
                 <span className="mx-1 text-carbon-blue/25">·</span>
-                <span className="font-mono text-[10px]">{entry.role}</span>
+                <span className="font-mono text-[11px]">{entry.role}</span>
               </p>
             </div>
-            <p className="shrink-0 text-[10px] tabular-nums text-carbon-blue/45">
+            <p className="shrink-0 text-[11px] tabular-nums text-carbon-blue/65">
               {formatDate(entry.startDate)} — {formatDate(entry.endDate)}
             </p>
           </div>
           <Link
             href={`/companies/${entry.companyId}`}
-            className="mt-1 inline-block text-[10px] font-semibold text-upcycle-orange hover:underline"
+            className="mt-1 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
           >
             View company →
           </Link>
@@ -55,21 +55,21 @@ export function ContactCareerTimeline({
 
       {transfers.length > 0 ? (
         <section className="bg-carbon-blue/[0.02] px-3 py-3">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
             Company transfers
           </p>
           <ul className="mt-2 space-y-2">
             {transfers.map((transfer) => (
-              <li key={transfer.id} className="text-[11px] text-carbon-blue/70">
+              <li key={transfer.id} className="text-[12px] text-carbon-blue/70">
                 <span className="font-medium text-carbon-blue">
                   {transfer.previousCompanyName}
                 </span>
                 <span className="mx-1 text-carbon-blue/30">→</span>
                 <span className="font-medium text-carbon-blue">{transfer.newCompanyName}</span>
-                <span className="ml-2 text-[10px] text-carbon-blue/45">
+                <span className="ml-2 text-[11px] text-carbon-blue/65">
                   {formatDate(transfer.transferDate)}
                 </span>
-                <p className="mt-0.5 text-[10px] text-carbon-blue/45">
+                <p className="mt-0.5 text-[11px] text-carbon-blue/65">
                   Preserved: {transfer.preservedReferences.activities} activities,{" "}
                   {transfer.preservedReferences.opportunities} opportunities,{" "}
                   {transfer.preservedReferences.documents} documents

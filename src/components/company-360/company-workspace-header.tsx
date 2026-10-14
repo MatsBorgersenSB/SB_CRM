@@ -109,7 +109,7 @@ export function CompanyWorkspaceHeader({
       ) : null}
 
       <div className="mt-3 border-l-2 border-upcycle-orange/50 pl-3">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
           Next
         </p>
         {nextLabel === "Collect competitor knowledge" ? (
@@ -123,11 +123,11 @@ export function CompanyWorkspaceHeader({
           <p className="mt-0.5 text-[14px] font-semibold text-carbon-blue">{nextLabel}</p>
         )}
         {nextReason ? (
-          <p className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/55">{nextReason}</p>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-carbon-blue/55">{nextReason}</p>
         ) : null}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-carbon-blue/60">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-carbon-blue/60">
         <span
           className={
             ownerAssigned
@@ -150,13 +150,13 @@ export function CompanyWorkspaceHeader({
         )}
 
         {header.location !== "—" ? (
-          <ActionableField icon="location" className="text-[12px] text-carbon-blue/60">
+          <ActionableField icon="location" className="text-[13px] text-carbon-blue/60">
             {header.location}
           </ActionableField>
         ) : null}
 
         {identity.website ? (
-          <ActionableField icon="website" className="text-[12px] text-carbon-blue/60">
+          <ActionableField icon="website" className="text-[13px] text-carbon-blue/60">
             {websiteHref ? (
               <a
                 href={websiteHref}
@@ -173,7 +173,7 @@ export function CompanyWorkspaceHeader({
         ) : null}
 
         {identity.mainPhone ? (
-          <ActionableField icon="phone" className="text-[12px] text-carbon-blue/60">
+          <ActionableField icon="phone" className="text-[13px] text-carbon-blue/60">
             <PhoneActionMenu phone={decodePhoneForDisplay(identity.mainPhone)} />
           </ActionableField>
         ) : null}

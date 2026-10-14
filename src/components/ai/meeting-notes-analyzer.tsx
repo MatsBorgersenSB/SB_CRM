@@ -95,13 +95,13 @@ export function MeetingNotesAnalyzer({
 
   return (
     <div className="border border-carbon-blue/10 bg-white px-3 py-3">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         FS-014 · Post-meeting notes
       </p>
       <h4 className="mt-0.5 text-[13px] font-semibold text-carbon-blue">
         Import Teams transcript
       </h4>
-      <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/55">
+      <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/55">
         Paste the Teams transcript (or VTT). SmartAssist prepares notes — you Approve
         commitments.
       </p>
@@ -110,14 +110,14 @@ export function MeetingNotesAnalyzer({
         onChange={(event) => setNotes(event.target.value)}
         rows={4}
         placeholder="Paste Teams transcript or meeting notes…"
-        className="mt-2 w-full resize-y border border-carbon-blue/15 px-2 py-1.5 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange"
+        className="mt-2 w-full resize-y border border-carbon-blue/15 px-2 py-1.5 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
       />
       <div className="mt-2 flex flex-wrap gap-2">
         <button
           type="button"
           disabled={busy || !notes.trim()}
           onClick={() => void importTranscript()}
-          className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white hover:brightness-105 disabled:opacity-50"
+          className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white hover:brightness-105 disabled:opacity-50"
         >
           {busy ? "Working…" : "Import & propose notes"}
         </button>
@@ -125,23 +125,23 @@ export function MeetingNotesAnalyzer({
           type="button"
           disabled={busy || !notes.trim()}
           onClick={() => void analyzeOnly()}
-          className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/70 hover:border-carbon-blue/30 disabled:opacity-50"
+          className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/70 hover:border-carbon-blue/30 disabled:opacity-50"
         >
           Preview only
         </button>
       </div>
-      {error ? <p className="mt-2 text-[11px] text-thermal-red">{error}</p> : null}
+      {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
       {importMessage ? (
-        <p className="mt-2 text-[11px] text-emerald-700">{importMessage}</p>
+        <p className="mt-2 text-[12px] text-emerald-700">{importMessage}</p>
       ) : null}
       {insights ? (
         <div className="mt-3 space-y-2 border-t border-carbon-blue/10 pt-3">
-          <p className="text-[12px] text-carbon-blue/70">{insights.summary}</p>
-          <p className="text-[11px] text-carbon-blue/55">
+          <p className="text-[13px] text-carbon-blue/70">{insights.summary}</p>
+          <p className="text-[12px] text-carbon-blue/55">
             Sentiment: {insights.sentimentLabel} · Confidence {insights.confidenceScore}
           </p>
           {insights.actionItems.length > 0 ? (
-            <ul className="list-disc space-y-1 pl-4 text-[11px] text-carbon-blue/70">
+            <ul className="list-disc space-y-1 pl-4 text-[12px] text-carbon-blue/70">
               {insights.actionItems.slice(0, 6).map((item) => (
                 <li key={item.action}>{item.action}</li>
               ))}

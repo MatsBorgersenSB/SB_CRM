@@ -15,11 +15,11 @@ export function DashboardRecentActivity({
       <header className="flex items-center justify-between border-b border-carbon-blue/8 px-4 py-3.5">
         <div>
           <h2 className="text-sm font-semibold text-carbon-blue">Recent Activity</h2>
-          <p className="mt-0.5 text-[11px] text-carbon-blue/45">Relationship memory at a glance</p>
+          <p className="mt-0.5 text-[12px] text-carbon-blue/65">Relationship memory at a glance</p>
         </div>
         <Link
           href="/activities"
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-upcycle-orange"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-upcycle-orange"
         >
           Timeline
           <ArrowRight className="size-3" />
@@ -40,10 +40,10 @@ export function DashboardRecentActivity({
                   <ActivityTypeIcon type={activity.ActivityType} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-carbon-blue/50">
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-carbon-blue/50">
                         {activity.ActivityType}
                       </p>
-                      <time className="shrink-0 text-[10px] text-carbon-blue/40">
+                      <time className="shrink-0 text-[11px] text-carbon-blue/60">
                         {formatRelativeTime(activity.ActivityDate)}
                       </time>
                     </div>
@@ -52,11 +52,11 @@ export function DashboardRecentActivity({
                         {activity.Company.Title}
                       </p>
                     ) : null}
-                    <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/70">
+                    <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/70">
                       {memory.summary}
                     </p>
                     {memory.whatHappensNext ? (
-                      <p className="mt-1.5 text-[10px] font-medium text-upcycle-orange">
+                      <p className="mt-1.5 text-[11px] font-medium text-upcycle-orange">
                         Next: {memory.whatHappensNext}
                       </p>
                     ) : null}

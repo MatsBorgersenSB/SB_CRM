@@ -56,7 +56,7 @@ export function OpportunityQuestionBox({ context }: { context: OpportunityAskCon
       />
 
       <div className={`${EDITORIAL_DIVIDER} pt-8`}>
-        <p className="text-[11px] font-medium text-carbon-blue/45">
+        <p className="text-[12px] font-medium text-carbon-blue/65">
           Ask about gaps, stakeholders, next steps, or documents
         </p>
         <form onSubmit={handleSubmit} className="relative mt-3">

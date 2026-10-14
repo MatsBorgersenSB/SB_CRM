@@ -140,13 +140,13 @@ export function M365PreviewWorkspace({
     <WorkspaceChrome>
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="shrink-0 border-b border-carbon-blue/8 bg-white px-6 py-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
             Phase 1A · M365 Preview
           </p>
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-carbon-blue">
             Microsoft 365 Experience Validation
           </h1>
-          <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-carbon-blue/50">
+          <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-carbon-blue/50">
             Preview intelligence surfaces exactly as Outlook and Teams will consume them.
             Validate hierarchy, clarity, scanability, and actionability before host development.
           </p>
@@ -162,7 +162,7 @@ export function M365PreviewWorkspace({
                   key={item.id}
                   type="button"
                   onClick={() => setSurface(item.id)}
-                  className={`px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                  className={`px-3 py-1.5 text-[12px] font-semibold transition-colors ${
                     surface === item.id
                       ? "bg-carbon-blue text-white"
                       : "text-carbon-blue/60 hover:text-carbon-blue"
@@ -175,13 +175,13 @@ export function M365PreviewWorkspace({
 
             {activeSurface.needsCompany ? (
               <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-carbon-blue/40">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-carbon-blue/60">
                   Account context
                 </span>
                 <select
                   value={companyId}
                   onChange={(event) => setCompanyId(event.target.value)}
-                  className="min-w-[220px] border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue"
+                  className="min-w-[220px] border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"
                 >
                   {companies.map((company) => (
                     <option key={company.CompanyID} value={company.CompanyID}>
@@ -197,10 +197,10 @@ export function M365PreviewWorkspace({
         <div className="grid min-h-0 flex-1 gap-6 overflow-auto p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <section className="min-w-0">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
                 Live preview
               </p>
-              <p className="text-[10px] text-carbon-blue/35">{activeSurface.hostLabel}</p>
+              <p className="text-[11px] text-carbon-blue/50">{activeSurface.hostLabel}</p>
             </div>
 
             {surface === "reconciliation" ? (
@@ -214,12 +214,12 @@ export function M365PreviewWorkspace({
               </div>
             ) : loading ? (
               <div className={`dashboard-card ${activeSurface.maxWidth} px-5 py-8`}>
-                <p className="text-[12px] text-carbon-blue/45">Loading intelligence payload…</p>
+                <p className="text-[13px] text-carbon-blue/65">Loading intelligence payload…</p>
               </div>
             ) : error ? (
               <div className={`dashboard-card ${activeSurface.maxWidth} border-red-200/60 px-5 py-8`}>
                 <p className="text-sm font-medium text-red-800">Preview unavailable</p>
-                <p className="mt-1 text-[11px] text-red-700/70">{error}</p>
+                <p className="mt-1 text-[12px] text-red-700/70">{error}</p>
               </div>
             ) : payload ? (
               <div className={activeSurface.maxWidth}>

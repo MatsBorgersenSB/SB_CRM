@@ -64,7 +64,7 @@ function SmartResultMeta({ item }: { item: SearchIndexItem }) {
   if (!meta || item.entityType !== "company") return null;
 
   return (
-    <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px]" style={{ color: "var(--command-muted)" }}>
+    <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[12px]" style={{ color: "var(--command-muted)" }}>
       {meta.locationLabel ? <span>{meta.locationLabel}</span> : null}
       {meta.openOpportunities !== undefined && meta.openOpportunities > 0 ? (
         <span>{meta.openOpportunities} open opportunit{meta.openOpportunities === 1 ? "y" : "ies"}</span>
@@ -126,7 +126,7 @@ function SearchResultRow({
           <span className="flex items-start justify-between gap-3">
             <span className="truncate text-sm font-semibold leading-snug">{item.name}</span>
             <span
-              className="shrink-0 text-[10px] font-medium uppercase tracking-wide"
+              className="shrink-0 text-[11px] font-medium uppercase tracking-wide"
               style={{ color: "var(--command-muted)" }}
             >
               {item.typeLabel}
@@ -134,7 +134,7 @@ function SearchResultRow({
           </span>
 
           <span
-            className="mt-0.5 line-clamp-1 text-[11px] leading-relaxed"
+            className="mt-0.5 line-clamp-1 text-[12px] leading-relaxed"
             style={{ color: "var(--command-muted)" }}
           >
             {item.contextPreview}
@@ -142,7 +142,7 @@ function SearchResultRow({
 
           <SmartResultMeta item={item} />
 
-          <span className="mt-1 flex items-center gap-1.5 text-[10px]">
+          <span className="mt-1 flex items-center gap-1.5 text-[11px]">
             <SmartCRMIcon name="meeting" size="xs" />
             <span style={{ color: "var(--command-muted)" }}>{item.lastActivityLabel}</span>
           </span>
@@ -154,7 +154,7 @@ function SearchResultRow({
                   key={`${item.id}-${action.kind}`}
                   href={action.href ?? "#"}
                   onClick={(event) => event.stopPropagation()}
-                  className="border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange"
+                  className="border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange"
                   style={{
                     borderColor: "var(--command-border)",
                     color: "var(--command-muted)",
@@ -406,7 +406,7 @@ export function UniversalSearchDialog({
           <button
             type="button"
             onClick={() => setMode("search")}
-            className={`px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+            className={`px-3 py-1.5 text-[12px] font-semibold transition-colors ${
               mode === "search"
                 ? "bg-upcycle-orange/12 text-upcycle-orange"
                 : "text-[var(--command-muted)] hover:text-[var(--command-text)]"
@@ -417,7 +417,7 @@ export function UniversalSearchDialog({
           <button
             type="button"
             onClick={() => setMode("ask")}
-            className={`px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+            className={`px-3 py-1.5 text-[12px] font-semibold transition-colors ${
               mode === "ask"
                 ? "bg-upcycle-orange/12 text-upcycle-orange"
                 : "text-[var(--command-muted)] hover:text-[var(--command-text)]"
@@ -449,7 +449,7 @@ export function UniversalSearchDialog({
             style={{ color: "var(--command-text)" }}
           />
           <kbd
-            className="hidden shrink-0 border px-1.5 py-0.5 font-mono text-[10px] sm:inline"
+            className="hidden shrink-0 border px-1.5 py-0.5 font-mono text-[11px] sm:inline"
             style={{
               borderColor: "var(--command-border)",
               color: "var(--command-muted)",
@@ -484,7 +484,7 @@ export function UniversalSearchDialog({
         <div ref={listRef} className="flex-1 overflow-y-auto py-2">
           {mode === "ask" && !query.trim() ? (
             <div className="px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--command-muted)" }}>
+              <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--command-muted)" }}>
                 Suggested questions
               </p>
               <ul className="mt-2 space-y-1">
@@ -493,7 +493,7 @@ export function UniversalSearchDialog({
                     <button
                       type="button"
                       onClick={() => setQuery(question)}
-                      className="w-full px-2 py-2 text-left text-[12px] transition-colors hover:bg-[var(--command-hover)]"
+                      className="w-full px-2 py-2 text-left text-[13px] transition-colors hover:bg-[var(--command-hover)]"
                       style={{ color: "var(--command-text)" }}
                     >
                       {question}
@@ -513,7 +513,7 @@ export function UniversalSearchDialog({
                 <p className="text-sm font-medium" style={{ color: "var(--command-text)" }}>
                   Looking in SmartCRM, the public registers, their website and our mail…
                 </p>
-                <p className="mt-1 text-[11px]" style={{ color: "var(--command-muted)" }}>
+                <p className="mt-1 text-[12px]" style={{ color: "var(--command-muted)" }}>
                   Usually 5–15 seconds. Nothing is created until you say so.
                 </p>
               </div>
@@ -569,7 +569,7 @@ export function UniversalSearchDialog({
                     <p className="text-sm font-medium leading-relaxed" style={{ color: "var(--command-text)" }}>
                       {askResult.answer}
                     </p>
-                    <p className="mt-2 text-[11px]" style={{ color: "var(--command-muted)" }}>
+                    <p className="mt-2 text-[12px]" style={{ color: "var(--command-muted)" }}>
                       Recommended:{" "}
                       {askResult.actionHref ? (
                         <Link
@@ -595,16 +595,16 @@ export function UniversalSearchDialog({
                   <button
                     type="button"
                     onClick={() => void runExplore(query.trim())}
-                    className="mt-3 inline-flex items-center gap-2 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-upcycle-orange/90"
+                    className="mt-3 inline-flex items-center gap-2 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-upcycle-orange/90"
                   >
                     {exploreIntent.kind === "company"
                       ? `Explore ${exploreIntent.subject} outside SmartCRM`
                       : "Ask SmartAssist to explore this"}
-                    <kbd className="border border-white/40 px-1 font-mono text-[9px]">↵</kbd>
+                    <kbd className="border border-white/40 px-1 font-mono text-[10px]">↵</kbd>
                   </button>
                 ) : null}
                 {exploreIntent?.kind === "company" ? (
-                  <p className="mt-1.5 text-[10px]" style={{ color: "var(--command-muted)" }}>
+                  <p className="mt-1.5 text-[11px]" style={{ color: "var(--command-muted)" }}>
                     Public registers · their website · our mail, files and Teams. You approve anything that gets added.
                   </p>
                 ) : null}
@@ -615,7 +615,7 @@ export function UniversalSearchDialog({
           {mode === "search" && commandMatches.length > 0 && query.trim() ? (
             <section className="px-2 py-1">
               <h3
-                className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em]"
+                className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
                 style={{ color: "var(--command-muted)" }}
               >
                 Commands
@@ -652,7 +652,7 @@ export function UniversalSearchDialog({
           {mode === "search" && relationshipBundles.length > 0 ? (
             <section className="px-2 py-1">
               <h3
-                className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em]"
+                className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
                 style={{ color: "var(--command-muted)" }}
               >
                 Relationship Results
@@ -675,7 +675,7 @@ export function UniversalSearchDialog({
                       <SmartCRMIcon name="company" size="sm" className="opacity-60" />
                       {bundle.companyName}
                     </p>
-                    <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px]" style={{ color: "var(--command-muted)" }}>
+                    <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[12px]" style={{ color: "var(--command-muted)" }}>
                       {bundle.locationLabel && bundle.locationLabel !== "—" ? <span>{bundle.locationLabel}</span> : null}
                       {bundle.openOpportunities > 0 ? (
                         <span>{bundle.openOpportunities} open opportunit{bundle.openOpportunities === 1 ? "y" : "ies"}</span>
@@ -712,7 +712,7 @@ export function UniversalSearchDialog({
                   <button
                     type="button"
                     onClick={() => void runExplore(query.trim())}
-                    className="mt-3 inline-flex items-center gap-2 border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
+                    className="mt-3 inline-flex items-center gap-2 border px-3 py-1.5 text-[13px] font-semibold transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
                     style={{ borderColor: "var(--command-border)", color: "var(--command-text)" }}
                   >
                     Explore “{exploreIntent.subject}” outside SmartCRM
@@ -727,7 +727,7 @@ export function UniversalSearchDialog({
             ).map((group) => (
               <section key={`${group.entityType}-${group.label}`} className="px-2 py-1">
                 <h3
-                  className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em]"
+                  className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
                   style={{ color: "var(--command-muted)" }}
                 >
                   {isSuggested ? `Recent ${group.label}` : group.label}
@@ -754,7 +754,7 @@ export function UniversalSearchDialog({
         </div>
 
         <footer
-          className="flex items-center justify-between border-t px-4 py-2.5 text-[10px]"
+          className="flex items-center justify-between border-t px-4 py-2.5 text-[11px]"
           style={{
             borderColor: "var(--command-border)",
             background: "var(--command-subtle)",

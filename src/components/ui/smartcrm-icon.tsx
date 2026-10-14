@@ -118,9 +118,9 @@ const SEARCH_ENTITY_ICON: Record<SearchEntityType, SmartCRMIconName> = {
 const SEVERITY_ICON: Record<AttentionSeverity, { name: SmartCRMIconName; className: string; label: string }> = {
   urgent: { name: "urgent", className: "text-red-600", label: "Urgent" },
   needs_attention: { name: "needsAttention", className: "text-amber-600", label: "Needs attention" },
-  waiting: { name: "waiting", className: "text-carbon-blue/45", label: "Waiting" },
+  waiting: { name: "waiting", className: "text-carbon-blue/65", label: "Waiting" },
   healthy: { name: "healthy", className: "text-emerald-600", label: "Healthy" },
-  completed: { name: "completed", className: "text-carbon-blue/45", label: "Completed" },
+  completed: { name: "completed", className: "text-carbon-blue/65", label: "Completed" },
 };
 
 export function SmartCRMIcon({
@@ -271,7 +271,7 @@ export function WorkspaceHubSection({
 
   return (
     <section id={id} className="border-t border-carbon-blue/10 px-6 py-5">
-      <h2 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/40">
+      <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
         {sectionIcon ? <SmartCRMIcon name={sectionIcon} size="xs" /> : null}
         {title}
       </h2>
@@ -348,9 +348,9 @@ export function WorkspacePanel({
     <>
       {collapsible ? (
         expanded ? (
-          <ChevronDown size={12} strokeWidth={2} className="shrink-0 text-carbon-blue/45" aria-hidden />
+          <ChevronDown size={12} strokeWidth={2} className="shrink-0 text-carbon-blue/65" aria-hidden />
         ) : (
-          <ChevronRight size={12} strokeWidth={2} className="shrink-0 text-carbon-blue/45" aria-hidden />
+          <ChevronRight size={12} strokeWidth={2} className="shrink-0 text-carbon-blue/65" aria-hidden />
         )
       ) : null}
       {sectionIcon ? <SmartCRMIcon name={sectionIcon} size="sm" className="text-carbon-blue/55" /> : null}

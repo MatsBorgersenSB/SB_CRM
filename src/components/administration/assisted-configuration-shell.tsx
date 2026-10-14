@@ -21,7 +21,7 @@ function ReadinessBadge({ score }: { score: number }) {
         : "border-thermal-red/25 bg-thermal-red/[0.06] text-thermal-red";
 
   return (
-    <span className={`border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${tone}`}>
+    <span className={`border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${tone}`}>
       {score}% architecture
     </span>
   );
@@ -35,7 +35,7 @@ export function AssistedConfigurationShell({
   return (
     <>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] text-carbon-blue/55">
+        <div className="flex min-w-0 items-center gap-2 text-[12px] text-carbon-blue/55">
           <Link href="/administration" className="font-semibold hover:text-upcycle-orange">
             Administration
           </Link>
@@ -58,14 +58,14 @@ export function AssistedConfigurationShell({
               <div className="flex flex-wrap gap-2">
                 <Link
                   href="/administration/workspace-architect"
-                  className="inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white"
+                  className="inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wider text-white"
                 >
                   {WORKSPACE_ARCHITECT.title}
                 </Link>
                 {snapshot.primaryActionHref ? (
                   <Link
                     href={snapshot.primaryActionHref}
-                    className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+                    className="inline-flex border border-carbon-blue/15 px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
                   >
                     {snapshot.primaryAction}
                   </Link>
@@ -96,16 +96,16 @@ export function AssistedConfigurationShell({
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                    <p className="text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                       {domain.label}
                     </p>
-                    <span className="text-[11px] font-bold tabular-nums text-carbon-blue/60">
+                    <span className="text-[12px] font-bold tabular-nums text-carbon-blue/60">
                       {domain.score}%
                     </span>
                   </div>
-                  <p className="mt-2 text-[12px] leading-relaxed text-carbon-blue/70">{domain.summary}</p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-carbon-blue/70">{domain.summary}</p>
                   {domain.recommendationCount > 0 ? (
-                    <p className="mt-2 text-[10px] font-medium text-upcycle-orange">
+                    <p className="mt-2 text-[11px] font-medium text-upcycle-orange">
                       {domain.recommendationCount} recommendation
                       {domain.recommendationCount === 1 ? "" : "s"}
                     </p>
@@ -132,7 +132,7 @@ export function AssistedConfigurationShell({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-carbon-blue/45">
+              <p className="text-sm text-carbon-blue/65">
                 Workspace architecture is aligned. SmartAssist will recommend changes as your
                 business capabilities evolve.
               </p>

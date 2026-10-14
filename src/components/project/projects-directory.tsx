@@ -23,7 +23,7 @@ export function ProjectsDirectory({ projects }: { projects: Project[] }) {
     <div className="overflow-x-auto border border-carbon-blue/10 bg-white">
       <table className="min-w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-carbon-blue/10 bg-carbon-blue/[0.02] text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+          <tr className="border-b border-carbon-blue/10 bg-carbon-blue/[0.02] text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             <th className="px-4 py-3 font-semibold">Project</th>
             <th className="px-4 py-3 font-semibold">Type</th>
             <th className="px-4 py-3 font-semibold">Owner</th>

@@ -73,7 +73,7 @@ type ContactFormFieldsProps = {
 const FIELD_CLASS =
   "mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40";
 
-const LABEL_CLASS = "text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40";
+const LABEL_CLASS = "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60";
 
 export function BuyingRoleSelect({
   value,
@@ -226,10 +226,10 @@ export function ContactFormFields({
   return (
     <div className="space-y-4">
       <section className="border border-upcycle-orange/20 bg-white p-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/45">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/65">
           Paste to fill
         </p>
-        <p className="mt-0.5 text-[11px] text-carbon-blue/50">
+        <p className="mt-0.5 text-[12px] text-carbon-blue/50">
           Copy a person from a website or signature. SmartAssist fills name, title, email, and
           phone — nothing else.
         </p>
@@ -251,19 +251,19 @@ export function ContactFormFields({
             type="button"
             onClick={() => applyPastedContact(pasteText)}
             disabled={!pasteText.trim()}
-            className="border border-upcycle-orange/30 bg-upcycle-orange px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
+            className="border border-upcycle-orange/30 bg-upcycle-orange px-2.5 py-1 text-[12px] font-semibold text-white disabled:opacity-40"
           >
             Read paste
           </button>
           {pasteFilled.length > 0 ? (
-            <p className="text-[11px] text-carbon-blue/55">Filled: {pasteFilled.join(", ")}</p>
+            <p className="text-[12px] text-carbon-blue/55">Filled: {pasteFilled.join(", ")}</p>
           ) : null}
-          {pasteError ? <p className="text-[11px] text-thermal-red">{pasteError}</p> : null}
+          {pasteError ? <p className="text-[12px] text-thermal-red">{pasteError}</p> : null}
         </div>
       </section>
 
       <section className="border border-carbon-blue/10 bg-white p-3">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/45">
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/65">
           Identity & Organization
         </p>
         <div className="grid gap-2 md:grid-cols-2">
@@ -332,7 +332,7 @@ export function ContactFormFields({
       </section>
 
       <section className="border border-carbon-blue/10 bg-white p-3">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/45">
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/65">
           Contact Channels
         </p>
         <div className="grid gap-2 md:grid-cols-2">
@@ -345,7 +345,7 @@ export function ContactFormFields({
               className={`${FIELD_CLASS} font-mono`}
             />
             {isInternalEmail(form.Email) ? (
-              <p className="mt-1 text-[10px] text-thermal-red">
+              <p className="mt-1 text-[11px] text-thermal-red">
                 Standard Bio colleagues are users, not contacts. Add them in Users & Access.
               </p>
             ) : null}
@@ -381,7 +381,7 @@ export function ContactFormFields({
       </section>
 
       <section className="border border-carbon-blue/10 bg-white p-3">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/45">
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/65">
           Buying Center Dynamics
         </p>
         <div className="grid gap-2 md:grid-cols-3">
@@ -432,7 +432,7 @@ export function ContactFormFields({
       </section>
 
       <section className="border border-carbon-blue/10 bg-white p-3">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/45">
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/65">
           Location & Timezone
         </p>
         <label className="mb-3 block">
@@ -442,7 +442,7 @@ export function ContactFormFields({
               type="button"
               disabled={geoFilling}
               onClick={() => void handleAutoFillLocation()}
-              className="rounded-md border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md border border-carbon-blue/20 bg-white px-3 py-2 text-[12px] font-bold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-upcycle-orange/30 hover:text-upcycle-orange disabled:cursor-not-allowed disabled:opacity-50"
             >
               {geoFilling ? "Filling…" : "Auto-Fill Location"}
             </button>
@@ -455,7 +455,7 @@ export function ContactFormFields({
           />
         </label>
 
-        <label className="mb-2 flex items-center gap-2 text-[11px] text-carbon-blue/70">
+        <label className="mb-2 flex items-center gap-2 text-[12px] text-carbon-blue/70">
           <input
             type="checkbox"
             checked={!form.isTimezoneOverridden}
@@ -563,14 +563,14 @@ export function ContactFormFields({
         </div>
 
         {geoError ? (
-          <p className="mt-2 text-[12px] font-medium text-red-700" role="alert">
+          <p className="mt-2 text-[13px] font-medium text-red-700" role="alert">
             {geoError}
           </p>
         ) : null}
       </section>
 
       <section className="border border-carbon-blue/10 bg-white p-3">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-carbon-blue/45">
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-blue/65">
           Relationship & Cadence
         </p>
         <div className="grid gap-2 md:grid-cols-3">

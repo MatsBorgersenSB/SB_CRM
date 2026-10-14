@@ -80,7 +80,7 @@ export function ExplainabilityBlock({
     >
       {title ? (
         <header className={ATTIO_SURFACE_HEADER}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
             SmartAssist
           </p>
           <h3 className="mt-0.5 text-[13px] font-semibold text-slate-800 dark:text-slate-100">
@@ -103,12 +103,12 @@ export function ExplainabilityBlock({
             (part.key === "recommendedAction" || part.key === "expectedOutcome");
           return (
             <div key={part.key} className={`min-w-0 ${spanFull ? "sm:col-span-2" : ""}`}>
-              <dt className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400">
+              <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
                 {part.label}
               </dt>
-              <dd className="mt-0.5 text-[10px] text-slate-400">{part.hint}</dd>
+              <dd className="mt-0.5 text-[11px] text-slate-400">{part.hint}</dd>
               <dd
-                className={`mt-1 text-[12px] leading-relaxed ${
+                className={`mt-1 text-[13px] leading-relaxed ${
                   part.accent
                     ? "font-medium text-upcycle-orange"
                     : "text-slate-700 dark:text-slate-200"

@@ -230,7 +230,7 @@ export function CompaniesOperationsShell({
   return (
     <WorkspaceChrome>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] text-carbon-blue/55">
+        <div className="flex min-w-0 items-center gap-2 text-[12px] text-carbon-blue/55">
           <SmartCRMIcon name="company" size="xs" />
           <span className="font-semibold text-carbon-blue">Companies</span>
         </div>

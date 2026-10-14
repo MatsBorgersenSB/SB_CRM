@@ -12,7 +12,7 @@ function formatDate(value: string): string {
 
 export function ProjectDecisionsPanel({ decisions }: { decisions: ProjectDecision[] }) {
   if (decisions.length === 0) {
-    return <p className="text-sm text-carbon-blue/45">No decisions logged yet.</p>;
+    return <p className="text-sm text-carbon-blue/65">No decisions logged yet.</p>;
   }
 
   return (
@@ -23,7 +23,7 @@ export function ProjectDecisionsPanel({ decisions }: { decisions: ProjectDecisio
           className="border border-carbon-blue/10 bg-white px-4 py-3"
         >
           <p className="text-sm leading-relaxed text-carbon-blue/80">{decision.decision}</p>
-          <p className="mt-2 text-[12px] text-carbon-blue/45">
+          <p className="mt-2 text-[13px] text-carbon-blue/65">
             {formatDate(decision.date)} · {decision.owner}
           </p>
         </article>

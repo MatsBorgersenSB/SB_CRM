@@ -63,7 +63,7 @@ export function RelationshipHeader({
           <h2 className="mt-1 text-base font-semibold tracking-tight text-carbon-blue">{companyName}</h2>
         )}
         {relationshipRoleLabel ? (
-          <p className="mt-1 text-[11px] font-medium text-carbon-blue/55">{relationshipRoleLabel}</p>
+          <p className="mt-1 text-[12px] font-medium text-carbon-blue/55">{relationshipRoleLabel}</p>
         ) : null}
         {companyId ? (
           <div className="mt-1.5">
@@ -86,7 +86,7 @@ export function RelationshipHeader({
           />
         ) : null}
         {lastContactLabel ? (
-          <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+          <p className="mt-0.5 text-[12px] text-carbon-blue/65">
             Last contact · {lastContactLabel}
           </p>
         ) : null}

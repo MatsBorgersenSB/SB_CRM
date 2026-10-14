@@ -75,7 +75,7 @@ export function AttentionQueueTable({
   );
 
   if (visible.length === 0) {
-    return <p className="text-sm text-carbon-blue/45">{emptyMessage}</p>;
+    return <p className="text-sm text-carbon-blue/65">{emptyMessage}</p>;
   }
 
   return (

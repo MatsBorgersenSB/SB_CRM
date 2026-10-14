@@ -19,13 +19,13 @@ export function DashboardRecentCompanies({
       <header className="flex items-center justify-between border-b border-carbon-blue/8 px-5 py-3.5">
         <div>
           <h2 className="text-sm font-semibold text-carbon-blue">Recent Companies</h2>
-          <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+          <p className="mt-0.5 text-[12px] text-carbon-blue/65">
             Relationship health at a glance
           </p>
         </div>
         <Link
           href="/companies"
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-upcycle-orange"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-upcycle-orange"
         >
           Directory
           <ArrowRight className="size-3" />
@@ -44,7 +44,7 @@ export function DashboardRecentCompanies({
                 {summary.company.Title}
               </p>
               <span
-                className={`shrink-0 border px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${HEALTH_STATUS_STYLES[summary.healthStatus]}`}
+                className={`shrink-0 border px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${HEALTH_STATUS_STYLES[summary.healthStatus]}`}
               >
                 {summary.healthScore}
               </span>
@@ -60,27 +60,27 @@ export function DashboardRecentCompanies({
               compact
             />
 
-            <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[10px]">
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
               <div>
-                <dt className="text-carbon-blue/40">Last contact</dt>
+                <dt className="text-carbon-blue/60">Last contact</dt>
                 <dd className="font-medium text-carbon-blue/70">
                   {summary.lastContactLabel}
                 </dd>
               </div>
               <div>
-                <dt className="text-carbon-blue/40">Open actions</dt>
+                <dt className="text-carbon-blue/60">Open actions</dt>
                 <dd className="font-medium text-carbon-blue/70">
                   {summary.openActions}
                 </dd>
               </div>
               <div>
-                <dt className="text-carbon-blue/40">Active deals</dt>
+                <dt className="text-carbon-blue/60">Active deals</dt>
                 <dd className="font-medium text-carbon-blue/70">
                   {summary.activeDeals}
                 </dd>
               </div>
               <div>
-                <dt className="text-carbon-blue/40">Industry</dt>
+                <dt className="text-carbon-blue/60">Industry</dt>
                 <dd className="truncate font-medium text-carbon-blue/70">
                   {summary.company.Industry}
                 </dd>

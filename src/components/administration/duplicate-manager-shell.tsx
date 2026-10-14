@@ -185,7 +185,7 @@ export function DuplicateManagerShell() {
   return (
     <WorkspaceChrome>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex items-center gap-3 text-[11px] text-carbon-blue/55">
+        <div className="flex items-center gap-3 text-[12px] text-carbon-blue/55">
           <Link href="/administration" className="hover:text-carbon-blue">
             Administration
           </Link>
@@ -195,7 +195,7 @@ export function DuplicateManagerShell() {
         <button
           type="button"
           onClick={() => void load()}
-          className="border border-carbon-blue/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70 hover:bg-carbon-blue/[0.03]"
+          className="border border-carbon-blue/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70 hover:bg-carbon-blue/[0.03]"
         >
           Rescan
         </button>
@@ -204,7 +204,7 @@ export function DuplicateManagerShell() {
       <WorkspaceMain>
         <WorkspaceStack>
           <section className="border border-carbon-blue/10 bg-white px-5 py-4">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
               FS-020 · Data quality
             </p>
             <h1 className="mt-1 text-lg font-semibold text-carbon-blue">
@@ -215,7 +215,7 @@ export function DuplicateManagerShell() {
               match, and recommends which record to keep. You confirm every merge.
             </p>
             {scan ? (
-              <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-carbon-blue/60">
+              <div className="mt-4 flex flex-wrap gap-3 text-[12px] text-carbon-blue/60">
                 <span>
                   <strong className="text-carbon-blue">{scan.companies.clusterCount}</strong>{" "}
                   company clusters
@@ -231,7 +231,7 @@ export function DuplicateManagerShell() {
               </div>
             ) : null}
             {focusParam ? (
-              <p className="mt-2 text-[11px] text-carbon-blue/45">
+              <p className="mt-2 text-[12px] text-carbon-blue/65">
                 Focused on: <span className="font-medium text-carbon-blue">{focusParam}</span>
               </p>
             ) : null}
@@ -247,7 +247,7 @@ export function DuplicateManagerShell() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-carbon-blue/45">Scanning registries…</p>
+            <p className="text-sm text-carbon-blue/65">Scanning registries…</p>
           ) : null}
           {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
@@ -271,7 +271,7 @@ export function DuplicateManagerShell() {
                         >
                           <div className="flex items-center gap-2">
                             <span
-                              className={`border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${confidenceStyles(cluster.confidence)}`}
+                              className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${confidenceStyles(cluster.confidence)}`}
                             >
                               {cluster.confidence}
                             </span>
@@ -279,7 +279,7 @@ export function DuplicateManagerShell() {
                               {cluster.members.map((m) => m.name).join(" · ")}
                             </span>
                           </div>
-                          <p className="mt-1 text-[11px] text-carbon-blue/45">
+                          <p className="mt-1 text-[12px] text-carbon-blue/65">
                             {cluster.reasons.map((r) => r.label).join(" · ")}
                           </p>
                         </button>
@@ -298,7 +298,7 @@ export function DuplicateManagerShell() {
                       {selectedCluster.reasons.map((reason) => (
                         <span
                           key={`${reason.code}-${reason.value ?? ""}`}
-                          className={`border px-2 py-0.5 text-[10px] ${confidenceStyles(reason.confidence)}`}
+                          className={`border px-2 py-0.5 text-[11px] ${confidenceStyles(reason.confidence)}`}
                         >
                           {reason.label}
                           {reason.value ? ` · ${reason.value}` : ""}
@@ -324,7 +324,7 @@ export function DuplicateManagerShell() {
                                 <p className="text-sm font-semibold text-carbon-blue">
                                   {member.name}
                                 </p>
-                                <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+                                <p className="mt-0.5 text-[12px] text-carbon-blue/65">
                                   {member.code}
                                   {member.types.length > 0
                                     ? ` · ${member.types.join(", ")}`
@@ -333,7 +333,7 @@ export function DuplicateManagerShell() {
                                     ? ` · Org ${member.organizationNumber}`
                                     : ""}
                                 </p>
-                                <p className="mt-1 text-[11px] text-carbon-blue/50">
+                                <p className="mt-1 text-[12px] text-carbon-blue/50">
                                   {member.openOpportunityCount} open opp ·{" "}
                                   {member.contactCount} contacts
                                   {member.city ? ` · ${member.city}` : ""}
@@ -351,7 +351,7 @@ export function DuplicateManagerShell() {
                                       setSecondaryId(other?.id ?? null);
                                     }
                                   }}
-                                  className={`px-2 py-1 text-[9px] font-semibold uppercase tracking-wider ${
+                                  className={`px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${
                                     isPrimary
                                       ? "bg-upcycle-orange text-white"
                                       : "border border-carbon-blue/15 text-carbon-blue/60"
@@ -365,7 +365,7 @@ export function DuplicateManagerShell() {
                                     if (primaryId === member.id) return;
                                     setSecondaryId(member.id);
                                   }}
-                                  className={`px-2 py-1 text-[9px] font-semibold uppercase tracking-wider ${
+                                  className={`px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${
                                     isSecondary
                                       ? "border border-red-300 text-red-700"
                                       : "border border-carbon-blue/15 text-carbon-blue/60"
@@ -375,7 +375,7 @@ export function DuplicateManagerShell() {
                                 </button>
                                 <Link
                                   href={`/companies/${encodeURIComponent(member.code)}`}
-                                  className="text-center text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
+                                  className="text-center text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
                                 >
                                   Open
                                 </Link>
@@ -386,14 +386,14 @@ export function DuplicateManagerShell() {
                       })}
                     </ul>
 
-                    <p className="text-[11px] leading-relaxed text-carbon-blue/50">
+                    <p className="text-[12px] leading-relaxed text-carbon-blue/50">
                       Merge moves contacts, opportunities, notes, documents, and meetings
                       onto the primary company, unions types, then archives the secondary.
                       Nothing is hard-deleted.
                     </p>
 
                     {mergePreview ? (
-                      <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-[11px] text-carbon-blue/65">
+                      <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2 text-[12px] text-carbon-blue/65">
                         <p className="font-semibold text-carbon-blue">Merge preview</p>
                         <p className="mt-1">
                           Keep <strong>{mergePreview.primary.name}</strong> · archive{" "}
@@ -413,7 +413,7 @@ export function DuplicateManagerShell() {
                       type="button"
                       disabled={!primaryId || !secondaryId || merging || primaryId === secondaryId}
                       onClick={() => void confirmMerge()}
-                      className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"
+                      className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-40"
                     >
                       {merging ? "Merging…" : "Confirm merge"}
                     </button>
@@ -421,12 +421,12 @@ export function DuplicateManagerShell() {
                       type="button"
                       disabled={dismissing || !selectedCluster}
                       onClick={() => void dismissCluster()}
-                      className="inline-flex w-full items-center justify-center border border-carbon-blue/15 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:bg-carbon-blue/[0.02] disabled:opacity-40"
+                      className="inline-flex w-full items-center justify-center border border-carbon-blue/15 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60 hover:bg-carbon-blue/[0.02] disabled:opacity-40"
                     >
                       {dismissing ? "Dismissing…" : "Not a duplicate"}
                     </button>
                     {mergeMessage ? (
-                      <p className="text-[11px] text-carbon-blue/70">{mergeMessage}</p>
+                      <p className="text-[12px] text-carbon-blue/70">{mergeMessage}</p>
                     ) : null}
                   </div>
                 )}
@@ -464,7 +464,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider ${
+      className={`border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider ${
         active
           ? "border-upcycle-orange bg-upcycle-orange text-white"
           : "border-carbon-blue/15 text-carbon-blue/60 hover:bg-carbon-blue/[0.02]"
@@ -483,7 +483,7 @@ function ContactPairsList({ pairs }: { pairs: ContactDuplicatePair[] }) {
           <div>
             <div className="flex items-center gap-2">
               <span
-                className={`border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${confidenceStyles(pair.confidence)}`}
+                className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${confidenceStyles(pair.confidence)}`}
               >
                 {pair.confidence}
               </span>
@@ -491,13 +491,13 @@ function ContactPairsList({ pairs }: { pairs: ContactDuplicatePair[] }) {
                 {pair.primary.label} · {pair.secondary.label}
               </p>
             </div>
-            <p className="mt-1 text-[11px] text-carbon-blue/45">
+            <p className="mt-1 text-[12px] text-carbon-blue/65">
               {pair.reason} · {pair.primary.companyName} / {pair.secondary.companyName}
             </p>
           </div>
           <Link
             href={pair.mergeHref}
-            className="border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white"
+            className="border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white"
           >
             Review merge
           </Link>

@@ -52,7 +52,7 @@ export function ActivityContextPanel({
             {activity.Company.Title}
           </Link>
         ) : (
-          <p className="text-xs text-carbon-blue/45">—</p>
+          <p className="text-xs text-carbon-blue/65">—</p>
         )}
       </ContextBlock>
 
@@ -65,7 +65,7 @@ export function ActivityContextPanel({
             {activity.Contact.Title}
           </Link>
         ) : (
-          <p className="text-xs text-carbon-blue/45">—</p>
+          <p className="text-xs text-carbon-blue/65">—</p>
         )}
       </ContextBlock>
 
@@ -73,12 +73,12 @@ export function ActivityContextPanel({
         {deal ? (
           <>
             <p className="text-sm font-semibold text-carbon-blue">{deal.assetName}</p>
-            <p className="font-mono text-[10px] text-upcycle-orange">{deal.id}</p>
+            <p className="font-mono text-[11px] text-upcycle-orange">{deal.id}</p>
           </>
         ) : activity.Deal?.Title ? (
           <p className="font-mono text-xs text-upcycle-orange">{activity.Deal.Title}</p>
         ) : (
-          <p className="text-xs text-carbon-blue/45">—</p>
+          <p className="text-xs text-carbon-blue/65">—</p>
         )}
       </ContextBlock>
 
@@ -86,7 +86,7 @@ export function ActivityContextPanel({
         {relatedActivities.length > 0 ? (
           <ActivityTimeline activities={relatedActivities} compact />
         ) : (
-          <p className="text-xs text-carbon-blue/45">No related history.</p>
+          <p className="text-xs text-carbon-blue/65">No related history.</p>
         )}
       </ContextBlock>
 
@@ -105,7 +105,7 @@ export function ActivityContextPanel({
             ))}
           </ul>
         ) : (
-          <p className="text-xs text-carbon-blue/45">None scheduled.</p>
+          <p className="text-xs text-carbon-blue/65">None scheduled.</p>
         )}
       </ContextBlock>
     </aside>
@@ -121,7 +121,7 @@ function ContextBlock({
 }) {
   return (
     <section className="border border-carbon-blue/10 bg-white p-3">
-      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         {title}
       </h3>
       <div className="mt-2">{children}</div>

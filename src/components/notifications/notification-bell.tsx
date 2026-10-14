@@ -119,7 +119,7 @@ export function NotificationBell() {
       >
         <Bell className="size-4" strokeWidth={1.75} />
         {unreadCount > 0 ? (
-          <span className="absolute -right-1 -top-1 inline-flex min-w-4 items-center justify-center bg-upcycle-orange px-1 text-[9px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 inline-flex min-w-4 items-center justify-center bg-upcycle-orange px-1 text-[10px] font-bold text-white">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         ) : null}
@@ -141,7 +141,7 @@ export function NotificationBell() {
           >
             <header className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-2.5">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   FS-015
                 </p>
                 <h2 id={titleId} className="text-[13px] font-semibold text-carbon-blue">
@@ -151,7 +151,7 @@ export function NotificationBell() {
               <button
                 type="button"
                 onClick={close}
-                className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45 hover:text-carbon-blue"
+                className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65 hover:text-carbon-blue"
               >
                 Close
               </button>
@@ -159,11 +159,11 @@ export function NotificationBell() {
 
             <div className="flex-1 overflow-y-auto">
               {loading ? (
-                <p className="px-3 py-4 text-[12px] text-carbon-blue/50">Loading…</p>
+                <p className="px-3 py-4 text-[13px] text-carbon-blue/50">Loading…</p>
               ) : error ? (
-                <p className="px-3 py-4 text-[12px] text-thermal-red">{error}</p>
+                <p className="px-3 py-4 text-[13px] text-thermal-red">{error}</p>
               ) : items.length === 0 ? (
-                <p className="px-3 py-4 text-[12px] text-carbon-blue/50">
+                <p className="px-3 py-4 text-[13px] text-carbon-blue/50">
                   No alerts yet — when something needs attention, it lands here.
                 </p>
               ) : (
@@ -175,20 +175,20 @@ export function NotificationBell() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span
-                          className={`inline-flex border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider ${
+                          className={`inline-flex border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                             TYPE_STYLES[item.type] ?? TYPE_STYLES.INFO
                           }`}
                         >
                           {item.type.replace("_", " ")}
                         </span>
-                        <span className="text-[9px] text-carbon-blue/40">
+                        <span className="text-[10px] text-carbon-blue/60">
                           {formatWhen(item.createdAt)}
                         </span>
                       </div>
-                      <p className="mt-1 text-[12px] font-semibold text-carbon-blue">
+                      <p className="mt-1 text-[13px] font-semibold text-carbon-blue">
                         {item.title}
                       </p>
-                      <p className="mt-0.5 text-[11px] leading-relaxed text-carbon-blue/65">
+                      <p className="mt-0.5 text-[12px] leading-relaxed text-carbon-blue/65">
                         {item.message}
                       </p>
                       <div className="mt-2 flex items-center gap-2">
@@ -199,7 +199,7 @@ export function NotificationBell() {
                               void markRead(item.id);
                               close();
                             }}
-                            className="text-[10px] font-semibold text-upcycle-orange hover:underline"
+                            className="text-[11px] font-semibold text-upcycle-orange hover:underline"
                           >
                             Open
                           </Link>
@@ -208,7 +208,7 @@ export function NotificationBell() {
                           <button
                             type="button"
                             onClick={() => void markRead(item.id)}
-                            className="text-[10px] font-semibold text-carbon-blue/50 hover:text-carbon-blue"
+                            className="text-[11px] font-semibold text-carbon-blue/50 hover:text-carbon-blue"
                           >
                             Mark read
                           </button>

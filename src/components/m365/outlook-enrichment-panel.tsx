@@ -13,12 +13,12 @@ export function OutlookEnrichmentPanel({
 
   return (
     <section className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-3">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/40">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
         Additional information found
       </p>
       <dl className="mt-2 space-y-1.5">
         {suggestions.map((item) => (
-          <div key={item.id} className="text-[11px]">
+          <div key={item.id} className="text-[12px]">
             <dt className="font-semibold text-carbon-blue/55">{item.label}:</dt>
             <dd
               className={`mt-0.5 text-carbon-blue/75${item.id === "address" ? " whitespace-pre-line" : ""}`}
@@ -32,14 +32,14 @@ export function OutlookEnrichmentPanel({
         <button
           type="button"
           onClick={onAccept}
-          className="flex-1 border border-upcycle-orange bg-upcycle-orange px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-white"
+          className="flex-1 border border-upcycle-orange bg-upcycle-orange px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white"
         >
           Accept
         </button>
         <button
           type="button"
           onClick={onIgnore}
-          className="flex-1 border border-carbon-blue/15 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/55"
+          className="flex-1 border border-carbon-blue/15 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/55"
         >
           Ignore
         </button>

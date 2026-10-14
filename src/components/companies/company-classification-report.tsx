@@ -10,7 +10,7 @@ export function CompanyClassificationReport({
 }) {
   if (report.length === 0) {
     return (
-      <p className="text-[11px] text-carbon-blue/45">No company classifications recorded yet.</p>
+      <p className="text-[12px] text-carbon-blue/65">No company classifications recorded yet.</p>
     );
   }
 
@@ -21,7 +21,7 @@ export function CompanyClassificationReport({
           key={entry.type}
           className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2.5"
         >
-          <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
+          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/50">
             <CompanyTypeIcon icon={entry.icon} />
             {entry.label}
           </p>

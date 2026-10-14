@@ -127,13 +127,13 @@ export function GenerateAiDraftControl({
           >
             <header className="flex items-start justify-between gap-3 border-b border-carbon-blue/10 px-4 py-3">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   FS-012 · Email Copilot
                 </p>
                 <h2 id={titleId} className="mt-0.5 text-sm font-semibold text-carbon-blue">
                   Generate AI Draft
                 </h2>
-                <p className="mt-0.5 text-[11px] text-carbon-blue/55">
+                <p className="mt-0.5 text-[12px] text-carbon-blue/55">
                   For {draftContext.contactName}
                   {draftContext.companyName ? ` · ${draftContext.companyName}` : ""}
                 </p>
@@ -150,13 +150,13 @@ export function GenerateAiDraftControl({
 
             <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Tone
                 </span>
                 <select
                   value={tone}
                   onChange={(event) => setTone(event.target.value as EmailDraftTone)}
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
                 >
                   {TONES.map((value) => (
                     <option key={value} value={value}>
@@ -167,7 +167,7 @@ export function GenerateAiDraftControl({
               </label>
 
               <label className="block">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Known context
                 </span>
                 <textarea
@@ -175,7 +175,7 @@ export function GenerateAiDraftControl({
                   onChange={(event) => setContextText(event.target.value)}
                   rows={5}
                   placeholder="What do we already know? Prior conversation, open ask, deal status…"
-                  className="mt-1 w-full resize-y border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] leading-relaxed text-carbon-blue outline-none focus:border-upcycle-orange"
+                  className="mt-1 w-full resize-y border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] leading-relaxed text-carbon-blue outline-none focus:border-upcycle-orange"
                 />
               </label>
 
@@ -183,35 +183,35 @@ export function GenerateAiDraftControl({
                 type="button"
                 disabled={busy}
                 onClick={() => void generate()}
-                className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
+                className="w-full border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[12px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
               >
                 {busy ? "Generating…" : "Generate draft"}
               </button>
 
-              {error ? <p className="text-[11px] text-thermal-red">{error}</p> : null}
+              {error ? <p className="text-[12px] text-thermal-red">{error}</p> : null}
 
               {draft ? (
                 <div className="space-y-3 border-t border-carbon-blue/10 pt-4">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                       Draft
                     </p>
-                    <span className="text-[10px] font-semibold text-carbon-blue/60">
+                    <span className="text-[11px] font-semibold text-carbon-blue/60">
                       Confidence {draft.confidenceScore}%
                     </span>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                       Subject
                     </p>
-                    <p className="mt-0.5 text-[12px] font-semibold text-carbon-blue">
+                    <p className="mt-0.5 text-[13px] font-semibold text-carbon-blue">
                       {draft.subject}
                     </p>
                   </div>
-                  <pre className="whitespace-pre-wrap border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3 font-sans text-[12px] leading-relaxed text-carbon-blue/85">
+                  <pre className="whitespace-pre-wrap border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3 font-sans text-[13px] leading-relaxed text-carbon-blue/85">
                     {draft.body}
                   </pre>
-                  <p className="text-[10px] text-carbon-blue/45">{draft.rationale}</p>
+                  <p className="text-[11px] text-carbon-blue/65">{draft.rationale}</p>
                   {draftContext.contactEmail ? (
                     <DraftInOutlookButton
                       toEmail={draftContext.contactEmail}

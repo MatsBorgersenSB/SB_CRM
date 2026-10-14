@@ -49,7 +49,7 @@ export function UserSessionMenu() {
           setSigningIn(true);
           startAzureAdSignIn("/");
         }}
-        className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:opacity-60"
       >
         {signingIn ? "Redirecting…" : "Sign in with Microsoft 365"}
       </button>
@@ -89,18 +89,18 @@ export function UserSessionMenu() {
             referrerPolicy="no-referrer"
           />
         ) : (
-          <span className="inline-flex size-6 shrink-0 items-center justify-center bg-carbon-blue text-[9px] font-semibold text-white">
+          <span className="inline-flex size-6 shrink-0 items-center justify-center bg-carbon-blue text-[10px] font-semibold text-white">
             {initials || "SB"}
           </span>
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[11px] font-semibold text-carbon-blue">
+          <span className="block truncate text-[12px] font-semibold text-carbon-blue">
             {name}
           </span>
-          <span className="block truncate text-[9px] text-carbon-blue/45">{email}</span>
+          <span className="block truncate text-[10px] text-carbon-blue/65">{email}</span>
         </span>
         <EnterpriseRoleBadge accessRole={role} compact tone="light" />
-        <ChevronDown className="size-3.5 shrink-0 text-carbon-blue/40" strokeWidth={2} />
+        <ChevronDown className="size-3.5 shrink-0 text-carbon-blue/60" strokeWidth={2} />
       </button>
 
       {open ? (
@@ -110,19 +110,19 @@ export function UserSessionMenu() {
         >
           <div className="border-b border-carbon-blue/10 px-3 pb-2">
             <p className="truncate text-[13px] font-semibold text-carbon-blue">{name}</p>
-            <p className="mt-0.5 truncate text-[11px] text-carbon-blue/55">{email}</p>
+            <p className="mt-0.5 truncate text-[12px] text-carbon-blue/55">{email}</p>
           </div>
-          <dl className="space-y-1.5 px-3 py-2 text-[11px]">
+          <dl className="space-y-1.5 px-3 py-2 text-[12px]">
             <div className="flex justify-between gap-3">
-              <dt className="text-carbon-blue/40">Email</dt>
+              <dt className="text-carbon-blue/60">Email</dt>
               <dd className="truncate font-medium text-carbon-blue">{email}</dd>
             </div>
             <div className="flex justify-between gap-3">
-              <dt className="text-carbon-blue/40">Role</dt>
+              <dt className="text-carbon-blue/60">Role</dt>
               <dd className="font-medium text-carbon-blue">{USER_ROLE_LABELS[role]}</dd>
             </div>
             <div className="flex justify-between gap-3">
-              <dt className="text-carbon-blue/40">Azure Tenant</dt>
+              <dt className="text-carbon-blue/60">Azure Tenant</dt>
               <dd className="truncate font-medium text-carbon-blue" title={tenant}>
                 {tenant}
               </dd>
@@ -133,7 +133,7 @@ export function UserSessionMenu() {
               type="button"
               role="menuitem"
               onClick={() => void signOut({ callbackUrl: "/auth/signin" })}
-              className="inline-flex w-full items-center gap-2 px-2 py-2 text-left text-[12px] font-semibold text-thermal-red transition-colors hover:bg-thermal-red/5"
+              className="inline-flex w-full items-center gap-2 px-2 py-2 text-left text-[13px] font-semibold text-thermal-red transition-colors hover:bg-thermal-red/5"
             >
               <LogOut className="size-3.5" strokeWidth={2} />
               Log Out

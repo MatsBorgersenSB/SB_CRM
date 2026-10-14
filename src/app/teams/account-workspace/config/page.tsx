@@ -172,13 +172,13 @@ export default function TeamsAccountWorkspaceConfigPage() {
 
   return (
     <main className="min-h-screen bg-[#faf9f8] p-4 text-carbon-blue">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
         SmartCRM · Channel tab
       </p>
       <h1 className="mt-1 text-base font-semibold">Account Workspace</h1>
-      <p className="mt-1 text-[12px] text-carbon-blue/55">{status}</p>
+      <p className="mt-1 text-[13px] text-carbon-blue/55">{status}</p>
       {!teamsReady ? (
-        <p className="mt-2 text-[11px] text-carbon-blue/40">
+        <p className="mt-2 text-[12px] text-carbon-blue/60">
           Open this page from Teams → Add tab → SmartCRM to save the binding.
         </p>
       ) : null}
@@ -204,12 +204,12 @@ export default function TeamsAccountWorkspaceConfigPage() {
                   active ? "bg-upcycle-orange/[0.08]" : "hover:bg-carbon-blue/[0.02]"
                 }`}
               >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   {option.kind}
                 </span>
                 <span className="text-sm font-medium text-carbon-blue">{option.label}</span>
                 {option.subtitle ? (
-                  <span className="text-[11px] text-carbon-blue/45">{option.subtitle}</span>
+                  <span className="text-[12px] text-carbon-blue/65">{option.subtitle}</span>
                 ) : null}
               </button>
             </li>
@@ -218,7 +218,7 @@ export default function TeamsAccountWorkspaceConfigPage() {
       </ul>
 
       {selected ? (
-        <p className="mt-3 text-[11px] text-carbon-blue/60">
+        <p className="mt-3 text-[12px] text-carbon-blue/60">
           Selected: <strong>{selected.label}</strong> — click Save in Teams to bind.
         </p>
       ) : null}

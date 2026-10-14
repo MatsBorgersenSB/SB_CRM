@@ -16,7 +16,7 @@ export function Document360Shell({
     <div className="flex flex-col gap-4">
       <Link
         href="/knowledge"
-        className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
+        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-carbon-blue/65 hover:text-upcycle-orange"
       >
         <ArrowLeft className="size-3.5" />
         SmartDocs

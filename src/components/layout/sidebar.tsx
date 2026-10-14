@@ -139,7 +139,7 @@ export function Sidebar() {
         >
           <Search className="size-3.5 shrink-0" strokeWidth={2} />
           <span className="flex-1">Search…</span>
-          <kbd className="font-mono text-[9px] text-muted-foreground/70">
+          <kbd className="font-mono text-[10px] text-muted-foreground/70">
             {typeof navigator !== "undefined" && navigator.platform.toLowerCase().includes("mac")
               ? "⌘K"
               : "Ctrl+K"}

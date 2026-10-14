@@ -110,29 +110,29 @@ export function SyncedMailPreview({
   if (isSnippet) {
     if (!shortSnippet) return null;
     return (
-      <p className="text-[12px] leading-relaxed text-carbon-blue/55">{shortSnippet}</p>
+      <p className="text-[13px] leading-relaxed text-carbon-blue/55">{shortSnippet}</p>
     );
   }
 
   return (
     <div className={compact || isReader ? "mt-1.5" : "mt-2"}>
       {!expanded && shortSnippet ? (
-        <p className="text-[11px] leading-relaxed text-carbon-blue/55">{shortSnippet}</p>
+        <p className="text-[12px] leading-relaxed text-carbon-blue/55">{shortSnippet}</p>
       ) : null}
 
       {expanded ? (
         <div className="mt-1 max-h-64 overflow-y-auto border border-carbon-blue/10 bg-white px-2.5 py-2">
           {loading && !previewText ? (
-            <p className="text-[12px] text-carbon-blue/45">Loading preview…</p>
+            <p className="text-[13px] text-carbon-blue/65">Loading preview…</p>
           ) : (
-            <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-carbon-blue/80">
+            <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-carbon-blue/80">
               {(previewText || bodyPreview || "No preview available.").trim()}
             </p>
           )}
         </div>
       ) : null}
 
-      {error ? <p className="mt-1 text-[11px] text-red-700/80">{error}</p> : null}
+      {error ? <p className="mt-1 text-[12px] text-red-700/80">{error}</p> : null}
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         {isReader ? null : (
@@ -140,7 +140,7 @@ export function SyncedMailPreview({
             type="button"
             disabled={loading}
             onClick={() => void togglePreview()}
-            className="inline-flex items-center border border-carbon-blue/15 bg-white px-2.5 py-1 text-[11px] font-semibold text-carbon-blue/75 transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
+            className="inline-flex items-center border border-carbon-blue/15 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue/75 transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
           >
             {expanded ? "Hide preview" : "Preview in SmartCRM"}
           </button>
@@ -149,7 +149,7 @@ export function SyncedMailPreview({
           type="button"
           disabled={loading}
           onClick={() => void openInOutlook()}
-          className="inline-flex items-center border border-carbon-blue/15 bg-white px-2.5 py-1 text-[11px] font-semibold text-carbon-blue/75 transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
+          className="inline-flex items-center border border-carbon-blue/15 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue/75 transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange disabled:opacity-50"
         >
           {loading ? "Opening…" : "Open in Outlook"}
         </button>

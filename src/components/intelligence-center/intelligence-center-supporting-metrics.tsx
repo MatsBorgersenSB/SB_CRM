@@ -24,7 +24,7 @@ export function IntelligenceCenterSupportingMetrics({
     <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
       {metrics.map((metric) => (
         <div key={metric.label}>
-          <dt className="text-[9px] uppercase tracking-wider text-carbon-blue/35">{metric.label}</dt>
+          <dt className="text-[10px] uppercase tracking-wider text-carbon-blue/50">{metric.label}</dt>
           <dd className="mt-0.5 text-sm font-semibold tabular-nums text-carbon-blue/70">
             {metric.value}
           </dd>
@@ -37,7 +37,7 @@ export function IntelligenceCenterSupportingMetrics({
     return (
       <div>
         {grid}
-        <p className="mt-4 text-[10px] text-carbon-blue/40">
+        <p className="mt-4 text-[11px] text-carbon-blue/60">
           Detail in{" "}
           <Link href="/companies" className="hover:text-upcycle-orange">
             Companies
@@ -53,11 +53,11 @@ export function IntelligenceCenterSupportingMetrics({
 
   return (
     <section className="border border-carbon-blue/8 bg-carbon-blue/[0.015] px-6 py-5">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/35">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/50">
         Supporting metrics
       </p>
       <div className="mt-4">{grid}</div>
-      <p className="mt-4 text-[10px] text-carbon-blue/30">
+      <p className="mt-4 text-[11px] text-carbon-blue/30">
         Strategic accounts and full document intelligence in{" "}
         <Link href="/companies" className="text-carbon-blue/50 hover:text-upcycle-orange">
           Companies

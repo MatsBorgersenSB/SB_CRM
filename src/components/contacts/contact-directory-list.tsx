@@ -53,7 +53,7 @@ function ContactDirectoryRow({
               <SmartCRMIcon name="contact" size="sm" />
               {displayName}
             </p>
-            <p className="mt-0.5 text-[11px] text-carbon-blue/50">
+            <p className="mt-0.5 text-[12px] text-carbon-blue/50">
               {contact.JobTitle || contact.Role}
               <span className="text-carbon-blue/25"> · </span>
               <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
@@ -62,7 +62,7 @@ function ContactDirectoryRow({
                 </CompanyLink>
               </span>
             </p>
-            <p className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-carbon-blue/40">
+            <p className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-carbon-blue/60">
               <SmartCRMIcon name="meeting" size="xs" />
               {lastActivity
                 ? `Last ${formatRelativeTime(lastActivity.ActivityDate)}`
@@ -71,7 +71,7 @@ function ContactDirectoryRow({
           </div>
 
           <div
-            className="flex shrink-0 flex-col items-start gap-1 text-[11px] sm:items-end"
+            className="flex shrink-0 flex-col items-start gap-1 text-[12px] sm:items-end"
             onClick={(e) => e.stopPropagation()}
           >
             {contact.Email ? <EmailActionMenu email={contact.Email} /> : null}
@@ -89,7 +89,7 @@ export function ContactDirectoryList({ records, activities }: ContactDirectoryLi
 
   if (records.length === 0) {
     return (
-      <p className="border border-dashed border-carbon-blue/15 px-6 py-10 text-center text-sm text-carbon-blue/45">
+      <p className="border border-dashed border-carbon-blue/15 px-6 py-10 text-center text-sm text-carbon-blue/65">
         No contacts yet. Add your first relationship above.
       </p>
     );

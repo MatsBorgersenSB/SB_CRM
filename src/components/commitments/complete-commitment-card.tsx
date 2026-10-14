@@ -137,19 +137,19 @@ export function CompleteCommitmentCard({
           strokeWidth={2}
           aria-hidden
         />
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/45">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/65">
           Pending commitment
         </p>
       </div>
 
       <p
-        className={`mt-1 font-semibold leading-snug text-carbon-blue ${outlook ? "text-[12px]" : "text-[13px]"}`}
+        className={`mt-1 font-semibold leading-snug text-carbon-blue ${outlook ? "text-[13px]" : "text-[13px]"}`}
       >
         {commitment.title}
       </p>
 
       <p
-        className={`mt-0.5 text-[11px] ${overdue ? "font-semibold text-thermal-red" : "text-carbon-blue/50"}`}
+        className={`mt-0.5 text-[12px] ${overdue ? "font-semibold text-thermal-red" : "text-carbon-blue/50"}`}
       >
         {overdue ? `Overdue · ${dueLabel || "No due date"}` : dueLabel || "No due date"}
       </p>
@@ -162,7 +162,7 @@ export function CompleteCommitmentCard({
           onChange={(event) => setNote(event.target.value)}
           disabled={busy !== null}
           placeholder="Outcome / note (optional)"
-          className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue outline-none placeholder:text-carbon-blue/35 focus:border-upcycle-orange disabled:opacity-60"
+          className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[13px] text-carbon-blue outline-none placeholder:text-carbon-blue/50 focus:border-upcycle-orange disabled:opacity-60"
         />
       </label>
 
@@ -171,7 +171,7 @@ export function CompleteCommitmentCard({
           type="button"
           disabled={busy !== null}
           onClick={() => void handleComplete()}
-          className="inline-flex items-center gap-1 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-1 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Check className="size-3" strokeWidth={2.25} aria-hidden />
           {busy === "complete" ? "Saving…" : "Mark completed"}
@@ -181,7 +181,7 @@ export function CompleteCommitmentCard({
           type="button"
           disabled={busy !== null}
           onClick={openDatePicker}
-          className="inline-flex items-center gap-1 border border-carbon-blue/20 bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-carbon-blue/35 hover:text-carbon-blue disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-1 border border-carbon-blue/20 bg-white px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/70 transition-colors hover:border-carbon-blue/35 hover:text-carbon-blue disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Calendar className="size-3" strokeWidth={2} aria-hidden />
           {busy === "reschedule" ? "Saving…" : "Reschedule"}
@@ -197,7 +197,7 @@ export function CompleteCommitmentCard({
               const value = event.target.value;
               if (value) void handleReschedule(value);
             }}
-            className="border border-carbon-blue/15 bg-white px-1.5 py-1 text-[11px] text-carbon-blue outline-none focus:border-upcycle-orange disabled:opacity-60"
+            className="border border-carbon-blue/15 bg-white px-1.5 py-1 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange disabled:opacity-60"
             aria-label="New due date"
           />
         ) : null}
@@ -206,14 +206,14 @@ export function CompleteCommitmentCard({
           type="button"
           disabled={busy !== null}
           onClick={handleDismiss}
-          className="inline-flex items-center gap-1 px-1.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45 transition-colors hover:text-carbon-blue disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-1 px-1.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65 transition-colors hover:text-carbon-blue disabled:cursor-not-allowed disabled:opacity-60"
         >
           <X className="size-3" strokeWidth={2} aria-hidden />
           Dismiss
         </button>
       </div>
 
-      {error ? <p className="mt-1.5 text-[11px] text-thermal-red">{error}</p> : null}
+      {error ? <p className="mt-1.5 text-[12px] text-thermal-red">{error}</p> : null}
     </section>
   );
 }

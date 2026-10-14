@@ -161,7 +161,7 @@ function UnderstandingFieldRow({
       }`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-[12px] font-semibold text-carbon-blue">
+        <p className="text-[13px] font-semibold text-carbon-blue">
           {resolved.definition.label}
         </p>
         <SmartAssistCategoryBadge category={category} />
@@ -171,7 +171,7 @@ function UnderstandingFieldRow({
           }
         />
       </div>
-      <p className="mt-1 text-[12px] text-carbon-blue/55">{resolved.definition.prompt}</p>
+      <p className="mt-1 text-[13px] text-carbon-blue/55">{resolved.definition.prompt}</p>
 
       {editing && !readOnly ? (
         <div className="mt-3">
@@ -181,10 +181,10 @@ function UnderstandingFieldRow({
             onChange={(event) => setDraft(event.target.value)}
             rows={2}
             placeholder={resolved.definition.placeholder}
-            className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue placeholder:text-carbon-blue/35"
+            className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue placeholder:text-carbon-blue/50"
           />
           {resolved.source === "derived" && !draft.trim() && !capturedValue ? (
-            <p className="mt-1 text-[11px] text-carbon-blue/45">
+            <p className="mt-1 text-[12px] text-carbon-blue/65">
               Current record: {resolved.value}. Save a refined answer to confirm.
             </p>
           ) : null}
@@ -210,14 +210,14 @@ function UnderstandingFieldRow({
             </button>
           </div>
           {error ? (
-            <p className="mt-2 text-[11px] text-thermal-red">{error}</p>
+            <p className="mt-2 text-[12px] text-thermal-red">{error}</p>
           ) : null}
         </div>
       ) : (
         <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
           <p
               className={`text-[13px] leading-relaxed ${
-                displaySource === "empty" ? "text-carbon-blue/45" : "text-carbon-blue"
+                displaySource === "empty" ? "text-carbon-blue/65" : "text-carbon-blue"
               }`}
           >
             {displayValue}
@@ -229,7 +229,7 @@ function UnderstandingFieldRow({
                 setDraft(capturedValue || "");
                 setEditing(true);
               }}
-              className="shrink-0 text-[11px] font-semibold text-upcycle-orange hover:underline"
+              className="shrink-0 text-[12px] font-semibold text-upcycle-orange hover:underline"
             >
               {displaySource === "empty" ? "Answer now" : "Edit"}
             </button>

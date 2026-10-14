@@ -19,7 +19,7 @@ export function WorkspaceHeader({
   return (
     <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-4 border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-sm">
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-medium tracking-tight text-muted-foreground">
+        <p className="truncate text-[12px] font-medium tracking-tight text-muted-foreground">
           {scope}
         </p>
         <p className="truncate font-semibold tracking-tight text-foreground">{title}</p>

@@ -106,7 +106,7 @@ export function OutlookContactSearch({
 
   return (
     <div ref={rootRef} className="relative">
-      <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+      <label className="block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
         Find contact in SmartCRM
         <input
           type="search"
@@ -122,7 +122,7 @@ export function OutlookContactSearch({
             setQuery(event.target.value);
             setIsOpen(true);
           }}
-          className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[12px] font-medium text-carbon-blue"
+          className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
         />
       </label>
 
@@ -133,13 +133,13 @@ export function OutlookContactSearch({
           className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto border border-carbon-blue/15 bg-white shadow-md"
         >
           {trimmed.length < 2 ? (
-            <li className="px-3 py-2 text-[11px] text-carbon-blue/50">
+            <li className="px-3 py-2 text-[12px] text-carbon-blue/50">
               Type at least two letters to search.
             </li>
           ) : loading ? (
-            <li className="px-3 py-2 text-[11px] text-carbon-blue/50">Searching…</li>
+            <li className="px-3 py-2 text-[12px] text-carbon-blue/50">Searching…</li>
           ) : hits.length === 0 ? (
-            <li className="px-3 py-2 text-[11px] text-carbon-blue/50">
+            <li className="px-3 py-2 text-[12px] text-carbon-blue/50">
               No matching contact in SmartCRM.
             </li>
           ) : (
@@ -155,8 +155,8 @@ export function OutlookContactSearch({
                     setIsOpen(false);
                   }}
                 >
-                  <span className="text-[12px] font-medium text-carbon-blue">{hit.name}</span>
-                  <span className="text-[10px] text-carbon-blue/45">
+                  <span className="text-[13px] font-medium text-carbon-blue">{hit.name}</span>
+                  <span className="text-[11px] text-carbon-blue/65">
                     {[hit.companyName, hit.email].filter(Boolean).join(" · ")}
                   </span>
                 </button>
@@ -167,7 +167,7 @@ export function OutlookContactSearch({
             <li className="border-t border-carbon-blue/10">
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-[11px] font-semibold text-upcycle-orange hover:bg-upcycle-orange/10"
+                className="w-full px-3 py-2 text-left text-[12px] font-semibold text-upcycle-orange hover:bg-upcycle-orange/10"
                 onClick={() => {
                   onCreateNew(createDraft);
                   setIsOpen(false);
@@ -182,7 +182,7 @@ export function OutlookContactSearch({
             <li className="border-t border-carbon-blue/10">
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-[11px] font-semibold text-upcycle-orange hover:bg-upcycle-orange/10"
+                className="w-full px-3 py-2 text-left text-[12px] font-semibold text-upcycle-orange hover:bg-upcycle-orange/10"
                 onClick={() => {
                   onCreateNew({ query: "", email: "", displayName: "" });
                   setIsOpen(false);

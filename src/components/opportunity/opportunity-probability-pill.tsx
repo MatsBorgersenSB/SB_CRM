@@ -33,17 +33,17 @@ function ProbabilityExplanationPanel({
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
           What this is based on
         </p>
         <p className="mt-1 text-[13px] font-semibold tabular-nums text-slate-900 dark:text-slate-50">
           {formatProbability(explanation.probability)} win likelihood
         </p>
-        <p className="mt-1 text-[12px] leading-relaxed text-slate-600 dark:text-slate-300">
+        <p className="mt-1 text-[13px] leading-relaxed text-slate-600 dark:text-slate-300">
           {explanation.summary}
         </p>
         {explanation.recordedForecast != null ? (
-          <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 text-[12px] text-slate-500 dark:text-slate-400">
             Opportunity record also stores a forecast of{" "}
             <span className="font-medium tabular-nums text-slate-700 dark:text-slate-200">
               {formatProbability(explanation.recordedForecast)}
@@ -60,16 +60,16 @@ function ProbabilityExplanationPanel({
             className="border border-slate-200/80 bg-slate-50/60 px-2.5 py-2 dark:border-slate-800 dark:bg-slate-900/50"
           >
             <div className="flex items-start justify-between gap-2">
-              <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100">
+              <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">
                 {factor.label}
               </p>
               <span
-                className={`shrink-0 text-[11px] font-semibold tabular-nums ${factorTone(factor)}`}
+                className={`shrink-0 text-[12px] font-semibold tabular-nums ${factorTone(factor)}`}
               >
                 {formatWinProbabilityFactorImpact(factor)}
               </span>
             </div>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+            <p className="mt-0.5 text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
               {factor.detail}
             </p>
           </li>
@@ -77,10 +77,10 @@ function ProbabilityExplanationPanel({
       </ul>
 
       <details className="border border-slate-200/70 dark:border-slate-800">
-        <summary className="cursor-pointer px-2.5 py-2 text-[11px] font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+        <summary className="cursor-pointer px-2.5 py-2 text-[12px] font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
           How SmartCRM calculates this
         </summary>
-        <p className="border-t border-slate-200/70 px-2.5 py-2 text-[11px] leading-relaxed text-slate-500 dark:border-slate-800 dark:text-slate-400">
+        <p className="border-t border-slate-200/70 px-2.5 py-2 text-[12px] leading-relaxed text-slate-500 dark:border-slate-800 dark:text-slate-400">
           Win probability starts from the typical rate for the current stage (
           {explanation.stageLabel}: {explanation.stageBaseline}%), then adjusts for account
           relationship health, deal momentum, stakeholder coverage, and any active risk signals.
@@ -164,7 +164,7 @@ export function OpportunityProbabilityPill({
 
   return (
     <div ref={rootRef} className={`relative ${ATTIO_PILL} group/pill`}>
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
         Probability
       </dt>
       <dd className="min-w-0 font-medium text-slate-800 dark:text-slate-100">
@@ -183,7 +183,7 @@ export function OpportunityProbabilityPill({
           className="inline-flex items-center gap-1 tabular-nums text-upcycle-orange underline decoration-upcycle-orange/35 underline-offset-2 transition-colors hover:text-upcycle-orange/90 hover:decoration-upcycle-orange"
         >
           {formatProbability(explanation.probability)}
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 no-underline">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 no-underline">
             why?
           </span>
         </button>

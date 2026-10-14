@@ -21,7 +21,7 @@ export function StaticCell({
 
   return (
     <span
-      className={`${base} ${mono ? "font-mono text-[11px] tabular-nums text-carbon-blue/65" : "text-carbon-blue"} ${bold ? "font-semibold" : ""} ${focused ? "ring-1 ring-upcycle-orange/30 ring-inset" : ""} ${className}`}
+      className={`${base} ${mono ? "font-mono text-[12px] tabular-nums text-carbon-blue/65" : "text-carbon-blue"} ${bold ? "font-semibold" : ""} ${focused ? "ring-1 ring-upcycle-orange/30 ring-inset" : ""} ${className}`}
     >
       {value}
     </span>

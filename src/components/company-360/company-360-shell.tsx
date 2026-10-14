@@ -360,8 +360,8 @@ export function Company360Shell({
   return (
     <WorkspaceChrome>
         <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-          <div className="min-w-0 truncate text-[11px] text-carbon-blue/55">
-            <Link href="/companies" className="font-semibold text-carbon-blue/45 hover:text-upcycle-orange">
+          <div className="min-w-0 truncate text-[12px] text-carbon-blue/55">
+            <Link href="/companies" className="font-semibold text-carbon-blue/65 hover:text-upcycle-orange">
               Companies
             </Link>
             <span className="text-carbon-blue/25"> / </span>

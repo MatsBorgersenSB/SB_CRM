@@ -10,13 +10,13 @@ export function Document360ActivitiesTab({ snapshot }: { snapshot: Document360Sn
     <section className="dashboard-card">
       <header className="border-b border-carbon-blue/8 px-5 py-4">
         <h2 className="text-sm font-semibold text-carbon-blue">Activity references</h2>
-        <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+        <p className="mt-0.5 text-[12px] text-carbon-blue/65">
           {intelligence.insights.usageFrequencyLabel} usage · {activities.length} linked activit
           {activities.length === 1 ? "y" : "ies"}
         </p>
       </header>
       {activities.length === 0 ? (
-        <p className="px-5 py-8 text-sm text-carbon-blue/45">
+        <p className="px-5 py-8 text-sm text-carbon-blue/65">
           No activity references — this document has no tracked usage trail.
         </p>
       ) : (
@@ -30,11 +30,11 @@ export function Document360ActivitiesTab({ snapshot }: { snapshot: Document360Sn
                 <ActivityTypeIcon type={activity.ActivityType} size="sm" />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-carbon-blue">{activity.Subject}</p>
-                  <p className="mt-0.5 text-[10px] text-carbon-blue/45">
+                  <p className="mt-0.5 text-[11px] text-carbon-blue/65">
                     {activity.ActivityType} · {formatRelativeTime(activity.ActivityDate)}
                   </p>
                   {activity.Company?.Title ? (
-                    <p className="mt-0.5 text-[10px] text-carbon-blue/40">
+                    <p className="mt-0.5 text-[11px] text-carbon-blue/60">
                       {activity.Company.Title}
                     </p>
                   ) : null}

@@ -4,10 +4,10 @@ import type { SharePointPerson } from "@/types/company";
 import { findStandardBioUserOption } from "@/lib/standard-bio-users";
 
 const LABEL_CLASS =
-  "text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40";
+  "text-[11px] font-bold uppercase tracking-[0.14em] text-carbon-blue/60";
 
 const FIELD_CLASS =
-  "mt-1 w-full border border-carbon-blue/15 bg-white px-2.5 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange";
+  "mt-1 w-full border border-carbon-blue/15 bg-white px-2.5 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange";
 
 /**
  * Assign a task to a Standard Bio / SmartCRM user (ActivityOwner).
@@ -44,7 +44,7 @@ export function TaskAssigneeSelect({
           const next = findStandardBioUserOption(options, Number(event.target.value));
           if (next) onChange(next);
         }}
-        className={compact ? `${FIELD_CLASS} mt-0 py-1 text-[11px]` : FIELD_CLASS}
+        className={compact ? `${FIELD_CLASS} mt-0 py-1 text-[12px]` : FIELD_CLASS}
       >
         <option value="" disabled>
           {options.length === 0 ? "No assignable users" : "Select assignee…"}

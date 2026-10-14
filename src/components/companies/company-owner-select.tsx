@@ -4,10 +4,10 @@ import { buildCompanyOwnerOptions } from "@/lib/company-owner";
 import type { Company, SharePointPerson } from "@/types/company";
 
 const LABEL_CLASS =
-  "text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/40";
+  "text-[11px] font-bold uppercase tracking-[0.14em] text-carbon-blue/60";
 
 const FIELD_CLASS =
-  "mt-1 w-full border border-carbon-blue/15 bg-white px-2.5 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange";
+  "mt-1 w-full border border-carbon-blue/15 bg-white px-2.5 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange";
 
 export function CompanyOwnerSelect({
   value,

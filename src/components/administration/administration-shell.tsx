@@ -24,7 +24,7 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
   return (
     <WorkspaceChrome>
         <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-[11px] text-carbon-blue/55">
+          <div className="flex items-center gap-2 text-[12px] text-carbon-blue/55">
             <SmartCRMIcon name="edit" size="xs" />
             <span className="font-semibold text-carbon-blue">Administration</span>
           </div>
@@ -45,7 +45,7 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
                 </p>
                 <Link
                   href="/administration/workspace-architect"
-                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
                 >
                   Start workspace conversation
                 </Link>
@@ -64,7 +64,7 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
                 </p>
                 <Link
                   href="/administration/assisted-configuration"
-                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
                 >
                   Review workspace architecture
                 </Link>
@@ -82,7 +82,7 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
                 </p>
                 <Link
                   href="/administration/users-access"
-                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
                 >
                   Manage users & access
                 </Link>
@@ -90,7 +90,7 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
             ) : null}
 
             <WorkspacePanel title="Collaboration webhooks">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+              <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                 FS-015 · Slack & Teams
               </p>
               <WebhookChannelConfigCard />
@@ -107,7 +107,7 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
                 </p>
                 <Link
                   href="/administration/duplicates"
-                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
                 >
                   Open Duplicate Manager
                 </Link>
@@ -126,7 +126,7 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
                       className="flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-carbon-blue/[0.02]"
                     >
                       <span className="font-medium text-carbon-blue">{company.Title}</span>
-                      <span className="text-[11px] text-carbon-blue/40">{company.Status}</span>
+                      <span className="text-[12px] text-carbon-blue/60">{company.Status}</span>
                     </Link>
                   </li>
                 ))}

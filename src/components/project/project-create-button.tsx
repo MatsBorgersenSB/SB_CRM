@@ -65,12 +65,12 @@ export function ProjectCreateButton() {
       {open ? (
         <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
           <p className="text-[13px] font-medium text-carbon-blue">Start project discovery</p>
-          <p className="mt-1 text-[12px] text-carbon-blue/55">
+          <p className="mt-1 text-[13px] text-carbon-blue/55">
             SmartAssist will ask questions and identify gaps before generating objectives or
             recommendations.
           </p>
           <label className="mt-3 block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
               Project name
             </span>
             <input
@@ -81,7 +81,7 @@ export function ProjectCreateButton() {
             />
           </label>
           <label className="mt-3 block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
               Type
             </span>
             <select
@@ -96,7 +96,7 @@ export function ProjectCreateButton() {
               ))}
             </select>
           </label>
-          {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
+          {error ? <p className="mt-2 text-[13px] text-thermal-red">{error}</p> : null}
           <div className="mt-3 flex gap-2">
             <button
               type="button"
@@ -125,7 +125,7 @@ export function ProjectCreateButton() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/65 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
+          className="inline-flex items-center gap-1.5 border border-carbon-blue/12 px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/65 hover:border-upcycle-orange/30 hover:text-upcycle-orange"
         >
           <SmartCRMIcon name="add" size="xs" />
           New project

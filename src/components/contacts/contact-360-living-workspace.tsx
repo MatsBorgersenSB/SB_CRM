@@ -311,7 +311,7 @@ export function Contact360LivingWorkspace({
       )}
 
       {contact.IsArchived ? (
-        <p className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-3 py-2 text-[11px] text-carbon-blue/55">
+        <p className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-3 py-2 text-[12px] text-carbon-blue/55">
           Archived — history preserved, hidden from default lists.
         </p>
       ) : null}
@@ -418,7 +418,7 @@ export function Contact360LivingWorkspace({
           </WorkspacePanel>
         </>
       ) : (
-        <p id="opportunities" className="px-1 text-[12px] text-carbon-blue/50">
+        <p id="opportunities" className="px-1 text-[13px] text-carbon-blue/50">
           {displayName} is not on any opportunity or project yet.{" "}
           <button
             type="button"
@@ -440,7 +440,7 @@ export function Contact360LivingWorkspace({
         </WorkspacePanel>
       ) : null}
 
-      <p className="px-1 text-[12px] text-carbon-blue/50">
+      <p className="px-1 text-[13px] text-carbon-blue/50">
         {contactActivities.length === 0
           ? "No CRM activities yet. Outlook mail still counts as last touch."
           : `${contactActivities.length} logged ${contactActivities.length === 1 ? "activity" : "activities"}.`}{" "}

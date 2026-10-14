@@ -19,13 +19,13 @@ export function Company360CompactHeader({ snapshot }: { snapshot: Company360Snap
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-semibold text-carbon-blue">{header.companyName}</h1>
         <span
-          className={`inline-flex items-center gap-1.5 border px-2 py-0.5 text-[10px] font-semibold ${HEALTH_STATUS_STYLES[header.healthStatus]}`}
+          className={`inline-flex items-center gap-1.5 border px-2 py-0.5 text-[11px] font-semibold ${HEALTH_STATUS_STYLES[header.healthStatus]}`}
         >
           <span className={`size-1.5 rounded-full ${HEALTH_DOT[header.healthStatus]}`} aria-hidden />
           {header.healthScore}
         </span>
       </div>
-      <p className="mt-1 text-[11px] text-carbon-blue/50">
+      <p className="mt-1 text-[12px] text-carbon-blue/50">
         <span className={`font-medium ${TREND_STYLES[header.trend]}`}>{header.trend}</span>
         {" · "}
         {header.location !== "—" ? header.location : "No location"}

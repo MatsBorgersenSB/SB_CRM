@@ -60,7 +60,7 @@ export function EditableCell({
     <button
       type="button"
       onDoubleClick={onStartEdit}
-      className={`block w-full truncate text-left text-xs ${mono ? "font-mono text-[11px] text-carbon-blue/60" : "text-carbon-blue"} ${bold ? "font-medium" : ""} ${focused ? "ring-1 ring-upcycle-orange/40 ring-inset" : ""} ${className}`}
+      className={`block w-full truncate text-left text-xs ${mono ? "font-mono text-[12px] text-carbon-blue/60" : "text-carbon-blue"} ${bold ? "font-medium" : ""} ${focused ? "ring-1 ring-upcycle-orange/40 ring-inset" : ""} ${className}`}
     >
       {value}
     </button>

@@ -52,7 +52,7 @@ function M365ReadinessBadges({ targets }: { targets?: M365ActivityTargets }) {
       {active.map((item) => (
         <span
           key={item.key}
-          className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-1.5 py-0.5 text-[9px] font-medium text-carbon-blue/45"
+          className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-1.5 py-0.5 text-[10px] font-medium text-carbon-blue/65"
           title={`M365 ${item.label} ready`}
         >
           {item.label}
@@ -94,14 +94,14 @@ export function ActivityPlanningRow({
               {activity.Subject}
             </p>
             {activity.Summary && !compact ? (
-              <p className="mt-0.5 line-clamp-1 text-[11px] text-carbon-blue/55">
+              <p className="mt-0.5 line-clamp-1 text-[12px] text-carbon-blue/55">
                 {activity.Summary}
               </p>
             ) : null}
           </button>
           <div className="flex flex-wrap items-center gap-1.5">
             <span
-              className={`border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${statusBadgeClass(activity.ActionStatus)}`}
+              className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusBadgeClass(activity.ActionStatus)}`}
             >
               {activity.ActionStatus === "Open" && !isTask
                 ? "Planned"
@@ -109,7 +109,7 @@ export function ActivityPlanningRow({
             </span>
             {activity.Priority ? (
               <span
-                className={`text-[9px] font-semibold uppercase ${priorityBadgeClass(activity.Priority)}`}
+                className={`text-[10px] font-semibold uppercase ${priorityBadgeClass(activity.Priority)}`}
               >
                 {activity.Priority}
               </span>
@@ -117,7 +117,7 @@ export function ActivityPlanningRow({
           </div>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-carbon-blue/50">
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-carbon-blue/50">
           <span className="inline-flex items-center gap-1">
             <Calendar className="size-3" strokeWidth={2} />
             {isTask ? (
@@ -177,7 +177,7 @@ export function ActivityPlanningRow({
                     <button
                       type="button"
                       onClick={() => onStatusChange(activity, "In Progress")}
-                      className="text-[10px] font-semibold text-upcycle-orange hover:underline"
+                      className="text-[11px] font-semibold text-upcycle-orange hover:underline"
                     >
                       Start
                     </button>
@@ -185,7 +185,7 @@ export function ActivityPlanningRow({
                   <button
                     type="button"
                     onClick={() => onStatusChange(activity, "Completed")}
-                    className="text-[10px] font-semibold text-emerald-700 hover:underline"
+                    className="text-[11px] font-semibold text-emerald-700 hover:underline"
                   >
                     Complete
                   </button>
@@ -194,7 +194,7 @@ export function ActivityPlanningRow({
               {!compact ? (
                 <Link
                   href={detailHref}
-                  className="text-[10px] font-semibold text-carbon-blue/45 hover:text-upcycle-orange"
+                  className="text-[11px] font-semibold text-carbon-blue/65 hover:text-upcycle-orange"
                 >
                   Details →
                 </Link>
@@ -220,12 +220,12 @@ export function ActivityWorkspaceSection({
 }) {
   return (
     <section>
-      <h3 className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-carbon-blue/45">
+      <h3 className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-carbon-blue/65">
         {title}
         <span className="font-mono text-carbon-blue/30">({count})</span>
       </h3>
       {count === 0 && emptyMessage ? (
-        <p className="border border-dashed border-carbon-blue/12 bg-carbon-blue/[0.02] px-4 py-6 text-center text-[11px] text-carbon-blue/45">
+        <p className="border border-dashed border-carbon-blue/12 bg-carbon-blue/[0.02] px-4 py-6 text-center text-[12px] text-carbon-blue/65">
           {emptyMessage}
         </p>
       ) : (

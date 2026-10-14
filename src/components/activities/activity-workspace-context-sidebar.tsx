@@ -77,7 +77,7 @@ export function ActivityWorkspaceContextSidebar({ context }: { context: Activity
                 <MetaLine label="Relationship" value={contact.relationship} />
                 <Link
                   href={contact.href}
-                  className="inline-block pt-1 text-[11px] font-semibold text-upcycle-orange hover:underline"
+                  className="inline-block pt-1 text-[12px] font-semibold text-upcycle-orange hover:underline"
                 >
                   View contact
                 </Link>
@@ -96,7 +96,7 @@ export function ActivityWorkspaceContextSidebar({ context }: { context: Activity
             </div>
             <Link
               href={context.opportunity.href}
-              className="mt-2 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
+              className="mt-2 inline-block text-[12px] font-semibold text-upcycle-orange hover:underline"
             >
               Open opportunity
             </Link>
@@ -133,7 +133,7 @@ function SidebarBlock({
       {viewAllHref && viewAllLabel ? (
         <Link
           href={viewAllHref}
-          className="mt-3 inline-block text-[11px] font-semibold text-upcycle-orange hover:underline"
+          className="mt-3 inline-block text-[12px] font-semibold text-upcycle-orange hover:underline"
         >
           {viewAllLabel}
         </Link>
@@ -179,7 +179,7 @@ function SidebarItem({
 function MetaLine({ label, value }: { label: string; value: string }) {
   return (
     <p className={EDITORIAL_META}>
-      <span className="text-carbon-blue/40">{label}: </span>
+      <span className="text-carbon-blue/60">{label}: </span>
       <span className="text-carbon-blue/70">{value}</span>
     </p>
   );

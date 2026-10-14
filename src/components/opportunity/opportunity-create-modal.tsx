@@ -227,7 +227,7 @@ export function OpportunityCreateModal({
       >
         <div className="flex items-start justify-between border-b border-carbon-blue/8 px-4 py-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Create
             </p>
             <h2
@@ -236,7 +236,7 @@ export function OpportunityCreateModal({
             >
               New Opportunity
             </h2>
-            <p className="mt-0.5 text-[11px] text-carbon-blue/50">
+            <p className="mt-0.5 text-[12px] text-carbon-blue/50">
               What the customer wants — then decide what happens next.
             </p>
           </div>
@@ -244,7 +244,7 @@ export function OpportunityCreateModal({
             type="button"
             onClick={handleClose}
             disabled={saving}
-            className="rounded p-1 text-carbon-blue/40 transition-colors hover:bg-carbon-blue/5 hover:text-carbon-blue"
+            className="rounded p-1 text-carbon-blue/60 transition-colors hover:bg-carbon-blue/5 hover:text-carbon-blue"
             aria-label="Close"
           >
             <X className="size-4" />
@@ -271,21 +271,21 @@ export function OpportunityCreateModal({
           {isCreatingCompany ? (
             <div className="space-y-3 border border-carbon-blue/10 bg-carbon-blue/[0.02] p-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange">
                   New Company Details
                 </p>
                 <button
                   type="button"
                   onClick={resetCompanyCreate}
                   disabled={saving}
-                  className="text-[10px] font-semibold text-carbon-blue/45 hover:text-carbon-blue"
+                  className="text-[11px] font-semibold text-carbon-blue/65 hover:text-carbon-blue"
                 >
                   Cancel new company
                 </button>
               </div>
 
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                   Company Name
                 </span>
                 <input
@@ -297,12 +297,12 @@ export function OpportunityCreateModal({
                       name: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
                 />
               </label>
 
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                   Domain (optional)
                 </span>
                 <input
@@ -315,11 +315,11 @@ export function OpportunityCreateModal({
                       domain: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
                 />
               </label>
 
-              <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
+              <p className="pt-1 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange">
                 Primary Contact (optional)
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -333,7 +333,7 @@ export function OpportunityCreateModal({
                       contactName: event.target.value,
                     }))
                   }
-                  className="border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+                  className="border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
                 />
                 <input
                   type="email"
@@ -345,11 +345,11 @@ export function OpportunityCreateModal({
                       contactEmail: event.target.value,
                     }))
                   }
-                  className="border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+                  className="border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
                 />
               </div>
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                   Contact role
                 </span>
                 <ContactRoleSelect
@@ -361,14 +361,14 @@ export function OpportunityCreateModal({
                     }))
                   }
                   extraOptions={["Decision Maker"]}
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
                 />
               </label>
             </div>
           ) : null}
 
           <label className="block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
               Opportunity Name
             </span>
             <input
@@ -378,12 +378,12 @@ export function OpportunityCreateModal({
                 setForm((current) => ({ ...current, assetName: event.target.value }))
               }
               placeholder="e.g. Ottem pyrolysis unit"
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             />
           </label>
 
           <label className="block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
               Company Role
             </span>
             <select
@@ -394,7 +394,7 @@ export function OpportunityCreateModal({
                   companyRole: event.target.value as CompanyRole,
                 }))
               }
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+              className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             >
               {COMPANY_ROLES.map((roleOption) => (
                 <option key={roleOption} value={roleOption}>
@@ -405,7 +405,7 @@ export function OpportunityCreateModal({
           </label>
 
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
               Offerings in scope <span className="text-thermal-red">*</span>
             </span>
             <div className="mt-1">
@@ -436,7 +436,7 @@ export function OpportunityCreateModal({
               }
             />
             <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/45">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Expected close (optional)
               </span>
               <input
@@ -448,13 +448,13 @@ export function OpportunityCreateModal({
                     expectedCloseDate: event.target.value,
                   }))
                 }
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[12px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+                className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
               />
             </label>
           </div>
 
           {error ? (
-            <p className="text-[11px] text-thermal-red" role="alert">
+            <p className="text-[12px] text-thermal-red" role="alert">
               {error}
             </p>
           ) : null}
@@ -462,7 +462,7 @@ export function OpportunityCreateModal({
 
         <div className="flex flex-col gap-2 border-t border-carbon-blue/8 px-4 py-3 sm:flex-row sm:items-center sm:justify-end">
           {!isValid && !saving ? (
-            <p className="text-[11px] text-carbon-blue/55 sm:mr-auto">
+            <p className="text-[12px] text-carbon-blue/55 sm:mr-auto">
               {!hasCompanyTarget
                 ? "Select or create a company to continue."
                 : form.assetName.trim().length === 0
@@ -476,7 +476,7 @@ export function OpportunityCreateModal({
             type="button"
             onClick={handleClose}
             disabled={saving}
-            className="px-3 py-1.5 text-[11px] font-semibold text-carbon-blue/55 transition-colors hover:text-carbon-blue"
+            className="px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/55 transition-colors hover:text-carbon-blue"
           >
             Cancel
           </button>
@@ -484,7 +484,7 @@ export function OpportunityCreateModal({
             type="button"
             onClick={() => void handleCreate()}
             disabled={!isValid || saving}
-            className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <SmartCRMIcon name="add" size="xs" />
             {saving ? "Creating…" : "Create Opportunity"}

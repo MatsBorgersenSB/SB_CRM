@@ -28,7 +28,7 @@ const PATH_STATUS_STYLES = {
   completed: "border-emerald-200 bg-emerald-50/50 text-emerald-800",
   current: "border-carbon-blue/15 bg-carbon-blue/[0.03]",
   recommended: "border-upcycle-orange/30 bg-upcycle-orange/[0.06] text-carbon-blue font-semibold",
-  future: "border-carbon-blue/8 text-carbon-blue/40",
+  future: "border-carbon-blue/8 text-carbon-blue/60",
 } as const;
 
 const PRIMARY_QUESTION_ANSWERS: Record<
@@ -97,7 +97,7 @@ export function CommercialViabilityPanel({
             {assessment.contractReadiness.builtFrom.map((item) => (
               <div
                 key={item.dimensionId}
-                className="flex items-center justify-between border border-carbon-blue/8 px-2 py-1.5 text-[10px]"
+                className="flex items-center justify-between border border-carbon-blue/8 px-2 py-1.5 text-[11px]"
               >
                 <span className="text-carbon-blue/60">{item.label}</span>
                 <span className="font-semibold tabular-nums text-carbon-blue">{item.score}</span>
@@ -111,20 +111,20 @@ export function CommercialViabilityPanel({
           description={assessment.projectMaturity.currentStageLabel}
           tier="expert"
         >
-          <p className="mb-2 text-[11px] text-carbon-blue/55">{assessment.projectMaturity.summary}</p>
+          <p className="mb-2 text-[12px] text-carbon-blue/55">{assessment.projectMaturity.summary}</p>
           <div className="space-y-1">
             {assessment.projectMaturity.stages
               .filter((stage) => stage.percentage > 0)
               .map((stage) => (
                 <div key={stage.id} className="flex items-center gap-2">
-                  <span className="w-24 shrink-0 text-[10px] text-carbon-blue/50">{stage.label}</span>
+                  <span className="w-24 shrink-0 text-[11px] text-carbon-blue/50">{stage.label}</span>
                   <div className="h-1.5 flex-1 bg-carbon-blue/[0.06]">
                     <div
                       className="h-full bg-upcycle-orange/70"
                       style={{ width: `${stage.percentage}%` }}
                     />
                   </div>
-                  <span className="w-8 shrink-0 text-right text-[10px] font-semibold tabular-nums text-carbon-blue/60">
+                  <span className="w-8 shrink-0 text-right text-[11px] font-semibold tabular-nums text-carbon-blue/60">
                     {stage.percentage}%
                   </span>
                 </div>
@@ -137,18 +137,18 @@ export function CommercialViabilityPanel({
           description={revenuePath.whatToSellNext}
           tier="expert"
         >
-          <p className="text-[11px] text-carbon-blue/60">{coreQuestions.bestRevenuePath}</p>
-          <p className="mt-1 text-[11px] text-carbon-blue/55">
+          <p className="text-[12px] text-carbon-blue/60">{coreQuestions.bestRevenuePath}</p>
+          <p className="mt-1 text-[12px] text-carbon-blue/55">
             Fastest path: {coreQuestions.fastestPathToRevenue}
           </p>
           <div className="mt-3 space-y-1">
             {revenuePath.sequence.map((step) => (
               <div
                 key={step.id}
-                className={`flex items-center justify-between border px-2.5 py-1.5 text-[10px] ${PATH_STATUS_STYLES[step.status]}`}
+                className={`flex items-center justify-between border px-2.5 py-1.5 text-[11px] ${PATH_STATUS_STYLES[step.status]}`}
               >
                 <span>{step.label}</span>
-                <span className="tabular-nums text-[9px] opacity-70">
+                <span className="tabular-nums text-[10px] opacity-70">
                   {step.status === "completed"
                     ? "Done"
                     : step.status === "recommended"
@@ -171,11 +171,11 @@ export function CommercialViabilityPanel({
               {assessment.fatalFlawAlerts.map((alert) => (
                 <div
                   key={alert.id}
-                  className={`border px-3 py-2.5 text-[11px] ${SEVERITY_STYLES[alert.severity]}`}
+                  className={`border px-3 py-2.5 text-[12px] ${SEVERITY_STYLES[alert.severity]}`}
                 >
                   <p className="font-semibold">❌ {alert.label}</p>
                   <p className="mt-0.5 opacity-85">{alert.detail}</p>
-                  <p className="mt-1.5 text-[10px] font-medium">→ {alert.recommendedAction}</p>
+                  <p className="mt-1.5 text-[11px] font-medium">→ {alert.recommendedAction}</p>
                 </div>
               ))}
             </div>
@@ -188,7 +188,7 @@ export function CommercialViabilityPanel({
               {assessment.detectedBuyingDrivers.map((driver) => (
                 <span
                   key={driver}
-                  className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2 py-0.5 text-[10px] text-carbon-blue/70"
+                  className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2 py-0.5 text-[11px] text-carbon-blue/70"
                 >
                   {BUYING_DRIVER_LABELS[driver]}
                 </span>
@@ -206,7 +206,7 @@ export function CommercialViabilityPanel({
               {assessment.risks.map((risk, index) => (
                 <li
                   key={index}
-                  className="border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-[11px] text-amber-900"
+                  className="border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-[12px] text-amber-900"
                 >
                   <p className="font-semibold">{risk.label}</p>
                   <p className="mt-0.5 opacity-80">{risk.detail}</p>
@@ -225,22 +225,22 @@ export function CommercialViabilityPanel({
             {assessment.dimensions.map((dim) => (
               <div key={dim.id} className="border border-carbon-blue/10 px-3 py-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[10px] font-semibold text-carbon-blue">
+                  <p className="text-[11px] font-semibold text-carbon-blue">
                     {COMMERCIAL_VIABILITY_DIMENSION_LABELS[dim.id]}
                   </p>
-                  <span className="text-[10px] font-bold tabular-nums text-carbon-blue/55">
+                  <span className="text-[11px] font-bold tabular-nums text-carbon-blue/55">
                     {dim.score}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[9px] font-medium text-carbon-blue/40">{dim.scoreLabel}</p>
-                <p className="mt-1 text-[10px] leading-relaxed text-carbon-blue/50">{dim.summary}</p>
+                <p className="mt-0.5 text-[10px] font-medium text-carbon-blue/60">{dim.scoreLabel}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">{dim.summary}</p>
               </div>
             ))}
           </div>
         </CollapsibleSection>
 
         <CollapsibleSection title="Primary questions" tier="expert">
-          <dl className="space-y-2.5 text-[11px]">
+          <dl className="space-y-2.5 text-[12px]">
             {CVM_PRIMARY_QUESTIONS.map((question) => (
               <div key={question}>
                 <dt className="font-semibold text-carbon-blue/60">{question}</dt>
@@ -286,7 +286,7 @@ export function CommercialViabilityPanel({
         }
       />
 
-      <p className="text-[10px] font-medium text-carbon-blue/50">
+      <p className="text-[11px] font-medium text-carbon-blue/50">
         {assessment.businessModelLabel} · North star:{" "}
         {assessment.northStar.join(" → ")}
       </p>
@@ -294,25 +294,25 @@ export function CommercialViabilityPanel({
       <section
         className={`border px-4 py-3 ${RECOMMENDATION_STYLES[assessment.recommendation]}`}
       >
-        <p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Recommendation</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Recommendation</p>
         <p className="mt-1 text-sm font-semibold">
           {VIABILITY_RECOMMENDATION_LABELS[assessment.recommendation]}
         </p>
       </section>
 
       <section className="border border-carbon-blue/10 px-4 py-3">
-        <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
           Contract readiness — {assessment.contractReadiness.question}
         </p>
         <p className="mt-1 text-lg font-bold tabular-nums text-carbon-blue">
           {assessment.contractReadiness.percent}%
         </p>
-        <p className="mt-1 text-[11px] text-carbon-blue/55">{assessment.contractReadiness.summary}</p>
+        <p className="mt-1 text-[12px] text-carbon-blue/55">{assessment.contractReadiness.summary}</p>
         <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
           {assessment.contractReadiness.builtFrom.map((item) => (
             <div
               key={item.dimensionId}
-              className="flex items-center justify-between border border-carbon-blue/8 px-2 py-1.5 text-[10px]"
+              className="flex items-center justify-between border border-carbon-blue/8 px-2 py-1.5 text-[11px]"
             >
               <span className="text-carbon-blue/60">{item.label}</span>
               <span className="font-semibold tabular-nums text-carbon-blue">{item.score}</span>
@@ -322,26 +322,26 @@ export function CommercialViabilityPanel({
       </section>
 
       <section className="border border-carbon-blue/10 px-4 py-3">
-        <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
           Project maturity — {assessment.projectMaturity.question}
         </p>
         <p className="mt-1 text-sm font-semibold text-carbon-blue">
           Current: {assessment.projectMaturity.currentStageLabel}
         </p>
-        <p className="mt-1 text-[11px] text-carbon-blue/55">{assessment.projectMaturity.summary}</p>
+        <p className="mt-1 text-[12px] text-carbon-blue/55">{assessment.projectMaturity.summary}</p>
         <div className="mt-3 space-y-1">
           {assessment.projectMaturity.stages
             .filter((stage) => stage.percentage > 0)
             .map((stage) => (
               <div key={stage.id} className="flex items-center gap-2">
-                <span className="w-24 shrink-0 text-[10px] text-carbon-blue/50">{stage.label}</span>
+                <span className="w-24 shrink-0 text-[11px] text-carbon-blue/50">{stage.label}</span>
                 <div className="h-1.5 flex-1 bg-carbon-blue/[0.06]">
                   <div
                     className="h-full bg-upcycle-orange/70"
                     style={{ width: `${stage.percentage}%` }}
                   />
                 </div>
-                <span className="w-8 shrink-0 text-right text-[10px] font-semibold tabular-nums text-carbon-blue/60">
+                <span className="w-8 shrink-0 text-right text-[11px] font-semibold tabular-nums text-carbon-blue/60">
                   {stage.percentage}%
                 </span>
               </div>
@@ -350,26 +350,26 @@ export function CommercialViabilityPanel({
       </section>
 
       <section className="border border-upcycle-orange/20 bg-upcycle-orange/[0.03] px-4 py-3">
-        <p className="text-[9px] font-bold uppercase tracking-wider text-upcycle-orange">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">
           Revenue path — what to sell next
         </p>
         <p className="mt-1 text-sm font-semibold text-carbon-blue">
           {revenuePath.whatToSellNext}
         </p>
-        <p className="mt-1 text-[11px] text-carbon-blue/60">{coreQuestions.bestRevenuePath}</p>
-        <p className="mt-1 text-[11px] text-carbon-blue/55">
+        <p className="mt-1 text-[12px] text-carbon-blue/60">{coreQuestions.bestRevenuePath}</p>
+        <p className="mt-1 text-[12px] text-carbon-blue/55">
           Fastest path: {coreQuestions.fastestPathToRevenue}
         </p>
-        <p className="mt-2 text-[10px] text-carbon-blue/45">{revenuePath.ladderToEquipment}</p>
+        <p className="mt-2 text-[11px] text-carbon-blue/65">{revenuePath.ladderToEquipment}</p>
 
         <div className="mt-3 space-y-1">
           {revenuePath.sequence.map((step) => (
             <div
               key={step.id}
-              className={`flex items-center justify-between border px-2.5 py-1.5 text-[10px] ${PATH_STATUS_STYLES[step.status]}`}
+              className={`flex items-center justify-between border px-2.5 py-1.5 text-[11px] ${PATH_STATUS_STYLES[step.status]}`}
             >
               <span>{step.label}</span>
-              <span className="tabular-nums text-[9px] opacity-70">
+              <span className="tabular-nums text-[10px] opacity-70">
                 {step.status === "completed"
                   ? "Done"
                   : step.status === "recommended"
@@ -385,14 +385,14 @@ export function CommercialViabilityPanel({
 
       {assessment.detectedBuyingDrivers.length > 0 ? (
         <section className="border border-carbon-blue/10 px-4 py-3">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-carbon-blue/40">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
             Buying drivers
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {assessment.detectedBuyingDrivers.map((driver) => (
               <span
                 key={driver}
-                className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2 py-0.5 text-[10px] text-carbon-blue/70"
+                className="border border-carbon-blue/10 bg-carbon-blue/[0.03] px-2 py-0.5 text-[11px] text-carbon-blue/70"
               >
                 {BUYING_DRIVER_LABELS[driver]}
               </span>
@@ -403,22 +403,22 @@ export function CommercialViabilityPanel({
 
       {assessment.fatalFlawAlerts.length > 0 ? (
         <section className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-red-700">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-red-700">
             Fatal flaw alerts
           </p>
           {assessment.fatalFlawAlerts.map((alert) => (
             <div
               key={alert.id}
-              className={`border px-3 py-2.5 text-[11px] ${SEVERITY_STYLES[alert.severity]}`}
+              className={`border px-3 py-2.5 text-[12px] ${SEVERITY_STYLES[alert.severity]}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold">❌ {alert.label}</p>
-                <span className="text-[9px] font-bold uppercase tracking-wide opacity-70">
+                <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">
                   {alert.severity}
                 </span>
               </div>
               <p className="mt-0.5 opacity-85">{alert.detail}</p>
-              <p className="mt-1.5 text-[10px] font-medium">→ {alert.recommendedAction}</p>
+              <p className="mt-1.5 text-[11px] font-medium">→ {alert.recommendedAction}</p>
             </div>
           ))}
         </section>
@@ -433,7 +433,7 @@ export function CommercialViabilityPanel({
             {assessment.risks.map((risk, index) => (
               <li
                 key={index}
-                className="border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-[11px] text-amber-900"
+                className="border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-[12px] text-amber-900"
               >
                 <p className="font-semibold">{risk.label}</p>
                 <p className="mt-0.5 opacity-80">{risk.detail}</p>
@@ -456,8 +456,8 @@ export function CommercialViabilityPanel({
                 href={action.href}
                 className="block border border-carbon-blue/10 px-3 py-2.5 transition-colors hover:border-upcycle-orange/25 hover:bg-upcycle-orange/[0.03]"
               >
-                <p className="text-[11px] font-semibold text-carbon-blue">{action.action}</p>
-                <p className="mt-0.5 text-[10px] text-carbon-blue/50">{action.reason}</p>
+                <p className="text-[12px] font-semibold text-carbon-blue">{action.action}</p>
+                <p className="mt-0.5 text-[11px] text-carbon-blue/50">{action.reason}</p>
               </Link>
             </li>
           ))}
@@ -473,18 +473,18 @@ export function CommercialViabilityPanel({
           {assessment.dimensions.map((dim) => (
             <div key={dim.id} className="border border-carbon-blue/10 px-3 py-2.5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold text-carbon-blue">
+                <p className="text-[11px] font-semibold text-carbon-blue">
                   {COMMERCIAL_VIABILITY_DIMENSION_LABELS[dim.id]}
                 </p>
-                <span className="text-[10px] font-bold tabular-nums text-carbon-blue/55">
+                <span className="text-[11px] font-bold tabular-nums text-carbon-blue/55">
                   {dim.score}
                 </span>
               </div>
-              <p className="mt-0.5 text-[9px] font-medium text-carbon-blue/40">{dim.scoreLabel}</p>
-              <p className="mt-1 text-[9px] text-carbon-blue/45">{dim.purpose}</p>
-              <p className="mt-1 text-[10px] leading-relaxed text-carbon-blue/50">{dim.summary}</p>
+              <p className="mt-0.5 text-[10px] font-medium text-carbon-blue/60">{dim.scoreLabel}</p>
+              <p className="mt-1 text-[10px] text-carbon-blue/65">{dim.purpose}</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/50">{dim.summary}</p>
               {dim.questions.length > 0 ? (
-                <ul className="mt-1.5 space-y-0.5 text-[9px] text-carbon-blue/40">
+                <ul className="mt-1.5 space-y-0.5 text-[10px] text-carbon-blue/60">
                   {dim.questions.map((question) => (
                     <li key={question}>• {question}</li>
                   ))}
@@ -496,7 +496,7 @@ export function CommercialViabilityPanel({
       </CollapsibleSection>
 
       <CollapsibleSection title="Primary questions" tier="expert" defaultOpen>
-        <dl className="space-y-2.5 text-[11px]">
+        <dl className="space-y-2.5 text-[12px]">
           {CVM_PRIMARY_QUESTIONS.map((question) => (
             <div key={question}>
               <dt className="font-semibold text-carbon-blue/60">{question}</dt>

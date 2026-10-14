@@ -55,7 +55,7 @@ export function Company360IntelligenceTab({
             {riskSignals.slice(1).map((signal) => (
               <li
                 key={signal.id}
-                className={`border px-3 py-2.5 text-[11px] ${SEVERITY_STYLES[signal.severity]}`}
+                className={`border px-3 py-2.5 text-[12px] ${SEVERITY_STYLES[signal.severity]}`}
               >
                 <p className="font-semibold">{signal.label}</p>
                 <p className="mt-0.5 opacity-80">{signal.detail}</p>

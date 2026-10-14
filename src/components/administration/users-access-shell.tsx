@@ -85,7 +85,7 @@ export function UsersAccessShell({
   return (
     <>
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] text-carbon-blue/55">
+        <div className="flex min-w-0 items-center gap-2 text-[12px] text-carbon-blue/55">
           <Link href="/administration" className="font-semibold hover:text-upcycle-orange">
             Administration
           </Link>
@@ -112,12 +112,12 @@ export function UsersAccessShell({
               audit.primaryActionHref ? (
                 <Link
                   href={audit.primaryActionHref}
-                  className="inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white"
+                  className="inline-flex border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wider text-white"
                 >
                   {audit.primaryAction}
                 </Link>
               ) : (
-                <p className="text-[12px] font-medium text-upcycle-orange">{audit.primaryAction}</p>
+                <p className="text-[13px] font-medium text-upcycle-orange">{audit.primaryAction}</p>
               )
             }
           />
@@ -132,7 +132,7 @@ export function UsersAccessShell({
                 <button
                   type="button"
                   onClick={() => setWizardOpen(true)}
-                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                  className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
                 >
                   + Add User
                 </button>
@@ -167,10 +167,10 @@ export function UsersAccessShell({
                   key={domain}
                   className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4"
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                  <p className="text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                     {domain}
                   </p>
-                  <p className="mt-2 text-[12px] leading-relaxed text-carbon-blue/70">
+                  <p className="mt-2 text-[13px] leading-relaxed text-carbon-blue/70">
                     Managed from this workspace — SmartAssist recommends; administrators decide.
                   </p>
                 </div>
@@ -182,20 +182,20 @@ export function UsersAccessShell({
             <p className="mb-3 text-sm text-carbon-blue/55">{ASSISTED_EVERYTHING.mantra}</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/40">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/60">
                   Lifecycle actions
                 </p>
-                <ul className="mt-2 space-y-1 text-[12px] text-carbon-blue/70">
+                <ul className="mt-2 space-y-1 text-[13px] text-carbon-blue/70">
                   {USER_LIFECYCLE_MANAGEMENT.lifecycleActions.map((action) => (
                     <li key={action}>{action}</li>
                   ))}
                 </ul>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/40">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/60">
                   SmartAssist answers
                 </p>
-                <ul className="mt-2 space-y-1 text-[12px] text-carbon-blue/70">
+                <ul className="mt-2 space-y-1 text-[13px] text-carbon-blue/70">
                   {USER_LIFECYCLE_MANAGEMENT.successCriteria.map((question) => (
                     <li key={question}>{question}</li>
                   ))}

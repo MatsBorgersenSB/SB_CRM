@@ -13,7 +13,7 @@ export function Company360MaterialsTab({
       <section className="dashboard-card flex min-h-[280px] flex-col items-center justify-center px-6 py-12 text-center">
         <Layers className="size-8 text-carbon-blue/20" strokeWidth={1.5} />
         <p className="mt-3 text-sm font-medium text-carbon-blue/70">No material tracks</p>
-        <p className="mt-1 max-w-sm text-xs text-carbon-blue/45">
+        <p className="mt-1 max-w-sm text-xs text-carbon-blue/65">
           Feedstock and raw material context appears when deals are linked.
         </p>
       </section>
@@ -25,9 +25,9 @@ export function Company360MaterialsTab({
       {materials.map((track) => (
         <article key={track.dealId} className="dashboard-card overflow-hidden">
           <header className="border-b border-carbon-blue/8 px-5 py-4">
-            <p className="font-mono text-[10px] text-carbon-blue/40">{track.dealId}</p>
+            <p className="font-mono text-[11px] text-carbon-blue/60">{track.dealId}</p>
             <h3 className="mt-1 text-base font-semibold text-carbon-blue">{track.feedstock}</h3>
-            <p className="mt-0.5 text-[11px] text-carbon-blue/45">
+            <p className="mt-0.5 text-[12px] text-carbon-blue/65">
               {track.dealName} · {track.companyRole}
             </p>
           </header>
@@ -35,7 +35,7 @@ export function Company360MaterialsTab({
           <div className="space-y-4 px-5 py-4">
             <dl className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                   Design capacity
                 </dt>
                 <dd className="mt-0.5 font-semibold tabular-nums text-carbon-blue">
@@ -44,7 +44,7 @@ export function Company360MaterialsTab({
               </div>
               {track.utilizationLabel ? (
                 <div>
-                  <dt className="text-[9px] font-semibold uppercase tracking-wider text-carbon-blue/40">
+                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
                     Utilization
                   </dt>
                   <dd className="mt-0.5 font-semibold text-upcycle-orange">
@@ -55,7 +55,7 @@ export function Company360MaterialsTab({
             </dl>
 
             {track.telemetryLabel ? (
-              <p className="border border-carbon-blue/8 bg-carbon-blue/[0.02] px-3 py-2 text-[11px] text-carbon-blue/60">
+              <p className="border border-carbon-blue/8 bg-carbon-blue/[0.02] px-3 py-2 text-[12px] text-carbon-blue/60">
                 Telemetry: {track.telemetryLabel}
               </p>
             ) : null}

@@ -99,7 +99,7 @@ export function OpportunityKnowledgeView({
                             <button
                               type="button"
                               onClick={() => onAnswerNow?.(gap.fieldId!)}
-                              className="inline-flex rounded-md border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+                              className="inline-flex rounded-md border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
                             >
                               Answer Now
                             </button>
@@ -137,7 +137,7 @@ export function OpportunityKnowledgeView({
                       <button
                         type="button"
                         onClick={() => onAnswerNow(row.fieldId!)}
-                        className="text-[11px] font-semibold text-carbon-blue/55 hover:text-upcycle-orange"
+                        className="text-[12px] font-semibold text-carbon-blue/55 hover:text-upcycle-orange"
                       >
                         Edit answer
                       </button>

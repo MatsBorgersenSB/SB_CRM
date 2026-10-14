@@ -20,7 +20,7 @@ const ATTENTION_STYLES = {
   HIGH: "border-thermal-red/30 bg-thermal-red/[0.06] text-thermal-red",
   MEDIUM: "border-upcycle-orange/30 bg-upcycle-orange/[0.06] text-upcycle-orange",
   LOW: "border-carbon-blue/15 bg-carbon-blue/[0.04] text-carbon-blue/65",
-  HOLD: "border-carbon-blue/12 bg-carbon-blue/[0.02] text-carbon-blue/45",
+  HOLD: "border-carbon-blue/12 bg-carbon-blue/[0.02] text-carbon-blue/65",
 } as const;
 
 export function OpportunitiesOperationsTable({
@@ -32,7 +32,7 @@ export function OpportunitiesOperationsTable({
 }) {
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-carbon-blue/45">
+      <p className="text-sm text-carbon-blue/65">
         No opportunities match this filter. Try another view or broaden your search.
       </p>
     );
@@ -77,7 +77,7 @@ export function OpportunitiesOperationsTable({
             >
               <WorkspaceTableBodyCell>
                 {isPrimaryFocus ? (
-                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-upcycle-orange/80">
+                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-upcycle-orange/80">
                     Primary focus
                   </p>
                 ) : null}
@@ -87,17 +87,17 @@ export function OpportunitiesOperationsTable({
                 >
                   {row.dealName}
                 </Link>
-                <p className="mt-0.5 truncate text-[11px] text-carbon-blue/45">
+                <p className="mt-0.5 truncate text-[12px] text-carbon-blue/65">
                   {[row.companyName, row.dealId].filter(Boolean).join(" · ")}
                 </p>
               </WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell>
                 <span
-                  className={`inline-flex border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ATTENTION_STYLES[row.recommendedAttention]}`}
+                  className={`inline-flex border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${ATTENTION_STYLES[row.recommendedAttention]}`}
                 >
                   {row.recommendedAttention}
                 </span>
-                <p className="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-carbon-blue/55">
+                <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-carbon-blue/55">
                   {row.attentionReason}
                 </p>
               </WorkspaceTableBodyCell>
@@ -106,7 +106,7 @@ export function OpportunitiesOperationsTable({
                   <SmartAssistCategoryBadge category={row.clientObjectiveCategory} />
                   <SmartAssistConfidenceLabel confidence={row.clientObjectiveConfidence} />
                 </div>
-                <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-carbon-blue/75">
+                <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/75">
                   {row.clientObjective}
                 </p>
               </WorkspaceTableBodyCell>
@@ -114,7 +114,7 @@ export function OpportunitiesOperationsTable({
                 <div className="mb-1">
                   <SmartAssistCategoryBadge category={row.biggestUnknownCategory} />
                 </div>
-                <p className="line-clamp-2 text-[12px] leading-relaxed text-carbon-blue/70">
+                <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/70">
                   {row.biggestUnknown}
                 </p>
               </WorkspaceTableBodyCell>
@@ -125,7 +125,7 @@ export function OpportunitiesOperationsTable({
                 <InsightCategorySummary row={row} />
               </WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell className="max-w-[12rem]">
-                <p className="line-clamp-2 text-[12px] leading-relaxed text-carbon-blue/70">
+                <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/70">
                   {row.nextStep}
                 </p>
               </WorkspaceTableBodyCell>

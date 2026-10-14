@@ -42,11 +42,11 @@ export function ContactLifecycleInsights({
     <div className="flex flex-col gap-3">
       {showBanner ? (
         <div className="border border-upcycle-orange/20 bg-upcycle-orange/[0.04] px-3 py-2.5">
-          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
             SmartAssist · {CONTACT_RELATIONSHIP_INTELLIGENCE.title}
           </p>
-          <p className="mt-1 text-[11px] leading-relaxed text-carbon-blue/70">{audit.summary}</p>
-          <p className="mt-1 text-[10px] italic text-carbon-blue/50">
+          <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/70">{audit.summary}</p>
+          <p className="mt-1 text-[11px] italic text-carbon-blue/50">
             {CONTACT_RELATIONSHIP_INTELLIGENCE.mantra}
           </p>
         </div>

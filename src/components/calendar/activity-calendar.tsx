@@ -210,7 +210,7 @@ export function ActivityCalendar() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Sector
             <select
               value={sector}
@@ -225,7 +225,7 @@ export function ActivityCalendar() {
               ))}
             </select>
           </label>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Type
             <select
               value={type}
@@ -244,7 +244,7 @@ export function ActivityCalendar() {
       </div>
 
       <section aria-label="All-day and to-do">
-        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           All-day / to-do
         </p>
         {floating.length === 0 ? (
@@ -354,7 +354,7 @@ function MonthGrid({
 
   return (
     <div>
-      <div className="grid grid-cols-7 border-b border-border text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="grid grid-cols-7 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {WEEKDAYS.map((label) => (
           <div key={label} className="px-2 py-2">
             {label}
@@ -442,7 +442,7 @@ function TimeGrid({
         <div />
         {days.map((day) => (
           <div key={dateKey(day)} className="px-2 py-2 text-xs">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
               {WEEKDAYS[(day.getDay() + 6) % 7]}
             </p>
             <p className={cn("font-medium", dateKey(day) === today && "text-primary")}>
@@ -473,7 +473,7 @@ function TimeGrid({
       >
         <div>
           {HOURS.map((hour) => (
-            <div key={hour} className="h-14 pr-2 text-right text-[10px] text-muted-foreground">
+            <div key={hour} className="h-14 pr-2 text-right text-[11px] text-muted-foreground">
               {String(hour).padStart(2, "0")}:00
             </div>
           ))}
@@ -558,7 +558,7 @@ function EventButton({
       type="button"
       onClick={() => onOpen(activity.id)}
       className={cn(
-        "flex w-full items-start justify-between gap-2 border bg-white px-2 py-1 text-left text-[11px] leading-tight text-foreground",
+        "flex w-full items-start justify-between gap-2 border bg-white px-2 py-1 text-left text-[12px] leading-tight text-foreground",
         sectorBorderClass(activity.company?.sectorTag ?? null),
         activity.isAiProposed && "border-dashed opacity-80",
         banner && "bg-[#f7f7f8]",
@@ -571,7 +571,7 @@ function EventButton({
         ) : null}
       </span>
       {amount ? (
-        <span className="shrink-0 border border-border bg-white px-1 py-0.5 text-[10px] font-semibold">
+        <span className="shrink-0 border border-border bg-white px-1 py-0.5 text-[11px] font-semibold">
           {amount}
         </span>
       ) : null}
@@ -602,7 +602,7 @@ function ActivityDetail({
     <aside className="absolute inset-y-3 right-4 z-20 flex w-80 flex-col border border-border bg-white shadow-xl sm:right-6">
       <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {smartActivityLabel(activity.type)}
             {activity.isAiProposed ? " · Proposed" : ""}
           </p>
