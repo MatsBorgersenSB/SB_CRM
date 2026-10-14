@@ -78,6 +78,9 @@ import {
 import { computeOpportunityMomentum } from "@/lib/opportunity-intelligence-engine";
 import { opportunityStageLabel } from "@/lib/opportunity-overview";
 
+/** Information budget — attention rows beyond this are noise, not prioritisation. */
+const MAX_ATTENTION_ROWS = 5;
+
 /**
  * Company 360 — one living page: identity, next action, mail, people, work.
  */
@@ -152,6 +155,7 @@ export function Company360LivingWorkspace({
     company.Domain ? companyWebsiteHref(company.Domain) : "",
   );
   const [lastMailAt, setLastMailAt] = useState<string | null>(initialLastMailAt);
+  const [linkedRevealed, setLinkedRevealed] = useState(false);
   const [lastMailByContactId, setLastMailByContactId] = useState<Record<string, string>>(
     initialLastMailByContactId,
   );
@@ -219,11 +223,22 @@ export function Company360LivingWorkspace({
     }
   }, [company.CompanyID, company.contacts, projects]);
 
+  // Attention only says what the hero did not already say.
+  const heroRuleId = header.recommendedAction?.ruleId ?? null;
+  const heroAction = header.recommendedAction?.action ?? null;
+  const nothingRecordedYet = companyActivities.length === 0 && !lastMailAt;
   const visibleAttentionItems = useMemo(() => {
     void attentionDismissTick;
-    const sorted = sortAttentionItems(attentionItems);
-    return attentionHydrated ? filterDismissedAttentionItems(sorted) : sorted;
-  }, [attentionItems, attentionDismissTick, attentionHydrated]);
+    const sorted = sortAttentionItems(attentionItems).filter((item) => {
+      if (heroRuleId && item.ruleId === heroRuleId) return false;
+      if (heroAction && item.suggestedAiAction === heroAction) return false;
+      // The hero already states "no interaction recorded yet" — per-person echoes add nothing.
+      if (nothingRecordedYet && item.ruleId === "no_activity") return false;
+      return true;
+    });
+    const live = attentionHydrated ? filterDismissedAttentionItems(sorted) : sorted;
+    return live.slice(0, MAX_ATTENTION_ROWS);
+  }, [attentionItems, attentionDismissTick, attentionHydrated, heroRuleId, heroAction, nothingRecordedYet]);
 
   const routeKey = companyRouteKey(company);
 
@@ -321,6 +336,18 @@ export function Company360LivingWorkspace({
     Boolean(onCreateOpportunity) &&
     shouldOfferCreateOpportunity(company, correspondence);
 
+  // Empty Opportunities / Projects panels fold into one line until the user wants them.
+  // Opportunities are only offered where the posture allows a deal (never for suppliers).
+  const opportunitiesEmpty = linkedPipelines.length === 0;
+  const projectsEmpty = linkedProjects.length === 0;
+  const showOpportunitiesPanel = !opportunitiesEmpty || (linkedRevealed && canCreateOpp);
+  const showProjectsPanel = !projectsEmpty || linkedRevealed;
+  const foldedLabels = [
+    opportunitiesEmpty && canCreateOpp ? "opportunities" : null,
+    projectsEmpty ? "projects" : null,
+  ].filter((label): label is string => Boolean(label));
+  const showFoldedLine = !linkedRevealed && foldedLabels.length > 0;
+
   return (
     <WorkspaceStack>
       <CompanyDuplicateHintBanner hint={duplicateHint} />
@@ -391,14 +418,6 @@ export function Company360LivingWorkspace({
         </div>
       </section>
 
-      <AddFindingPanel
-        targetLabel="this company"
-        findings={findings}
-        onFindingsChange={saveCompanyFindings}
-        mode={companyHasType(company, "Competitor") ? "competitor" : "default"}
-        companyId={company.CompanyID}
-      />
-
       <CompanyDocumentKnowledgePanel
         companyId={company.CompanyID}
         documents={smartDocs}
@@ -449,6 +468,7 @@ export function Company360LivingWorkspace({
             />
           </WorkspacePanel>
         }
+        showOpportunities={showOpportunitiesPanel}
         canCreateOpportunity={canCreateOpp}
         canManageOpportunityStakeholders={canManageOpportunityStakeholders(role)}
         onCreateOpportunity={onCreateOpportunity}
@@ -457,17 +477,35 @@ export function Company360LivingWorkspace({
         onCompanyUpdated={onCompanyUpdated}
       />
 
-      <WorkspacePanel title="Projects" id="projects" count={linkedProjects.length}>
-        <CompanyProjectsTable
-          projects={linkedProjects}
-          companyId={company.CompanyID}
-          company={company}
-          allProjects={projects}
-          companies={companies}
-          role={role}
-          onProjectUpdated={onProjectUpdated}
-        />
-      </WorkspacePanel>
+      {showProjectsPanel ? (
+        <WorkspacePanel title="Projects" id="projects" count={linkedProjects.length}>
+          <CompanyProjectsTable
+            projects={linkedProjects}
+            companyId={company.CompanyID}
+            company={company}
+            allProjects={projects}
+            companies={companies}
+            role={role}
+            onProjectUpdated={onProjectUpdated}
+          />
+        </WorkspacePanel>
+      ) : null}
+
+      {showFoldedLine ? (
+        <p
+          id={opportunitiesEmpty ? "opportunities" : "projects"}
+          className="px-1 text-[12px] text-carbon-blue/50"
+        >
+          No {foldedLabels.join(" or ")} linked yet.{" "}
+          <button
+            type="button"
+            onClick={() => setLinkedRevealed(true)}
+            className="font-semibold text-upcycle-orange hover:underline"
+          >
+            Add
+          </button>
+        </p>
+      ) : null}
 
       {visibleAttentionItems.length > 0 ? (
         <WorkspacePanel
@@ -476,7 +514,7 @@ export function Company360LivingWorkspace({
           count={visibleAttentionItems.length}
         >
           <AttentionQueueTable
-            items={attentionItems}
+            items={visibleAttentionItems}
             emptyMessage="No open attention for this company."
             onItemDismissed={() =>
               setAttentionDismissTick((value) => value + 1)
@@ -508,6 +546,24 @@ export function Company360LivingWorkspace({
           companies={companies}
           activities={scopedActivities}
           onDocumentCountChange={setDocumentCount}
+        />
+      </WorkspacePanel>
+
+      {/* Writing comes after reading — the finding form lives collapsed at the bottom. */}
+      <WorkspacePanel
+        title={companyHasType(company, "Competitor") ? "Competitor knowledge" : "Findings"}
+        id="findings"
+        count={findings.length}
+        collapsible
+        defaultCollapsed={!companyHasType(company, "Competitor")}
+        collapseStorageKey={`company-${company.CompanyID}-findings`}
+      >
+        <AddFindingPanel
+          targetLabel="this company"
+          findings={findings}
+          onFindingsChange={saveCompanyFindings}
+          mode={companyHasType(company, "Competitor") ? "competitor" : "default"}
+          companyId={company.CompanyID}
         />
       </WorkspacePanel>
     </WorkspaceStack>

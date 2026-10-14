@@ -319,8 +319,11 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
   },
   {
     id: "schedule_follow_up_call",
-    evaluate(inputs) {
+    evaluate(inputs, ctx) {
       if (inputs.lastContactDays === null) return null;
+      // Cadence is a sell-to / collaborate concern. A quiet supplier or competitor is not cooling.
+      const posture = getCompanyRelationshipPosture(ctx.company);
+      if (posture !== "sell_to" && posture !== "collaborate") return null;
       if (inputs.lastContactDays < COLD_CONTACT_DAYS && inputs.healthScore >= 50) return null;
       if (
         inputs.lastContactDays < 30 &&
@@ -481,12 +484,13 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
     evaluate(inputs, ctx) {
       if (getCompanyRelationshipPosture(ctx.company) !== "buy_from") return null;
       if (inputs.overdueActions > 0 || inputs.openCommitments > 0) return null;
-      if (inputs.lastContactDays === null || inputs.lastContactDays < 21) return null;
+      // Supplier default: say honestly that nothing is pending rather than invent a cadence.
       return {
         id: `nba-supplier-${inputs.companyId}`,
-        action: "Follow up with supplier",
-        reason: `Supplier / advisor relationship quiet for ${inputs.lastContactDays} days — confirm open quotes, deliveries, or commitments without inventing a sales opportunity.`,
-        priority: "Medium",
+        action: "Nothing pending with this supplier",
+        reason:
+          "No open quotes, deliveries or commitments recorded. Log one when something is agreed — no sales opportunity is implied.",
+        priority: "Low",
         confidenceScore: 72,
         ruleId: "supplier_follow_through",
         source: "rule",
