@@ -44,7 +44,19 @@ type CreateBody = {
   endDate?: string | null;
   companyCode?: string | null;
   opportunityCode?: string | null;
+  event?: {
+    location?: string | null;
+    website?: string | null;
+    organizer?: string | null;
+    objective?: string | null;
+    themes?: unknown;
+  } | null;
+  isAiProposed?: boolean;
 };
+
+function cleanText(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, 500) : null;
+}
 
 export async function POST(request: Request) {
   const body = (await request.json()) as CreateBody;
@@ -68,6 +80,21 @@ export async function POST(request: Request) {
       endDate,
       companyCode: body.companyCode?.trim() || null,
       opportunityCode: body.opportunityCode?.trim() || null,
+      isAiProposed: body.isAiProposed === true,
+      event: body.event
+        ? {
+            location: cleanText(body.event.location),
+            website: cleanText(body.event.website),
+            organizer: cleanText(body.event.organizer),
+            objective: cleanText(body.event.objective),
+            themes: Array.isArray(body.event.themes)
+              ? body.event.themes
+                  .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+                  .map((t) => t.trim().slice(0, 80))
+                  .slice(0, 5)
+              : [],
+          }
+        : null,
     });
     return NextResponse.json(activity, { status: 201 });
   } catch (error) {

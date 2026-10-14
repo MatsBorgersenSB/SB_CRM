@@ -28,7 +28,6 @@ import {
   startOfWeek,
   visibleRange,
   type CalendarActivity,
-  type CalendarSector,
   type CalendarSectorFilter,
   type CalendarView,
 } from "@/types/calendar-activity";
@@ -615,10 +614,39 @@ function ActivityDetail({
       </header>
       <div className="flex flex-1 flex-col gap-3 px-4 py-3 text-sm text-foreground">
         <p>{when}</p>
-        <p>
-          <span className="text-muted-foreground">Company · </span>
-          {activity.company?.name ?? "No company linked"}
-        </p>
+        {activity.event ? (
+          <div className="grid gap-1.5 border-l-2 border-border pl-3">
+            {activity.event.location ? <p>{activity.event.location}</p> : null}
+            {activity.event.organizer ? (
+              <p className="text-muted-foreground">Organised by {activity.event.organizer}</p>
+            ) : null}
+            {activity.event.website ? (
+              <a
+                href={activity.event.website}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate text-xs text-upcycle-orange hover:underline"
+              >
+                Event page ↗
+              </a>
+            ) : null}
+            {activity.event.objective ? (
+              <p>
+                <span className="text-muted-foreground">Why we go · </span>
+                {activity.event.objective}
+              </p>
+            ) : null}
+            {activity.event.themes.length ? (
+              <p className="text-xs text-muted-foreground">{activity.event.themes.join(" · ")}</p>
+            ) : null}
+          </div>
+        ) : null}
+        {activity.event && !activity.company ? null : (
+          <p>
+            <span className="text-muted-foreground">Company · </span>
+            {activity.company?.name ?? "No company linked"}
+          </p>
+        )}
         {activity.opportunity ? (
           <p>
             <span className="text-muted-foreground">Opportunity · </span>
@@ -626,7 +654,7 @@ function ActivityDetail({
             {amount ? ` · ${amount}` : ""}
           </p>
         ) : null}
-        {!activity.company && activity.title.trim() ? (
+        {!activity.company && !activity.event && activity.title.trim() ? (
           resolution ? (
             <SmartAssistResolutionCard
               resolution={resolution}
