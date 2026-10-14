@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Contact } from "@/types/contact";
 import type { UserRole } from "@/types/auth";
 import { canDeleteContact } from "@/lib/permissions";
+import { normalizeEmploymentStatus } from "@/lib/contact-lifecycle-engine";
+import { EMPLOYMENT_STATUSES, type EmploymentStatus } from "@/types/contact-lifecycle";
 
 type LifecycleWizardMode = "transfer" | "merge" | "position" | null;
 
@@ -14,6 +16,8 @@ export function ContactLifecycleActionsBar({
   onArchiveOpen,
   onEditOpen,
   editing = false,
+  employmentBusy = false,
+  onEmploymentStatusChange,
 }: {
   contact: Contact;
   role: UserRole;
@@ -21,6 +25,9 @@ export function ContactLifecycleActionsBar({
   onArchiveOpen: () => void;
   onEditOpen: () => void;
   editing?: boolean;
+  employmentBusy?: boolean;
+  /** Employment status lives in this menu — it is maintenance, not a decision. */
+  onEmploymentStatusChange?: (status: EmploymentStatus) => void;
 }) {
   const canManage = canDeleteContact(role);
   const [open, setOpen] = useState(false);
@@ -91,6 +98,27 @@ export function ContactLifecycleActionsBar({
                 onClick={() => run(onArchiveOpen)}
               />
             </>
+          ) : null}
+          {onEmploymentStatusChange && !editing ? (
+            <div className="mt-1 border-t border-carbon-blue/8 px-3 pb-1.5 pt-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/45">
+                Employment
+                <select
+                  value={contact.EmploymentStatus ?? normalizeEmploymentStatus(contact)}
+                  disabled={employmentBusy}
+                  onChange={(event) =>
+                    onEmploymentStatusChange(event.target.value as EmploymentStatus)
+                  }
+                  className="mt-1 block w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] font-medium normal-case tracking-normal text-carbon-blue"
+                >
+                  {EMPLOYMENT_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           ) : null}
         </div>
       ) : null}

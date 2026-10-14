@@ -7,7 +7,6 @@ import {
   findDuplicateContacts,
   isTimelineMeaningful,
 } from "@/lib/contact-lifecycle-engine";
-import { buildCompanyRelationshipSummary } from "@/lib/relationship-intelligence";
 import { buildContact360Verdict } from "@/lib/contact-360-verdict";
 import { AttentionQueueTable } from "@/components/attention/attention-queue-table";
 import { Contact360EditPanel } from "@/components/contacts/contact-360-edit-panel";
@@ -30,7 +29,7 @@ import { useAuth } from "@/context/auth-context";
 import { workspaceDocumentsContextFromContact } from "@/lib/workspace-documents-data";
 import { canDeleteContact } from "@/lib/permissions";
 import { transferContactRecord } from "@/lib/sync-company";
-import { getContactDisplayName, type UpdateContactInput } from "@/types/contact";
+import { getContactDisplayName, type BuyingRole, type UpdateContactInput } from "@/types/contact";
 import type { EditableContactField as EditableContactFieldName } from "@/types/contact";
 import type { EmploymentStatus } from "@/types/contact-lifecycle";
 import { getActivitiesForContact } from "@/lib/activity-utils";
@@ -109,7 +108,11 @@ export function Contact360LivingWorkspace({
 }) {
   const { contact, linkedPipelineIds } = record;
   const [documentCount, setDocumentCount] = useState(0);
-  const [lastMailAt, setLastMailAt] = useState<string | null>(null);
+  // Seed from synced mail so the verdict is honest on first paint; live Outlook refines it.
+  const [lastMailAt, setLastMailAt] = useState<string | null>(() => {
+    const email = record.contact.Email?.trim().toLowerCase();
+    return (email && correspondence?.lastSentByEmail?.[email]) || null;
+  });
   const [mailOpportunities, setMailOpportunities] = useState<ContactMailWorkLink[]>([]);
   const [mailProjects, setMailProjects] = useState<ContactMailWorkLink[]>([]);
   const [wizardMode, setWizardMode] = useState<LifecycleWizardMode>(
@@ -121,6 +124,7 @@ export function Contact360LivingWorkspace({
   const [archiveOpen, setArchiveOpen] = useState(lifecycleAction === "archive");
   const [archiving, setArchiving] = useState(false);
   const [employmentBusy, setEmploymentBusy] = useState(false);
+  const [workRevealed, setWorkRevealed] = useState(false);
 
   const { user } = useAuth();
   const { openEmailAssistant, EmailAssistantModal } = useSmartAssistActionHost({
@@ -130,14 +134,6 @@ export function Contact360LivingWorkspace({
   const contactActivities = useMemo(
     () => getActivitiesForContact(activities, contact.ContactID, contact),
     [activities, contact],
-  );
-
-  const relationshipSummary = useMemo(
-    () =>
-      buildCompanyRelationshipSummary(company, activities, pipelines, {
-        correspondence,
-      }),
-    [company, activities, pipelines, correspondence],
   );
 
   const linkedDeals = useMemo(
@@ -270,10 +266,21 @@ export function Contact360LivingWorkspace({
       onWizardOpen={setWizardMode}
       onArchiveOpen={() => setArchiveOpen(true)}
       onEditOpen={toggleContactEdit}
+      employmentBusy={employmentBusy}
+      onEmploymentStatusChange={(status) => void handleEmploymentStatusChange(status)}
     />
   );
 
   const displayName = getContactDisplayName(contact);
+
+  // Opportunities / Projects fold into one line until there is something to show or add.
+  const workEmpty = linkedDeals.length === 0 && projectRoles.length === 0;
+  const showWorkPanels = !workEmpty || workRevealed;
+
+  // Contact-level attention is the verdict reworded (silent / cooling). Only show what it adds.
+  const extraAttentionItems = attentionItems.filter(
+    (item) => item.ruleId !== "no_activity" && item.ruleId !== "no_recent_contact",
+  );
 
   return (
     <WorkspaceStack>
@@ -295,13 +302,11 @@ export function Contact360LivingWorkspace({
           contact={contact}
           companyId={record.companyId}
           companyName={record.companyName}
-          lastInteractionDate={verdict.lastInteractionAt ?? undefined}
-          healthStatus={relationshipSummary.healthStatus}
-          healthHasSignal={relationshipSummary.hasSignal}
-          employmentBusy={employmentBusy}
-          onEmploymentStatusChange={(status) => void handleEmploymentStatusChange(status)}
           trailing={contactTools}
           verdict={verdict}
+          onBuyingRoleChange={(next) =>
+            onContactUpdate(contact.ContactID, { buyingRole: (next ?? "") as BuyingRole })
+          }
         />
       )}
 
@@ -380,40 +385,55 @@ export function Contact360LivingWorkspace({
         </p>
       ) : null}
 
-      <WorkspacePanel title="Opportunities" id="opportunities" count={linkedDeals.length}>
-        <div className="space-y-4">
-          <ContactOpportunityRolesTable
-            contact={contact}
-            company={company}
-            pipelines={pipelines}
-            role={role}
-            onPipelineUpdated={onPipelineUpdated}
-          />
-          {linkedDeals.length > 0 ? (
-            <OpportunitiesOverviewTable
-              deals={linkedDeals}
-              commercialPackages={commercialPackages}
+      {showWorkPanels ? (
+        <>
+          <WorkspacePanel title="Opportunities" id="opportunities" count={linkedDeals.length}>
+            <div className="space-y-4">
+              <ContactOpportunityRolesTable
+                contact={contact}
+                company={company}
+                pipelines={pipelines}
+                role={role}
+                onPipelineUpdated={onPipelineUpdated}
+              />
+              {linkedDeals.length > 0 ? (
+                <OpportunitiesOverviewTable
+                  deals={linkedDeals}
+                  commercialPackages={commercialPackages}
+                />
+              ) : null}
+            </div>
+          </WorkspacePanel>
+
+          <WorkspacePanel title="Projects" id="projects" count={projectRoles.length}>
+            <ContactProjectRolesTable
+              roles={projectRoles}
+              contact={contact}
+              company={company}
+              companies={companies}
+              projects={projects}
+              role={role}
+              onProjectUpdated={onProjectUpdated}
             />
-          ) : null}
-        </div>
-      </WorkspacePanel>
+          </WorkspacePanel>
+        </>
+      ) : (
+        <p id="opportunities" className="px-1 text-[12px] text-carbon-blue/50">
+          {displayName} is not on any opportunity or project yet.{" "}
+          <button
+            type="button"
+            onClick={() => setWorkRevealed(true)}
+            className="font-semibold text-upcycle-orange hover:underline"
+          >
+            Add
+          </button>
+        </p>
+      )}
 
-      <WorkspacePanel title="Projects" id="projects" count={projectRoles.length}>
-        <ContactProjectRolesTable
-          roles={projectRoles}
-          contact={contact}
-          company={company}
-          companies={companies}
-          projects={projects}
-          role={role}
-          onProjectUpdated={onProjectUpdated}
-        />
-      </WorkspacePanel>
-
-      {attentionItems.length > 0 ? (
-        <WorkspacePanel title="Attention" id="attention" count={attentionItems.length}>
+      {extraAttentionItems.length > 0 ? (
+        <WorkspacePanel title="Attention" id="attention" count={extraAttentionItems.length}>
           <AttentionQueueTable
-            items={attentionItems}
+            items={extraAttentionItems}
             emptyMessage="No open attention — this relationship is on track."
             onDraftEmail={openEmailAssistant}
           />
