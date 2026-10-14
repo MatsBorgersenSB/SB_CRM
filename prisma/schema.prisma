@@ -375,6 +375,10 @@ model Activity {
   completedAt  DateTime?
   /// Light payload: Graph API snippets, temporal warnings, or sourcing suggestions.
   aiContext    Json?
+  /// Human-readable tracking number: ACT-{seq}.
+  seq          Int          @unique @default(autoincrement())
+  /// Full activity record (owner, next action, decisions, commitments, risks, links).
+  details      Json?
 
   companyId     String?
   company       Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)

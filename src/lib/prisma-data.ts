@@ -23,8 +23,9 @@ import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import { normalizeSmartDocCategory } from "@/types/smartdoc-library";
 import { emptyAnalytics, type AnalyticsDb } from "@/lib/analytics-data";
 import { emptyInventory, type InventoryDb } from "@/lib/inventory-data";
+import { shouldFallbackToJsonPortfolio } from "@/lib/prisma-data-mode";
+import { listActivities as readStoredActivities } from "@/lib/activity-store";
 import {
-  readActivities as readJsonActivities,
   readAnalytics as readJsonAnalytics,
   readCommercialPackages as readJsonCommercialPackages,
   readCompanies as readJsonCompanies,
@@ -111,20 +112,7 @@ export type LiveGrowthContext = LivePortfolio & {
   findingsByCompanyId: Record<string, import("@/lib/source-findings").SourceFinding[]>;
 };
 
-/**
- * JSON seed (Nordic Polymers, Circular Textiles, …) is for local/CI only.
- * Live production — including `next build` on Vercel — must never mask Prisma
- * with demo opportunities or companies.
- */
-export function shouldFallbackToJsonPortfolio(): boolean {
-  const registryConfigured = Boolean(
-    process.env.DATABASE_URL || process.env.DIRECT_URL,
-  );
-  if (registryConfigured && process.env.NODE_ENV === "production") {
-    return false;
-  }
-  return true;
-}
+export { shouldFallbackToJsonPortfolio } from "@/lib/prisma-data-mode";
 
 /**
  * Load Companies (with Contacts) and Opportunities from PostgreSQL via Prisma.
@@ -457,9 +445,9 @@ export async function readLiveSmartDocsLibrary(): Promise<SmartDocLibraryRecord[
   }
 }
 
-/** Activities remain on the JSON store until modeled in Prisma — pruned to live entities. */
+/** Activities from the single store (Prisma; JSON locally) — pruned to live entities. */
 export async function readLiveActivities() {
-  const activities = await readJsonActivities();
+  const activities = await readStoredActivities();
   if (shouldFallbackToJsonPortfolio()) return activities;
 
   const [portfolio, projects] = await Promise.all([
@@ -600,7 +588,7 @@ export async function readLiveSmartDocsForProject(projectId: string) {
 export async function readLiveFocusContext(): Promise<LiveFocusContext> {
   const [portfolio, activities, commercialPackages, projects] = await Promise.all([
     readLivePortfolio(),
-    readJsonActivities(),
+    readStoredActivities(),
     readJsonCommercialPackages(),
     readProjects().catch((error) => {
       console.warn(

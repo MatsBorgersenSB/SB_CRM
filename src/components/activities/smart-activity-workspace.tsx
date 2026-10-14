@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Plus } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
-import { TaskCreateModal } from "@/components/activities/task-create-modal";
 import { ActivityWorkManagementWorkspace } from "@/components/activities/activity-work-management-workspace";
 import { GenerateAiDraftControl } from "@/components/ai/generate-ai-draft-drawer";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
@@ -149,7 +148,6 @@ export function SmartActivityWorkspace({
 
   useWorkspaceFilterBridge("activities", [...ACTIVITY_FILTER_KEYS], applyBridge);
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [taskOpen, setTaskOpen] = useState(false);
   const [wizardPreset, setWizardPreset] = useState<Partial<CreateActivityInput>>(
     contextPreset(context),
   );
@@ -518,19 +516,11 @@ export function SmartActivityWorkspace({
           ) : null}
           <button
             type="button"
-            onClick={() => setTaskOpen(true)}
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-2 text-xs font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
-          >
-            <Plus className="size-3.5" strokeWidth={2} />
-            New Task
-          </button>
-          <button
-            type="button"
             onClick={() => openWizard()}
             className="inline-flex shrink-0 items-center justify-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
           >
             <Plus className="size-3.5" strokeWidth={2} />
-            New Activity
+            New activity
           </button>
         </div>
       </div>
@@ -608,17 +598,6 @@ export function SmartActivityWorkspace({
         preset={wizardPreset}
         defaultOwner={user}
         assignableUsers={assignableUsers}
-      />
-
-      <TaskCreateModal
-        open={taskOpen}
-        onClose={() => setTaskOpen(false)}
-        onCreated={refreshActivities}
-        companies={companies}
-        pipelines={pipelines}
-        assignableUsers={assignableUsers}
-        preset={contextPreset(context)}
-        defaultOwner={user}
       />
 
       {EmailAssistantModal}

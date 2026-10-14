@@ -1,34 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { ACTIVITY_TYPE_OPTIONS } from "@/components/activities/activity-type-icon";
 import type { AuthUser } from "@/types/auth";
-import type { Company } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type {
   CreateActivityInput,
-  ActionStatus,
   ActivityPriority,
   SmartActivityType,
+  SmartAssistAssessment,
 } from "@/types/activity";
 import {
+  ACTIVITY_PRIORITIES,
   isAllDayActivityType,
   SMART_ACTIVITY_DISPLAY,
   toSmartActivityType,
 } from "@/types/activity";
-import {
-  ACTION_STATUSES,
-  ACTIVITY_PRIORITIES,
-  TRACKING_STATUSES,
-} from "@/types/activity";
 import { inferM365Targets } from "@/lib/activity-workspace";
 import { syncActivityCreate } from "@/lib/sync-activity";
 import { getContactDisplayName } from "@/types/contact";
-import {
-  parseAgreedActions,
-  parseMemoryLines,
-} from "@/lib/relationship-memory";
+import { parseAgreedActions, parseMemoryLines } from "@/lib/relationship-memory";
 import { ActivityKnowledgeCapturePanel } from "@/components/activities/activity-knowledge-capture-panel";
 import { SmartAssistResolutionCard } from "@/components/smartassist/SmartAssistResolutionCard";
 import type { SmartAssistResolution } from "@/lib/smartassist/omniOrchestrator";
@@ -36,12 +29,18 @@ import type { EventProposal } from "@/lib/smartassist/eventExtract";
 import { TaskAssigneeSelect } from "@/components/activities/task-assignee-select";
 import { TaskShareWithPicker } from "@/components/activities/task-share-control";
 import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
-import type { SmartAssistAssessment } from "@/types/activity";
-import type { SharePointPerson } from "@/types/company";
 import type { StandardBioUserRecord } from "@/types/user-access";
 
-type WizardStep = 1 | 2 | 3 | 4;
-type WizardMode = "plan" | "record";
+/**
+ * One screen to plan or log any activity.
+ *
+ * The type is a choice, not a step. The form shows only what that type needs:
+ * events ask where and why; tasks ask who and by when; meetings ask when and
+ * with whom. SmartAssist can read an event link and propose the details —
+ * the person confirms before anything is saved.
+ */
+
+type Timing = "planned" | "done";
 
 type ActivityCreateWizardProps = {
   open: boolean;
@@ -55,23 +54,26 @@ type ActivityCreateWizardProps = {
   assignableUsers?: StandardBioUserRecord[];
 };
 
-const STEPS = {
-  plan: ["Activity type", "Related objects", "Plan details", "Follow-up"],
-  event: ["Activity type", "Event", "Event details", "Follow-up"],
-  record: ["Interaction", "Stakeholders & links", "Knowledge capture", "What happens next"],
-} as const;
+const INPUT =
+  "mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40 disabled:bg-carbon-blue/[0.03] disabled:text-carbon-blue/70";
+const TEXTAREA =
+  "mt-1 w-full resize-none border border-carbon-blue/12 bg-carbon-blue/[0.015] px-3 py-2.5 text-sm leading-relaxed text-carbon-blue outline-none focus:border-upcycle-orange/40";
+const LABEL = "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40";
+const SECONDARY_BUTTON =
+  "border border-carbon-blue/15 bg-white px-3 py-2 text-left text-xs font-medium text-carbon-blue hover:border-upcycle-orange/40 disabled:opacity-40";
 
-const INPUT_CLASS =
-  "mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40";
-const LABEL_CLASS = "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40";
-
-function formatProposalDates(proposal: EventProposal): string {
-  if (!proposal.startDate) return "Dates not found";
-  const fmt = (value: string) =>
-    new Date(`${value}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  if (!proposal.endDate || proposal.endDate === proposal.startDate) return fmt(proposal.startDate);
-  return `${fmt(proposal.startDate)} – ${fmt(proposal.endDate)}`;
-}
+const TITLE_PLACEHOLDER: Record<SmartActivityType, string> = {
+  MEETING: "Meeting with…",
+  TEAMS_MEETING: "Teams meeting with…",
+  PHONE_CALL: "Call about…",
+  EMAIL_FOLLOW_UP: "Follow up on…",
+  SITE_VISIT: "Visit to…",
+  COMMERCIAL_REVIEW: "Review of…",
+  TASK: "What needs to be done",
+  NOTE: "What to remember",
+  TRADESHOW: "Tradeshow or fair name",
+  SEMINAR: "Seminar or conference name",
+};
 
 function combineDateTime(date: string, time: string): string {
   if (!date) return new Date().toISOString();
@@ -90,42 +92,41 @@ function inclusiveDayCount(start: string, end: string): number {
   return Math.max(1, Math.round((endUtc - startUtc) / 86_400_000) + 1);
 }
 
-function endOfLocalDay(date: string): string {
-  const [year, month, day] = date.split("-").map(Number);
-  return new Date(year || 1970, (month || 1) - 1, day || 1, 23, 59, 0, 0).toISOString();
-}
-
-function extractPresetCompanyId(
-  preset: Partial<CreateActivityInput> | undefined,
-): string {
+function presetCompanyId(preset?: Partial<CreateActivityInput>): string {
   const company = preset?.Company;
-  if (!company) return "";
-  if ("CompanyID" in company) return company.CompanyID;
-  return "";
+  return company && "CompanyID" in company ? company.CompanyID : "";
 }
 
-function extractPresetContactId(
-  preset: Partial<CreateActivityInput> | undefined,
-): string {
+function presetContactId(preset?: Partial<CreateActivityInput>): string {
   const contact = preset?.Contact;
-  if (!contact) return "";
-  if ("ContactID" in contact) return contact.ContactID;
-  return "";
+  return contact && "ContactID" in contact ? contact.ContactID : "";
 }
 
-function extractPresetDealId(preset: Partial<CreateActivityInput> | undefined): string {
+function presetDealId(preset?: Partial<CreateActivityInput>): string {
   const deal = preset?.Deal;
   if (!deal) return "";
-  if ("DealID" in deal) return deal.DealID;
-  return deal.Title ?? "";
+  return "DealID" in deal ? deal.DealID : (deal.Title ?? "");
 }
 
-function extractPresetProjectId(preset: Partial<CreateActivityInput> | undefined): string {
-  return preset?.ProjectId?.trim() ?? "";
+function formatProposalDates(proposal: EventProposal): string {
+  if (!proposal.startDate) return "Dates not found";
+  const fmt = (value: string) =>
+    new Date(`${value}T00:00:00`).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  if (!proposal.endDate || proposal.endDate === proposal.startDate) return fmt(proposal.startDate);
+  return `${fmt(proposal.startDate)} – ${fmt(proposal.endDate)}`;
 }
 
-export function ActivityCreateWizard({
-  open,
+/** One form for every activity. Mounted only while open, so each opening starts clean. */
+export function ActivityCreateWizard({ open, ...props }: ActivityCreateWizardProps) {
+  if (!open) return null;
+  return <ActivityForm {...props} />;
+}
+
+function ActivityForm({
   onClose,
   onCreated,
   companies,
@@ -133,40 +134,60 @@ export function ActivityCreateWizard({
   preset,
   defaultOwner,
   assignableUsers = [],
-}: ActivityCreateWizardProps) {
-  const [step, setStep] = useState<WizardStep>(1);
-  const [mode, setMode] = useState<WizardMode>("plan");
+}: Omit<ActivityCreateWizardProps, "open">) {
+  const me = useMemo<SharePointPerson | null>(
+    () => (defaultOwner ? { Id: defaultOwner.id, Title: defaultOwner.displayName } : null),
+    [defaultOwner],
+  );
+  const presetDate = preset?.ActivityDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+
   const [saving, setSaving] = useState(false);
-  const [activityType, setActivityType] = useState<SmartActivityType | "">("");
-  const [companyId, setCompanyId] = useState("");
-  const [contactId, setContactId] = useState("");
-  const [dealId, setDealId] = useState("");
-  const [projectId, setProjectId] = useState("");
-  const [projectName, setProjectName] = useState("");
-  const [subject, setSubject] = useState("");
-  const [summary, setSummary] = useState("");
-  const [notes, setNotes] = useState("");
-  const [keyDecisionsText, setKeyDecisionsText] = useState("");
-  const [agreedActionsText, setAgreedActionsText] = useState("");
-  const [risksText, setRisksText] = useState("");
-  const [planDate, setPlanDate] = useState("");
-  const [planEndDate, setPlanEndDate] = useState("");
-  const [planTime, setPlanTime] = useState("09:00");
-  const [durationMinutes, setDurationMinutes] = useState("60");
-  const [priority, setPriority] = useState<ActivityPriority>("Normal");
-  const [trackingStatus, setTrackingStatus] = useState<ActionStatus>("Planned");
-  const [followUp, setFollowUp] = useState(false);
-  const [nextAction, setNextAction] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [followUpStatus, setFollowUpStatus] = useState<ActionStatus>("Open");
-  const [smartAssistAssessment, setSmartAssistAssessment] =
-    useState<SmartAssistAssessment | null>(null);
-  const [assignee, setAssignee] = useState<SharePointPerson | null>(null);
-  const [sharedWith, setSharedWith] = useState<SharePointPerson[]>([]);
-  const [resolution, setResolution] = useState<SmartAssistResolution | null>(null);
-  const [resolving, setResolving] = useState(false);
-  const [resolveError, setResolveError] = useState("");
-  // Tradeshow / seminar: where the event lives and what SmartAssist read from it.
+  const [error, setError] = useState("");
+  const [activityType, setActivityType] = useState<SmartActivityType>(
+    () => toSmartActivityType(preset?.ActivityType) || "MEETING",
+  );
+  const [timing, setTiming] = useState<Timing>(
+    preset?.ActionStatus === "Completed" ? "done" : "planned",
+  );
+
+  const [title, setTitle] = useState(preset?.Subject ?? "");
+  const [notes, setNotes] = useState(preset?.ActivityDescription ?? "");
+  const [date, setDate] = useState(presetDate);
+  const [endDate, setEndDate] = useState(presetDate);
+  const [time, setTime] = useState(preset?.ActivityDate?.slice(11, 16) || "09:00");
+  const [durationMinutes, setDurationMinutes] = useState(String(preset?.DurationMinutes ?? 60));
+  const [priority, setPriority] = useState<ActivityPriority>(preset?.Priority ?? "Normal");
+
+  const [companyId, setCompanyId] = useState(() => presetCompanyId(preset));
+  const [contactId, setContactId] = useState(() => presetContactId(preset));
+  const [dealId, setDealId] = useState(() => presetDealId(preset));
+  // Project context comes from the caller (project workspace); the form does not change it.
+  const projectId = preset?.ProjectId?.trim() ?? "";
+  const projectName = preset?.ProjectName?.trim() ?? "";
+
+  const [assignee, setAssignee] = useState<SharePointPerson | null>(
+    me ?? preset?.ActivityOwner ?? null,
+  );
+  const [sharedWith, setSharedWith] = useState<SharePointPerson[]>(preset?.SharedWith ?? []);
+
+  const [followUp, setFollowUp] = useState(preset?.ActionRequired ?? false);
+  const [nextAction, setNextAction] = useState(preset?.NextAction ?? "");
+  const [dueDate, setDueDate] = useState(preset?.NextActionDate ?? "");
+
+  // Logged interactions: what we learned.
+  const [summary, setSummary] = useState(preset?.Summary ?? "");
+  const [keyDecisionsText, setKeyDecisionsText] = useState(preset?.KeyDecisions?.join("\n") ?? "");
+  const [agreedActionsText, setAgreedActionsText] = useState(
+    () =>
+      preset?.AgreedActions?.map((a) => (a.dueDate ? `${a.text} | ${a.dueDate}` : a.text)).join("\n") ??
+      "",
+  );
+  const [risksText, setRisksText] = useState(preset?.Risks?.join("\n") ?? "");
+  const [assessment, setAssessment] = useState<SmartAssistAssessment | null>(
+    preset?.SmartAssistAssessment ?? null,
+  );
+
+  // Events: where it is and what SmartAssist read.
   const [eventSource, setEventSource] = useState("");
   const [eventProposal, setEventProposal] = useState<EventProposal | null>(null);
   const [eventReading, setEventReading] = useState(false);
@@ -177,18 +198,39 @@ export function ActivityCreateWizard({
   const [eventThemes, setEventThemes] = useState<string[]>([]);
   const [eventFromAssist, setEventFromAssist] = useState(false);
 
-  const isEvent = Boolean(activityType) && isAllDayActivityType(activityType);
+  // Context and suppliers for unlinked work.
+  const [resolution, setResolution] = useState<SmartAssistResolution | null>(null);
+  const [resolving, setResolving] = useState(false);
 
-  const clearEventState = () => {
-    setEventSource("");
-    setEventProposal(null);
-    setEventReading(false);
-    setEventError("");
-    setEventLocation("");
-    setEventWebsite("");
-    setEventOrganizer("");
-    setEventThemes([]);
-    setEventFromAssist(false);
+  const isEvent = isAllDayActivityType(activityType);
+  const isTask = activityType === "TASK";
+  const displayType = SMART_ACTIVITY_DISPLAY[activityType];
+  const contextLocked = Boolean(presetDealId(preset) || preset?.ProjectId?.trim());
+
+  const assigneeOptions = useMemo(
+    () => mergeStandardBioUserOptions(assignableUsers, me ? [me] : []),
+    [assignableUsers, me],
+  );
+
+  const selectedCompany = companies.find((c) => c.CompanyID === companyId);
+  const contacts = selectedCompany?.contacts ?? [];
+  const selectedDeal = pipelines.find((p) => p.id === dealId);
+  const selectedContact = contacts.find((c) => c.ContactID === contactId);
+
+  const handleDealChange = (id: string) => {
+    setDealId(id);
+    const company = companies.find((c) => c.pipelineIds.includes(id));
+    if (company) setCompanyId(company.CompanyID);
+  };
+
+  const handleContactChange = (id: string) => {
+    setContactId(id);
+    for (const company of companies) {
+      if (company.contacts.some((c) => c.ContactID === id)) {
+        setCompanyId(company.CompanyID);
+        break;
+      }
+    }
   };
 
   const readEventSource = () => {
@@ -204,26 +246,24 @@ export function ActivityCreateWizard({
     })
       .then(async (response) => {
         const payload = (await response.json()) as { proposal?: EventProposal; error?: string };
-        if (!response.ok || !payload.proposal) {
-          throw new Error(payload.error ?? "EXTRACTION_FAILED");
-        }
+        if (!response.ok || !payload.proposal) throw new Error(payload.error ?? "EXTRACTION_FAILED");
         setEventProposal(payload.proposal);
       })
-      .catch((error: Error) => {
+      .catch((reason: Error) => {
         setEventError(
-          error.message === "NOTHING_FOUND"
-            ? "SmartAssist could not find an event name or dates there. Paste the invitation text instead, or fill in the details yourself."
-            : "SmartAssist could not read that source right now. You can still fill in the details yourself.",
+          reason.message === "NOTHING_FOUND"
+            ? "No event name or dates found there. Paste the invitation text, or fill in the details below."
+            : "SmartAssist could not read that right now. You can fill in the details below.",
         );
       })
       .finally(() => setEventReading(false));
   };
 
   const applyEventProposal = (proposal: EventProposal) => {
-    if (proposal.title) setSubject(proposal.title);
+    if (proposal.title) setTitle(proposal.title);
     if (proposal.startDate) {
-      setPlanDate(proposal.startDate);
-      setPlanEndDate(proposal.endDate ?? proposal.startDate);
+      setDate(proposal.startDate);
+      setEndDate(proposal.endDate ?? proposal.startDate);
     }
     setEventLocation(proposal.location ?? "");
     setEventWebsite(proposal.website ?? "");
@@ -231,187 +271,66 @@ export function ActivityCreateWizard({
     setEventThemes(proposal.themes);
     setNotes((current) => current.trim() || proposal.summary);
     setEventFromAssist(true);
-    setStep(3);
-  };
-
-  const assigneeOptions = useMemo(() => {
-    const me = defaultOwner
-      ? [{ Id: defaultOwner.id, Title: defaultOwner.displayName }]
-      : [];
-    return mergeStandardBioUserOptions(assignableUsers, me);
-  }, [assignableUsers, defaultOwner]);
-
-  useEffect(() => {
-    if (!open) return;
-    setStep(1);
-    setMode(preset?.ActionStatus === "Completed" ? "record" : "plan");
-    setActivityType(toSmartActivityType(preset?.ActivityType));
-    setCompanyId(extractPresetCompanyId(preset));
-    setContactId(extractPresetContactId(preset));
-    setDealId(extractPresetDealId(preset));
-    setProjectId(extractPresetProjectId(preset));
-    setProjectName(preset?.ProjectName?.trim() ?? "");
-    setSubject(preset?.Subject ?? "");
-    setSummary(preset?.Summary ?? "");
-    setNotes(preset?.ActivityDescription ?? "");
-    setKeyDecisionsText(
-      preset?.KeyDecisions?.join("\n") ?? "",
-    );
-    setAgreedActionsText(
-      preset?.AgreedActions?.map((a) => (a.dueDate ? `${a.text} | ${a.dueDate}` : a.text)).join("\n") ?? "",
-    );
-    setRisksText(preset?.Risks?.join("\n") ?? "");
-    setSmartAssistAssessment(preset?.SmartAssistAssessment ?? null);
-    setFollowUp(preset?.ActionRequired ?? false);
-    setNextAction(preset?.NextAction ?? "");
-    setDueDate(preset?.NextActionDate ?? "");
-    setTrackingStatus(preset?.ActionStatus ?? "Planned");
-    setFollowUpStatus(preset?.ActionStatus ?? "Open");
-    setPriority(preset?.Priority ?? "Normal");
-    setDurationMinutes(String(preset?.DurationMinutes ?? 60));
-    const today = new Date().toISOString().slice(0, 10);
-    const presetDate = preset?.ActivityDate?.slice(0, 10) ?? today;
-    setPlanDate(presetDate);
-    setPlanEndDate(presetDate);
-    setPlanTime(preset?.ActivityDate?.slice(11, 16) || "09:00");
-    setAssignee(
-      defaultOwner
-        ? { Id: defaultOwner.id, Title: defaultOwner.displayName }
-        : preset?.ActivityOwner ?? null,
-    );
-    setSharedWith(preset?.SharedWith ?? []);
-    setResolution(null);
-    setResolveError("");
-    setEventSource("");
     setEventProposal(null);
-    setEventError("");
-    setEventLocation("");
-    setEventWebsite("");
-    setEventOrganizer("");
-    setEventThemes([]);
-    setEventFromAssist(false);
-  }, [open, preset, defaultOwner]);
-
-  const selectedCompany = companies.find((c) => c.CompanyID === companyId);
-  const contacts = selectedCompany?.contacts ?? [];
-  const selectedDeal = pipelines.find((p) => p.id === dealId);
-  const selectedContact = contacts.find((c) => c.ContactID === contactId);
-
-  const stepLabels = mode === "plan" && isEvent ? STEPS.event : STEPS[mode];
-
-  const contextLocked = Boolean(extractPresetDealId(preset) || extractPresetProjectId(preset));
-
-  const canNext =
-    step === 1
-      ? Boolean(activityType)
-      : step === 2
-        ? mode === "plan" && isEvent
-          ? true
-          : Boolean(companyId || contactId || dealId || projectId)
-        : step === 3
-          ? mode === "plan"
-            ? Boolean(subject.trim()) &&
-              (activityType !== "TASK" || Boolean(assignee)) &&
-              (!isAllDayActivityType(activityType) ||
-                (Boolean(planDate) && Boolean(planEndDate) && planEndDate >= planDate))
-            : Boolean(subject.trim() && notes.trim())
-          : !followUp || Boolean(nextAction.trim());
-
-  const handleDealChange = (id: string) => {
-    setDealId(id);
-    const company = companies.find((c) => c.pipelineIds.includes(id));
-    if (company) setCompanyId(company.CompanyID);
   };
 
-  const handleContactChange = (id: string) => {
-    setContactId(id);
-    for (const company of companies) {
-      const contact = company.contacts.find((c) => c.ContactID === id);
-      if (contact) {
-        setCompanyId(company.CompanyID);
-        break;
-      }
-    }
+  const askSmartAssist = () => {
+    const taskDescription = [title, notes].filter((part) => part.trim()).join("\n");
+    if (!taskDescription) return;
+    setResolving(true);
+    void fetch("/api/smartassist/omni-resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskDescription, dateLimit: date || undefined }),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("resolve failed");
+        const payload = (await response.json()) as { resolution?: SmartAssistResolution };
+        if (!payload.resolution) throw new Error("empty resolution");
+        setResolution(payload.resolution);
+      })
+      .catch(() => undefined)
+      .finally(() => setResolving(false));
   };
 
-  const resetForm = () => {
-    setStep(1);
-    setActivityType("");
-    setPlanEndDate("");
-    setCompanyId("");
-    setContactId("");
-    setDealId("");
-    setProjectId("");
-    setProjectName("");
-    setSubject("");
-    setSummary("");
-    setNotes("");
-    setKeyDecisionsText("");
-    setAgreedActionsText("");
-    setRisksText("");
-    setSmartAssistAssessment(null);
-    setFollowUp(false);
-    setNextAction("");
-    setDueDate("");
-    setPlanDate("");
-    setPlanTime("09:00");
-    setDurationMinutes("60");
-    setPriority("Normal");
-    setTrackingStatus("Planned");
-    setAssignee(
-      defaultOwner
-        ? { Id: defaultOwner.id, Title: defaultOwner.displayName }
-        : null,
-    );
-    setSharedWith([]);
-    clearEventState();
-  };
+  const canSave =
+    Boolean(title.trim()) &&
+    Boolean(date) &&
+    (!isEvent || Boolean(endDate && endDate >= date)) &&
+    (!isTask || Boolean(assignee)) &&
+    (!followUp || Boolean(nextAction.trim())) &&
+    (timing === "planned" || isEvent || Boolean(notes.trim()));
 
   const handleSubmit = async () => {
-    if (!activityType) return;
-    const displayType = SMART_ACTIVITY_DISPLAY[activityType];
-    const allDay = isAllDayActivityType(activityType);
-
+    if (!canSave) return;
     setSaving(true);
+    setError("");
     try {
-      const activityDate =
-        mode === "plan"
-          ? allDay
-            ? combineDateTime(planDate, "00:00")
-            : combineDateTime(planDate, planTime)
-          : new Date().toISOString();
-      const plannedEnd =
-        mode === "plan"
-          ? allDay
-            ? endOfLocalDay(planEndDate || planDate)
-            : new Date(
-                new Date(activityDate).getTime() +
-                  (Number(durationMinutes) || 60) * 60_000,
-              ).toISOString()
-          : null;
-
-      const owner =
-        activityType === "TASK"
-          ? assignee
-          : defaultOwner
-            ? { Id: defaultOwner.id, Title: defaultOwner.displayName }
-            : null;
-
-      if (activityType === "TASK" && !owner) {
-        setSaving(false);
-        return;
-      }
-
-      const eventLines = allDay
+      const activityDate = isEvent
+        ? combineDateTime(date, "00:00")
+        : isTask
+          ? combineDateTime(date, "09:00")
+          : combineDateTime(date, time);
+      const owner = isTask ? assignee : me;
+      const eventDetails = isEvent
+        ? {
+            location: eventLocation.trim() || null,
+            website: eventWebsite.trim() || null,
+            organizer: eventOrganizer.trim() || null,
+            objective: notes.trim() || null,
+            themes: eventThemes,
+          }
+        : null;
+      const eventLines = eventDetails
         ? [
-            eventLocation.trim() ? `Where: ${eventLocation.trim()}` : null,
-            eventOrganizer.trim() ? `Organiser: ${eventOrganizer.trim()}` : null,
-            eventWebsite.trim() ? `Event page: ${eventWebsite.trim()}` : null,
-            eventThemes.length ? `Themes: ${eventThemes.join(", ")}` : null,
+            eventDetails.location ? `Where: ${eventDetails.location}` : null,
+            eventDetails.organizer ? `Organiser: ${eventDetails.organizer}` : null,
+            eventDetails.website ? `Event page: ${eventDetails.website}` : null,
+            eventDetails.themes.length ? `Themes: ${eventDetails.themes.join(", ")}` : null,
           ].filter((line): line is string => Boolean(line))
         : [];
       const description = [
-        notes.trim() || (mode === "plan" ? `Planned ${displayType.toLowerCase()}.` : ""),
+        notes.trim() || (timing === "planned" ? `Planned ${displayType.toLowerCase()}.` : ""),
         ...eventLines,
       ]
         .filter(Boolean)
@@ -420,8 +339,8 @@ export function ActivityCreateWizard({
       await syncActivityCreate({
         ActivityType: displayType,
         ActivityDate: activityDate,
-        Subject: subject.trim(),
-        Summary: summary.trim() || subject.trim(),
+        Subject: title.trim(),
+        Summary: summary.trim() || title.trim(),
         ActivityDescription: description,
         KeyDecisions: parseMemoryLines(keyDecisionsText),
         AgreedActions: parseAgreedActions(agreedActionsText),
@@ -432,178 +351,117 @@ export function ActivityCreateWizard({
         ProjectId: projectId || null,
         ProjectName: projectId ? projectName || null : null,
         LinkedDeals: dealId ? [{ Id: 0, Title: dealId }] : [],
-        LinkedContacts: contactId
-          ? [
-              {
-                Id: 0,
-                Title:
-                  contacts.find((c) => c.ContactID === contactId)?.Title ?? contactId,
-              },
-            ]
+        LinkedContacts: selectedContact
+          ? [{ Id: 0, Title: getContactDisplayName(selectedContact) }]
           : [],
         ActivityOwner: owner,
-        SharedWith: activityType === "TASK" ? sharedWith : undefined,
-        DurationMinutes:
-          mode === "plan"
-            ? allDay
-              ? inclusiveDayCount(planDate, planEndDate || planDate) * 24 * 60
-              : Number(durationMinutes) || undefined
-            : undefined,
-        Priority: mode === "plan" ? priority : undefined,
+        SharedWith: isTask ? sharedWith : undefined,
+        DurationMinutes: isEvent
+          ? inclusiveDayCount(date, endDate || date) * 24 * 60
+          : isTask
+            ? undefined
+            : Number(durationMinutes) || undefined,
+        Priority: priority,
         M365Targets: inferM365Targets(displayType),
-        ActionRequired: activityType === "TASK" ? true : followUp,
-        NextAction:
-          activityType === "TASK"
-            ? subject.trim()
-            : followUp
-              ? nextAction.trim()
-              : "",
-        NextActionDate:
-          activityType === "TASK"
-            ? planDate || activityDate.slice(0, 10)
-            : followUp
-              ? dueDate
-              : "",
-        ActionStatus: followUp
-          ? followUpStatus
-          : mode === "plan"
-            ? activityType === "TASK"
-              ? "Open"
-              : trackingStatus
-            : "Completed",
+        ActionRequired: isTask ? true : followUp,
+        NextAction: isTask ? title.trim() : followUp ? nextAction.trim() : "",
+        NextActionDate: isTask ? date : followUp ? dueDate : "",
+        ActionStatus: timing === "done" ? "Completed" : isTask ? "Open" : "Planned",
         ActionOutcome: "",
-        SmartAssistAssessment: smartAssistAssessment ?? undefined,
+        SmartAssistAssessment: assessment ?? undefined,
+        EventDetails: eventDetails,
+        IsAiProposed: isEvent && eventFromAssist,
       });
-      if (mode === "plan" && planDate) {
-        try {
-          await fetch("/api/calendar/activities", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: activityType,
-              title: subject.trim(),
-              startDate: activityDate,
-              endDate: plannedEnd,
-              companyCode: companyId || null,
-              opportunityCode: dealId || null,
-              isAiProposed: allDay && eventFromAssist,
-              event: allDay
-                ? {
-                    location: eventLocation.trim() || null,
-                    website: eventWebsite.trim() || null,
-                    organizer: eventOrganizer.trim() || null,
-                    objective: notes.trim() || null,
-                    themes: eventThemes,
-                  }
-                : null,
-            }),
-          });
-        } catch {
-          // The activity record is already saved. The calendar can catch up later.
-        }
-      }
       onCreated();
       onClose();
-      resetForm();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save the activity.");
     } finally {
       setSaving(false);
     }
   };
 
-  if (!open) return null;
+  const showSmartAssistContext =
+    timing === "planned" && !isEvent && !companyId && Boolean(title.trim() || notes.trim());
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-carbon-blue/40 p-4 backdrop-blur-[2px]">
-      <div className="flex max-h-[90vh] w-full max-w-xl flex-col border border-carbon-blue/15 bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-carbon-blue/10 px-4 py-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-              {mode === "plan" ? "Plan activity" : "Record interaction"} · Step {step} of 4
-            </p>
-            <h2 className="text-sm font-semibold text-carbon-blue">{stepLabels[step - 1]}</h2>
-          </div>
+      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col border border-carbon-blue/15 bg-white shadow-2xl">
+        <header className="flex items-center justify-between border-b border-carbon-blue/10 px-5 py-3">
+          <h2 className="text-sm font-semibold text-carbon-blue">
+            {timing === "done" ? "Log an activity" : "Plan an activity"}
+          </h2>
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close"
             className="border border-carbon-blue/10 p-1.5 text-carbon-blue/50 transition-colors hover:text-carbon-blue"
           >
             <X className="size-4" />
           </button>
         </header>
 
-        {step === 1 ? (
-          <div className="flex gap-2 border-b border-carbon-blue/8 px-4 py-2">
-            {(["plan", "record"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setMode(value)}
-                className={`flex-1 border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider ${
-                  mode === value
-                    ? "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange"
-                    : "border-carbon-blue/10 text-carbon-blue/45"
-                }`}
+        <div className="grid flex-1 gap-4 overflow-y-auto px-5 py-4">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <label className="block">
+              <span className={LABEL}>Type</span>
+              <select
+                value={activityType}
+                onChange={(e) => {
+                  const next = e.target.value as SmartActivityType;
+                  setActivityType(next);
+                  if (isAllDayActivityType(next)) setEndDate((current) => current || date);
+                }}
+                className={INPUT}
               >
-                {value === "plan" ? "Plan" : "Log"}
-              </button>
-            ))}
+                {ACTIVITY_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.type} value={opt.type}>
+                    {opt.emoji} {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {isEvent ? null : (
+              <div className="block">
+                <span className={LABEL}>When</span>
+                <div className="mt-1 inline-flex border border-carbon-blue/12">
+                  {(["planned", "done"] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setTiming(value)}
+                      aria-pressed={timing === value}
+                      className={`px-3 py-2 text-xs font-medium ${
+                        timing === value
+                          ? "bg-carbon-blue text-white"
+                          : "text-carbon-blue/60 hover:bg-carbon-blue/[0.04]"
+                      }`}
+                    >
+                      {value === "planned" ? "Upcoming" : "Already happened"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        ) : null}
 
-        <div className="flex-1 overflow-y-auto p-4">
-          {step === 1 ? (
-            <div className="grid grid-cols-4 gap-2">
-              {ACTIVITY_TYPE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.type}
-                  type="button"
-                  onClick={() => {
-                    setActivityType(opt.type);
-                    if (isAllDayActivityType(opt.type)) {
-                      setPlanEndDate((current) => current || planDate);
-                    }
-                  }}
-                  className={`flex flex-col items-center gap-2 border p-3 text-center transition-all duration-150 ${
-                    activityType === opt.type
-                      ? "border-upcycle-orange/40 bg-upcycle-orange/[0.06] ring-1 ring-upcycle-orange/20"
-                      : "border-carbon-blue/10 hover:border-carbon-blue/20 hover:bg-carbon-blue/[0.02]"
-                  }`}
-                >
-                  <span className="text-xl">{opt.emoji}</span>
-                  <span className="text-[10px] font-medium leading-tight text-carbon-blue">
-                    {opt.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          {step === 2 && mode === "plan" && isEvent ? (
-            <div className="grid gap-3">
+          {isEvent ? (
+            <div className="grid gap-2 border border-carbon-blue/10 bg-carbon-blue/[0.015] p-3">
               <label className="block">
-                <span className={LABEL_CLASS}>Event link or invitation</span>
+                <span className={LABEL}>Event link or invitation</span>
                 <textarea
                   value={eventSource}
                   onChange={(e) => setEventSource(e.target.value)}
-                  rows={3}
-                  placeholder="Paste the event web address, or the text of the invitation email"
-                  className="mt-1 w-full resize-none border border-carbon-blue/12 bg-carbon-blue/[0.015] px-3 py-2.5 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                  rows={2}
+                  placeholder="Paste the event web address or the invitation text — SmartAssist fills in the name, dates and place"
+                  className={TEXTAREA}
                 />
               </label>
-              {!eventProposal ? (
-                <button
-                  type="button"
-                  disabled={eventReading || !eventSource.trim()}
-                  onClick={readEventSource}
-                  className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-2 text-left text-xs font-semibold text-upcycle-orange disabled:opacity-40"
-                >
-                  {eventReading ? "Reading the event…" : "✨ Let SmartAssist read it"}
-                </button>
-              ) : (
+              {eventProposal ? (
                 <div className="border border-carbon-blue/12 bg-white">
                   <div className="border-b border-carbon-blue/8 px-3 py-2">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
-                      ⚡ SmartAssist found this event
+                      SmartAssist found this event
                     </p>
                     <p className="mt-1 text-sm font-semibold text-carbon-blue">
                       {eventProposal.title || "Name not found"}
@@ -616,338 +474,167 @@ export function ActivityCreateWizard({
                       <p className="text-xs text-carbon-blue/50">Organised by {eventProposal.organizer}</p>
                     ) : null}
                   </div>
-                  <div className="grid gap-2 px-3 py-2 text-xs text-carbon-blue/80">
-                    {eventProposal.summary ? <p>{eventProposal.summary}</p> : null}
-                    {eventProposal.themes.length ? (
-                      <p className="text-carbon-blue/55">{eventProposal.themes.join(" · ")}</p>
-                    ) : null}
-                    {!eventProposal.found.dates ? (
-                      <p className="text-orange-800">Dates were not stated — add them on the next step.</p>
-                    ) : null}
-                  </div>
+                  {eventProposal.summary || eventProposal.themes.length ? (
+                    <div className="grid gap-1 px-3 py-2 text-xs text-carbon-blue/80">
+                      {eventProposal.summary ? <p>{eventProposal.summary}</p> : null}
+                      {eventProposal.themes.length ? (
+                        <p className="text-carbon-blue/55">{eventProposal.themes.join(" · ")}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between gap-2 border-t border-carbon-blue/8 px-3 py-2">
                     <button
                       type="button"
                       onClick={() => setEventProposal(null)}
                       className="text-xs text-carbon-blue/50 hover:text-carbon-blue"
                     >
-                      ✕ Not this
+                      Not this
                     </button>
                     <button
                       type="button"
                       onClick={() => applyEventProposal(eventProposal)}
                       className="border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white"
                     >
-                      Use this event
+                      Use these details
                     </button>
                   </div>
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={eventReading || !eventSource.trim()}
+                  onClick={readEventSource}
+                  className="justify-self-start border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-xs font-semibold text-upcycle-orange disabled:opacity-40"
+                >
+                  {eventReading ? "Reading…" : "Let SmartAssist read it"}
+                </button>
               )}
               {eventError ? <p className="text-[11px] text-orange-800">{eventError}</p> : null}
-              <p className="text-[11px] text-carbon-blue/50">
-                SmartAssist proposes the name, dates, and place. You confirm before anything is saved. Or skip
-                and fill in the details yourself.
-              </p>
             </div>
           ) : null}
 
-          {step === 2 && !(mode === "plan" && isEvent) ? (
-            <div className="grid gap-3">
-              {contextLocked ? (
-                <div className="border border-upcycle-orange/25 bg-upcycle-orange/[0.04] px-3 py-2.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-upcycle-orange">
-                    Auto-tagged from workspace
-                  </p>
-                  <p className="mt-1 text-[13px] text-carbon-blue">
-                    {projectId
-                      ? `Project · ${projectName || projectId}`
-                      : dealId
-                        ? `Opportunity · ${selectedDeal?.assetName || dealId}`
-                        : "Workspace context"}
-                  </p>
-                </div>
-              ) : null}
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Company
-                </span>
-                <select
-                  value={companyId}
-                  onChange={(e) => setCompanyId(e.target.value)}
-                  className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                >
-                  <option value="">Select company…</option>
-                  {companies.map((c) => (
-                    <option key={c.CompanyID} value={c.CompanyID}>
-                      {c.Title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Contact
-                </span>
-                <select
-                  value={contactId}
-                  onChange={(e) => handleContactChange(e.target.value)}
-                  className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                >
-                  <option value="">Select contact…</option>
-                  {(contacts.length ? contacts : companies.flatMap((c) => c.contacts)).map(
-                    (c) => (
-                      <option key={c.ContactID} value={c.ContactID}>
-                        {getContactDisplayName(c)}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </label>
-              {!projectId ? (
-                <label className="block">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                    Opportunity
-                  </span>
-                  <select
-                    value={dealId}
-                    onChange={(e) => handleDealChange(e.target.value)}
-                    disabled={Boolean(extractPresetDealId(preset))}
-                    className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40 disabled:bg-carbon-blue/[0.03] disabled:text-carbon-blue/70"
-                  >
-                    <option value="">Select opportunity…</option>
-                    {pipelines.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.id} — {p.assetName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-            </div>
-          ) : null}
+          <label className="block">
+            <span className={LABEL}>{isEvent ? "Event name" : "Title"}</span>
+            {eventFromAssist ? (
+              <span className="ml-2 text-[10px] font-semibold text-upcycle-orange">
+                Proposed by SmartAssist — check and adjust
+              </span>
+            ) : null}
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus={!isEvent}
+              placeholder={TITLE_PLACEHOLDER[activityType]}
+              className={`${INPUT} font-medium`}
+            />
+          </label>
 
-          {step === 3 && mode === "plan" && isEvent ? (
-            <div className="grid gap-3">
-              {eventFromAssist ? (
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange">
-                  ⚡ Proposed by SmartAssist — check and adjust
-                </p>
-              ) : null}
-              <label className="block">
-                <span className={LABEL_CLASS}>Event name</span>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder={activityType === "SEMINAR" ? "Seminar or conference name" : "Tradeshow or fair name"}
-                  className={`${INPUT_CLASS} font-medium`}
-                />
-              </label>
-              <div className="grid grid-cols-2 gap-2">
+          {isEvent ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className={LABEL_CLASS}>First day</span>
+                  <span className={LABEL}>First day</span>
                   <input
                     type="date"
-                    value={planDate}
+                    value={date}
                     onChange={(e) => {
                       const next = e.target.value;
-                      setPlanDate(next);
-                      setPlanEndDate((current) => (current && current >= next ? current : next));
+                      setDate(next);
+                      setEndDate((current) => (current && current >= next ? current : next));
                     }}
-                    className={INPUT_CLASS}
+                    className={INPUT}
                   />
                 </label>
                 <label className="block">
-                  <span className={LABEL_CLASS}>Last day</span>
+                  <span className={LABEL}>Last day</span>
                   <input
                     type="date"
-                    value={planEndDate}
-                    min={planDate}
-                    onChange={(e) => setPlanEndDate(e.target.value)}
-                    className={INPUT_CLASS}
+                    value={endDate}
+                    min={date}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className={INPUT}
                   />
                 </label>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <label className="block">
-                  <span className={LABEL_CLASS}>Where</span>
+                  <span className={LABEL}>Where</span>
                   <input
                     type="text"
                     value={eventLocation}
                     onChange={(e) => setEventLocation(e.target.value)}
                     placeholder="City, Country"
-                    className={INPUT_CLASS}
+                    className={INPUT}
                   />
                 </label>
                 <label className="block">
-                  <span className={LABEL_CLASS}>Organiser</span>
+                  <span className={LABEL}>Organiser</span>
                   <input
                     type="text"
                     value={eventOrganizer}
                     onChange={(e) => setEventOrganizer(e.target.value)}
                     placeholder="Who runs it"
-                    className={INPUT_CLASS}
+                    className={INPUT}
+                  />
+                </label>
+                <label className="block">
+                  <span className={LABEL}>Event page</span>
+                  <input
+                    type="url"
+                    value={eventWebsite}
+                    onChange={(e) => setEventWebsite(e.target.value)}
+                    placeholder="https://"
+                    className={INPUT}
                   />
                 </label>
               </div>
               <label className="block">
-                <span className={LABEL_CLASS}>Event page</span>
-                <input
-                  type="url"
-                  value={eventWebsite}
-                  onChange={(e) => setEventWebsite(e.target.value)}
-                  placeholder="https://"
-                  className={INPUT_CLASS}
-                />
-              </label>
-              <label className="block">
-                <span className={LABEL_CLASS}>Why we go</span>
+                <span className={LABEL}>Why we go</span>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                   placeholder="Who we want to meet, what we want to learn, what we want to show"
-                  className="mt-1 w-full resize-none border border-carbon-blue/12 bg-carbon-blue/[0.015] px-3 py-2.5 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                  className={TEXTAREA}
                 />
               </label>
               {eventThemes.length ? (
-                <p className="text-[11px] text-carbon-blue/55">Themes · {eventThemes.join(" · ")}</p>
+                <p className="-mt-2 text-[11px] text-carbon-blue/55">Themes · {eventThemes.join(" · ")}</p>
               ) : null}
-              <div className="grid grid-cols-2 gap-2">
+            </>
+          ) : (
+            <>
+              <div className={`grid gap-3 ${isTask ? "sm:grid-cols-2" : "sm:grid-cols-4"}`}>
                 <label className="block">
-                  <span className={LABEL_CLASS}>Priority</span>
-                  <select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value as ActivityPriority)}
-                    className={INPUT_CLASS}
-                  >
-                    {ACTIVITY_PRIORITIES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                  <span className={LABEL}>{isTask ? "Due" : timing === "done" ? "Date" : "Date"}</span>
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={INPUT} />
                 </label>
-                {!contextLocked ? (
-                  <label className="block">
-                    <span className={LABEL_CLASS}>Related opportunity (optional)</span>
-                    <select
-                      value={dealId}
-                      onChange={(e) => handleDealChange(e.target.value)}
-                      className={INPUT_CLASS}
-                    >
-                      <option value="">None</option>
-                      {pipelines.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.id} — {p.assetName}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
-          {step === 3 && mode === "plan" && !isEvent ? (
-            <div className="grid gap-3">
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Subject
-                </span>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="What are you planning?"
-                  className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm font-medium text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                />
-              </label>
-              {isAllDayActivityType(activityType) ? (
-                <div className="grid gap-2">
-                  <div className="grid grid-cols-2 gap-2">
+                {isTask ? null : (
+                  <>
                     <label className="block">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                        Start date
-                      </span>
-                      <input
-                        type="date"
-                        value={planDate}
-                        onChange={(e) => {
-                          const next = e.target.value;
-                          setPlanDate(next);
-                          setPlanEndDate((current) => (current && current >= next ? current : next));
-                        }}
-                        className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                      />
+                      <span className={LABEL}>Time</span>
+                      <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={INPUT} />
                     </label>
                     <label className="block">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                        End date
-                      </span>
+                      <span className={LABEL}>Minutes</span>
                       <input
-                        type="date"
-                        value={planEndDate}
-                        min={planDate}
-                        onChange={(e) => setPlanEndDate(e.target.value)}
-                        className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                        type="number"
+                        min={15}
+                        step={15}
+                        value={durationMinutes}
+                        onChange={(e) => setDurationMinutes(e.target.value)}
+                        className={INPUT}
                       />
                     </label>
-                  </div>
-                  <p className="text-[11px] text-carbon-blue/50">
-                    Full day or several days. No start or end time.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="block">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                      Date
-                    </span>
-                    <input
-                      type="date"
-                      value={planDate}
-                      onChange={(e) => setPlanDate(e.target.value)}
-                      className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                      Time
-                    </span>
-                    <input
-                      type="time"
-                      value={planTime}
-                      onChange={(e) => setPlanTime(e.target.value)}
-                      className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                    />
-                  </label>
-                </div>
-              )}
-              <div className={`grid gap-2 ${isAllDayActivityType(activityType) ? "grid-cols-2" : "grid-cols-3"}`}>
-                {isAllDayActivityType(activityType) ? null : (
-                  <label className="block">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                      Duration (min)
-                    </span>
-                    <input
-                      type="number"
-                      min={15}
-                      step={15}
-                      value={durationMinutes}
-                      onChange={(e) => setDurationMinutes(e.target.value)}
-                      className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                    />
-                  </label>
+                  </>
                 )}
                 <label className="block">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                    Priority
-                  </span>
+                  <span className={LABEL}>Priority</span>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as ActivityPriority)}
-                    className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                    className={INPUT}
                   >
                     {ACTIVITY_PRIORITIES.map((p) => (
                       <option key={p} value={p}>
@@ -956,25 +643,10 @@ export function ActivityCreateWizard({
                     ))}
                   </select>
                 </label>
-                <label className="block">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                    Status
-                  </span>
-                  <select
-                    value={trackingStatus}
-                    onChange={(e) => setTrackingStatus(e.target.value as ActionStatus)}
-                    className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                  >
-                    {TRACKING_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </div>
-              {activityType === "TASK" ? (
-                <>
+
+              {isTask ? (
+                <div className="grid gap-3 sm:grid-cols-2">
                   <TaskAssigneeSelect
                     value={assignee}
                     onChange={setAssignee}
@@ -989,271 +661,229 @@ export function ActivityCreateWizard({
                     excludeIds={assignee ? [assignee.Id] : []}
                     disabled={saving}
                   />
-                </>
-              ) : null}
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Notes
-                </span>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  placeholder="Planning context, agenda, or preparation notes"
-                  className="mt-1 w-full resize-none border border-carbon-blue/12 bg-carbon-blue/[0.015] px-3 py-2.5 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                />
-              </label>
-              {activityType ? (
-                <p className="text-[10px] text-carbon-blue/45">
-                  M365 ready:{" "}
-                  {Object.entries(
-                    inferM365Targets(SMART_ACTIVITY_DISPLAY[activityType]),
-                  )
-                    .filter(([, enabled]) => enabled)
-                    .map(([key]) => key)
-                    .join(", ") || "local only"}
-                </p>
-              ) : null}
-              {!companyId && (subject.trim() || notes.trim()) ? (
-                <div className="grid gap-2">
-                  {!resolution ? (
-                    <button
-                      type="button"
-                      disabled={resolving}
-                      onClick={() => {
-                        const taskDescription = [subject, notes].filter((part) => part.trim()).join("\n");
-                        setResolving(true);
-                        setResolveError("");
-                        void fetch("/api/smartassist/omni-resolve", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            taskDescription,
-                            dateLimit: planEndDate || planDate || undefined,
-                          }),
-                        })
-                          .then(async (response) => {
-                            if (!response.ok) throw new Error("resolve failed");
-                            const payload = (await response.json()) as {
-                              resolution?: SmartAssistResolution;
-                            };
-                            if (!payload.resolution) throw new Error("empty resolution");
-                            setResolution(payload.resolution);
-                          })
-                          .catch(() => setResolveError("SmartAssist kunne ikke hente innsikt."))
-                          .finally(() => setResolving(false));
-                      }}
-                      className="border border-carbon-blue/15 bg-white px-3 py-2 text-left text-xs font-medium text-carbon-blue hover:border-upcycle-orange/40"
-                    >
-                      {resolving ? "Henter innsikt…" : "✨ Be SmartAssist om innsikt/leverandører"}
-                    </button>
-                  ) : (
-                    <SmartAssistResolutionCard
-                      resolution={resolution}
-                      onDismiss={() => setResolution(null)}
-                    />
-                  )}
-                  {resolveError ? (
-                    <p className="text-[11px] text-orange-800">{resolveError}</p>
-                  ) : null}
                 </div>
               ) : null}
-            </div>
-          ) : null}
 
-          {step === 3 && mode === "record" ? (
-            <div className="grid gap-3">
-              <ActivityKnowledgeCapturePanel
-                activityType={activityType ? SMART_ACTIVITY_DISPLAY[activityType] : ""}
-                subject={subject}
-                company={selectedCompany}
-                deal={selectedDeal}
-                contactName={selectedContact ? getContactDisplayName(selectedContact) : undefined}
-                existingNotes={notes}
-                onApply={(state) => {
-                  setSummary(state.summary);
-                  setNotes(state.notes);
-                  setKeyDecisionsText(state.keyDecisionsText);
-                  setAgreedActionsText(state.agreedActionsText);
-                  setRisksText(state.risksText);
-                  setNextAction(state.nextAction);
-                  setDueDate(state.dueDate);
-                  setFollowUp(state.followUp);
-                  setSmartAssistAssessment(state.assessment);
-                }}
-              />
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Subject
-                </span>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Brief title for this interaction"
-                  className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm font-medium text-carbon-blue outline-none focus:border-upcycle-orange/40"
+              <fieldset className="grid gap-3">
+                <legend className={LABEL}>
+                  About
+                  {contextLocked ? (
+                    <span className="ml-2 normal-case tracking-normal text-upcycle-orange">
+                      {projectId
+                        ? `Project · ${projectName || projectId}`
+                        : `Opportunity · ${selectedDeal?.assetName || dealId}`}
+                    </span>
+                  ) : null}
+                </legend>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <label className="block">
+                    <span className={LABEL}>Company</span>
+                    <select
+                      value={companyId}
+                      onChange={(e) => {
+                        setCompanyId(e.target.value);
+                        setContactId("");
+                      }}
+                      disabled={Boolean(presetCompanyId(preset)) && contextLocked}
+                      className={INPUT}
+                    >
+                      <option value="">None</option>
+                      {companies.map((c) => (
+                        <option key={c.CompanyID} value={c.CompanyID}>
+                          {c.Title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className={LABEL}>Person</span>
+                    <select
+                      value={contactId}
+                      onChange={(e) => handleContactChange(e.target.value)}
+                      className={INPUT}
+                    >
+                      <option value="">None</option>
+                      {(contacts.length ? contacts : companies.flatMap((c) => c.contacts)).map((c) => (
+                        <option key={c.ContactID} value={c.ContactID}>
+                          {getContactDisplayName(c)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {projectId ? null : (
+                    <label className="block">
+                      <span className={LABEL}>Opportunity</span>
+                      <select
+                        value={dealId}
+                        onChange={(e) => handleDealChange(e.target.value)}
+                        disabled={Boolean(presetDealId(preset))}
+                        className={INPUT}
+                      >
+                        <option value="">None</option>
+                        {pipelines.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.code ?? p.id} — {p.assetName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                </div>
+              </fieldset>
+
+              {timing === "done" ? (
+                <ActivityKnowledgeCapturePanel
+                  activityType={displayType}
+                  subject={title}
+                  company={selectedCompany}
+                  deal={selectedDeal}
+                  contactName={selectedContact ? getContactDisplayName(selectedContact) : undefined}
+                  existingNotes={notes}
+                  onApply={(state) => {
+                    setSummary(state.summary);
+                    setNotes(state.notes);
+                    setKeyDecisionsText(state.keyDecisionsText);
+                    setAgreedActionsText(state.agreedActionsText);
+                    setRisksText(state.risksText);
+                    setNextAction(state.nextAction);
+                    setDueDate(state.dueDate);
+                    setFollowUp(state.followUp);
+                    setAssessment(state.assessment);
+                  }}
                 />
-              </label>
+              ) : null}
+
               <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Summary
-                </span>
-                <input
-                  type="text"
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  placeholder="One-line memory — visible on the timeline"
-                  className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  What happened
-                </span>
+                <span className={LABEL}>{timing === "done" ? "What happened" : "Notes"}</span>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  rows={4}
-                  placeholder="Full context — what was discussed and observed"
-                  className="mt-1 w-full resize-none border border-carbon-blue/12 bg-carbon-blue/[0.015] px-3 py-2.5 text-sm leading-relaxed text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                  rows={timing === "done" ? 4 : 3}
+                  placeholder={
+                    timing === "done"
+                      ? "What was discussed, decided, and observed"
+                      : isTask
+                        ? "Context the assignee needs"
+                        : "Agenda or preparation notes"
+                  }
+                  className={TEXTAREA}
                 />
               </label>
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Decisions
-                </span>
-                <textarea
-                  value={keyDecisionsText}
-                  onChange={(e) => setKeyDecisionsText(e.target.value)}
-                  rows={2}
-                  placeholder="Explicit customer decisions — one per line"
-                  className="mt-1 w-full resize-none border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Commitments
-                </span>
-                <textarea
-                  value={agreedActionsText}
-                  onChange={(e) => setAgreedActionsText(e.target.value)}
-                  rows={2}
-                  placeholder="One commitment per line (optional: text | YYYY-MM-DD)"
-                  className="mt-1 w-full resize-none border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                  Risks
-                </span>
-                <textarea
-                  value={risksText}
-                  onChange={(e) => setRisksText(e.target.value)}
-                  rows={2}
-                  placeholder="Risks or blockers — one per line"
-                  className="mt-1 w-full resize-none border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                />
-              </label>
-            </div>
-          ) : null}
 
-          {step === 4 ? (
-            <div className="grid gap-3">
-              <label className="flex cursor-pointer items-center gap-3 border border-carbon-blue/10 p-3">
+              {timing === "done" ? (
+                <details className="group border border-carbon-blue/10">
+                  <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold text-carbon-blue/70 group-open:border-b group-open:border-carbon-blue/10">
+                    What we learned — decisions, commitments, risks
+                  </summary>
+                  <div className="grid gap-3 p-3">
+                    <label className="block">
+                      <span className={LABEL}>One-line summary</span>
+                      <input
+                        type="text"
+                        value={summary}
+                        onChange={(e) => setSummary(e.target.value)}
+                        placeholder="The one thing to remember — shown on the timeline"
+                        className={INPUT}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={LABEL}>Decisions</span>
+                      <textarea
+                        value={keyDecisionsText}
+                        onChange={(e) => setKeyDecisionsText(e.target.value)}
+                        rows={2}
+                        placeholder="One per line"
+                        className={TEXTAREA}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={LABEL}>Commitments</span>
+                      <textarea
+                        value={agreedActionsText}
+                        onChange={(e) => setAgreedActionsText(e.target.value)}
+                        rows={2}
+                        placeholder="One per line — add a date with “ | YYYY-MM-DD”"
+                        className={TEXTAREA}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={LABEL}>Risks</span>
+                      <textarea
+                        value={risksText}
+                        onChange={(e) => setRisksText(e.target.value)}
+                        rows={2}
+                        placeholder="One per line"
+                        className={TEXTAREA}
+                      />
+                    </label>
+                  </div>
+                </details>
+              ) : null}
+
+              {showSmartAssistContext ? (
+                resolution ? (
+                  <SmartAssistResolutionCard resolution={resolution} onDismiss={() => setResolution(null)} />
+                ) : (
+                  <button type="button" disabled={resolving} onClick={askSmartAssist} className={SECONDARY_BUTTON}>
+                    {resolving ? "Looking through mail, files and Teams…" : "Ask SmartAssist what we already know about this"}
+                  </button>
+                )
+              ) : null}
+            </>
+          )}
+
+          {isTask ? null : (
+            <div className="grid gap-3 border-t border-carbon-blue/8 pt-3">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-carbon-blue">
                 <input
                   type="checkbox"
                   checked={followUp}
                   onChange={(e) => setFollowUp(e.target.checked)}
                   className="size-4 accent-upcycle-orange"
                 />
-                <span className="text-sm font-medium text-carbon-blue">
-                  Follow-up required
-                </span>
+                Needs a follow-up
               </label>
               {followUp ? (
-                <>
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
                   <label className="block">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                      Next Action
-                    </span>
+                    <span className={LABEL}>Next step</span>
                     <input
                       type="text"
                       value={nextAction}
                       onChange={(e) => setNextAction(e.target.value)}
-                      className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+                      placeholder="What happens next"
+                      className={INPUT}
                     />
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <label className="block">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                        Due Date
-                      </span>
-                      <input
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/40">
-                        Status
-                      </span>
-                      <select
-                        value={followUpStatus}
-                        onChange={(e) => setFollowUpStatus(e.target.value as ActionStatus)}
-                        className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
-                      >
-                        {ACTION_STATUSES.filter((s) => s !== "Completed").map((s) => (
-                          <option key={s} value={s}>
-                            {s === "Open" ? "Planned" : s}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                </>
-              ) : (
-                <p className="text-xs text-carbon-blue/50">
-                  {mode === "plan"
-                    ? "Activity will be saved with the selected planning status."
-                    : "No follow-up needed — this interaction will be logged as complete."}
-                </p>
-              )}
+                  <label className="block">
+                    <span className={LABEL}>By</span>
+                    <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={INPUT} />
+                  </label>
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          )}
+
+          {error ? <p className="text-[11px] text-orange-800">{error}</p> : null}
         </div>
 
-        <footer className="flex items-center justify-between border-t border-carbon-blue/10 px-4 py-3">
+        <footer className="flex items-center justify-end gap-2 border-t border-carbon-blue/10 px-5 py-3">
           <button
             type="button"
-            disabled={step === 1}
-            onClick={() => setStep((s) => Math.max(1, s - 1) as WizardStep)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-carbon-blue/60 disabled:opacity-40"
+            disabled={saving}
+            onClick={onClose}
+            className="border border-carbon-blue/15 px-3 py-1.5 text-xs font-semibold text-carbon-blue/60"
           >
-            <ArrowLeft className="size-3.5" />
-            Back
+            Cancel
           </button>
-          {step < 4 ? (
-            <button
-              type="button"
-              disabled={!canNext}
-              onClick={() => setStep((s) => Math.min(4, s + 1) as WizardStep)}
-              className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange/10 px-3 py-1.5 text-xs font-semibold text-upcycle-orange disabled:opacity-40"
-            >
-              Continue
-              <ArrowRight className="size-3.5" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={saving || !canNext}
-              onClick={() => void handleSubmit()}
-              className="border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-            >
-              {saving ? "Saving…" : mode === "plan" ? "Create Activity" : "Record Interaction"}
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={saving || !canSave}
+            onClick={() => void handleSubmit()}
+            className="border border-upcycle-orange/30 bg-upcycle-orange px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+          >
+            {saving ? "Saving…" : timing === "done" ? "Save" : isEvent ? "Add to calendar" : "Plan"}
+          </button>
         </footer>
       </div>
     </div>

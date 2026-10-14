@@ -687,7 +687,7 @@ function ActivityDetail({
               }}
               className="border border-border bg-white px-2.5 py-2 text-left text-xs font-medium"
             >
-              {resolving ? "Henter innsikt…" : "✨ Be SmartAssist om innsikt/leverandører"}
+              {resolving ? "Looking through mail, files and Teams…" : "Ask SmartAssist what we already know"}
             </button>
           )
         ) : null}

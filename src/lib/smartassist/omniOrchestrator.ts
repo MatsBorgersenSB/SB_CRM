@@ -58,7 +58,7 @@ Return only JSON with this shape:
   "temporalNote": string,
   "sourcingSuggestions": [{ "name": string, "category": string, "region": string, "reasoning": string }]
 }
-Write summary, temporalNote, and reasoning in Norwegian. Keep sourcingSuggestions to at most 3 items.`;
+Write summary, temporalNote, and reasoning in plain English for a business reader. Keep sourcingSuggestions to at most 3 items.`;
 
 export function ageInMonths(timestamp: string, now: Date): number | null {
   const then = new Date(timestamp);
@@ -124,16 +124,16 @@ function overallFreshness(evidence: InternalEvidence[], now: Date): DataFreshnes
 function temporalNoteFor(freshness: DataFreshness, evidence: InternalEvidence[]): string | undefined {
   const outdated = evidence.filter((item) => item.status === "OUTDATED").length;
   if (freshness === "OUTDATED") {
-    return "Intern dokumentasjon er eldre enn 12 måneder. Pris og tilgjengelighet er utdatert og må revalideres.";
+    return "Our internal records are more than 12 months old. Prices and availability are outdated and must be re-confirmed.";
   }
   if (freshness === "AGING") {
-    return "Nyeste interne spor er mellom 6 og 12 måneder. Pris, råstofftilbud og tilgjengelighet er usikre.";
+    return "Our newest internal record is 6 to 12 months old. Prices, feedstock offers and availability are uncertain.";
   }
   if (freshness === "FRESH" && outdated > 0) {
-    return `${outdated} eldre treff er markert utdatert. Bruk bare det som er under 6 måneder.`;
+    return `${outdated} older ${outdated === 1 ? "record is" : "records are"} marked outdated. Rely only on what is under 6 months old.`;
   }
   if (freshness === "EXTERNAL_ONLY") {
-    return "Ingen interne treff å datere. Ikke anta pris eller volum.";
+    return "Nothing internal to date this against. Do not assume price or volume.";
   }
   return undefined;
 }
@@ -155,7 +155,7 @@ function readSuggestions(draft: unknown, regionFallback: string | null): Sourcin
     suggestions.push({
       name,
       category,
-      region: region || regionFallback || "Ukjent region",
+      region: region || regionFallback || "Region unknown",
       reasoning,
     });
     if (suggestions.length === 3) break;
@@ -186,11 +186,11 @@ export function composeResolution(input: TaskContextInput & {
 
   const fallbackSummary = needsSourcing
     ? commodity
-      ? `Ingen fersk intern kilde for ${commodity}${region ? ` i ${region}` : ""}. Navngitte forslag må bekreftes før de blir selskaper.`
-      : "Intern dokumentasjon mangler eller er for gammel til å stole på for innkjøp."
+      ? `We have no fresh internal source for ${commodity}${region ? ` in ${region}` : ""}. Named suggestions must be confirmed before they become companies.`
+      : "Our internal records are missing or too old to rely on for procurement."
     : evidence.length > 0
-      ? `Fant ${evidence.length} interne treff. ${dataFreshness === "FRESH" ? "Det nyeste er under 6 måneder." : "Det nyeste bør revalideres."}`
-      : "Ingen interne treff på oppgaven.";
+      ? `Found ${evidence.length} internal ${evidence.length === 1 ? "record" : "records"}. ${dataFreshness === "FRESH" ? "The newest is under 6 months old." : "The newest should be re-confirmed."}`
+      : "Nothing in mail, files or Teams matches this yet.";
 
   const summary = readSummary(input.modelDraft, fallbackSummary);
   const temporalNote = temporalNoteFor(dataFreshness, evidence);
@@ -205,7 +205,7 @@ export function composeResolution(input: TaskContextInput & {
       sourcingSuggestions,
       suggestedNextAction: {
         type: "CREATE_LEADS_AND_CALLS",
-        label: `Opprett ${sourcingSuggestions.length} leads og planlegg ringerunde`,
+        label: `Add ${sourcingSuggestions.length} supplier ${sourcingSuggestions.length === 1 ? "lead" : "leads"} and plan the calls`,
         payload: {
           suggestions: sourcingSuggestions.map((item) => ({
             name: item.name,
@@ -226,10 +226,10 @@ export function composeResolution(input: TaskContextInput & {
       sourcingSuggestions: [],
       suggestedNextAction: {
         type: "DRAFT_REVALIDATION_EMAIL",
-        label: "Utkast til revalidering",
+        label: "Draft a re-confirmation email",
         payload: {
-          subject: "Revalidering av råstoff og pris",
-          body: temporalNote ?? "Bekreft at pris og volum fortsatt gjelder.",
+          subject: "Re-confirming feedstock and price",
+          body: temporalNote ?? "Please confirm that price and volume still apply.",
           targetDate: dateLimit,
         },
       },
@@ -245,7 +245,7 @@ export function composeResolution(input: TaskContextInput & {
     sourcingSuggestions: [],
     suggestedNextAction: {
       type: "REVIEW_DOC",
-      label: firstUrl ? "Åpne intern kilde" : "Gjennomgå oppgaven",
+      label: firstUrl ? "Open the internal source" : "Review the task",
       payload: {
         ...(firstUrl ? { webUrl: firstUrl } : {}),
         targetDate: dateLimit,

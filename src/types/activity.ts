@@ -319,6 +319,18 @@ export type Activity = {
   Stakeholders?: ActivityStakeholder[];
   /** SmartAssist knowledge capture assessment */
   SmartAssistAssessment?: SmartAssistAssessment;
+  /** Tradeshow / seminar: where, link, organiser, themes, why we go. */
+  EventDetails?: ActivityEventDetails | null;
+  /** Proposed by SmartAssist (e.g. read from an event link) and accepted by a person. */
+  IsAiProposed?: boolean;
+};
+
+export type ActivityEventDetails = {
+  location: string | null;
+  website: string | null;
+  organizer: string | null;
+  objective: string | null;
+  themes: string[];
 };
 
 export type CreateActivityInput = Pick<
@@ -355,6 +367,8 @@ export type CreateActivityInput = Pick<
   ProjectId?: string | null;
   ProjectName?: string | null;
   ActivityOwner?: SharePointPerson | null;
+  EventDetails?: ActivityEventDetails | null;
+  IsAiProposed?: boolean;
 };
 
 export type UpdateActivityInput = Partial<

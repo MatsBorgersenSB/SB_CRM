@@ -1,11 +1,22 @@
+import { listActivities, updateActivityRecord, isPrismaActivityStore } from "@/lib/activity-store";
+import { resolveActivityCompany } from "@/lib/activity-utils";
 import { COMPANY_SECTOR_PRESETS, normalizeSectorLabel } from "@/lib/company-sectors";
+import { readCompanies, readPipelines } from "@/lib/pipeline-db";
 import { getPrisma } from "@/lib/prisma";
 import type {
   CalendarActivity,
   CalendarEventDetails,
   CalendarSector,
 } from "@/types/calendar-activity";
-import { SMART_ACTIVITY_TYPES, smartActivityLabel, type SmartActivityType } from "@/types/activity";
+import type { Company } from "@/types/company";
+import type { PipelineRow } from "@/types/pipeline";
+import {
+  SMART_ACTIVITY_TYPES,
+  smartActivityLabel,
+  toSmartActivityType,
+  type Activity,
+  type SmartActivityType,
+} from "@/types/activity";
 
 /**
  * Explicit calendar select. Prisma stores `activityType`, `company.sectors`,
@@ -121,7 +132,61 @@ export function toCalendarActivity(row: CalendarActivityRow): CalendarActivity {
   };
 }
 
+/**
+ * Local JSON fallback: the same activities the list shows, placed on the calendar.
+ * Only used when no database is configured.
+ */
+function legacyToCalendarActivity(
+  activity: Activity,
+  companies: Company[],
+  pipelines: PipelineRow[],
+): CalendarActivity | null {
+  const type = toSmartActivityType(activity.ActivityType);
+  if (!type) return null;
+  const start = new Date(activity.ActivityDate);
+  if (Number.isNaN(start.getTime())) return null;
+  const end = activity.DurationMinutes
+    ? new Date(start.getTime() + activity.DurationMinutes * 60_000)
+    : null;
+  const company = resolveActivityCompany(activity, companies);
+  const dealId = activity.Deal?.Title ?? null;
+  const deal = dealId ? pipelines.find((row) => row.id === dealId) : undefined;
+  return {
+    id: activity.ActivityID,
+    title: activity.Subject.trim() || smartActivityLabel(type),
+    type,
+    startDate: start.toISOString(),
+    endDate: end?.toISOString() ?? null,
+    isAiProposed: Boolean(activity.IsAiProposed),
+    completedAt: activity.ActionStatus === "Completed" ? start.toISOString() : null,
+    event: activity.EventDetails ?? null,
+    companyId: company?.CompanyID ?? null,
+    opportunityId: dealId,
+    company: company
+      ? { id: company.CompanyID, name: company.Title, sectorTag: primarySector(company.Sectors ?? []) }
+      : null,
+    opportunity: deal
+      ? { id: deal.id, title: deal.assetName, amount: deal.salesValue ?? null, currency: deal.currency ?? null }
+      : null,
+  };
+}
+
 export async function listCalendarActivities(start: Date, end: Date): Promise<CalendarActivity[]> {
+  if (!isPrismaActivityStore()) {
+    const [activities, companies, pipelines] = await Promise.all([
+      listActivities(),
+      readCompanies(),
+      readPipelines(),
+    ]);
+    return activities
+      .map((activity) => legacyToCalendarActivity(activity, companies, pipelines))
+      .filter((item): item is CalendarActivity => Boolean(item?.startDate))
+      .filter((item) => {
+        const when = new Date(item.startDate!);
+        return when >= start && when <= end;
+      })
+      .sort((a, b) => a.startDate!.localeCompare(b.startDate!));
+  }
   const rows = await getPrisma().activity.findMany({
     where: {
       startDate: { gte: start, lte: end },
@@ -132,56 +197,13 @@ export async function listCalendarActivities(start: Date, end: Date): Promise<Ca
   return rows.map((row) => toCalendarActivity(row));
 }
 
-export async function createCalendarActivity(input: {
-  type: SmartActivityType;
-  title: string;
-  startDate: Date;
-  endDate: Date | null;
-  companyCode: string | null;
-  opportunityCode: string | null;
-  /** Event details (place, link, organizer, themes) and whether SmartAssist proposed them. */
-  event?: CalendarEventDetails | null;
-  isAiProposed?: boolean;
-}): Promise<CalendarActivity> {
-  const prisma = getPrisma();
-  const company = input.companyCode
-    ? await prisma.company.findFirst({
-        where: { OR: [{ id: input.companyCode }, { code: input.companyCode }] },
-        select: { id: true },
-      })
-    : null;
-  const opportunity = input.opportunityCode
-    ? await prisma.opportunity.findFirst({
-        where: { OR: [{ id: input.opportunityCode }, { code: input.opportunityCode }] },
-        select: { id: true },
-      })
-    : null;
-
-  const row = await prisma.activity.create({
-    data: {
-      activityType: input.type,
-      title: input.title,
-      startDate: input.startDate,
-      endDate: input.endDate,
-      companyId: company?.id ?? null,
-      opportunityId: opportunity?.id ?? null,
-      isAiProposed: input.isAiProposed ?? false,
-      aiContext: input.event
-        ? {
-            location: input.event.location,
-            website: input.event.website,
-            organizer: input.event.organizer,
-            objective: input.event.objective,
-            themes: input.event.themes,
-          }
-        : undefined,
-    },
-    select: calendarActivitySelect,
-  });
-  return toCalendarActivity(row);
-}
-
 export async function completeCalendarActivity(id: string): Promise<CalendarActivity | null> {
+  if (!isPrismaActivityStore()) {
+    const updated = await updateActivityRecord(id, { ActionStatus: "Completed" }).catch(() => null);
+    if (!updated) return null;
+    const [companies, pipelines] = await Promise.all([readCompanies(), readPipelines()]);
+    return legacyToCalendarActivity(updated, companies, pipelines);
+  }
   const prisma = getPrisma();
   const existing = await prisma.activity.findUnique({
     where: { id },
