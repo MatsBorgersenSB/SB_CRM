@@ -3,10 +3,6 @@
 import Link from "next/link";
 import type { OpportunityOperationsRow } from "@/lib/opportunity-operations-data";
 import {
-  SmartAssistCategoryBadge,
-  SmartAssistConfidenceLabel,
-} from "@/components/smartassist/smartassist-intelligence-display";
-import {
   WorkspaceTable,
   WorkspaceTableBody,
   WorkspaceTableBodyCell,
@@ -16,13 +12,22 @@ import {
   WorkspaceTableHeadRow,
 } from "@/components/ui/workspace-table";
 
-const ATTENTION_STYLES = {
-  HIGH: "border-thermal-red/30 bg-thermal-red/[0.06] text-thermal-red",
-  MEDIUM: "border-upcycle-orange/30 bg-upcycle-orange/[0.06] text-upcycle-orange",
-  LOW: "border-carbon-blue/15 bg-carbon-blue/[0.04] text-carbon-blue/65",
-  HOLD: "border-carbon-blue/12 bg-carbon-blue/[0.02] text-carbon-blue/65",
+/**
+ * Attention level as a single coloured dot in front of the blocker text.
+ * The colour is the signal; the title explains it on hover.
+ */
+const ATTENTION_DOT = {
+  HIGH: { dot: "bg-thermal-red", title: "Needs attention now" },
+  MEDIUM: { dot: "bg-upcycle-orange", title: "Worth a look this week" },
+  LOW: { dot: "bg-emerald-500", title: "On track" },
+  HOLD: { dot: "bg-carbon-blue/30", title: "On hold" },
 } as const;
 
+/**
+ * Five columns, one question each: which deal, what is blocking it, what
+ * happens next, what it is worth, who owns it. Fits the viewport without
+ * horizontal scroll; no IDs, no engine labels.
+ */
 export function OpportunitiesOperationsTable({
   rows,
   primaryFocusDealId,
@@ -39,122 +44,100 @@ export function OpportunitiesOperationsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <WorkspaceTable className="min-w-[920px]">
+    <div className="w-full">
+      <WorkspaceTable>
         <colgroup>
-          <col className="w-[16%]" />
+          <col className="w-[24%]" />
+          <col className="w-[28%]" />
+          <col className="w-[26%]" />
+          <col className="w-[12%]" />
           <col className="w-[10%]" />
-          <col className="w-[20%]" />
-          <col className="w-[20%]" />
-          <col className="w-[8%]" />
-          <col className="w-[10%]" />
-          <col className="w-[16%]" />
         </colgroup>
         <WorkspaceTableHead>
           <WorkspaceTableHeadRow>
             <WorkspaceTableHeadCell>Opportunity</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>Attention</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>Client objective</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>Biggest unknown</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell align="right">Gaps</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>Category</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell>What&apos;s blocking</WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell>Next step</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell align="right">Value</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell>Owner</WorkspaceTableHeadCell>
           </WorkspaceTableHeadRow>
         </WorkspaceTableHead>
         <WorkspaceTableBody>
           {rows.map((row) => {
             const isPrimaryFocus = primaryFocusDealId === row.dealId;
+            const attention = ATTENTION_DOT[row.recommendedAttention];
+            const moreQuestions = Math.max(0, row.validationGapsCount - 1);
             return (
-            <WorkspaceTableBodyRow
-              key={row.dealId}
-              className={
-                isPrimaryFocus
-                  ? "border-l-[3px] border-l-upcycle-orange/60 bg-upcycle-orange/[0.03]"
-                  : row.needsAttention
-                    ? "bg-carbon-blue/[0.015]"
+              <WorkspaceTableBodyRow
+                key={row.dealId}
+                className={
+                  isPrimaryFocus
+                    ? "border-l-[3px] border-l-upcycle-orange/60 bg-upcycle-orange/[0.03]"
                     : undefined
-              }
-            >
-              <WorkspaceTableBodyCell>
-                {isPrimaryFocus ? (
-                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-upcycle-orange/80">
-                    Primary focus
+                }
+              >
+                <WorkspaceTableBodyCell>
+                  <Link
+                    href={row.dealHref}
+                    className="block text-[14px] font-semibold text-carbon-blue hover:text-upcycle-orange"
+                  >
+                    {row.dealName}
+                  </Link>
+                  <p className="mt-0.5 truncate text-[13px] text-carbon-blue/65">
+                    {[row.companyName, row.stageLabel].filter(Boolean).join(" · ")}
                   </p>
-                ) : null}
-                <Link
-                  href={row.dealHref}
-                  className="block font-semibold text-carbon-blue hover:text-upcycle-orange"
-                >
-                  {row.dealName}
-                </Link>
-                <p className="mt-0.5 truncate text-[12px] text-carbon-blue/65">
-                  {[row.companyName, row.dealId].filter(Boolean).join(" · ")}
-                </p>
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell>
-                <span
-                  className={`inline-flex border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${ATTENTION_STYLES[row.recommendedAttention]}`}
-                >
-                  {row.recommendedAttention}
-                </span>
-                <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-carbon-blue/55">
-                  {row.attentionReason}
-                </p>
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell className="max-w-[14rem]">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <SmartAssistCategoryBadge category={row.clientObjectiveCategory} />
-                  <SmartAssistConfidenceLabel confidence={row.clientObjectiveConfidence} />
-                </div>
-                <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/75">
-                  {row.clientObjective}
-                </p>
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell className="max-w-[14rem]">
-                <div className="mb-1">
-                  <SmartAssistCategoryBadge category={row.biggestUnknownCategory} />
-                </div>
-                <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/70">
-                  {row.biggestUnknown}
-                </p>
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell className="text-right tabular-nums font-semibold text-carbon-blue">
-                {row.validationGapsCount}
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell>
-                <InsightCategorySummary row={row} />
-              </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell className="max-w-[12rem]">
-                <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue/70">
-                  {row.nextStep}
-                </p>
-              </WorkspaceTableBodyCell>
-            </WorkspaceTableBodyRow>
+                </WorkspaceTableBodyCell>
+
+                <WorkspaceTableBodyCell>
+                  <div className="flex items-start gap-2">
+                    <span
+                      className={`mt-[7px] size-2 shrink-0 rounded-full ${attention.dot}`}
+                      title={attention.title}
+                      aria-label={attention.title}
+                      role="img"
+                    />
+                    <div className="min-w-0">
+                      <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue">
+                        {row.biggestUnknown}
+                      </p>
+                      {moreQuestions > 0 ? (
+                        <p className="mt-0.5 text-[13px] text-carbon-blue/65">
+                          +{moreQuestions} more open question{moreQuestions === 1 ? "" : "s"}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </WorkspaceTableBodyCell>
+
+                <WorkspaceTableBodyCell>
+                  <p className="line-clamp-2 text-[13px] leading-relaxed text-carbon-blue">
+                    {row.nextStep}
+                  </p>
+                </WorkspaceTableBodyCell>
+
+                <WorkspaceTableBodyCell className="text-right">
+                  <p className="tabular-nums text-[13px] font-semibold text-carbon-blue">
+                    {row.valueLabel}
+                  </p>
+                  {row.expectedCloseDate ? (
+                    <p className="mt-0.5 text-[13px] text-carbon-blue/65">{row.closeDateLabel}</p>
+                  ) : null}
+                </WorkspaceTableBodyCell>
+
+                <WorkspaceTableBodyCell>
+                  <span
+                    className={
+                      row.ownerLabel ? "text-carbon-blue" : "text-carbon-blue/65"
+                    }
+                  >
+                    {row.ownerLabel ?? "Unassigned"}
+                  </span>
+                </WorkspaceTableBodyCell>
+              </WorkspaceTableBodyRow>
             );
           })}
         </WorkspaceTableBody>
       </WorkspaceTable>
-    </div>
-  );
-}
-
-function InsightCategorySummary({ row }: { row: OpportunityOperationsRow }) {
-  const categories = new Set([
-    row.clientObjectiveCategory,
-    row.biggestUnknownCategory,
-  ]);
-
-  if (row.validationGapsCount > 0) categories.add("missing_critical");
-
-  const ordered = (["missing_critical", "unknown", "assumed", "known"] as const).filter((item) =>
-    categories.has(item),
-  );
-
-  return (
-    <div className="flex flex-col gap-1">
-      {ordered.slice(0, 2).map((category) => (
-        <SmartAssistCategoryBadge key={category} category={category} />
-      ))}
     </div>
   );
 }

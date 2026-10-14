@@ -18,6 +18,7 @@ import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
 import { rankCommercialViability } from "@/lib/commercial-viability-engine";
 import {
   buildOpportunityOperationsWorkspace,
+  buildOpportunityUnderstandingSnapshot,
   filterOpportunityOperationsByOwner,
   filterOpportunityOperationsByStages,
   filterOpportunityOperationsRows,
@@ -52,17 +53,17 @@ const STAGE_FILTERS = [
   { value: "contract", label: "Contract Negotiation" },
 ];
 
-const CVM_FILTERS: Array<{ value: ViabilityRecommendation | "all"; label: string }> = [
-  { value: "all", label: "All CVM" },
+const RECOMMENDATION_FILTERS: Array<{ value: ViabilityRecommendation | "all"; label: string }> = [
+  { value: "all", label: "Any recommendation" },
   { value: "pursue", label: "Pursue" },
-  { value: "qualify", label: "Qualify" },
+  { value: "qualify", label: "Qualify first" },
   { value: "deprioritize", label: "Deprioritize" },
-  { value: "walk_away", label: "Walk Away" },
+  { value: "walk_away", label: "Walk away" },
 ];
 
 const ATTENTION_FILTERS = [
-  { value: "all", label: "All Attention" },
-  { value: "needs_attention", label: "Requires Attention" },
+  { value: "all", label: "Any attention" },
+  { value: "needs_attention", label: "Needs attention" },
   { value: "healthy", label: "Healthy" },
 ];
 
@@ -174,10 +175,10 @@ export function OpportunitiesOperationsShell({
       },
       {
         id: "cvm",
-        label: "CVM",
+        label: "Recommendation",
         mode: "single",
         emptyValue: "all",
-        options: CVM_FILTERS.map((item) => ({ value: item.value, label: item.label })),
+        options: RECOMMENDATION_FILTERS.map((item) => ({ value: item.value, label: item.label })),
       },
       {
         id: "attention",
@@ -215,6 +216,10 @@ export function OpportunitiesOperationsShell({
   }, [workspace.rows, toolbarFilters, user, owner, search, cvmByDeal]);
 
   const primaryFocusDealId = filteredRows[0]?.dealId ?? null;
+  const understanding = useMemo(
+    () => buildOpportunityUnderstandingSnapshot(filteredRows),
+    [filteredRows],
+  );
 
   const handleFilterChange = useCallback((id: string, value: string | string[]) => {
     setToolbarFilters((current) => ({ ...current, [id]: value }));
@@ -285,13 +290,10 @@ export function OpportunitiesOperationsShell({
 
             <div className={`mt-6 ${EDITORIAL_GAP_BLOCK}`}>
               <div>
-                <p className="text-[12px] font-medium text-carbon-blue/65">Attention management</p>
-                <h2 className="mt-1 text-lg font-semibold leading-snug tracking-tight text-carbon-blue">
-                  {workspace.understanding.headline}
+                <h2 className="text-lg font-semibold leading-snug tracking-tight text-carbon-blue">
+                  {understanding.headline}
                 </h2>
-                <p className="mt-1 text-[13px] text-carbon-blue/55">
-                  {workspace.understanding.subline}
-                </p>
+                <p className="mt-1 text-[13px] text-carbon-blue/65">{understanding.subline}</p>
               </div>
 
               <div>
@@ -301,7 +303,7 @@ export function OpportunitiesOperationsShell({
                   onChange={handleFilterChange}
                   search={search}
                   onSearchChange={setSearch}
-                  searchPlaceholder="Search objectives, unknowns, opportunities…"
+                  searchPlaceholder="Search opportunities…"
                   owners={ownerOptions}
                   ownerValue={owner}
                   onOwnerChange={setOwner}

@@ -120,6 +120,7 @@ function relatedObjectForDeal(
   dealId: string,
   pipelines: PipelineRow[],
   companies: Company[],
+  fallback?: { dealName?: string; clientName?: string },
 ): { label: string; href?: string } {
   const deal = pipelines.find((row) => row.id === dealId);
   const company = companies.find((row) => row.pipelineIds.includes(dealId));
@@ -135,7 +136,15 @@ function relatedObjectForDeal(
     return { label: deal.assetName, href: deal360Href(deal.id) };
   }
 
-  return { label: dealId };
+  // The deal is outside this user's scope (or no longer open). Show what the
+  // record itself knows — never a raw identifier.
+  const known = [fallback?.dealName, fallback?.clientName]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+  if (known.length > 0) {
+    return { label: known.join(" · "), href: dealId ? deal360Href(dealId) : undefined };
+  }
+  return { label: dealId ? "Opportunity" : "Not linked" };
 }
 
 function relatedObjectForLibraryRecord(
@@ -159,7 +168,10 @@ function relatedObjectForLibraryRecord(
         : undefined,
     };
   }
-  return relatedObjectForDeal(record.DealId ?? "", pipelines, companies);
+  return relatedObjectForDeal(record.DealId ?? "", pipelines, companies, {
+    dealName: record.DealName,
+    clientName: record.ClientName,
+  });
 }
 
 function workspaceDocumentRowFromLibraryRecord(

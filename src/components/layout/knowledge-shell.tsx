@@ -94,7 +94,6 @@ export function KnowledgeShell({
   const missing = smartDocs.missingCriticalDocuments;
   const topMissing = missing[0];
   const topRisk = smartDocs.knowledgeAtRisk[0];
-  const hasAttention = missing.length > 0 || Boolean(topRisk);
 
   const filterDefinitions = useMemo(
     () => buildWorkspaceDocumentFilterDefinitions(rows),
@@ -110,6 +109,8 @@ export function KnowledgeShell({
     setTableQuery(defaultDocumentTableQuery());
   }, []);
 
+  // Only speak when there is something to say: a missing critical document
+  // or a document whose knowledge is at risk. Otherwise the list is enough.
   const hero = useMemo(() => {
     if (topMissing) {
       return {
@@ -127,23 +128,8 @@ export function KnowledgeShell({
         actionLabel: "Open document",
       };
     }
-    if (rows.length === 0) {
-      return {
-        title: "No documents filed yet",
-        summary:
-          "File documents on a company, contact, opportunity, or project. SharePoint keeps the file; SmartCRM keeps category, type, and identity.",
-        actionHref: "/companies",
-        actionLabel: "Open a company to import",
-      };
-    }
-    return {
-      title: `${rows.length} document${rows.length === 1 ? "" : "s"} in the library`,
-      summary:
-        "Open a file for detail and SharePoint, or go to a company or opportunity to import.",
-      actionHref: undefined,
-      actionLabel: undefined,
-    };
-  }, [rows.length, topMissing, topRisk]);
+    return null;
+  }, [topMissing, topRisk]);
 
   return (
     <WorkspaceChrome>
@@ -159,36 +145,39 @@ export function KnowledgeShell({
             />
           </section>
 
-          <IntelligenceLead
-            eyebrow="Attention"
-            title={hero.title}
-            summary={hero.summary}
-            vitals={[
-              { label: "Documents", value: String(rows.length) },
-              {
-                label: "Missing",
-                value: String(missing.length),
-                highlight: missing.length > 0,
-              },
-              {
-                label: "At risk",
-                value: String(smartDocs.overview.atRiskCount),
-                highlight: smartDocs.overview.atRiskCount > 0,
-              },
-            ]}
-            action={
-              hero.actionHref ? (
-                <Link
-                  href={hero.actionHref}
-                  className="inline-flex border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold text-white hover:bg-upcycle-orange/90"
-                >
-                  {hero.actionLabel}
-                </Link>
-              ) : undefined
-            }
-          />
+          {hero ? (
+            <IntelligenceLead
+              eyebrow="Needs attention"
+              title={hero.title}
+              summary={hero.summary}
+              vitals={[
+                ...(missing.length > 0
+                  ? [{ label: "Missing", value: String(missing.length), highlight: true }]
+                  : []),
+                ...(smartDocs.overview.atRiskCount > 0
+                  ? [
+                      {
+                        label: "At risk",
+                        value: String(smartDocs.overview.atRiskCount),
+                        highlight: true,
+                      },
+                    ]
+                  : []),
+              ]}
+              action={
+                hero.actionHref ? (
+                  <Link
+                    href={hero.actionHref}
+                    className="inline-flex border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[13px] font-semibold text-white hover:bg-upcycle-orange/90"
+                  >
+                    {hero.actionLabel}
+                  </Link>
+                ) : undefined
+              }
+            />
+          ) : null}
 
-          {hasAttention && missing.length > 0 ? (
+          {missing.length > 0 ? (
             <WorkspacePanel title="Needs a document" count={missing.length}>
               <div className="-mx-6 -my-5">
                 {missing.slice(0, 3).map((item) => (
