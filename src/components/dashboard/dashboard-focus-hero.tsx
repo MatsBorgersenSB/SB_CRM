@@ -23,12 +23,6 @@ const PRIORITY_STYLES: Record<
   },
 };
 
-function focusEmoji(priority: FocusPriority): string {
-  if (priority === "critical") return "🔴";
-  if (priority === "high") return "🟠";
-  return "🟢";
-}
-
 export function DashboardFocusHero({ items }: { items: FocusItem[] }) {
   return (
     <section className="dashboard-card overflow-hidden">
@@ -70,9 +64,7 @@ export function DashboardFocusHero({ items }: { items: FocusItem[] }) {
                   href={item.href}
                   className={`group flex items-start gap-4 px-5 py-4 transition-colors hover:${style.bg} hover:bg-carbon-blue/[0.02]`}
                 >
-                  <span className="mt-1 text-base leading-none" aria-hidden>
-                    {focusEmoji(item.priority)}
-                  </span>
+                  <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${style.dot}`} aria-hidden />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-carbon-blue group-hover:text-upcycle-orange">
                       {item.title}

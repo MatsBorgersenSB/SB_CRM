@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Project } from "@/types/project";
 import { PROJECT_KIND_LABELS } from "@/types/project";
 import { project360Href } from "@/types/relationship-navigation";
-import { HealthStatusIcon, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { HealthStatusIcon } from "@/components/ui/smartcrm-icon";
 
 function formatKind(kind: Project["kind"]): string {
   return PROJECT_KIND_LABELS[kind];
@@ -42,9 +42,8 @@ export function ProjectsDirectory({ projects }: { projects: Project[] }) {
               <td className="px-4 py-3">
                 <Link
                   href={project360Href(project.id)}
-                  className="inline-flex items-center gap-2 font-medium text-carbon-blue hover:text-upcycle-orange"
+                  className="font-medium text-carbon-blue hover:text-upcycle-orange"
                 >
-                  <SmartCRMIcon name="project" size="sm" />
                   {project.name}
                 </Link>
               </td>

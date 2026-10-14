@@ -51,7 +51,7 @@ export function UserSessionMenu() {
         }}
         className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:opacity-60"
       >
-        {signingIn ? "Redirecting…" : "🔑 Sign In with Microsoft 365"}
+        {signingIn ? "Redirecting…" : "Sign in with Microsoft 365"}
       </button>
     );
   }

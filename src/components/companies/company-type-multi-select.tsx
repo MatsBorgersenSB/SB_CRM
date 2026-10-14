@@ -8,6 +8,7 @@ import {
   canonicalizeCompanyType,
   getCompanyTypeMeta,
 } from "@/types/company-type";
+import { CompanyTypeIcon } from "@/components/companies/company-type-icon";
 
 type CompanyTypeMultiSelectProps = {
   value: CompanyType[];
@@ -142,7 +143,7 @@ export function CompanyTypeMultiSelect({
                 key={type}
                 className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[11px] font-semibold text-upcycle-orange"
               >
-                <span aria-hidden>{meta.emoji}</span>
+                <CompanyTypeIcon icon={meta.icon} />
                 {meta.label}
                 <button
                   type="button"
@@ -193,7 +194,7 @@ export function CompanyTypeMultiSelect({
                       className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04]"
                     >
                       <span className="inline-flex items-center gap-2">
-                        <span aria-hidden>{meta.emoji}</span>
+                        <CompanyTypeIcon icon={meta.icon} />
                         {meta.label}
                       </span>
                       {isSelected ? (

@@ -11,17 +11,24 @@ import {
 import { DealLink } from "@/components/relationship/relationship-links";
 import { IconLabel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import {
-  CLOSE_DATE_STATUS_ICON,
   CLOSE_DATE_STATUS_LABEL,
+  CLOSE_DATE_STATUS_TONE,
   formatExpectedCloseDate,
   getCloseDateStatus,
   getProbabilityStatus,
   opportunityStageLabel,
-  PROBABILITY_STATUS_ICON,
   PROBABILITY_STATUS_LABEL,
+  PROBABILITY_STATUS_TONE,
   sortOpportunities,
   type OpportunitySortKey,
+  type StatusTone,
 } from "@/lib/opportunity-overview";
+
+const TONE_DOT_CLASS: Record<StatusTone, string> = {
+  bad: "bg-red-500",
+  warn: "bg-amber-500",
+  good: "bg-emerald-500",
+};
 
 type SortDirection = "asc" | "desc";
 
@@ -62,19 +69,17 @@ function SortHeader({
 }
 
 function StatusCell({
-  icon,
+  tone,
   label,
   detail,
 }: {
-  icon: string;
+  tone: StatusTone;
   label: string;
   detail: string;
 }) {
   return (
     <span className="inline-flex items-center gap-1.5 truncate text-[12px] text-carbon-blue/70">
-      <span className="shrink-0" aria-hidden>
-        {icon}
-      </span>
+      <span className={`size-2 shrink-0 rounded-full ${TONE_DOT_CLASS[tone]}`} aria-hidden />
       <span className="sr-only">{label}</span>
       <span className="truncate">{detail}</span>
     </span>
@@ -204,7 +209,7 @@ export function OpportunitiesOverviewTable({
               <td className="px-3 py-2.5">
                 {closeStatus ? (
                   <StatusCell
-                    icon={CLOSE_DATE_STATUS_ICON[closeStatus]}
+                    tone={CLOSE_DATE_STATUS_TONE[closeStatus]}
                     label={CLOSE_DATE_STATUS_LABEL[closeStatus]}
                     detail={formatExpectedCloseDate(deal.expectedCloseDate)}
                   />
@@ -215,7 +220,7 @@ export function OpportunitiesOverviewTable({
               <td className="truncate px-3 py-2.5 text-[12px] text-carbon-blue/70">{stageLabel}</td>
               <td className="px-3 py-2.5 text-right">
                 <StatusCell
-                  icon={PROBABILITY_STATUS_ICON[probStatus]}
+                  tone={PROBABILITY_STATUS_TONE[probStatus]}
                   label={PROBABILITY_STATUS_LABEL[probStatus]}
                   detail={formatProbability(deal.probability)}
                 />

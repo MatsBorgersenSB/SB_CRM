@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Paperclip } from "lucide-react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
@@ -803,7 +804,7 @@ export function EmailIntelligence({
                                             : "Metadata only — content not stored"
                                         }
                                       >
-                                        <span aria-hidden>📎</span>
+                                        <Paperclip size={12} strokeWidth={1.75} className="shrink-0" aria-hidden />
                                         <span className="truncate">
                                           {attachment.name} [{formatFileSize(attachment.sizeBytes)}]
                                         </span>

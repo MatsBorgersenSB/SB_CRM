@@ -168,10 +168,12 @@ export function EmailActionMenu({
   email,
   subject,
   className = "",
+  showIcon = true,
 }: {
   email: string;
   subject?: string;
   className?: string;
+  showIcon?: boolean;
 }) {
   const trimmed = email.trim();
   if (!trimmed) return null;
@@ -179,9 +181,13 @@ export function EmailActionMenu({
   return (
     <ActionMenu
       label={
-        <IconLabel icon="email" className="font-inherit">
-          {trimmed}
-        </IconLabel>
+        showIcon ? (
+          <IconLabel icon="email" className="font-inherit">
+            {trimmed}
+          </IconLabel>
+        ) : (
+          <span className="block min-w-0 truncate">{trimmed}</span>
+        )
       }
       className={className}
     >

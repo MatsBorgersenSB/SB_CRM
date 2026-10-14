@@ -8,6 +8,7 @@ import type {
   ExploreSource,
 } from "@/lib/smartassist/explore/types";
 import type { CompanyType } from "@/types/company-type";
+import { Building2, Globe, Landmark, Mail, type LucideIcon } from "lucide-react";
 
 type ExploreCardProps = {
   result: ExploreResult;
@@ -19,17 +20,18 @@ type ExploreCardProps = {
   busy: boolean;
 };
 
-const SOURCE_ICON: Record<ExploreSource["kind"], string> = {
-  crm: "🏢",
-  registry: "🏛",
-  website: "🌐",
-  internal: "📨",
+const SOURCE_ICON: Record<ExploreSource["kind"], LucideIcon> = {
+  crm: Building2,
+  registry: Landmark,
+  website: Globe,
+  internal: Mail,
 };
 
 function SourceChip({ source }: { source: ExploreSource }) {
+  const Icon = SOURCE_ICON[source.kind];
   const body = (
     <>
-      <span aria-hidden>{SOURCE_ICON[source.kind]}</span>
+      <Icon size={11} strokeWidth={1.75} aria-hidden />
       <span>{source.label}</span>
     </>
   );

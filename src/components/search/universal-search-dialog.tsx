@@ -64,17 +64,19 @@ function SmartResultMeta({ item }: { item: SearchIndexItem }) {
   if (!meta || item.entityType !== "company") return null;
 
   return (
-    <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px]" style={{ color: "var(--command-muted)" }}>
-      {meta.locationLabel ? <span>📍 {meta.locationLabel}</span> : null}
-      {meta.openOpportunities !== undefined ? (
-        <span>🎯 {meta.openOpportunities} Active Opportunit{meta.openOpportunities === 1 ? "y" : "ies"}</span>
+    <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px]" style={{ color: "var(--command-muted)" }}>
+      {meta.locationLabel ? <span>{meta.locationLabel}</span> : null}
+      {meta.openOpportunities !== undefined && meta.openOpportunities > 0 ? (
+        <span>{meta.openOpportunities} open opportunit{meta.openOpportunities === 1 ? "y" : "ies"}</span>
       ) : null}
       {meta.pipelineValueLabel && meta.pipelineValueLabel !== "—" ? (
-        <span>💰 {meta.pipelineValueLabel} Pipeline</span>
+        <span>{meta.pipelineValueLabel} pipeline</span>
       ) : null}
-      {meta.contactCount !== undefined ? <span>👤 {meta.contactCount} Contacts</span> : null}
+      {meta.contactCount !== undefined && meta.contactCount > 0 ? (
+        <span>{meta.contactCount} contact{meta.contactCount === 1 ? "" : "s"}</span>
+      ) : null}
       {meta.attentionCount !== undefined && meta.attentionCount > 0 ? (
-        <span>⚠ {meta.attentionCount} Attention Item{meta.attentionCount === 1 ? "" : "s"}</span>
+        <span>{meta.attentionCount} needs attention</span>
       ) : null}
     </span>
   );
@@ -410,7 +412,7 @@ export function UniversalSearchDialog({
                 : "text-[var(--command-muted)] hover:text-[var(--command-text)]"
             }`}
           >
-            🔍 Search
+            Search
           </button>
           <button
             type="button"
@@ -421,7 +423,7 @@ export function UniversalSearchDialog({
                 : "text-[var(--command-muted)] hover:text-[var(--command-text)]"
             }`}
           >
-            ✨ Ask SmartCRM
+            Ask SmartCRM
           </button>
         </div>
 
@@ -669,15 +671,22 @@ export function UniversalSearchDialog({
                     }}
                     className="text-left"
                   >
-                    <p className="text-sm font-semibold" style={{ color: "var(--command-text)" }}>
-                      🏢 {bundle.companyName}
+                    <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--command-text)" }}>
+                      <SmartCRMIcon name="company" size="sm" className="opacity-60" />
+                      {bundle.companyName}
                     </p>
-                    <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px]" style={{ color: "var(--command-muted)" }}>
-                      <span>📍 {bundle.locationLabel}</span>
-                      <span>🎯 {bundle.openOpportunities} Opportunit{bundle.openOpportunities === 1 ? "y" : "ies"}</span>
-                      <span>👤 {bundle.contactCount} Contacts</span>
-                      <span>💰 {bundle.pipelineValueLabel}</span>
-                      {bundle.attentionCount > 0 ? <span>⚠ {bundle.attentionCount} Attention</span> : null}
+                    <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px]" style={{ color: "var(--command-muted)" }}>
+                      {bundle.locationLabel && bundle.locationLabel !== "—" ? <span>{bundle.locationLabel}</span> : null}
+                      {bundle.openOpportunities > 0 ? (
+                        <span>{bundle.openOpportunities} open opportunit{bundle.openOpportunities === 1 ? "y" : "ies"}</span>
+                      ) : null}
+                      {bundle.contactCount > 0 ? (
+                        <span>{bundle.contactCount} contact{bundle.contactCount === 1 ? "" : "s"}</span>
+                      ) : null}
+                      {bundle.pipelineValueLabel && bundle.pipelineValueLabel !== "—" ? (
+                        <span>{bundle.pipelineValueLabel} pipeline</span>
+                      ) : null}
+                      {bundle.attentionCount > 0 ? <span>{bundle.attentionCount} needs attention</span> : null}
                     </p>
                   </button>
                 </div>
@@ -706,7 +715,7 @@ export function UniversalSearchDialog({
                     className="mt-3 inline-flex items-center gap-2 border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
                     style={{ borderColor: "var(--command-border)", color: "var(--command-text)" }}
                   >
-                    ✨ Explore “{exploreIntent.subject}” outside SmartCRM
+                    Explore “{exploreIntent.subject}” outside SmartCRM
                   </button>
                 ) : null}
               </div>

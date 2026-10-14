@@ -1,6 +1,7 @@
 "use client";
 
 import type { CompanyClassificationCount } from "@/lib/company-classification";
+import { CompanyTypeIcon } from "@/components/companies/company-type-icon";
 
 export function CompanyClassificationReport({
   report,
@@ -21,7 +22,7 @@ export function CompanyClassificationReport({
           className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2.5"
         >
           <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-carbon-blue/50">
-            <span aria-hidden>{entry.emoji}</span>
+            <CompanyTypeIcon icon={entry.icon} />
             {entry.label}
           </p>
           <p className="mt-1 text-xl font-semibold tabular-nums text-carbon-blue">{entry.count}</p>

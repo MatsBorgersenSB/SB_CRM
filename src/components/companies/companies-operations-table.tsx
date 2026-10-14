@@ -63,7 +63,7 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
               ) : null}
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
-              <CompanyTypeBadges types={row.companyTypes} size="sm" />
+              <CompanyTypeBadges types={row.companyTypes} size="sm" compact />
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
               {row.attentionLabel ? (

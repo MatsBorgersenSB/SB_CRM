@@ -19,10 +19,13 @@ export type CloseDateStatus = "overdue" | "due_soon" | "on_track";
 
 export type ProbabilityStatus = "high" | "medium" | "low";
 
-export const CLOSE_DATE_STATUS_ICON: Record<CloseDateStatus, string> = {
-  overdue: "🔴",
-  due_soon: "🟠",
-  on_track: "🟢",
+/** Semantic tone for status dots — rendered by the UI layer, never as glyphs. */
+export type StatusTone = "bad" | "warn" | "good";
+
+export const CLOSE_DATE_STATUS_TONE: Record<CloseDateStatus, StatusTone> = {
+  overdue: "bad",
+  due_soon: "warn",
+  on_track: "good",
 };
 
 export const CLOSE_DATE_STATUS_LABEL: Record<CloseDateStatus, string> = {
@@ -31,10 +34,10 @@ export const CLOSE_DATE_STATUS_LABEL: Record<CloseDateStatus, string> = {
   on_track: "On Track",
 };
 
-export const PROBABILITY_STATUS_ICON: Record<ProbabilityStatus, string> = {
-  high: "🟢",
-  medium: "🟡",
-  low: "🔴",
+export const PROBABILITY_STATUS_TONE: Record<ProbabilityStatus, StatusTone> = {
+  high: "good",
+  medium: "warn",
+  low: "bad",
 };
 
 export const PROBABILITY_STATUS_LABEL: Record<ProbabilityStatus, string> = {

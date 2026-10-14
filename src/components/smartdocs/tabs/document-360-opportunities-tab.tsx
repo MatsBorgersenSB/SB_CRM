@@ -3,7 +3,8 @@ import { Workflow } from "lucide-react";
 import type { Document360Snapshot } from "@/lib/document-360-data";
 import { formatDealValue } from "@/types/pipeline";
 import { company360Href } from "@/types/company-360";
-import { MISSING_DOC_ICONS } from "@/types/smartdoc";
+import { MISSING_DOC_SEVERITY } from "@/types/smartdoc";
+import { SeverityIcon } from "@/components/ui/smartcrm-icon";
 
 export function Document360OpportunitiesTab({ snapshot }: { snapshot: Document360Snapshot }) {
   const { pipeline, missingReports, companies } = snapshot;
@@ -57,7 +58,7 @@ export function Document360OpportunitiesTab({ snapshot }: { snapshot: Document36
               <ul className="mt-2 space-y-1.5">
                 {report.items.map((item) => (
                   <li key={item.spec.id} className="flex items-start gap-2 text-[11px]">
-                    <span className="mt-0.5">{MISSING_DOC_ICONS[item.status]}</span>
+                    <SeverityIcon severity={MISSING_DOC_SEVERITY[item.status]} size="xs" className="mt-0.5" />
                     <div>
                       <span className="font-medium text-carbon-blue/75">{item.spec.label}</span>
                       <span className="text-carbon-blue/40"> — {item.detail}</span>

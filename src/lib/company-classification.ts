@@ -1,5 +1,9 @@
 import type { Company } from "@/types/company";
-import type { CompanyType, CompanyTypeFilter } from "@/types/company-type";
+import type {
+  CompanyType,
+  CompanyTypeFilter,
+  CompanyTypeIconName,
+} from "@/types/company-type";
 import {
   COMPANY_TYPE_META,
   COMPANY_TYPE_SELECT_OPTIONS,
@@ -12,7 +16,7 @@ import type { RelationshipHealthStatus } from "@/lib/relationship-health-engine"
 export type CompanyClassificationCount = {
   type: CompanyType;
   count: number;
-  emoji: string;
+  icon: CompanyTypeIconName;
   label: string;
 };
 
@@ -170,13 +174,9 @@ export function formatCompanyTypesLabel(
   return labels.join(" · ") + suffix;
 }
 
+/** Plain-text type list for search indexes and tooltips (no glyphs). */
 export function formatCompanyTypesWithEmoji(types: CompanyType[]): string {
-  return types
-    .map((type) => {
-      const meta = getCompanyTypeMeta(type);
-      return `${meta.emoji} ${meta.label}`;
-    })
-    .join(" · ");
+  return types.map((type) => getCompanyTypeMeta(type).label).join(" · ");
 }
 
 export function companyTypeSearchKeywords(types: CompanyType[]): string[] {
@@ -214,7 +214,7 @@ export function buildCompanyClassificationReport(
     .map((type) => ({
       type,
       count: counts.get(type) ?? 0,
-      emoji: COMPANY_TYPE_META[type].emoji,
+      icon: COMPANY_TYPE_META[type].icon,
       label: COMPANY_TYPE_META[type].plural,
     }))
     .filter((entry) => entry.count > 0);

@@ -404,11 +404,7 @@ export function ContactFormFields({
             >
               {CONTACT_SENTIMENTS.map((sentiment) => (
                 <option key={sentiment} value={sentiment}>
-                  {sentiment === "Champion / Promoter"
-                    ? "Champion / Promoter 🟢"
-                    : sentiment === "Neutral"
-                      ? "Neutral 🟡"
-                      : "Detractor / Skeptic 🔴"}
+                  {sentiment}
                 </option>
               ))}
             </select>
