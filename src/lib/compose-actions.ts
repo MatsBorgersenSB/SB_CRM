@@ -52,6 +52,26 @@ export function mailtoHref(email: string, subject?: string, body?: string): stri
   return query ? `mailto:${email}?${query}` : `mailto:${email}`;
 }
 
+/** Outlook calendar — new meeting with the attendee(s) already invited. */
+export function outlookMeetingComposeHref(
+  attendees: string | string[],
+  subject?: string,
+  body?: string,
+): string {
+  const to = (Array.isArray(attendees) ? attendees : [attendees])
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(";");
+  const query = buildComposeQueryString([
+    ["path", "/calendar/action/compose"],
+    ["rru", "addevent"],
+    ["to", to || undefined],
+    ["subject", subject],
+    ["body", body ? normalizeComposeBody(body) : undefined],
+  ]);
+  return `https://outlook.office.com/calendar/0/deeplink/compose?${query}`;
+}
+
 export function teamsMeetingComposeHref(subject: string, content?: string): string {
   const query = buildComposeQueryString([
     ["subject", subject],

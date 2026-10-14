@@ -2,9 +2,16 @@
 
 import { createContext, useContext } from "react";
 
+export type UniversalSearchOpenOptions = {
+  /** Start in Ask mode (SmartAssist) instead of Search. */
+  mode?: "search" | "ask";
+  /** Pre-filled text the user can edit before pressing Enter. */
+  query?: string;
+};
+
 type UniversalSearchContextValue = {
   open: boolean;
-  openSearch: () => void;
+  openSearch: (options?: UniversalSearchOpenOptions) => void;
   closeSearch: () => void;
   toggleSearch: () => void;
 };

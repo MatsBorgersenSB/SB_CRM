@@ -2,11 +2,14 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { CalendarPlus, Mail, Sparkles } from "lucide-react";
 import type { Contact } from "@/types/contact";
 import { getContactDisplayName } from "@/types/contact";
 import { CompanyLink } from "@/components/relationship/relationship-links";
 import { EmailActionMenu, PhoneActionMenu } from "@/components/relationship/relationship-links";
 import { ActionableField, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { outlookComposeHref, outlookMeetingComposeHref } from "@/lib/compose-actions";
+import { useUniversalSearchOptional } from "@/context/universal-search-context";
 import { Contact360StatusPanel } from "@/components/contacts/contact-360-status-panel";
 import type { EmploymentStatus } from "@/types/contact-lifecycle";
 import type { RelationshipHealthStatus } from "@/lib/relationship-intelligence";
@@ -27,6 +30,11 @@ function localTimeString(timezone: string | undefined, now: Date): string | null
     return null;
   }
 }
+
+const ACTION_PRIMARY =
+  "inline-flex shrink-0 items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
+const ACTION_SECONDARY =
+  "inline-flex shrink-0 items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange";
 
 /**
  * Contact 360 hero — who, what matters, what next.
@@ -65,6 +73,10 @@ export function Contact360Header({
   }, []);
 
   const localTime = localTimeString(contact.timezone, clockNow);
+  const search = useUniversalSearchOptional();
+  const email = contact.Email?.trim() ?? "";
+  const firstName = contact.FirstName?.trim() || displayName.split(" ")[0] || displayName;
+  const meetingSubject = `${companyName} × Standard Bio`;
 
   return (
     <div className="flex flex-col gap-4 border border-carbon-blue/10 bg-white p-4 lg:flex-row lg:items-start lg:justify-between">
@@ -116,6 +128,54 @@ export function Contact360Header({
             </p>
           </div>
         ) : null}
+
+        {/* What you can do right now — one row, no hunting. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {email ? (
+            <a
+              href={outlookComposeHref(email)}
+              target="_blank"
+              rel="noreferrer"
+              className={ACTION_PRIMARY}
+            >
+              <Mail className="size-3.5" strokeWidth={2} aria-hidden />
+              Email {firstName}
+            </a>
+          ) : (
+            <span className={`${ACTION_SECONDARY} cursor-not-allowed opacity-50`} title="No email on file">
+              <Mail className="size-3.5" strokeWidth={2} aria-hidden />
+              Email {firstName}
+            </span>
+          )}
+          {email ? (
+            <a
+              href={outlookMeetingComposeHref(email, meetingSubject)}
+              target="_blank"
+              rel="noreferrer"
+              className={ACTION_SECONDARY}
+            >
+              <CalendarPlus className="size-3.5" strokeWidth={2} aria-hidden />
+              Book meeting
+            </a>
+          ) : (
+            <span className={`${ACTION_SECONDARY} cursor-not-allowed opacity-50`} title="No email on file">
+              <CalendarPlus className="size-3.5" strokeWidth={2} aria-hidden />
+              Book meeting
+            </span>
+          )}
+          {search ? (
+            <button
+              type="button"
+              onClick={() =>
+                search.openSearch({ mode: "ask", query: `What do we know about ${companyName}?` })
+              }
+              className={ACTION_SECONDARY}
+            >
+              <Sparkles className="size-3.5" strokeWidth={2} aria-hidden />
+              Ask SmartAssist
+            </button>
+          ) : null}
+        </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
           {localTime ? (
