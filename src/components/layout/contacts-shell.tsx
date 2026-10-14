@@ -357,11 +357,11 @@ export function ContactsShell({
                 onChange={handleFilterChange}
                 search={search}
                 onSearchChange={setSearch}
-                searchPlaceholder="Search contacts…"
+                searchPlaceholder="Search people…"
                 owners={ownerOptions}
                 ownerValue={owner}
                 onOwnerChange={setOwner}
-                entityLabel="Contacts"
+                entityLabel="People"
                 totalCount={availableContactCount}
                 filteredCount={filteredRecords.length}
                 defaultValues={DEFAULT_FILTERS}
@@ -374,7 +374,7 @@ export function ContactsShell({
                   checked={showArchived}
                   onChange={(event) => setShowArchived(event.target.checked)}
                 />
-                Show archived contacts
+                Show archived people
               </label>
             </div>
             <ContactsOperationsTable

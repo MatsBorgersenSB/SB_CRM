@@ -285,7 +285,7 @@ export function CompaniesOperationsShell({
             ) : null}
           </section>
 
-          <WorkspacePanel title="Accounts" count={filteredRows.length}>
+          <WorkspacePanel title="Companies" count={filteredRows.length}>
             <div className="-mx-6 -mt-5 mb-4">
               <FilterToolbar
                 filters={filterDefinitions}

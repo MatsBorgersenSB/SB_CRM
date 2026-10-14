@@ -72,7 +72,7 @@ export function ProjectsDirectory({ projects }: { projects: Project[] }) {
                 </WorkspaceTableBodyCell>
                 <WorkspaceTableBodyCell>
                   <p className="text-carbon-blue">{stage}</p>
-                  {project.stage && project.status !== "Active" ? (
+                  {project.stage && project.status !== "Active" && project.status !== stage ? (
                     <p className="mt-0.5 text-[13px] text-carbon-blue/65">{project.status}</p>
                   ) : null}
                 </WorkspaceTableBodyCell>

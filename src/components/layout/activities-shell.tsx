@@ -80,7 +80,9 @@ export function ActivitiesShell({
       ) : (
         <WorkspaceMain>
           <WorkspaceStack>
-            <WorkspacePageTitle icon="activity" title="Activities" subtitle={active.hint} />
+            <section className="dashboard-card p-4 sm:p-6">
+              <WorkspacePageTitle icon="activity" title="Activities" subtitle={active.hint} />
+            </section>
             <SmartActivityWorkspace
               activities={activities}
               companies={companies}
