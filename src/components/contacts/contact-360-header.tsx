@@ -3,16 +3,14 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { CalendarPlus, Mail, Sparkles } from "lucide-react";
-import type { Contact } from "@/types/contact";
-import { getContactDisplayName } from "@/types/contact";
+import type { BuyingRole, Contact } from "@/types/contact";
+import { getContactDisplayName, isBuyingRoleUnknown } from "@/types/contact";
 import { CompanyLink } from "@/components/relationship/relationship-links";
 import { EmailActionMenu, PhoneActionMenu } from "@/components/relationship/relationship-links";
+import { BuyingRoleSelect } from "@/components/contacts/contact-form-fields";
 import { ActionableField, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { outlookComposeHref, outlookMeetingComposeHref } from "@/lib/compose-actions";
 import { useUniversalSearchOptional } from "@/context/universal-search-context";
-import { Contact360StatusPanel } from "@/components/contacts/contact-360-status-panel";
-import type { EmploymentStatus } from "@/types/contact-lifecycle";
-import type { RelationshipHealthStatus } from "@/lib/relationship-intelligence";
 import type { Contact360Verdict } from "@/lib/contact-360-verdict";
 
 function localTimeString(timezone: string | undefined, now: Date): string | null {
@@ -38,36 +36,31 @@ const ACTION_SECONDARY =
 
 /**
  * Contact 360 hero — who, what matters, what next.
+ * No status aside: last touch lives in the verdict, employment in the "···" menu,
+ * and buying role is the one thing worth fixing here, so it is a selector.
  */
 export function Contact360Header({
   contact,
   companyId,
   companyName,
-  lastInteractionDate,
-  healthStatus,
-  healthHasSignal = true,
-  employmentBusy,
-  onEmploymentStatusChange,
-  editing = false,
   trailing,
   verdict,
+  onBuyingRoleChange,
 }: {
   contact: Contact;
   companyId: string;
   companyName: string;
-  lastInteractionDate?: string;
-  healthStatus: RelationshipHealthStatus;
-  healthHasSignal?: boolean;
-  employmentBusy?: boolean;
-  onEmploymentStatusChange: (status: EmploymentStatus) => void;
-  editing?: boolean;
   trailing?: ReactNode;
   verdict?: Contact360Verdict;
+  /** Persist a buying-role decision; absent → read-only chip. */
+  onBuyingRoleChange?: (role: BuyingRole | undefined) => Promise<void>;
 }) {
   const displayName = getContactDisplayName(contact);
   const position = contact.JobTitle || contact.Role || "—";
   const phone = contact.Mobile || contact.Phone;
   const [clockNow, setClockNow] = useState(() => new Date());
+  const [buyingRoleBusy, setBuyingRoleBusy] = useState(false);
+  const buyingRoleUnknown = isBuyingRoleUnknown(contact.buyingRole);
 
   useEffect(() => {
     const timer = setInterval(() => setClockNow(new Date()), 60_000);
@@ -81,8 +74,8 @@ export function Contact360Header({
   const meetingSubject = `${companyName} × Standard Bio`;
 
   return (
-    <div className="flex flex-col gap-4 border border-carbon-blue/10 bg-white p-4 lg:flex-row lg:items-start lg:justify-between">
-      <div className="min-w-0 flex-1">
+    <div className="border border-carbon-blue/10 bg-white p-4">
+      <div className="min-w-0">
         <div className="flex items-start justify-between gap-3">
           <h1 className="flex min-w-0 items-center gap-2.5 text-2xl font-semibold tracking-tight text-carbon-blue xl:text-[1.85rem]">
             <SmartCRMIcon name="contact" size="lg" label="Contact" />
@@ -179,29 +172,43 @@ export function Contact360Header({
           ) : null}
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {/* Buying role — a decision the user can make here in two seconds. */}
+          <label className="inline-flex items-center gap-2 text-[11px] font-medium text-carbon-blue/70">
+            <span className={buyingRoleUnknown ? "text-upcycle-orange" : undefined}>
+              {buyingRoleUnknown
+                ? `Is ${firstName} a decision maker at ${companyName}?`
+                : "Buying role"}
+            </span>
+            {onBuyingRoleChange ? (
+              <BuyingRoleSelect
+                value={contact.buyingRole}
+                disabled={buyingRoleBusy}
+                onChange={(next) => {
+                  setBuyingRoleBusy(true);
+                  void onBuyingRoleChange(next as BuyingRole | undefined).finally(() =>
+                    setBuyingRoleBusy(false),
+                  );
+                }}
+                className={`border bg-white px-2 py-1 text-[11px] font-medium outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 ${
+                  buyingRoleUnknown
+                    ? "border-upcycle-orange/40 text-upcycle-orange"
+                    : "border-carbon-blue/15 text-carbon-blue"
+                }`}
+              />
+            ) : (
+              <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1">
+                {contact.buyingRole ?? "Unknown"}
+              </span>
+            )}
+          </label>
           {localTime ? (
             <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[11px] font-medium text-carbon-blue/70">
               Local time {localTime}
             </span>
           ) : null}
-          <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[11px] font-medium text-carbon-blue/70">
-            Buying role {contact.buyingRole ?? "Unknown"}
-          </span>
         </div>
       </div>
-
-      <Contact360StatusPanel
-        contact={contact}
-        companyName={companyName}
-        lastInteractionDate={lastInteractionDate}
-        lastInteractionSource={verdict?.lastInteractionSource ?? null}
-        healthStatus={healthStatus}
-        healthHasSignal={healthHasSignal}
-        employmentBusy={employmentBusy}
-        onEmploymentStatusChange={onEmploymentStatusChange}
-        editing={editing}
-      />
     </div>
   );
 }
