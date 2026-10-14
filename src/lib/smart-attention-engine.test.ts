@@ -33,6 +33,8 @@ function companyWithContact(person: Contact): Company {
     Domain: "antecbiogas.no",
     Industry: "Waste Management",
     Status: "Active",
+    // Silent-contact attention is posture-aware — only sell-to companies are flagged.
+    CompanyTypes: ["Prospect"],
     AccountOwner: null,
     Phone: "",
     Email: "",

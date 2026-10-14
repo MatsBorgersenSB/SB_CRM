@@ -12,6 +12,7 @@ import { computeOpportunityIntelligence } from "@/lib/opportunity-intelligence-e
 import { computeRelationshipHealth } from "@/lib/relationship-health-engine";
 import { daysBetween, formatLastContact } from "@/lib/relative-time";
 import { laterIso } from "@/lib/contact-360-verdict";
+import { getCompanyRelationshipPosture } from "@/lib/company-classification";
 import {
   correspondenceTouchesEmail,
   hasCorrespondence,
@@ -223,7 +224,12 @@ function buildCompanyAttention(
     const contact = primaryContact(company);
     const lastTouchAt = laterIso(lastActivity?.ActivityDate, correspondence?.lastSentAt ?? null);
 
-    if (companyActivities.length === 0 && !hasCorrespondence(correspondence)) {
+    // Posture-aware: a silent supplier, competitor or investor is not a gap.
+    // Only relationships we intend to sell to or work with are nudged towards first contact.
+    const posture = getCompanyRelationshipPosture(company);
+    const cadenceMatters = posture === "sell_to" || posture === "collaborate";
+
+    if (cadenceMatters && companyActivities.length === 0 && !hasCorrespondence(correspondence)) {
       pushItem(items, {
         id: `attn-no-activity-${company.CompanyID}`,
         sourceObjectId: company.CompanyID,
@@ -245,7 +251,12 @@ function buildCompanyAttention(
 
     // Only emit cold-contact when a real last-contact date exists.
     // Missing dates are covered by no_activity — never show "Infinity days ago".
-    if (daysSince != null && Number.isFinite(daysSince) && daysSince >= COLD_CONTACT_DAYS) {
+    if (
+      cadenceMatters &&
+      daysSince != null &&
+      Number.isFinite(daysSince) &&
+      daysSince >= COLD_CONTACT_DAYS
+    ) {
       pushItem(items, {
         id: `attn-cold-${company.CompanyID}`,
         sourceObjectId: company.CompanyID,
@@ -290,7 +301,8 @@ function buildCompanyAttention(
         if (
           nba.ruleId !== "create_new_opportunity" &&
           nba.ruleId !== "classify_relationship" &&
-          nba.ruleId !== "supplier_follow_through"
+          nba.ruleId !== "supplier_follow_through" &&
+          nba.ruleId !== "make_first_contact"
         ) {
           mapped.ruleId = "risk_threshold_exceeded";
         }
@@ -319,6 +331,8 @@ function buildContactAttention(
 
   for (const company of companies) {
     if (companyId && company.CompanyID !== companyId) continue;
+    // A contact at a supplier, competitor or investor we never emailed is not "disengaged".
+    if (getCompanyRelationshipPosture(company) !== "sell_to") continue;
     const correspondence = correspondenceByCompanyId?.get(company.CompanyID) ?? null;
 
     for (const contact of company.contacts) {

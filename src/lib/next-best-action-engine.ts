@@ -1,5 +1,6 @@
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
+import { getContactDisplayName } from "@/types/contact";
 import type {
   PipelineRow,
   PipelineStatus,
@@ -438,6 +439,8 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
       const salesDeals = inputs.deals.filter((d) => d.lifecycleStage === "sales");
       if (salesDeals.length > 0 || inputs.isNewRelationship) return null;
       if (inputs.contactCount === 0) return null;
+      // A deal is not justified before anyone has spoken to them — see make_first_contact.
+      if (inputs.lastContactDays === null) return null;
       // Sell-to only — never invent pipeline for suppliers, partners alone, or unclassified.
       // Known Outlook mail is still not a deal; keep the CTA only when commercially eligible.
       if (!shouldOfferCreateOpportunity(ctx.company, ctx.correspondence)) return null;
@@ -449,6 +452,26 @@ export const NEXT_BEST_ACTION_RULES: NextBestActionRule[] = [
         priority: inputs.healthScore >= 75 ? "Medium" : "Low",
         confidenceScore: inputs.healthScore >= 75 ? 76 : 68,
         ruleId: "create_new_opportunity",
+        source: "rule",
+      };
+    },
+  },
+  {
+    id: "make_first_contact",
+    evaluate(inputs, ctx) {
+      // Sell-to only: a prospect nobody has spoken to. Suppliers and partners are not nagged.
+      if (inputs.lastContactDays !== null || inputs.contactCount === 0) return null;
+      if (getCompanyRelationshipPosture(ctx.company) !== "sell_to") return null;
+      const contact = ctx.company.contacts[0]!;
+      const title = contact.JobTitle?.trim();
+      const who = `${getContactDisplayName(contact)}${title ? ` (${title})` : ""}`;
+      return {
+        id: `nba-first-contact-${inputs.companyId}`,
+        action: `Make first contact with ${getContactDisplayName(contact)}`,
+        reason: `Nobody has spoken to ${ctx.company.Title} yet — start with ${who}. Nothing can be qualified until that conversation happens.`,
+        priority: "Medium",
+        confidenceScore: 88,
+        ruleId: "make_first_contact",
         source: "rule",
       };
     },
