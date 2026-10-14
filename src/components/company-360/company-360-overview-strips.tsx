@@ -331,6 +331,7 @@ export function Company360OverviewStrips({
   createRequestId,
   lastMailByContactId,
   outlook,
+  showOpportunities = true,
   canCreateOpportunity: canCreateOpp = false,
   canManageOpportunityStakeholders: canManageStakeholders = false,
   onCreateOpportunity,
@@ -354,6 +355,8 @@ export function Company360OverviewStrips({
   createRequestId?: number;
   lastMailByContactId?: Record<string, string>;
   outlook?: ReactNode;
+  /** False folds an empty Opportunities panel away (the page shows a one-line "nothing linked"). */
+  showOpportunities?: boolean;
   canCreateOpportunity?: boolean;
   canManageOpportunityStakeholders?: boolean;
   onCreateOpportunity?: (input: CreateOpportunityInput) => Promise<PipelineRow>;
@@ -382,20 +385,22 @@ export function Company360OverviewStrips({
         lastMailByContactId={lastMailByContactId}
       />
       {outlook}
-      <OpportunitiesOverviewStrip
-        company={company}
-        companies={companies}
-        deals={deals}
-        pipelines={pipelines ?? deals}
-        activities={activities}
-        commercialPackages={commercialPackages}
-        canCreate={canCreateOpp}
-        canManageStakeholders={canManageStakeholders}
-        onCreateOpportunity={onCreateOpportunity}
-        onAssignStakeholder={onAssignOpportunityStakeholder}
-        onDeleteOpportunity={onDeleteOpportunity}
-        onCompanyUpdated={onCompanyUpdated}
-      />
+      {showOpportunities ? (
+        <OpportunitiesOverviewStrip
+          company={company}
+          companies={companies}
+          deals={deals}
+          pipelines={pipelines ?? deals}
+          activities={activities}
+          commercialPackages={commercialPackages}
+          canCreate={canCreateOpp}
+          canManageStakeholders={canManageStakeholders}
+          onCreateOpportunity={onCreateOpportunity}
+          onAssignStakeholder={onAssignOpportunityStakeholder}
+          onDeleteOpportunity={onDeleteOpportunity}
+          onCompanyUpdated={onCompanyUpdated}
+        />
+      ) : null}
     </>
   );
 }
