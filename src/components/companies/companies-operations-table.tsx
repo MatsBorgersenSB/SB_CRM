@@ -67,9 +67,9 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
               {row.attentionLabel ? (
-                <span className="inline-flex min-w-0 max-w-full items-center gap-1.5" title={row.attentionLabel}>
-                  <SeverityIcon severity={row.attentionSeverity} size="sm" />
-                  <span className="truncate text-carbon-blue/80">{row.attentionLabel}</span>
+                <span className="flex min-w-0 max-w-full items-start gap-1.5" title={row.attentionLabel}>
+                  <SeverityIcon severity={row.attentionSeverity} size="sm" className="mt-0.5 shrink-0" />
+                  <span className="line-clamp-2 text-carbon-blue/80">{row.attentionLabel}</span>
                 </span>
               ) : (
                 <span className="text-carbon-blue/35">—</span>
