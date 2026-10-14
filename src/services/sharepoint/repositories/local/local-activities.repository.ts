@@ -3,38 +3,35 @@ import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import type { IListRepository } from "@/services/sharepoint/client/types";
 import type { Activity, CreateActivityInput, UpdateActivityInput } from "@/types/activity";
 import {
-  createActivity,
-  readActivities,
-  updateActivity,
-} from "@/lib/pipeline-db";
+  createActivityRecord,
+  getActivity,
+  listActivities,
+  updateActivityRecord,
+} from "@/lib/activity-store";
 
+/** Activities read and write through the single activity store (Prisma; JSON locally). */
 export class LocalActivitiesRepository
   implements IListRepository<Activity, CreateActivityInput, UpdateActivityInput>
 {
   async list(page?: Parameters<typeof paginateArray>[1]) {
-    return paginateArray(await readActivities(), page);
+    return paginateArray(await listActivities(), page);
   }
 
   async getById(id: string | number): Promise<Activity> {
-    const activities = await readActivities();
-    const activity = activities.find(
-      (row) => row.id === Number(id) || row.ActivityID === String(id),
-    );
+    const activity = await getActivity(id);
     if (!activity) throw SharePointServiceError.notFound("Activity", id);
     return activity;
   }
 
   async create(input: CreateActivityInput): Promise<Activity> {
-    return createActivity(input);
+    return createActivityRecord(input);
   }
 
   async update(id: string | number, patch: UpdateActivityInput): Promise<Activity> {
-    return updateActivity(String(id), patch);
+    return updateActivityRecord(id, patch);
   }
 
   async delete(): Promise<void> {
-    throw SharePointServiceError.validation(
-      "Delete activity is not enabled in local transport",
-    );
+    throw SharePointServiceError.validation("Delete activity is not enabled in local transport");
   }
 }

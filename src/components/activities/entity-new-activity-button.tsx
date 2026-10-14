@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FileText, Plus } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
-import { TaskCreateModal } from "@/components/activities/task-create-modal";
 import { useAuth } from "@/context/auth-context";
 import type {
   ActivityWorkspaceContext,
@@ -58,6 +57,7 @@ function openSamePageDocumentsHash(href: string, event: MouseEvent<HTMLAnchorEle
   });
 }
 
+/** One button to plan or log any activity for this company, person, deal, or project. */
 export function EntityNewActivityButton({
   context,
   companies,
@@ -65,7 +65,6 @@ export function EntityNewActivityButton({
   assignableUsers = [],
   className,
   label = "New activity",
-  showNewTask = true,
   documentCount,
 }: {
   context: ActivityWorkspaceContext;
@@ -74,34 +73,23 @@ export function EntityNewActivityButton({
   assignableUsers?: StandardBioUserRecord[];
   className?: string;
   label?: string;
+  /** Kept for callers; tasks are a type inside the one form. */
   showNewTask?: boolean;
   documentCount?: number;
 }) {
   const router = useRouter();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [taskOpen, setTaskOpen] = useState(false);
   const documentsHref = workspaceDocumentsHref(context);
 
   const handleCreated = useCallback(() => {
     setOpen(false);
-    setTaskOpen(false);
     router.refresh();
   }, [router]);
 
   return (
     <>
       <div className="inline-flex shrink-0 flex-wrap items-center gap-2">
-        {showNewTask ? (
-          <button
-            type="button"
-            onClick={() => setTaskOpen(true)}
-            className={SECONDARY_BUTTON_CLASS}
-          >
-            <Plus className="size-3.5" strokeWidth={2} aria-hidden />
-            New Task
-          </button>
-        ) : null}
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -133,16 +121,6 @@ export function EntityNewActivityButton({
         preset={contextPreset(context)}
         defaultOwner={user}
         assignableUsers={assignableUsers}
-      />
-      <TaskCreateModal
-        open={taskOpen}
-        onClose={() => setTaskOpen(false)}
-        onCreated={handleCreated}
-        companies={companies}
-        pipelines={pipelines}
-        assignableUsers={assignableUsers}
-        preset={contextPreset(context)}
-        defaultOwner={user}
       />
     </>
   );

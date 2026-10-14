@@ -11,18 +11,18 @@ type SmartAssistResolutionCardProps = {
 function badge(resolution: SmartAssistResolution): { label: string; className: string } {
   if (resolution.dataFreshness === "FRESH") {
     return {
-      label: "Ferske interne data",
+      label: "Fresh internal records",
       className: "bg-emerald-50 text-emerald-800",
     };
   }
   if (resolution.dataFreshness === "EXTERNAL_ONLY") {
     return {
-      label: "Ingen interne treff – Ekstern sourcing",
+      label: "Nothing internal — external sourcing",
       className: "bg-slate-100 text-slate-700",
     };
   }
   return {
-    label: "⚠️ Utdaterte interne data (Krever revalidering)",
+    label: "Internal records outdated — re-confirm",
     className: "bg-orange-50 text-orange-800",
   };
 }
@@ -99,7 +99,7 @@ export function SmartAssistResolutionCard({
   return (
     <section className="border border-border bg-white text-foreground">
       <header className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
-        <p className="text-[11px] font-semibold tracking-wide">⚡ SMARTASSIST INNSIKT</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide">SmartAssist</p>
         <span className={`px-2 py-0.5 text-[10px] font-medium ${pill.className}`}>{pill.label}</span>
       </header>
       <div className="space-y-2 px-3 py-2 text-xs leading-relaxed">
@@ -121,15 +121,17 @@ export function SmartAssistResolutionCard({
           </ul>
         ) : null}
         {phase === "done" && action.type === "CREATE_LEADS_AND_CALLS" ? (
-          <p className="font-medium">Opprettet {createdCount ?? 0} leverandørlead.</p>
+          <p className="font-medium">
+            Added {createdCount ?? 0} supplier {createdCount === 1 ? "lead" : "leads"} and planned the calls.
+          </p>
         ) : null}
         {phase === "done" && action.type === "DRAFT_REVALIDATION_EMAIL" ? (
           <p className="text-muted-foreground">
-            {typeof action.payload.body === "string" ? action.payload.body : "Utkast er klart til gjennomgang."}
+            {typeof action.payload.body === "string" ? action.payload.body : "The draft is ready to review."}
           </p>
         ) : null}
         {phase === "error" ? (
-          <p className="text-orange-800">Lagringen feilet. Ingenting nytt ble beholdt.</p>
+          <p className="text-orange-800">Saving failed. Nothing new was kept.</p>
         ) : null}
       </div>
       <footer className="flex flex-wrap gap-2 border-t border-border px-3 py-2">
@@ -139,14 +141,14 @@ export function SmartAssistResolutionCard({
           disabled={phase === "pending" || phase === "done"}
           className="bg-foreground px-2.5 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
         >
-          {phase === "pending" ? `Oppretter ${createdCount ?? 0}…` : `✓ ${action.label}`}
+          {phase === "pending" ? `Adding ${createdCount ?? 0}…` : action.label}
         </button>
         <button
           type="button"
           onClick={onDismiss}
           className="border border-border bg-white px-2.5 py-1.5 text-[11px] text-muted-foreground"
         >
-          ✕ Avvis
+          Dismiss
         </button>
       </footer>
     </section>

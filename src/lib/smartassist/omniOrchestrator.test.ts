@@ -76,7 +76,7 @@ describe("temporal resolution", () => {
 
     assert.equal(resolution.dataFreshness, "OUTDATED");
     assert.equal(resolution.suggestedNextAction.type, "DRAFT_REVALIDATION_EMAIL");
-    assert.match(resolution.temporalNote ?? "", /12 måneder/);
+    assert.match(resolution.temporalNote ?? "", /12 months/);
   });
 
   it("does not invent suppliers when nothing internal exists and the model is empty", () => {

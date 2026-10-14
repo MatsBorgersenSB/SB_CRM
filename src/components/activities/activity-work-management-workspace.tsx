@@ -1,15 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChartGantt, List, Plus } from "lucide-react";
-import {
-  ActivityCalendarView,
-  ActivityScheduleJumpControl,
-} from "@/components/activities/activity-calendar-view";
+import { CalendarDays, Plus } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
-import { ActivityGanttView } from "@/components/activities/activity-gantt-view";
-import { TaskCreateModal } from "@/components/activities/task-create-modal";
 import { ActivityIntelligentTable } from "@/components/activities/activity-intelligent-table";
 import { ActivitySmartFilters } from "@/components/activities/activity-smart-filters";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
@@ -22,11 +17,6 @@ import {
   filterActivityRows,
   type ActivityWorkFilter,
 } from "@/lib/activity-mission-control";
-import {
-  formatShortDay,
-  orderedScheduledItems,
-  type ActivityScheduleViewMode,
-} from "@/lib/activity-schedule-views";
 import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import { syncActivityUpdate } from "@/lib/sync-activity";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
@@ -36,15 +26,8 @@ import type { PipelineRow } from "@/types/pipeline";
 import type { Activity } from "@/types/activity";
 import type { StandardBioUserRecord } from "@/types/user-access";
 
-const VIEW_MODES: Array<{
-  id: ActivityScheduleViewMode;
-  label: string;
-  icon: typeof List;
-}> = [
-  { id: "list", label: "List", icon: List },
-  { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "gantt", label: "Gantt", icon: ChartGantt },
-];
+const NEW_BUTTON_CLASS =
+  "inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
 
 export function ActivityWorkManagementWorkspace({
   activities: initialActivities,
@@ -62,16 +45,16 @@ export function ActivityWorkManagementWorkspace({
   const router = useRouter();
   const { user } = useAuth();
   const [activities, setActivities] = useState(initialActivities);
+  const [syncedFrom, setSyncedFrom] = useState(initialActivities);
   const [filter, setFilter] = useState<ActivityWorkFilter>("my_tasks");
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<ActivityScheduleViewMode>("list");
-  const [scheduleFocusId, setScheduleFocusId] = useState<string | null>(null);
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [taskOpen, setTaskOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => {
+  // Server data wins whenever the page refreshes (derived during render, no effect).
+  if (syncedFrom !== initialActivities) {
+    setSyncedFrom(initialActivities);
     setActivities(initialActivities);
-  }, [initialActivities]);
+  }
 
   const allRows = useMemo(
     () => buildActivityIntelligentRows(activities, pipelines),
@@ -84,7 +67,7 @@ export function ActivityWorkManagementWorkspace({
   );
 
   const filteredRows = useMemo(() => {
-    let rows = filterActivityRows(allRows, filter, user.displayName);
+    const rows = filterActivityRows(allRows, filter, user.displayName);
     const query = search.trim().toLowerCase();
     if (!query) return rows;
 
@@ -110,42 +93,6 @@ export function ActivityWorkManagementWorkspace({
     filteredRows.find((row) => row.requiresAttention)?.id ??
     filteredRows[0]?.id ??
     null;
-
-  const scheduledItems = useMemo(
-    () => orderedScheduledItems(filteredRows),
-    [filteredRows],
-  );
-
-  useEffect(() => {
-    if (scheduledItems.length === 0) {
-      setScheduleFocusId(null);
-      return;
-    }
-    if (
-      !scheduleFocusId ||
-      !scheduledItems.some((item) => item.row.id === scheduleFocusId)
-    ) {
-      setScheduleFocusId(scheduledItems[0]!.row.id);
-    }
-  }, [scheduledItems, scheduleFocusId]);
-
-  const scheduleFocusIndex = scheduledItems.findIndex(
-    (item) => item.row.id === scheduleFocusId,
-  );
-  const scheduleFocusItem =
-    scheduleFocusIndex >= 0 ? scheduledItems[scheduleFocusIndex] : null;
-
-  const jumpToPreviousTask = useCallback(() => {
-    if (scheduleFocusIndex <= 0) return;
-    setScheduleFocusId(scheduledItems[scheduleFocusIndex - 1]!.row.id);
-  }, [scheduleFocusIndex, scheduledItems]);
-
-  const jumpToNextTask = useCallback(() => {
-    if (scheduleFocusIndex < 0 || scheduleFocusIndex >= scheduledItems.length - 1) {
-      return;
-    }
-    setScheduleFocusId(scheduledItems[scheduleFocusIndex + 1]!.row.id);
-  }, [scheduleFocusIndex, scheduledItems]);
 
   const activeFilterChips = useMemo(() => {
     const chips: FilterSummaryChip[] = [];
@@ -210,40 +157,29 @@ export function ActivityWorkManagementWorkspace({
     [refreshActivities],
   );
 
+  const isEmpty = allRows.length === 0;
+
   return (
     <div className={`flex flex-col ${EDITORIAL_GAP_BLOCK}`}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium text-carbon-blue/45">Attention management</p>
-          <h2 className="mt-1 text-lg font-semibold leading-snug tracking-tight text-carbon-blue">
-            {mission.attention.headline}
-          </h2>
-          <p className="mt-1 text-[13px] text-carbon-blue/55">{mission.attention.subline}</p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setTaskOpen(true)}
-            className="inline-flex items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange"
-          >
-            <Plus className="size-3.5" strokeWidth={2} />
-            New Task
-          </button>
-          <button
-            type="button"
-            onClick={() => setWizardOpen(true)}
-            className="inline-flex items-center gap-1.5 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
-          >
-            <Plus className="size-3.5" strokeWidth={2} />
-            New Activity
-          </button>
-        </div>
-      </div>
+      {isEmpty ? (
+        <EmptyActivities onNew={() => setCreateOpen(true)} />
+      ) : (
+        <>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold leading-snug tracking-tight text-carbon-blue">
+                {mission.attention.headline}
+              </h2>
+              <p className="mt-1 text-[13px] text-carbon-blue/55">{mission.attention.subline}</p>
+            </div>
+            <button type="button" onClick={() => setCreateOpen(true)} className={NEW_BUTTON_CLASS}>
+              <Plus className="size-3.5" strokeWidth={2} />
+              New
+            </button>
+          </div>
 
-      <div className={`${WORKSPACE_PANEL_SURFACE} overflow-hidden p-0`}>
-        <div className="border-b border-carbon-blue/8 px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 flex-1">
+          <div className={`${WORKSPACE_PANEL_SURFACE} overflow-hidden p-0`}>
+            <div className="border-b border-carbon-blue/8 px-4 py-4 sm:px-5">
               <ActivitySmartFilters
                 active={filter}
                 onChange={setFilter}
@@ -252,114 +188,71 @@ export function ActivityWorkManagementWorkspace({
                 search={search}
                 onSearchChange={setSearch}
               />
-            </div>
-            <div
-              className="flex shrink-0 items-center self-start border border-carbon-blue/10"
-              role="group"
-              aria-label="Presentation"
-            >
-              {VIEW_MODES.map((mode, index) => {
-                const Icon = mode.icon;
-                const active = viewMode === mode.id;
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => setViewMode(mode.id)}
-                    aria-label={`${mode.label} view`}
-                    aria-pressed={active}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider ${
-                      index > 0 ? "border-l border-carbon-blue/10" : ""
-                    } ${
-                      active
-                        ? "bg-upcycle-orange/10 text-upcycle-orange"
-                        : "text-carbon-blue/45 hover:text-carbon-blue"
-                    }`}
-                  >
-                    <Icon className="size-3" strokeWidth={2} />
-                    {mode.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <FilterTransparencyBar
-            entityLabel="Activities"
-            filteredCount={filteredRows.length}
-            totalCount={allRows.length}
-            activeFilters={activeFilterChips}
-            onClearAll={activeFilterChips.length > 0 ? handleClearAllFilters : undefined}
-            className="mt-3 border border-carbon-blue/10"
-            endActions={
-              viewMode === "calendar" || viewMode === "gantt" ? (
-                <ActivityScheduleJumpControl
-                  index={scheduleFocusIndex}
-                  total={scheduledItems.length}
-                  label={
-                    scheduleFocusItem
-                      ? `${formatShortDay(scheduleFocusItem.start)} · ${scheduleFocusItem.row.headline}`
-                      : undefined
-                  }
-                  onPrevious={jumpToPreviousTask}
-                  onNext={jumpToNextTask}
+              {activeFilterChips.length > 0 ? (
+                <FilterTransparencyBar
+                  entityLabel="Activities"
+                  filteredCount={filteredRows.length}
+                  totalCount={allRows.length}
+                  activeFilters={activeFilterChips}
+                  onClearAll={handleClearAllFilters}
+                  className="mt-3 border border-carbon-blue/10"
                 />
-              ) : undefined
-            }
-          />
-        </div>
+              ) : null}
+            </div>
 
-        {viewMode === "list" ? (
-          <ActivityIntelligentTable
-            rows={filteredRows}
-            primaryFocusActivityId={primaryFocusActivityId}
-            onOpen={openActivity}
-            embedded
-            assigneeOptions={assigneeOptions}
-            currentUser={currentUserPerson}
-            onSharedWithChange={handleSharedWithChange}
-          />
-        ) : null}
-
-        {viewMode === "calendar" ? (
-          <ActivityCalendarView
-            rows={filteredRows}
-            primaryFocusActivityId={primaryFocusActivityId}
-            focusedActivityId={scheduleFocusId}
-            onFocusedActivityIdChange={setScheduleFocusId}
-            onOpen={openActivity}
-          />
-        ) : null}
-
-        {viewMode === "gantt" ? (
-          <ActivityGanttView
-            rows={filteredRows}
-            primaryFocusActivityId={primaryFocusActivityId}
-            focusedActivityId={scheduleFocusId}
-            onFocusedActivityIdChange={setScheduleFocusId}
-            onOpen={openActivity}
-          />
-        ) : null}
-      </div>
+            <ActivityIntelligentTable
+              rows={filteredRows}
+              primaryFocusActivityId={primaryFocusActivityId}
+              onOpen={openActivity}
+              embedded
+              assigneeOptions={assigneeOptions}
+              currentUser={currentUserPerson}
+              onSharedWithChange={handleSharedWithChange}
+            />
+          </div>
+        </>
+      )}
 
       <ActivityCreateWizard
-        open={wizardOpen}
-        onClose={() => setWizardOpen(false)}
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
         onCreated={refreshActivities}
         companies={companies}
         pipelines={pipelines}
         defaultOwner={user}
         assignableUsers={assignableUsers}
-      />
-
-      <TaskCreateModal
-        open={taskOpen}
-        onClose={() => setTaskOpen(false)}
-        onCreated={refreshActivities}
-        companies={companies}
-        pipelines={pipelines}
-        assignableUsers={assignableUsers}
-        defaultOwner={user}
       />
     </div>
+  );
+}
+
+/** Nothing planned yet: one thing to do, nothing to filter. */
+function EmptyActivities({ onNew }: { onNew: () => void }) {
+  return (
+    <section className={`${WORKSPACE_PANEL_SURFACE} flex flex-col items-start gap-4 px-6 py-10 sm:px-8`}>
+      <div className="max-w-xl">
+        <h2 className="text-lg font-semibold leading-snug tracking-tight text-carbon-blue">
+          Nothing planned yet
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-carbon-blue/60">
+          Plan a meeting, a call, or a task — or paste a link to an event and SmartAssist will
+          read the name, dates and place for you. Everything you add shows up here and on the
+          calendar.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={onNew} className={NEW_BUTTON_CLASS}>
+          <Plus className="size-3.5" strokeWidth={2} />
+          Plan your first activity
+        </button>
+        <Link
+          href="/activities?mode=calendar"
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-carbon-blue/55 hover:text-carbon-blue"
+        >
+          <CalendarDays className="size-3.5" strokeWidth={2} />
+          Open the calendar
+        </Link>
+      </div>
+    </section>
   );
 }

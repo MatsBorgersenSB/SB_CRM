@@ -431,6 +431,8 @@ export async function createActivity(input: CreateActivityInput): Promise<Activi
     OutlookMessageId: input.OutlookMessageId,
     OutlookConversationId: input.OutlookConversationId,
     ReconciledFromOutlook: input.ReconciledFromOutlook,
+    EventDetails: input.EventDetails ?? null,
+    IsAiProposed: input.IsAiProposed ?? false,
   };
 
   database.activities.push(activity);
