@@ -1,4 +1,9 @@
 import { DashboardShell } from "@/components/layout/dashboard-shell";
+import {
+  compactCorrespondenceForLists,
+  type CorrespondenceByCompanyId,
+} from "@/lib/company-correspondence";
+import { loadCorrespondenceEvidenceByCompanyId } from "@/lib/company-correspondence-data";
 import { readLiveFocusContext, readLiveSmartDocsLibrary } from "@/lib/prisma-data";
 import { loadRecentInboundMailSignals } from "@/lib/inbound-mail-attention-data";
 import type { InboundMailAttentionSignal } from "@/lib/inbound-mail-attention";
@@ -63,7 +68,8 @@ export default async function Home() {
   const emptyDocs: SmartDocLibraryRecord[] = [];
   const emptyTenders: TenderListItem[] = [];
   const emptyInbound: InboundMailAttentionSignal[] = [];
-  const [smartDocs, tenders, inboundMail] = await Promise.all([
+  const emptyCorrespondence: CorrespondenceByCompanyId = {};
+  const [smartDocs, tenders, inboundMail, correspondence] = await Promise.all([
     withTimeout(
       settle(readLiveSmartDocsLibrary(), emptyDocs, "SmartDocs"),
       4000,
@@ -86,6 +92,18 @@ export default async function Home() {
       emptyInbound,
       "inbound mail",
     ),
+    withTimeout(
+      settle(
+        loadCorrespondenceEvidenceByCompanyId(companies, { take: 1000 }).then(
+          compactCorrespondenceForLists,
+        ),
+        emptyCorrespondence,
+        "correspondence",
+      ),
+      8000,
+      emptyCorrespondence,
+      "correspondence",
+    ),
   ]);
 
   return (
@@ -97,6 +115,7 @@ export default async function Home() {
       smartDocs={smartDocs}
       tenders={tenders}
       inboundMail={inboundMail}
+      correspondenceByCompanyId={correspondence}
     />
   );
 }

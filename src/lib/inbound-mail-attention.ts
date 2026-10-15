@@ -1,3 +1,8 @@
+import {
+  EMPTY_CORRESPONDENCE,
+  type CompanyCorrespondenceEvidence,
+} from "@/lib/company-correspondence";
+import { laterIso } from "@/lib/contact-360-verdict";
 import type { AttentionItem } from "@/types/attention-item";
 import type { Company } from "@/types/company";
 import { company360Href } from "@/types/company-360";
@@ -82,4 +87,34 @@ export function buildInboundMailAttention(
   }
 
   return items;
+}
+
+/** Outlook mail is a touch — fold it into correspondence so silence nags stay honest. */
+export function mergeInboundMailIntoCorrespondence(
+  correspondence: Map<string, CompanyCorrespondenceEvidence> | undefined,
+  inbound: InboundMailAttentionSignal[],
+): Map<string, CompanyCorrespondenceEvidence> {
+  const map = new Map(correspondence ?? []);
+  for (const mail of inbound) {
+    const current = map.get(mail.companyId) ?? { ...EMPTY_CORRESPONDENCE };
+    const email = mail.senderEmail.trim().toLowerCase();
+    const lastSentByEmail = { ...current.lastSentByEmail };
+    if (
+      email &&
+      (!lastSentByEmail[email] || Date.parse(mail.sentAt) > Date.parse(lastSentByEmail[email]))
+    ) {
+      lastSentByEmail[email] = mail.sentAt;
+    }
+    map.set(mail.companyId, {
+      ...current,
+      messageCount: Math.max(current.messageCount, 1),
+      lastSentAt: laterIso(current.lastSentAt, mail.sentAt) ?? mail.sentAt,
+      correspondentEmails:
+        email && !current.correspondentEmails.includes(email)
+          ? [...current.correspondentEmails, email]
+          : current.correspondentEmails,
+      lastSentByEmail,
+    });
+  }
+  return map;
 }

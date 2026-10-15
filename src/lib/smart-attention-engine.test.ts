@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { EMPTY_CORRESPONDENCE } from "./company-correspondence";
-import { buildContactAttentionItems } from "./smart-attention-engine";
+import {
+  buildCompanyAttentionItems,
+  buildContactAttentionItems,
+} from "./smart-attention-engine";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
 
@@ -96,5 +99,50 @@ describe("contact attention — new person with company mail", () => {
     );
 
     assert.equal(items.some((item) => item.ruleId === "no_activity"), true);
+  });
+});
+
+describe("company attention — Outlook mail is a touchpoint", () => {
+  it("does not claim no activity when Outlook mail already exists", () => {
+    const person = contact({
+      ContactID: "CT-JOSTEIN",
+      FirstName: "Jostein",
+      LastName: "Smemo",
+      Email: "jostein.smemo@allskog.no",
+    });
+    const allskog = {
+      ...companyWithContact(person),
+      Title: "Allskog",
+      CompanyID: "CO-1031",
+      code: "CO-1031",
+    };
+
+    const items = buildCompanyAttentionItems(
+      allskog,
+      [],
+      [],
+      [],
+      [allskog],
+      {
+        ...EMPTY_CORRESPONDENCE,
+        messageCount: 2,
+        lastSentAt: "2026-10-15T11:04:00.000Z",
+        correspondentEmails: ["jostein.smemo@allskog.no"],
+        lastSentByEmail: {
+          "jostein.smemo@allskog.no": "2026-10-15T11:04:00.000Z",
+        },
+      },
+    );
+
+    assert.equal(
+      items.some((item) => item.ruleId === "no_activity"),
+      false,
+      "Outlook mail is a recorded touch — do not say the relationship is silent",
+    );
+    assert.equal(
+      items.some((item) => item.ruleId === "make_first_contact"),
+      false,
+      "Do not ask to make first contact after mail has already happened",
+    );
   });
 });
