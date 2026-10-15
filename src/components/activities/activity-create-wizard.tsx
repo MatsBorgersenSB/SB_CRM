@@ -102,6 +102,14 @@ function presetContactId(preset?: Partial<CreateActivityInput>): string {
   return contact && "ContactID" in contact ? contact.ContactID : "";
 }
 
+function presetContactIds(preset?: Partial<CreateActivityInput>): string[] {
+  const primary = presetContactId(preset);
+  const extras = (preset?.Stakeholders ?? [])
+    .map((person) => person.contactId?.trim())
+    .filter((id): id is string => Boolean(id));
+  return [...new Set([primary, ...extras].filter(Boolean))];
+}
+
 function presetDealId(preset?: Partial<CreateActivityInput>): string {
   const deal = preset?.Deal;
   if (!deal) return "";
@@ -159,7 +167,7 @@ function ActivityForm({
   const [priority, setPriority] = useState<ActivityPriority>(preset?.Priority ?? "Normal");
 
   const [companyId, setCompanyId] = useState(() => presetCompanyId(preset));
-  const [contactId, setContactId] = useState(() => presetContactId(preset));
+  const [contactIds, setContactIds] = useState(() => presetContactIds(preset));
   const [dealId, setDealId] = useState(() => presetDealId(preset));
   // Project context comes from the caller (project workspace); the form does not change it.
   const projectId = preset?.ProjectId?.trim() ?? "";
@@ -215,7 +223,13 @@ function ActivityForm({
   const selectedCompany = companies.find((c) => c.CompanyID === companyId);
   const contacts = selectedCompany?.contacts ?? [];
   const selectedDeal = pipelines.find((p) => p.id === dealId);
-  const selectedContact = contacts.find((c) => c.ContactID === contactId);
+  const contactPool = companies.flatMap((company) => company.contacts);
+  const selectedContacts = contactIds
+    .map((id) => contactPool.find((contact) => contact.ContactID === id))
+    .filter((contact): contact is NonNullable<typeof contact> => Boolean(contact));
+  const addableContacts = (contacts.length ? contacts : contactPool).filter(
+    (contact) => !contactIds.includes(contact.ContactID),
+  );
 
   const handleDealChange = (id: string) => {
     setDealId(id);
@@ -223,14 +237,30 @@ function ActivityForm({
     if (company) setCompanyId(company.CompanyID);
   };
 
-  const handleContactChange = (id: string) => {
-    setContactId(id);
+  const handleAddContact = (id: string) => {
+    if (!id || contactIds.includes(id)) return;
+    setContactIds((prev) => [...prev, id]);
+    if (companyId) return;
     for (const company of companies) {
-      if (company.contacts.some((c) => c.ContactID === id)) {
+      if (company.contacts.some((contact) => contact.ContactID === id)) {
         setCompanyId(company.CompanyID);
         break;
       }
     }
+  };
+
+  const handleRemoveContact = (id: string) => {
+    setContactIds((prev) => prev.filter((contactId) => contactId !== id));
+  };
+
+  const handleCompanyChange = (id: string) => {
+    setCompanyId(id);
+    if (!id) return;
+    const allowed = new Set(
+      companies.find((company) => company.CompanyID === id)?.contacts.map((contact) => contact.ContactID) ??
+        [],
+    );
+    setContactIds((prev) => prev.filter((contactId) => allowed.has(contactId)));
   };
 
   const readEventSource = () => {
@@ -346,14 +376,20 @@ function ActivityForm({
         AgreedActions: parseAgreedActions(agreedActionsText),
         Risks: parseMemoryLines(risksText),
         Company: companyId ? { CompanyID: companyId } : null,
-        Contact: contactId ? { ContactID: contactId } : null,
+        Contact: contactIds[0] ? { ContactID: contactIds[0] } : null,
         Deal: dealId ? { DealID: dealId } : null,
         ProjectId: projectId || null,
         ProjectName: projectId ? projectName || null : null,
         LinkedDeals: dealId ? [{ Id: 0, Title: dealId }] : [],
-        LinkedContacts: selectedContact
-          ? [{ Id: 0, Title: getContactDisplayName(selectedContact) }]
-          : [],
+        LinkedContacts: selectedContacts.map((contact, index) => ({
+          Id: index,
+          Title: contact.Title?.trim() || getContactDisplayName(contact),
+        })),
+        Stakeholders: selectedContacts.map((contact) => ({
+          name: contact.Title?.trim() || getContactDisplayName(contact),
+          role: contact.JobTitle?.trim() || contact.Role?.trim() || "Meeting attendee",
+          contactId: contact.ContactID,
+        })),
         ActivityOwner: owner,
         SharedWith: isTask ? sharedWith : undefined,
         DurationMinutes: isEvent
@@ -675,15 +711,12 @@ function ActivityForm({
                     </span>
                   ) : null}
                 </legend>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block">
                     <span className={LABEL}>Company</span>
                     <select
                       value={companyId}
-                      onChange={(e) => {
-                        setCompanyId(e.target.value);
-                        setContactId("");
-                      }}
+                      onChange={(e) => handleCompanyChange(e.target.value)}
                       disabled={Boolean(presetCompanyId(preset)) && contextLocked}
                       className={INPUT}
                     >
@@ -691,21 +724,6 @@ function ActivityForm({
                       {companies.map((c) => (
                         <option key={c.CompanyID} value={c.CompanyID}>
                           {c.Title}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className={LABEL}>Person</span>
-                    <select
-                      value={contactId}
-                      onChange={(e) => handleContactChange(e.target.value)}
-                      className={INPUT}
-                    >
-                      <option value="">None</option>
-                      {(contacts.length ? contacts : companies.flatMap((c) => c.contacts)).map((c) => (
-                        <option key={c.ContactID} value={c.ContactID}>
-                          {getContactDisplayName(c)}
                         </option>
                       ))}
                     </select>
@@ -728,6 +746,47 @@ function ActivityForm({
                       </select>
                     </label>
                   )}
+                  <label className="block sm:col-span-2">
+                    <span className={LABEL}>People</span>
+                    {selectedContacts.length > 0 ? (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {selectedContacts.map((contact) => {
+                          const name = contact.Title?.trim() || getContactDisplayName(contact);
+                          return (
+                            <span
+                              key={contact.ContactID}
+                              className="inline-flex items-center gap-1 border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2 py-1 text-xs text-carbon-blue"
+                            >
+                              {name}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveContact(contact.ContactID)}
+                                className="text-carbon-blue/50 hover:text-carbon-blue"
+                                aria-label={`Remove ${name}`}
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                    <select
+                      value=""
+                      onChange={(e) => handleAddContact(e.target.value)}
+                      className={INPUT}
+                    >
+                      <option value="">
+                        {selectedContacts.length ? "Add another person" : "Add a person"}
+                      </option>
+                      {addableContacts.map((contact) => (
+                        <option key={contact.ContactID} value={contact.ContactID}>
+                          {contact.Title?.trim() || getContactDisplayName(contact)}
+                          {contact.Email?.trim() ? ` · ${contact.Email.trim()}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </fieldset>
 
@@ -737,7 +796,13 @@ function ActivityForm({
                   subject={title}
                   company={selectedCompany}
                   deal={selectedDeal}
-                  contactName={selectedContact ? getContactDisplayName(selectedContact) : undefined}
+                  contactName={
+                    selectedContacts.length
+                      ? selectedContacts
+                          .map((contact) => contact.Title?.trim() || getContactDisplayName(contact))
+                          .join(", ")
+                      : undefined
+                  }
                   existingNotes={notes}
                   onApply={(state) => {
                     setSummary(state.summary);

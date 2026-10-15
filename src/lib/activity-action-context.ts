@@ -393,11 +393,15 @@ function collectContacts(input: BuildContextInput): RelevantContact[] {
   };
 
   if (activity.Contact?.Title) {
-    pushContact(activity.Contact.Title, "Primary contact", activity.Contact.Title, 100);
+    pushContact(activity.Contact.Title, "Primary contact", undefined, 100);
+  }
+
+  for (const linked of activity.LinkedContacts ?? []) {
+    pushContact(linked.Title, "Meeting attendee", undefined, 90);
   }
 
   for (const person of memory.stakeholders) {
-    pushContact(person.name, person.role ?? "Stakeholder", person.contactId, 60);
+    pushContact(person.name, person.role ?? "Stakeholder", person.contactId, 80);
   }
 
   if (company) {

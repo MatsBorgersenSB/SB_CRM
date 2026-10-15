@@ -6,8 +6,8 @@ import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type {
-  ActivityActionRecommendations,
   ActivityRecommendedActionType,
+  PreparedTeamsMeetingAction,
 } from "@/types/activity-action-recommendations";
 import { ACTIVITY_ACTION_LABELS } from "@/types/activity-action-recommendations";
 import type { ActivityBriefing } from "@/lib/activity-briefing";
@@ -16,11 +16,7 @@ import {
   buildActivityActionRecommendationsForType,
 } from "@/lib/activity-action-recommendations";
 import { SmartAssistConfidenceLabel } from "@/components/smartassist/smartassist-intelligence-display";
-import {
-  m365ComposeHref,
-  teamsMeetingComposeHref,
-  telHref,
-} from "@/lib/compose-actions";
+import { m365ComposeHref, telHref } from "@/lib/compose-actions";
 import { formatSmartAssistMeetingForCompose } from "@/lib/smartassist-meeting-engine";
 import { SmartAssistMeetingDisplay } from "@/components/smartassist/smartassist-meeting-display";
 import { stashSmartAssistPrefill } from "@/lib/smart-assist-prefill";
@@ -114,7 +110,11 @@ export function ActivityActionRecommendationsPanel({
         {primary.reason}
       </p>
 
-      <div className="mt-6">{renderArtifact(recommendations, activity, handleCreateFollowUp, handleCloseActivity, closing)}</div>
+      <div className="mt-6">
+        {renderArtifact(recommendations, activity, handleCreateFollowUp, handleCloseActivity, closing, () =>
+          router.refresh(),
+        )}
+      </div>
 
       {recommendations.alternatives.length > 0 ? (
         <div className="mt-6">
@@ -165,6 +165,7 @@ function renderArtifact(
   onCreateFollowUp: () => void,
   onCloseActivity: () => void,
   closing: boolean,
+  onScheduled: () => void,
 ) {
   if (recommendations.email) {
     const { email } = recommendations;
@@ -218,11 +219,7 @@ function renderArtifact(
       <SmartAssistMeetingDisplay
         meeting={meeting}
         action={
-          <ActionButton
-            href={teamsMeetingComposeHref(meeting.title, formatSmartAssistMeetingForCompose(meeting))}
-            external
-            label="Schedule Teams Meeting"
-          />
+          <ScheduleTeamsMeetingButton activity={activity} meeting={meeting} onScheduled={onScheduled} />
         }
       />
     );
@@ -278,7 +275,69 @@ function renderArtifact(
 }
 
 const actionButtonClass =
-  "inline-flex items-center border border-upcycle-orange/35 bg-upcycle-orange px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90";
+  "inline-flex items-center border border-upcycle-orange/35 bg-upcycle-orange px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90 disabled:opacity-60";
+
+function ScheduleTeamsMeetingButton({
+  activity,
+  meeting,
+  onScheduled,
+}: {
+  activity: Activity;
+  meeting: PreparedTeamsMeetingAction;
+  onScheduled: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSchedule = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/activities/${encodeURIComponent(activity.ActivityID)}/schedule-teams`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: meeting.title,
+            body: formatSmartAssistMeetingForCompose(meeting),
+          }),
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        openUrl?: string;
+        teamsComposeUrl?: string;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error || "Could not schedule the Teams meeting.");
+      }
+      const url = payload.openUrl || payload.teamsComposeUrl;
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+      onScheduled();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not schedule the Teams meeting.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void handleSchedule()}
+        className={actionButtonClass}
+      >
+        {busy ? "Scheduling…" : "Schedule Teams Meeting"}
+      </button>
+      {error ? <p className="text-[12px] text-carbon-blue/70">{error}</p> : null}
+    </div>
+  );
+}
 
 function ActionButton({
   href,

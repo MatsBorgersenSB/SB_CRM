@@ -323,6 +323,14 @@ export type Activity = {
   EventDetails?: ActivityEventDetails | null;
   /** Proposed by SmartAssist (e.g. read from an event link) and accepted by a person. */
   IsAiProposed?: boolean;
+  /** Graph calendar event id after Schedule Teams Meeting. */
+  TeamsEventId?: string;
+  /** Teams join URL for the scheduled online meeting. */
+  TeamsJoinUrl?: string;
+  /** Outlook/Teams web link to the calendar item. */
+  TeamsWebLink?: string;
+  /** True after Schedule Teams Meeting writes back — stops re-recommending the same action. */
+  TeamsScheduled?: boolean;
 };
 
 export type ActivityEventDetails = {

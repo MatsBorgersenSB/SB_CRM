@@ -16,6 +16,7 @@ import type { ActivityBriefing } from "@/lib/activity-briefing";
 import { buildActivityTeamsMeeting } from "@/lib/smartassist-meeting-engine";
 import type { ConfidenceLevel } from "@/lib/opportunity-workspace-intelligence";
 import { formatDueDate } from "@/lib/activity-utils";
+import { activityAlreadyOnTeams } from "@/lib/activity-attendees";
 
 type RecommendationContext = {
   activity: Activity;
@@ -93,7 +94,9 @@ function determinePrimaryActionType(ctx: RecommendationContext): ActivityRecomme
     return "create_follow_up";
   }
 
-  if (briefing.blockerCategory === "missing_decision_maker") {
+  const alreadyOnTeams = activityAlreadyOnTeams(activity);
+
+  if (briefing.blockerCategory === "missing_decision_maker" && !alreadyOnTeams) {
     return "schedule_teams_meeting";
   }
 
@@ -120,10 +123,11 @@ function determinePrimaryActionType(ctx: RecommendationContext): ActivityRecomme
   }
 
   if (
-    next.includes("meeting") ||
-    next.includes("align") ||
-    next.includes("workshop") ||
-    /meeting|site visit/i.test(activity.ActivityType)
+    !alreadyOnTeams &&
+    (next.includes("meeting") ||
+      next.includes("align") ||
+      next.includes("workshop") ||
+      /meeting|site visit/i.test(activity.ActivityType))
   ) {
     return "schedule_teams_meeting";
   }
@@ -160,7 +164,10 @@ function alternativeActionTypes(
     return [];
   }
 
-  return pool.filter((type) => type !== primary).slice(0, 3);
+  return pool
+    .filter((type) => type !== primary)
+    .filter((type) => type !== "schedule_teams_meeting" || !activityAlreadyOnTeams(ctx.activity))
+    .slice(0, 3);
 }
 
 function confidenceFor(
