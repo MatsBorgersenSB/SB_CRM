@@ -314,6 +314,7 @@ export async function addOutlookContact(
     streetAddress: addressFields?.AddressLine1?.trim() || undefined,
     city: addressFields?.City?.trim() || undefined,
     country: addressFields?.Country?.Title?.trim() || undefined,
+    ContactOwner: resolveAccountOwner(input.accountOwner),
   };
 
   // Registry-first only — never Prisma company + JSON-only contact (list disappears).

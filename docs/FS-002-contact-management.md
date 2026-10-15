@@ -327,7 +327,10 @@ The system shall support Contact ownership.
 
 Requirements:
 
-- Ownership is optional.
+- The colleague who registers a contact is the default owner.
+- Ownership is optional for historical records that never received an owner.
+- Ownership may be reassigned at any time by authorized users (never locked to the registrar).
+- Ownership is visible and changeable on Contact 360 and the People list.
 - Ownership changes must be auditable.
 - Ownership changes shall not automatically modify Company ownership.
 - Ownership changes shall not automatically modify Opportunity ownership.
@@ -454,6 +457,8 @@ Duplicate Contact ownership boundaries are prohibited.
 ## Contact Ownership
 Each contact may have a designated owner.
 
+The owner is normally the colleague who registered the contact. Ownership is never locked — authorized users can reassign it from Contact 360 or the People list.
+
 The owner is responsible for maintaining:
 
 - Contact information
@@ -462,9 +467,11 @@ The owner is responsible for maintaining:
 
 A contact may have only one owner at a time.
 
-A contact may exist without an owner.
+A contact may exist without an owner (historical records). Unassigned is shown; the system never invents an owner.
 
 Ownership may be reassigned by authorized users.
+
+Changing a contact owner must not change the company Account Owner or any opportunity owner.
 
 ## Duplicate Detection
 SmartCRM shall detect possible duplicate contacts based on:
@@ -605,7 +612,7 @@ Contact ownership can be reassigned by authorized users.
 A contact may exist without an owner.
 
 ### AC-20
-The contact owner is visible in Contact Details.
+The contact owner is visible and changeable on Contact 360 and the People list.
 
 ### AC-21
 A contact can be created with partial information.

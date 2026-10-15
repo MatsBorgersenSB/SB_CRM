@@ -665,6 +665,7 @@ export async function updateCompanyContact(
       | "preferredLanguage"
       | "CareerHistory"
       | "CompanyTransfers"
+      | "ContactOwner"
     >
   >,
 ): Promise<Contact> {
@@ -1209,6 +1210,7 @@ export async function createCompanyContact(
     backgroundNotes: input.backgroundNotes,
     preferredLanguage: input.preferredLanguage,
     EmploymentStatus: input.EmploymentStatus ?? "Active",
+    ContactOwner: input.ContactOwner ?? null,
   };
 
   contact.CareerHistory = [buildCurrentCareerEntry(contact, company)];

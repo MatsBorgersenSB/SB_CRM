@@ -1,4 +1,4 @@
-import type { SharePointLookup } from "@/types/company";
+import type { SharePointLookup, SharePointPerson } from "@/types/company";
 import type {
   CareerHistoryEntry,
   CompanyTransferRecord,
@@ -205,6 +205,11 @@ export type Contact = {
   CompanyTransfers?: CompanyTransferRecord[];
   /** Flagged during import or review — name/company mismatch, duplicate, or bad data */
   IsSuspicious?: boolean;
+  /**
+   * CRM owner of this person — normally the colleague who registered them.
+   * Independent of company AccountOwner and opportunity owner.
+   */
+  ContactOwner?: SharePointPerson | null;
 };
 
 export function getContactDisplayName(
@@ -247,6 +252,7 @@ export type CreateContactInput = Pick<
   | "preferredLanguage"
   | "EmploymentStatus"
   | "IsArchived"
+  | "ContactOwner"
 > & {
   Company: SharePointLookup | { CompanyID: string };
   EmploymentStatus?: EmploymentStatus;
@@ -289,6 +295,7 @@ export type UpdateContactInput = Partial<
     | "IsArchived"
     | "CareerHistory"
     | "CompanyTransfers"
+    | "ContactOwner"
   >
 > & {
   Company?: ContactCompanyRef;

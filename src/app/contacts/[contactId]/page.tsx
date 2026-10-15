@@ -11,6 +11,7 @@ import {
 } from "@/lib/prisma-data";
 import { resolveContactRouteRecord } from "@/lib/resolve-contact-route";
 import { loadCorrespondenceEvidenceForCompany } from "@/lib/company-correspondence-data";
+import { readAssignableStandardBioUsers } from "@/lib/standard-bio-users-server";
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 import type { Company } from "@/types/company";
 
@@ -103,12 +104,14 @@ export default async function Contact360Page({
     commercialPackages,
     outlookEvidence,
     projects,
+    assignableUsers,
   ] = await Promise.all([
     readLivePortfolio(),
     readLiveActivities(),
     readLiveCommercialPackages(),
     readLiveOutlookEvidence(),
     readProjects(),
+    readAssignableStandardBioUsers().catch(() => []),
   ]);
 
   const record = await resolveContactRouteRecord(
@@ -149,6 +152,7 @@ export default async function Contact360Page({
         outlookEvidence={outlookEvidence}
         projects={projects}
         correspondence={correspondence}
+        assignableUsers={assignableUsers}
       />
     </Suspense>
   );

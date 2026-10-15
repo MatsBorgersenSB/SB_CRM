@@ -158,7 +158,10 @@ async function findPrismaCompanyByDomain(domain: string) {
   );
 }
 
-function buildContactCreateData(discovered: DiscoveredContact) {
+function buildContactCreateData(
+  discovered: DiscoveredContact,
+  ownerId?: string | null,
+) {
   const { firstName, lastName } = splitPersonName(discovered.name);
   const email = discovered.email.trim().toLowerCase();
   const phone = normalizePhoneNumber(discovered.phone);
@@ -172,6 +175,7 @@ function buildContactCreateData(discovered: DiscoveredContact) {
     status: "active" as const,
     emails: email ? [{ address: email, type: "work", isPrimary: true }] : [],
     phoneNumbers: phone ? [{ number: phone, type: "mobile", isPrimary: true }] : [],
+    ...(ownerId ? { ownerId } : {}),
   };
 }
 
@@ -299,7 +303,7 @@ async function upsertCompanyFromDiscoveryPrisma(
           }
           const createdContact = await tx.contact.create({
             data: {
-              ...buildContactCreateData(discovered),
+              ...buildContactCreateData(discovered, String(owner.Id)),
               companyId: existing.id,
             },
           });
@@ -313,7 +317,7 @@ async function upsertCompanyFromDiscoveryPrisma(
         ).length;
         const contactCreates = selectedContacts
           .filter((discovered) => !isInternalEmail(discovered.email))
-          .map((discovered) => buildContactCreateData(discovered));
+          .map((discovered) => buildContactCreateData(discovered, String(owner.Id)));
         const createdCompany = await tx.company.create({
           data: {
             code,
@@ -370,6 +374,7 @@ async function upsertCompanyFromDiscoveryPrisma(
 async function importContactPrisma(
   companyRouteId: string,
   discovered: DiscoveredContact,
+  accountOwner?: SharePointPerson | null,
 ): Promise<SingleContactImportResult> {
   const prismaCompany = await findPrismaCompanyByRouteKey(companyRouteId);
   if (!prismaCompany) {
@@ -413,10 +418,11 @@ async function importContactPrisma(
     };
   }
 
+  const owner = resolveAccountOwner(accountOwner);
   const created = await withPrismaRetry((prisma) =>
     prisma.contact.create({
       data: {
-        ...buildContactCreateData(discovered),
+        ...buildContactCreateData(discovered, String(owner.Id)),
         companyId: prismaCompany.id,
       },
     }),
@@ -517,6 +523,7 @@ async function upsertCompanyFromDiscoveryJson(
 async function importContactJson(
   companyId: string,
   discovered: DiscoveredContact,
+  accountOwner?: SharePointPerson | null,
 ): Promise<SingleContactImportResult> {
   const companies = await readLiveCompanies();
   const company = companies.find((record) => record.CompanyID === companyId);
@@ -545,7 +552,7 @@ async function importContactJson(
     return { status: "skipped", reason: "Already in CRM", contact: existing };
   }
 
-  const imported = await importDiscoveredContactJson(company, discovered);
+  const imported = await importDiscoveredContactJson(company, discovered, accountOwner);
   if (!imported) {
     return { status: "skipped", reason: "Could not import contact" };
   }
@@ -556,6 +563,7 @@ async function importContactJson(
 async function importDiscoveredContactJson(
   company: Company,
   discovered: DiscoveredContact,
+  accountOwner?: SharePointPerson | null,
 ): Promise<Contact | null> {
   const email = discovered.email.trim().toLowerCase();
   const existing = company.contacts.find(
@@ -580,6 +588,7 @@ async function importDiscoveredContactJson(
     LinkedInURL: "",
     Status: "Prospecting",
     RelationshipLevel: "Operational",
+    ContactOwner: resolveAccountOwner(accountOwner),
   });
 }
 
@@ -597,11 +606,12 @@ export async function upsertCompanyFromDiscovery(
 export async function importDiscoveredContactForCompany(
   companyId: string,
   discovered: DiscoveredContact,
+  accountOwner?: SharePointPerson | null,
 ): Promise<SingleContactImportResult> {
   if (await prismaRegistryAvailable()) {
-    return importContactPrisma(companyId, discovered);
+    return importContactPrisma(companyId, discovered, accountOwner);
   }
-  return importContactJson(companyId, discovered);
+  return importContactJson(companyId, discovered, accountOwner);
 }
 
 export async function importWebsiteDiscovery(

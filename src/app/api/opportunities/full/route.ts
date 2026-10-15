@@ -206,6 +206,7 @@ export async function POST(request: Request) {
           Status: "Prospecting",
           RelationshipLevel: "Operational",
           Company: { CompanyID: companyId },
+          ContactOwner: authUserToAccountOwner(actorAsAuthUser(actor, role)),
         };
         createdContact = await contacts.create(contactInput);
         await logAuditEvent({

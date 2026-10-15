@@ -319,6 +319,11 @@ export function canReassignCompanyOwner(role: UserRole): boolean {
   return role === "superuser" || role === "admin" || role === "commercial";
 }
 
+/** Contact owner may be reassigned — never locked to the person who registered them. */
+export function canReassignContactOwner(role: UserRole): boolean {
+  return canReassignCompanyOwner(role);
+}
+
 export function canCreateOpportunity(role: UserRole): boolean {
   return canAssignOpportunityOwner(role);
 }

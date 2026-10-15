@@ -8,10 +8,16 @@ import { getContactDisplayName, isBuyingRoleUnknown } from "@/types/contact";
 import { CompanyLink } from "@/components/relationship/relationship-links";
 import { EmailActionMenu, PhoneActionMenu } from "@/components/relationship/relationship-links";
 import { BuyingRoleSelect } from "@/components/contacts/contact-form-fields";
+import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
 import { ActionableField, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { outlookComposeHref, outlookMeetingComposeHref } from "@/lib/compose-actions";
 import { useUniversalSearchOptional } from "@/context/universal-search-context";
+import { formatAccountOwnerDisplay, hasContactOwner } from "@/lib/company-owner";
+import { canReassignContactOwner } from "@/lib/permissions";
 import type { Contact360Verdict } from "@/lib/contact-360-verdict";
+import type { UserRole } from "@/types/auth";
+import type { Company, SharePointPerson } from "@/types/company";
+import type { StandardBioUserRecord } from "@/types/user-access";
 
 function localTimeString(timezone: string | undefined, now: Date): string | null {
   if (!timezone?.trim()) return null;
@@ -43,24 +49,36 @@ export function Contact360Header({
   contact,
   companyId,
   companyName,
+  companies = [],
+  assignableUsers = [],
+  role,
   trailing,
   verdict,
   onBuyingRoleChange,
+  onOwnerChange,
 }: {
   contact: Contact;
   companyId: string;
   companyName: string;
+  companies?: Company[];
+  assignableUsers?: StandardBioUserRecord[];
+  role?: UserRole;
   trailing?: ReactNode;
   verdict?: Contact360Verdict;
   /** Persist a buying-role decision; absent → read-only chip. */
   onBuyingRoleChange?: (role: BuyingRole | undefined) => Promise<void>;
+  onOwnerChange?: (owner: SharePointPerson) => Promise<void>;
 }) {
   const displayName = getContactDisplayName(contact);
   const position = contact.JobTitle || contact.Role || "—";
   const phone = contact.Mobile || contact.Phone;
   const [clockNow, setClockNow] = useState(() => new Date());
   const [buyingRoleBusy, setBuyingRoleBusy] = useState(false);
+  const [ownerBusy, setOwnerBusy] = useState(false);
   const buyingRoleUnknown = isBuyingRoleUnknown(contact.buyingRole);
+  const ownerAssigned = hasContactOwner(contact);
+  const ownerLabel = formatAccountOwnerDisplay(contact.ContactOwner);
+  const canEditOwner = Boolean(role && onOwnerChange && canReassignContactOwner(role));
 
   useEffect(() => {
     const timer = setInterval(() => setClockNow(new Date()), 60_000);
@@ -202,6 +220,36 @@ export function Contact360Header({
               </span>
             )}
           </label>
+          {canEditOwner ? (
+            <span
+              className={`inline-flex min-w-0 items-center gap-1.5 text-[12px] font-medium ${
+                ownerAssigned ? "text-carbon-blue/70" : "text-thermal-red"
+              }`}
+            >
+              <span>Owner</span>
+              <CompanyOwnerSelect
+                appearance="inline"
+                label="Contact owner"
+                companies={companies}
+                assignableUsers={assignableUsers}
+                extraUsers={contact.ContactOwner ? [contact.ContactOwner] : []}
+                value={ownerAssigned ? contact.ContactOwner ?? null : null}
+                disabled={ownerBusy}
+                onChange={(owner) => {
+                  setOwnerBusy(true);
+                  void onOwnerChange?.(owner).finally(() => setOwnerBusy(false));
+                }}
+              />
+            </span>
+          ) : (
+            <span
+              className={`border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[12px] font-medium ${
+                ownerAssigned ? "text-carbon-blue/70" : "text-thermal-red"
+              }`}
+            >
+              {ownerAssigned ? `Owner ${ownerLabel}` : "Owner unassigned"}
+            </span>
+          )}
           {localTime ? (
             <span className="border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2.5 py-1 text-[12px] font-medium text-carbon-blue/70">
               Local time {localTime}

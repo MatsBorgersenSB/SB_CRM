@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getRequestRole } from "@/lib/api-auth";
+import { resolveRequestRole } from "@/lib/api-auth";
+import { resolveRegistrarAccountOwner } from "@/lib/company-owner-server";
 import {
   clientIpFromRequest,
   logAuditEvent,
@@ -14,7 +15,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ companyId: string }> },
 ) {
-  const role = getRequestRole(request);
+  const role = await resolveRequestRole(request);
   if (role === "client_lead") {
     return sharePointErrorResponse(
       SharePointServiceError.forbidden("Insufficient role to create contacts"),
@@ -23,11 +24,17 @@ export async function POST(
 
   const { companyId } = await params;
   const body = (await request.json()) as CreateContactInput;
+  const contactOwner = await resolveRegistrarAccountOwner(
+    request,
+    role,
+    body.ContactOwner,
+  );
 
   try {
     const { contacts } = getServerSharePointServices();
     const contact = await contacts.create({
       ...body,
+      ContactOwner: contactOwner,
       Company: { CompanyID: companyId },
     });
 
@@ -41,6 +48,8 @@ export async function POST(
       metadata: {
         companyId,
         title: contact.Title,
+        owner: contactOwner.Title,
+        ownerId: contactOwner.Id,
       },
     });
 

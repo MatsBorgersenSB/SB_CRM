@@ -304,6 +304,7 @@ export function mapPrismaContactToApp(
     CareerHistory: meta.careerHistory,
     CompanyTransfers: meta.companyTransfers,
     IsArchived: contact.status === "archived",
+    ContactOwner: mapOwnerPerson(contact.ownerId),
   };
 }
 

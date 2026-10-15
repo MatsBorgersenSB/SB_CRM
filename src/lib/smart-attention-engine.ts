@@ -148,7 +148,7 @@ function attentionCompany(
 
 /**
  * Who is responsible for this attention item?
- * Activity assignee → opportunity owner → company account owner.
+ * Activity assignee → opportunity owner → contact owner → company account owner.
  * Never invent a name — unknown stays blank so the table can say Unassigned.
  */
 function attachAttentionOwners(
@@ -175,7 +175,16 @@ function attachAttentionOwners(
       }
     }
 
-    return { ...item, ...listedOwner(attentionCompany(item, ctx.companies)?.AccountOwner) };
+    const company = attentionCompany(item, ctx.companies);
+    if (item.objectType === "Contact") {
+      const person = company?.contacts.find(
+        (row) => row.ContactID === item.sourceObjectId,
+      );
+      const contactOwner = listedOwner(person?.ContactOwner);
+      if (contactOwner.ownerLabel) return { ...item, ...contactOwner };
+    }
+
+    return { ...item, ...listedOwner(company?.AccountOwner) };
   });
 }
 

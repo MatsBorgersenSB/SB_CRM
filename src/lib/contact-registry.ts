@@ -10,6 +10,7 @@ import {
   toCompanyTrackingId,
   toContactTrackingId,
 } from "@/lib/prisma-mappers";
+import { ownerIdFromPerson } from "@/lib/company-owner";
 import { assertExternalContactEmail } from "@/lib/internal-colleague";
 import { readCompanies } from "@/lib/pipeline-db";
 import { buildContactTitle } from "@/types/contact";
@@ -238,6 +239,7 @@ export async function createRegistryContact(
         preferredLanguage: input.preferredLanguage?.trim() || null,
         status: toPrismaContactStatus(input.Status),
         companyId,
+        ownerId: ownerIdFromPerson(input.ContactOwner),
         personalNotes,
         emails: input.Email.trim()
           ? [{ address: input.Email.trim().toLowerCase(), type: "work", isPrimary: true }]
@@ -341,6 +343,7 @@ export async function updateRegistryContact(
             patch.IsArchived ?? jsonContact!.IsArchived,
           ),
           companyId: prismaCompanyId,
+          ownerId: ownerIdFromPerson(patch.ContactOwner ?? jsonContact!.ContactOwner),
           personalNotes,
           emails: email.trim()
             ? [{ address: email.trim().toLowerCase(), type: "work", isPrimary: true }]
@@ -416,6 +419,10 @@ export async function updateRegistryContact(
 
   if (patch.Status !== undefined || patch.IsArchived !== undefined) {
     data.status = toPrismaContactStatus(patch.Status, patch.IsArchived);
+  }
+
+  if (patch.ContactOwner !== undefined) {
+    data.ownerId = ownerIdFromPerson(patch.ContactOwner);
   }
 
   if (patch.Email !== undefined) {

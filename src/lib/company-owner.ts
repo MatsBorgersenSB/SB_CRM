@@ -41,11 +41,22 @@ export function isCompanyOwnedByUser(company: Company, user: AuthUser): boolean 
 }
 
 export function hasCompanyOwner(company: Company): boolean {
-  const title = company.AccountOwner?.Title?.trim();
-  if (!title) return false;
-  // Numeric-only titles are leaked owner ids — not real accountability.
-  if (/^\d+$/.test(title)) return false;
-  return true;
+  return Boolean(formatAccountOwnerDisplay(company.AccountOwner));
+}
+
+export function hasContactOwner(contact: {
+  ContactOwner?: SharePointPerson | null;
+}): boolean {
+  return Boolean(formatAccountOwnerDisplay(contact.ContactOwner));
+}
+
+/** Persist SharePoint-shaped people onto Prisma ownerId. */
+export function ownerIdFromPerson(owner: SharePointPerson | null | undefined): string | null {
+  if (owner == null) return null;
+  if (typeof owner.Id === "number" && Number.isFinite(owner.Id) && owner.Id > 0) {
+    return String(owner.Id);
+  }
+  return null;
 }
 
 /** Display name for Account Owner — never show raw ids. */

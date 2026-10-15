@@ -6,16 +6,19 @@ import {
   readLiveOutlookEvidence,
   readLivePortfolio,
 } from "@/lib/prisma-data";
+import { readAssignableStandardBioUsers } from "@/lib/standard-bio-users-server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function ContactsPage() {
-  const [{ companies, pipelines }, activities, outlookEvidence] = await Promise.all([
-    readLivePortfolio(),
-    readLiveActivities(),
-    readLiveOutlookEvidence(),
-  ]);
+  const [{ companies, pipelines }, activities, outlookEvidence, assignableUsers] =
+    await Promise.all([
+      readLivePortfolio(),
+      readLiveActivities(),
+      readLiveOutlookEvidence(),
+      readAssignableStandardBioUsers().catch(() => []),
+    ]);
 
   // Synced Outlook mail counts as a touch — per person, via the addresses on each message.
   const correspondence = compactCorrespondenceForLists(
@@ -29,6 +32,7 @@ export default async function ContactsPage() {
       activities={activities}
       outlookEvidence={outlookEvidence}
       correspondence={correspondence}
+      assignableUsers={assignableUsers}
     />
   );
 }
