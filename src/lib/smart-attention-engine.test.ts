@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { EMPTY_CORRESPONDENCE } from "./company-correspondence";
 import {
+  buildAttentionItems,
   buildCompanyAttentionItems,
   buildContactAttentionItems,
 } from "./smart-attention-engine";
+import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
 
@@ -144,5 +146,78 @@ describe("company attention — Outlook mail is a touchpoint", () => {
       false,
       "Do not ask to make first contact after mail has already happened",
     );
+  });
+});
+
+describe("attention owner / responsibility", () => {
+  it("lists the company account owner on company and contact rows", () => {
+    const person = contact({
+      ContactID: "CT-JAN",
+      FirstName: "Jan Kåre",
+      LastName: "Pedersen",
+      Email: "jan@example.invalid",
+    });
+    const biogy = {
+      ...companyWithContact(person),
+      Title: "BIOGY SOLUTIONS AS",
+      CompanyID: "CO-BIOGY",
+      code: "CO-BIOGY",
+      AccountOwner: { Id: 1, Title: "Mats Borgersen" },
+    };
+
+    const items = buildAttentionItems({
+      companies: [biogy],
+      pipelines: [],
+      activities: [],
+      commercialPackages: [],
+    });
+
+    assert.ok(items.length > 0, "silent sell-to company should raise attention");
+    for (const item of items) {
+      assert.equal(item.ownerLabel, "Mats Borgersen");
+    }
+  });
+
+  it("lists the activity assignee ahead of the company owner", () => {
+    const person = contact({
+      ContactID: "CT-RISE",
+      FirstName: "Contact",
+      LastName: "Rise",
+      Email: "contact@example.invalid",
+    });
+    const rise = {
+      ...companyWithContact(person),
+      Title: "Rise PFI",
+      CompanyID: "CO-RISE",
+      code: "CO-RISE",
+      AccountOwner: { Id: 1, Title: "Mats Borgersen" },
+    };
+    const overdue = {
+      id: 9,
+      ActivityID: "ACT-OVERDUE",
+      ActivityType: "Task",
+      ActivityDate: "2026-08-01T10:00:00.000Z",
+      Subject: "Follow-up call",
+      Summary: "Follow-up call",
+      ActivityDescription: "",
+      Company: { Id: rise.id, Title: rise.Title, CompanyID: rise.CompanyID },
+      Contact: null,
+      Deal: null,
+      ActivityOwner: { Id: 101, Title: "Hugo Jansson" },
+      ActionRequired: true,
+      NextAction: "Schedule Follow-Up Call",
+      NextActionDate: "2026-08-20",
+      ActionStatus: "Not Started",
+      ActionOutcome: "",
+    } as unknown as Activity;
+
+    const items = buildAttentionItems({
+      companies: [rise],
+      pipelines: [],
+      activities: [overdue],
+      commercialPackages: [],
+    });
+    const activityRow = items.find((item) => item.sourceObjectId === "ACT-OVERDUE");
+    assert.equal(activityRow?.ownerLabel, "Hugo Jansson");
   });
 });
