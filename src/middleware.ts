@@ -35,6 +35,7 @@ export async function middleware(request: NextRequest) {
 
   if (
     pathname.startsWith("/api/cron") ||
+    pathname.startsWith("/api/m365/graph-webhook") ||
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/azure-start") ||

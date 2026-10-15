@@ -119,6 +119,15 @@ export function resolveAttentionActions(item: AttentionItem): AttentionAction[] 
       pushDraftEmail();
       break;
 
+    case "recent_inbound_mail":
+      actions.push({
+        kind: "navigate",
+        label: "Open company",
+        href: item.href,
+      });
+      pushDraftEmail();
+      break;
+
     case "due_today":
       if (item.objectType === "Activity") {
         actions.push({

@@ -27,6 +27,7 @@ import type { PipelineRow } from "@/types/pipeline";
 import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import type { TenderListItem } from "@/lib/tenders/types";
+import type { InboundMailAttentionSignal } from "@/lib/inbound-mail-attention";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 
@@ -38,6 +39,7 @@ type DashboardShellProps = {
   correspondenceByCompanyId?: Record<string, CompanyCorrespondenceEvidence>;
   smartDocs?: SmartDocLibraryRecord[];
   tenders?: TenderListItem[];
+  inboundMail?: InboundMailAttentionSignal[];
 };
 
 export function DashboardShell(props: DashboardShellProps) {
@@ -56,6 +58,7 @@ function DashboardShellContent({
   correspondenceByCompanyId,
   smartDocs,
   tenders,
+  inboundMail,
 }: DashboardShellProps) {
   const searchParams = useSearchParams();
   const ownerFilter = searchParams.get("owner") ?? undefined;
@@ -148,6 +151,7 @@ function DashboardShellContent({
         correspondenceByCompanyId: correspondenceMap,
         smartDocs,
         tenders,
+        inboundMail,
       });
     } catch (error) {
       console.error("[today] attention queue failed", error);
@@ -161,6 +165,7 @@ function DashboardShellContent({
     correspondenceMap,
     smartDocs,
     tenders,
+    inboundMail,
   ]);
 
 

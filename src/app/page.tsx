@@ -1,5 +1,7 @@
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { readLiveFocusContext, readLiveSmartDocsLibrary } from "@/lib/prisma-data";
+import { loadRecentInboundMailSignals } from "@/lib/inbound-mail-attention-data";
+import type { InboundMailAttentionSignal } from "@/lib/inbound-mail-attention";
 import { listPendingTenders } from "@/lib/tenders/queries";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -60,7 +62,8 @@ export default async function Home() {
 
   const emptyDocs: SmartDocLibraryRecord[] = [];
   const emptyTenders: TenderListItem[] = [];
-  const [smartDocs, tenders] = await Promise.all([
+  const emptyInbound: InboundMailAttentionSignal[] = [];
+  const [smartDocs, tenders, inboundMail] = await Promise.all([
     withTimeout(
       settle(readLiveSmartDocsLibrary(), emptyDocs, "SmartDocs"),
       4000,
@@ -77,6 +80,12 @@ export default async function Home() {
       emptyTenders,
       "tenders",
     ),
+    withTimeout(
+      settle(loadRecentInboundMailSignals(), emptyInbound, "inbound mail"),
+      4000,
+      emptyInbound,
+      "inbound mail",
+    ),
   ]);
 
   return (
@@ -87,6 +96,7 @@ export default async function Home() {
       commercialPackages={commercialPackages}
       smartDocs={smartDocs}
       tenders={tenders}
+      inboundMail={inboundMail}
     />
   );
 }

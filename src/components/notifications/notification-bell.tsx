@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { useEscapeKey } from "@/hooks/use-escape-key";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
@@ -31,8 +32,11 @@ function formatWhen(iso: string): string {
  */
 export function NotificationBell() {
   const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const unreadRef = useRef(0);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationDto[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -42,9 +46,11 @@ export function NotificationBell() {
   const close = useCallback(() => setOpen(false), []);
   useEscapeKey(open, close);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const response = await fetch("/api/notifications", {
         headers: {
@@ -63,13 +69,18 @@ export function NotificationBell() {
         throw new Error(payload.error || "Could not load notifications");
       }
       setItems(payload.notifications ?? []);
-      setUnreadCount(payload.unreadCount ?? 0);
+      const nextUnread = payload.unreadCount ?? 0;
+      if (silent && nextUnread > unreadRef.current && pathname === "/") {
+        router.refresh();
+      }
+      unreadRef.current = nextUnread;
+      setUnreadCount(nextUnread);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [user.displayName, user.id, user.role]);
+  }, [pathname, router, user.displayName, user.id, user.role]);
 
   useEffect(() => {
     void load();
@@ -78,6 +89,18 @@ export function NotificationBell() {
   useEffect(() => {
     if (open) void load();
   }, [open, load]);
+
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === "visible") void load(true);
+    };
+    const interval = window.setInterval(tick, 30_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [load]);
 
   const markRead = useCallback(
     async (id: string) => {
