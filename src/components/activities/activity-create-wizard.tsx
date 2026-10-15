@@ -50,7 +50,7 @@ type ActivityCreateWizardProps = {
   pipelines: PipelineRow[];
   preset?: Partial<CreateActivityInput>;
   defaultOwner?: AuthUser;
-  /** Assignable Standard Bio users — required for Task assignee. */
+  /** Assignable Standard Bio colleagues — who owns this activity. */
   assignableUsers?: StandardBioUserRecord[];
 };
 
@@ -341,7 +341,7 @@ function ActivityForm({
         : isTask
           ? combineDateTime(date, "09:00")
           : combineDateTime(date, time);
-      const owner = isTask ? assignee : me;
+      const owner = assignee ?? me;
       const eventDetails = isEvent
         ? {
             location: eventLocation.trim() || null,
@@ -391,7 +391,9 @@ function ActivityForm({
           contactId: contact.ContactID,
         })),
         ActivityOwner: owner,
-        SharedWith: isTask ? sharedWith : undefined,
+        SharedWith: isTask
+          ? sharedWith.filter((person) => person.Id !== owner?.Id)
+          : undefined,
         DurationMinutes: isEvent
           ? inclusiveDayCount(date, endDate || date) * 24 * 60
           : isTask
@@ -681,15 +683,16 @@ function ActivityForm({
                 </label>
               </div>
 
-              {isTask ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <TaskAssigneeSelect
-                    value={assignee}
-                    onChange={setAssignee}
-                    options={assigneeOptions}
-                    required
-                    disabled={saving}
-                  />
+              <div className={`grid gap-3 ${isTask ? "sm:grid-cols-2" : ""}`}>
+                <TaskAssigneeSelect
+                  value={assignee}
+                  onChange={setAssignee}
+                  options={assigneeOptions}
+                  required={isTask}
+                  disabled={saving}
+                  label="Assign to"
+                />
+                {isTask ? (
                   <TaskShareWithPicker
                     value={sharedWith}
                     onChange={setSharedWith}
@@ -697,8 +700,8 @@ function ActivityForm({
                     excludeIds={assignee ? [assignee.Id] : []}
                     disabled={saving}
                   />
-                </div>
-              ) : null}
+                ) : null}
+              </div>
 
               <fieldset className="grid gap-3">
                 <legend className={LABEL}>

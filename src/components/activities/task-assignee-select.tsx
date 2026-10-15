@@ -10,7 +10,7 @@ const FIELD_CLASS =
   "mt-1 w-full border border-carbon-blue/15 bg-white px-2.5 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange";
 
 /**
- * Assign a task to a Standard Bio / SmartCRM user (ActivityOwner).
+ * Assign an activity to a Standard Bio colleague (ActivityOwner).
  */
 export function TaskAssigneeSelect({
   value,
@@ -29,6 +29,11 @@ export function TaskAssigneeSelect({
   label?: string;
   compact?: boolean;
 }) {
+  const list =
+    value && !options.some((option) => option.Id === value.Id)
+      ? [value, ...options]
+      : options;
+
   return (
     <label className={compact ? "block min-w-[160px]" : "block"}>
       <span className={compact ? "sr-only" : LABEL_CLASS}>
@@ -37,19 +42,19 @@ export function TaskAssigneeSelect({
       </span>
       <select
         value={value?.Id ?? ""}
-        disabled={disabled || options.length === 0}
+        disabled={disabled || list.length === 0}
         required={required}
         aria-label={label}
         onChange={(event) => {
-          const next = findStandardBioUserOption(options, Number(event.target.value));
+          const next = findStandardBioUserOption(list, Number(event.target.value));
           if (next) onChange(next);
         }}
         className={compact ? `${FIELD_CLASS} mt-0 py-1 text-[12px]` : FIELD_CLASS}
       >
         <option value="" disabled>
-          {options.length === 0 ? "No assignable users" : "Select assignee…"}
+          {list.length === 0 ? "No assignable users" : "Select assignee…"}
         </option>
-        {options.map((option) => (
+        {list.map((option) => (
           <option key={option.Id} value={option.Id}>
             {option.Title}
           </option>

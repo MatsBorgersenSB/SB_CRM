@@ -132,13 +132,13 @@ export function ActivityPlanningRow({
               {formatDuration(activity.DurationMinutes)}
             </span>
           ) : null}
-          {isTask && onAssigneeChange && assigneeOptions.length > 0 ? (
+          {onAssigneeChange && assigneeOptions.length > 0 ? (
             <div className="min-w-[160px]">
               <TaskAssigneeSelect
                 value={activity.ActivityOwner}
                 onChange={(next) => onAssigneeChange(activity, next)}
                 options={assigneeOptions}
-                label="Assignee"
+                label="Assign to"
                 compact
               />
             </div>
