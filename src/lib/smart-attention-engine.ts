@@ -46,6 +46,10 @@ import { smartDocHref } from "@/types/smartdoc";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import { buildSmartDocsIntelligence } from "@/lib/smartdocs-intelligence-data";
 import type { TenderListItem } from "@/lib/tenders/types";
+import {
+  buildInboundMailAttention,
+  type InboundMailAttentionSignal,
+} from "@/lib/inbound-mail-attention";
 
 const STALLED_DAYS = 21;
 const COLD_CONTACT_DAYS = 45;
@@ -64,6 +68,8 @@ export type AttentionEngineContext = {
   smartDocs?: SmartDocLibraryRecord[];
   /** Open thermal tenders that still need a bid decision. */
   tenders?: TenderListItem[];
+  /** Recent inbound mail already linked to a company. */
+  inboundMail?: InboundMailAttentionSignal[];
 };
 
 function parseActivityDate(value: string): Date {
@@ -856,6 +862,11 @@ export function buildAttentionItems(ctx: AttentionEngineContext): AttentionItem[
       scoped.companyId,
     ),
     ...buildTenderAttention(scoped.tenders ?? [], scoped.companyId),
+    ...buildInboundMailAttention(
+      scoped.inboundMail ?? [],
+      scoped.companies,
+      scoped.companyId,
+    ),
   ];
 
   return dedupeAttentionItems(raw)

@@ -24,6 +24,8 @@ import {
   gradeEmailSentiment,
   toPrismaSentimentGrade,
 } from "@/lib/email-sentiment";
+import { notifyInboundMail } from "@/lib/notifications/living-signals";
+import { ensureMailInboxSubscription } from "@/lib/m365/mail-inbox-subscription";
 
 export type MailSyncIntegrationResult = {
   integrationId: string;
@@ -461,6 +463,25 @@ async function upsertGraphMessage(input: {
     existingCategoryName = intentional.apply
       ? intentional.categoryName ?? null
       : null;
+
+    if (!isOutbound) {
+      void notifyInboundMail({
+        recordId: created.id,
+        subject: contentData.subject,
+        senderEmail,
+        mailboxEmail: mailbox,
+        contactId: created.contactId,
+        opportunityId: created.opportunityId,
+        projectId: created.projectId,
+        projectName: created.projectName,
+        tagged: Boolean(existingCategoryName),
+      }).catch((error) => {
+        console.warn(
+          "[mail-delta-ingest] notify failed:",
+          error instanceof Error ? error.message : error,
+        );
+      });
+    }
   }
 
   await syncOutlookCategoriesForRecord({
@@ -577,6 +598,15 @@ export async function syncMailDeltaForIntegration(
         });
       }
       break;
+    }
+
+    try {
+      await ensureMailInboxSubscription(integrationId, accessToken);
+    } catch (error) {
+      console.warn(
+        "[mail-delta-ingest] inbox subscription skipped:",
+        error instanceof Error ? error.message : error,
+      );
     }
 
     const scrubbed = await scrubUnintentionalOutlookCategories(accessToken);

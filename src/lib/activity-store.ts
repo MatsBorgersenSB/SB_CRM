@@ -16,6 +16,7 @@ import {
   type SmartActivityType,
   type UpdateActivityInput,
 } from "@/types/activity";
+import { notifyActivityAssigned } from "@/lib/notifications/living-signals";
 
 /**
  * The one activity store.
@@ -317,11 +318,36 @@ export async function createActivityRecord(input: CreateActivityInput): Promise<
   return rowToActivity(row);
 }
 
+async function notifyOwnerChange(previous: Activity, next: Activity): Promise<void> {
+  const before = previous.ActivityOwner?.Id;
+  const after = next.ActivityOwner;
+  if (!after?.Id || after.Id === before) return;
+  try {
+    await notifyActivityAssigned({
+      activityId: next.ActivityID,
+      subject: next.Subject || "Activity",
+      assigneeId: after.Id,
+      assigneeTitle: after.Title,
+      assignerTitle: previous.ActivityOwner?.Title ?? null,
+    });
+  } catch (error) {
+    console.warn(
+      "[activity] assign notify failed",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
 export async function updateActivityRecord(
   id: string | number,
   patch: UpdateActivityInput,
 ): Promise<Activity> {
-  if (!isPrismaActivityStore()) return updateJsonActivity(String(id), patch);
+  if (!isPrismaActivityStore()) {
+    const current = await getActivity(id);
+    const updated = await updateJsonActivity(String(id), patch);
+    if (current) await notifyOwnerChange(current, updated);
+    return updated;
+  }
 
   const prisma = getPrisma();
   const seq = seqFromId(id);
@@ -352,5 +378,7 @@ export async function updateActivityRecord(
     data: { ...columnsFromActivity(merged), companyId, opportunityId },
     select: rowSelect,
   });
-  return rowToActivity(row);
+  const updated = rowToActivity(row);
+  await notifyOwnerChange(current, updated);
+  return updated;
 }
