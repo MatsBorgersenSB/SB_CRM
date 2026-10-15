@@ -27,7 +27,10 @@ import type { PipelineRow } from "@/types/pipeline";
 import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import type { TenderListItem } from "@/lib/tenders/types";
-import type { InboundMailAttentionSignal } from "@/lib/inbound-mail-attention";
+import {
+  mergeInboundMailIntoCorrespondence,
+  type InboundMailAttentionSignal,
+} from "@/lib/inbound-mail-attention";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 
@@ -74,13 +77,13 @@ function DashboardShellContent({
     [pipelines, user, companies],
   );
 
-  const correspondenceMap = useMemo(
-    () =>
-      correspondenceByCompanyId
-        ? new Map(Object.entries(correspondenceByCompanyId))
-        : undefined,
-    [correspondenceByCompanyId],
-  );
+  const correspondenceMap = useMemo(() => {
+    const base = correspondenceByCompanyId
+      ? new Map(Object.entries(correspondenceByCompanyId))
+      : undefined;
+    if (!inboundMail?.length) return base;
+    return mergeInboundMailIntoCorrespondence(base, inboundMail);
+  }, [correspondenceByCompanyId, inboundMail]);
 
   const scopedActivities = useMemo(() => {
     if (user.role !== "client_lead" || !user.companyId) return activities;

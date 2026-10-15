@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildInboundMailAttention } from "./inbound-mail-attention";
+import {
+  buildInboundMailAttention,
+  mergeInboundMailIntoCorrespondence,
+} from "./inbound-mail-attention";
+import { EMPTY_CORRESPONDENCE } from "./company-correspondence";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
 
@@ -86,5 +90,23 @@ describe("inbound mail attention", () => {
       [company()],
     );
     assert.equal(items.length, 0);
+  });
+
+  it("treats inbound mail as correspondence so silence nags stay honest", () => {
+    const merged = mergeInboundMailIntoCorrespondence(undefined, [
+      {
+        id: "mail-1",
+        subject: "G30 Tarkett",
+        senderEmail: "jostein.smemo@allskog.no",
+        sentAt: "2026-10-15T11:04:00.000Z",
+        companyId: "CO-HORN",
+        companyName: "Hornindal",
+        contactId: "CT-JOSTEIN",
+      },
+    ]);
+    const evidence = merged.get("CO-HORN") ?? EMPTY_CORRESPONDENCE;
+    assert.ok(evidence.messageCount > 0);
+    assert.equal(evidence.lastSentAt, "2026-10-15T11:04:00.000Z");
+    assert.ok(evidence.correspondentEmails.includes("jostein.smemo@allskog.no"));
   });
 });
