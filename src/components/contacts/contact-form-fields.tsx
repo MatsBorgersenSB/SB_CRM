@@ -681,10 +681,16 @@ export function ContactFormFields({
 }
 
 export function isContactFormValid(form: CreateContactInput): boolean {
-  return Boolean(
-    form.FirstName.trim() &&
-      form.LastName.trim() &&
-      form.Email.trim() &&
-      !isInternalEmail(form.Email),
-  );
+  return contactFormValidationMessage(form) === null;
+}
+
+/** FS-002: email is optional (0..*). Name is required. Internal domains are users, not contacts. */
+export function contactFormValidationMessage(form: CreateContactInput): string | null {
+  if (!form.FirstName.trim() || !form.LastName.trim()) {
+    return "First and last name are required.";
+  }
+  if (isInternalEmail(form.Email)) {
+    return "Standard Bio colleagues are users, not contacts. Add them in Users & Access.";
+  }
+  return null;
 }

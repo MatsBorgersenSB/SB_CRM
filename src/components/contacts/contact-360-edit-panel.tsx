@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 import {
   ContactFormFields,
-  isContactFormValid,
+  contactFormValidationMessage,
 } from "@/components/contacts/contact-form-fields";
 import type { GlobalContactRecord } from "@/lib/contact-utils";
 import type { Company } from "@/types/company";
@@ -82,10 +82,18 @@ export function Contact360EditPanel({
   useEffect(() => {
     setForm(contactToForm(record.contact, record.companyName));
     setCompanyId(record.companyId);
-  }, [record]);
+    // Reset only when switching people — a new `record` object on parent render
+    // must not wipe in-progress edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [record.contact.ContactID, record.companyId]);
+
+  const validationMessage = contactFormValidationMessage(form);
 
   const handleSave = async () => {
-    if (!isContactFormValid(form)) return;
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -196,7 +204,7 @@ export function Contact360EditPanel({
       <div className="mt-4 flex flex-wrap gap-2 border-t border-carbon-blue/10 pt-4">
         <button
           type="button"
-          disabled={saving || !isContactFormValid(form)}
+          disabled={saving || Boolean(validationMessage)}
           onClick={() => void handleSave()}
           className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -215,6 +223,10 @@ export function Contact360EditPanel({
       {error ? (
         <p className="mt-3 text-[13px] font-medium text-red-700" role="alert">
           {error}
+        </p>
+      ) : validationMessage ? (
+        <p className="mt-3 text-[13px] font-medium text-carbon-blue/55" role="status">
+          {validationMessage}
         </p>
       ) : null}
 

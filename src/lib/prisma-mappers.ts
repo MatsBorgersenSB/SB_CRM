@@ -14,6 +14,7 @@ import type {
   InfluenceLevel,
   RelationshipLevel,
 } from "@/types/contact";
+import type { EmploymentStatus } from "@/types/contact-lifecycle";
 import {
   BUYING_ROLES,
   ENGAGEMENT_CADENCES,
@@ -97,6 +98,15 @@ export function toContactTrackingId(prismaId: string): string {
   return `CT-${trimmed.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
+function emailFromJsonEntry(entry: unknown): string {
+  if (typeof entry === "string") return entry.trim();
+  if (!entry || typeof entry !== "object") return "";
+  const row = entry as { address?: unknown; email?: unknown };
+  if (typeof row.address === "string") return row.address.trim();
+  if (typeof row.email === "string") return row.email.trim();
+  return "";
+}
+
 function primaryEmail(emails: unknown): string {
   if (!Array.isArray(emails) || emails.length === 0) return "";
   const primary = emails.find(
@@ -106,8 +116,37 @@ function primaryEmail(emails: unknown): string {
       "isPrimary" in entry &&
       (entry as { isPrimary?: boolean }).isPrimary,
   );
-  const pick = (primary ?? emails[0]) as { address?: string };
-  return typeof pick.address === "string" ? pick.address : "";
+  return emailFromJsonEntry(primary) || emailFromJsonEntry(emails[0]);
+}
+
+function contactMetaFromNotes(personalNotes: string | null | undefined): {
+  role?: string;
+  relationshipLevel?: string;
+  employmentStatus?: string;
+  careerHistory?: Contact["CareerHistory"];
+  companyTransfers?: Contact["CompanyTransfers"];
+} {
+  const raw = personalNotes?.trim();
+  if (!raw?.startsWith("{")) return {};
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") return {};
+    return {
+      role: typeof parsed.role === "string" ? parsed.role : undefined,
+      relationshipLevel:
+        typeof parsed.relationshipLevel === "string" ? parsed.relationshipLevel : undefined,
+      employmentStatus:
+        typeof parsed.employmentStatus === "string" ? parsed.employmentStatus : undefined,
+      careerHistory: Array.isArray(parsed.careerHistory)
+        ? (parsed.careerHistory as Contact["CareerHistory"])
+        : undefined,
+      companyTransfers: Array.isArray(parsed.companyTransfers)
+        ? (parsed.companyTransfers as Contact["CompanyTransfers"])
+        : undefined,
+    };
+  } catch {
+    return {};
+  }
 }
 
 function primaryPhone(phones: unknown, preferMobile = false): string {
@@ -227,6 +266,7 @@ export function mapPrismaContactToApp(
     `${firstName} ${lastName}`.trim() ||
     primaryEmail(contact.emails) ||
     "Unknown contact";
+  const meta = contactMetaFromNotes(contact.personalNotes);
 
   return {
     id: stableNumericId(contact.id),
@@ -236,13 +276,14 @@ export function mapPrismaContactToApp(
     LastName: lastName || title.split(" ").slice(1).join(" ") || "",
     Company: companyLookup,
     JobTitle: contact.jobTitle?.trim() || "",
-    Role: mapContactRole(contact.jobTitle),
+    Role: (meta.role as ContactListRole) || mapContactRole(contact.jobTitle),
     Email: primaryEmail(contact.emails),
     Phone: primaryPhone(contact.phoneNumbers, false),
     Mobile: primaryPhone(contact.phoneNumbers, true),
     LinkedInURL: contact.linkedInUrl?.trim() || "",
     Status: mapContactStatus(contact.status),
-    RelationshipLevel: mapRelationshipLevel(contact.jobTitle),
+    RelationshipLevel:
+      (meta.relationshipLevel as RelationshipLevel) || mapRelationshipLevel(contact.jobTitle),
     buyingRole: mapBuyingRole(contact.buyingRole),
     sentiment: mapSentiment(contact.sentiment),
     influenceLevel: mapInfluenceLevel(contact.influenceLevel),
@@ -259,7 +300,9 @@ export function mapPrismaContactToApp(
     engagementCadence: mapEngagementCadence(contact.engagementCadence),
     backgroundNotes: contact.backgroundNotes ?? undefined,
     preferredLanguage: contact.preferredLanguage ?? undefined,
-    EmploymentStatus: "Active",
+    EmploymentStatus: (meta.employmentStatus as EmploymentStatus) || "Active",
+    CareerHistory: meta.careerHistory,
+    CompanyTransfers: meta.companyTransfers,
     IsArchived: contact.status === "archived",
   };
 }
