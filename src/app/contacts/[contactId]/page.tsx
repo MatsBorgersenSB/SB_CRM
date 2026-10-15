@@ -69,15 +69,18 @@ function mergeCompanyIntoPortfolio(
     ];
   }
 
-  if (existing.contacts.some((row) => row.ContactID === contact.ContactID)) {
-    return companies;
-  }
-
-  return companies.map((row) =>
-    row.CompanyID === existing.CompanyID
-      ? { ...row, contacts: [...row.contacts, contact] }
-      : row,
-  );
+  return companies.map((row) => {
+    if (row.CompanyID !== existing.CompanyID) return row;
+    const already = row.contacts.some((entry) => entry.ContactID === contact.ContactID);
+    return {
+      ...row,
+      contacts: already
+        ? row.contacts.map((entry) =>
+            entry.ContactID === contact.ContactID ? contact : entry,
+          )
+        : [...row.contacts, contact],
+    };
+  });
 }
 
 export default async function Contact360Page({

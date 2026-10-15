@@ -1,3 +1,4 @@
+import { resolveActivityAttendeeNames } from "@/lib/activity-attendees";
 import type { Activity } from "@/types/activity";
 import type { ActivityBriefing } from "@/lib/activity-briefing";
 import type { ActivityFocusItem } from "@/lib/activity-mission-control";
@@ -304,11 +305,14 @@ export function buildActivityTeamsMeeting(input: ActivityMeetingInput): SmartAss
       nextStep: briefing.nextStep,
       whyItMatters: briefing.whyItMatters,
       decisions: briefing.support.decisions,
-      attendees: uniqueNonEmpty([
-        activity.Contact?.Title ?? "",
-        activity.ActivityOwner?.Title ?? "",
-        ...briefing.support.stakeholders.slice(0, 2).map((person) => person.name),
-      ]),
+      attendees: uniqueNonEmpty(
+        [
+          ...resolveActivityAttendeeNames(activity),
+          activity.ActivityOwner?.Title ?? "",
+          ...briefing.support.stakeholders.slice(0, 2).map((person) => person.name),
+        ],
+        8,
+      ),
       complexity: briefing.support.decisions.length + briefing.support.agreements.length,
     });
   }
@@ -331,11 +335,14 @@ export function buildActivityTeamsMeeting(input: ActivityMeetingInput): SmartAss
     gap: briefing.blockerCategory === "missing_information" ? briefing.blockingProgress : undefined,
     whyItMatters: briefing.whyItMatters,
     decisions: briefing.support.decisions,
-    attendees: uniqueNonEmpty([
-      activity.Contact?.Title ?? "",
-      activity.ActivityOwner?.Title ?? "",
-      ...briefing.support.stakeholders.slice(0, 2).map((person) => person.name),
-    ]),
+    attendees: uniqueNonEmpty(
+      [
+        ...resolveActivityAttendeeNames(activity),
+        activity.ActivityOwner?.Title ?? "",
+        ...briefing.support.stakeholders.slice(0, 2).map((person) => person.name),
+      ],
+      8,
+    ),
     complexity: briefing.support.decisions.length + briefing.support.agreements.length,
   });
 }
@@ -372,10 +379,13 @@ export function buildCustomerMeeting(input: CustomerMeetingInput): SmartAssistMe
     blocker: focus?.headline,
     nextStep: focus?.recommendedAction,
     whyItMatters: focus?.whyItMatters,
-    attendees: uniqueNonEmpty([
-      activity?.Contact?.Title ?? "",
-      activity?.ActivityOwner?.Title ?? ownerName,
-    ]),
+    attendees: uniqueNonEmpty(
+      [
+        ...(activity ? resolveActivityAttendeeNames(activity) : []),
+        activity?.ActivityOwner?.Title ?? ownerName,
+      ],
+      8,
+    ),
     complexity: focusItems.length,
   });
 }

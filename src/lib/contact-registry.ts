@@ -3,6 +3,7 @@ import "server-only";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
 import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma";
 import {
   mapPrismaContactToApp,
   stableNumericId,
@@ -418,16 +419,16 @@ export async function updateRegistryContact(
   }
 
   if (patch.Email !== undefined) {
-    data.emails = patch.Email.trim()
+    data.emails = (patch.Email.trim()
       ? [{ address: patch.Email.trim().toLowerCase(), type: "work", isPrimary: true }]
-      : [];
+      : []) as Prisma.InputJsonValue[];
   }
 
   if (patch.Phone !== undefined || patch.Mobile !== undefined) {
     data.phoneNumbers = buildPhoneNumbers({
       Phone: patch.Phone ?? undefined,
       Mobile: patch.Mobile ?? undefined,
-    });
+    }) as Prisma.InputJsonValue[];
   }
 
   let nextNotes = existing.personalNotes;
@@ -531,7 +532,7 @@ export async function updateRegistryContact(
   const updated = await withPrismaRetry(async (prisma) =>
     prisma.contact.update({
       where: { id: existing.id },
-      data,
+      data: data as Prisma.ContactUpdateInput,
     }),
   );
 

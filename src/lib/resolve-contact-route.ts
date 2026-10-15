@@ -174,8 +174,9 @@ async function hydrateGlobalContactFromPrisma(
 }
 
 /**
- * Resolve contact: portfolio/seed first (CT-… links), then Prisma hydrate
- * (same durability as company detail — not dependent on list portfolio).
+ * Resolve contact: Prisma hydrate first so 360 edit gets every persisted field
+ * (list portfolio omits notes/location unless CONTACT_LIST_SELECT is complete).
+ * JSON seed / in-memory portfolio is the fallback for local/CI.
  */
 export async function resolveContactRouteRecord(
   companies: Company[],
@@ -186,20 +187,20 @@ export async function resolveContactRouteRecord(
   const key = routeKey.trim();
   if (!key) return undefined;
 
-  const direct = findContactByContactId(companies, pipelines, key, companyHint);
-  if (direct) return direct;
-
   const prismaContact = await findPrismaContactByIdOrEmail(key);
   if (prismaContact) {
+    const hydrated = await hydrateGlobalContactFromPrisma(prismaContact.id, pipelines);
+    if (hydrated) return hydrated;
+
     const trackingId = toContactTrackingId(prismaContact.id);
     const fromPortfolio =
       findContactByContactId(companies, pipelines, trackingId, companyHint) ??
       findContactByContactId(companies, pipelines, trackingId);
     if (fromPortfolio) return fromPortfolio;
-
-    const hydrated = await hydrateGlobalContactFromPrisma(prismaContact.id, pipelines);
-    if (hydrated) return hydrated;
   }
+
+  const direct = findContactByContactId(companies, pipelines, key, companyHint);
+  if (direct) return direct;
 
   const fallback = getGlobalContactRecords(companies, pipelines);
   const record = await resolveEntity(

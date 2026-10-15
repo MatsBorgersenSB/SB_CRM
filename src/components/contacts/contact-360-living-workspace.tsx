@@ -288,6 +288,7 @@ export function Contact360LivingWorkspace({
         <div>
           <div className="mb-3 flex justify-end">{contactTools}</div>
           <Contact360EditPanel
+            key={record.contact.ContactID}
             record={record}
             companies={companies}
             canDelete={canManage}

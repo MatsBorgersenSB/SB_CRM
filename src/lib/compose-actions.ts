@@ -52,30 +52,59 @@ export function mailtoHref(email: string, subject?: string, body?: string): stri
   return query ? `mailto:${email}?${query}` : `mailto:${email}`;
 }
 
+function attendeeList(attendees: string | string[] | undefined, joiner: string): string {
+  return (Array.isArray(attendees) ? attendees : attendees ? [attendees] : [])
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(joiner);
+}
+
+function outlookDateTimeParam(value: string | undefined): string | undefined {
+  if (!value?.trim()) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.trim();
+  return date.toISOString().slice(0, 19);
+}
+
 /** Outlook calendar — new meeting with the attendee(s) already invited. */
 export function outlookMeetingComposeHref(
   attendees: string | string[],
   subject?: string,
   body?: string,
+  options?: {
+    startTime?: string;
+    endTime?: string;
+    location?: string;
+  },
 ): string {
-  const to = (Array.isArray(attendees) ? attendees : [attendees])
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .join(";");
   const query = buildComposeQueryString([
     ["path", "/calendar/action/compose"],
     ["rru", "addevent"],
-    ["to", to || undefined],
+    ["to", attendeeList(attendees, ";") || undefined],
     ["subject", subject],
     ["body", body ? normalizeComposeBody(body) : undefined],
+    ["startdt", outlookDateTimeParam(options?.startTime)],
+    ["enddt", outlookDateTimeParam(options?.endTime)],
+    ["location", options?.location],
   ]);
   return `https://outlook.office.com/calendar/0/deeplink/compose?${query}`;
 }
 
-export function teamsMeetingComposeHref(subject: string, content?: string): string {
+export function teamsMeetingComposeHref(
+  subject: string,
+  content?: string,
+  options?: {
+    attendees?: string | string[];
+    startTime?: string;
+    endTime?: string;
+  },
+): string {
   const query = buildComposeQueryString([
     ["subject", subject],
     ["content", content ? normalizeComposeBody(content) : undefined],
+    ["attendees", attendeeList(options?.attendees, ",") || undefined],
+    ["startTime", options?.startTime],
+    ["endTime", options?.endTime],
   ]);
   return `https://teams.microsoft.com/l/meeting/new?${query}`;
 }

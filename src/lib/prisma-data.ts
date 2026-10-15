@@ -57,7 +57,7 @@ export type LiveFocusContext = {
   source: "prisma" | "json";
 };
 
-/** Contact fields required to map a relationship card / dashboard row — no notes trees. */
+/** Contact fields required to map a relationship card / dashboard row and the 360 edit form. */
 export const CONTACT_LIST_SELECT = {
   id: true,
   firstName: true,
@@ -72,6 +72,19 @@ export const CONTACT_LIST_SELECT = {
   sentiment: true,
   influenceLevel: true,
   reportsToId: true,
+  streetAddress: true,
+  postalCode: true,
+  stateRegion: true,
+  countryCode: true,
+  continent: true,
+  city: true,
+  country: true,
+  timezone: true,
+  isTimezoneOverridden: true,
+  engagementCadence: true,
+  backgroundNotes: true,
+  preferredLanguage: true,
+  personalNotes: true,
 } as const;
 
 /** Opportunity fields for pipeline rows — include understanding so captured answers are never dropped. */
