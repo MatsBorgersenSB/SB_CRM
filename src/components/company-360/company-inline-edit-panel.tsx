@@ -10,6 +10,7 @@ import { authUserToAccountOwner, resolveOwnerById } from "@/lib/company-owner";
 import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/types/company";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import { IndustrySelect } from "@/components/ui/industry-select";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
 import { CountryContinentFields } from "@/components/companies/country-continent-fields";
@@ -25,12 +26,14 @@ const EDIT_LABEL_CLASS =
 export function CompanyInlineEditPanel({
   company,
   companies,
+  assignableUsers = [],
   onSave,
   onCancel,
   autoFocus = true,
 }: {
   company: Company;
   companies: Company[];
+  assignableUsers?: StandardBioUserRecord[];
   onSave: (edit: CompanyHeroQuickEdit) => Promise<void>;
   onCancel: () => void;
   autoFocus?: boolean;
@@ -179,6 +182,8 @@ export function CompanyInlineEditPanel({
 
         <CompanyOwnerSelect
           companies={companies}
+          assignableUsers={assignableUsers}
+          extraUsers={company.AccountOwner ? [company.AccountOwner] : []}
           value={selectedOwner}
           onChange={(owner) =>
             setForm((current) => ({ ...current, accountOwnerId: owner.Id }))

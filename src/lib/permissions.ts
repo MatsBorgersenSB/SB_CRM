@@ -37,7 +37,7 @@ const COMPANY_WRITE_FIELDS: Record<UserRole, readonly string[]> = {
     "AccountOwner",
   ],
   admin: [],
-  commercial: ["Status"],
+  commercial: ["Status", "AccountOwner"],
   engineer: [],
   client_lead: [],
 };
@@ -312,6 +312,11 @@ export function canCreateProject(role: UserRole): boolean {
 
 export function canAssignOpportunityOwner(role: UserRole): boolean {
   return role === "superuser" || role === "commercial";
+}
+
+/** Company Account Owner may be reassigned — never locked to the registrar. */
+export function canReassignCompanyOwner(role: UserRole): boolean {
+  return role === "superuser" || role === "admin" || role === "commercial";
 }
 
 export function canCreateOpportunity(role: UserRole): boolean {

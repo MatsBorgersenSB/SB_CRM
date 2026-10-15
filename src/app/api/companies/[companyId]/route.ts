@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getRequestRole } from "@/lib/api-auth";
+import { getRequestRole, resolveRequestRole } from "@/lib/api-auth";
+import { accountOwnerChanged } from "@/lib/company-owner";
 import { canDeleteCompany } from "@/lib/permissions";
 import {
   clientIpFromRequest,
@@ -32,11 +33,35 @@ export async function PATCH(
   { params }: { params: Promise<{ companyId: string }> },
 ) {
   const { companyId } = await params;
+  const role = await resolveRequestRole(request);
   const body = (await request.json()) as UpdateCompanyInput;
 
   try {
     const { companies } = getServerSharePointServices();
+    const existing = await companies.getById(companyId).catch(() => null);
     const updated = await companies.update(companyId, body);
+
+    if (
+      existing &&
+      body.AccountOwner !== undefined &&
+      accountOwnerChanged(existing.AccountOwner, updated.AccountOwner)
+    ) {
+      const actor = resolveAuditActor(request, role);
+      await logAuditEvent({
+        ...actor,
+        action: "COMPANY_OWNER_CHANGED",
+        entityType: "Company",
+        entityId: companyId,
+        ipAddress: clientIpFromRequest(request),
+        metadata: {
+          from: existing.AccountOwner?.Title ?? null,
+          fromId: existing.AccountOwner?.Id ?? null,
+          to: updated.AccountOwner?.Title ?? null,
+          toId: updated.AccountOwner?.Id ?? null,
+        },
+      });
+    }
+
     return NextResponse.json(updated);
   } catch (error) {
     return sharePointErrorResponse(error);

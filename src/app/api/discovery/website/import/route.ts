@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { resolveRequestRole } from "@/lib/api-auth";
+import { resolveRegistrarAccountOwner } from "@/lib/company-owner-server";
 import {
   importDiscoveredContactForCompany,
   importWebsiteDiscovery,
@@ -35,10 +37,16 @@ export async function POST(request: Request) {
   }
 
   const phase = body.phase ?? "full";
+  const role = await resolveRequestRole(request);
+  const accountOwner = await resolveRegistrarAccountOwner(
+    request,
+    role,
+    body.accountOwner,
+  );
 
   try {
     if (phase === "company") {
-      const result = await upsertCompanyFromDiscovery(body.discovery, body.accountOwner);
+      const result = await upsertCompanyFromDiscovery(body.discovery, accountOwner);
       revalidateCompanySurfaces();
       const key = companyRouteKey(result.company);
       return NextResponse.json({
@@ -69,7 +77,7 @@ export async function POST(request: Request) {
     const result = await importWebsiteDiscovery({
       discovery: body.discovery,
       selectedContactIds: body.selectedContactIds ?? [],
-      accountOwner: body.accountOwner,
+      accountOwner,
     });
 
     revalidateCompanySurfaces();

@@ -272,7 +272,7 @@ export async function addOutlookContact(
       AddressLine1: addressFields?.AddressLine1 ?? "",
       Email: "",
       Country: addressFields?.Country ?? null,
-      AccountOwner: resolveAccountOwner(null),
+      AccountOwner: resolveAccountOwner(input.accountOwner),
     };
 
     company = await createRegistryCompany(newCompanyInput);

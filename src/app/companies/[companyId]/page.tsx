@@ -15,6 +15,7 @@ import {
 } from "@/lib/prisma-data";
 import { emptyInventory } from "@/lib/inventory-data";
 import { loadCompanyDocumentKnowledge } from "@/lib/company-document-knowledge-data";
+import { readAssignableStandardBioUsers } from "@/lib/standard-bio-users-server";
 import { EMPTY_DOCUMENT_KNOWLEDGE_STATE } from "@/lib/company-document-knowledge";
 import type { EntityRouteParams } from "@/lib/resolvers/entity-resolver";
 import type { Company } from "@/types/company";
@@ -109,7 +110,7 @@ export default async function Company360Page({ params }: Company360PageProps) {
   };
 
   const shellCompanies = mergeCompanyIntoPortfolio(companies, company);
-  const [duplicateHint, correspondence, smartDocs, documentKnowledge] = await Promise.all([
+  const [duplicateHint, correspondence, smartDocs, documentKnowledge, assignableUsers] = await Promise.all([
     loadCompanyDuplicateHint(company.code || company.CompanyID).catch((error) => {
       console.warn("[company-360] duplicate hint unavailable", error);
       return null;
@@ -126,6 +127,7 @@ export default async function Company360Page({ params }: Company360PageProps) {
       console.warn("[company-360] document knowledge unavailable", error);
       return EMPTY_DOCUMENT_KNOWLEDGE_STATE;
     }),
+    readAssignableStandardBioUsers().catch(() => []),
   ]);
 
   return (
@@ -142,6 +144,7 @@ export default async function Company360Page({ params }: Company360PageProps) {
         correspondence={correspondence}
         smartDocs={smartDocs}
         documentKnowledge={documentKnowledge}
+        assignableUsers={assignableUsers}
       />
     </Suspense>
   );

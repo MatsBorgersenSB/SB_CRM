@@ -400,6 +400,8 @@ The system shall support Company ownership.
 Requirements:
 
 - Ownership is optional.
+- The person who registers a company becomes the default Account Owner.
+- Ownership may be reassigned at any time — it is never locked to the registrar.
 - Ownership changes must be auditable.
 - Ownership changes shall not automatically modify Contact Ownership.
 - Ownership changes shall not automatically modify Opportunity Ownership.
@@ -539,9 +541,11 @@ The owner is responsible for maintaining:
 
 A company may have only one owner at a time.
 
+When a company is registered, the person who creates it becomes the Account Owner by default. They may assign a colleague instead at create time.
+
 A company may exist without an owner.
 
-Ownership may be reassigned by authorized users.
+Ownership may be reassigned at any time by authorized users from Company 360 and the Companies list. Reassignment does not change Contact or Opportunity owners.
 
 ---
 
@@ -712,11 +716,11 @@ AI suggestions require user approval.
 
 ### AC-13
 
-Each company may have one designated owner.
+Each company may have one designated owner. The registrar is the default owner.
 
 ### AC-14
 
-Company ownership can be reassigned by authorized users.
+Company ownership can be reassigned by authorized users at any time. The owner is never locked to the person who registered the company.
 
 ### AC-15
 

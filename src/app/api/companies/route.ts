@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { resolveRequestRole } from "@/lib/api-auth";
+import { resolveRegistrarAccountOwner } from "@/lib/company-owner-server";
 import { canCreateCompany } from "@/lib/permissions";
 import {
   clientIpFromRequest,
@@ -41,10 +42,15 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as NewCompanyInput;
+  const accountOwner = await resolveRegistrarAccountOwner(
+    request,
+    role,
+    body.AccountOwner,
+  );
 
   try {
     const { companies } = getServerSharePointServices();
-    const company = await companies.create(body);
+    const company = await companies.create({ ...body, AccountOwner: accountOwner });
 
     const key = companyRouteKey(company);
     const actor = resolveAuditActor(request, role);
@@ -54,7 +60,12 @@ export async function POST(request: Request) {
       entityType: "Company",
       entityId: key || company.CompanyID,
       ipAddress: clientIpFromRequest(request),
-      metadata: { title: company.Title, code: company.code ?? company.CompanyID },
+      metadata: {
+        title: company.Title,
+        code: company.code ?? company.CompanyID,
+        owner: accountOwner.Title,
+        ownerId: accountOwner.Id,
+      },
     });
 
     revalidatePath("/companies");

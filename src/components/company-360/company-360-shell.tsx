@@ -36,6 +36,7 @@ import { lastMailByContactIdFromCorrespondence } from "@/lib/company-corresponde
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import type { CompanyDocumentKnowledgeState } from "@/lib/company-document-knowledge";
 import { EMPTY_DOCUMENT_KNOWLEDGE_STATE } from "@/lib/company-document-knowledge";
+import type { StandardBioUserRecord } from "@/types/user-access";
 
 type Company360ShellProps = {
   initialCompany: Company;
@@ -49,6 +50,7 @@ type Company360ShellProps = {
   correspondence?: CompanyCorrespondenceEvidence | null;
   smartDocs?: SmartDocLibraryRecord[];
   documentKnowledge?: CompanyDocumentKnowledgeState;
+  assignableUsers?: StandardBioUserRecord[];
 };
 
 export function Company360Shell({
@@ -63,6 +65,7 @@ export function Company360Shell({
   correspondence = null,
   smartDocs = [],
   documentKnowledge = EMPTY_DOCUMENT_KNOWLEDGE_STATE,
+  assignableUsers = [],
 }: Company360ShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -401,6 +404,7 @@ export function Company360Shell({
             correspondence={correspondence}
             smartDocs={smartDocs}
             documentKnowledge={documentKnowledge}
+            assignableUsers={assignableUsers}
           />
         </WorkspaceMain>
     </WorkspaceChrome>
