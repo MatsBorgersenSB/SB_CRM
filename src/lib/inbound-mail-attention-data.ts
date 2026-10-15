@@ -55,7 +55,10 @@ export async function loadRecentInboundMailSignals(): Promise<InboundMailAttenti
         const { readProjects } = await import("@/lib/project-db");
         const projects = await readProjects();
         for (const project of projects) {
-          const linked = project.linkedCompanyId?.trim() || project.companyId?.trim();
+          const linked =
+            project.linkedCompanyId?.trim() ||
+            project.relatedOrganizations?.find((org) => org.isPrimary)?.companyId?.trim() ||
+            project.relatedOrganizations?.[0]?.companyId?.trim();
           if (!linked) continue;
           projectCompanyById.set(project.id, {
             companyId: linked,

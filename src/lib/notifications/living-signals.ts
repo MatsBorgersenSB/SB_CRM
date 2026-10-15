@@ -75,7 +75,10 @@ export async function notifyInboundMail(input: {
     try {
       const { readProjects } = await import("@/lib/project-db");
       const project = (await readProjects()).find((entry) => entry.id === input.projectId);
-      const linked = project?.linkedCompanyId?.trim() || project?.companyId?.trim();
+      const linked =
+        project?.linkedCompanyId?.trim() ||
+        project?.relatedOrganizations?.find((org) => org.isPrimary)?.companyId?.trim() ||
+        project?.relatedOrganizations?.[0]?.companyId?.trim();
       if (linked) {
         companyCode = linked;
         companyName = project?.name ?? companyName;
