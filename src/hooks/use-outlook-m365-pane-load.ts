@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   resolveDevDisplayName,
+  resolveOutlookReadRecipients,
   resolveOutlookSenderDetails,
   subscribeOutlookMailboxItemChanged,
 } from "@/lib/m365/outlook-context";
@@ -110,15 +111,28 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
         displayName = displayName ?? retrySender?.displayName ?? null;
       }
 
+      const attendees = await resolveOutlookReadRecipients({ attempts: 3, delayMs: 250 });
+      const emails = [
+        ...new Set(
+          [email, ...attendees.map((row) => row.email.trim().toLowerCase())].filter(
+            (value): value is string => Boolean(value?.includes("@")),
+          ),
+        ),
+      ];
+      email = emails[0] ?? email;
+
       safeSetSender(email, displayName);
 
-      if (!email) {
+      if (emails.length === 0) {
         safeSetState({ status: "empty", message: emptyMessage });
         return;
       }
 
       try {
-        const response = await fetch(`${apiPath}?email=${encodeURIComponent(email)}`, {
+        const query = emails
+          .map((value) => `email=${encodeURIComponent(value)}`)
+          .join("&");
+        const response = await fetch(`${apiPath}?${query}`, {
           credentials: "include",
         });
 

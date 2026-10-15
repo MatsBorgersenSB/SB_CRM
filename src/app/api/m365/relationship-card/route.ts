@@ -11,16 +11,23 @@ import { getProjectsForCompany } from "@/lib/project-team-utils";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const companyId = searchParams.get("companyId");
-  const email = searchParams.get("email");
+  const emails = [
+    ...searchParams.getAll("email"),
+    ...(searchParams.get("emails")?.split(",") ?? []),
+  ]
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.includes("@"));
+  const email = emails[0];
   const projectName = searchParams.get("projectName");
 
-  if (!companyId && !email) {
+  if (!companyId && emails.length === 0) {
     return m365Error("Provide companyId or email query parameter", 400);
   }
 
   try {
     const { ctx, resolved, correspondence: stored } = await loadM365PaneContext({
       email,
+      emails,
       companyId,
     });
 
@@ -30,7 +37,7 @@ export async function GET(request: Request) {
 
     // FS-012: Relationship Card only when the person exists.
     // Company-only match (domain) must go to Relationship Intake — ask to add contact.
-    if (email && !companyId && !resolved.contact) {
+    if (emails.length > 0 && !companyId && !resolved.contact) {
       return m365Error("No matching contact for this email", 404, {
         code: "CONTACT_MISSING",
         companyId: resolved.company.CompanyID,
@@ -39,7 +46,7 @@ export async function GET(request: Request) {
     }
 
     let correspondence = mergeLiveMailIntoEvidence(stored, {
-      liveCorrespondentEmail: email,
+      liveCorrespondentEmail: resolved.contact?.Email || email,
       liveProjectName: projectName,
     });
 
