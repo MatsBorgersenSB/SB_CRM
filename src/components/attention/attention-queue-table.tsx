@@ -132,8 +132,14 @@ export function AttentionQueueTable({
               <WorkspaceTableBodyCell className="tabular-nums text-carbon-blue/65">
                 {formatDueDate(item.dueDate)}
               </WorkspaceTableBodyCell>
-              <WorkspaceTableBodyCell className="truncate text-carbon-blue/65">
-                {item.ownerLabel ?? "—"}
+              <WorkspaceTableBodyCell
+                className={
+                  item.ownerLabel
+                    ? "truncate text-carbon-blue"
+                    : "truncate text-carbon-blue/65"
+                }
+              >
+                {item.ownerLabel ?? "Unassigned"}
               </WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell className="overflow-visible">
                 <AttentionActionButtons

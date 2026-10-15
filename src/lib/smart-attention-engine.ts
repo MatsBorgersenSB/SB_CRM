@@ -50,6 +50,9 @@ import {
   buildInboundMailAttention,
   type InboundMailAttentionSignal,
 } from "@/lib/inbound-mail-attention";
+import { formatAccountOwnerDisplay } from "@/lib/company-owner";
+import { resolveOpportunityOwner } from "@/lib/opportunity-owner";
+import type { SharePointPerson } from "@/types/company";
 
 const STALLED_DAYS = 21;
 const COLD_CONTACT_DAYS = 45;
@@ -102,6 +105,78 @@ function pushItem(
   item: Omit<AttentionItem, "status"> & { status?: AttentionItem["status"] },
 ) {
   items.push({ status: "open", ...item });
+}
+
+function listedOwner(person: SharePointPerson | null | undefined): {
+  ownerId?: string;
+  ownerLabel?: string;
+} {
+  const ownerLabel = formatAccountOwnerDisplay(person) ?? undefined;
+  if (!ownerLabel) return {};
+  return {
+    ownerLabel,
+    ownerId: person?.Id != null ? String(person.Id) : undefined,
+  };
+}
+
+function attentionCompany(
+  item: AttentionItem,
+  companies: Company[],
+): Company | undefined {
+  if (item.companyId) {
+    const match = companies.find(
+      (company) => company.CompanyID === item.companyId || company.code === item.companyId,
+    );
+    if (match) return match;
+  }
+  if (item.objectType === "Company") {
+    return companies.find(
+      (company) =>
+        company.CompanyID === item.sourceObjectId || company.code === item.sourceObjectId,
+    );
+  }
+  if (item.objectType === "Contact") {
+    return companies.find((company) =>
+      company.contacts.some((person) => person.ContactID === item.sourceObjectId),
+    );
+  }
+  if (item.objectType === "Opportunity") {
+    return findCompanyForDeal(item.sourceObjectId, companies);
+  }
+  return undefined;
+}
+
+/**
+ * Who is responsible for this attention item?
+ * Activity assignee → opportunity owner → company account owner.
+ * Never invent a name — unknown stays blank so the table can say Unassigned.
+ */
+function attachAttentionOwners(
+  items: AttentionItem[],
+  ctx: AttentionEngineContext,
+): AttentionItem[] {
+  return items.map((item) => {
+    if (formatAccountOwnerDisplay({ Id: 0, Title: item.ownerLabel ?? "" })) {
+      return item;
+    }
+
+    if (item.objectType === "Activity") {
+      const activity = ctx.activities.find((row) => row.ActivityID === item.sourceObjectId);
+      const assignee = listedOwner(activity?.ActivityOwner);
+      if (assignee.ownerLabel) return { ...item, ...assignee };
+    }
+
+    if (item.objectType === "Opportunity") {
+      const deal = ctx.pipelines.find((row) => row.id === item.sourceObjectId);
+      const company = attentionCompany(item, ctx.companies);
+      if (deal) {
+        const owner = listedOwner(resolveOpportunityOwner(deal, company));
+        if (owner.ownerLabel) return { ...item, ...owner };
+      }
+    }
+
+    return { ...item, ...listedOwner(attentionCompany(item, ctx.companies)?.AccountOwner) };
+  });
 }
 
 function nbaToAttention(
@@ -869,9 +944,12 @@ export function buildAttentionItems(ctx: AttentionEngineContext): AttentionItem[
     ),
   ];
 
-  return dedupeAttentionItems(raw)
-    .filter((item) => item.status === "open")
-    .filter((item) => attentionItemReferencesLiveEntity(item, scoped));
+  return attachAttentionOwners(
+    dedupeAttentionItems(raw)
+      .filter((item) => item.status === "open")
+      .filter((item) => attentionItemReferencesLiveEntity(item, scoped)),
+    scoped,
+  );
 }
 
 export function buildAttentionQueue(
