@@ -403,7 +403,13 @@ export function SmartActivityWorkspace({
 
   const handleAssigneeChange = useCallback(
     async (activity: Activity, assignee: SharePointPerson) => {
-      await syncActivityUpdate(activity.ActivityID, { ActivityOwner: assignee });
+      const sharedWith = (activity.SharedWith ?? []).filter(
+        (person) => person.Id !== assignee.Id,
+      );
+      await syncActivityUpdate(activity.ActivityID, {
+        ActivityOwner: assignee,
+        SharedWith: sharedWith,
+      });
       refreshActivities();
     },
     [refreshActivities],

@@ -14,6 +14,7 @@ import type { ActivityRecommendedActionType } from "@/types/activity-action-reco
 import { ActivityActionRecommendationsPanel } from "@/components/activities/activity-action-recommendations";
 import { ActivityWorkspaceContextSidebar } from "@/components/activities/activity-workspace-context-sidebar";
 import { ActivityWorkspaceRecord } from "@/components/activities/activity-workspace-record";
+import { TaskAssigneeSelect } from "@/components/activities/task-assignee-select";
 import { TaskShareControl } from "@/components/activities/task-share-control";
 import { WorkspaceIntelContextLayout } from "@/components/ui/workspace-intel-context-layout";
 import { useAuth } from "@/context/auth-context";
@@ -125,6 +126,21 @@ export function ActivityBriefingView({
     [user.id, user.displayName],
   );
 
+  const handleAssigneeChange = useCallback(
+    async (assignee: SharePointPerson) => {
+      const sharedWith = (activity.SharedWith ?? []).filter(
+        (person) => person.Id !== assignee.Id,
+      );
+      const updated = await syncActivityUpdate(activity.ActivityID, {
+        ActivityOwner: assignee,
+        SharedWith: sharedWith,
+      });
+      setActivity(updated);
+      router.refresh();
+    },
+    [activity.ActivityID, activity.SharedWith, router],
+  );
+
   const handleSharedWithChange = useCallback(
     async (sharedWith: SharePointPerson[]) => {
       const updated = await syncActivityUpdate(activity.ActivityID, {
@@ -150,6 +166,15 @@ export function ActivityBriefingView({
           ← Activities
         </Link>
         <div className="flex items-center gap-3">
+          {assigneeOptions.length > 0 ? (
+            <TaskAssigneeSelect
+              value={activity.ActivityOwner}
+              onChange={(next) => void handleAssigneeChange(next)}
+              options={assigneeOptions}
+              label="Assign to"
+              compact
+            />
+          ) : null}
           {isTask && assigneeOptions.length > 0 ? (
             <TaskShareControl
               activity={activity}

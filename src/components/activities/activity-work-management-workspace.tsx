@@ -147,14 +147,22 @@ export function ActivityWorkManagementWorkspace({
     [assignableUsers, user.id, user.displayName],
   );
 
-  const currentUserPerson = useMemo(
-    () => ({ Id: user.id, Title: user.displayName }),
-    [user.id, user.displayName],
-  );
-
-  const handleSharedWithChange = useCallback(
-    async (activity: Activity, sharedWith: SharePointPerson[]) => {
-      await syncActivityUpdate(activity.ActivityID, { SharedWith: sharedWith });
+  const handleAssigneeChange = useCallback(
+    async (activity: Activity, assignee: SharePointPerson) => {
+      const sharedWith = (activity.SharedWith ?? []).filter(
+        (person) => person.Id !== assignee.Id,
+      );
+      setActivities((current) =>
+        current.map((item) =>
+          item.ActivityID === activity.ActivityID
+            ? { ...item, ActivityOwner: assignee, SharedWith: sharedWith }
+            : item,
+        ),
+      );
+      await syncActivityUpdate(activity.ActivityID, {
+        ActivityOwner: assignee,
+        SharedWith: sharedWith,
+      });
       refreshActivities();
     },
     [refreshActivities],
@@ -209,8 +217,7 @@ export function ActivityWorkManagementWorkspace({
               onOpen={openActivity}
               embedded
               assigneeOptions={assigneeOptions}
-              currentUser={currentUserPerson}
-              onSharedWithChange={handleSharedWithChange}
+              onAssigneeChange={handleAssigneeChange}
             />
           </div>
         </>
