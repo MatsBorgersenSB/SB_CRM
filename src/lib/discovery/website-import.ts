@@ -263,9 +263,7 @@ async function upsertCompanyFromDiscoveryPrisma(
             organizationNumber:
               patch.organizationNumber?.trim() || existing.organizationNumber,
             vatNumber: patch.vatNumber?.trim() || existing.vatNumber,
-            ownerId: accountOwner?.Title
-              ? String(owner.Id)
-              : existing.ownerId ?? String(owner.Id),
+            ownerId: existing.ownerId ?? (accountOwner?.Title ? String(owner.Id) : null),
             ...(emailJson.length > 0 ? { emails: emailJson } : {}),
             ...(phoneJson.length > 0 ? { phoneNumbers: phoneJson } : {}),
           },
@@ -472,10 +470,9 @@ async function upsertCompanyFromDiscoveryJson(
   const patch = buildCompanyPatch(prepared);
 
   if (company) {
-    const ownerPatch = accountOwner?.Title
-      ? { AccountOwner: resolveAccountOwner(accountOwner) }
-      : !company.AccountOwner
-        ? { AccountOwner: resolveAccountOwner(null) }
+    const ownerPatch =
+      accountOwner?.Title && !company.AccountOwner
+        ? { AccountOwner: resolveAccountOwner(accountOwner) }
         : {};
     company = await updateCompany(company.CompanyID, { ...patch, ...ownerPatch });
   } else {

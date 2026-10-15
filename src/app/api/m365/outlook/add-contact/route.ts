@@ -1,5 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { resolveRequestRole } from "@/lib/api-auth";
+import { resolveRegistrarAccountOwner } from "@/lib/company-owner-server";
 import { addOutlookContact } from "@/lib/m365/outlook-add-contact";
 import { m365Error } from "@/lib/m365/api-response";
 import { INTERNAL_CONTACT_REFUSED } from "@/lib/internal-colleague";
@@ -33,6 +35,9 @@ export async function POST(request: Request) {
     return m365Error("Email is required", 400);
   }
 
+  const role = await resolveRequestRole(request);
+  const accountOwner = await resolveRegistrarAccountOwner(request, role);
+
   try {
     const result = await addOutlookContact({
       email,
@@ -45,6 +50,7 @@ export async function POST(request: Request) {
       matchedCompanyId: body.matchedCompanyId,
       skipAutoCompanyMatch: body.skipAutoCompanyMatch,
       enrichment: body.enrichment,
+      accountOwner,
     });
 
     revalidatePath("/contacts");

@@ -71,12 +71,17 @@ function websiteUrl(exploration: CompanyExploration): string | null {
  */
 export async function importExploration(
   request: ExploreImportRequest,
-  actor: { email: string | null },
+  actor: { email: string | null; name?: string | null },
 ): Promise<ExploreImportResult> {
   const { exploration, companyType } = request;
   const registry = exploration.found.registry;
   const name = displayCompanyName(registry?.legalName ?? exploration.subject);
-  const owner = resolveAccountOwner(request.accountOwner);
+  const owner = resolveAccountOwner(request.accountOwner, {
+    id: 0,
+    displayName: actor.name?.trim() || actor.email?.trim() || "",
+    email: actor.email ?? undefined,
+    role: "commercial",
+  });
   const site = websiteUrl(exploration);
   const domain = site ? normalizeCompanyDomain(site) : "";
   const selected = new Set(request.selectedPeopleIds);

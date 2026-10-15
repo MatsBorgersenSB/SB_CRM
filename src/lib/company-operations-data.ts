@@ -11,7 +11,7 @@ import type { AuthUser } from "@/types/auth";
 import type { AttentionSeverity } from "@/types/attention-item";
 import { SEVERITY_RANK } from "@/types/attention-item";
 import type { CommercialPackage } from "@/types/commercial-package";
-import type { Company } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
 import { formatCompanyLocation } from "@/types/company";
 import type { CompanyType, CompanyTypeFilter } from "@/types/company-type";
 import { COMPANY_TYPE_META, COMPANY_TYPE_QUICK_FILTERS } from "@/types/company-type";
@@ -92,6 +92,7 @@ export type CompanyOperationsRow = {
   companyTypes: CompanyType[];
   companyTypesLabel: string;
   ownerLabel: string | null;
+  accountOwner: SharePointPerson | null;
   locationLabel: string;
   healthScore: number;
   healthStatus: RelationshipHealthStatus;
@@ -161,6 +162,8 @@ export function buildCompanyOperationsWorkspace(
     const { company, healthScore, healthStatus, hasSignal, lastContactLabel, lastContactAt } =
       summary;
     const ownerLabel = company.AccountOwner?.Title ?? null;
+    const accountOwner =
+      company.AccountOwner?.Title ? company.AccountOwner : null;
 
     const openDeals = company.pipelineIds
       .map((id) => pipelines.find((deal) => deal.id === id))
@@ -216,6 +219,7 @@ export function buildCompanyOperationsWorkspace(
       companyTypes: normalizeCompanyTypes(company),
       companyTypesLabel: formatCompanyTypesLabel(normalizeCompanyTypes(company)),
       ownerLabel,
+      accountOwner,
       locationLabel: formatCompanyLocation(company),
       healthScore,
       healthStatus,

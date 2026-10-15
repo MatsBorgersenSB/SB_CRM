@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { CompanyOperationsRow } from "@/lib/company-operations-data";
 import { CompanyTypeBadges } from "@/components/companies/company-type-badges";
+import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
 import { SeverityIcon } from "@/components/ui/smartcrm-icon";
 import {
   WorkspaceTable,
@@ -13,13 +14,29 @@ import {
   WorkspaceTableHeadCell,
   WorkspaceTableHeadRow,
 } from "@/components/ui/workspace-table";
+import type { Company, SharePointPerson } from "@/types/company";
+import type { StandardBioUserRecord } from "@/types/user-access";
 
 /**
  * Companies list — five columns, one decision per row.
  * Company · Posture · What matters · Pipeline · Owner
  * Health, location and last touch live on the Company 360; the sentence carries the signal here.
  */
-export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[] }) {
+export function CompaniesOperationsTable({
+  rows,
+  companies,
+  assignableUsers = [],
+  canReassignOwner = false,
+  savingOwnerId = null,
+  onOwnerChange,
+}: {
+  rows: CompanyOperationsRow[];
+  companies: Company[];
+  assignableUsers?: StandardBioUserRecord[];
+  canReassignOwner?: boolean;
+  savingOwnerId?: string | null;
+  onOwnerChange?: (companyId: string, owner: SharePointPerson) => void;
+}) {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-carbon-blue/65">
@@ -87,7 +104,18 @@ export function CompaniesOperationsTable({ rows }: { rows: CompanyOperationsRow[
               ) : null}
             </WorkspaceTableBodyCell>
             <WorkspaceTableBodyCell>
-              {row.ownerQueueHref && row.ownerLabel ? (
+              {canReassignOwner && onOwnerChange ? (
+                <CompanyOwnerSelect
+                  appearance="inline"
+                  label={`Owner for ${row.companyName}`}
+                  companies={companies}
+                  assignableUsers={assignableUsers}
+                  extraUsers={row.accountOwner ? [row.accountOwner] : []}
+                  value={row.accountOwner}
+                  disabled={savingOwnerId === row.companyId}
+                  onChange={(owner) => onOwnerChange(row.companyId, owner)}
+                />
+              ) : row.ownerQueueHref && row.ownerLabel ? (
                 <Link
                   href={row.ownerQueueHref}
                   className="block truncate text-carbon-blue hover:text-upcycle-orange"

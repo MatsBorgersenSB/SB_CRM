@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { resolveRequestRole } from "@/lib/api-auth";
+import { resolveRegistrarAccountOwner } from "@/lib/company-owner-server";
 import type { SharePointPerson } from "@/types/company";
 import { importQuickImport, type QuickImportPreview } from "@/lib/discovery/quick-import";
 
@@ -15,9 +17,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Preview payload is required" }, { status: 400 });
   }
 
+  const role = await resolveRequestRole(request);
+  const accountOwner = await resolveRegistrarAccountOwner(
+    request,
+    role,
+    body.accountOwner,
+  );
+
   try {
     const result = await importQuickImport(body.preview, {
-      accountOwner: body.accountOwner,
+      accountOwner,
     });
     return NextResponse.json(result);
   } catch (error) {

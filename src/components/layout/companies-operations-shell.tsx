@@ -33,11 +33,13 @@ import {
   type CompanyAttentionFilter,
   type CompanyOperationsFilter,
 } from "@/lib/company-operations-data";
-import { filterCompaniesForUser } from "@/lib/permissions";
+import { canReassignCompanyOwner, filterCompaniesForUser } from "@/lib/permissions";
+import { syncCompanyRecord } from "@/lib/sync-company";
 import type { CorrespondenceByCompanyId } from "@/lib/company-correspondence";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
-import type { Company } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import { company360Href } from "@/types/company-360";
 import type { PipelineRow } from "@/types/pipeline";
 import type { FilterDefinition, WorkspaceFilterValues } from "@/types/workspace-filters";
@@ -50,6 +52,7 @@ type CompaniesOperationsShellProps = {
   commercialPackages: CommercialPackage[];
   /** Synced Outlook mail recency by CompanyID — counts as a touch in health and last contact. */
   correspondence?: CorrespondenceByCompanyId | null;
+  assignableUsers?: StandardBioUserRecord[];
 };
 
 const COMPANY_HEALTH_FILTERS = [
@@ -74,6 +77,7 @@ export function CompaniesOperationsShell({
   activities,
   commercialPackages,
   correspondence = null,
+  assignableUsers = [],
 }: CompaniesOperationsShellProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -82,6 +86,7 @@ export function CompaniesOperationsShell({
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("all");
   const [activeTool, setActiveTool] = useState<CompaniesWorkspaceTool>(null);
+  const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
     setCompanyRows(companies);
@@ -227,6 +232,21 @@ export function CompaniesOperationsShell({
     [router, upsertCompany],
   );
 
+  const handleOwnerChange = useCallback(
+    async (companyId: string, owner: SharePointPerson) => {
+      setSavingOwnerId(companyId);
+      try {
+        const updated = await syncCompanyRecord(companyId, { AccountOwner: owner });
+        upsertCompany(updated);
+      } catch (error) {
+        console.error("[companies] Could not change account owner", error);
+      } finally {
+        setSavingOwnerId(null);
+      }
+    },
+    [upsertCompany],
+  );
+
   return (
     <WorkspaceChrome>
       <WorkspaceTopBar icon="company" title="Companies" />
@@ -251,6 +271,7 @@ export function CompaniesOperationsShell({
                   onCreated={handleCompanyCreated}
                   role={user.role}
                   companies={visibleCompanies}
+                  assignableUsers={assignableUsers}
                 />
               </div>
             ) : null}
@@ -304,7 +325,14 @@ export function CompaniesOperationsShell({
                 onClearAll={handleClearAllFilters}
               />
             </div>
-            <CompaniesOperationsTable rows={filteredRows} />
+            <CompaniesOperationsTable
+              rows={filteredRows}
+              companies={visibleCompanies}
+              assignableUsers={assignableUsers}
+              canReassignOwner={canReassignCompanyOwner(user.role)}
+              savingOwnerId={savingOwnerId}
+              onOwnerChange={handleOwnerChange}
+            />
           </WorkspacePanel>
         </WorkspaceStack>
       </WorkspaceMain>

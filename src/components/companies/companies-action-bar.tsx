@@ -6,6 +6,7 @@ import { resolveParentCompanyLookup } from "@/lib/company-identity";
 import { authUserToAccountOwner, resolveOwnerById } from "@/lib/company-owner";
 import { consumeEventCompanyPrefill } from "@/lib/event-planning-prefill";
 import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/lib/companies-data";
 import { canCreateCompany } from "@/lib/permissions";
@@ -58,6 +59,7 @@ export function CompaniesActionBar({
   onCreated,
   role,
   companies,
+  assignableUsers = [],
   embedded = false,
   open: controlledOpen,
   onOpenChange,
@@ -65,6 +67,7 @@ export function CompaniesActionBar({
   onCreated: (company: Company) => void;
   role: UserRole;
   companies: Company[];
+  assignableUsers?: StandardBioUserRecord[];
   embedded?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -330,6 +333,8 @@ export function CompaniesActionBar({
           <div className="sm:col-span-2">
             <CompanyOwnerSelect
               companies={companies}
+              assignableUsers={assignableUsers}
+              extraUsers={[defaultOwner]}
               value={
                 resolveOwnerById(form.accountOwnerId, companies) ?? defaultOwner
               }

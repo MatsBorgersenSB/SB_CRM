@@ -1,5 +1,6 @@
 import type { SignatureEnrichment } from "@/lib/m365/signature-intelligence";
 import type { OutlookCompanyOption } from "@/lib/m365/company-resolution";
+import type { SharePointPerson } from "@/types/company";
 
 export type OutlookContactEnrichment = {
   jobTitle?: string;
@@ -53,6 +54,8 @@ export type OutlookAddContactInput = {
   /** User rejected auto-match — do not resolve company from email domain. */
   skipAutoCompanyMatch?: boolean;
   enrichment?: OutlookContactEnrichment;
+  /** Person registering the company — defaults to the signed-in colleague. */
+  accountOwner?: SharePointPerson | null;
 };
 
 export type OutlookAddContactResult = {

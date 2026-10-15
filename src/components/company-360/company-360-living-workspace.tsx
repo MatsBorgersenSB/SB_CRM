@@ -37,7 +37,7 @@ import {
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { SourceFinding } from "@/lib/source-findings";
 import type { Company360Snapshot } from "@/lib/company-360-data";
-import type { Company } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Activity } from "@/types/activity";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
@@ -50,6 +50,7 @@ import type { PipelineRow } from "@/types/pipeline";
 import { getProjectsForCompany } from "@/lib/project-team-utils";
 import { CompanyProjectsTable } from "@/components/project/company-projects-table";
 import type { CompanyHeroQuickEdit } from "@/lib/company-identity";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { CompanyDuplicateHintBanner } from "@/components/company-360/company-duplicate-hint-banner";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
@@ -109,6 +110,7 @@ export function Company360LivingWorkspace({
   correspondence = null,
   smartDocs = [],
   documentKnowledge = EMPTY_DOCUMENT_KNOWLEDGE_STATE,
+  assignableUsers = [],
 }: {
   snapshot: Company360Snapshot;
   commercialPackages: CommercialPackage[];
@@ -138,6 +140,7 @@ export function Company360LivingWorkspace({
   correspondence?: CompanyCorrespondenceEvidence | null;
   smartDocs?: SmartDocLibraryRecord[];
   documentKnowledge?: CompanyDocumentKnowledgeState;
+  assignableUsers?: StandardBioUserRecord[];
 }) {
   const { company, header, pipelines: linkedPipelines } = snapshot;
   const identity = buildCompanyHeroIdentity(company);
@@ -156,6 +159,7 @@ export function Company360LivingWorkspace({
   );
   const [lastMailAt, setLastMailAt] = useState<string | null>(initialLastMailAt);
   const [linkedRevealed, setLinkedRevealed] = useState(false);
+  const [ownerSaving, setOwnerSaving] = useState(false);
   const [lastMailByContactId, setLastMailByContactId] = useState<Record<string, string>>(
     initialLastMailByContactId,
   );
@@ -313,6 +317,20 @@ export function Company360LivingWorkspace({
     setActiveTool(null);
   };
 
+  const handleOwnerChange = async (owner: SharePointPerson) => {
+    if (owner.Id === company.AccountOwner?.Id) return;
+    setOwnerSaving(true);
+    try {
+      const { syncCompanyRecord } = await import("@/lib/sync-company");
+      const updated = await syncCompanyRecord(company.CompanyID, { AccountOwner: owner });
+      onCompanyUpdated(updated);
+    } catch (error) {
+      console.error("[company-360] Could not change account owner", error);
+    } finally {
+      setOwnerSaving(false);
+    }
+  };
+
   const handleNewContact = useCallback(() => {
     setActiveTool(null);
     setCreateRequestId((value) => value + 1);
@@ -366,6 +384,7 @@ export function Company360LivingWorkspace({
               <CompanyInlineEditPanel
                 company={company}
                 companies={companies}
+                assignableUsers={assignableUsers}
                 onSave={handleSaveCompany}
                 onCancel={() => setActiveTool(null)}
               />
@@ -375,9 +394,14 @@ export function Company360LivingWorkspace({
               header={header}
               identity={identity}
               company={company}
+              companies={companies}
+              role={role}
+              assignableUsers={assignableUsers}
               pendingCommitment={pendingCommitment}
               onCompanyUpdated={onCompanyUpdated}
               onCommitmentChanged={undefined}
+              onOwnerChange={handleOwnerChange}
+              ownerSaving={ownerSaving}
               verdict={verdict}
               trailing={
                 <Company360ActionsBar

@@ -36,7 +36,7 @@ export async function POST(request: Request) {
         selectedPeopleIds: Array.isArray(body.selectedPeopleIds) ? body.selectedPeopleIds.map(String) : [],
         accountOwner: body.accountOwner ?? null,
       },
-      { email: session?.user?.email ?? null },
+      { email: session?.user?.email ?? null, name: session?.user?.name ?? null },
     );
     await markExplorationImported(
       typeof body.explorationId === "string" ? body.explorationId : null,

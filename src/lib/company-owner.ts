@@ -9,20 +9,20 @@ export function authUserToAccountOwner(user: AuthUser): SharePointPerson {
   const display = user.displayName?.trim().toLowerCase() ?? "";
   const email = user.email?.trim().toLowerCase() ?? "";
 
-  const canonical = STANDARD_BIO_USERS.find((bioUser) => {
-    if (user.id > 0 && bioUser.Id === user.id) return true;
-    if (display && bioUser.Title.toLowerCase() === display) return true;
-    // Match "mats.borgersen@…" style emails to "Mats Borgersen"
-    if (email) {
-      const local = email.split("@")[0] ?? "";
-      const compactTitle = bioUser.Title.toLowerCase().replace(/[^a-z]/g, "");
-      const compactLocal = local.replace(/[^a-z]/g, "");
-      if (compactLocal && compactTitle && compactLocal.includes(compactTitle.slice(0, 4))) {
-        return compactTitle === compactLocal || compactLocal.startsWith(compactTitle.slice(0, 4));
-      }
+  const matchByNameOrEmail = STANDARD_BIO_USERS.find((bioUser) => {
+    if (display && display !== "guest" && bioUser.Title.toLowerCase() === display) {
+      return true;
     }
-    return false;
+    if (!email) return false;
+    const local = email.split("@")[0] ?? "";
+    const compactTitle = bioUser.Title.toLowerCase().replace(/[^a-z]/g, "");
+    const compactLocal = local.replace(/[^a-z]/g, "");
+    return Boolean(compactLocal && compactTitle && compactTitle === compactLocal);
   });
+  // Name/email first — SSO sessions often share a placeholder id, so id must not steal ownership.
+  const canonical =
+    matchByNameOrEmail ??
+    STANDARD_BIO_USERS.find((bioUser) => user.id > 0 && bioUser.Id === user.id);
 
   if (canonical) return canonical;
 
@@ -64,11 +64,16 @@ export function formatAccountOwnerDisplay(
 export function buildCompanyOwnerOptions(
   companies: Company[],
   currentOwner?: SharePointPerson | null,
+  extraUsers: SharePointPerson[] = [],
 ): SharePointPerson[] {
   const byId = new Map<number, SharePointPerson>();
 
   for (const user of STANDARD_BIO_USERS) {
     byId.set(user.Id, user);
+  }
+
+  for (const extra of extraUsers) {
+    if (extra.Title?.trim()) byId.set(extra.Id, extra);
   }
 
   for (const company of companies) {
@@ -83,6 +88,15 @@ export function buildCompanyOwnerOptions(
   }
 
   return Array.from(byId.values()).sort((a, b) => a.Title.localeCompare(b.Title));
+}
+
+/** True when Account Owner identity actually changed — used for audit, not cascade. */
+export function accountOwnerChanged(
+  previous: SharePointPerson | null | undefined,
+  next: SharePointPerson | null | undefined,
+): boolean {
+  return (previous?.Id ?? null) !== (next?.Id ?? null)
+    || (previous?.Title?.trim() || "") !== (next?.Title?.trim() || "");
 }
 
 export function resolveAccountOwner(
@@ -102,10 +116,12 @@ export function resolveOwnerById(
   ownerId: number,
   companies: Company[],
   currentOwner?: SharePointPerson | null,
+  extraUsers: SharePointPerson[] = [],
 ): SharePointPerson | null {
   return (
-    buildCompanyOwnerOptions(companies, currentOwner).find((owner) => owner.Id === ownerId) ??
-    null
+    buildCompanyOwnerOptions(companies, currentOwner, extraUsers).find(
+      (owner) => owner.Id === ownerId,
+    ) ?? null
   );
 }
 

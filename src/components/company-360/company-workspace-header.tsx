@@ -3,7 +3,11 @@
 import type { Company360Header } from "@/lib/company-360-data";
 import type { CompanyHeroIdentityView } from "@/lib/company-identity";
 import { hasCompanyOwner } from "@/lib/company-owner";
-import type { Company } from "@/types/company";
+import { canReassignCompanyOwner } from "@/lib/permissions";
+import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
+import type { Company, SharePointPerson } from "@/types/company";
+import type { UserRole } from "@/types/auth";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import { PhoneActionMenu } from "@/components/relationship/relationship-links";
 import { decodePhoneForDisplay } from "@/lib/company-identity";
 import {
@@ -48,20 +52,30 @@ export function CompanyWorkspaceHeader({
   header,
   identity,
   company,
+  companies = [],
+  role,
+  assignableUsers = [],
   trailing,
   pendingCommitment,
   onCompanyUpdated,
   onCommitmentChanged,
+  onOwnerChange,
+  ownerSaving = false,
   verdict,
 }: {
   header: Company360Header;
   identity: CompanyHeroIdentityView;
   company: Company;
+  companies?: Company[];
+  role?: UserRole;
+  assignableUsers?: StandardBioUserRecord[];
   /** Secondary overflow (account tools) — not equal primary buttons */
   trailing?: ReactNode;
   pendingCommitment?: PendingCommitmentView | null;
   onCompanyUpdated?: (company: Company) => void;
   onCommitmentChanged?: () => void;
+  onOwnerChange?: (owner: SharePointPerson) => void;
+  ownerSaving?: boolean;
   verdict?: Company360Verdict | null;
 }) {
   const websiteHref = identity.website
@@ -71,6 +85,7 @@ export function CompanyWorkspaceHeader({
     : null;
 
   const ownerAssigned = hasCompanyOwner(company);
+  const canEditOwner = Boolean(role && onOwnerChange && canReassignCompanyOwner(role));
   const statusStory = buildRelationshipStatusStory(header);
   const nextLabel = verdict?.nextAction ?? nextActionLabel(header);
   const nextReason = verdict?.nextReason ?? header.recommendedAction.reason;
@@ -128,17 +143,37 @@ export function CompanyWorkspaceHeader({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-carbon-blue/60">
-        <span
-          className={
-            ownerAssigned
-              ? "text-carbon-blue/60"
-              : "font-medium text-thermal-red"
-          }
-        >
-          {ownerAssigned
-            ? `Owner ${header.accountOwner}`
-            : "Owner incomplete — assign an account owner"}
-        </span>
+        {canEditOwner ? (
+          <span
+            className={`inline-flex min-w-0 items-center gap-1.5 ${
+              ownerAssigned ? "text-carbon-blue/60" : "font-medium text-thermal-red"
+            }`}
+          >
+            <span>Owner</span>
+            <CompanyOwnerSelect
+              appearance="inline"
+              label="Account owner"
+              companies={companies}
+              assignableUsers={assignableUsers}
+              extraUsers={company.AccountOwner ? [company.AccountOwner] : []}
+              value={ownerAssigned ? company.AccountOwner : null}
+              disabled={ownerSaving}
+              onChange={(owner) => onOwnerChange?.(owner)}
+            />
+          </span>
+        ) : (
+          <span
+            className={
+              ownerAssigned
+                ? "text-carbon-blue/60"
+                : "font-medium text-thermal-red"
+            }
+          >
+            {ownerAssigned
+              ? `Owner ${header.accountOwner}`
+              : "Owner incomplete — assign an account owner"}
+          </span>
+        )}
 
         {verdict?.lastInteractionAt ? (
           <span>
