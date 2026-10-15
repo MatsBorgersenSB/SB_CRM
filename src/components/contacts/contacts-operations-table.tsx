@@ -13,7 +13,11 @@ import {
   type UpdateContactInput,
 } from "@/types/contact";
 import { BuyingRoleSelect } from "@/components/contacts/contact-form-fields";
+import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
 import { CompanyLink, ContactLink, EmailActionMenu } from "@/components/relationship/relationship-links";
+import { formatAccountOwnerDisplay, hasContactOwner } from "@/lib/company-owner";
+import type { Company, SharePointPerson } from "@/types/company";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import {
   WorkspaceTable,
   WorkspaceTableBody,
@@ -29,22 +33,32 @@ const cellTruncate = "min-w-0 max-w-full overflow-hidden";
 const textTruncate = "block min-w-0 truncate";
 
 /**
- * People list — five columns.
- * Name · Role at company · Buying role (editable) · Company · Last touch
- * Buying role is the one thing a user can fix from this list in two seconds, so it is a selector.
+ * People list — six columns.
+ * Name · Role · Buying role · Company · Owner · Last touch
+ * Buying role and owner are the two decisions a user can make from this list.
  */
 export function ContactsOperationsTable({
   records,
   activities,
   lastMailByEmail = {},
+  companies = [],
+  assignableUsers = [],
+  canReassignOwner = false,
+  savingOwnerId = null,
   onContactUpdate,
+  onOwnerChange,
 }: {
   records: GlobalContactRecord[];
   activities: Activity[];
   /** Lowercased email → latest synced Outlook mail with that person. */
   lastMailByEmail?: Record<string, string>;
+  companies?: Company[];
+  assignableUsers?: StandardBioUserRecord[];
+  canReassignOwner?: boolean;
+  savingOwnerId?: string | null;
   /** When provided, buying role becomes an inline selector persisted through this handler. */
   onContactUpdate?: (companyId: string, contactId: string, patch: UpdateContactInput) => Promise<void>;
+  onOwnerChange?: (companyId: string, contactId: string, owner: SharePointPerson) => void;
 }) {
   if (records.length === 0) {
     return (
@@ -58,11 +72,12 @@ export function ContactsOperationsTable({
     <div className="w-full">
       <WorkspaceTable>
         <colgroup>
-          <col className="w-[27%]" />
-          <col className="w-[19%]" />
-          <col className="w-[18%]" />
-          <col className="w-[21%]" />
-          <col className="w-[15%]" />
+          <col className="w-[22%]" />
+          <col className="w-[14%]" />
+          <col className="w-[16%]" />
+          <col className="w-[16%]" />
+          <col className="w-[16%]" />
+          <col className="w-[16%]" />
         </colgroup>
         <WorkspaceTableHead>
           <WorkspaceTableHeadRow>
@@ -70,6 +85,7 @@ export function ContactsOperationsTable({
             <WorkspaceTableHeadCell>Role</WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell>Buying role</WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell>Owner</WorkspaceTableHeadCell>
             <WorkspaceTableHeadCell>Last touch</WorkspaceTableHeadCell>
           </WorkspaceTableHeadRow>
         </WorkspaceTableHead>
@@ -132,6 +148,32 @@ export function ContactsOperationsTable({
                   >
                     {record.companyName}
                   </CompanyLink>
+                </WorkspaceTableBodyCell>
+                <WorkspaceTableBodyCell className={cellTruncate}>
+                  {canReassignOwner && onOwnerChange ? (
+                    <CompanyOwnerSelect
+                      appearance="inline"
+                      label={`Owner for ${getContactDisplayName(record.contact)}`}
+                      companies={companies}
+                      assignableUsers={assignableUsers}
+                      extraUsers={
+                        record.contact.ContactOwner ? [record.contact.ContactOwner] : []
+                      }
+                      value={
+                        hasContactOwner(record.contact)
+                          ? record.contact.ContactOwner ?? null
+                          : null
+                      }
+                      disabled={savingOwnerId === record.contact.ContactID}
+                      onChange={(owner) =>
+                        onOwnerChange(record.companyId, record.contact.ContactID, owner)
+                      }
+                    />
+                  ) : (
+                    <span className={`${textTruncate} text-carbon-blue/65`}>
+                      {formatAccountOwnerDisplay(record.contact.ContactOwner) ?? "Unassigned"}
+                    </span>
+                  )}
                 </WorkspaceTableBodyCell>
                 <WorkspaceTableBodyCell className={`${cellTruncate} text-carbon-blue/55`}>
                   <span

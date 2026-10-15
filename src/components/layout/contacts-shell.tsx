@@ -27,7 +27,8 @@ import {
   lastMailByEmailFromRecord,
   type CorrespondenceByCompanyId,
 } from "@/lib/company-correspondence";
-import { filterCompaniesForUser } from "@/lib/permissions";
+import { formatAccountOwnerDisplay } from "@/lib/company-owner";
+import { canReassignContactOwner, filterCompaniesForUser } from "@/lib/permissions";
 import { analyzeOutlookReconciliation } from "@/lib/outlook-reconciliation-engine";
 import { syncCompanyContact } from "@/lib/sync-company";
 import { getContactDisplayName, type UpdateContactInput } from "@/types/contact";
@@ -36,6 +37,8 @@ import type { Activity } from "@/types/activity";
 import type { OutlookEvidenceRecord } from "@/types/outlook-reconciliation";
 import type { PipelineRow } from "@/types/pipeline";
 import { contact360Href } from "@/types/relationship-navigation";
+import type { SharePointPerson } from "@/types/company";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import type { FilterDefinition, FilterSummaryChip, WorkspaceFilterValues } from "@/types/workspace-filters";
 import { normalizeMultiFilter, normalizeSingleFilter } from "@/types/workspace-filters";
 
@@ -46,6 +49,7 @@ type ContactsShellProps = {
   outlookEvidence: OutlookEvidenceRecord[];
   /** Synced Outlook mail recency by CompanyID — gives each person a real last touch. */
   correspondence?: CorrespondenceByCompanyId | null;
+  assignableUsers?: StandardBioUserRecord[];
 };
 
 const CONTACT_FILTER_KEYS = ["company", "role", "status", "relationship"] as const;
@@ -63,6 +67,7 @@ export function ContactsShell({
   activities,
   outlookEvidence,
   correspondence = null,
+  assignableUsers = [],
 }: ContactsShellProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -74,6 +79,7 @@ export function ContactsShell({
   const [owner, setOwner] = useState("all");
   const [activeTool, setActiveTool] = useState<ContactsWorkspaceTool>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
 
   const closeActiveTool = useCallback(() => setActiveTool(null), []);
   useEscapeKey(Boolean(activeTool), closeActiveTool);
@@ -109,13 +115,14 @@ export function ContactsShell({
 
   const ownerOptions = useMemo(() => {
     const labels = new Set<string>();
-    for (const company of scopedCompanies) {
-      if (company.AccountOwner?.Title) labels.add(company.AccountOwner.Title);
+    for (const record of contactRecords) {
+      const title = formatAccountOwnerDisplay(record.contact.ContactOwner);
+      if (title) labels.add(title);
     }
     return Array.from(labels)
       .sort()
       .map((label) => ({ value: label, label }));
-  }, [scopedCompanies]);
+  }, [contactRecords]);
 
   const roleFilterOptions = useMemo(() => {
     const fromData = contactRecords
@@ -182,8 +189,7 @@ export function ContactsShell({
     return contactRecords.filter((record) => {
       if (!showArchived && record.contact.IsArchived) return false;
 
-      const accountOwner = scopedCompanies.find((c) => c.CompanyID === record.companyId)
-        ?.AccountOwner?.Title;
+      const contactOwner = formatAccountOwnerDisplay(record.contact.ContactOwner);
       if (companiesFilter.length > 0 && !companiesFilter.includes(record.companyId)) {
         return false;
       }
@@ -192,7 +198,7 @@ export function ContactsShell({
       if (relationship !== "all" && record.contact.RelationshipLevel !== relationship) {
         return false;
       }
-      if (owner !== "all" && accountOwner?.toLowerCase() !== owner.toLowerCase()) {
+      if (owner !== "all" && (contactOwner ?? "").toLowerCase() !== owner.toLowerCase()) {
         return false;
       }
       if (!q) return true;
@@ -204,7 +210,7 @@ export function ContactsShell({
         record.contact.Email.toLowerCase().includes(q)
       );
     });
-  }, [contactRecords, toolbarFilters, search, owner, scopedCompanies, showArchived]);
+  }, [contactRecords, toolbarFilters, search, owner, showArchived]);
 
   const availableContactCount = useMemo(
     () =>
@@ -289,6 +295,20 @@ export function ContactsShell({
       );
     },
     [],
+  );
+
+  const handleOwnerChange = useCallback(
+    async (companyId: string, contactId: string, owner: SharePointPerson) => {
+      setSavingOwnerId(contactId);
+      try {
+        await handleContactUpdate(companyId, contactId, { ContactOwner: owner });
+      } catch (error) {
+        console.error("[contacts] Could not change contact owner", error);
+      } finally {
+        setSavingOwnerId(null);
+      }
+    },
+    [handleContactUpdate],
   );
 
   return (
@@ -381,7 +401,12 @@ export function ContactsShell({
               records={filteredRecords}
               activities={activities}
               lastMailByEmail={lastMailByEmail}
+              companies={scopedCompanies}
+              assignableUsers={assignableUsers}
+              canReassignOwner={canReassignContactOwner(user.role)}
+              savingOwnerId={savingOwnerId}
               onContactUpdate={handleContactUpdate}
+              onOwnerChange={handleOwnerChange}
             />
           </WorkspacePanel>
 

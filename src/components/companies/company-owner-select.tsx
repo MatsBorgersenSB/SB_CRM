@@ -57,7 +57,9 @@ export function CompanyOwnerSelect({
       className={appearance === "inline" ? INLINE_CLASS : compact ? `${FIELD_CLASS} mt-0 py-1 text-[12px]` : FIELD_CLASS}
     >
       {!value ? (
-        <option value="">{appearance === "inline" ? "Assign…" : "Select account owner"}</option>
+        <option value="">
+          {appearance === "inline" ? "Assign…" : `Select ${label.toLowerCase()}`}
+        </option>
       ) : null}
       {options.map((owner) => (
         <option key={owner.Id} value={owner.Id}>

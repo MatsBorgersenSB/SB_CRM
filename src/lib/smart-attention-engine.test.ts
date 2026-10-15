@@ -220,4 +220,36 @@ describe("attention owner / responsibility", () => {
     const activityRow = items.find((item) => item.sourceObjectId === "ACT-OVERDUE");
     assert.equal(activityRow?.ownerLabel, "Hugo Jansson");
   });
+
+  it("lists the contact owner ahead of the company account owner on contact rows", () => {
+    const person = contact({
+      ContactID: "CT-LARSEN",
+      FirstName: "Sten",
+      LastName: "Larsen",
+      Email: "sten@example.invalid",
+      ContactOwner: { Id: 100, Title: "Walter Aker" },
+    });
+    const eramet = {
+      ...companyWithContact(person),
+      Title: "Eramet",
+      CompanyID: "CO-1015",
+      code: "CO-1015",
+      AccountOwner: { Id: 1, Title: "Mats Borgersen" },
+    };
+
+    const items = buildContactAttentionItems(
+      person.ContactID,
+      eramet.CompanyID,
+      [eramet],
+      [],
+      [],
+      [],
+    );
+    assert.ok(items.length > 0, "contact attention should exist");
+    for (const item of items) {
+      if (item.objectType === "Contact") {
+        assert.equal(item.ownerLabel, "Walter Aker");
+      }
+    }
+  });
 });

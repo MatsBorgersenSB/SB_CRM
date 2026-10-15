@@ -25,6 +25,7 @@ import { getContactDisplayName, type UpdateContactInput } from "@/types/contact"
 import type { EditableContactField as EditableContactFieldName } from "@/types/contact";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project } from "@/types/project";
+import type { StandardBioUserRecord } from "@/types/user-access";
 
 type Contact360PageShellProps = {
   contactId: string;
@@ -35,6 +36,7 @@ type Contact360PageShellProps = {
   outlookEvidence: OutlookEvidenceRecord[];
   projects: Project[];
   correspondence?: CompanyCorrespondenceEvidence | null;
+  assignableUsers?: StandardBioUserRecord[];
 };
 
 export function Contact360PageShell({
@@ -46,6 +48,7 @@ export function Contact360PageShell({
   outlookEvidence,
   projects,
   correspondence = null,
+  assignableUsers = [],
 }: Contact360PageShellProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -310,6 +313,7 @@ export function Contact360PageShell({
           projects={projectRows}
           onProjectUpdated={handleProjectUpdated}
           onPipelineUpdated={handlePipelineUpdated}
+          assignableUsers={assignableUsers}
         />
       </WorkspaceMain>
     </WorkspaceChrome>

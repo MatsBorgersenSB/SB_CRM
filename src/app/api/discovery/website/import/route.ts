@@ -69,7 +69,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Contact not found in discovery" }, { status: 404 });
       }
 
-      const result = await importDiscoveredContactForCompany(body.companyId, contact);
+      const result = await importDiscoveredContactForCompany(
+        body.companyId,
+        contact,
+        accountOwner,
+      );
       revalidateCompanySurfaces();
       return NextResponse.json(result);
     }

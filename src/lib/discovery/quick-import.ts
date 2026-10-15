@@ -656,6 +656,7 @@ async function upsertCompanyFromQuickImport(
 async function upsertContactFromQuickImport(
   companyId: string,
   preview: QuickImportPreview,
+  options?: CompanyImportOptions,
 ): Promise<{
   contact: Contact | null;
   created: boolean;
@@ -698,6 +699,7 @@ async function upsertContactFromQuickImport(
     LinkedInURL: extracted.linkedInUrl,
     Status: "Prospecting",
     RelationshipLevel: "Operational",
+    ContactOwner: resolveAccountOwner(options?.accountOwner),
   });
 
   return { contact, created: true, updated: false, skipped: false };
@@ -746,7 +748,11 @@ export async function importQuickImport(
 
   if (preview.hasContactData) {
     try {
-      contactResult = await upsertContactFromQuickImport(companyResult.company.CompanyID, preview);
+      contactResult = await upsertContactFromQuickImport(
+        companyResult.company.CompanyID,
+        preview,
+        options,
+      );
     } catch (error) {
       errors.push(error instanceof Error ? error.message : "Contact import failed");
     }

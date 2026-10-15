@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   accountOwnerChanged,
   authUserToAccountOwner,
+  ownerIdFromPerson,
   resolveAccountOwner,
 } from "./company-owner";
 import type { AuthUser } from "@/types/auth";
@@ -54,6 +55,13 @@ describe("resolveAccountOwner", () => {
     );
     assert.equal(owner.Id, 103);
     assert.equal(owner.Title, "Bjørn Molskred");
+  });
+});
+
+describe("ownerIdFromPerson", () => {
+  it("stores a colleague id and clears when ownership is removed", () => {
+    assert.equal(ownerIdFromPerson({ Id: 101, Title: "Hugo Jansson" }), "101");
+    assert.equal(ownerIdFromPerson(null), null);
   });
 });
 

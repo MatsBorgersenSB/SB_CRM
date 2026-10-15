@@ -85,6 +85,7 @@ export const CONTACT_LIST_SELECT = {
   backgroundNotes: true,
   preferredLanguage: true,
   personalNotes: true,
+  ownerId: true,
 } as const;
 
 /** Opportunity fields for pipeline rows — include understanding so captured answers are never dropped. */

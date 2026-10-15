@@ -38,7 +38,8 @@ import type { Activity } from "@/types/activity";
 import type { AttentionItem } from "@/types/attention-item";
 import type { OutlookEvidenceRecord } from "@/types/outlook-reconciliation";
 import type { CommercialPackage } from "@/types/commercial-package";
-import type { Company } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
+import type { StandardBioUserRecord } from "@/types/user-access";
 import type { Contact } from "@/types/contact";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project } from "@/types/project";
@@ -78,6 +79,7 @@ export function Contact360LivingWorkspace({
   onProjectUpdated,
   onPipelineUpdated,
   correspondence = null,
+  assignableUsers = [],
 }: {
   record: GlobalContactRecord;
   company: Company;
@@ -105,6 +107,7 @@ export function Contact360LivingWorkspace({
   projects: Project[];
   onProjectUpdated?: (project: Project) => void;
   onPipelineUpdated?: (pipeline: PipelineRow) => void;
+  assignableUsers?: StandardBioUserRecord[];
 }) {
   const { contact, linkedPipelineIds } = record;
   const [documentCount, setDocumentCount] = useState(0);
@@ -303,10 +306,16 @@ export function Contact360LivingWorkspace({
           contact={contact}
           companyId={record.companyId}
           companyName={record.companyName}
+          companies={companies}
+          assignableUsers={assignableUsers}
+          role={role}
           trailing={contactTools}
           verdict={verdict}
           onBuyingRoleChange={(next) =>
             onContactUpdate(contact.ContactID, { buyingRole: (next ?? "") as BuyingRole })
+          }
+          onOwnerChange={(owner: SharePointPerson) =>
+            onContactUpdate(contact.ContactID, { ContactOwner: owner })
           }
         />
       )}
