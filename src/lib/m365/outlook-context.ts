@@ -317,15 +317,17 @@ export async function resolveOutlookReadRecipients(options?: {
     const selfEmails = mailboxSelfEmails(mailbox);
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
-      const [to, cc, bcc] = await Promise.all([
+      const [to, cc, bcc, required, optional] = await Promise.all([
         getRecipientsAsync(item.to),
         getRecipientsAsync(item.cc),
         getRecipientsAsync(item.bcc),
+        getRecipientsAsync(item.requiredAttendees),
+        getRecipientsAsync(item.optionalAttendees),
       ]);
 
       const seen = new Set<string>();
       const recipients: OutlookComposeRecipient[] = [];
-      for (const entry of [...to, ...cc, ...bcc]) {
+      for (const entry of [...to, ...cc, ...bcc, ...required, ...optional]) {
         if (!entry.email || seen.has(entry.email)) continue;
         if (isMailboxOwnerEmail(entry.email, selfEmails)) continue;
         seen.add(entry.email);

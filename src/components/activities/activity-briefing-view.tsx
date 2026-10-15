@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -79,6 +79,39 @@ export function ActivityBriefingView({
     setActivity(activityProp);
   }, [activityProp]);
 
+  useEffect(() => {
+    const type = activityProp.ActivityType.toLowerCase();
+    if (!type.includes("meeting")) return;
+    if (activityProp.TeamsJoinUrl && activityProp.TeamsEventId) return;
+    let cancelled = false;
+    void fetch(`/api/activities/${encodeURIComponent(activityProp.ActivityID)}/sync-outlook`, {
+      method: "POST",
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as {
+          linked?: boolean;
+          alreadyLinked?: boolean;
+          activity?: Activity;
+        };
+      })
+      .then((payload) => {
+        if (cancelled || !payload?.linked || payload.alreadyLinked || !payload.activity) return;
+        setActivity(payload.activity);
+        router.refresh();
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activityProp.ActivityID,
+    activityProp.ActivityType,
+    activityProp.TeamsEventId,
+    activityProp.TeamsJoinUrl,
+    router,
+  ]);
+
   const assigneeOptions = useMemo(
     () =>
       mergeStandardBioUserOptions(assignableUsers, [
@@ -124,6 +157,17 @@ export function ActivityBriefingView({
               currentUser={currentUserPerson}
               onSharedWithChange={handleSharedWithChange}
             />
+          ) : null}
+          {activity.TeamsJoinUrl ? (
+            <a
+              href={activity.TeamsJoinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-upcycle-orange hover:underline"
+            >
+              <Video className="size-3" strokeWidth={2} />
+              Join Teams
+            </a>
           ) : null}
           {onEdit ? (
             <button

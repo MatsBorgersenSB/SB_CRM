@@ -5,6 +5,7 @@ import {
   teamsMeetingComposeHref,
 } from "@/lib/compose-actions";
 import { createTeamsCalendarEvent } from "@/lib/m365/create-teams-event";
+import { linkMatchingOutlookEventToActivity } from "@/lib/m365/link-outlook-event-to-activity";
 import { readLiveCompanies } from "@/lib/prisma-data";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
@@ -45,6 +46,19 @@ export async function POST(
     const { activities } = getServerSharePointServices();
     const activity = await activities.getById(id);
     const companies = await readLiveCompanies();
+
+    const existing = await linkMatchingOutlookEventToActivity(activity, companies);
+    if (existing.linked) {
+      return NextResponse.json({
+        activity: existing.activity,
+        createdOnGraph: false,
+        linkedExisting: true,
+        attendeeCount: resolveActivityAttendeeEmails(existing.activity, companies).length,
+        openUrl: existing.webLink || existing.joinUrl,
+        teamsComposeUrl: existing.joinUrl,
+      });
+    }
+
     const attendees = resolveActivityAttendeeEmails(activity, companies);
     const title = extra.title?.trim() || activity.Subject;
     const body = extra.body?.trim() || activity.ActivityDescription || activity.Summary || title;

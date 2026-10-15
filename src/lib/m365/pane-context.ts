@@ -196,10 +196,38 @@ function mapResolvedFromRow(row: NonNullable<CompanyCardRow>, email?: string): M
  */
 export async function resolveM365PaneCompany(input: {
   email?: string | null;
+  emails?: string[] | null;
   companyId?: string | null;
   contactId?: string | null;
 }): Promise<M365PaneResolved | null> {
-  const email = input.email?.trim().toLowerCase() || "";
+  const uniqueEmails = [
+    ...new Set(
+      [input.email, ...(input.emails ?? [])]
+        .map((value) => value?.trim().toLowerCase() ?? "")
+        .filter((value) => value.includes("@")),
+    ),
+  ];
+  if (uniqueEmails.length > 1) {
+    for (const candidate of uniqueEmails) {
+      const found = await resolveM365PaneCompany({
+        email: candidate,
+        companyId: input.companyId,
+        contactId: input.contactId,
+      });
+      if (found?.contact) return found;
+    }
+    for (const candidate of uniqueEmails) {
+      const found = await resolveM365PaneCompany({
+        email: candidate,
+        companyId: input.companyId,
+        contactId: input.contactId,
+      });
+      if (found) return found;
+    }
+    return null;
+  }
+
+  const email = uniqueEmails[0] || input.email?.trim().toLowerCase() || "";
   const companyId = input.companyId?.trim() || "";
   const contactId = input.contactId?.trim() || "";
 
@@ -300,6 +328,7 @@ function pickSidebarActivities(activities: Activity[], company: Company): Activi
  */
 export async function loadM365PaneContext(input: {
   email?: string | null;
+  emails?: string[] | null;
   companyId?: string | null;
 }): Promise<M365PaneLoadResult> {
   const resolved = await resolveM365PaneCompany(input);
