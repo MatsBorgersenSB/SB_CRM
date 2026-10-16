@@ -266,7 +266,11 @@ export async function getActivity(id: string | number): Promise<Activity | undef
 }
 
 export async function createActivityRecord(input: CreateActivityInput): Promise<Activity> {
-  if (!isPrismaActivityStore()) return createJsonActivity(input);
+  if (!isPrismaActivityStore()) {
+    const created = await createJsonActivity(input);
+    await notifyAssignment(null, created);
+    return created;
+  }
 
   const links = await resolveLinks(input);
   const record: Activity = {
@@ -315,20 +319,24 @@ export async function createActivityRecord(input: CreateActivityInput): Promise<
     },
     select: rowSelect,
   });
-  return rowToActivity(row);
+  const created = rowToActivity(row);
+  await notifyAssignment(null, created);
+  return created;
 }
 
-async function notifyOwnerChange(previous: Activity, next: Activity): Promise<void> {
-  const before = previous.ActivityOwner?.Id;
+async function notifyAssignment(previous: Activity | null, next: Activity): Promise<void> {
   const after = next.ActivityOwner;
-  if (!after?.Id || after.Id === before) return;
+  if (!after?.Id) return;
   try {
     await notifyActivityAssigned({
       activityId: next.ActivityID,
       subject: next.Subject || "Activity",
       assigneeId: after.Id,
       assigneeTitle: after.Title,
-      assignerTitle: previous.ActivityOwner?.Title ?? null,
+      previousOwnerId: previous?.ActivityOwner?.Id ?? null,
+      companyName: next.Company?.Title ?? next.ProjectName ?? null,
+      dueDate: next.NextActionDate ?? null,
+      assignerTitle: previous?.ActivityOwner?.Title ?? null,
     });
   } catch (error) {
     console.warn(
@@ -345,7 +353,7 @@ export async function updateActivityRecord(
   if (!isPrismaActivityStore()) {
     const current = await getActivity(id);
     const updated = await updateJsonActivity(String(id), patch);
-    if (current) await notifyOwnerChange(current, updated);
+    if (current) await notifyAssignment(current, updated);
     return updated;
   }
 
@@ -379,6 +387,6 @@ export async function updateActivityRecord(
     select: rowSelect,
   });
   const updated = rowToActivity(row);
-  await notifyOwnerChange(current, updated);
+  await notifyAssignment(current, updated);
   return updated;
 }

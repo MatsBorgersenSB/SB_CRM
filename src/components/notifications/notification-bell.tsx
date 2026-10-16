@@ -57,6 +57,7 @@ export function NotificationBell() {
           [AUTH_ROLE_HEADER]: user.role,
           "x-sb-user-id": String(user.id),
           "x-sb-user-name": user.displayName,
+          ...(user.email ? { "x-sb-user-email": user.email } : {}),
         },
         cache: "no-store",
       });
@@ -80,7 +81,7 @@ export function NotificationBell() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [pathname, router, user.displayName, user.id, user.role]);
+  }, [pathname, router, user.displayName, user.email, user.id, user.role]);
 
   useEffect(() => {
     void load();
@@ -111,6 +112,7 @@ export function NotificationBell() {
             "Content-Type": "application/json",
             [AUTH_ROLE_HEADER]: user.role,
             "x-sb-user-id": String(user.id),
+            ...(user.email ? { "x-sb-user-email": user.email } : {}),
           },
           body: JSON.stringify({ read: true }),
         });

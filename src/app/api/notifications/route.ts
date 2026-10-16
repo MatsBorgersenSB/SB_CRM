@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRequestRole } from "@/lib/api-auth";
+import { resolveNotificationInboxUserId } from "@/lib/notifications/living-signals";
 import {
   createNotification,
   listNotificationsForUser,
@@ -13,7 +14,7 @@ import { resolveAuditActor } from "@/lib/security/audit-logger";
 export async function GET(request: Request) {
   const role = getRequestRole(request);
   const actor = resolveAuditActor(request, role);
-  const userId = actor.userId;
+  const userId = await resolveNotificationInboxUserId(actor);
 
   try {
     let notifications = await listNotificationsForUser(userId, { limit: 40 });

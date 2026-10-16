@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useSession } from "next-auth/react";
+import { authUserToAccountOwner } from "@/lib/company-owner";
 import type { AuthUser, UserRole } from "@/types/auth";
 import { isUserRole } from "@/types/auth";
 
@@ -55,12 +56,20 @@ export function AuthProvider({
     const sessionRole = session.user.role;
     const nextRole =
       sessionRole && isUserRole(sessionRole) ? sessionRole : ("commercial" as UserRole);
+    const displayName =
+      session.user.name?.trim() || session.user.email?.trim() || "Microsoft 365 user";
+    const email = session.user.email?.trim() || undefined;
+    const owner = authUserToAccountOwner({
+      id: 0,
+      displayName,
+      email,
+      role: nextRole,
+    });
 
     setUser((current) => ({
-      id: current.id || 1,
-      displayName:
-        session.user.name?.trim() || session.user.email?.trim() || "Microsoft 365 user",
-      email: session.user.email?.trim() || undefined,
+      id: owner.Id,
+      displayName: owner.Title || displayName,
+      email,
       image: session.user.image ?? null,
       role: nextRole,
       companyId:

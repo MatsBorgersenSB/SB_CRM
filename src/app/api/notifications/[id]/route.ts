@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRequestRole } from "@/lib/api-auth";
+import { resolveNotificationInboxUserId } from "@/lib/notifications/living-signals";
 import { markAsRead } from "@/lib/notifications/notification-service";
 import { withPrismaRetry } from "@/lib/prisma";
 import { resolveAuditActor } from "@/lib/security/audit-logger";
@@ -13,6 +14,7 @@ export async function PATCH(
 ) {
   const role = getRequestRole(request);
   const actor = resolveAuditActor(request, role);
+  const inboxUserId = await resolveNotificationInboxUserId(actor);
   const { id } = await params;
 
   try {
@@ -31,7 +33,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Notification not found" }, { status: 404 });
     }
 
-    const isOwner = existing.userId === actor.userId;
+    const isOwner = existing.userId === inboxUserId || existing.userId === actor.userId;
     const isAdmin = role === "superuser" || role === "admin";
     if (!isOwner && !isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

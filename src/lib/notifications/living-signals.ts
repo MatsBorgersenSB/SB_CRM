@@ -1,17 +1,79 @@
 import "server-only";
 
+import { auth } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
 import { toCompanyTrackingId } from "@/lib/prisma-mappers";
+import { pingColleagueAboutAssignment } from "@/lib/m365/colleague-assignment-notify";
+import {
+  assignmentNoticeCopy,
+  assignmentNoticeLink,
+  assignmentShouldNotify,
+} from "@/lib/notifications/activity-assignment";
 import { createNotification } from "@/lib/notifications/notification-service";
+import { resolvePublicAppOrigin } from "@/lib/smartcrm-origin";
 import { readUsers } from "@/lib/users-access-db";
 import { company360Href } from "@/types/company-360";
+import type { StandardBioUserRecord } from "@/types/user-access";
 
 async function notificationUserIdForEmail(email: string): Promise<string | null> {
-  const normalized = email.trim().toLowerCase();
-  if (!normalized) return null;
+  const match = await findColleague({ email });
+  return match ? String(match.id) : null;
+}
+
+/** Inbox key for the signed-in colleague — email/name first, never a shared placeholder id. */
+export async function resolveNotificationInboxUserId(input: {
+  userId: string;
+  userEmail?: string | null;
+  userName?: string | null;
+}): Promise<string> {
+  const match = await findColleague({
+    email: input.userEmail,
+    name: input.userName,
+    id: Number(input.userId),
+  });
+  return match ? String(match.id) : input.userId;
+}
+
+async function findColleague(input: {
+  email?: string | null;
+  name?: string | null;
+  id?: number | null;
+}): Promise<StandardBioUserRecord | null> {
   const users = await readUsers();
-  const user = users.find((entry) => entry.email.trim().toLowerCase() === normalized);
-  return user ? String(user.id) : null;
+  const email = input.email?.trim().toLowerCase() ?? "";
+  if (email && !email.endsWith("@smartcrm.local")) {
+    const byEmail = users.find((entry) => entry.email.trim().toLowerCase() === email);
+    if (byEmail) return byEmail;
+  }
+  const name = input.name?.trim().toLowerCase() ?? "";
+  if (name && name !== "guest") {
+    const byName = users.find((entry) => entry.displayName.trim().toLowerCase() === name);
+    if (byName) return byName;
+  }
+  if (input.id != null && Number.isFinite(input.id) && input.id > 0) {
+    return users.find((entry) => entry.id === input.id) ?? null;
+  }
+  return null;
+}
+
+async function resolveSessionAssigner(): Promise<{
+  id: number | null;
+  title: string | null;
+  email: string | null;
+}> {
+  try {
+    const session = await auth();
+    const email = session?.user?.email?.trim() || null;
+    const name = session?.user?.name?.trim() || null;
+    const match = await findColleague({ email, name });
+    return {
+      id: match?.id ?? null,
+      title: match?.displayName ?? name,
+      email: match?.email ?? email,
+    };
+  } catch {
+    return { id: null, title: null, email: null };
+  }
 }
 
 async function alreadyNotified(userId: string, link: string): Promise<boolean> {
@@ -107,26 +169,74 @@ export async function notifyInboundMail(input: {
   });
 }
 
-/** Bell alert when a colleague assigns an activity to someone else. */
+/** Bell + Teams/Outlook ping when a colleague is given an activity. */
 export async function notifyActivityAssigned(input: {
   activityId: string;
   subject: string;
   assigneeId: number;
   assigneeTitle: string;
+  previousOwnerId?: number | null;
+  companyName?: string | null;
+  dueDate?: string | null;
   assignerTitle?: string | null;
 }): Promise<void> {
-  const userId = String(input.assigneeId);
-  const link = `/activities/${encodeURIComponent(input.activityId)}?assigned=${input.assigneeId}`;
+  const assigner = await resolveSessionAssigner();
+  const assignee = await findColleague({
+    id: input.assigneeId,
+    name: input.assigneeTitle,
+  });
+  const assignerTitle = assigner.title || input.assignerTitle;
+  if (
+    !assignmentShouldNotify({
+      previousOwnerId: input.previousOwnerId,
+      nextOwnerId: input.assigneeId,
+      assignerId: assigner.id,
+      assignerEmail: assigner.email,
+      assigneeEmail: assignee?.email,
+      assignerTitle,
+      assigneeTitle: assignee?.displayName ?? input.assigneeTitle,
+    })
+  ) {
+    return;
+  }
+
+  const userId = String(assignee?.id ?? input.assigneeId);
+  const link = assignmentNoticeLink({
+    activityId: input.activityId,
+    assigneeId: input.assigneeId,
+    previousOwnerId: input.previousOwnerId,
+  });
   if (await alreadyNotified(userId, link)) return;
 
-  const who = input.assignerTitle?.trim();
+  const openUrl = `${resolvePublicAppOrigin()}${link}`;
+  const copy = assignmentNoticeCopy({
+    subject: input.subject,
+    assignerTitle,
+    companyName: input.companyName,
+    dueDate: input.dueDate,
+    openUrl,
+  });
+
   await createNotification({
     userId,
     type: "ALERT",
-    title: "Assigned to you",
-    message: who
-      ? `${who} assigned you: ${input.subject}`
-      : `You now own: ${input.subject}`,
+    title: copy.title,
+    message: copy.message,
     link,
   });
+
+  if (assignee?.email) {
+    try {
+      await pingColleagueAboutAssignment({
+        assigneeEmail: assignee.email,
+        html: copy.html,
+        mailSubject: copy.mailSubject,
+      });
+    } catch (error) {
+      console.warn(
+        "[assignment-notify] colleague ping failed",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
 }
