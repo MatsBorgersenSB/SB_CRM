@@ -23,6 +23,7 @@ const DEFAULT_SCOPES = [
   "profile",
   "offline_access",
   "User.Read",
+  "Chat.ReadWrite",
   "Mail.Read",
   "Mail.Send",
   "Calendars.Read",
