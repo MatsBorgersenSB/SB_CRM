@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildInboundMailAttention,
+  inboundMailIssueHref,
   mergeInboundMailIntoCorrespondence,
 } from "./inbound-mail-attention";
+import { resolveAttentionActions } from "./attention-action-resolver";
+import { attentionIssueHref } from "@/types/attention-item";
 import { EMPTY_CORRESPONDENCE } from "./company-correspondence";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
@@ -73,6 +76,23 @@ describe("inbound mail attention", () => {
     assert.match(items[0]?.recommendation ?? "", /Jostein Smemo/);
     assert.match(items[0]?.recommendation ?? "", /G10 Tarkett flis/);
     assert.equal(items[0]?.suggestedAiAction, "Read and decide next step");
+    assert.match(items[0]?.issueHref ?? "", /[?&]mail=/);
+    assert.equal(attentionIssueHref(items[0]!), items[0]?.issueHref);
+    const actions = resolveAttentionActions(items[0]!);
+    assert.equal(actions[0]?.label, "Open mail");
+    assert.equal(actions[0]?.href, items[0]?.issueHref);
+  });
+
+  it("opens stored Outlook webLink as the issue", () => {
+    const href = inboundMailIssueHref(
+      {
+        id: "mail-1",
+        webLink: "https://outlook.office.com/mail/id/abc",
+        externalMessageId: "AAMk",
+      },
+      "CO-HORN",
+    );
+    assert.equal(href, "https://outlook.office.com/mail/id/abc");
   });
 
   it("does not invent a company for unlinked mail", () => {

@@ -75,12 +75,15 @@ export function CompanyRecentOutlook({
   role,
   onLatestMailAt,
   onContactLastMail,
+  focusMailId = null,
 }: {
   companyId: string;
   contacts: Contact[];
   role: UserRole;
   onLatestMailAt?: (sentAt: string | null) => void;
   onContactLastMail?: (byContactId: Record<string, string>) => void;
+  /** Open this synced mail (Attention / bell `?mail=`). */
+  focusMailId?: string | null;
 }) {
   const [threads, setThreads] = useState<CompanyEmailThread[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,16 +120,36 @@ export function CompanyRecentOutlook({
     void load();
   }, [load]);
 
-  const visibleThreads = useMemo(
-    () =>
-      threads
-        .filter((thread) => {
-          if (domainFilter !== "external") return true;
-          return thread.messages.some((message) => !message.isInternalOnly);
-        })
-        .slice(0, 8),
-    [threads, domainFilter],
-  );
+  useEffect(() => {
+    if (!focusMailId) return;
+    const focused = threads.some((thread) =>
+      thread.messages.some((message) => message.id === focusMailId && message.isInternalOnly),
+    );
+    if (focused) setDomainFilter("all");
+  }, [focusMailId, threads]);
+
+  const visibleThreads = useMemo(() => {
+    const filtered = threads.filter((thread) => {
+      if (domainFilter !== "external") return true;
+      return thread.messages.some((message) => !message.isInternalOnly);
+    });
+    if (!focusMailId) return filtered.slice(0, 8);
+    const focused = filtered.find((thread) =>
+      thread.messages.some((message) => message.id === focusMailId),
+    );
+    if (!focused) return filtered.slice(0, 8);
+    return [focused, ...filtered.filter((thread) => thread !== focused)].slice(0, 8);
+  }, [threads, domainFilter, focusMailId]);
+
+  useEffect(() => {
+    if (!focusMailId || loading) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(`mail-${focusMailId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+  }, [focusMailId, loading, visibleThreads]);
 
   const hasInternalMail = useMemo(
     () => threads.some((thread) => thread.messages.every((message) => message.isInternalOnly)),
@@ -205,18 +228,28 @@ export function CompanyRecentOutlook({
       <ul className="mt-2 flex flex-col gap-2">
         {visibleThreads.map((thread) => {
           const latest = thread.messages[thread.messages.length - 1]!;
+          const displayMessage =
+            (focusMailId
+              ? thread.messages.find((message) => message.id === focusMailId)
+              : null) ?? latest;
+          const isFocused = Boolean(focusMailId && displayMessage.id === focusMailId);
           const subject =
             thread.summary?.subject ||
-            latest.subject.replace(/^Re:\s*/i, "").trim() ||
-            latest.subject;
+            displayMessage.subject.replace(/^Re:\s*/i, "").trim() ||
+            displayMessage.subject;
           const matchedContact = contacts.find((contact) =>
-            messageTouchesContact(latest, contact),
+            messageTouchesContact(displayMessage, contact),
           );
 
           return (
             <li
+              id={`mail-${displayMessage.id}`}
               key={thread.conversationId}
-              className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2"
+              className={
+                isFocused
+                  ? "border border-upcycle-orange/40 bg-upcycle-orange/[0.06] px-3 py-2"
+                  : "border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2"
+              }
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-[13px] font-semibold text-carbon-blue">{subject}</p>
@@ -225,7 +258,7 @@ export function CompanyRecentOutlook({
                 </p>
               </div>
               <p className="mt-0.5 text-[12px] text-carbon-blue/50">
-                {latest.isOutbound ? "Outbound" : "Inbound"} ·{" "}
+                {displayMessage.isOutbound ? "Outbound" : "Inbound"} ·{" "}
                 {thread.summary?.messageCount ?? thread.messages.length} message
                 {(thread.summary?.messageCount ?? thread.messages.length) === 1 ? "" : "s"}
                 {matchedContact ? (
@@ -239,60 +272,61 @@ export function CompanyRecentOutlook({
                       {getContactDisplayName(matchedContact)}
                     </Link>
                   </>
-                ) : latest.contactName ? (
-                  <> · {latest.contactName}</>
+                ) : displayMessage.contactName ? (
+                  <> · {displayMessage.contactName}</>
                 ) : null}
-                {latest.opportunityId && latest.opportunityName ? (
+                {displayMessage.opportunityId && displayMessage.opportunityName ? (
                   <>
                     {" "}
                     ·{" "}
                     <Link
-                      href={deal360Href(latest.opportunityId)}
+                      href={deal360Href(displayMessage.opportunityId)}
                       className="font-medium text-upcycle-orange hover:underline"
                     >
-                      {latest.opportunityName}
+                      {displayMessage.opportunityName}
                     </Link>
                   </>
                 ) : null}
-                {latest.projectId && latest.projectName ? (
+                {displayMessage.projectId && displayMessage.projectName ? (
                   <>
                     {" "}
                     ·{" "}
                     <Link
-                      href={project360Href(latest.projectId)}
+                      href={project360Href(displayMessage.projectId)}
                       className="font-medium text-upcycle-orange hover:underline"
                     >
-                      {latest.projectName}
+                      {displayMessage.projectName}
                     </Link>
                   </>
                 ) : null}
               </p>
               <SyncedMailPreview
-                emailId={latest.id}
-                bodyPreview={latest.bodyPreview}
-                webLink={latest.webLink}
+                emailId={displayMessage.id}
+                bodyPreview={displayMessage.bodyPreview}
+                webLink={displayMessage.webLink}
                 role={role}
                 compact
+                autoExpand={isFocused}
               />
-              {!latest.isDeletedInSource ? (
+              {!displayMessage.isDeletedInSource ? (
                 <EmailMessageActions
                   compact
                   toEmail={
-                    latest.isOutbound
-                      ? latest.recipientEmails[0] ?? matchedContact?.Email ?? ""
-                      : latest.senderEmail
+                    displayMessage.isOutbound
+                      ? displayMessage.recipientEmails[0] ?? matchedContact?.Email ?? ""
+                      : displayMessage.senderEmail
                   }
                   subject={subject}
-                  bodyPreview={latest.bodyPreview}
+                  bodyPreview={displayMessage.bodyPreview}
                   contactName={
                     matchedContact
                       ? getContactDisplayName(matchedContact)
-                      : latest.contactName
+                      : displayMessage.contactName
                   }
                   contactPhone={
                     matchedContact?.Mobile ||
                     matchedContact?.Phone ||
-                    latest.contactPhone ||
+                    displayMessage.contactPhone ||
                     undefined
                   }
                   role={role}

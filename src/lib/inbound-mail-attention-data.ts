@@ -27,6 +27,8 @@ export async function loadRecentInboundMailSignals(): Promise<InboundMailAttenti
       },
       select: {
         id: true,
+        externalMessageId: true,
+        webLink: true,
         subject: true,
         senderEmail: true,
         sentAt: true,
@@ -98,6 +100,8 @@ export async function loadRecentInboundMailSignals(): Promise<InboundMailAttenti
         companyId,
         companyName,
         contactId: row.contactId ? toContactTrackingId(row.contactId) : null,
+        webLink: row.webLink,
+        externalMessageId: row.externalMessageId,
       });
     }
 

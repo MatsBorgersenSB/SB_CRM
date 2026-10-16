@@ -38,7 +38,13 @@ export type AttentionItem = {
   ownerId?: string;
   ownerLabel?: string;
   dueDate?: string;
+  /** Object 360 — company, deal, activity. */
   href: string;
+  /**
+   * The listed issue (mail, activity, deal). When omitted, `href` is the issue.
+   * May be an Outlook URL.
+   */
+  issueHref?: string;
   companyId?: string;
   companyName?: string;
   /** Internal rule id — not shown in primary UI. */
@@ -123,6 +129,20 @@ export function groupAttentionBySeverity(items: AttentionItem[]): AttentionQueue
   }
 
   return queue;
+}
+
+/** Click target for the Attention Item / recommended action. */
+export function attentionIssueHref(item: Pick<AttentionItem, "href" | "issueHref">): string {
+  return item.issueHref?.trim() || item.href;
+}
+
+export function isExternalAttentionHref(href: string): boolean {
+  return (
+    href.startsWith("https://") ||
+    href.startsWith("http://") ||
+    href.startsWith("mailto:") ||
+    href.startsWith("tel:")
+  );
 }
 
 export function sortAttentionItems(items: AttentionItem[]): AttentionItem[] {

@@ -92,10 +92,22 @@ export function company360Href(
   return `${base}#${section}`;
 }
 
+/** Open Company 360 on the named mail in Recent Outlook. */
+export function companyMailHref(companyId: string, mailId: string): string {
+  const id = mailId.trim();
+  const base = company360Href(companyId, "outlook");
+  if (!id) return base;
+  const hashIndex = base.indexOf("#");
+  const path = hashIndex === -1 ? base : base.slice(0, hashIndex);
+  const hash = hashIndex === -1 ? "#outlook" : base.slice(hashIndex);
+  return `${path}?mail=${encodeURIComponent(id)}${hash}`;
+}
+
 /** In-page sections on the relationship hub. */
 export type Company360Section =
   | "contacts"
   | "opportunities"
   | "activities"
   | "documents"
-  | "attention";
+  | "attention"
+  | "outlook";

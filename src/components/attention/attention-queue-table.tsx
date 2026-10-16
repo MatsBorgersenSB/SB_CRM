@@ -13,6 +13,7 @@ import {
   sortAttentionItems,
 } from "@/types/attention-item";
 import { AttentionActionButtons } from "@/components/attention/attention-action-buttons";
+import { AttentionIssueLink } from "@/components/attention/attention-issue-link";
 import { ObjectTypeIcon, SeverityIcon } from "@/components/ui/smartcrm-icon";
 import {
   WorkspaceTable,
@@ -124,10 +125,20 @@ export function AttentionQueueTable({
                 </div>
               </WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell>
-                <p className="line-clamp-2 text-carbon-blue/70">{item.recommendation}</p>
+                <AttentionIssueLink
+                  item={item}
+                  className="block line-clamp-2 text-carbon-blue/70 underline-offset-2 hover:text-upcycle-orange hover:underline"
+                >
+                  {item.recommendation}
+                </AttentionIssueLink>
               </WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell>
-                <p className="truncate font-medium text-carbon-blue">{item.suggestedAiAction}</p>
+                <AttentionIssueLink
+                  item={item}
+                  className="block truncate font-medium text-carbon-blue underline-offset-2 hover:text-upcycle-orange hover:underline"
+                >
+                  {item.suggestedAiAction}
+                </AttentionIssueLink>
               </WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell className="tabular-nums text-carbon-blue/65">
                 {formatDueDate(item.dueDate)}

@@ -3,9 +3,10 @@ import {
   type CompanyCorrespondenceEvidence,
 } from "@/lib/company-correspondence";
 import { laterIso } from "@/lib/contact-360-verdict";
+import { buildOutlookReadDeeplink } from "@/lib/m365/outlook-deeplink";
 import type { AttentionItem } from "@/types/attention-item";
 import type { Company } from "@/types/company";
-import { company360Href } from "@/types/company-360";
+import { company360Href, companyMailHref } from "@/types/company-360";
 import { getContactDisplayName } from "@/types/contact";
 
 const RECENT_INBOUND_LIMIT = 5;
@@ -20,7 +21,21 @@ export type InboundMailAttentionSignal = {
   companyId: string;
   companyName: string;
   contactId?: string | null;
+  webLink?: string | null;
+  externalMessageId?: string | null;
 };
+
+/** Open the mail itself — Outlook when we have a link, otherwise the company Outlook panel. */
+export function inboundMailIssueHref(
+  signal: Pick<InboundMailAttentionSignal, "id" | "webLink" | "externalMessageId">,
+  companyId: string,
+): string {
+  const stored = signal.webLink?.trim();
+  if (stored) return stored;
+  const deeplink = buildOutlookReadDeeplink(signal.externalMessageId ?? "");
+  if (deeplink) return deeplink;
+  return companyMailHref(companyId, signal.id);
+}
 
 function isToday(iso: string): boolean {
   const sent = new Date(iso);
@@ -77,6 +92,7 @@ export function buildInboundMailAttention(
       ownerLabel: company.AccountOwner?.Title || undefined,
       dueDate: signal.sentAt,
       href: company360Href(company.CompanyID),
+      issueHref: inboundMailIssueHref(signal, company.CompanyID),
       companyId: company.CompanyID,
       companyName: company.Title,
       ruleId: "recent_inbound_mail",
