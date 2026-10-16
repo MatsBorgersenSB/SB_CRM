@@ -122,8 +122,13 @@ export function resolveAttentionActions(item: AttentionItem): AttentionAction[] 
     case "recent_inbound_mail":
       actions.push({
         kind: "navigate",
+        label: "Open mail",
+        href: item.issueHref ?? item.href,
+      });
+      actions.push({
+        kind: "navigate",
         label: "Open company",
-        href: item.href,
+        href: item.companyId ? company360Href(item.companyId) : item.href,
       });
       pushDraftEmail();
       break;

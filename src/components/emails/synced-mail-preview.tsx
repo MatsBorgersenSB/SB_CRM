@@ -22,6 +22,7 @@ export function SyncedMailPreview({
   role = "superuser",
   compact = false,
   presentation = "default",
+  autoExpand = false,
 }: {
   emailId: string;
   bodyPreview: string | null;
@@ -30,6 +31,8 @@ export function SyncedMailPreview({
   compact?: boolean;
   /** snippet = text only; reader = expanded body + Open in Outlook. */
   presentation?: "default" | "snippet" | "reader";
+  /** Expand when Attention / ?mail= lands on this message. */
+  autoExpand?: boolean;
 }) {
   const isReader = presentation === "reader";
   const isSnippet = presentation === "snippet";
@@ -98,14 +101,14 @@ export function SyncedMailPreview({
   };
 
   useEffect(() => {
-    if (!isReader) return;
+    if (!isReader && !autoExpand) return;
     setExpanded(true);
     if (!previewText || previewText.length < 80 || !outlookUrl) {
       void loadView();
     }
     // Load once per message when the conversation is opened.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emailId, isReader]);
+  }, [emailId, isReader, autoExpand]);
 
   if (isSnippet) {
     if (!shortSnippet) return null;

@@ -6,6 +6,7 @@ import type { AttentionItem, AttentionSeverity } from "@/types/attention-item";
 import { ATTENTION_SEVERITY_STYLES } from "@/types/attention-item";
 import { ImpactContext } from "@/components/ui/impact-context";
 import { AttentionActionButtons } from "@/components/attention/attention-action-buttons";
+import { AttentionIssueLink } from "@/components/attention/attention-issue-link";
 import {
   ObjectTypeIcon,
   SeverityIcon,
@@ -39,7 +40,12 @@ export function AttentionItemRow({
             </Link>
           </div>
 
-          <p className="mt-1 text-sm font-medium text-carbon-blue">{item.suggestedAiAction}</p>
+          <AttentionIssueLink
+            item={item}
+            className="mt-1 block text-sm font-medium text-carbon-blue underline-offset-2 hover:text-upcycle-orange hover:underline"
+          >
+            {item.suggestedAiAction}
+          </AttentionIssueLink>
           <ImpactContext items={[item.recommendation]} />
 
           {item.companyName && item.objectType !== "Company" ? (

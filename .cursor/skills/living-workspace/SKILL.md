@@ -98,6 +98,8 @@ Owner chain (`attachAttentionOwners` in `src/lib/smart-attention-engine.ts`):
 
 Engine `ruleId` is internal — never primary UI. Dismiss is user action (`attention-dismiss-store`). Home budget: `MyAttentionPanel` (default 20).
 
+The listed issue must be openable: Attention Item and Recommended Action link via `attentionIssueHref` (`issueHref` for mail, else `href`). New mail opens Outlook when a webLink exists, otherwise Company 360 `?mail=#outlook`.
+
 ## Lists
 
 Every filtered collection follows `docs/AD-001-filter-transparency.md`:

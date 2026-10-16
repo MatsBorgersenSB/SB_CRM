@@ -146,6 +146,7 @@ export function Company360LivingWorkspace({
   const identity = buildCompanyHeroIdentity(company);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const focusMailId = searchParams.get("mail")?.trim() || null;
   const [documentCount, setDocumentCount] = useState(smartDocs.length);
   const [findings, setFindings] = useState<SourceFinding[]>(
     documentKnowledge.findings ?? [],
@@ -250,7 +251,9 @@ export function Company360LivingWorkspace({
     const hash = typeof window !== "undefined" ? window.location.hash : "";
     const viewParam = searchParams.get("view");
     const tabParam = searchParams.get("tab");
-    const section = companyLivingPageSection(viewParam ?? tabParam, hash);
+    const section =
+      companyLivingPageSection(viewParam ?? tabParam, hash) ??
+      (searchParams.get("mail")?.trim() ? "outlook" : null);
 
     if (viewParam || (tabParam && tabParam !== "overview")) {
       const href = companyMissionControlHref(routeKey);
@@ -483,6 +486,7 @@ export function Company360LivingWorkspace({
               companyId={company.CompanyID}
               contacts={company.contacts ?? []}
               role={role}
+              focusMailId={focusMailId}
               onLatestMailAt={(sentAt) => {
                 if (sentAt) setLastMailAt(sentAt);
               }}
