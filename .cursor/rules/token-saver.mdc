@@ -1,0 +1,23 @@
+---
+description: Strict token minimization and agent waste prevention
+globs: *
+alwaysApply: true
+---
+
+# Token Efficiency Directives
+
+1. Search Before Read:
+   - NEVER read entire files exceeding 200 lines.
+   - Use targeted grep, symbol search, or line ranges to inspect specific functions or classes.
+
+2. Anti-Re-Reading:
+   - Do NOT re-read or re-fetch files already present in the active conversation context.
+
+3. Diffs & Minimal Output:
+   - Do NOT rewrite entire files when proposing edits.
+   - Output ONLY minimal diffs or exact replacements showing the specific lines to change.
+   - Eliminate pleasantries, restatements of tasks, conversational preamble, and wrap-up summaries.
+
+4. Terminal & Build Output:
+   - Do not request full logs. Read only error lines and stack traces.
+   - Stop immediately after finding the root cause; do not run extra verification commands unless asked.
