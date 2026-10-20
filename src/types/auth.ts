@@ -21,6 +21,9 @@ export type AuthUser = {
   companyId?: string;
 };
 
+/** Client-safe: request header carrying the active access tier. */
+export const AUTH_ROLE_HEADER = "x-sb-user-role";
+
 export const USER_ROLES: UserRole[] = [
   "superuser",
   "admin",
