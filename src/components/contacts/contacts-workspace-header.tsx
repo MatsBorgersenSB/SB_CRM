@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Camera } from "lucide-react";
 import { WorkspacePageTitle } from "@/components/ui/workspace-page-title";
 import { WorkspaceAddMenu, type WorkspaceAddMenuItem } from "@/components/ui/workspace-add-menu";
 import { canCreateCompany } from "@/lib/permissions";
@@ -19,11 +20,8 @@ type ContactsWorkspaceHeaderProps = {
   onToolChange: (tool: ContactsWorkspaceTool) => void;
 };
 
-type AddMenuId = NonNullable<ContactsWorkspaceTool> | "scan-card";
-
-const ADD_ITEMS: WorkspaceAddMenuItem<AddMenuId>[] = [
+const ADD_ITEMS: WorkspaceAddMenuItem<NonNullable<ContactsWorkspaceTool>>[] = [
   { id: "new-contact", label: "New contact", hint: "Type it in yourself", primary: true },
-  { id: "scan-card", label: "Scan business card", hint: "Photo or PDF — we read it for you" },
   { id: "quick-import", label: "Quick import", hint: "From a registry number or name" },
   { id: "website-discovery", label: "Website discovery", hint: "Read people off a company website" },
   { id: "bulk-import", label: "Bulk import", hint: "Paste or upload a list" },
@@ -34,16 +32,7 @@ export function ContactsWorkspaceHeader({
   activeTool,
   onToolChange,
 }: ContactsWorkspaceHeaderProps) {
-  const router = useRouter();
   const canManage = canCreateCompany(role);
-
-  const handleSelect = (id: AddMenuId | null) => {
-    if (id === "scan-card") {
-      router.push("/crm/intake");
-      return;
-    }
-    onToolChange(id);
-  };
 
   return (
     <WorkspacePageTitle
@@ -52,7 +41,16 @@ export function ContactsWorkspaceHeader({
       subtitle="The people behind the relationships — their role, their buying role, and when we last spoke."
       actions={
         canManage ? (
-          <WorkspaceAddMenu items={ADD_ITEMS} activeTool={activeTool} onSelect={handleSelect} />
+          <div className="flex items-center gap-2">
+            <Link
+              href="/crm/intake"
+              className="inline-flex items-center gap-1.5 border border-upcycle-orange/40 bg-white px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/10"
+            >
+              <Camera className="size-3.5" strokeWidth={2} aria-hidden />
+              Scan card
+            </Link>
+            <WorkspaceAddMenu items={ADD_ITEMS} activeTool={activeTool} onSelect={onToolChange} />
+          </div>
         ) : null
       }
     />

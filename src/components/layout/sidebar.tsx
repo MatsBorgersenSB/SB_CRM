@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarDays,
   FileText,
+  Camera,
   FolderKanban,
   LayoutDashboard,
   Search,
@@ -51,6 +52,13 @@ const navItems: NavItem[] = [
     href: "/contacts",
     icon: Users,
     match: (p) => p.startsWith("/contacts"),
+    section: "work",
+  },
+  {
+    label: "Scan",
+    href: "/crm/intake",
+    icon: Camera,
+    match: (p) => p.startsWith("/crm/intake") || p === "/scan",
     section: "work",
   },
   {
