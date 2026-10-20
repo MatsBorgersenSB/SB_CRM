@@ -1,28 +1,28 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
+import { PDFDocument } from "pdf-lib";
 import { getRequestRole } from "@/lib/api-auth";
 import { canCreateCompany } from "@/lib/permissions";
 import { POST as matchCard } from "../route";
 
 export const dynamic = "force-dynamic";
 
-const MODEL = "claude-3-5-haiku-latest";
+/** Claude 3.5 Haiku is retired (404). Override with ANTHROPIC_INTAKE_MODEL when a newer Haiku ships. */
+const MODEL = process.env.ANTHROPIC_INTAKE_MODEL?.trim() || "claude-haiku-4-5";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+/** Vercel request bodies cap at ~4.5 MB. */
+const MAX_PDF_BYTES = 4 * 1024 * 1024;
+const MAX_PDF_PAGES = 2;
+const MAX_OUTPUT_TOKENS = 350;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const SUPPORTED_MEDIA_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
 type SupportedMediaType = (typeof SUPPORTED_MEDIA_TYPES)[number];
+const PDF_MEDIA_TYPE = "application/pdf";
 
-const PROMPT = `Extract contact details from this business card into raw JSON:
-{
-  "name": "Full Name",
-  "role": "Job Title",
-  "companyName": "Company",
-  "email": "email@domain.com",
-  "phone": "+123456789"
-}
-Rules: Output valid JSON only. Leave unfound fields as empty strings. Never invent missing details.`;
+const SYSTEM_PROMPT =
+  "You are a strict data extraction engine. Extract contact details from the business card image/document into valid JSON only, without markdown fences, explanation, or conversational filler. Schema: { fullName: string|null, jobTitle: string|null, companyName: string|null, email: string|null, phone: string|null, website: string|null, address: string|null }.";
 
 type ExtractedCard = {
   name: string;
@@ -30,7 +30,11 @@ type ExtractedCard = {
   companyName: string;
   email: string;
   phone: string;
+  website: string;
+  address: string;
 };
+
+type ContentBlock = Anthropic.ImageBlockParam | Anthropic.DocumentBlockParam;
 
 type MatchResponse = {
   status: "existing_contact" | "candidates" | "no_match";
@@ -80,34 +84,37 @@ function parseExtractedCard(text: string): ExtractedCard | null {
   const record = parsed as Record<string, unknown>;
   const email = asString(record.email).toLowerCase();
   return {
-    name: asString(record.name),
-    role: asString(record.role),
+    name: asString(record.fullName),
+    role: asString(record.jobTitle),
     companyName: asString(record.companyName),
     email: EMAIL_PATTERN.test(email) ? email : "",
     phone: asString(record.phone),
+    website: asString(record.website),
+    address: asString(record.address),
   };
 }
 
-async function extractCard(
-  client: Anthropic,
-  base64: string,
-  mediaType: SupportedMediaType,
-): Promise<ExtractedCard | null> {
+/** Keeps only the first {@link MAX_PDF_PAGES} pages so extra pages never cost tokens. */
+async function sliceFirstPages(bytes: Uint8Array): Promise<Uint8Array> {
+  const source = await PDFDocument.load(bytes);
+  if (source.getPageCount() <= MAX_PDF_PAGES) return bytes;
+
+  const sliced = await PDFDocument.create();
+  const pages = await sliced.copyPages(
+    source,
+    Array.from({ length: MAX_PDF_PAGES }, (_, index) => index),
+  );
+  for (const page of pages) sliced.addPage(page);
+  return sliced.save();
+}
+
+async function extractCard(client: Anthropic, block: ContentBlock): Promise<ExtractedCard | null> {
   const message = await client.messages.create({
     model: MODEL,
-    max_tokens: 512,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: mediaType, data: base64 },
-          },
-          { type: "text", text: PROMPT },
-        ],
-      },
-    ],
+    max_tokens: MAX_OUTPUT_TOKENS,
+    temperature: 0,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: [block] }],
   });
 
   const text = message.content
@@ -170,16 +177,23 @@ export async function POST(request: Request) {
 
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "file field with an image is required" }, { status: 400 });
-  }
-  if (!isSupportedMediaType(file.type)) {
     return NextResponse.json(
-      { error: "Unsupported image type. Use JPEG, PNG, GIF, or WebP" },
+      { error: "file field with an image or PDF is required" },
+      { status: 400 },
+    );
+  }
+  const isPdf = file.type === PDF_MEDIA_TYPE;
+  if (!isPdf && !isSupportedMediaType(file.type)) {
+    return NextResponse.json(
+      { error: "Unsupported file type. Use JPEG, PNG, GIF, WebP, or PDF" },
       { status: 415 },
     );
   }
-  if (file.size > MAX_IMAGE_BYTES) {
-    return NextResponse.json({ error: "Image exceeds 5 MB limit" }, { status: 413 });
+  if (file.size > (isPdf ? MAX_PDF_BYTES : MAX_IMAGE_BYTES)) {
+    return NextResponse.json(
+      { error: isPdf ? "PDF exceeds 4 MB limit" : "Image exceeds 5 MB limit" },
+      { status: 413 },
+    );
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -187,13 +201,48 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY is not configured" }, { status: 500 });
   }
 
-  try {
-    const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
-    const client = new Anthropic({ apiKey });
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+  if (!blobToken) {
+    return NextResponse.json({ error: "BLOB_READ_WRITE_TOKEN is not configured" }, { status: 500 });
+  }
 
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+
+    let block: ContentBlock;
+    if (isPdf) {
+      let pdfBytes: Uint8Array;
+      try {
+        pdfBytes = await sliceFirstPages(bytes);
+      } catch {
+        return NextResponse.json(
+          { error: "Could not read this PDF. It may be encrypted or damaged" },
+          { status: 422 },
+        );
+      }
+      block = {
+        type: "document",
+        source: {
+          type: "base64",
+          media_type: PDF_MEDIA_TYPE,
+          data: Buffer.from(pdfBytes).toString("base64"),
+        },
+      };
+    } else {
+      block = {
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: file.type as SupportedMediaType,
+          data: Buffer.from(bytes).toString("base64"),
+        },
+      };
+    }
+
+    const client = new Anthropic({ apiKey });
     const [blob, extracted] = await Promise.all([
-      put(file.name, file, { access: "public", addRandomSuffix: true }),
-      extractCard(client, base64, file.type),
+      put(file.name, file, { access: "public", addRandomSuffix: true, token: blobToken }),
+      extractCard(client, block),
     ]);
 
     if (!extracted) {

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useAuth } from "@/context/auth-context";
-import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
-import { USER_ROLE_LABELS } from "@/types/auth";
+import { AUTH_ROLE_HEADER, USER_ROLE_LABELS } from "@/types/auth";
+import { prepareUpload } from "./prepare-upload";
 
 type MatchReason =
   | "exact_email"
@@ -40,7 +40,7 @@ type ContactCandidate = {
 type SuggestedAction = "open_contact" | "review_candidates" | "classify_and_create_new";
 
 type ScanResponse = {
-  extracted: CardFields;
+  extracted: CardFields & { website: string; address: string };
   evidenceUrl: string;
   matchResult: {
     status: "existing_contact" | "candidates" | "no_match";
@@ -89,6 +89,10 @@ type Phase =
   | { step: "scanning" }
   | { step: "review"; scan: ScanResponse }
   | { step: "success"; result: ApproveSuccess; contactName: string; companyName: string | null };
+
+/** Must match public/sw.js. */
+const SHARE_CACHE = "smartcrm-share-target";
+const SHARE_CACHE_KEY = "/shared-file";
 
 const EMPTY_FIELDS: CardFields = { name: "", role: "", companyName: "", email: "", phone: "" };
 
@@ -154,6 +158,7 @@ export default function CardIntakePage() {
 
   const [phase, setPhase] = useState<Phase>({ step: "idle", error: null });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pdfName, setPdfName] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [fields, setFields] = useState<CardFields>(EMPTY_FIELDS);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -185,6 +190,7 @@ export default function CardIntakePage() {
 
   const reset = useCallback(() => {
     replacePreview(null);
+    setPdfName(null);
     setExpanded(false);
     setFields(EMPTY_FIELDS);
     setSelectedCompanyId(null);
@@ -194,20 +200,24 @@ export default function CardIntakePage() {
     setPhase({ step: "idle", error: null });
   }, [replacePreview]);
 
-  const handleFile = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      event.target.value = "";
-      if (!file) return;
-
-      replacePreview(URL.createObjectURL(file));
+  const processFile = useCallback(
+    async (file: File) => {
       setConflict(null);
       setActionError(null);
+      setPdfName(null);
       setPhase({ step: "scanning" });
 
       try {
+        const prepared = await prepareUpload(file);
+        if (prepared.isPdf) {
+          replacePreview(null);
+          setPdfName(prepared.file.name);
+        } else {
+          replacePreview(URL.createObjectURL(prepared.file));
+        }
+
         const body = new FormData();
-        body.append("file", file);
+        body.append("file", prepared.file);
         const response = await fetch("/api/crm/intake/card/scan", {
           method: "POST",
           headers: authHeaders,
@@ -219,7 +229,8 @@ export default function CardIntakePage() {
         }
 
         const scan = payload as ScanResponse;
-        setFields(scan.extracted);
+        const { name, role, companyName, email, phone } = scan.extracted;
+        setFields({ name, role, companyName, email, phone });
         setSelectedCompanyId(scan.matchResult.candidates.companies[0]?.company.id ?? null);
         setPhase({ step: "review", scan });
       } catch (error) {
@@ -232,6 +243,44 @@ export default function CardIntakePage() {
     },
     [authHeaders, replacePreview],
   );
+
+  const handleFile = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (file) void processFile(file);
+    },
+    [processFile],
+  );
+
+  // Service worker handles Android "Share to SmartCRM" and parks the file in Cache Storage.
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    }
+  }, []);
+
+  const sharedHandled = useRef(false);
+  useEffect(() => {
+    if (!isSignedIn || sharedHandled.current) return;
+    if (new URLSearchParams(window.location.search).get("shared") !== "1") return;
+    sharedHandled.current = true;
+    window.history.replaceState(null, "", "/crm/intake");
+
+    void (async () => {
+      try {
+        const cache = await caches.open(SHARE_CACHE);
+        const stored = await cache.match(SHARE_CACHE_KEY);
+        if (!stored) return;
+        const blob = await stored.blob();
+        const name = decodeURIComponent(stored.headers.get("x-file-name") ?? "shared-card");
+        await cache.delete(SHARE_CACHE_KEY);
+        await processFile(new File([blob], name, { type: blob.type }));
+      } catch {
+        setPhase({ step: "idle", error: "Could not open the shared file. Try again." });
+      }
+    })();
+  }, [isSignedIn, processFile]);
 
   const submit = useCallback(
     async (action: ApproveAction, scan: ScanResponse, companyName: string | null) => {
@@ -331,7 +380,7 @@ export default function CardIntakePage() {
       <input
         ref={libraryInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,application/pdf"
         className="hidden"
         onChange={handleFile}
       />
@@ -367,6 +416,18 @@ export default function CardIntakePage() {
             >
               Choose from Photos / Genius Scan
             </button>
+            <details className="rounded-xl border border-slate-800 px-4 py-3 text-sm text-slate-400">
+              <summary className="min-h-[44px] cursor-pointer content-center text-slate-300">
+                Install on your phone
+              </summary>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li>iPhone (Safari): Share, then Add to Home Screen.</li>
+                <li>
+                  Android (Chrome): menu, then Install app. After that you can share a photo or
+                  PDF straight to SmartCRM.
+                </li>
+              </ul>
+            </details>
           </section>
         )}
 
@@ -393,6 +454,7 @@ export default function CardIntakePage() {
             scan={phase.scan}
             fields={fields}
             previewUrl={previewUrl}
+            pdfName={pdfName}
             selectedCompanyId={selectedCompanyId}
             submitting={submitting}
             conflict={conflict}
@@ -470,6 +532,7 @@ type ReviewPanelProps = {
   scan: ScanResponse;
   fields: CardFields;
   previewUrl: string | null;
+  pdfName: string | null;
   selectedCompanyId: string | null;
   submitting: boolean;
   conflict: Conflict | null;
@@ -485,6 +548,7 @@ function ReviewPanel({
   scan,
   fields,
   previewUrl,
+  pdfName,
   selectedCompanyId,
   submitting,
   conflict,
@@ -525,6 +589,12 @@ function ReviewPanel({
           />
           <span className="text-sm text-slate-300">Tap to view card photo</span>
         </button>
+      )}
+
+      {!previewUrl && pdfName && (
+        <p className="rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-3 text-sm text-slate-300">
+          PDF scanned (first 2 pages): <span className="font-medium text-slate-100">{pdfName}</span>
+        </p>
       )}
 
       {duplicateOfExisting && existingContact && (

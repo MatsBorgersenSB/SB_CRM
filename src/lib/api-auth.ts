@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth";
 import type { UserRole } from "@/types/auth";
-import { isUserRole } from "@/types/auth";
+import { AUTH_ROLE_HEADER, isUserRole } from "@/types/auth";
 
-export const AUTH_ROLE_HEADER = "x-sb-user-role";
+export { AUTH_ROLE_HEADER };
 
 /**
  * Fail-closed default when neither header nor session role is available.

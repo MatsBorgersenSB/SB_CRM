@@ -109,11 +109,25 @@ function normalizeAuthBaseUrl(baseUrl: string): string {
 }
 
 /**
- * Auth.js azure-ad callback rewrites the issuer with regex
- * `/microsoftonline\.com\/(\w+)\/v2\.0/` then swaps that segment for the
- * id_token `tid`. Only `common` | `organizations` | `consumers` match `\w+`
- * safely — GUIDs (hyphens) and domains (dots) produce a broken issuer and
- * OAuthCallbackError after Microsoft approval.
+ * Tenant segment for the issuer path: well-known alias, tenant GUID, or verified domain.
+ * Auth.js's `\w+` issuer regex does not match GUIDs/domains, but then falls back to a
+ * no-op replace, and `azureDiscoveryFetch` resolves the real segment from the URL —
+ * so single-tenant issuers are safe. Single-tenant apps MUST use their tenant GUID;
+ * `organizations` makes Entra reject them with invalid_client.
+ */
+const TENANT_ALIASES = new Set(["common", "organizations", "consumers"]);
+const TENANT_GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TENANT_DOMAIN = /^(?=.{3,253}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
+
+function isValidTenantSegment(segment: string): boolean {
+  return (
+    TENANT_ALIASES.has(segment) || TENANT_GUID.test(segment) || TENANT_DOMAIN.test(segment)
+  );
+}
+
+/**
+ * Resolves the Entra issuer: AUTH_MICROSOFT_ENTRA_ID_ISSUER / AZURE_AD_ISSUER first,
+ * then https://login.microsoftonline.com/${AZURE_AD_TENANT_ID}/v2.0.
  */
 function resolveAzureIssuer(): string {
   const explicit =
@@ -123,11 +137,11 @@ function resolveAzureIssuer(): string {
     try {
       const url = new URL(explicit);
       const segment = url.pathname.split("/").filter(Boolean)[0] ?? "";
-      if (segment === "common" || segment === "organizations" || segment === "consumers") {
+      if (isValidTenantSegment(segment)) {
         return `${url.origin}/${segment}/v2.0`;
       }
       console.warn(
-        `[NextAuth] Issuer tenant segment "${segment}" is unsafe for Auth.js azure-ad rewrite — using organizations.`,
+        `[NextAuth] Issuer tenant segment "${segment}" is not a valid tenant id — falling back to AZURE_AD_TENANT_ID.`,
       );
     } catch {
       console.warn("[NextAuth] Invalid AUTH_MICROSOFT_ENTRA_ID_ISSUER — using organizations.");
@@ -140,13 +154,12 @@ function resolveAzureIssuer(): string {
     "organizations"
   ).trim();
 
-  if (tenant === "common" || tenant === "organizations" || tenant === "consumers") {
+  if (isValidTenantSegment(tenant)) {
     return `https://login.microsoftonline.com/${tenant}/v2.0`;
   }
 
-  // Domain or GUID — do not put into issuer path (breaks Auth.js \w+ rewrite).
   console.warn(
-    `[NextAuth] AZURE_AD_TENANT_ID="${tenant}" is not safe in issuer path; using organizations. Prefer setting AUTH_MICROSOFT_ENTRA_ID_ISSUER=https://login.microsoftonline.com/organizations/v2.0`,
+    `[NextAuth] AZURE_AD_TENANT_ID="${tenant}" is not a valid tenant id or domain; using organizations. Single-tenant apps will fail with invalid_client.`,
   );
   return "https://login.microsoftonline.com/organizations/v2.0";
 }
