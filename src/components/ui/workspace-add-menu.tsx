@@ -76,7 +76,7 @@ export function WorkspaceAddMenu<T extends string>({
       {open ? (
         <div
           role="menu"
-          className="absolute left-0 z-40 mt-1 min-w-[15rem] border border-carbon-blue/15 bg-white py-1 shadow-lg"
+          className="absolute right-0 z-50 mt-1 min-w-[15rem] border border-carbon-blue/15 bg-white py-1 shadow-lg"
         >
           {items.map((item) => (
             <button
