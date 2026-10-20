@@ -47,6 +47,27 @@ type FiledDocumentReview = {
   docType: string;
 };
 
+type SavedMeeting = { activityId: string; subject: string; startDate: string };
+
+/** What SmartCRM already holds for the open mail — shown persistently, not as a toast. */
+type CrmSavedState = {
+  mailSaved: boolean;
+  isMeeting: boolean;
+  meeting: SavedMeeting | null;
+};
+
+function formatMeetingWhen(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /**
  * Compact Outlook add-in control: tag the open thread and/or open a tagged draft.
  * Opportunity is sell-to only. Project is allowed for any posture (supplier / partner / customer).
@@ -85,6 +106,38 @@ export function OutlookMailTagPanel({
     "none" | "opportunity" | "project"
   >("none");
   const [attachmentRelationId, setAttachmentRelationId] = useState("");
+  const [crmState, setCrmState] = useState<CrmSavedState | null>(null);
+
+  const seedMessageId = seed?.externalMessageId ?? "";
+  const seedConversationId = seed?.conversationId ?? "";
+  const seedSubject = seed?.subject ?? "";
+  useEffect(() => {
+    setCrmState(null);
+    if (!seedMessageId) return;
+    let cancelled = false;
+    const params = new URLSearchParams({ externalMessageId: seedMessageId });
+    if (seedSubject) params.set("subject", seedSubject);
+    if (seedConversationId) params.set("conversationId", seedConversationId);
+    void fetch(`/api/m365/outlook/save-meeting?${params}`, {
+      headers: { [AUTH_ROLE_HEADER]: role },
+      credentials: "include",
+    })
+      .then(async (response) => {
+        if (!response.ok || cancelled) return;
+        const payload = (await response.json()) as CrmSavedState;
+        if (!cancelled) {
+          setCrmState({
+            mailSaved: Boolean(payload.mailSaved),
+            isMeeting: Boolean(payload.isMeeting),
+            meeting: payload.meeting ?? null,
+          });
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [seedMessageId, seedConversationId, seedSubject, role]);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -231,6 +284,47 @@ export function OutlookMailTagPanel({
         ? `Attachments will be stored under ${selectedTagLabel}.`
         : `Select a ${attachmentTarget} in Tag mail to file attachments there.`;
 
+  /** Save the calendar meeting behind this invite/response as an Activity. Throws on failure. */
+  const saveMeetingActivity = async (row: OutlookOpenMessageSeed) => {
+    const response = await fetch("/api/m365/outlook/save-meeting", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", [AUTH_ROLE_HEADER]: role },
+      credentials: "include",
+      body: JSON.stringify({
+        email,
+        contactId: context?.contactId,
+        seed: {
+          externalMessageId: row.externalMessageId,
+          conversationId: row.conversationId,
+          subject: row.subject,
+        },
+      }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      detail?: string;
+      created?: boolean;
+      companyName?: string;
+      meeting?: SavedMeeting;
+    };
+    if (!response.ok || !payload.meeting) {
+      throw new Error(
+        `Mail saved, but the meeting was not: ${payload.detail || payload.error || "unknown error"}`,
+      );
+    }
+    const meeting = payload.meeting;
+    setCrmState((prev) => ({
+      mailSaved: prev?.mailSaved ?? true,
+      isMeeting: true,
+      meeting,
+    }));
+    setStatus(
+      payload.created === false
+        ? `Meeting was already in SmartCRM as ${meeting.activityId}.`
+        : `Meeting saved in SmartCRM as ${meeting.activityId} on ${payload.companyName ?? "the company"}.`,
+    );
+  };
+
   const saveSelectedMails = async (link?: {
     opportunityId?: string | null;
     projectId?: string | null;
@@ -280,6 +374,11 @@ export function OutlookMailTagPanel({
       if (saved === 0) {
         throw new Error("Could not save these mails for the matched contact.");
       }
+      setCrmState((prev) => ({
+        mailSaved: true,
+        isMeeting: prev?.isMeeting ?? false,
+        meeting: prev?.meeting ?? null,
+      }));
       setStatus(
         failed > 0
           ? `Saved ${saved} of ${payload.total ?? seeds.length} mails on ${context.companyName}.`
@@ -287,6 +386,9 @@ export function OutlookMailTagPanel({
             ? `Saved on ${context.companyName} in SmartCRM.`
             : `Saved ${saved} mails on ${context.companyName} in SmartCRM.`,
       );
+      if (crmState?.isMeeting && seeds.length === 1 && seeds[0]) {
+        await saveMeetingActivity(seeds[0]);
+      }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not save mail");
     } finally {
@@ -461,6 +563,55 @@ export function OutlookMailTagPanel({
       </p>
       <SelectedMailSubjects seeds={seeds} />
 
+      {seed ? (
+        <div
+          className={`mt-2 border px-2.5 py-2 text-[12px] leading-snug ${
+            error
+              ? "border-thermal-red/40 bg-thermal-red/5"
+              : crmState?.mailSaved || crmState?.meeting
+                ? "border-emerald-600/40 bg-emerald-50"
+                : "border-carbon-blue/15 bg-white"
+          }`}
+          role="status"
+        >
+          {error ? (
+            <p className="font-semibold text-thermal-red">Not saved: {error}</p>
+          ) : null}
+          {!error && status ? (
+            <p className="font-semibold text-emerald-700">✓ {status}</p>
+          ) : null}
+          {crmState?.mailSaved || crmState?.meeting ? (
+            <ul className="mt-1 space-y-0.5 text-carbon-blue/80">
+              {crmState.mailSaved ? <li>✓ Mail is saved in SmartCRM</li> : null}
+              {crmState.meeting ? (
+                <li>
+                  ✓ Meeting is saved in SmartCRM as{" "}
+                  <a
+                    href={buildSmartCrmUrl(`/activities/${crmState.meeting.activityId}`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-upcycle-orange hover:underline"
+                  >
+                    {crmState.meeting.activityId}
+                  </a>
+                  {crmState.meeting.startDate
+                    ? ` · ${formatMeetingWhen(crmState.meeting.startDate)}`
+                    : ""}
+                </li>
+              ) : crmState.isMeeting ? (
+                <li className="text-upcycle-orange">Meeting is not in SmartCRM yet</li>
+              ) : null}
+            </ul>
+          ) : !error && !status && crmState ? (
+            <p className="text-carbon-blue/65">
+              {crmState.isMeeting
+                ? "Not saved in SmartCRM yet — this mail is a meeting."
+                : "Not saved in SmartCRM yet."}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <Outlook360Links
         companyId={context.companyId ?? context.selectedCompanyId}
         contactId={context.contactId}
@@ -533,7 +684,13 @@ export function OutlookMailTagPanel({
                 ? "Saving…"
                 : selectedCount > 1
                   ? `Save ${selectedCount} mails in SmartCRM`
-                  : "Save mail in SmartCRM"}
+                  : crmState?.isMeeting
+                    ? crmState.meeting
+                      ? "Saved — save again"
+                      : "Save meeting in SmartCRM"
+                    : crmState?.mailSaved
+                      ? "Saved — save again"
+                      : "Save mail in SmartCRM"}
             </button>
             <button
               type="button"
@@ -607,7 +764,6 @@ export function OutlookMailTagPanel({
         />
       </div>
 
-      {status ? <p className="mt-1.5 text-[11px] text-emerald-700">{status}</p> : null}
       {syncStatus ? <p className="mt-1.5 text-[11px] text-emerald-700">{syncStatus}</p> : null}
       {reviewDocs.length > 0 ? (
         <FiledDocumentsReviewPanel
@@ -619,7 +775,6 @@ export function OutlookMailTagPanel({
           error={reviewError}
         />
       ) : null}
-      {error ? <p className="mt-1.5 text-[11px] text-thermal-red">{error}</p> : null}
       {syncError ? <p className="mt-1.5 text-[11px] text-thermal-red">{syncError}</p> : null}
     </div>
   );
