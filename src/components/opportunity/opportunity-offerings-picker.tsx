@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { OfferingCategory, StandardBioOffering } from "@/types/offering";
 import { OFFERING_CATEGORIES, OFFERING_CATEGORY_LABELS } from "@/types/offering";
+import { buildCustomOffering } from "@/lib/custom-offering";
 import {
   catalogOfferingsByCategory,
   resolveOfferings,
+  STANDARD_BIO_OFFERINGS,
 } from "@/lib/standard-bio-offerings";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 
@@ -66,14 +68,24 @@ function OfferingChip({
   );
 }
 
+const ADD_AS_LABEL: Record<OfferingCategory, string> = {
+  system: "System",
+  product: "Product",
+  service: "Service",
+};
+
 function CompactOfferingSelector({
   selectedIds,
+  extraOfferings,
   onAdd,
+  onCreate,
   onClose,
   disabled,
 }: {
   selectedIds: string[];
+  extraOfferings: StandardBioOffering[];
   onAdd: (id: string) => void;
+  onCreate: (offering: StandardBioOffering) => void;
   onClose: () => void;
   disabled?: boolean;
 }) {
@@ -81,7 +93,15 @@ function CompactOfferingSelector({
   const [category, setCategory] = useState<CategoryFilter>("all");
   const inputRef = useRef<HTMLInputElement>(null);
   const selected = new Set(selectedIds);
-  const catalog = catalogOfferingsByCategory();
+  const catalog = useMemo(() => {
+    const grouped = catalogOfferingsByCategory();
+    for (const offering of extraOfferings) {
+      if (grouped[offering.category].some((entry) => entry.id === offering.id)) continue;
+      grouped[offering.category] = [...grouped[offering.category], offering];
+    }
+    return grouped;
+  }, [extraOfferings]);
+  const named = query.trim().replace(/\s+/g, " ");
 
   const options = useMemo(() => {
     const categories =
@@ -106,6 +126,26 @@ function CompactOfferingSelector({
     return results.slice(0, 8);
   }, [catalog, category, query, selected]);
 
+  const addNamed = (entry: OfferingCategory) => {
+    if (disabled || named.length < 2) return;
+    const known = [...STANDARD_BIO_OFFERINGS, ...extraOfferings].find(
+      (offering) =>
+        offering.category === entry && offering.name.toLowerCase() === named.toLowerCase(),
+    );
+    if (known) {
+      onAdd(known.id);
+      setQuery("");
+      inputRef.current?.focus();
+      return;
+    }
+    const created = buildCustomOffering(entry, named);
+    if (!created) return;
+    onCreate(created);
+    onAdd(created.id);
+    setQuery("");
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="mt-2 border border-carbon-blue/12 bg-white p-3 shadow-sm">
       <div className="flex items-center justify-between gap-2">
@@ -128,7 +168,7 @@ function CompactOfferingSelector({
           autoFocus
           disabled={disabled}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search offerings…"
+          placeholder="Search or name a new offering…"
           className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue placeholder:text-carbon-blue/50"
         />
       </label>
@@ -150,6 +190,31 @@ function CompactOfferingSelector({
           />
         ))}
       </div>
+
+      {named.length >= 2 ? (
+        <div className="mt-2">
+          <p className="text-[12px] text-carbon-blue/65">
+            Add “{named}” as a new offering
+          </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {OFFERING_CATEGORIES.map((entry) => (
+              <button
+                key={entry}
+                type="button"
+                disabled={disabled}
+                onClick={() => addNamed(entry)}
+                className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:opacity-50"
+              >
+                {ADD_AS_LABEL[entry]}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="mt-2 text-[12px] text-carbon-blue/55">
+          Type a name, then add it as a system, product, or service.
+        </p>
+      )}
 
       <ul className="mt-2 max-h-48 overflow-y-auto border-t border-carbon-blue/8 pt-2">
         {options.length === 0 ? (
@@ -216,10 +281,31 @@ export function OpportunityOfferingsPicker({
   const [addOpen, setAddOpen] = useState(
     defaultOpen || (required && selectedIds.length === 0),
   );
+  const [extraOfferings, setExtraOfferings] = useState<StandardBioOffering[]>([]);
   const selectedOfferings = useMemo(
     () => resolveOfferings(selectedIds),
     [selectedIds],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/offerings")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { offerings?: { id: string }[] } | null) => {
+        if (cancelled || !body?.offerings) return;
+        const next = body.offerings.flatMap((entry) => {
+          const offering = resolveOfferings([entry.id])[0];
+          return offering ? [offering] : [];
+        });
+        setExtraOfferings(next);
+      })
+      .catch(() => {
+        /* The typed name can still be added on this opportunity. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const remove = (id: string) => {
     if (disabled) return;
@@ -264,7 +350,15 @@ export function OpportunityOfferingsPicker({
       {addOpen && !disabled ? (
         <CompactOfferingSelector
           selectedIds={selectedIds}
+          extraOfferings={extraOfferings}
           onAdd={add}
+          onCreate={(offering) =>
+            setExtraOfferings((current) =>
+              current.some((entry) => entry.id === offering.id)
+                ? current
+                : [...current, offering],
+            )
+          }
           onClose={() => setAddOpen(false)}
           disabled={disabled}
         />

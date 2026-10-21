@@ -4,6 +4,7 @@ import type {
   StandardBioOffering,
 } from "@/types/offering";
 import { OFFERING_CATEGORIES } from "@/types/offering";
+import { offeringFromCustomId } from "@/lib/custom-offering";
 
 /**
  * Canonical Standard Bio offering catalog (Phase 2.6A).
@@ -473,7 +474,7 @@ const OFFERING_BY_ID = new Map(
 );
 
 export function getOfferingById(id: string): StandardBioOffering | undefined {
-  return OFFERING_BY_ID.get(id);
+  return OFFERING_BY_ID.get(id) ?? offeringFromCustomId(id);
 }
 
 export function resolveOfferings(offeringIds: string[] | undefined): StandardBioOffering[] {
@@ -482,7 +483,7 @@ export function resolveOfferings(offeringIds: string[] | undefined): StandardBio
   const resolved: StandardBioOffering[] = [];
   for (const id of offeringIds) {
     if (seen.has(id)) continue;
-    const offering = OFFERING_BY_ID.get(id);
+    const offering = OFFERING_BY_ID.get(id) ?? offeringFromCustomId(id);
     if (!offering) continue;
     seen.add(id);
     resolved.push(offering);
