@@ -1277,5 +1277,29 @@ export async function isEmailIngestExcluded(input: {
   return Boolean(hit);
 }
 
+/** Attach every synced message in a conversation to an opportunity. User-confirmed. */
+export async function linkConversationToOpportunity(
+  conversationId: string,
+  opportunityId: string,
+): Promise<{ updated: number; opportunityName: string } | null> {
+  const threadId = conversationId.trim();
+  const dealId = opportunityId.trim();
+  if (!threadId || !dealId) return null;
+
+  const prisma = getPrisma();
+  const opportunity = await prisma.opportunity.findUnique({
+    where: { id: dealId },
+    select: { id: true, name: true },
+  });
+  if (!opportunity) return null;
+
+  const result = await prisma.emailMessageRecord.updateMany({
+    where: { conversationId: threadId },
+    data: { opportunityId: opportunity.id },
+  });
+  if (result.count === 0) return null;
+  return { updated: result.count, opportunityName: opportunity.name };
+}
+
 export type { IngestedSmartDoc };
 export { resolveOpportunityId };

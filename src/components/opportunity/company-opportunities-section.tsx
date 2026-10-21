@@ -28,6 +28,7 @@ import {
   parseMoneyInput,
 } from "@/lib/geo/currencies";
 import { linkCompanyToOpportunity } from "@/lib/sync-company-opportunity-link";
+import type { MailOpportunityDraft } from "@/lib/mail-opportunity-draft";
 import { useAuth } from "@/context/auth-context";
 
 type CreateFormState = {
@@ -59,6 +60,9 @@ export function CompanyOpportunitiesSection({
   onAssignStakeholder,
   onCompanyUpdated,
   createRequestId = 0,
+  mailRequest = null,
+  onOpportunityCreated,
+  onMailDraftDismiss,
   /** Overview: create CTA/form only — no table, empty copy, or link-existing. */
   createOnly = false,
   /** When false, parent owns the Create Opportunity trigger (e.g. panel header). */
@@ -79,6 +83,10 @@ export function CompanyOpportunitiesSection({
   ) => Promise<PipelineRow>;
   onCompanyUpdated?: (company: Company) => void;
   createRequestId?: number;
+  /** Opens the create form prefilled from a mail. The user still confirms. */
+  mailRequest?: { id: number; draft: MailOpportunityDraft } | null;
+  onOpportunityCreated?: (deal: PipelineRow) => void | Promise<void>;
+  onMailDraftDismiss?: () => void;
   createOnly?: boolean;
   showCreateTrigger?: boolean;
   /** Parent already lists deals — keep create/link only. */
@@ -157,6 +165,23 @@ export function CompanyOpportunitiesSection({
     }
   }, [createRequestId, canCreate]);
 
+  useEffect(() => {
+    if (!mailRequest || !canCreate) return;
+    const { draft } = mailRequest;
+    setCreatedDeal(null);
+    setStakeholderOpen(false);
+    setError(null);
+    setForm({
+      ...EMPTY_FORM,
+      assetName: draft.assetName,
+      offeringIds: draft.offeringIds,
+    });
+    setSelectedContactId(draft.contactId ?? "");
+    setCreateOpen(true);
+    // Refill only when a new mail is chosen, not on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailRequest?.id, canCreate]);
+
   const extraRoles = useMemo(() => {
     const fromOfferings = createdDeal
       ? buildOfferingIntelligence(createdDeal.offeringIds).suggestedStakeholderRoles
@@ -214,13 +239,15 @@ export function CompanyOpportunitiesSection({
           ? { expectedCloseDate: form.expectedCloseDate.trim() }
           : {}),
       });
+      const mailContactId = mailRequest?.draft.contactId ?? "";
       setCreatedDeal(created);
       setCreateOpen(false);
       setForm(EMPTY_FORM);
+      await onOpportunityCreated?.(created);
       setStakeholderOpen(canManageStakeholders);
       const intelligence = buildOfferingIntelligence(created.offeringIds);
       const preferredRole = intelligence.suggestedStakeholderRoles[0] ?? "Champion";
-      setSelectedContactId("");
+      setSelectedContactId(mailContactId);
       setStakeholderRole(preferredRole);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create opportunity");
@@ -464,6 +491,11 @@ export function CompanyOpportunitiesSection({
                 }
               />
             </div>
+            {mailRequest?.draft.knownFromMail ? (
+              <p className="sm:col-span-2 text-[13px] leading-relaxed text-carbon-blue/70">
+                From this mail: {mailRequest.draft.knownFromMail}
+              </p>
+            ) : null}
             <div className="sm:col-span-2">
               <OpportunityOfferingsPicker
                 selectedIds={form.offeringIds}
@@ -493,6 +525,8 @@ export function CompanyOpportunitiesSection({
               onClick={() => {
                 setCreateOpen(false);
                 setError(null);
+                setForm(EMPTY_FORM);
+                onMailDraftDismiss?.();
               }}
               className="px-3 py-1.5 text-xs font-semibold text-carbon-blue/55 hover:text-carbon-blue"
             >

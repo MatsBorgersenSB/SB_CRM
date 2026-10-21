@@ -76,6 +76,10 @@ import {
 } from "@/lib/company-360-verdict";
 import { computeOpportunityMomentum } from "@/lib/opportunity-intelligence-engine";
 import { opportunityStageLabel } from "@/lib/opportunity-overview";
+import {
+  linkMailConversationToOpportunity,
+  type MailOpportunityDraft,
+} from "@/lib/mail-opportunity-draft";
 
 /** Information budget — attention rows beyond this are noise, not prioritisation. */
 const MAX_ATTENTION_ROWS = 5;
@@ -161,6 +165,11 @@ export function Company360LivingWorkspace({
   const [lastMailByContactId, setLastMailByContactId] = useState<Record<string, string>>(
     initialLastMailByContactId,
   );
+  const [mailRequest, setMailRequest] = useState<{
+    id: number;
+    draft: MailOpportunityDraft;
+  } | null>(null);
+  const [outlookReload, setOutlookReload] = useState(0);
 
   useEffect(() => {
     setFindings(documentKnowledge.findings ?? []);
@@ -344,6 +353,28 @@ export function Company360LivingWorkspace({
     }
   }, []);
 
+  const openOpportunityFromMail = (draft: MailOpportunityDraft) => {
+    setMailRequest({ id: Date.now(), draft });
+    window.requestAnimationFrame(() => {
+      document.getElementById("opportunities")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const handleOpportunityCreated = async (deal: { id: string }) => {
+    const draft = mailRequest?.draft;
+    if (!draft) return;
+    try {
+      await linkMailConversationToOpportunity(draft.conversationId, deal.id, role);
+      setOutlookReload((value) => value + 1);
+      setMailRequest(null);
+    } catch (error) {
+      console.error("[company-360] Could not attach mail to the new opportunity", error);
+    }
+  };
+
   const handleRunWebsiteDiscovery = (url: string) => {
     setDiscoveryUrl(url);
     setActiveTool("website-discovery");
@@ -479,6 +510,10 @@ export function Company360LivingWorkspace({
               companyId={company.CompanyID}
               contacts={company.contacts ?? []}
               role={role}
+              deals={linkedPipelines}
+              canCreateOpportunity={canCreateOpp}
+              reloadToken={outlookReload}
+              onCreateFromMail={openOpportunityFromMail}
               focusMailId={focusMailId}
               onLatestMailAt={(sentAt) => {
                 if (sentAt) setLastMailAt(sentAt);
@@ -496,6 +531,9 @@ export function Company360LivingWorkspace({
         onAssignOpportunityStakeholder={onAssignOpportunityStakeholder}
         onDeleteOpportunity={onDeleteOpportunity}
         onCompanyUpdated={onCompanyUpdated}
+        mailRequest={mailRequest}
+        onOpportunityCreated={handleOpportunityCreated}
+        onMailDraftDismiss={() => setMailRequest(null)}
       />
 
       {showProjectsPanel ? (

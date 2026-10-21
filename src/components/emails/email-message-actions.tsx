@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { openOutlookDraft } from "@/components/opportunities/draft-in-outlook-button";
 import { telHref, teamsMeetingComposeHref } from "@/lib/compose-actions";
@@ -60,6 +60,7 @@ export function EmailMessageActions({
   role = "superuser",
   disabled = false,
   compact = false,
+  trailing = null,
 }: {
   toEmail: string;
   subject: string;
@@ -73,6 +74,8 @@ export function EmailMessageActions({
   disabled?: boolean;
   /** Reply only — Call / meeting live on the contact header. */
   compact?: boolean;
+  /** Sits on the same row as Reply. */
+  trailing?: ReactNode;
 }) {
   const router = useRouter();
   const [replyBusy, setReplyBusy] = useState(false);
@@ -135,6 +138,7 @@ export function EmailMessageActions({
         >
           {replyBusy ? "Opening…" : "Reply"}
         </button>
+        {trailing}
         {compact ? null : (
           <>
             {phone ? (

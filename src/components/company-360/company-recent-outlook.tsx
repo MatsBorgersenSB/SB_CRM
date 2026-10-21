@@ -9,6 +9,14 @@ import type { UserRole } from "@/types/auth";
 import type { SentimentGrade } from "@/generated/prisma";
 import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
+import {
+  buildMailOpportunityDraft,
+  linkMailConversationToOpportunity,
+  mailOpportunityImpact,
+  matchingOpportunityForTopic,
+  type MailOpportunityDraft,
+} from "@/lib/mail-opportunity-draft";
+import type { PipelineRow } from "@/types/pipeline";
 import { contact360Href, deal360Href, project360Href } from "@/types/relationship-navigation";
 
 type CompanyEmailMessage = {
@@ -73,6 +81,10 @@ export function CompanyRecentOutlook({
   companyId,
   contacts,
   role,
+  deals = [],
+  canCreateOpportunity = false,
+  reloadToken = 0,
+  onCreateFromMail,
   onLatestMailAt,
   onContactLastMail,
   focusMailId = null,
@@ -80,6 +92,11 @@ export function CompanyRecentOutlook({
   companyId: string;
   contacts: Contact[];
   role: UserRole;
+  deals?: PipelineRow[];
+  /** Sell-to company and the user may open a deal. The user still confirms. */
+  canCreateOpportunity?: boolean;
+  reloadToken?: number;
+  onCreateFromMail?: (draft: MailOpportunityDraft) => void;
   onLatestMailAt?: (sentAt: string | null) => void;
   onContactLastMail?: (byContactId: Record<string, string>) => void;
   /** Open this synced mail (Attention / bell `?mail=`). */
@@ -88,6 +105,8 @@ export function CompanyRecentOutlook({
   const [threads, setThreads] = useState<CompanyEmailThread[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [domainFilter, setDomainFilter] = useState<"all" | "external">("external");
   const latestMailRef = useRef<string | null>(null);
   const contactMailRef = useRef<string>("");
@@ -118,7 +137,20 @@ export function CompanyRecentOutlook({
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, reloadToken]);
+
+  const attachMail = async (conversationId: string, opportunityId: string) => {
+    setLinkingId(conversationId);
+    setLinkError(null);
+    try {
+      await linkMailConversationToOpportunity(conversationId, opportunityId, role);
+      await load();
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : "Could not attach this mail");
+    } finally {
+      setLinkingId(null);
+    }
+  };
 
   useEffect(() => {
     if (!focusMailId) return;
@@ -309,8 +341,7 @@ export function CompanyRecentOutlook({
                 autoExpand={isFocused}
               />
               {!displayMessage.isDeletedInSource ? (
-                <EmailMessageActions
-                  compact
+                <MailThreadActions
                   toEmail={
                     displayMessage.isOutbound
                       ? displayMessage.recipientEmails[0] ?? matchedContact?.Email ?? ""
@@ -330,12 +361,109 @@ export function CompanyRecentOutlook({
                     undefined
                   }
                   role={role}
+                  message={displayMessage}
+                  contactId={matchedContact?.ContactID ?? displayMessage.contactId}
+                  deals={deals}
+                  canCreate={canCreateOpportunity}
+                  linking={linkingId === thread.conversationId}
+                  onCreate={onCreateFromMail}
+                  onLink={(opportunityId) =>
+                    void attachMail(thread.conversationId, opportunityId)
+                  }
                 />
               ) : null}
             </li>
           );
         })}
       </ul>
+      {linkError ? <p className="mt-2 text-[12px] text-thermal-red">{linkError}</p> : null}
+    </div>
+  );
+}
+
+function MailThreadActions({
+  toEmail,
+  subject,
+  bodyPreview,
+  contactName,
+  contactPhone,
+  role,
+  message,
+  contactId,
+  deals,
+  canCreate,
+  linking,
+  onCreate,
+  onLink,
+}: {
+  toEmail: string;
+  subject: string;
+  bodyPreview: string | null;
+  contactName: string | null;
+  contactPhone?: string;
+  role: UserRole;
+  message: CompanyEmailMessage;
+  contactId: string | null;
+  deals: PipelineRow[];
+  canCreate: boolean;
+  linking: boolean;
+  onCreate?: (draft: MailOpportunityDraft) => void;
+  onLink: (opportunityId: string) => void;
+}) {
+  const draft =
+    canCreate && !message.opportunityId && !message.isInternalOnly
+      ? buildMailOpportunityDraft({
+          emailId: message.id,
+          conversationId: message.conversationId,
+          subject,
+          bodyPreview,
+          contactId,
+          contactName,
+        })
+      : null;
+  const existing = draft ? matchingOpportunityForTopic(deals, draft.assetName) : null;
+  const impact = draft
+    ? mailOpportunityImpact({
+        topic: draft.assetName,
+        contactName,
+        existingDealName: existing?.assetName ?? null,
+      })
+    : null;
+
+  return (
+    <div className="mt-1.5">
+      <EmailMessageActions
+        compact
+        toEmail={toEmail}
+        subject={subject}
+        bodyPreview={bodyPreview}
+        contactName={contactName}
+        contactPhone={contactPhone}
+        role={role}
+        trailing={
+          draft ? (
+            <button
+              type="button"
+              disabled={linking || (existing ? false : !onCreate)}
+              onClick={() => {
+                if (existing) {
+                  onLink(existing.id);
+                  return;
+                }
+                onCreate?.(draft);
+              }}
+              className="inline-flex items-center text-[12px] font-semibold text-upcycle-orange hover:underline disabled:opacity-50"
+            >
+              {linking
+                ? "Linking…"
+                : existing
+                  ? `Add this mail to ${existing.assetName}`
+                  : "Create opportunity from this mail"}
+            </button>
+          ) : null
+        }
+      />
+      {impact ? <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/55">{impact}</p> : null}
     </div>
   );
 }

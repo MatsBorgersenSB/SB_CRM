@@ -26,6 +26,7 @@ import { CompanyContactsTable } from "@/components/company-360/company-contacts-
 import { DealLink } from "@/components/relationship/relationship-links";
 import { WorkspacePanel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
+import type { MailOpportunityDraft } from "@/lib/mail-opportunity-draft";
 
 function formatCloseDate(value: string | undefined): string {
   if (!value) return "—";
@@ -124,6 +125,9 @@ function OpportunitiesOverviewStrip({
   onAssignStakeholder,
   onDeleteOpportunity,
   onCompanyUpdated,
+  mailRequest = null,
+  onOpportunityCreated,
+  onMailDraftDismiss,
 }: {
   company: Company;
   companies: Company[];
@@ -142,6 +146,9 @@ function OpportunitiesOverviewStrip({
   ) => Promise<PipelineRow>;
   onDeleteOpportunity?: (dealId: string) => Promise<void>;
   onCompanyUpdated?: (company: Company) => void;
+  mailRequest?: { id: number; draft: MailOpportunityDraft } | null;
+  onOpportunityCreated?: (deal: PipelineRow) => void | Promise<void>;
+  onMailDraftDismiss?: () => void;
 }) {
   const [createRequestId, setCreateRequestId] = useState(0);
   const [deleteDealId, setDeleteDealId] = useState<string | null>(null);
@@ -302,6 +309,9 @@ function OpportunitiesOverviewStrip({
           onAssignStakeholder={onAssignStakeholder}
           onCompanyUpdated={onCompanyUpdated}
           createRequestId={createRequestId}
+          mailRequest={mailRequest}
+          onOpportunityCreated={onOpportunityCreated}
+          onMailDraftDismiss={onMailDraftDismiss}
           hideTable
           showCreateTrigger={false}
         />
@@ -338,6 +348,9 @@ export function Company360OverviewStrips({
   onAssignOpportunityStakeholder,
   onDeleteOpportunity,
   onCompanyUpdated,
+  mailRequest = null,
+  onOpportunityCreated,
+  onMailDraftDismiss,
 }: {
   company: Company;
   companies: Company[];
@@ -367,6 +380,9 @@ export function Company360OverviewStrips({
   ) => Promise<PipelineRow>;
   onDeleteOpportunity?: (dealId: string) => Promise<void>;
   onCompanyUpdated?: (company: Company) => void;
+  mailRequest?: { id: number; draft: MailOpportunityDraft } | null;
+  onOpportunityCreated?: (deal: PipelineRow) => void | Promise<void>;
+  onMailDraftDismiss?: () => void;
 }) {
   return (
     <>
@@ -399,6 +415,9 @@ export function Company360OverviewStrips({
           onAssignStakeholder={onAssignOpportunityStakeholder}
           onDeleteOpportunity={onDeleteOpportunity}
           onCompanyUpdated={onCompanyUpdated}
+          mailRequest={mailRequest}
+          onOpportunityCreated={onOpportunityCreated}
+          onMailDraftDismiss={onMailDraftDismiss}
         />
       ) : null}
     </>
