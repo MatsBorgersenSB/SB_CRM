@@ -324,8 +324,9 @@ export function canReassignContactOwner(role: UserRole): boolean {
   return canReassignCompanyOwner(role);
 }
 
+/** Open a deal on a sell-to company. Executives, sales, and IT admin. */
 export function canCreateOpportunity(role: UserRole): boolean {
-  return canAssignOpportunityOwner(role);
+  return role === "superuser" || role === "admin" || role === "commercial";
 }
 
 /** Remove a mistaken opportunity from the live pipeline — creators and ADMIN. */

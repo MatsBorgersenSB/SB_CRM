@@ -60,12 +60,10 @@ import {
 } from "@/lib/permissions";
 import {
   companyHasType,
+  isOpportunityEligibleCompany,
 } from "@/lib/company-classification";
 import { hasConfirmedCompetitorKnowledge } from "@/lib/competitor-brief";
-import {
-  shouldOfferCreateOpportunity,
-  type CompanyCorrespondenceEvidence,
-} from "@/lib/company-correspondence";
+import { type CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import { filterDismissedAttentionItems } from "@/lib/attention-dismiss-store";
 import { companyRouteKey } from "@/types/company-360";
 import {
@@ -107,7 +105,6 @@ export function Company360LivingWorkspace({
   duplicateHint = null,
   initialLastMailAt = null,
   initialLastMailByContactId = {},
-  correspondence = null,
   smartDocs = [],
   documentKnowledge = EMPTY_DOCUMENT_KNOWLEDGE_STATE,
   assignableUsers = [],
@@ -352,22 +349,18 @@ export function Company360LivingWorkspace({
     setActiveTool("website-discovery");
   };
 
+  const sellTo = isOpportunityEligibleCompany(company);
   const canCreateOpp =
-    canCreateOpportunity(role) &&
-    Boolean(onCreateOpportunity) &&
-    shouldOfferCreateOpportunity(company, correspondence);
+    canCreateOpportunity(role) && Boolean(onCreateOpportunity) && sellTo;
 
-  // Empty Opportunities / Projects panels fold into one line until the user wants them.
-  // Opportunities are only offered where the posture allows a deal (never for suppliers).
+  // Opportunities stay on the page: the list when any are linked, and for every
+  // sell-to company so a new one can be opened here. Suppliers are not offered a deal.
+  // Empty projects stay one line until the user asks to add one.
   const opportunitiesEmpty = linkedPipelines.length === 0;
   const projectsEmpty = linkedProjects.length === 0;
-  const showOpportunitiesPanel = !opportunitiesEmpty || (linkedRevealed && canCreateOpp);
+  const showOpportunitiesPanel = !opportunitiesEmpty || sellTo;
   const showProjectsPanel = !projectsEmpty || linkedRevealed;
-  const foldedLabels = [
-    opportunitiesEmpty && canCreateOpp ? "opportunities" : null,
-    projectsEmpty ? "projects" : null,
-  ].filter((label): label is string => Boolean(label));
-  const showFoldedLine = !linkedRevealed && foldedLabels.length > 0;
+  const showFoldedLine = !linkedRevealed && projectsEmpty;
 
   return (
     <WorkspaceStack>
@@ -520,11 +513,8 @@ export function Company360LivingWorkspace({
       ) : null}
 
       {showFoldedLine ? (
-        <p
-          id={opportunitiesEmpty ? "opportunities" : "projects"}
-          className="px-1 text-[13px] text-carbon-blue/50"
-        >
-          No {foldedLabels.join(" or ")} linked yet.{" "}
+        <p id="projects" className="px-1 text-[13px] text-carbon-blue/50">
+          No projects linked yet.{" "}
           <button
             type="button"
             onClick={() => setLinkedRevealed(true)}
