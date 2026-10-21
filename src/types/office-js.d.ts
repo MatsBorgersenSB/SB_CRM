@@ -82,6 +82,11 @@ declare namespace Office {
     };
   }
 
+  interface MasterCategory {
+    displayName: string;
+    color?: string;
+  }
+
   interface Mailbox {
     item?: MailboxItem;
     userProfile?: {
@@ -97,6 +102,13 @@ declare namespace Office {
       options?: { handler?: (args?: unknown) => void },
       callback?: (result: AsyncResult<void>) => void,
     ) => void;
+    masterCategories?: {
+      getAsync: (callback: (result: AsyncResult<MasterCategory[]>) => void) => void;
+      addAsync: (
+        categories: MasterCategory[],
+        callback: (result: AsyncResult<void>) => void,
+      ) => void;
+    };
   }
 
   interface Dialog {

@@ -12,6 +12,7 @@ import {
   subscribeOutlookMailboxItemChanged,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
+import { showSmartCrmCategoryOnOpenMail } from "@/lib/m365/outlook-smartcrm-category";
 import {
   SMARTDOC_CATEGORIES,
   SMARTDOC_TYPES,
@@ -37,6 +38,8 @@ type TagContextPayload = {
   projectOptions: LinkOption[];
   relationshipPosture?: CompanyRelationshipPosture;
   opportunityEligible?: boolean;
+  contactName?: string;
+  savedMails?: SavedOutlookMail[];
   error?: string;
 };
 
@@ -48,6 +51,14 @@ type FiledDocumentReview = {
 };
 
 type SavedMeeting = { activityId: string; subject: string; startDate: string };
+
+type SavedOutlookMail = {
+  externalMessageId: string;
+  subject: string;
+  isOutbound: boolean;
+  sentAt: string;
+  senderEmail: string;
+};
 
 /** What SmartCRM already holds for the open mail — shown persistently, not as a toast. */
 type CrmSavedState = {
@@ -107,6 +118,8 @@ export function OutlookMailTagPanel({
   >("none");
   const [attachmentRelationId, setAttachmentRelationId] = useState("");
   const [crmState, setCrmState] = useState<CrmSavedState | null>(null);
+  const [savedMails, setSavedMails] = useState<SavedOutlookMail[]>([]);
+  const [savedMailTick, setSavedMailTick] = useState(0);
 
   const seedMessageId = seed?.externalMessageId ?? "";
   const seedConversationId = seed?.conversationId ?? "";
@@ -184,6 +197,7 @@ export function OutlookMailTagPanel({
         }
         if (cancelled) return;
         setContext(payload);
+        setSavedMails(payload.savedMails ?? []);
         const canUseOpportunity =
           payload.opportunityEligible ?? opportunityEligible ?? true;
         if (payload.currentProjectId) {
@@ -211,6 +225,37 @@ export function OutlookMailTagPanel({
       cancelled = true;
     };
   }, [email, role]);
+
+  useEffect(() => {
+    if (!email || !seedConversationId) {
+      setSavedMails([]);
+      return;
+    }
+    let cancelled = false;
+    const params = new URLSearchParams({ email, conversationId: seedConversationId });
+    void fetch(`/api/m365/outlook/mail-tag?${params}`, {
+      headers: { [AUTH_ROLE_HEADER]: role },
+      credentials: "include",
+    })
+      .then(async (response) => {
+        if (!response.ok || cancelled) return;
+        const payload = (await response.json()) as TagContextPayload;
+        if (!cancelled) setSavedMails(payload.savedMails ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [email, role, seedConversationId, savedMailTick]);
+
+  const openMailSaved =
+    crmState?.mailSaved === true ||
+    savedMails.some((mail) => mail.externalMessageId === seedMessageId);
+
+  useEffect(() => {
+    if (!openMailSaved) return;
+    void showSmartCrmCategoryOnOpenMail();
+  }, [openMailSaved, seedMessageId]);
 
   useEffect(() => {
     // Keep filing destination valid when no opportunity/project is selected.
@@ -386,6 +431,8 @@ export function OutlookMailTagPanel({
             ? `Saved on ${context.companyName} in SmartCRM.`
             : `Saved ${saved} mails on ${context.companyName} in SmartCRM.`,
       );
+      setSavedMailTick((tick) => tick + 1);
+      void showSmartCrmCategoryOnOpenMail();
       if (crmState?.isMeeting && seeds.length === 1 && seeds[0]) {
         await saveMeetingActivity(seeds[0]);
       }
@@ -568,7 +615,7 @@ export function OutlookMailTagPanel({
           className={`mt-2 border px-2.5 py-2 text-[12px] leading-snug ${
             error
               ? "border-thermal-red/40 bg-thermal-red/5"
-              : crmState?.mailSaved || crmState?.meeting
+              : crmState?.mailSaved || crmState?.meeting || savedMails.length > 0
                 ? "border-emerald-600/40 bg-emerald-50"
                 : "border-carbon-blue/15 bg-white"
           }`}
@@ -580,10 +627,32 @@ export function OutlookMailTagPanel({
           {!error && status ? (
             <p className="font-semibold text-emerald-700">✓ {status}</p>
           ) : null}
-          {crmState?.mailSaved || crmState?.meeting ? (
+          {crmState?.mailSaved || crmState?.meeting || savedMails.length > 0 ? (
             <ul className="mt-1 space-y-0.5 text-carbon-blue/80">
-              {crmState.mailSaved ? <li>✓ Mail is saved in SmartCRM</li> : null}
-              {crmState.meeting ? (
+              {savedMails.length > 0 ? (
+                <li className="font-semibold text-emerald-800">
+                  {savedMails.length === 1
+                    ? `1 mail is in SmartCRM on ${context.companyName}`
+                    : `${savedMails.length} mails are in SmartCRM on ${context.companyName}`}
+                </li>
+              ) : crmState?.mailSaved ? (
+                <li>✓ Mail is saved in SmartCRM</li>
+              ) : null}
+              {savedMails.map((mail) => (
+                <li key={mail.externalMessageId}>
+                  {mail.isOutbound
+                    ? "Sent"
+                    : context.contactName
+                      ? `From ${context.contactName}`
+                      : "Received"}
+                  {formatMeetingWhen(mail.sentAt) ? ` · ${formatMeetingWhen(mail.sentAt)}` : ""}
+                  {mail.externalMessageId === seedMessageId ? " · this mail" : ""}
+                </li>
+              ))}
+              {openMailSaved ? null : (
+                <li className="text-upcycle-orange">This mail is not in SmartCRM yet</li>
+              )}
+              {crmState?.meeting ? (
                 <li>
                   ✓ Meeting is saved in SmartCRM as{" "}
                   <a
@@ -598,7 +667,7 @@ export function OutlookMailTagPanel({
                     ? ` · ${formatMeetingWhen(crmState.meeting.startDate)}`
                     : ""}
                 </li>
-              ) : crmState.isMeeting ? (
+              ) : crmState?.isMeeting ? (
                 <li className="text-upcycle-orange">Meeting is not in SmartCRM yet</li>
               ) : null}
             </ul>
@@ -1046,7 +1115,7 @@ function AttachmentFilingControls({
               }}
               className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
             >
-              <option value="none">No relation</option>
+              <option value="none">Company only</option>
               {allowOpportunity ? <option value="opportunity">Opportunity</option> : null}
               <option value="project">Project</option>
             </select>

@@ -152,14 +152,65 @@ export async function GET(request: Request) {
 
     let currentOpportunityId: string | null = null;
     let currentProjectId: string | null = null;
+    let savedMails: Array<{
+      externalMessageId: string;
+      subject: string;
+      isOutbound: boolean;
+      sentAt: string;
+      senderEmail: string;
+    }> = [];
     if (conversationId) {
-      const sample = await prisma.emailMessageRecord.findFirst({
-        where: { conversationId },
-        orderBy: { sentAt: "desc" },
-        select: { opportunityId: true, projectId: true },
+      const rows = await prisma.emailMessageRecord.findMany({
+        where: { conversationId, isDeletedInSource: false },
+        orderBy: { sentAt: "asc" },
+        take: 12,
+        select: {
+          externalMessageId: true,
+          subject: true,
+          isOutbound: true,
+          sentAt: true,
+          senderEmail: true,
+          opportunityId: true,
+          projectId: true,
+        },
       });
+      const sample = rows[rows.length - 1];
       currentOpportunityId = sample?.opportunityId ?? null;
       currentProjectId = sample?.projectId ?? null;
+      savedMails = rows.map((row) => ({
+        externalMessageId: row.externalMessageId,
+        subject: row.subject,
+        isOutbound: row.isOutbound,
+        sentAt: row.sentAt.toISOString(),
+        senderEmail: row.senderEmail,
+      }));
+      const {
+        applySmartCrmCategories,
+        getActiveM365AccessToken,
+        SMARTCRM_MASTER_CATEGORY,
+        toIntentionalCategoryLabel,
+      } = await import("@/lib/m365-client");
+      await prisma.emailMessageRecord.updateMany({
+        where: {
+          conversationId,
+          isDeletedInSource: false,
+          OR: [
+            { m365CategoryName: null },
+            { NOT: { m365CategoryName: { startsWith: "intent:" } } },
+          ],
+        },
+        data: { m365CategoryName: toIntentionalCategoryLabel(SMARTCRM_MASTER_CATEGORY) },
+      });
+      const token = await getActiveM365AccessToken();
+      if (token) {
+        await Promise.all(
+          savedMails.map((mail) =>
+            applySmartCrmCategories(token.accessToken, mail.externalMessageId).catch(
+              () => undefined,
+            ),
+          ),
+        );
+      }
     }
 
     return NextResponse.json({
@@ -171,6 +222,7 @@ export async function GET(request: Request) {
       conversationId: conversationId || null,
       currentOpportunityId,
       currentProjectId,
+      savedMails,
       relationshipPosture: getCompanyRelationshipPosture(resolved.company),
       opportunityEligible: isOpportunityEligibleCompany(resolved.company),
       companyOptions,
