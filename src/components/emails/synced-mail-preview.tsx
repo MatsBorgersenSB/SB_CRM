@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
+import { readableMailText } from "@/lib/mail-preview-text";
 import type { UserRole } from "@/types/auth";
 
 type EmailViewPayload = {
@@ -42,7 +43,7 @@ export function SyncedMailPreview({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const snippet = (previewText || bodyPreview || "").trim();
+  const snippet = readableMailText(previewText || bodyPreview);
   const shortSnippet =
     snippet.length > 140 ? `${snippet.slice(0, 140)}…` : snippet;
 
@@ -129,7 +130,7 @@ export function SyncedMailPreview({
             <p className="text-[13px] text-carbon-blue/65">Loading preview…</p>
           ) : (
             <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-carbon-blue/80">
-              {(previewText || bodyPreview || "No preview available.").trim()}
+              {readableMailText(previewText || bodyPreview) || "No preview available."}
             </p>
           )}
         </div>

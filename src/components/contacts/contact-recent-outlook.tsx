@@ -7,7 +7,7 @@ import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
 import type { FilterSummaryChip } from "@/types/workspace-filters";
 import type { SentimentGrade } from "@/generated/prisma";
-import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
+import { ThreadCorrespondencePreview } from "@/components/emails/thread-correspondence-preview";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
 import { projectEmailsHref } from "@/types/relationship-navigation";
 
@@ -759,12 +759,10 @@ export function ContactRecentOutlook({
                     </p>
                   ) : null}
 
-                  <SyncedMailPreview
-                    emailId={latest.id}
-                    bodyPreview={latest.bodyPreview}
-                    webLink={latest.webLink}
+                  <ThreadCorrespondencePreview
+                    messages={thread.messages}
+                    contactName={contactName ?? null}
                     role={role}
-                    compact
                     presentation="reader"
                   />
 

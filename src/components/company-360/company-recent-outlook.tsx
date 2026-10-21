@@ -7,7 +7,7 @@ import { laterIso } from "@/lib/contact-360-verdict";
 import { getContactDisplayName, type Contact } from "@/types/contact";
 import type { UserRole } from "@/types/auth";
 import type { SentimentGrade } from "@/generated/prisma";
-import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
+import { ThreadCorrespondencePreview } from "@/components/emails/thread-correspondence-preview";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
 import {
   buildMailOpportunityDraft,
@@ -332,12 +332,14 @@ export function CompanyRecentOutlook({
                   </>
                 ) : null}
               </p>
-              <SyncedMailPreview
-                emailId={displayMessage.id}
-                bodyPreview={displayMessage.bodyPreview}
-                webLink={displayMessage.webLink}
+              <ThreadCorrespondencePreview
+                messages={thread.messages}
+                contactName={
+                  matchedContact
+                    ? getContactDisplayName(matchedContact)
+                    : displayMessage.contactName
+                }
                 role={role}
-                compact
                 autoExpand={isFocused}
               />
               {!displayMessage.isDeletedInSource ? (
