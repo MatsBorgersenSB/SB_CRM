@@ -130,7 +130,10 @@ function clientSecret(): string {
   return secret;
 }
 
-export function buildM365AuthorizationUrl(state: string): string {
+export function buildM365AuthorizationUrl(
+  state: string,
+  options?: { prompt?: "consent" },
+): string {
   const params = new URLSearchParams({
     client_id: clientId(),
     response_type: "code",
@@ -139,6 +142,7 @@ export function buildM365AuthorizationUrl(state: string): string {
     scope: m365OAuthScopes().join(" "),
     state,
   });
+  if (options?.prompt) params.set("prompt", options.prompt);
   return `https://login.microsoftonline.com/${encodeURIComponent(tenantId())}/oauth2/v2.0/authorize?${params.toString()}`;
 }
 

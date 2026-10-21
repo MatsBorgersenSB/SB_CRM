@@ -159,6 +159,7 @@ export async function GET(request: Request) {
       sentAt: string;
       senderEmail: string;
     }> = [];
+    let needsMicrosoftConsent = false;
     if (conversationId) {
       const rows = await prisma.emailMessageRecord.findMany({
         where: { conversationId, isDeletedInSource: false },
@@ -184,32 +185,40 @@ export async function GET(request: Request) {
         sentAt: row.sentAt.toISOString(),
         senderEmail: row.senderEmail,
       }));
-      const {
-        applySmartCrmCategories,
-        getActiveM365AccessToken,
-        SMARTCRM_MASTER_CATEGORY,
-        toIntentionalCategoryLabel,
-      } = await import("@/lib/m365-client");
-      await prisma.emailMessageRecord.updateMany({
-        where: {
-          conversationId,
-          isDeletedInSource: false,
-          OR: [
-            { m365CategoryName: null },
-            { NOT: { m365CategoryName: { startsWith: "intent:" } } },
-          ],
-        },
-        data: { m365CategoryName: toIntentionalCategoryLabel(SMARTCRM_MASTER_CATEGORY) },
-      });
-      const token = await getActiveM365AccessToken();
-      if (token) {
-        await Promise.all(
-          savedMails.map((mail) =>
-            applySmartCrmCategories(token.accessToken, mail.externalMessageId).catch(
-              () => undefined,
+      try {
+        const {
+          applySmartCrmCategories,
+          getActiveM365AccessToken,
+          SMARTCRM_MASTER_CATEGORY,
+          toIntentionalCategoryLabel,
+        } = await import("@/lib/m365-client");
+        await prisma.emailMessageRecord.updateMany({
+          where: {
+            conversationId,
+            isDeletedInSource: false,
+            OR: [
+              { m365CategoryName: null },
+              { NOT: { m365CategoryName: { startsWith: "intent:" } } },
+            ],
+          },
+          data: { m365CategoryName: toIntentionalCategoryLabel(SMARTCRM_MASTER_CATEGORY) },
+        });
+        const token = await getActiveM365AccessToken();
+        if (token) {
+          await Promise.all(
+            savedMails.map((mail) =>
+              applySmartCrmCategories(token.accessToken, mail.externalMessageId).catch(
+                () => undefined,
+              ),
             ),
-          ),
-        );
+          );
+        }
+      } catch (stampError) {
+        const message = stampError instanceof Error ? stampError.message : "";
+        console.warn("[m365 outlook mail-tag] category stamp skipped:", message);
+        if (/AADSTS65001|has not consented|consent_required/i.test(message)) {
+          needsMicrosoftConsent = true;
+        }
       }
     }
 
@@ -223,6 +232,7 @@ export async function GET(request: Request) {
       currentOpportunityId,
       currentProjectId,
       savedMails,
+      needsMicrosoftConsent,
       relationshipPosture: getCompanyRelationshipPosture(resolved.company),
       opportunityEligible: isOpportunityEligibleCompany(resolved.company),
       companyOptions,

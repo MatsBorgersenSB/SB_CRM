@@ -12,7 +12,7 @@ import {
   subscribeOutlookMailboxItemChanged,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
-import { showSmartCrmCategoryOnOpenMail } from "@/lib/m365/outlook-smartcrm-category";
+import { showSmartCrmCategoryOnOpenMail, openMicrosoftConsentDialog } from "@/lib/m365/outlook-smartcrm-category";
 import {
   SMARTDOC_CATEGORIES,
   SMARTDOC_TYPES,
@@ -40,6 +40,7 @@ type TagContextPayload = {
   opportunityEligible?: boolean;
   contactName?: string;
   savedMails?: SavedOutlookMail[];
+  needsMicrosoftConsent?: boolean;
   error?: string;
 };
 
@@ -120,6 +121,7 @@ export function OutlookMailTagPanel({
   const [crmState, setCrmState] = useState<CrmSavedState | null>(null);
   const [savedMails, setSavedMails] = useState<SavedOutlookMail[]>([]);
   const [savedMailTick, setSavedMailTick] = useState(0);
+  const [needsMicrosoftConsent, setNeedsMicrosoftConsent] = useState(false);
 
   const seedMessageId = seed?.externalMessageId ?? "";
   const seedConversationId = seed?.conversationId ?? "";
@@ -198,6 +200,7 @@ export function OutlookMailTagPanel({
         if (cancelled) return;
         setContext(payload);
         setSavedMails(payload.savedMails ?? []);
+        setNeedsMicrosoftConsent(payload.needsMicrosoftConsent === true);
         const canUseOpportunity =
           payload.opportunityEligible ?? opportunityEligible ?? true;
         if (payload.currentProjectId) {
@@ -240,7 +243,10 @@ export function OutlookMailTagPanel({
       .then(async (response) => {
         if (!response.ok || cancelled) return;
         const payload = (await response.json()) as TagContextPayload;
-        if (!cancelled) setSavedMails(payload.savedMails ?? []);
+        if (!cancelled) {
+          setSavedMails(payload.savedMails ?? []);
+          setNeedsMicrosoftConsent(payload.needsMicrosoftConsent === true);
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -609,6 +615,21 @@ export function OutlookMailTagPanel({
             : `${context.companyName} is not sell-to — link this mail to a project (e.g. Escalante), or save it on the company. Opportunity stays hidden.`}
       </p>
       <SelectedMailSubjects seeds={seeds} />
+
+      {needsMicrosoftConsent ? (
+        <div className="mt-2 border border-upcycle-orange/30 bg-white px-2.5 py-2">
+          <p className="text-[12px] leading-snug text-carbon-blue">
+            Microsoft 365 needs your approval before SmartCRM can mark these mails.
+          </p>
+          <button
+            type="button"
+            onClick={() => void openMicrosoftConsentDialog()}
+            className="mt-2 inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105"
+          >
+            Allow in Microsoft 365
+          </button>
+        </div>
+      ) : null}
 
       {seed ? (
         <div

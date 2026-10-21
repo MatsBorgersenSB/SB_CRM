@@ -39,3 +39,19 @@ function ensureSmartCrmMasterCategory(mailbox: Office.Mailbox): Promise<void> {
     });
   });
 }
+
+/** Interactive Microsoft consent. The task pane cannot grant this by itself. */
+export async function openMicrosoftConsentDialog(): Promise<void> {
+  const office = await whenOfficeReady(4_000);
+  const url = `${window.location.origin}/api/auth/m365/login?prompt=consent`;
+  const displayDialog = office?.context?.ui?.displayDialogAsync;
+  if (typeof displayDialog === "function") {
+    displayDialog(
+      url,
+      { height: 70, width: 40, displayInIframe: false, promptBeforeOpen: false },
+      () => undefined,
+    );
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+}

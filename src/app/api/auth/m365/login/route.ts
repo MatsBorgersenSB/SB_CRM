@@ -21,7 +21,11 @@ export async function GET(request: Request) {
 
   try {
     const state = randomBytes(24).toString("hex");
-    const url = buildM365AuthorizationUrl(state);
+    const prompt = new URL(request.url).searchParams.get("prompt");
+    const url = buildM365AuthorizationUrl(
+      state,
+      prompt === "consent" ? { prompt: "consent" } : undefined,
+    );
     const response = NextResponse.redirect(url);
     const secure =
       process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
