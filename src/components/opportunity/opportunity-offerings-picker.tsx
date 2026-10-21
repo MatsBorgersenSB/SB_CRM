@@ -163,12 +163,17 @@ function CompactOfferingSelector({
         <span className="sr-only">Search offerings</span>
         <input
           ref={inputRef}
-          type="search"
+          type="text"
           value={query}
           autoFocus
           disabled={disabled}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search or name a new offering…"
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            addNamed(category === "all" ? "product" : category);
+          }}
+          placeholder="Search or type a new name, then press Enter"
           className="w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue placeholder:text-carbon-blue/50"
         />
       </label>
@@ -191,37 +196,47 @@ function CompactOfferingSelector({
         ))}
       </div>
 
-      {named.length >= 2 ? (
-        <div className="mt-2">
-          <p className="text-[12px] text-carbon-blue/65">
-            Add “{named}” as a new offering
-          </p>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {OFFERING_CATEGORIES.map((entry) => (
-              <button
-                key={entry}
-                type="button"
-                disabled={disabled}
-                onClick={() => addNamed(entry)}
-                className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:opacity-50"
-              >
-                {ADD_AS_LABEL[entry]}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p className="mt-2 text-[12px] text-carbon-blue/55">
-          Type a name, then add it as a system, product, or service.
-        </p>
-      )}
-
       <ul className="mt-2 max-h-48 overflow-y-auto border-t border-carbon-blue/8 pt-2">
-        {options.length === 0 ? (
+        {named.length >= 2
+          ? (category === "all"
+              ? (["product", "system", "service"] as OfferingCategory[])
+              : [category]
+            ).map((entry) => {
+              const alreadyListed = [...STANDARD_BIO_OFFERINGS, ...extraOfferings].some(
+                (offering) =>
+                  offering.category === entry &&
+                  offering.name.toLowerCase() === named.toLowerCase(),
+              );
+              if (alreadyListed) return null;
+              return (
+                <li key={`new-${entry}`}>
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => addNamed(entry)}
+                    className="flex w-full items-start justify-between gap-2 px-1 py-2 text-left transition-colors hover:bg-upcycle-orange/[0.06] disabled:opacity-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-[13px] font-semibold text-carbon-blue">
+                        {named}
+                      </span>
+                      <span className="mt-0.5 block text-[12px] text-upcycle-orange">
+                        New {ADD_AS_LABEL[entry].toLowerCase()}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[12px] font-semibold text-upcycle-orange">
+                      Add
+                    </span>
+                  </button>
+                </li>
+              );
+            })
+          : null}
+        {options.length === 0 && named.length < 2 ? (
           <li className="px-1 py-2 text-[13px] text-carbon-blue/65">
             {selectedIds.length > 0 && !query.trim() && category === "all"
               ? "All offerings selected."
-              : "No matching offerings."}
+              : "Type a name such as Biochar, then choose Add."}
           </li>
         ) : (
           options.map((offering) => (
