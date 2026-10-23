@@ -3,16 +3,9 @@
  */
 import type { Contact } from "@/types/contact";
 import type { CompanyType } from "@/types/company-type";
+import type { SharePointLookup, SharePointPerson } from "@/types/sharepoint";
 
-export type SharePointLookup = {
-  Id: number;
-  Title: string;
-};
-
-export type SharePointPerson = {
-  Id: number;
-  Title: string;
-};
+export type { SharePointLookup, SharePointPerson };
 
 export type CompanyIndustry = string;
 

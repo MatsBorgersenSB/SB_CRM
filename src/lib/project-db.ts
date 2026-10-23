@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { cache } from "react";
 import { PROJECTS } from "@/data/projects-data";
 import { getPrisma, isPrismaConnectionError } from "@/lib/prisma";
 import {
@@ -162,8 +163,17 @@ async function repairFalseProjectCompanyLinks(): Promise<void> {
 /**
  * Seed Neon once from the bundled JSON so existing projects (Carbon Emergente, etc.)
  * survive the move off ephemeral /tmp filesystem storage.
+ * The repair is idempotent, so a process runs it once instead of on every Today render.
+ * A failed connection is not remembered — the next read tries again.
  */
+let projectsReady = false;
+
 async function ensureSeeded(): Promise<void> {
+  if (projectsReady) return;
+  await ensureSeededFromStore();
+}
+
+async function ensureSeededFromStore(): Promise<void> {
   try {
     const prisma = getPrisma();
     const count = await prisma.projectWorkspace.count();
@@ -183,6 +193,7 @@ async function ensureSeeded(): Promise<void> {
     }
 
     await repairFalseProjectCompanyLinks();
+    projectsReady = true;
   } catch (error) {
     if (isPrismaConnectionError(error)) {
       console.warn(
@@ -195,7 +206,7 @@ async function ensureSeeded(): Promise<void> {
   }
 }
 
-export async function readProjects(): Promise<Project[]> {
+async function readProjectsFromStore(): Promise<Project[]> {
   try {
     await ensureSeeded();
     const rows = await getPrisma().projectWorkspace.findMany({
@@ -221,6 +232,9 @@ export async function readProjects(): Promise<Project[]> {
     return loadBundledSeedProjects();
   }
 }
+
+/** One project list per server request. Today calls this from focus, SmartDocs, and correspondence. */
+export const readProjects = cache(readProjectsFromStore);
 
 export async function readProjectById(projectId: string): Promise<Project | null> {
   try {

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { useEscapeKey } from "@/hooks/use-escape-key";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
@@ -32,8 +31,6 @@ function formatWhen(iso: string): string {
  */
 export function NotificationBell() {
   const { user } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const unreadRef = useRef(0);
@@ -52,15 +49,18 @@ export function NotificationBell() {
       setError(null);
     }
     try {
-      const response = await fetch("/api/notifications", {
-        headers: {
-          [AUTH_ROLE_HEADER]: user.role,
-          "x-sb-user-id": String(user.id),
-          "x-sb-user-name": user.displayName,
-          ...(user.email ? { "x-sb-user-email": user.email } : {}),
+      const response = await fetch(
+        silent ? "/api/notifications?view=count" : "/api/notifications",
+        {
+          headers: {
+            [AUTH_ROLE_HEADER]: user.role,
+            "x-sb-user-id": String(user.id),
+            "x-sb-user-name": user.displayName,
+            ...(user.email ? { "x-sb-user-email": user.email } : {}),
+          },
+          cache: "no-store",
         },
-        cache: "no-store",
-      });
+      );
       const payload = (await response.json().catch(() => ({}))) as {
         notifications?: NotificationDto[];
         unreadCount?: number;
@@ -69,19 +69,20 @@ export function NotificationBell() {
       if (!response.ok) {
         throw new Error(payload.error || "Could not load notifications");
       }
-      setItems(payload.notifications ?? []);
       const nextUnread = payload.unreadCount ?? 0;
-      if (silent && nextUnread > unreadRef.current && pathname === "/") {
-        router.refresh();
-      }
       unreadRef.current = nextUnread;
       setUnreadCount(nextUnread);
+      if (!silent) {
+        setItems(payload.notifications ?? []);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      if (!silent) {
+        setError(err instanceof Error ? err.message : "Failed to load");
+      }
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [pathname, router, user.displayName, user.email, user.id, user.role]);
+  }, [user.displayName, user.email, user.id, user.role]);
 
   useEffect(() => {
     void load();

@@ -244,5 +244,5 @@ export const defaultActivities: Activity[] = [
   },
 ];
 
-/** @deprecated Use defaultActivities from @/lib/activities-data */
-export { defaultActivities as defaultInteractions } from "@/lib/activities-data";
+/** @deprecated Use defaultActivities. */
+export const defaultInteractions = defaultActivities;

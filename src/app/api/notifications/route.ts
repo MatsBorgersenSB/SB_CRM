@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getRequestRole } from "@/lib/api-auth";
 import { resolveNotificationInboxUserId } from "@/lib/notifications/living-signals";
 import {
+  countUnreadForUser,
   createNotification,
   listNotificationsForUser,
 } from "@/lib/notifications/notification-service";
@@ -15,8 +16,14 @@ export async function GET(request: Request) {
   const role = getRequestRole(request);
   const actor = resolveAuditActor(request, role);
   const userId = await resolveNotificationInboxUserId(actor);
+  const view = new URL(request.url).searchParams.get("view");
 
   try {
+    if (view === "count") {
+      const unreadCount = await countUnreadForUser(userId);
+      return NextResponse.json({ success: true, unreadCount });
+    }
+
     let notifications = await listNotificationsForUser(userId, { limit: 40 });
 
     if (notifications.length === 0) {

@@ -66,17 +66,30 @@ export function AuthProvider({
       role: nextRole,
     });
 
-    setUser((current) => ({
-      id: owner.Id,
-      displayName: owner.Title || displayName,
-      email,
-      image: session.user.image ?? null,
-      role: nextRole,
-      companyId:
-        nextRole === "client_lead"
-          ? (current.companyId ?? ROLE_COMPANY_DEFAULTS.client_lead)
-          : undefined,
-    }));
+    setUser((current) => {
+      const next: AuthUser = {
+        id: owner.Id,
+        displayName: owner.Title || displayName,
+        email,
+        image: session.user.image ?? null,
+        role: nextRole,
+        companyId:
+          nextRole === "client_lead"
+            ? (current.companyId ?? ROLE_COMPANY_DEFAULTS.client_lead)
+            : undefined,
+      };
+      if (
+        current.id === next.id &&
+        current.displayName === next.displayName &&
+        current.email === next.email &&
+        current.image === next.image &&
+        current.role === next.role &&
+        current.companyId === next.companyId
+      ) {
+        return current;
+      }
+      return next;
+    });
   }, [session, status]);
 
   const setRole = useCallback((role: UserRole) => {

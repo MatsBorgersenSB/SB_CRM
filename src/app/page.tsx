@@ -54,22 +54,34 @@ function withTimeout<T>(
 }
 
 export default async function Home() {
-  const focus = await withTimeout(
+  const emptyDocs: SmartDocLibraryRecord[] = [];
+  const emptyTenders: TenderListItem[] = [];
+  const emptyInbound: InboundMailAttentionSignal[] = [];
+  const emptyCorrespondence: CorrespondenceByCompanyId = {};
+
+  const focusPromise = withTimeout(
     settle(readLiveFocusContext(), EMPTY_FOCUS, "focus"),
     8000,
     EMPTY_FOCUS,
     "focus",
   );
-  const companies = focus.companies;
-  const pipelines = focus.pipelines;
-  const activities = focus.activities;
-  const commercialPackages = focus.commercialPackages;
+  const correspondencePromise = focusPromise.then((focus) =>
+    withTimeout(
+      settle(
+        loadCorrespondenceEvidenceByCompanyId(focus.companies, { take: 1000 }).then(
+          compactCorrespondenceForLists,
+        ),
+        emptyCorrespondence,
+        "correspondence",
+      ),
+      8000,
+      emptyCorrespondence,
+      "correspondence",
+    ),
+  );
 
-  const emptyDocs: SmartDocLibraryRecord[] = [];
-  const emptyTenders: TenderListItem[] = [];
-  const emptyInbound: InboundMailAttentionSignal[] = [];
-  const emptyCorrespondence: CorrespondenceByCompanyId = {};
-  const [smartDocs, tenders, inboundMail, correspondence] = await Promise.all([
+  const [focus, smartDocs, tenders, inboundMail, correspondence] = await Promise.all([
+    focusPromise,
     withTimeout(
       settle(readLiveSmartDocsLibrary(), emptyDocs, "SmartDocs"),
       4000,
@@ -92,19 +104,12 @@ export default async function Home() {
       emptyInbound,
       "inbound mail",
     ),
-    withTimeout(
-      settle(
-        loadCorrespondenceEvidenceByCompanyId(companies, { take: 1000 }).then(
-          compactCorrespondenceForLists,
-        ),
-        emptyCorrespondence,
-        "correspondence",
-      ),
-      8000,
-      emptyCorrespondence,
-      "correspondence",
-    ),
+    correspondencePromise,
   ]);
+  const companies = focus.companies;
+  const pipelines = focus.pipelines;
+  const activities = focus.activities;
+  const commercialPackages = focus.commercialPackages;
 
   return (
     <DashboardShell

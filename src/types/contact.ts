@@ -1,4 +1,4 @@
-import type { SharePointLookup, SharePointPerson } from "@/types/company";
+import type { SharePointLookup, SharePointPerson } from "@/types/sharepoint";
 import type {
   CareerHistoryEntry,
   CompanyTransferRecord,

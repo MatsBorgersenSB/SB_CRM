@@ -6,13 +6,21 @@ import { listPendingTenders } from "@/lib/tenders/queries";
 import { DEFAULT_AUTH_USER } from "@/types/auth";
 
 export async function GET() {
-  const { companies, pipelines, activities, commercialPackages } =
-    await readLiveFocusContext();
-
-  const [correspondenceByCompanyId, smartDocs, tenders] = await Promise.all([
+  const focusPromise = readLiveFocusContext();
+  const correspondencePromise = focusPromise.then(({ companies }) =>
     loadCorrespondenceEvidenceByCompanyId(companies, { take: 100 }).catch(
       () => new Map(),
     ),
+  );
+
+  const [
+    { companies, pipelines, activities, commercialPackages },
+    correspondenceByCompanyId,
+    smartDocs,
+    tenders,
+  ] = await Promise.all([
+    focusPromise,
+    correspondencePromise,
     readLiveSmartDocsLibrary().catch(() => []),
     listPendingTenders({ take: 12 }).catch(() => []),
   ]);
