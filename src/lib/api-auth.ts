@@ -1,4 +1,3 @@
-import { auth } from "@/lib/auth";
 import type { UserRole } from "@/types/auth";
 import { AUTH_ROLE_HEADER, isUserRole } from "@/types/auth";
 
@@ -30,6 +29,7 @@ export async function resolveRequestRole(request: Request): Promise<UserRole> {
   }
 
   try {
+    const { auth } = await import("@/lib/auth");
     const session = await auth();
     const sessionRole = session?.user?.role;
     if (sessionRole && isUserRole(sessionRole)) {

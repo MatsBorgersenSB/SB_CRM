@@ -171,25 +171,27 @@ const azureTenantId =
   process.env.AZURE_AD_TENANT_ID?.trim() || getAzureAdTenantId() || "organizations";
 const azureIssuer = resolveAzureIssuer();
 
-logAuthEnvPresence();
+if (typeof window === "undefined") {
+  logAuthEnvPresence();
 
-if (!process.env.NEXTAUTH_SECRET?.trim() && !process.env.AUTH_SECRET?.trim()) {
-  console.warn(
-    "[NextAuth] NEXTAUTH_SECRET/AUTH_SECRET missing — using fallback JWT secret. Set a real secret in Vercel.",
-  );
+  if (!process.env.NEXTAUTH_SECRET?.trim() && !process.env.AUTH_SECRET?.trim()) {
+    console.warn(
+      "[NextAuth] NEXTAUTH_SECRET/AUTH_SECRET missing — using fallback JWT secret. Set a real secret in Vercel.",
+    );
+  }
+
+  if (!azureClientSecret) {
+    console.error(
+      "[NextAuth] AZURE_AD_CLIENT_SECRET is empty at runtime. Set it in Vercel → Settings → Environment Variables, then Redeploy. Do not commit the secret to git.",
+    );
+  }
+
+  console.log("[NextAuth] Azure issuer configured:", azureIssuer, {
+    clientIdPrefix: azureClientId.slice(0, 8),
+    tenantId: azureTenantId,
+    hasClientSecret: Boolean(azureClientSecret),
+  });
 }
-
-if (!azureClientSecret) {
-  console.error(
-    "[NextAuth] AZURE_AD_CLIENT_SECRET is empty at runtime. Set it in Vercel → Settings → Environment Variables, then Redeploy. Do not commit the secret to git.",
-  );
-}
-
-console.log("[NextAuth] Azure issuer configured:", azureIssuer, {
-  clientIdPrefix: azureClientId.slice(0, 8),
-  tenantId: azureTenantId,
-  hasClientSecret: Boolean(azureClientSecret),
-});
 
 /**
  * Auth.js v5 Azure/Entra provider defaults to id `microsoft-entra-id`.

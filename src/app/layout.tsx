@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Inter } from "next/font/google";
 import { RootProviders } from "@/components/providers/root-providers";
 import { outlookHistoryPolyfillScript } from "@/lib/outlook-addin-shell";
@@ -23,22 +22,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full bg-background font-sans text-foreground">
+      <head>
         {/*
-          beforeInteractive only works from the root layout.
-          Outlook Web stubs history.pushState/replaceState; Next App Router
-          calls them on hydrate and crashes. Polyfill is a no-op when History works.
+          Blocking inline scripts. The browser runs them while parsing, before React hydrates.
+          next/script is a client component, and React 19 does not execute a script it creates.
+          Outlook Web stubs history.pushState/replaceState; the polyfill is a no-op when History works.
         */}
-        <Script
-          id="smartcrm-theme-boot"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: themeBootScript() }}
-        />
-        <Script
+        <script id="smartcrm-theme-boot" dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
+        <script
           id="smartcrm-outlook-history-polyfill"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: outlookHistoryPolyfillScript() }}
         />
+      </head>
+      <body className="min-h-full bg-background font-sans text-foreground">
         <RootProviders>{children}</RootProviders>
       </body>
     </html>

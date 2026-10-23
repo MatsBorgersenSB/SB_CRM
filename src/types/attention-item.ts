@@ -154,7 +154,12 @@ export function sortAttentionItems(items: AttentionItem[]): AttentionItem[] {
     }
     if (a.dueDate) return -1;
     if (b.dueDate) return 1;
-    return a.sourceObjectName.localeCompare(b.sourceObjectName);
+    // Node defaults to nb-NO and the browser to en-US. A bare localeCompare
+    // puts Å/Ø names in different places on each side and the row icons fail hydration.
+    const nameDiff = a.sourceObjectName.localeCompare(b.sourceObjectName, "nb");
+    if (nameDiff !== 0) return nameDiff;
+    if (a.id === b.id) return 0;
+    return a.id < b.id ? -1 : 1;
   });
 }
 

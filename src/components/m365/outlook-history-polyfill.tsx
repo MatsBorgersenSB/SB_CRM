@@ -6,7 +6,7 @@ import {
 
 /**
  * Inline History polyfill for Outlook route layouts.
- * Root layout also installs via next/script beforeInteractive; this duplicate
+ * Root layout also installs a blocking inline script; this duplicate
  * runs as a blocking inline script in the Outlook shell in case of injection order quirks.
  */
 export function OutlookHistoryPolyfillScript() {
