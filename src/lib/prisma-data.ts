@@ -462,12 +462,14 @@ export async function readLiveSmartDocsLibrary(): Promise<SmartDocLibraryRecord[
 /** Activities from the single store (Prisma; JSON locally) — pruned to live entities. */
 export async function readLiveActivities() {
   const activities = await readStoredActivities();
-  if (shouldFallbackToJsonPortfolio()) return activities;
 
   const [portfolio, projects] = await Promise.all([
     readLivePortfolio(),
     readProjects().catch(() => [] as Project[]),
   ]);
+  // Pure local seed (no registry): companies and activities come from the same JSON, keep both.
+  // As soon as the registry is real — even in local dev — seed activities must not leak in.
+  if (portfolio.source === "json") return activities;
   return filterActivitiesToLiveEntities(activities, {
     companies: portfolio.companies,
     pipelines: portfolio.pipelines,
@@ -485,9 +487,9 @@ export async function getLiveActivityById(activityId: string) {
 
 export async function readLiveCommercialPackages() {
   const packages = await readJsonCommercialPackages();
-  if (shouldFallbackToJsonPortfolio()) return packages;
 
   const portfolio = await readLivePortfolio();
+  if (portfolio.source === "json") return packages;
   const dealIds = new Set(portfolio.pipelines.map((pipeline) => pipeline.id));
   return packages.filter((pkg) => dealIds.has(pkg.DealId));
 }

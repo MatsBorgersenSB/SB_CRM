@@ -69,12 +69,16 @@ export function CompaniesOperationsTable({
             <WorkspaceTableBodyCell>
               <Link
                 href={row.companyHref}
-                className="block truncate font-semibold text-carbon-blue hover:text-upcycle-orange"
+                className="line-clamp-2 break-words font-semibold text-carbon-blue hover:text-upcycle-orange"
+                title={row.companyName}
               >
                 {row.companyName}
               </Link>
               {row.locationLabel && row.locationLabel !== "—" ? (
-                <span className="block truncate text-[12px] text-carbon-blue/65">
+                <span
+                  className="block truncate text-[12px] text-carbon-blue/65"
+                  title={row.locationLabel}
+                >
                   {row.locationLabel}
                 </span>
               ) : null}

@@ -253,6 +253,8 @@ function EmptyActivities({
     ? new Date(syncedMail.latestSentAt).toLocaleDateString("en-GB", {
         day: "numeric",
         month: "short",
+        // Fixed zone: server (UTC) and browser must agree on the day, or hydration mismatches near midnight.
+        timeZone: "Europe/Oslo",
       })
     : null;
 
