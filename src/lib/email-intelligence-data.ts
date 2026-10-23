@@ -501,6 +501,37 @@ export async function readSyncedMailSummary(): Promise<SyncedMailSummary> {
 }
 
 /**
+ * Most recent synced mail that SmartCRM already understands (linked to a contact,
+ * opportunity or project). Internal-only threads are left out — they are not CRM knowledge.
+ */
+export async function readRecentLinkedEmails(
+  limit = 50,
+): Promise<EmailMessageIntelligenceDto[]> {
+  try {
+    const prisma = getPrisma();
+    const messages = await prisma.emailMessageRecord.findMany({
+      where: {
+        isDeletedInSource: false,
+        OR: [
+          { contactId: { not: null } },
+          { opportunityId: { not: null } },
+          { projectId: { not: null } },
+        ],
+      },
+      include: emailMessageInclude,
+      orderBy: { sentAt: "desc" },
+      take: limit * 2,
+    });
+    return messages
+      .map(toEmailDto)
+      .filter((message) => !message.isInternalOnly)
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Load EmailMessageRecord rows for an opportunity, oldest → newest within threads.
  */
 export async function readEmailsForOpportunity(
