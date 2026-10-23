@@ -57,15 +57,30 @@ export function getAzureAdTenantId(): string {
  * Always return a non-empty string so Auth.js never throws MissingSecret.
  */
 export function resolveAuthSecret(): string {
-  return (
-    process.env.NEXTAUTH_SECRET?.trim() ||
-    process.env.AUTH_SECRET?.trim() ||
-    "smartcrm-production-fallback-secret-2026"
-  );
+  const configured =
+    process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
+  if (configured) return configured;
+
+  // Never ship a guessable signing secret: a committed constant would let anyone forge sessions.
+  if (process.env.NODE_ENV !== "production") return "smartcrm-local-dev-secret";
+  return ephemeralSecret();
+}
+
+let ephemeral: string | undefined;
+
+/** Per-process random secret — fails closed (sessions do not survive/cross instances). */
+function ephemeralSecret(): string {
+  if (!ephemeral) {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    ephemeral = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    console.error("[SmartCRM] AUTH_SECRET / NEXTAUTH_SECRET is not set — using an ephemeral secret.");
+  }
+  return ephemeral;
 }
 
 /** Runtime presence check — never logs secret values. */
 export function logAuthEnvPresence(): void {
+  if (process.env.AUTH_TRACE !== "1") return;
   console.log("[NextAuth] env presence", {
     NEXTAUTH_SECRET: Boolean(process.env.NEXTAUTH_SECRET?.trim()),
     AUTH_SECRET: Boolean(process.env.AUTH_SECRET?.trim()),

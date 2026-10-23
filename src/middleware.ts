@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { resolveAuthSecret } from "@/lib/auth-env";
+import { applyTrustedRoleHeader } from "@/lib/security/trusted-role-header";
 
 /**
  * Strict auth guard for application pages.
@@ -17,6 +18,8 @@ export async function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
+  // Never trust a client-supplied role; it is re-derived from the session below.
+  applyTrustedRoleHeader(requestHeaders, undefined);
 
   // Ghost CRA /static/js chunks (not shipped by this Next app). Never redirect them
   // to HTML /auth/signin — that produces script SyntaxErrors and confusing stacks.
@@ -37,6 +40,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/m365/graph-webhook") ||
     pathname.startsWith("/api/health") ||
+    // Inngest calls are machine-to-machine (verified by INNGEST_SIGNING_KEY).
+    pathname.startsWith("/api/inngest") ||
+    // Sentry tunnel (next.config.ts `tunnelRoute`) — browser events carry no session.
+    pathname.startsWith("/monitoring") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/azure-start") ||
     // Dialog bridge claim runs in the task-pane iframe before a session cookie exists.
@@ -66,7 +73,7 @@ export async function middleware(request: NextRequest) {
   });
 
   if (!token) {
-    console.log(
+    if (process.env.AUTH_TRACE === "1") console.log(
       "[SmartCRM AuthTrace]",
       JSON.stringify({
         step: "middleware.no_token",
@@ -91,6 +98,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
+  // Same fallback as the session callback in lib/auth.ts.
+  applyTrustedRoleHeader(requestHeaders, token.accessRole ?? "commercial");
+
   return NextResponse.next({
     request: { headers: requestHeaders },
   });
@@ -98,6 +108,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|api/azure-start|api/outlook/dialog-bridge|auth/signin|_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/auth|api/inngest|monitoring|api/azure-start|api/outlook/dialog-bridge|auth/signin|_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

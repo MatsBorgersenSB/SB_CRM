@@ -1,3 +1,4 @@
+import { requireAdminRole } from "@/lib/security/require-admin";
 import { NextResponse } from "next/server";
 import {
   completeWorkspaceArchitectSession,
@@ -21,6 +22,9 @@ async function loadCrmData() {
 }
 
 export async function POST(request: Request) {
+  const gate = requireAdminRole(request);
+  if ("error" in gate) return gate.error;
+
   const body = (await request.json()) as { session: WorkspaceArchitectSession };
   const crm = await loadCrmData();
 
@@ -33,6 +37,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const gate = requireAdminRole(request);
+  if ("error" in gate) return gate.error;
+
   const body = (await request.json()) as { session: WorkspaceArchitectSession };
   const session: WorkspaceArchitectSession = {
     ...body.session,

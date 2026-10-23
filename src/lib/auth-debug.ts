@@ -97,11 +97,19 @@ export function buildAuthDebugSnapshot(): AuthDebugSnapshot {
   };
 }
 
+/** Auth tracing is opt-in (AUTH_TRACE=1) so production logs stay clean. */
+export function isAuthTraceEnabled(): boolean {
+  return process.env.AUTH_TRACE === "1";
+}
+
+export function authTraceLog(tag: string, payload: string): void {
+  if (isAuthTraceEnabled()) console.log(tag, payload);
+}
 export function authTrace(step: string, detail?: Record<string, unknown>): void {
   const payload = {
     step,
     at: new Date().toISOString(),
     ...detail,
   };
-  console.log("[SmartCRM AuthTrace]", JSON.stringify(payload));
+  authTraceLog("[SmartCRM AuthTrace]", JSON.stringify(payload));
 }

@@ -10,6 +10,7 @@ import {
   logAuthEnvPresence,
   resolveAuthSecret,
 } from "@/lib/auth-env";
+import { authTraceLog, isAuthTraceEnabled } from "@/lib/auth-debug";
 import {
   SMARTCRM_PRODUCTION_HOST,
   SMARTCRM_PRODUCTION_ORIGIN,
@@ -186,7 +187,7 @@ if (typeof window === "undefined") {
     );
   }
 
-  console.log("[NextAuth] Azure issuer configured:", azureIssuer, {
+  if (isAuthTraceEnabled()) console.log("[NextAuth] Azure issuer configured:", azureIssuer, {
     clientIdPrefix: azureClientId.slice(0, 8),
     tenantId: azureTenantId,
     hasClientSecret: Boolean(azureClientSecret),
@@ -231,7 +232,7 @@ async function azureDiscoveryFetch(
       url.href.match(/microsoftonline\.com\/([^/]+)\/v2\.0/)?.[1] ??
       "organizations";
     const issuer = String(json.issuer ?? "").replace("{tenantid}", tenantId);
-    console.log("[NextAuth] Entra discovery issuer rewrite:", { tenantId, issuer });
+    if (isAuthTraceEnabled()) console.log("[NextAuth] Entra discovery issuer rewrite:", { tenantId, issuer });
     return Response.json({ ...json, issuer });
   }
   return fetch(...args);
@@ -362,7 +363,7 @@ export const authOptions: NextAuthConfig = {
   logger: {
     error(error) {
       console.error("[NextAuth ERROR]", error);
-      console.log(
+      authTraceLog(
         "[SmartCRM AuthTrace]",
         JSON.stringify({
           step: "logger.error",
@@ -378,18 +379,18 @@ export const authOptions: NextAuthConfig = {
     },
     warn(code) {
       console.warn("[NextAuth WARN]", code);
-      console.log(
+      authTraceLog(
         "[SmartCRM AuthTrace]",
         JSON.stringify({ step: "logger.warn", at: new Date().toISOString(), code }),
       );
     },
     debug(code, metadata) {
-      console.log("[NextAuth DEBUG]", code, metadata);
+      if (isAuthTraceEnabled()) console.log("[NextAuth DEBUG]", code, metadata);
     },
   },
   events: {
     async signIn(message) {
-      console.log(
+      authTraceLog(
         "[SmartCRM AuthTrace]",
         JSON.stringify({
           step: "events.signIn",
@@ -401,7 +402,7 @@ export const authOptions: NextAuthConfig = {
       );
     },
     async signOut() {
-      console.log(
+      authTraceLog(
         "[SmartCRM AuthTrace]",
         JSON.stringify({ step: "events.signOut", at: new Date().toISOString() }),
       );
@@ -409,7 +410,7 @@ export const authOptions: NextAuthConfig = {
     async session() {
       // noisy — only log occasionally via debug flag
       if (process.env.AUTH_DEBUG === "1") {
-        console.log(
+        authTraceLog(
           "[SmartCRM AuthTrace]",
           JSON.stringify({ step: "events.session", at: new Date().toISOString() }),
         );
@@ -419,7 +420,7 @@ export const authOptions: NextAuthConfig = {
   callbacks: {
     async redirect({ url, baseUrl }) {
       const safeBaseUrl = normalizeAuthBaseUrl(baseUrl);
-      console.log(
+      authTraceLog(
         "[SmartCRM AuthTrace]",
         JSON.stringify({
           step: "callback.redirect",
@@ -441,7 +442,7 @@ export const authOptions: NextAuthConfig = {
 
     async signIn({ user, account, profile }) {
       try {
-        console.log(
+        authTraceLog(
           "[SmartCRM AuthTrace]",
           JSON.stringify({
             step: "callback.signIn",
@@ -459,7 +460,7 @@ export const authOptions: NextAuthConfig = {
         return true;
       } catch (error) {
         console.error("[NextAuth Callback Error]", error);
-        console.log(
+        authTraceLog(
           "[SmartCRM AuthTrace]",
           JSON.stringify({
             step: "callback.signIn.error",
@@ -473,7 +474,7 @@ export const authOptions: NextAuthConfig = {
 
     async jwt({ token, account, profile, user, trigger }) {
       try {
-        console.log(
+        authTraceLog(
           "[SmartCRM AuthTrace]",
           JSON.stringify({
             step: "callback.jwt",
@@ -529,7 +530,7 @@ export const authOptions: NextAuthConfig = {
           "[NextAuth DEBUG] jwt callback error — returning token as-is",
           error instanceof Error ? error.message : String(error),
         );
-        console.log(
+        authTraceLog(
           "[SmartCRM AuthTrace]",
           JSON.stringify({
             step: "callback.jwt.error",

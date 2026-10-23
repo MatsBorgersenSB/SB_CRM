@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buildAuthDebugSnapshot } from "@/lib/auth-debug";
+import { authTraceLog, buildAuthDebugSnapshot, isAuthTraceEnabled } from "@/lib/auth-debug";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,8 +11,10 @@ export const dynamic = "force-dynamic";
  * Open: https://sb-crm-seven.vercel.app/api/auth/debug
  */
 export async function GET() {
+  // Diagnostics are opt-in; hide the route entirely in normal operation.
+  if (!isAuthTraceEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const snapshot = buildAuthDebugSnapshot();
-  console.log("[SmartCRM AuthTrace]", JSON.stringify({ step: "debug.snapshot", ...snapshot }));
+  authTraceLog("[SmartCRM AuthTrace]", JSON.stringify({ step: "debug.snapshot", ...snapshot }));
   return NextResponse.json(
     {
       ok: true,
