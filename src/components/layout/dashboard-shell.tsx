@@ -14,8 +14,13 @@ import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { useAuth } from "@/context/auth-context";
 import { buildRelationshipCommandCenter, getWelcomeGreeting } from "@/lib/relationship-intelligence";
 import { buildAttentionQueue, topAttentionHeadline } from "@/lib/smart-attention-engine";
-import { groupAttentionBySeverity } from "@/types/attention-item";
-import { buildDailyBriefing } from "@/lib/smartcrm-copilot-engine";
+import { flattenAttentionQueue, groupAttentionBySeverity } from "@/types/attention-item";
+import {
+  attentionSummaryLine,
+  countUpcomingTasks,
+  dedupeQueueByCompany,
+} from "@/lib/attention-focus";
+import { filterActivitiesToLiveEntities } from "@/lib/activity-utils";
 import {
   filterCompaniesForUser,
   filterPipelinesForUser,
@@ -133,17 +138,6 @@ function DashboardShellContent({
     }
   }, [scopedActivities, scopedCompanies, scopedPipelines, correspondenceMap]);
 
-  const dailyBriefing = useMemo(() => {
-    try {
-      return buildDailyBriefing(scopedCompanies, scopedPipelines, scopedActivities);
-    } catch (error) {
-      console.error("[today] briefing failed", error);
-      return {
-        headline: "What needs attention, and what should happen next.",
-      };
-    }
-  }, [scopedActivities, scopedCompanies, scopedPipelines]);
-
   const attentionQueue = useMemo(() => {
     try {
       return buildAttentionQueue({
@@ -171,6 +165,22 @@ function DashboardShellContent({
     inboundMail,
   ]);
 
+
+  // The headline and the list below share one deduplicated set — counts cannot disagree.
+  const focusQueue = useMemo(() => dedupeQueueByCompany(attentionQueue), [attentionQueue]);
+
+  const upcomingTasks = useMemo(() => {
+    const live = filterActivitiesToLiveEntities(scopedActivities, {
+      companies: scopedCompanies,
+      pipelines: scopedPipelines,
+    });
+    const surfaced = new Set(
+      flattenAttentionQueue(attentionQueue, { includeHealthy: true }).map(
+        (row) => row.sourceObjectId,
+      ),
+    );
+    return countUpcomingTasks(live, user.displayName, surfaced);
+  }, [scopedActivities, scopedCompanies, scopedPipelines, attentionQueue, user.displayName]);
 
   const recentActivity = data.recentActivities.slice(0, 4);
 
@@ -201,15 +211,27 @@ function DashboardShellContent({
           <WorkspaceStack>
             <IntelligenceLead
               eyebrow={getWelcomeGreeting(user.displayName)}
-              title={topAttentionHeadline(attentionQueue)}
-              summary={dailyBriefing.headline}
+              title={topAttentionHeadline(focusQueue)}
+              summary={attentionSummaryLine(focusQueue)}
             />
 
-            <SmartAssistCopilotHost />
+            <SmartAssistCopilotHost compact />
 
             <WorkspacePanel title="Attention">
               <MyAttentionPanel queue={attentionQueue} ownerFilter={ownerFilter} />
             </WorkspacePanel>
+
+            {upcomingTasks > 0 ? (
+              <p className="px-1 text-xs text-muted-foreground">
+                {upcomingTasks} more {upcomingTasks === 1 ? "task" : "tasks"} due this week ·{" "}
+                <Link
+                  href="/activities"
+                  className="font-medium text-carbon-blue hover:text-upcycle-orange"
+                >
+                  Open Activities
+                </Link>
+              </p>
+            ) : null}
 
             {recentActivity.length > 0 ? (
               <CollapsibleSection title="Recent activity" tier="expert">

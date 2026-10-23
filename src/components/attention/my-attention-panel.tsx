@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import type { AttentionQueue } from "@/types/attention-item";
 import { flattenAttentionQueue } from "@/types/attention-item";
+import {
+  dedupeAttentionByCompany,
+  TODAY_ATTENTION_VISIBLE,
+} from "@/lib/attention-focus";
 import { filterDismissedAttentionItems } from "@/lib/attention-dismiss-store";
 import { AttentionQueueTable } from "@/components/attention/attention-queue-table";
+
+const subscribeNever = () => () => {};
 
 type MyAttentionPanelProps = {
   queue: AttentionQueue;
@@ -14,15 +20,22 @@ type MyAttentionPanelProps = {
   ownerFilter?: string;
 };
 
-export function MyAttentionPanel({ queue, limit = 20, ownerFilter }: MyAttentionPanelProps) {
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+export function MyAttentionPanel({
+  queue,
+  limit = TODAY_ATTENTION_VISIBLE,
+  ownerFilter,
+}: MyAttentionPanelProps) {
+  // Dismissals live in localStorage: false on the server and first client render, true after.
+  const hydrated = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
+  const [showAll, setShowAll] = useState(false);
 
-  const items = useMemo(() => {
-    let rows = flattenAttentionQueue(queue, {
-      includeHealthy: false,
-      limit: ownerFilter ? 100 : limit,
-    });
+  // Dismiss first, then one row per company — dismissing the lead item reveals the next.
+  const allItems = useMemo(() => {
+    let rows = flattenAttentionQueue(queue, { includeHealthy: false });
 
     if (ownerFilter) {
       rows = rows.filter(
@@ -30,8 +43,11 @@ export function MyAttentionPanel({ queue, limit = 20, ownerFilter }: MyAttention
       );
     }
 
-    return hydrated ? filterDismissedAttentionItems(rows) : rows;
-  }, [queue, limit, ownerFilter, hydrated]);
+    return dedupeAttentionByCompany(hydrated ? filterDismissedAttentionItems(rows) : rows);
+  }, [queue, ownerFilter, hydrated]);
+
+  const items = showAll || ownerFilter ? allItems : allItems.slice(0, limit);
+  const hiddenCount = allItems.length - items.length;
 
   if (items.length === 0) {
     return (
@@ -44,9 +60,20 @@ export function MyAttentionPanel({ queue, limit = 20, ownerFilter }: MyAttention
   }
 
   return (
-    <AttentionQueueTable
-      items={items}
-      emptyMessage="Nothing needs your attention right now. Your portfolio is healthy."
-    />
+    <div className="flex flex-col gap-3">
+      <AttentionQueueTable
+        items={items}
+        emptyMessage="Nothing needs your attention right now. Your portfolio is healthy."
+      />
+      {hiddenCount > 0 ? (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="self-start text-[13px] font-semibold text-upcycle-orange hover:underline"
+        >
+          Show {hiddenCount} more {hiddenCount === 1 ? "company" : "companies"}
+        </button>
+      ) : null}
+    </div>
   );
 }

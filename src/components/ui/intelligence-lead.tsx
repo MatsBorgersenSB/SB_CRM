@@ -23,7 +23,7 @@ export function IntelligenceLead({
   eyebrow: string;
   title: string;
   status?: ReactNode;
-  summary: string;
+  summary?: string;
   vitals?: Array<{ label: string; value: string; highlight?: boolean }>;
   action?: ReactNode;
   className?: string;
@@ -43,7 +43,9 @@ export function IntelligenceLead({
             <LivingRecordStrip items={vitals} />
           </div>
         ) : null}
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-carbon-blue/60">{summary}</p>
+        {summary ? (
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-carbon-blue/60">{summary}</p>
+        ) : null}
       </div>
       {action ? (
         <div className="border-t border-carbon-blue/8 px-5 py-4 sm:px-6">{action}</div>

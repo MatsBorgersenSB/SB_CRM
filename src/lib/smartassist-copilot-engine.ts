@@ -5,6 +5,7 @@ import {
   isFollowUpOverdue,
   resolveActivityCompany,
 } from "@/lib/activity-utils";
+import { attentionImpact } from "@/lib/attention-focus";
 import { buildAttentionItems } from "@/lib/smart-attention-engine";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -93,17 +94,6 @@ const RULE_SOURCE_MAP: Record<string, CoPilotSourceType> = {
   make_first_contact: "relationship",
 };
 
-function impactForSeverity(severity: AttentionItem["severity"]): string {
-  switch (severity) {
-    case "urgent":
-      return "Revenue or relationship at risk — delayed action may cost deal momentum";
-    case "needs_attention":
-      return "Commercial progress may slow — stakeholder confidence could weaken";
-    default:
-      return "Portfolio visibility improves with timely follow-through";
-  }
-}
-
 function observedChangeForItem(item: AttentionItem): string {
   switch (item.objectType) {
     case "Opportunity":
@@ -160,7 +150,7 @@ function proposalFromAttentionItem(
     status: "pending",
     title: item.suggestedAiAction,
     reason: item.recommendation,
-    impact: impactForSeverity(item.severity),
+    impact: attentionImpact(item),
     observedChange: observedChangeForItem(item),
     sourceType,
     severity: item.severity,

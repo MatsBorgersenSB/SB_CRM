@@ -273,7 +273,8 @@ function buildActivityAttention(
         sourceObjectId: activity.ActivityID,
         sourceObjectName: activity.NextAction || activity.Subject,
         objectType: "Activity",
-        severity: "waiting",
+        // Our own commitment due today is ours to act on — not "waiting on others".
+        severity: "needs_attention",
         recommendation: "Due today — complete or reschedule before end of day.",
         suggestedAiAction: activity.NextAction || "Complete commitment",
         dueDate: activity.NextActionDate,

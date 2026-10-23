@@ -13,6 +13,7 @@ import {
   type RelationshipHealthStatus,
 } from "@/lib/relationship-health-engine";
 import { daysBetween } from "@/lib/relative-time";
+import { isLeanSalesMotion, salesMotionProfileFor } from "@/lib/sales-motion";
 
 export type OpportunityHealthStatus = RelationshipHealthStatus;
 
@@ -125,6 +126,20 @@ const STAGE_BASE_PROBABILITY: Record<PipelineStatus, number> = {
   "Live Production": 95,
   "Scheduled Maintenance": 98,
 };
+
+/**
+ * Product and consulting sales: a customer who asks to buy is already a likely buyer.
+ * Project stages that do not apply (feedstock, build, commissioning) are not used.
+ */
+const LEAN_STAGE_BASE_PROBABILITY: Partial<Record<PipelineStatus, number>> = {
+  Prospecting: 40,
+  "Feedstock Analysis": 50,
+  "Contract Negotiation": 70,
+};
+
+function isLeanDeal(deal: PipelineRow): boolean {
+  return isLeanSalesMotion(salesMotionProfileFor(deal));
+}
 
 function parseActivityDate(value: string): Date {
   const normalized = value.includes("T") ? value : value.replace(" ", "T");
@@ -298,13 +313,15 @@ export function detectDealRisks(
   momentum: OpportunityMomentum,
 ): DealRiskSignal[] {
   const risks: DealRiskSignal[] = [];
+  const lean = isLeanDeal(deal);
   const stakeholders = countStakeholders(dealActivities, company);
   const last = dealActivities[0];
   const daysSince = last ? daysBetween(last.ActivityDate) : 999;
   const open = dealActivities.filter(isFollowUpOpen);
   const overdue = open.filter(isFollowUpOverdue);
 
-  if (stakeholders.engaged <= 1 && (company?.contacts.length ?? 0) > 1) {
+  // Lean sales: no stakeholder-coverage, account-relationship or "no activity yet" risks.
+  if (!lean && stakeholders.engaged <= 1 && (company?.contacts.length ?? 0) > 1) {
     risks.push({
       id: `${deal.id}-single-stakeholder`,
       type: "single_stakeholder",
@@ -314,12 +331,15 @@ export function detectDealRisks(
     });
   }
 
-  if (daysSince >= SILENCE_DAYS) {
+  if (daysSince >= SILENCE_DAYS && !(lean && !last)) {
     risks.push({
       id: `${deal.id}-silence`,
       type: "silence_risk",
       label: "Silence risk",
-      detail: `No deal activity in ${daysSince} days`,
+      // 999 is only the "never" sentinel — never present it as a real number of days.
+      detail: last
+        ? `No deal activity in ${daysSince} days`
+        : "No deal activity has been recorded yet",
       severity: daysSince >= STALLED_DAYS ? "critical" : "warning",
     });
   }
@@ -360,7 +380,7 @@ export function detectDealRisks(
     });
   }
 
-  if (relationshipHealthScore < 50) {
+  if (!lean && relationshipHealthScore < 50) {
     risks.push({
       id: `${deal.id}-relationship`,
       type: "relationship_risk",
@@ -433,20 +453,26 @@ export function explainWinProbability(
   momentum: OpportunityMomentum,
   risks: DealRiskSignal[],
   stakeholderScore: number,
+  hasActivity = true,
 ): WinProbabilityExplanation {
-  const stageBaseline = STAGE_BASE_PROBABILITY[deal.status];
+  const lean = isLeanDeal(deal);
+  const stageBaseline = lean
+    ? (LEAN_STAGE_BASE_PROBABILITY[deal.status] ?? STAGE_BASE_PROBABILITY[deal.status])
+    : STAGE_BASE_PROBABILITY[deal.status];
   const factors: WinProbabilityFactor[] = [];
 
   factors.push({
     id: "stage_baseline",
-    label: "Stage baseline",
-    detail: `${deal.status} is the current commercial stage — SmartCRM starts from a typical win rate for this stage.`,
+    label: lean ? "Customer wants to buy" : "Stage baseline",
+    detail: lean
+      ? `${deal.status} — a simple purchase (product or service), so the starting point is a quote-and-order sale, not a project that needs funding, permits and a build.`
+      : `${deal.status} is the current commercial stage — SmartCRM starts from a typical win rate for this stage.`,
     impactPoints: stageBaseline,
     direction: "base",
   });
 
-  const relationshipAdj = (relationshipHealthScore - 50) * 0.15;
-  factors.push({
+  const relationshipAdj = lean ? 0 : (relationshipHealthScore - 50) * 0.15;
+  if (!lean) factors.push({
     id: "relationship_health",
     label: "Account relationship",
     detail:
@@ -460,23 +486,26 @@ export function explainWinProbability(
       relationshipAdj > 0.5 ? "up" : relationshipAdj < -0.5 ? "down" : "neutral",
   });
 
-  const momentumAdj = momentumAdjustment(momentum);
+  // Lean sales with no logged activity: unknown, not "stalled" (Reality First).
+  const momentumAdj = lean && !hasActivity ? 0 : momentumAdjustment(momentum);
   const momentumDetail: Record<OpportunityMomentum, string> = {
     Accelerating: "Recent activity is picking up — momentum supports a higher win chance.",
     Stable: "Activity pace is steady — no momentum adjustment.",
     Slowing: "Engagement is cooling — momentum reduces win likelihood.",
     Stalled: "Little recent progress — stalled momentum sharply reduces win likelihood.",
   };
-  factors.push({
-    id: "momentum",
-    label: `Deal momentum · ${momentum}`,
-    detail: momentumDetail[momentum],
-    impactPoints: momentumAdj,
-    direction: momentumAdj > 0 ? "up" : momentumAdj < 0 ? "down" : "neutral",
-  });
+  if (!(lean && !hasActivity)) {
+    factors.push({
+      id: "momentum",
+      label: `Deal momentum · ${momentum}`,
+      detail: momentumDetail[momentum],
+      impactPoints: momentumAdj,
+      direction: momentumAdj > 0 ? "up" : momentumAdj < 0 ? "down" : "neutral",
+    });
+  }
 
-  const stakeholderAdj = (stakeholderScore - 50) * 0.08;
-  factors.push({
+  const stakeholderAdj = lean ? 0 : (stakeholderScore - 50) * 0.08;
+  if (!lean) factors.push({
     id: "stakeholder_coverage",
     label: "Stakeholder coverage",
     detail:
@@ -547,6 +576,7 @@ export function computeWinProbability(
   momentum: OpportunityMomentum,
   risks: DealRiskSignal[],
   stakeholderScore: number,
+  hasActivity = true,
 ): number {
   return explainWinProbability(
     deal,
@@ -554,6 +584,7 @@ export function computeWinProbability(
     momentum,
     risks,
     stakeholderScore,
+    hasActivity,
   ).probability;
 }
 
@@ -758,6 +789,7 @@ export function computeOpportunityIntelligence(
     momentum,
     risks,
     stakeholders.score,
+    dealActivities.length > 0,
   );
 
   const weightedForecast = deal.salesValue * (winProbability / 100);
@@ -822,6 +854,7 @@ export function explainOpportunityWinProbability(
     intelligence.momentum,
     intelligence.risks,
     stakeholders.score,
+    dealActivities.length > 0,
   );
 }
 

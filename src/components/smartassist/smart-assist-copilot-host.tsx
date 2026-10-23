@@ -1,6 +1,7 @@
 "use client";
 
 import { SmartAssistCopilotPanel } from "@/components/smartassist/smart-assist-copilot-view";
+import { dedupeByCompany, TODAY_PROPOSALS_VISIBLE } from "@/lib/attention-focus";
 import { useSmartAssist } from "@/context/smart-assist-context";
 
 /**
@@ -9,9 +10,12 @@ import { useSmartAssist } from "@/context/smart-assist-context";
  */
 export function SmartAssistCopilotHost({
   companyName,
+  compact = false,
 }: {
   /** When set, only show proposals for this account. */
   companyName?: string;
+  /** Today: one proposal per company, only the top few. */
+  compact?: boolean;
 }) {
   const { focus, refresh, visible, loading } = useSmartAssist();
 
@@ -23,6 +27,9 @@ export function SmartAssistCopilotHost({
     proposals = proposals.filter(
       (proposal) => proposal.companyName?.trim().toLowerCase() === needle,
     );
+  } else if (compact) {
+    // Portfolio view: one proposal per company, only the few that matter most.
+    proposals = dedupeByCompany(proposals).slice(0, TODAY_PROPOSALS_VISIBLE);
   }
 
   if (proposals.length === 0) return null;
