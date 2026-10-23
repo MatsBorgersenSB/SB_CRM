@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BulkImportPanel } from "@/components/companies/bulk-import-panel";
+import { ContactSpreadsheetImportPanel } from "@/components/contacts/contact-spreadsheet-import-panel";
 import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WebsiteDiscoveryPanel } from "@/components/companies/website-discovery-panel";
 import { ContactsActionBar } from "@/components/contacts/contacts-action-bar";
@@ -364,7 +364,23 @@ export function ContactsShell({
 
             {activeTool === "bulk-import" ? (
               <div className="mt-4">
-                <BulkImportPanel embedded role={user.role} companies={companyRows} onImported={handleImported} />
+                <ContactSpreadsheetImportPanel
+                  role={user.role}
+                  companies={companyRows}
+                  onAdded={(company, contact) => {
+                    setCompanyRows((current) => {
+                      const exists = current.some((row) => row.CompanyID === company.CompanyID);
+                      if (!exists) {
+                        return [...current, { ...company, contacts: [contact] }];
+                      }
+                      return current.map((row) =>
+                        row.CompanyID === company.CompanyID
+                          ? { ...row, contacts: [...row.contacts, contact] }
+                          : row,
+                      );
+                    });
+                  }}
+                />
               </div>
             ) : null}
           </section>

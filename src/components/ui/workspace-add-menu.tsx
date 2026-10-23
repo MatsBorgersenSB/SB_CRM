@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type WorkspaceAddMenuItem<T extends string> = {
   id: T;
@@ -10,11 +11,20 @@ export type WorkspaceAddMenuItem<T extends string> = {
   primary?: boolean;
 };
 
+type MenuBox = { top: number; left: number; maxHeight: number };
+
+function placeMenu(anchor: DOMRect): MenuBox {
+  const width = 240;
+  const margin = 8;
+  const top = anchor.bottom + 4;
+  const left = Math.max(margin, Math.min(anchor.left, window.innerWidth - width - margin));
+  const maxHeight = Math.max(160, window.innerHeight - top - margin);
+  return { top, left, maxHeight };
+}
+
 /**
- * One "Add…" button for the admin-ish ways of getting records in
- * (new, quick import, website discovery, bulk import). Keeps the list header
- * about the business, not about data entry. Opening a tool keeps the button
- * labelled with it so the user can see what is expanded and close it.
+ * One "Add…" button for the ways of getting records in.
+ * The list is portaled so a card with overflow:hidden cannot clip it.
  */
 export function WorkspaceAddMenu<T extends string>({
   items,
@@ -28,12 +38,31 @@ export function WorkspaceAddMenu<T extends string>({
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [box, setBox] = useState<MenuBox | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !rootRef.current) return;
+    const place = () => {
+      if (!rootRef.current) return;
+      setBox(placeMenu(rootRef.current.getBoundingClientRect()));
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
@@ -73,36 +102,41 @@ export function WorkspaceAddMenu<T extends string>({
       >
         {label}
       </button>
-      {open ? (
-        <div
-          role="menu"
-          className="absolute left-0 z-40 mt-1 min-w-[15rem] border border-carbon-blue/15 bg-white py-1 shadow-lg"
-        >
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                onSelect(item.id);
-              }}
-              className="block w-full px-3 py-2 text-left hover:bg-carbon-blue/[0.04]"
+      {open && box
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              style={{ top: box.top, left: box.left, maxHeight: box.maxHeight }}
+              className="fixed z-[80] min-w-[15rem] overflow-y-auto border border-carbon-blue/15 bg-white py-1 shadow-lg"
             >
-              <span
-                className={`block text-[13px] font-semibold ${
-                  item.primary ? "text-upcycle-orange" : "text-carbon-blue"
-                }`}
-              >
-                {item.label}
-              </span>
-              {item.hint ? (
-                <span className="block text-[12px] text-carbon-blue/55">{item.hint}</span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-      ) : null}
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setOpen(false);
+                    onSelect(item.id);
+                  }}
+                  className="block w-full px-3 py-2 text-left hover:bg-carbon-blue/[0.04]"
+                >
+                  <span
+                    className={`block text-[13px] font-semibold ${
+                      item.primary ? "text-upcycle-orange" : "text-carbon-blue"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                  {item.hint ? (
+                    <span className="block text-[12px] text-carbon-blue/55">{item.hint}</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

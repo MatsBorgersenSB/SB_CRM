@@ -26,7 +26,7 @@ const ADD_ITEMS: WorkspaceAddMenuItem<AddMenuId>[] = [
   { id: "scan-card", label: "Scan business card", hint: "Photo or PDF — we read it for you" },
   { id: "quick-import", label: "Quick import", hint: "From a registry number or name" },
   { id: "website-discovery", label: "Website discovery", hint: "Read people off a company website" },
-  { id: "bulk-import", label: "Bulk import", hint: "Paste or upload a list" },
+  { id: "bulk-import", label: "Import spreadsheet", hint: "Excel or CSV — several people at once" },
 ];
 
 export function ContactsWorkspaceHeader({
