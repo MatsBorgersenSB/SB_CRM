@@ -2,7 +2,9 @@
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
+import { sessionToAuthUser } from "@/lib/session-user";
 import { AuthProvider } from "@/context/auth-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { SmartAssistProvider } from "@/context/smart-assist-context";
@@ -29,7 +31,14 @@ function isLiteShellPath(pathname: string | null | undefined): boolean {
   return false;
 }
 
-export function RootProviders({ children }: { children: ReactNode }) {
+export function RootProviders({
+  children,
+  session,
+}: {
+  children: ReactNode;
+  /** Resolved on the server so the first paint already knows who is signed in. */
+  session?: Session | null;
+}) {
   const pathname = usePathname();
   // Outlook task panes / dialogs + auth: no SessionProvider, SmartAssist, or search index.
   // Auth is owned by OutlookAuthGate + dialog-bridge instead.
@@ -40,11 +49,12 @@ export function RootProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <SessionProvider
+        session={session}
         basePath="/api/auth"
         refetchOnWindowFocus={false}
         refetchInterval={0}
       >
-        <AuthProvider>
+        <AuthProvider initialUser={sessionToAuthUser(session)}>
           <SmartAssistProvider>
             <UniversalSearchProvider>{children}</UniversalSearchProvider>
           </SmartAssistProvider>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { auth } from "@/lib/auth";
 import { RootProviders } from "@/components/providers/root-providers";
 import { outlookHistoryPolyfillScript } from "@/lib/outlook-addin-shell";
 import { themeBootScript } from "@/lib/theme-preference";
@@ -15,11 +16,12 @@ export const metadata: Metadata = {
   description: "Pipeline operations console",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth().catch(() => null);
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
@@ -35,7 +37,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full bg-background font-sans text-foreground">
-        <RootProviders>{children}</RootProviders>
+        <RootProviders session={session}>{children}</RootProviders>
       </body>
     </html>
   );

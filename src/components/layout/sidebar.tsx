@@ -14,8 +14,9 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { EnterpriseRoleBadge } from "@/components/auth/enterprise-role-badge";
+import { QuickActions } from "@/components/layout/quick-actions";
 import { M365MailSyncHeaderButton } from "@/components/m365/m365-mail-sync-header-button";
 import { useAuth } from "@/context/auth-context";
 import { useUniversalSearch } from "@/context/universal-search-context";
@@ -93,10 +94,18 @@ const navItems: NavItem[] = [
   },
 ];
 
+const subscribeNever = () => () => {};
+
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { openSearch } = useUniversalSearch();
+  // Detected after mount so server and first client render agree (no hydration mismatch).
+  const isMac = useSyncExternalStore(
+    subscribeNever,
+    () => navigator.platform.toLowerCase().includes("mac"),
+    () => false,
+  );
 
   const visibleItems = navItems.filter((item) => canAccessRoute(user.role, item.href));
 
@@ -140,9 +149,7 @@ export function Sidebar() {
           <Search className="size-3.5 shrink-0" strokeWidth={2} />
           <span className="flex-1">Search…</span>
           <kbd className="font-mono text-[10px] text-muted-foreground/70">
-            {typeof navigator !== "undefined" && navigator.platform.toLowerCase().includes("mac")
-              ? "⌘K"
-              : "Ctrl+K"}
+            {isMac ? "⌘K" : "Ctrl+K"}
           </kbd>
         </button>
         <button
@@ -157,6 +164,7 @@ export function Sidebar() {
           <Sparkles className="size-3.5 shrink-0" strokeWidth={2} />
           <span className="flex-1">Ask SmartAssist</span>
         </button>
+        <QuickActions showMail={canAccessRoute(user.role, "/mail")} />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3" onKeyDown={handleKeyDown}>
