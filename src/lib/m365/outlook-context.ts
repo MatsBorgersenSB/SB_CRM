@@ -11,6 +11,10 @@ import {
   isUsableCounterpartyEmail,
   pickOutlookCounterparty,
 } from "@/lib/m365/outlook-counterparty";
+import {
+  mailboxHostUsesRestItemIds,
+  outlookSelectionFingerprint,
+} from "@/lib/m365/outlook-selection";
 
 export type OutlookSenderDetails = {
   email: string;
@@ -166,6 +170,9 @@ export type OutlookOpenMessageSeed = {
   conversationId: string;
   /** Prefer Graph REST item id when convertToRestId is available. */
   externalMessageId: string;
+  /** EWS id from the selection, when it differs from the REST id. */
+  alternateItemId?: string;
+  internetMessageId?: string;
   subject: string;
   senderEmail: string;
   senderDisplayName?: string;
@@ -480,21 +487,20 @@ export async function resolveOutlookOpenMessageSeed(options?: {
 type OutlookSelectedItemLite = {
   itemId?: string;
   conversationId?: string;
+  internetMessageId?: string;
   subject?: string;
 };
 
-function mailboxSupports(office: typeof Office, version: string): boolean {
-  try {
-    const requirements = (
-      office.context as { requirements?: { isSetSupported?: (set: string, v: string) => boolean } }
-    ).requirements;
-    return requirements?.isSetSupported?.("Mailbox", version) === true;
-  } catch {
-    return false;
-  }
+function mailboxHostName(mailbox: Office.Mailbox): string {
+  return (
+    (mailbox as { diagnostics?: { hostName?: string } }).diagnostics?.hostName?.trim() || ""
+  );
 }
 
 function convertToRestId(mailbox: Office.Mailbox, itemId: string): string {
+  const raw = itemId.trim();
+  if (!raw) return "";
+  if (mailboxHostUsesRestItemIds(mailboxHostName(mailbox))) return raw;
   try {
     const convert = (
       mailbox as {
@@ -502,22 +508,82 @@ function convertToRestId(mailbox: Office.Mailbox, itemId: string): string {
       }
     ).convertToRestId;
     if (typeof convert === "function") {
-      const restId = convert.call(mailbox, itemId, "v2.0")?.trim();
+      const restId = convert.call(mailbox, raw, "v2.0")?.trim();
       if (restId) return restId;
     }
   } catch {
-    // Keep EWS id.
+    // Keep the id Outlook returned.
   }
-  return itemId;
+  return raw;
 }
 
-function getSelectedItemsLite(
-  mailbox: Office.Mailbox,
-): Promise<OutlookSelectedItemLite[]> {
+function convertToEwsId(mailbox: Office.Mailbox, itemId: string): string {
+  const raw = itemId.trim();
+  if (!raw) return "";
+  if (!mailboxHostUsesRestItemIds(mailboxHostName(mailbox))) return raw;
+  try {
+    const convert = (
+      mailbox as {
+        convertToEwsId?: (id: string, version: string) => string;
+      }
+    ).convertToEwsId;
+    if (typeof convert === "function") {
+      const ewsId = convert.call(mailbox, raw, "v2.0")?.trim();
+      if (ewsId) return ewsId;
+    }
+  } catch {
+    // EWS cannot run on a REST id in this host.
+  }
+  return raw;
+}
+
+const OFFICE_CALL_TIMEOUT_MS = 5000;
+
+function withOfficeTimeout<T>(work: Promise<T>, fallback: T, ms = OFFICE_CALL_TIMEOUT_MS): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => resolve(fallback), ms);
+    work.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        window.clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
+}
+
+function normalizeSelectedItems(value: unknown): OutlookSelectedItemLite[] {
+  const rows = Array.isArray(value)
+    ? value
+    : value && typeof value === "object" && Array.isArray((value as { items?: unknown }).items)
+      ? (value as { items: unknown[] }).items
+      : [];
+  const normalized: OutlookSelectedItemLite[] = [];
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const record = row as Record<string, unknown>;
+    const itemId = typeof record.itemId === "string" ? record.itemId.trim() : "";
+    if (!itemId) continue;
+    normalized.push({
+      itemId,
+      conversationId:
+        typeof record.conversationId === "string" ? record.conversationId : undefined,
+      internetMessageId:
+        typeof record.internetMessageId === "string" ? record.internetMessageId : undefined,
+      subject: typeof record.subject === "string" ? record.subject : undefined,
+    });
+  }
+  return normalized;
+}
+
+function readSelectedItemsOnce(mailbox: Office.Mailbox): Promise<OutlookSelectedItemLite[]> {
   const getSelected = (
     mailbox as {
       getSelectedItemsAsync?: (
-        callback: (result: Office.AsyncResult<OutlookSelectedItemLite[]>) => void,
+        callback: (result: Office.AsyncResult<unknown>) => void,
       ) => void;
     }
   ).getSelectedItemsAsync;
@@ -526,16 +592,32 @@ function getSelectedItemsLite(
   return new Promise((resolve) => {
     try {
       getSelected.call(mailbox, (result) => {
-        if (!isOfficeAsyncSuccess(result.status) || !result.value) {
+        if (!isOfficeAsyncSuccess(result.status) || result.value == null) {
           resolve([]);
           return;
         }
-        resolve(result.value);
+        resolve(normalizeSelectedItems(result.value));
       });
     } catch {
       resolve([]);
     }
   });
+}
+
+/**
+ * Checked messages. On the "N items selected" pane, mailbox.item is empty and
+ * the first read can land before Outlook attaches the checks.
+ */
+async function getSelectedItemsLite(
+  mailbox: Office.Mailbox,
+): Promise<OutlookSelectedItemLite[]> {
+  const read = () => withOfficeTimeout(readSelectedItemsOnce(mailbox), []);
+  let rows = await read();
+  if (rows.length === 0 && !mailbox.item) {
+    await new Promise((resolve) => window.setTimeout(resolve, 400));
+    rows = await read();
+  }
+  return rows;
 }
 
 type LoadedOutlookItem = {
@@ -570,15 +652,28 @@ function loadMailboxItemById(
   if (typeof load !== "function") return Promise.resolve(null);
 
   return new Promise((resolve) => {
+    let settled = false;
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(null);
+    }, OFFICE_CALL_TIMEOUT_MS);
     try {
       load.call(mailbox, itemId, (result) => {
-        if (!isOfficeAsyncSuccess(result.status) || !result.value) {
-          resolve(null);
+        const item =
+          isOfficeAsyncSuccess(result.status) && result.value ? result.value : null;
+        if (settled) {
+          if (item) void unloadMailboxItem(item);
           return;
         }
-        resolve(result.value);
+        settled = true;
+        window.clearTimeout(timer);
+        resolve(item);
       });
     } catch {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
       resolve(null);
     }
   });
@@ -597,24 +692,309 @@ function unloadMailboxItem(item: LoadedOutlookItem | null): Promise<void> {
 
 const MAX_SELECTED_MAILS = 50;
 
+function seedIsUsable(seed: OutlookOpenMessageSeed): boolean {
+  return Boolean(
+    seed.externalMessageId.trim() && seed.conversationId.trim() && seed.senderEmail.trim(),
+  );
+}
+
+function sameMailboxItemId(mailbox: Office.Mailbox, a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return convertToRestId(mailbox, a) === convertToRestId(mailbox, b);
+}
+
+function canLoadItemById(mailbox: Office.Mailbox): boolean {
+  return (
+    typeof (mailbox as { loadItemByIdAsync?: unknown }).loadItemByIdAsync === "function"
+  );
+}
+
 function seedFromSelectedLite(
   mailbox: Office.Mailbox,
   selected: OutlookSelectedItemLite,
 ): OutlookOpenMessageSeed | null {
-  const conversationId = selected.conversationId?.trim() || "";
   const ewsOrRestId = selected.itemId?.trim() || "";
-  if (!conversationId || !ewsOrRestId) return null;
+  if (!ewsOrRestId) return null;
 
   const externalMessageId = convertToRestId(mailbox, ewsOrRestId);
   return {
-    conversationId,
+    conversationId: selected.conversationId?.trim() || "",
     externalMessageId,
+    alternateItemId: ewsOrRestId,
+    internetMessageId: selected.internetMessageId?.trim() || undefined,
     subject: coerceSubjectString(selected.subject),
     senderEmail: "",
     sentAt: "",
     isOutbound: false,
     webLink: buildOutlookReadDeeplink(externalMessageId) ?? undefined,
   };
+}
+
+function mergeOutlookSeed(
+  base: OutlookOpenMessageSeed,
+  extra: Partial<OutlookOpenMessageSeed>,
+): OutlookOpenMessageSeed {
+  const replaceId = (!base.conversationId.trim() || !base.senderEmail.trim()) && extra.externalMessageId;
+  return {
+    ...base,
+    externalMessageId: replaceId ? extra.externalMessageId! : base.externalMessageId || extra.externalMessageId || "",
+    alternateItemId: base.alternateItemId || extra.alternateItemId,
+    internetMessageId: base.internetMessageId || extra.internetMessageId,
+    conversationId: base.conversationId.trim() || extra.conversationId || "",
+    subject:
+      base.subject && base.subject !== "(no subject)"
+        ? base.subject
+        : extra.subject || base.subject,
+    senderEmail: base.senderEmail.trim() || extra.senderEmail || "",
+    senderDisplayName: base.senderDisplayName || extra.senderDisplayName,
+    sentAt: base.sentAt || extra.sentAt || "",
+    isOutbound: base.senderEmail.trim() ? base.isOutbound : extra.isOutbound,
+    recipientEmails: base.recipientEmails?.length ? base.recipientEmails : extra.recipientEmails,
+    bodyPreview: base.bodyPreview || extra.bodyPreview,
+    webLink: base.webLink || extra.webLink,
+  };
+}
+
+function xmlEscape(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function childByLocalName(parent: Element, localName: string): Element | null {
+  for (const node of Array.from(parent.children)) {
+    if (node.localName === localName) return node;
+  }
+  return null;
+}
+
+function firstMailboxAddress(parent: Element | null): { email: string; name: string } {
+  if (!parent) return { email: "", name: "" };
+  let email = "";
+  let name = "";
+  for (const node of Array.from(parent.getElementsByTagName("*"))) {
+    if (!email && node.localName === "EmailAddress") {
+      email = node.textContent?.trim().toLowerCase() || "";
+    }
+    if (!name && node.localName === "Name") name = node.textContent?.trim() || "";
+    if (email && name) break;
+  }
+  return { email, name };
+}
+
+function recipientEmailsFrom(parent: Element, listName: string): string[] {
+  const list = childByLocalName(parent, listName);
+  if (!list) return [];
+  const emails: string[] = [];
+  for (const node of Array.from(list.getElementsByTagName("*"))) {
+    if (node.localName !== "EmailAddress") continue;
+    const email = node.textContent?.trim().toLowerCase() || "";
+    if (email.includes("@")) emails.push(email);
+  }
+  return emails;
+}
+
+function makeEwsRequest(mailbox: Office.Mailbox, xml: string): Promise<string | null> {
+  const request = (
+    mailbox as {
+      makeEwsRequestAsync?: (
+        data: string,
+        callback: (result: Office.AsyncResult<string>) => void,
+      ) => void;
+    }
+  ).makeEwsRequestAsync;
+  if (typeof request !== "function") return Promise.resolve(null);
+  return withOfficeTimeout(
+    new Promise<string | null>((resolve) => {
+      try {
+        request.call(mailbox, xml, (result) => {
+          if (!isOfficeAsyncSuccess(result.status) || typeof result.value !== "string") {
+            resolve(null);
+            return;
+          }
+          resolve(result.value);
+        });
+      } catch {
+        resolve(null);
+      }
+    }),
+    null,
+    8000,
+  );
+}
+
+function seedFromEwsMessage(
+  mailbox: Office.Mailbox,
+  message: Element,
+  base: OutlookOpenMessageSeed,
+): OutlookOpenMessageSeed {
+  const itemId = childByLocalName(message, "ItemId")?.getAttribute("Id")?.trim() || "";
+  const conversationId =
+    childByLocalName(message, "ConversationId")?.getAttribute("Id")?.trim() || "";
+  const subject = childByLocalName(message, "Subject")?.textContent?.trim() || "";
+  const sentAt =
+    childByLocalName(message, "DateTimeReceived")?.textContent?.trim() ||
+    childByLocalName(message, "DateTimeSent")?.textContent?.trim() ||
+    "";
+  const from = firstMailboxAddress(childByLocalName(message, "From"));
+  const isFromMe = childByLocalName(message, "IsFromMe")?.textContent?.trim().toLowerCase() === "true";
+  const selfEmail = mailbox.userProfile?.emailAddress?.trim().toLowerCase() || "";
+  const externalMessageId = itemId ? convertToRestId(mailbox, itemId) : base.externalMessageId;
+  return mergeOutlookSeed(base, {
+    externalMessageId,
+    alternateItemId: itemId || base.alternateItemId,
+    conversationId,
+    subject: subject || base.subject,
+    senderEmail: isFromMe ? selfEmail || from.email : from.email,
+    senderDisplayName: from.name,
+    sentAt,
+    isOutbound: isFromMe,
+    recipientEmails: [
+      ...recipientEmailsFrom(message, "ToRecipients"),
+      ...recipientEmailsFrom(message, "CcRecipients"),
+    ],
+    webLink: buildOutlookReadDeeplink(externalMessageId) ?? undefined,
+  });
+}
+
+async function enrichSeedsFromEws(
+  mailbox: Office.Mailbox,
+  seeds: OutlookOpenMessageSeed[],
+): Promise<OutlookOpenMessageSeed[]> {
+  const pending = seeds.filter((seed) => !seedIsUsable(seed));
+  const itemIds = pending
+    .map((seed) =>
+      convertToEwsId(mailbox, seed.alternateItemId?.trim() || seed.externalMessageId.trim()),
+    )
+    .filter(Boolean);
+  if (itemIds.length === 0 || typeof DOMParser === "undefined") return seeds;
+
+  const xml = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
+ xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types"
+ xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <t:RequestServerVersion Version="Exchange2013" />
+  </soap:Header>
+  <soap:Body>
+    <m:GetItem>
+      <m:ItemShape>
+        <t:BaseShape>IdOnly</t:BaseShape>
+        <t:AdditionalProperties>
+          <t:FieldURI FieldURI="item:Subject" />
+          <t:FieldURI FieldURI="item:DateTimeReceived" />
+          <t:FieldURI FieldURI="item:DateTimeSent" />
+          <t:FieldURI FieldURI="item:ConversationId" />
+          <t:FieldURI FieldURI="message:From" />
+          <t:FieldURI FieldURI="message:ToRecipients" />
+          <t:FieldURI FieldURI="message:CcRecipients" />
+          <t:FieldURI FieldURI="message:IsFromMe" />
+        </t:AdditionalProperties>
+      </m:ItemShape>
+      <m:ItemIds>
+        ${itemIds.map((id) => `<t:ItemId Id="${xmlEscape(id)}" />`).join("")}
+      </m:ItemIds>
+    </m:GetItem>
+  </soap:Body>
+</soap:Envelope>`;
+
+  const responseXml = await makeEwsRequest(mailbox, xml);
+  if (!responseXml) return seeds;
+
+  let messages: Element[] = [];
+  try {
+    const doc = new DOMParser().parseFromString(responseXml, "text/xml");
+    messages = Array.from(doc.getElementsByTagName("*")).filter((node) =>
+      node.localName === "Message" ||
+      node.localName === "MeetingRequest" ||
+      node.localName === "MeetingResponse" ||
+      node.localName === "MeetingCancellation",
+    );
+  } catch {
+    return seeds;
+  }
+  if (messages.length === 0) return seeds;
+
+  const paired = new Map<string, Element>();
+  const used = new Set<Element>();
+  for (const message of messages) {
+    const id = childByLocalName(message, "ItemId")?.getAttribute("Id")?.trim() || "";
+    const seed = pending.find(
+      (row) =>
+        !used.has(message) &&
+        (row.alternateItemId === id ||
+          row.externalMessageId === id ||
+          (id && sameMailboxItemId(mailbox, row.alternateItemId || row.externalMessageId, id))),
+    );
+    if (!seed) continue;
+    paired.set(seed.externalMessageId, message);
+    used.add(message);
+  }
+  const unmatchedSeeds = pending.filter((seed) => !paired.has(seed.externalMessageId));
+  const unmatchedMessages = messages.filter((message) => !used.has(message));
+  if (unmatchedSeeds.length > 0 && unmatchedSeeds.length === unmatchedMessages.length) {
+    unmatchedSeeds.forEach((seed, index) => {
+      paired.set(seed.externalMessageId, unmatchedMessages[index]!);
+    });
+  }
+
+  return seeds.map((seed) => {
+    const message = paired.get(seed.externalMessageId);
+    return message ? seedFromEwsMessage(mailbox, message, seed) : seed;
+  });
+}
+
+async function enrichSeedsFromGraph(
+  seeds: OutlookOpenMessageSeed[],
+): Promise<OutlookOpenMessageSeed[]> {
+  const pending = seeds.filter((seed) => !seedIsUsable(seed) && seed.externalMessageId.trim());
+  if (pending.length === 0 || typeof fetch !== "function") return seeds;
+  try {
+    const response = await fetch("/api/m365/outlook/selected-messages", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: pending.map((seed) => ({
+          itemId: seed.externalMessageId,
+          alternateItemId: seed.alternateItemId,
+          internetMessageId: seed.internetMessageId,
+        })),
+      }),
+    });
+    if (!response.ok) return seeds;
+    const payload = (await response.json()) as {
+      messages?: Array<Partial<OutlookOpenMessageSeed> & { requestItemId?: string }>;
+      needsMicrosoftConsent?: boolean;
+    };
+    if (payload.needsMicrosoftConsent) selectionReadNeedsConsent = true;
+    const hydrated = payload.messages ?? [];
+    return seeds.map((seed) => {
+      const match = hydrated.find(
+        (row) =>
+          row.requestItemId === seed.externalMessageId ||
+          (seed.alternateItemId && row.requestItemId === seed.alternateItemId) ||
+          (seed.internetMessageId && row.internetMessageId === seed.internetMessageId),
+      );
+      return match ? mergeOutlookSeed(seed, match) : seed;
+    });
+  } catch {
+    return seeds;
+  }
+}
+
+async function enrichIncompleteSeeds(
+  mailbox: Office.Mailbox,
+  seeds: OutlookOpenMessageSeed[],
+): Promise<OutlookOpenMessageSeed[]> {
+  if (seeds.every(seedIsUsable)) return seeds;
+  const fromEws = await enrichSeedsFromEws(mailbox, seeds);
+  if (fromEws.every(seedIsUsable)) return fromEws;
+  return enrichSeedsFromGraph(fromEws);
 }
 
 async function seedFromLoadedItem(
@@ -754,6 +1134,14 @@ async function seedFromOpenMailboxItem(
 }
 
 let selectedSeedCache: { key: string; seeds: OutlookOpenMessageSeed[] } | null = null;
+let selectedSeedInflight: { key: string; promise: Promise<OutlookOpenMessageSeed[]> } | null =
+  null;
+let selectionReadNeedsConsent = false;
+
+/** True when checked mails could not be read because Microsoft 365 is not connected. */
+export function outlookSelectionNeedsMicrosoftConsent(): boolean {
+  return selectionReadNeedsConsent;
+}
 
 function selectionCacheKey(
   selected: OutlookSelectedItemLite[],
@@ -767,9 +1155,39 @@ function selectionCacheKey(
   ].join("|");
 }
 
+async function seedForSelectedRow(
+  mailbox: Office.Mailbox,
+  office: typeof Office,
+  row: OutlookSelectedItemLite,
+  openItemId: string,
+  options?: {
+    preferOutbound?: boolean;
+    primaryRecipientEmail?: string;
+    skipItemLoad?: boolean;
+  },
+): Promise<OutlookOpenMessageSeed | null> {
+  const itemId = row.itemId?.trim() || "";
+  if (itemId && openItemId && sameMailboxItemId(mailbox, itemId, openItemId)) {
+    const open = await seedFromOpenMailboxItem(office, options);
+    if (open) return open;
+  }
+  if (!options?.skipItemLoad && itemId && canLoadItemById(mailbox)) {
+    const loaded = await loadMailboxItemById(mailbox, itemId);
+    if (loaded) {
+      try {
+        const seed = await seedFromLoadedItem(mailbox, office, loaded, row, options);
+        if (seed) return seed;
+      } finally {
+        await unloadMailboxItem(loaded);
+      }
+    }
+  }
+  return seedFromSelectedLite(mailbox, row);
+}
+
 /**
- * All currently selected read messages (bulk save). Falls back to the open item.
- * Multi-select has no mailbox.item — load each selected id, then lite ids if needed.
+ * All currently selected read messages (bulk save). Falls back to the open item
+ * only when Outlook is not in a multi-select (no single open mail to substitute).
  */
 export async function resolveOutlookSelectedMessageSeeds(options?: {
   preferOutbound?: boolean;
@@ -790,54 +1208,75 @@ export async function resolveOutlookSelectedMessageSeeds(options?: {
   if (selectedSeedCache?.key === cacheKey) {
     return selectedSeedCache.seeds;
   }
+  if (selectedSeedInflight?.key === cacheKey) {
+    return selectedSeedInflight.promise;
+  }
 
+  const promise = resolveSelectedSeedsNow(office, mailbox, selected, cacheKey, options);
+  selectedSeedInflight = { key: cacheKey, promise };
+  try {
+    return await promise;
+  } finally {
+    if (selectedSeedInflight?.promise === promise) selectedSeedInflight = null;
+  }
+}
+
+async function resolveSelectedSeedsNow(
+  office: typeof Office,
+  mailbox: Office.Mailbox,
+  selected: OutlookSelectedItemLite[],
+  cacheKey: string,
+  options?: { preferOutbound?: boolean; primaryRecipientEmail?: string },
+): Promise<OutlookOpenMessageSeed[]> {
   const remember = (seeds: OutlookOpenMessageSeed[]) => {
     selectedSeedCache = { key: cacheKey, seeds };
     return seeds;
   };
 
-  const canLoadById = mailboxSupports(office, "1.15");
+  selectionReadNeedsConsent = false;
+  const openItemId = mailbox.item?.itemId?.trim() || "";
+  const selectionIsBulk = selected.length > 1 || (selected.length > 0 && !mailbox.item);
 
-  if (selected.length > 1) {
+  if (selectionIsBulk) {
     const seeds: OutlookOpenMessageSeed[] = [];
     for (const row of selected) {
-      const itemId = row.itemId?.trim();
-      if (canLoadById && itemId) {
-        const loaded = await loadMailboxItemById(mailbox, itemId);
-        if (loaded) {
-          try {
-            const seed = await seedFromLoadedItem(mailbox, office, loaded, row, options);
-            if (seed) {
-              seeds.push(seed);
-              continue;
-            }
-          } finally {
-            await unloadMailboxItem(loaded);
+      const seed = await seedForSelectedRow(mailbox, office, row, openItemId, {
+        ...options,
+        skipItemLoad: true,
+      });
+      if (seed) seeds.push(seed);
+    }
+    let enriched = await enrichIncompleteSeeds(mailbox, seeds);
+    if (!enriched.some(seedIsUsable) && canLoadItemById(mailbox) && selected[0]?.itemId) {
+      const loaded = await loadMailboxItemById(mailbox, selected[0].itemId);
+      if (loaded) {
+        try {
+          const recovered = await seedFromLoadedItem(
+            mailbox,
+            office,
+            loaded,
+            selected[0],
+            options,
+          );
+          if (recovered) {
+            enriched = enriched.map((seed, index) =>
+              index === 0 ? mergeOutlookSeed(seed, recovered) : seed,
+            );
           }
+        } finally {
+          await unloadMailboxItem(loaded);
         }
       }
-      const lite = seedFromSelectedLite(mailbox, row);
-      if (lite) seeds.push(lite);
     }
-    if (seeds.length > 0) return remember(seeds);
+    const withIds = enriched.filter((seed) => seed.externalMessageId.trim());
+    if (withIds.length === 0) return [];
+    if (withIds.every(seedIsUsable)) return remember(withIds);
+    return withIds;
   }
 
-  if (selected.length === 1 && canLoadById && selected[0]?.itemId) {
-    const loaded = await loadMailboxItemById(mailbox, selected[0].itemId);
-    if (loaded) {
-      try {
-        const seed = await seedFromLoadedItem(
-          mailbox,
-          office,
-          loaded,
-          selected[0],
-          options,
-        );
-        if (seed) return remember([seed]);
-      } finally {
-        await unloadMailboxItem(loaded);
-      }
-    }
+  if (selected.length === 1) {
+    const seed = await seedForSelectedRow(mailbox, office, selected[0]!, openItemId, options);
+    if (seed && seedIsUsable(seed)) return remember([seed]);
   }
 
   const open = await seedFromOpenMailboxItem(office, options);
@@ -869,10 +1308,6 @@ export async function readOutlookMailboxItemKey(): Promise<OutlookMailboxItemKey
     itemId: item?.itemId?.trim() || null,
     conversationId: item?.conversationId?.trim() || null,
   };
-}
-
-function mailboxItemFingerprint(key: OutlookMailboxItemKey): string {
-  return `${key.itemId ?? ""}::${key.conversationId ?? ""}`;
 }
 
 async function addMailboxHandler(
@@ -924,9 +1359,22 @@ export async function subscribeOutlookSelectedItemsChanged(
   };
 }
 
+async function readOutlookSelectionFingerprint(): Promise<string> {
+  const office = await whenOfficeReady();
+  const mailbox = office?.context.mailbox;
+  const item = mailbox?.item;
+  const selected = mailbox ? await getSelectedItemsLite(mailbox) : [];
+  return outlookSelectionFingerprint(
+    item?.itemId,
+    item?.conversationId,
+    selected.map((row) => row.itemId || ""),
+  );
+}
+
 /**
- * Fires only when the open mailbox item identity changes (new email / context).
- * Ignores focus, folder chrome, and duplicate SelectedItemsChanged noise.
+ * Fires when the open mail changes, or when the checked set changes.
+ * New Outlook clears mailbox.item while several mails are marked, so the
+ * checked ids are part of the identity.
  */
 export async function subscribeOutlookMailboxItemChanged(
   onChanged: (key: OutlookMailboxItemKey) => void,
@@ -935,16 +1383,19 @@ export async function subscribeOutlookMailboxItemChanged(
   const mailbox = office?.context.mailbox as MailboxSelectionEvents | undefined;
   if (!mailbox?.addHandlerAsync) return () => undefined;
 
-  let last = mailboxItemFingerprint(await readOutlookMailboxItemKey());
+  let last = await readOutlookSelectionFingerprint();
+  let timer: number | undefined;
 
   const handler = () => {
-    void (async () => {
-      const next = await readOutlookMailboxItemKey();
-      const fingerprint = mailboxItemFingerprint(next);
-      if (fingerprint === last) return;
-      last = fingerprint;
-      onChanged(next);
-    })();
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      void (async () => {
+        const fingerprint = await readOutlookSelectionFingerprint();
+        if (fingerprint === last) return;
+        last = fingerprint;
+        onChanged(await readOutlookMailboxItemKey());
+      })();
+    }, 200);
   };
 
   const eventTypes: Array<Office.EventType | string> = [];
@@ -961,6 +1412,7 @@ export async function subscribeOutlookMailboxItemChanged(
   }
 
   return () => {
+    window.clearTimeout(timer);
     for (const eventType of eventTypes) {
       try {
         mailbox.removeHandlerAsync?.(eventType, { handler }, () => undefined);

@@ -7,7 +7,12 @@ import { OutlookMailTagPanel } from "@/components/m365/outlook-mail-tag-panel";
 import { OutlookReconciliationCard } from "@/components/m365/outlook-reconciliation-card";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
 import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
-import { buildSmartCrmUrl, isAutomatedMailboxEmail } from "@/lib/m365/outlook-context";
+import {
+  buildSmartCrmUrl,
+  isAutomatedMailboxEmail,
+  outlookSelectionNeedsMicrosoftConsent,
+} from "@/lib/m365/outlook-context";
+import { openMicrosoftConsentDialog } from "@/lib/m365/outlook-smartcrm-category";
 import { analyzeOutlookReconciliation } from "@/lib/outlook-reconciliation-engine";
 import { useOutlookM365PaneLoad } from "@/hooks/use-outlook-m365-pane-load";
 import type { M365RelationshipCardPayload } from "@/types/m365";
@@ -95,6 +100,7 @@ export function OutlookRelationshipCardPane() {
   }
 
   if (state.status === "empty") {
+    const needsConsent = outlookSelectionNeedsMicrosoftConsent();
     return (
       <div className="flex h-full flex-col justify-center bg-white px-6">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
@@ -102,6 +108,22 @@ export function OutlookRelationshipCardPane() {
         </p>
         <p className="mt-2 text-sm font-semibold text-carbon-blue">No relationship context</p>
         <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">{state.message}</p>
+        {needsConsent ? (
+          <button
+            type="button"
+            onClick={() => void openMicrosoftConsentDialog()}
+            className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
+          >
+            Allow Microsoft 365
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => reload()}
+          className="mt-5 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue"
+        >
+          Try again
+        </button>
       </div>
     );
   }

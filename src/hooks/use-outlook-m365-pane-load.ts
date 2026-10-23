@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  outlookSelectionNeedsMicrosoftConsent,
   resolveDevDisplayName,
   resolveOutlookReadRecipients,
+  resolveOutlookSelectedMessageSeeds,
   resolveOutlookSenderDetails,
   subscribeOutlookMailboxItemChanged,
 } from "@/lib/m365/outlook-context";
@@ -45,6 +47,8 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
 
   const mountedRef = useRef(false);
   const requestIdRef = useRef(0);
+  const resolvedEmailRef = useRef<string | null>(null);
+  resolvedEmailRef.current = resolvedEmail;
 
   const reload = useCallback(() => {
     setReloadKey((current) => current + 1);
@@ -63,7 +67,13 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
     void subscribeOutlookMailboxItemChanged(() => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        setReloadKey((current) => current + 1);
+        void (async () => {
+          const sender = await resolveOutlookSenderDetails().catch(() => null);
+          const nextEmail = sender?.email?.trim().toLowerCase() || null;
+          const currentEmail = resolvedEmailRef.current?.trim().toLowerCase() || null;
+          if (nextEmail && nextEmail === currentEmail) return;
+          setReloadKey((current) => current + 1);
+        })();
       }, 350);
     }).then((fn) => {
       unsubscribe = fn;
@@ -124,7 +134,16 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
       safeSetSender(email, displayName);
 
       if (emails.length === 0) {
-        safeSetState({ status: "empty", message: emptyMessage });
+        const selected = await resolveOutlookSelectedMessageSeeds().catch(() => []);
+        safeSetState({
+          status: "empty",
+          message:
+            selected.length > 1
+              ? outlookSelectionNeedsMicrosoftConsent()
+                ? `${selected.length} mails are selected. Allow Microsoft 365 so SmartCRM can read who they are from, then save them.`
+                : `${selected.length} mails are selected. SmartCRM could not read who they are from yet.`
+              : emptyMessage,
+        });
         return;
       }
 

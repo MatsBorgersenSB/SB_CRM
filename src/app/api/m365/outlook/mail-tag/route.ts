@@ -13,6 +13,7 @@ import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import { prismaLiveCompanyWhere, prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
+import { readOutlookMessagesFromGraph } from "@/lib/m365/outlook-selected-message-graph";
 
 type LinkOption = {
   id: string;
@@ -403,6 +404,8 @@ export async function POST(request: Request) {
         conversationId?: string;
         message?: {
           externalMessageId?: string;
+          alternateItemId?: string;
+          internetMessageId?: string;
           subject?: string;
           senderEmail?: string;
           recipientEmails?: string[];
@@ -423,6 +426,23 @@ export async function POST(request: Request) {
       );
     }
 
+    const incomplete = messages.filter(
+      (row) => !row.conversationId?.trim() || !row.message?.senderEmail?.trim(),
+    );
+    const hydrated =
+      incomplete.length > 0
+        ? await readOutlookMessagesFromGraph(
+            incomplete.map((row) => ({
+              itemId: row.message?.externalMessageId,
+              alternateItemId: row.message?.alternateItemId,
+              internetMessageId: row.message?.internetMessageId,
+            })),
+          )
+        : [];
+    const hydratedByRequest = new Map(
+      hydrated.map((row) => [row.requestItemId, row] as const),
+    );
+
     const opportunityId =
       typeof body.opportunityId === "string" && body.opportunityId.trim()
         ? body.opportunityId.trim()
@@ -436,21 +456,31 @@ export async function POST(request: Request) {
     let failed = 0;
 
     for (const row of messages) {
-      const conversationId = row.conversationId?.trim();
-      const externalMessageId = row.message?.externalMessageId?.trim();
+      const requestId = row.message?.externalMessageId?.trim() || "";
+      const graph =
+        hydratedByRequest.get(requestId) ||
+        (row.message?.alternateItemId
+          ? hydratedByRequest.get(row.message.alternateItemId.trim())
+          : undefined);
+      const conversationId = row.conversationId?.trim() || graph?.conversationId || "";
+      const externalMessageId = graph?.externalMessageId || requestId;
       if (!conversationId || !externalMessageId) {
         failed += 1;
         continue;
       }
       const seedMessage = {
         externalMessageId,
-        subject: row.message?.subject,
-        senderEmail: row.message?.senderEmail,
-        recipientEmails: row.message?.recipientEmails,
-        sentAt: row.message?.sentAt,
-        bodyPreview: row.message?.bodyPreview,
-        webLink: row.message?.webLink,
-        isOutbound: row.message?.isOutbound === true,
+        subject: row.message?.subject || graph?.subject,
+        senderEmail: row.message?.senderEmail?.trim() || graph?.senderEmail,
+        recipientEmails: row.message?.recipientEmails?.length
+          ? row.message.recipientEmails
+          : graph?.recipientEmails,
+        sentAt: row.message?.sentAt || graph?.sentAt,
+        bodyPreview: row.message?.bodyPreview || graph?.bodyPreview,
+        webLink: row.message?.webLink || graph?.webLink,
+        isOutbound: row.message?.senderEmail?.trim()
+          ? row.message.isOutbound === true
+          : graph?.isOutbound === true,
       };
 
       if (opportunityId !== undefined || projectId !== undefined) {

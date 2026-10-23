@@ -162,6 +162,8 @@ export function OutlookMailTagPanel({
         if (cancelled) return;
         setSeeds(openSeeds);
         setSeed(openSeeds[0] ?? null);
+        setStatus(null);
+        setError(null);
       });
     }).then((fn) => {
       unsubscribe = fn;
@@ -381,6 +383,20 @@ export function OutlookMailTagPanel({
     projectId?: string | null;
   }) => {
     if (!context?.contactId || seeds.length === 0) return;
+    const contactEmail = email.trim().toLowerCase();
+    const matchedSeeds = seeds.filter((row) => {
+      const sender = row.senderEmail.trim().toLowerCase();
+      const recipients = (row.recipientEmails ?? [])
+        .map((address) => address.trim().toLowerCase())
+        .filter(Boolean);
+      if (!sender || sender === contactEmail) return true;
+      if (recipients.includes(contactEmail)) return true;
+      return recipients.length === 0;
+    });
+    if (matchedSeeds.length === 0) {
+      setError("These mails are with someone else. Open that person, then save.");
+      return;
+    }
     setBusy(true);
     setError(null);
     setStatus(null);
@@ -395,10 +411,12 @@ export function OutlookMailTagPanel({
           contactId: context.contactId,
           ...(link?.opportunityId !== undefined ? { opportunityId: link.opportunityId } : {}),
           ...(link?.projectId !== undefined ? { projectId: link.projectId } : {}),
-          messages: seeds.map((row) => ({
+          messages: matchedSeeds.map((row) => ({
             conversationId: row.conversationId,
             message: {
               externalMessageId: row.externalMessageId,
+              alternateItemId: row.alternateItemId,
+              internetMessageId: row.internetMessageId,
               subject: row.subject,
               senderEmail: row.senderEmail || email,
               recipientEmails: row.recipientEmails,
@@ -422,6 +440,7 @@ export function OutlookMailTagPanel({
       }
       const saved = payload.saved ?? 0;
       const failed = payload.failed ?? 0;
+      const skipped = seeds.length - matchedSeeds.length;
       if (saved === 0) {
         throw new Error("Could not save these mails for the matched contact.");
       }
@@ -431,8 +450,8 @@ export function OutlookMailTagPanel({
         meeting: prev?.meeting ?? null,
       }));
       setStatus(
-        failed > 0
-          ? `Saved ${saved} of ${payload.total ?? seeds.length} mails on ${context.companyName}.`
+        failed + skipped > 0
+          ? `Saved ${saved} of ${seeds.length} mails on ${context.companyName}.`
           : saved === 1
             ? `Saved on ${context.companyName} in SmartCRM.`
             : `Saved ${saved} mails on ${context.companyName} in SmartCRM.`,
@@ -670,7 +689,7 @@ export function OutlookMailTagPanel({
                   {mail.externalMessageId === seedMessageId ? " · this mail" : ""}
                 </li>
               ))}
-              {openMailSaved ? null : (
+              {selectedCount > 1 || openMailSaved ? null : (
                 <li className="text-upcycle-orange">This mail is not in SmartCRM yet</li>
               )}
               {crmState?.meeting ? (
