@@ -12,6 +12,13 @@ export const OPPORTUNITY_MISSION_CONTROL_VIEWS = [
 export type OpportunityMissionControlView =
   (typeof OPPORTUNITY_MISSION_CONTROL_VIEWS)[number]["id"];
 
+/** Product sales (dryer, biochar) skip the investigation surfaces. */
+export const PRODUCT_SALE_HIDDEN_VIEWS: readonly OpportunityMissionControlView[] = [
+  "gaps",
+  "understanding",
+  "influence",
+];
+
 export function isOpportunityMissionControlView(
   value: string | null,
 ): value is OpportunityMissionControlView {

@@ -6,9 +6,13 @@ import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
 import {
   UNDERSTANDING_CATEGORIES,
   UNDERSTANDING_CATEGORY_LABELS,
-  fieldsForCategory,
   isUnderstandingFieldId,
 } from "@/types/opportunity-understanding";
+import {
+  isLeanSalesMotion,
+  salesMotionProfileFor,
+  understandingFieldsForPipeline,
+} from "@/lib/sales-motion";
 import { resolveUnderstandingField } from "@/lib/opportunity-understanding-model";
 import {
   SmartAssistCategoryBadge,
@@ -35,6 +39,8 @@ export function OpportunityUnderstandingCapturePanel({
   readOnly?: boolean;
 }) {
   const focusId = isUnderstandingFieldId(focusFieldId) ? focusFieldId : null;
+  const fields = useMemo(() => understandingFieldsForPipeline(pipeline), [pipeline]);
+  const isLean = isLeanSalesMotion(salesMotionProfileFor(pipeline));
 
   return (
     <div className="flex flex-col gap-10">
@@ -45,28 +51,45 @@ export function OpportunityUnderstandingCapturePanel({
         </p>
       </div>
 
-      {UNDERSTANDING_CATEGORIES.map((category) => (
-        <section key={category} aria-labelledby={`understanding-${category}`}>
-          <h2
-            id={`understanding-${category}`}
-            className="text-[13px] font-semibold text-carbon-blue"
-          >
-            {UNDERSTANDING_CATEGORY_LABELS[category]}
-          </h2>
-          <div className="mt-3 flex flex-col gap-4">
-            {fieldsForCategory(category).map((field) => (
-              <UnderstandingFieldRow
-                key={field.id}
-                pipeline={pipeline}
-                fieldId={field.id}
-                focused={focusId === field.id}
-                readOnly={readOnly || !onSaveField}
-                onSave={onSaveField}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+      {isLean ? (
+        <div className="flex flex-col gap-4">
+          {fields.map((field) => (
+            <UnderstandingFieldRow
+              key={field.id}
+              pipeline={pipeline}
+              fieldId={field.id}
+              focused={focusId === field.id}
+              readOnly={readOnly || !onSaveField}
+              onSave={onSaveField}
+            />
+          ))}
+        </div>
+      ) : (
+        UNDERSTANDING_CATEGORIES.map((category) => (
+          <section key={category} aria-labelledby={`understanding-${category}`}>
+            <h2
+              id={`understanding-${category}`}
+              className="text-[13px] font-semibold text-carbon-blue"
+            >
+              {UNDERSTANDING_CATEGORY_LABELS[category]}
+            </h2>
+            <div className="mt-3 flex flex-col gap-4">
+              {fields
+                .filter((field) => field.category === category)
+                .map((field) => (
+                  <UnderstandingFieldRow
+                    key={field.id}
+                    pipeline={pipeline}
+                    fieldId={field.id}
+                    focused={focusId === field.id}
+                    readOnly={readOnly || !onSaveField}
+                    onSave={onSaveField}
+                  />
+                ))}
+            </div>
+          </section>
+        ))
+      )}
     </div>
   );
 }
@@ -108,6 +131,7 @@ function UnderstandingFieldRow({
 
   useEffect(() => {
     if (resolved.source === "captured") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mirror the captured value into the draft
       setDraft(resolved.value);
       setLocalCaptured(resolved.value);
     }
@@ -115,6 +139,7 @@ function UnderstandingFieldRow({
 
   useEffect(() => {
     if (!focused) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- enter edit mode when the field is focused from outside
     setEditing(!readOnly);
     containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     window.setTimeout(() => inputRef.current?.focus(), 200);

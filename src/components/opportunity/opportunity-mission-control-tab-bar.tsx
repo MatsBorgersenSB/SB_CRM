@@ -24,7 +24,9 @@ export function OpportunityMissionControlTabBar({
   companies = [],
   pipelines = [],
   documentCount,
+  hiddenViews,
 }: {
+  hiddenViews?: readonly OpportunityMissionControlView[];
   active: OpportunityMissionControlView;
   onChange: (view: OpportunityMissionControlView) => void;
   activityContext: ActivityWorkspaceContext;
@@ -39,7 +41,9 @@ export function OpportunityMissionControlTabBar({
         className={`${ATTIO_SEGMENT_TRACK} sm:min-w-0 sm:flex-1`}
         role="tablist"
       >
-        {OPPORTUNITY_MISSION_CONTROL_VIEWS.map((view) => {
+        {OPPORTUNITY_MISSION_CONTROL_VIEWS.filter(
+          (view) => !hiddenViews?.includes(view.id),
+        ).map((view) => {
           const selected = view.id === active;
           return (
             <button

@@ -336,6 +336,25 @@ export const STANDARD_BIO_OFFERINGS: StandardBioOffering[] = [
       "Agree KPI set with Operations and Commercial before quoting reporting",
     ],
   },
+  {
+    id: "prod-biochar",
+    name: "Biochar",
+    category: "product",
+    summary: "Biochar supplied as a product — quote, order and delivery.",
+    requiredInformation: [
+      "Quantity and delivery schedule",
+      "Grade or specification required",
+      "Delivery location and packaging",
+    ],
+    suggestedStakeholderRoles: ["Procurement"],
+    discoveryQuestions: [
+      "What quantity and grade of biochar does the customer need, and by when?",
+    ],
+    qualificationSignals: ["Quantity and grade stated", "Delivery date named"],
+    nextBestActionHints: [
+      "Confirm quantity, grade and delivery date, then send a quote",
+    ],
+  },
 
   // ── Services ─────────────────────────────────────────────────────────────
   {

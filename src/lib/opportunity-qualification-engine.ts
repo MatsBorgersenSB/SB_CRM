@@ -7,6 +7,7 @@ import {
   findCompanyForDeal,
 } from "@/lib/opportunity-intelligence-engine";
 import { getActivitiesForDeal } from "@/lib/activity-utils";
+import { isLeanSalesMotion, salesMotionProfileFor } from "@/lib/sales-motion";
 import { daysBetween } from "@/lib/relative-time";
 import type { PipelineRow } from "@/types/pipeline";
 import { getLifecycleStage } from "@/types/pipeline";
@@ -329,6 +330,98 @@ function buildRecommendedAction(
   };
 }
 
+/** Qualification dimensions that matter for lean sales motions. */
+const LEAN_QUALIFICATION_DIMENSIONS: Record<
+  "product" | "consulting",
+  QualificationDimensionScore["id"][]
+> = {
+  product: ["decision_maker_access", "timeline", "relationship_strength", "competitive_position"],
+  consulting: [
+    "decision_maker_access",
+    "budget_availability",
+    "business_case_potential",
+    "timeline",
+    "relationship_strength",
+    "strategic_fit",
+  ],
+};
+
+const LEAN_TIER_DESCRIPTIONS: Record<
+  "product" | "consulting",
+  Record<OpportunityQualificationTier, string>
+> = {
+  product: {
+    A: "Clear need · buyer known · ready to quote or order",
+    B: "Clear need · quantity or date still to confirm",
+    C: "Early enquiry · need not yet confirmed",
+    D: "Cold enquiry · no buyer or date",
+  },
+  consulting: {
+    A: "Scope and budget clear · buyer known · ready for proposal",
+    B: "Scope emerging · fee still to agree",
+    C: "Early conversation · scope not defined",
+    D: "Exploring only · no scope or budget",
+  },
+};
+
+function classifyLeanTier(score: number): OpportunityQualificationTier {
+  if (score >= 70) return "A";
+  if (score >= 50) return "B";
+  if (score >= 35) return "C";
+  return "D";
+}
+
+function buildLeanRecommendedAction(
+  motion: "product" | "consulting",
+  tier: OpportunityQualificationTier,
+  owner: string,
+): ReturnType<typeof buildRecommendedAction> {
+  const product = motion === "product";
+  const byTier: Record<
+    OpportunityQualificationTier,
+    { action: string; reason: string; when: string; outcome: string; priority: QualificationPriority }
+  > = {
+    A: {
+      action: product ? "Send the quote and confirm delivery date" : "Send the proposal with scope and fee",
+      reason: product
+        ? "Need and buyer are clear — a quote is all that stands between us and an order"
+        : "Scope, budget and buyer are clear — a proposal can close this",
+      when: "Within 2 business days",
+      outcome: product ? "Order" : "Signed engagement",
+      priority: "high",
+    },
+    B: {
+      action: product
+        ? "Confirm quantity or size and delivery date, then quote"
+        : "Agree scope and fee, then send the proposal",
+      reason: product
+        ? "We need quantity and date to quote — nothing else is required"
+        : "Scope or fee is still open — no free advisory before it is agreed",
+      when: "Within 1 week",
+      outcome: product ? "Quote sent" : "Proposal sent",
+      priority: "medium",
+    },
+    C: {
+      action: product
+        ? "Ask what quantity or size they need, and by when"
+        : "Ask what they need delivered and whether budget exists",
+      reason: "Early enquiry — one short exchange decides if it is worth pursuing",
+      when: "Within 2 weeks",
+      outcome: product ? "Quote-ready enquiry or close" : "Defined scope or close",
+      priority: "medium",
+    },
+    D: {
+      action: "Reply briefly and park until they come back with a need",
+      reason: "No buyer, quantity or date — keep effort minimal",
+      when: "This week",
+      outcome: "Resource preserved for stronger opportunities",
+      priority: "low",
+    },
+  };
+  const picked = byTier[tier];
+  return { ...picked, owner, confidence: tier === "A" ? 88 : tier === "B" ? 80 : 70 };
+}
+
 export function computeOpportunityQualification(
   deal: PipelineRow,
   companies: Company[],
@@ -453,31 +546,47 @@ export function computeOpportunityQualification(
     },
   ];
 
+  const motionProfile = salesMotionProfileFor(deal);
+  const leanMotion =
+    motionProfile && isLeanSalesMotion(motionProfile)
+      ? (motionProfile.motion as "product" | "consulting")
+      : null;
+
+  const scoredDimensions = leanMotion
+    ? dimensionScores.filter((dim) => LEAN_QUALIFICATION_DIMENSIONS[leanMotion].includes(dim.id))
+    : dimensionScores;
+  const weightTotal = leanMotion
+    ? scoredDimensions.reduce((sum, dim) => sum + DIMENSION_WEIGHTS[dim.id], 0) || 1
+    : 1;
   const qualificationScore = clamp(
-    dimensionScores.reduce(
-      (sum, dim) => sum + dim.score * DIMENSION_WEIGHTS[dim.id],
-      0,
-    ),
+    scoredDimensions.reduce((sum, dim) => sum + dim.score * DIMENSION_WEIGHTS[dim.id], 0) /
+      weightTotal,
   );
 
-  const paidService = detectPaidServiceSignals(dealActivities, packages);
-  const informationSeeker = isInformationSeeker(
-    dealActivities,
-    deal,
-    businessCaseScore,
-    budgetScore,
-  );
+  const paidService: PaidServiceSignal = leanMotion === "product"
+    ? { detected: false, triggers: [], recommendation: "", rationale: "" }
+    : detectPaidServiceSignals(dealActivities, packages);
+  const informationSeeker =
+    !leanMotion && isInformationSeeker(dealActivities, deal, businessCaseScore, budgetScore);
   const hasFatalFlaws = assessment.fatalFlawAlerts.some((f) => f.severity === "critical");
 
-  const tier = classifyTier(qualificationScore, {
-    decisionScore,
-    budgetScore,
-    informationSeeker,
-    hasFatalFlaws,
-  });
+  const tier = leanMotion
+    ? classifyLeanTier(qualificationScore)
+    : classifyTier(qualificationScore, {
+        decisionScore,
+        budgetScore,
+        informationSeeker,
+        hasFatalFlaws,
+      });
 
-  const commercialPotential = resolveCommercialPotential(deal, assessment, paidService.detected);
-  const action = buildRecommendedAction(tier, deal, paidService, assessment, intel, company);
+  const commercialPotential: QualificationCommercialPotential = leanMotion
+    ? leanMotion === "product"
+      ? "product_sale"
+      : "paid_consulting"
+    : resolveCommercialPotential(deal, assessment, paidService.detected);
+  const action = leanMotion
+    ? buildLeanRecommendedAction(leanMotion, tier, company?.AccountOwner?.Title ?? "Commercial lead")
+    : buildRecommendedAction(tier, deal, paidService, assessment, intel, company);
   const salesOnly = getLifecycleStage(deal.status) === "sales";
 
   return {
@@ -485,7 +594,9 @@ export function computeOpportunityQualification(
     dealName: deal.assetName ?? deal.id,
     qualificationScore,
     tier,
-    tierDescription: QUALIFICATION_TIER_META[tier].description,
+    tierDescription: leanMotion
+      ? LEAN_TIER_DESCRIPTIONS[leanMotion][tier]
+      : QUALIFICATION_TIER_META[tier].description,
     recommendedAction: action.action,
     actionReason: action.reason,
     actionOwner: action.owner,
@@ -496,7 +607,7 @@ export function computeOpportunityQualification(
     commercialPotential,
     commercialPotentialLabel: QUALIFICATION_COMMERCIAL_POTENTIAL_LABELS[commercialPotential],
     paidService,
-    dimensions: dimensionScores,
+    dimensions: scoredDimensions,
     discourageUnpaidConsulting:
       paidService.detected && !paidService.recommendation.includes("existing"),
     href: deal360Href(deal.id),

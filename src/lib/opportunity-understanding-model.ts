@@ -4,8 +4,8 @@ import type {
   UnderstandingFieldDefinition,
   UnderstandingFieldId,
 } from "@/types/opportunity-understanding";
+import { salesMotionProfileFor, understandingFieldsForPipeline } from "@/lib/sales-motion";
 import {
-  UNDERSTANDING_FIELDS,
   UNDERSTANDING_FIELD_BY_ID,
 } from "@/types/opportunity-understanding";
 import {
@@ -99,7 +99,11 @@ export function resolveUnderstandingField(
   pipeline: PipelineRow,
   fieldId: UnderstandingFieldId,
 ): ResolvedUnderstandingField {
-  const definition = UNDERSTANDING_FIELD_BY_ID[fieldId];
+  const profile = salesMotionProfileFor(pipeline);
+  const definition: UnderstandingFieldDefinition = {
+    ...UNDERSTANDING_FIELD_BY_ID[fieldId],
+    ...(profile && profile.motion !== "system" ? profile.fieldOverrides[fieldId] : undefined),
+  };
   const captured = pipeline.understanding?.fields?.[fieldId]?.trim() ?? "";
   if (captured) {
     return { definition, value: captured, source: "captured" };
@@ -121,7 +125,9 @@ export function resolveUnderstandingField(
 export function resolveAllUnderstandingFields(
   pipeline: PipelineRow,
 ): ResolvedUnderstandingField[] {
-  return UNDERSTANDING_FIELDS.map((field) => resolveUnderstandingField(pipeline, field.id));
+  return understandingFieldsForPipeline(pipeline).map((field) =>
+    resolveUnderstandingField(pipeline, field.id),
+  );
 }
 
 /**

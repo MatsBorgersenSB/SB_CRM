@@ -122,6 +122,13 @@ export function assertPipelinePatchAllowed(
       continue;
     }
 
+    if (key === "assetName") {
+      if (!canRenameOpportunity(role)) {
+        throw new Error(`Role "${role}" cannot rename an opportunity`);
+      }
+      continue;
+    }
+
     if (key === "expectedCloseDate") {
       if (!canEditExpectedCloseDate(role)) {
         throw new Error(`Role "${role}" cannot update expected close date`);
@@ -311,7 +318,7 @@ export function canCreateProject(role: UserRole): boolean {
 }
 
 export function canAssignOpportunityOwner(role: UserRole): boolean {
-  return role === "superuser" || role === "commercial";
+  return role === "superuser" || role === "admin" || role === "commercial";
 }
 
 /** Company Account Owner may be reassigned — never locked to the registrar. */
@@ -331,6 +338,11 @@ export function canCreateOpportunity(role: UserRole): boolean {
 
 /** Remove a mistaken opportunity from the live pipeline — creators and ADMIN. */
 export function canDeleteOpportunity(role: UserRole): boolean {
+  return role === "superuser" || role === "admin" || role === "commercial";
+}
+
+/** Fix a typo in the opportunity name — same people who can open a deal. */
+export function canRenameOpportunity(role: UserRole): boolean {
   return role === "superuser" || role === "admin" || role === "commercial";
 }
 

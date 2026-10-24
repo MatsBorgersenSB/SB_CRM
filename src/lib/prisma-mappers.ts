@@ -240,6 +240,8 @@ function mapOwnerPerson(ownerId: string | null | undefined): {
   Title: string;
 } | null {
   if (!ownerId) return null;
+  // "system" is a creation placeholder, not a person — treat as unassigned.
+  if (ownerId.trim().toLowerCase() === "system") return null;
 
   const numeric = Number(ownerId);
   if (Number.isFinite(numeric) && numeric > 0) {

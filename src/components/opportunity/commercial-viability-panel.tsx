@@ -83,6 +83,9 @@ export function CommercialViabilityPanel({
   );
 
   const { revenuePath, coreQuestions } = assessment;
+  // Product / consulting sales have no project-development maturity to show.
+  const showProjectMaturity =
+    assessment.salesMotion === null || assessment.salesMotion === "system";
   const primaryAction = assessment.nextActions[0];
 
   if (variant === "detail") {
@@ -106,6 +109,7 @@ export function CommercialViabilityPanel({
           </div>
         </CollapsibleSection>
 
+        {showProjectMaturity ? (
         <CollapsibleSection
           title="Project maturity"
           description={assessment.projectMaturity.currentStageLabel}
@@ -131,6 +135,7 @@ export function CommercialViabilityPanel({
               ))}
           </div>
         </CollapsibleSection>
+        ) : null}
 
         <CollapsibleSection
           title="Revenue path"
@@ -217,7 +222,7 @@ export function CommercialViabilityPanel({
         ) : null}
 
         <CollapsibleSection
-          title="13 CVM scoring dimensions"
+          title={`${assessment.dimensions.length} CVM scoring dimensions`}
           description="Commercial decision engine"
           tier="expert"
         >
@@ -321,6 +326,7 @@ export function CommercialViabilityPanel({
         </div>
       </section>
 
+      {showProjectMaturity ? (
       <section className="border border-carbon-blue/10 px-4 py-3">
         <p className="text-[10px] font-bold uppercase tracking-wider text-carbon-blue/60">
           Project maturity — {assessment.projectMaturity.question}
@@ -348,6 +354,7 @@ export function CommercialViabilityPanel({
             ))}
         </div>
       </section>
+      ) : null}
 
       <section className="border border-upcycle-orange/20 bg-upcycle-orange/[0.03] px-4 py-3">
         <p className="text-[10px] font-bold uppercase tracking-wider text-upcycle-orange">

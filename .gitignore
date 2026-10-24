@@ -49,3 +49,8 @@ next-env.d.ts
 
 # Graphify local knowledge graph
 graphify-out/
+
+.cursor/mcp.json
+
+# Sentry Config File
+.env.sentry-build-plugin

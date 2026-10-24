@@ -69,6 +69,7 @@ export type QualificationDimensionScore = {
 
 export type QualificationCommercialPotential =
   | "machinery_sale"
+  | "product_sale"
   | "engineering_contract"
   | "paid_consulting"
   | "project_development"
@@ -79,6 +80,7 @@ export const QUALIFICATION_COMMERCIAL_POTENTIAL_LABELS: Record<
   string
 > = {
   machinery_sale: "Machinery sale",
+  product_sale: "Product sale",
   engineering_contract: "Engineering contract",
   paid_consulting: "Paid consulting",
   project_development: "Project development",

@@ -5,6 +5,7 @@ import type { Company } from "@/types/company";
 import { getActivitiesForDeal } from "@/lib/activity-utils";
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
 import { buildOfferingIntelligence } from "@/lib/offering-intelligence";
+import { isLeanSalesMotion, salesMotionProfileFor } from "@/lib/sales-motion";
 import {
   buildConfirmedFromUnderstandingModel,
   buildGapsFromUnderstandingModel,
@@ -150,6 +151,18 @@ function inferClientObjective(
   pipeline: PipelineRow,
   company: Company | undefined,
 ): ClientObjective {
+  const profile = salesMotionProfileFor(pipeline);
+  if (isLeanSalesMotion(profile)) {
+    // Product / consulting: the customer's need is the offering itself — no inference required.
+    const labels = buildOfferingIntelligence(pipeline.offeringIds).labels.join(", ");
+    return {
+      statement:
+        profile!.motion === "product" ? `Buy ${labels}` : `Engage Standard Bio for ${labels}`,
+      confidence: "high",
+      confidenceReason: `Taken from the offerings selected on this opportunity (${profile!.label.toLowerCase()}).`,
+    };
+  }
+
   const sectors = normalizeCompanySectors(company?.Sectors);
   const corpus = [
     pipeline.assetName,
@@ -322,6 +335,7 @@ function buildCriticalKnowledgeGaps(
   }
 
   if (
+    (salesMotionProfileFor(pipeline)?.engagementGap ?? true) &&
     dealActivities.length === 0 &&
     !pipeline.understanding?.discoveryNotes?.engagement?.trim()
   ) {
@@ -532,10 +546,19 @@ function buildDiscoveryQuestionItems(
   const items: OpportunityDiscoveryQuestionItem[] = [];
   const seen = new Set<string>();
 
+  const profile = salesMotionProfileFor(pipeline);
+  const lean = isLeanSalesMotion(profile);
+
   for (const gap of gaps) {
     const mapped = questionMap[gap.id];
     if (!mapped || seen.has(gap.id)) continue;
-    items.push({ id: gap.id, question: mapped.question, fieldId: mapped.fieldId });
+    const fieldPrompt =
+      lean && mapped.fieldId ? profile!.fieldOverrides[mapped.fieldId]?.prompt : undefined;
+    items.push({
+      id: gap.id,
+      question: fieldPrompt ?? mapped.question,
+      fieldId: mapped.fieldId,
+    });
     seen.add(gap.id);
   }
 
@@ -546,7 +569,10 @@ function buildDiscoveryQuestionItems(
     });
     seen.add("offerings");
   } else {
-    for (const question of offeringIntel.discoveryQuestions.slice(0, 3)) {
+    for (const question of offeringIntel.discoveryQuestions.slice(
+      0,
+      profile?.offeringQuestionLimit ?? 3,
+    )) {
       const id = `offering-${question.slice(0, 24)}`;
       if (seen.has(id)) continue;
       items.push({ id, question });
@@ -590,7 +616,7 @@ function buildDiscoveryQuestionItems(
         },
       ];
 
-  for (const item of defaults) {
+  for (const item of lean ? [] : defaults) {
     if (seen.has(item.id)) continue;
     items.push(item);
     seen.add(item.id);
@@ -627,6 +653,11 @@ function buildSuggestedValidations(
   };
 
   const fromGaps = gaps.map((gap) => validationMap[gap.id]).filter(Boolean) as string[];
+
+  // Product / consulting: confirm only what the open gaps ask for — no project-style checks.
+  if (isLeanSalesMotion(salesMotionProfileFor(pipeline))) {
+    return fromGaps.slice(0, 3);
+  }
 
   const defaults = [
     `Validate inferred client objective against ${company?.Title ?? "customer"} leadership`,
@@ -673,6 +704,10 @@ function buildRecommendedConversations(
     conversations.push("Executive alignment conversation to access the decision maker");
   }
 
+  if (isLeanSalesMotion(salesMotionProfileFor(pipeline))) {
+    return [...new Set(conversations)].slice(0, 2);
+  }
+
   if (company?.Title) {
     conversations.push(`Account review with ${company.Title} on open understanding gaps`);
   }
@@ -689,7 +724,11 @@ function buildAssessment(
   const wellUnderstood: string[] = [];
   const gapsInUnderstanding: string[] = [];
 
-  if (pipeline.targetFeedstock.trim()) {
+  const lean = isLeanSalesMotion(salesMotionProfileFor(pipeline));
+
+  if (lean) {
+    // Feedstock is not part of a product / consulting sale.
+  } else if (pipeline.targetFeedstock.trim()) {
     wellUnderstood.push(`Feedstock context: ${pipeline.targetFeedstock}`);
   } else {
     gapsInUnderstanding.push("Feedstock volume and quality not yet confirmed");
@@ -741,9 +780,11 @@ function buildAssessment(
     ].slice(0, 5),
     workingAssumptions: [
       assessment.coreQuestions.shouldInvestResources,
-      endProductClarity(pipeline)
-        ? "End product direction is directionally understood from project context"
-        : "End product path is still assumed — needs customer confirmation",
+      lean
+        ? ""
+        : endProductClarity(pipeline)
+          ? "End product direction is directionally understood from project context"
+          : "End product path is still assumed — needs customer confirmation",
       ...offeringIntel.qualificationSignals.slice(0, 2).map(
         (signal) => `Qualification signal to confirm: ${signal}`,
       ),
@@ -826,9 +867,14 @@ function buildNextBestAction(
 
   const topGap = gaps.find((gap) => gap.priority === "high") ?? gaps[0];
   if (topGap) {
-    const mapped = validationMap[topGap.id];
+    const leanProfile = salesMotionProfileFor(pipeline);
+    const leanField =
+      isLeanSalesMotion(leanProfile) && isUnderstandingFieldId(topGap.id)
+        ? leanProfile!.fieldOverrides[topGap.id]
+        : undefined;
+    const mapped = leanField ? undefined : validationMap[topGap.id];
     const field = isUnderstandingFieldId(topGap.id)
-      ? UNDERSTANDING_FIELD_BY_ID[topGap.id]
+      ? { ...UNDERSTANDING_FIELD_BY_ID[topGap.id], ...leanField }
       : undefined;
     const offeringHint = offeringIntel.nextBestActionHints[0];
     return {
@@ -1032,6 +1078,9 @@ export function regenerateDiscoveryQuestions(
   intelligence: OpportunityUnderstanding,
   pipeline: PipelineRow,
 ): string[] {
+  if (isLeanSalesMotion(salesMotionProfileFor(pipeline))) {
+    return intelligence.suggestedQuestions.slice(0, 4);
+  }
   const extra = [
     `What regulatory constraints apply to ${pipeline.targetFeedstock || "the proposed feedstock"}?`,
     "Who must approve CAPEX before engineering can proceed?",
@@ -1047,6 +1096,9 @@ export function regenerateValidations(
   intelligence: OpportunityUnderstanding,
   pipeline: PipelineRow,
 ): string[] {
+  if (isLeanSalesMotion(salesMotionProfileFor(pipeline))) {
+    return intelligence.suggestedValidations.slice(0, 3);
+  }
   const extra = [
     "Validate success criteria the customer would use at 12 months",
     "Confirm whether internal champions exist outside the current contact set",

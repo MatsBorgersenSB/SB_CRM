@@ -19,6 +19,9 @@ import { OpportunityTimelineWorkspace } from "@/components/opportunity/opportuni
 import { AddFindingPanel } from "@/components/knowledge/add-finding-panel";
 import { MarketFactsOnDeal } from "@/components/opportunity/market-facts-on-deal";
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
+import { resolveSalesMotion } from "@/lib/sales-motion";
+import { OpportunityMailSignals } from "@/components/opportunity/opportunity-mail-signals";
+import { PRODUCT_SALE_HIDDEN_VIEWS } from "@/types/opportunity-mission-control";
 import { buildOpportunityUnderstanding } from "@/lib/opportunity-workspace-intelligence";
 import { resolveAllUnderstandingFields } from "@/lib/opportunity-understanding-model";
 import { buildSmartDocsIntelligence } from "@/lib/smartdocs-intelligence-data";
@@ -49,7 +52,7 @@ import {
 import { ATTIO_SURFACE, ATTIO_SURFACE_HEADER } from "@/lib/attio-workspace-surfaces";
 
 export function OpportunityMissionControl({
-  view,
+  view: requestedView,
   onViewChange,
   actionTab,
   onActionTabChange,
@@ -101,6 +104,13 @@ export function OpportunityMissionControl({
   role?: UserRole;
   influenceReadOnly?: boolean;
 }) {
+  // Product sale (dryer, biochar…): no investigation surfaces — buyer, quantity, date, quote.
+  const isProductSale = resolveSalesMotion(pipeline).motion === "product";
+  const view =
+    isProductSale && PRODUCT_SALE_HIDDEN_VIEWS.includes(requestedView)
+      ? "overview"
+      : requestedView;
+
   const understanding = useMemo(
     () =>
       buildOpportunityUnderstanding(
@@ -120,6 +130,16 @@ export function OpportunityMissionControl({
         .map((field) => field.definition.id),
     [pipeline],
   );
+
+  // Facts still missing on this deal — the mail check looks for them in client mail first.
+  const mailMissingFields = useMemo(() => {
+    const rank = { high: 0, medium: 1, low: 2 } as const;
+    return resolveAllUnderstandingFields(pipeline)
+      .filter((field) => field.source === "empty")
+      .sort((a, b) => rank[a.definition.priority] - rank[b.definition.priority])
+      .slice(0, 3)
+      .map((field) => ({ fieldId: field.definition.id, label: field.definition.label }));
+  }, [pipeline]);
 
   const dealDocuments = useMemo(() => {
     const smartDocs = buildSmartDocsIntelligence(pipelines, companies, activities);
@@ -178,6 +198,7 @@ export function OpportunityMissionControl({
             companies={companies}
             pipelines={pipelines}
             documentCount={actionCounts?.documents}
+            hiddenViews={isProductSale ? PRODUCT_SALE_HIDDEN_VIEWS : undefined}
           />
         </div>
 
@@ -225,6 +246,21 @@ export function OpportunityMissionControl({
             country={findCompanyForDeal(pipeline.id, companies)?.Country?.Title}
             feedstock={pipeline.targetFeedstock}
             industry={findCompanyForDeal(pipeline.id, companies)?.Industry}
+            lean={isProductSale}
+            mailSignals={
+              <OpportunityMailSignals
+                opportunityId={pipeline.id}
+                role={role}
+                missingFields={mailMissingFields}
+                onConfirmField={
+                  onSaveUnderstandingField
+                    ? (fieldId, value) =>
+                        onSaveUnderstandingField(fieldId as UnderstandingFieldId, value)
+                    : undefined
+                }
+                onOpenEmails={() => onViewChange("emails")}
+              />
+            }
           />
         ) : null}
 
@@ -345,7 +381,11 @@ function OverviewPanel({
   country,
   feedstock,
   industry,
+  lean = false,
+  mailSignals,
 }: {
+  lean?: boolean;
+  mailSignals?: ReactNode;
   objective: string;
   objectiveConfidence: "high" | "medium" | "low";
   objectiveConfidenceReason?: string;
@@ -377,20 +417,24 @@ function OverviewPanel({
 
   return (
     <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
-      <AddFindingPanel
-        targetLabel="this opportunity"
-        findings={findings}
-        onFindingsChange={
-          onSaveFindings ??
-          (async () => {
-            throw new Error("You cannot add findings with this role");
-          })
-        }
-        documentCount={documentCount}
-        onReadDocuments={onReadDocuments}
-        knownFieldIds={knownFieldIds}
-      />
-      <MarketFactsOnDeal country={country} feedstock={feedstock} industry={industry} />
+      {lean ? null : (
+        <>
+          <AddFindingPanel
+            targetLabel="this opportunity"
+            findings={findings}
+            onFindingsChange={
+              onSaveFindings ??
+              (async () => {
+                throw new Error("You cannot add findings with this role");
+              })
+            }
+            documentCount={documentCount}
+            onReadDocuments={onReadDocuments}
+            knownFieldIds={knownFieldIds}
+          />
+          <MarketFactsOnDeal country={country} feedstock={feedstock} industry={industry} />
+        </>
+      )}
 
       <MissionInsight
         label="What the customer wants"
@@ -400,7 +444,9 @@ function OverviewPanel({
         confidence={objectiveConfidence}
       />
 
-      {blocker ? (
+      {mailSignals}
+
+      {lean ? null : blocker ? (
         <ExplainabilityBlock
           title="What is blocking progress"
           observation={blocker.observation}
@@ -440,9 +486,11 @@ function OverviewPanel({
       <ExplainabilityBlock
         title="What should happen next"
         observation={
-          hasCriticalGaps
-            ? "Critical knowledge gaps remain on this opportunity."
-            : "Opportunity understanding is sufficient to advance commercially."
+          lean
+            ? "This is a product sale — it needs a quote and an order, not an investigation."
+            : hasCriticalGaps
+              ? "Critical knowledge gaps remain on this opportunity."
+              : "Opportunity understanding is sufficient to advance commercially."
         }
         reasoning={nextActionWhy}
         recommendedAction={nextAction}

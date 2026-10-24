@@ -166,6 +166,19 @@ export function extractEmailCommitments(
   });
 }
 
+/**
+ * A request in a message ("please send…", "can you confirm…"), regardless of direction.
+ * Used to see what we asked the client for (outbound) as well as what they asked us.
+ */
+export function detectEmailRequestExcerpt(
+  subject: string,
+  bodyPreview: string | null | undefined,
+): string | null {
+  const text = `${subject ?? ""}\n${bodyPreview ?? ""}`.trim();
+  if (!text) return null;
+  return firstMatchExcerpt(text, ACTION_ASK_PATTERNS);
+}
+
 /** Map to Prisma SentimentGrade string union. */
 export function toPrismaSentimentGrade(
   grade: EmailSentimentGrade,

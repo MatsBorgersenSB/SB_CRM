@@ -81,9 +81,9 @@ function ProbabilityExplanationPanel({
           How SmartCRM calculates this
         </summary>
         <p className="border-t border-slate-200/70 px-2.5 py-2 text-[12px] leading-relaxed text-slate-500 dark:border-slate-800 dark:text-slate-400">
-          Win probability starts from the typical rate for the current stage (
-          {explanation.stageLabel}: {explanation.stageBaseline}%), then adjusts for account
-          relationship health, deal momentum, stakeholder coverage, and any active risk signals.
+          {explanation.factors.some((f) => f.id === "stakeholder_coverage")
+            ? `Win probability starts from the typical rate for the current stage (${explanation.stageLabel}: ${explanation.stageBaseline}%), then adjusts for account relationship health, deal momentum, stakeholder coverage, and any active risk signals.`
+            : `This is a simple purchase, so it starts from ${explanation.stageBaseline}% and only moves for customer silence and overdue commitments. Project knowledge such as stakeholders, account relationship, feedstock or permits is not used.`}{" "}
           The result is clamped between 5% and 95%. Rule-based from known opportunity data — no AI.
         </p>
       </details>

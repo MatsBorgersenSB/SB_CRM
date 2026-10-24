@@ -47,9 +47,11 @@ import {
   buildBuyingDriverSummary,
   detectBuyingDriversFromText,
   evaluateRevenuePath,
+  evaluateLeanRevenuePath,
   inferBusinessModel,
   scoreRevenuePathDimension,
 } from "@/lib/revenue-path-engine";
+import { isLeanSalesMotion, salesMotionProfileFor } from "@/lib/sales-motion";
 import type { ImpactSignal } from "@/types/impact";
 
 const DIMENSION_WEIGHTS: Record<CommercialViabilityDimensionId, number> = {
@@ -696,7 +698,13 @@ export function computeCommercialViability(
 
   const buying = detectBuyingDrivers(deal, dealActivities);
 
-  const baseDimensions: CommercialViabilityDimension[] = [
+  // Sales motion decides how much to investigate: system = full CVM, product / consulting = lean.
+  const motionProfile = salesMotionProfileFor(deal);
+  const lean = isLeanSalesMotion(motionProfile);
+  // A single buyer contact is normal for a product / consulting sale — not "single-threaded".
+  const scoredStakeholders = lean ? Math.max(intel.stakeholderCount, 2) : intel.stakeholderCount;
+
+  const allBaseDimensions: CommercialViabilityDimension[] = [
     buildDimension("buying_drivers", buying.scored),
     buildDimension("business_case_strength", scoreBusinessCase(deal, intel.winProbability, packages, company)),
     buildDimension("financial_readiness", scoreFinancialReadiness(deal, packages, company)),
@@ -706,11 +714,11 @@ export function computeCommercialViability(
     buildDimension("delivery_readiness", scoreDeliveryReadiness(deal, packages)),
     buildDimension(
       "decision_readiness",
-      scoreDecisionReadiness(deal, dealActivities, intel.stakeholderCount, overdueCount),
+      scoreDecisionReadiness(deal, dealActivities, scoredStakeholders, overdueCount),
     ),
     buildDimension(
       "competitive_position",
-      scoreCompetitivePosition(packages, intel.stakeholderCount, daysSince, dealActivities.length),
+      scoreCompetitivePosition(packages, scoredStakeholders, daysSince, dealActivities.length),
     ),
     buildDimension(
       "commercial_momentum",
@@ -729,20 +737,29 @@ export function computeCommercialViability(
     ),
   ];
 
-  const revenuePath = evaluateRevenuePath(deal, packages, dealActivities, baseDimensions);
-  const revenuePathScored = scoreRevenuePathDimension(revenuePath);
-  const dimensions = [
-    ...baseDimensions,
-    buildDimension("revenue_path", revenuePathScored),
-  ];
+  const baseDimensions = lean
+    ? allBaseDimensions.filter((dim) => motionProfile!.viabilityDimensionIds.includes(dim.id))
+    : allBaseDimensions;
+
+  const revenuePath =
+    lean && motionProfile
+      ? evaluateLeanRevenuePath(deal, packages, motionProfile.motion as "product" | "consulting")
+      : evaluateRevenuePath(deal, packages, dealActivities, baseDimensions);
+  const dimensions = lean
+    ? baseDimensions
+    : [...baseDimensions, buildDimension("revenue_path", scoreRevenuePathDimension(revenuePath))];
 
   const byId = Object.fromEntries(dimensions.map((d) => [d.id, d])) as Record<
     CommercialViabilityDimensionId,
     CommercialViabilityDimension
   >;
 
+  const weightTotal = lean
+    ? dimensions.reduce((sum, dim) => sum + DIMENSION_WEIGHTS[dim.id], 0) || 1
+    : 1;
   const viabilityScore = clampScore(
-    dimensions.reduce((sum, dim) => sum + dim.score * DIMENSION_WEIGHTS[dim.id], 0),
+    dimensions.reduce((sum, dim) => sum + dim.score * DIMENSION_WEIGHTS[dim.id], 0) /
+      weightTotal,
   );
 
   const projectMaturity = computeProjectMaturity(deal, packages);
@@ -762,7 +779,7 @@ export function computeCommercialViability(
     dealActivities,
     packages,
     intel.stakeholderCount,
-  );
+  ).filter((alert) => !lean || motionProfile!.fatalFlawIds.includes(alert.id));
   const fatalFlaws = fatalFlawsToImpactSignals(fatalFlawAlerts);
   const resourceScore = byId.resource_efficiency!.score;
 
@@ -793,9 +810,10 @@ export function computeCommercialViability(
             ? "1–3 months"
             : "6+ months";
 
-  const businessModel = inferBusinessModel(deal, packages);
-  const businessModelLabel =
-    businessModel === "equipment_sale"
+  const businessModel = lean ? revenuePath.businessModel : inferBusinessModel(deal, packages);
+  const businessModelLabel = lean
+    ? revenuePath.businessModelLabel
+    : businessModel === "equipment_sale"
       ? "Direct Equipment Sale"
       : businessModel === "project_development"
         ? "Project Development Services"
@@ -809,13 +827,25 @@ export function computeCommercialViability(
     dimensions,
     fatalFlawAlerts,
   );
-  const coreQuestions = buildCoreQuestions(
+  const builtCoreQuestions = buildCoreQuestions(
     dimensions,
     revenuePath,
     recommendation,
     fatalFlawAlerts,
     risks,
   );
+  const notRequired = `Not assessed — not needed for a ${motionProfile?.label.toLowerCase()}`;
+  const coreQuestions = lean
+    ? {
+        ...builtCoreQuestions,
+        canTheyImplement: notRequired,
+        canProjectOperate: notRequired,
+        canProjectBeBuilt: notRequired,
+        canOutputsBeSold: notRequired,
+        canTheyBuy:
+          byId.financial_readiness?.summary ?? "Confirmed at quote — no separate funding check",
+      }
+    : builtCoreQuestions;
 
   return {
     moduleVersion: CVM_VERSION,
@@ -829,6 +859,7 @@ export function computeCommercialViability(
     salesValueLabel: formatDealValue(deal.currency, deal.salesValue),
     businessModel,
     businessModelLabel,
+    salesMotion: motionProfile?.motion ?? null,
     viabilityScore,
     contractProbability,
     contractProbabilityLabel: `${contractProbability}%`,

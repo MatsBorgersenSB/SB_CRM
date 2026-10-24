@@ -57,6 +57,10 @@ import { WorkspaceModeNav } from "@/components/ui/workspace-mode-nav";
 import { useAuth } from "@/context/auth-context";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import { canDeleteSmartDoc } from "@/lib/permissions";
+import {
+  ADD_DOCUMENT_EVENT,
+  consumeAddDocumentPending,
+} from "@/lib/add-document-intent";
 import { importSmartDocWithFile } from "@/lib/smartdoc-browser-upload";
 import { deleteSmartDocRecord } from "@/lib/sync-smartdoc";
 
@@ -205,12 +209,27 @@ export function WorkspaceDocumentsPanel({
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset filters when the record context changes
     setTableQuery(defaultDocumentTableQuery());
   }, [context.scope, context.companyId, context.contactId, context.dealId, context.projectId]);
 
   useEffect(() => {
     onDocumentCountChange?.(rows.length);
   }, [onDocumentCountChange, rows.length]);
+
+  // Sidebar "Add doc": open the upload area (now if we are mounted, or on arrival).
+  useEffect(() => {
+    if (readOnly) return;
+    const openUpload = () => {
+      if (consumeAddDocumentPending()) setMode("import");
+    };
+    const onArrival = window.setTimeout(openUpload, 0);
+    window.addEventListener(ADD_DOCUMENT_EVENT, openUpload);
+    return () => {
+      window.clearTimeout(onArrival);
+      window.removeEventListener(ADD_DOCUMENT_EVENT, openUpload);
+    };
+  }, [readOnly]);
 
   const identityPreview = useMemo(() => {
     if (isProjectScope && context.projectId) {
@@ -394,6 +413,7 @@ export function WorkspaceDocumentsPanel({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial load of the library
     void loadLibrary();
   }, [loadLibrary]);
 
@@ -420,6 +440,7 @@ export function WorkspaceDocumentsPanel({
 
   useEffect(() => {
     const initial = defaultTargetDealId(context, pipelines);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- re-seed ownership when the record context changes
     if (initial) setTargetDealId(initial);
     if (context.scope === "company" || context.scope === "contact") {
       // Prefer company ownership so supplier/order docs don't invent deals.
@@ -429,6 +450,7 @@ export function WorkspaceDocumentsPanel({
 
   useEffect(() => {
     if (nameSuggestions && !documentName && mode === "create") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- suggested name seeds the field once
       setDocumentName(nameSuggestions.primary);
     }
   }, [nameSuggestions, documentName, mode]);

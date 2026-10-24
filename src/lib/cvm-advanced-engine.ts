@@ -118,11 +118,19 @@ export function computeContractReadiness(
     CommercialViabilityDimension
   >;
 
-  const contributors = CVM_CONTRACT_READINESS_SOURCES.map((id) => ({
+  // Lean sales motions (product / consulting) skip project dimensions — score only what applies.
+  const applicable = CVM_CONTRACT_READINESS_SOURCES.filter(
+    (id) => dimensions.length === 0 || byId[id],
+  );
+  const weightTotal =
+    applicable.length < CVM_CONTRACT_READINESS_SOURCES.length
+      ? applicable.reduce((sum, id) => sum + CVM_CONTRACT_READINESS_WEIGHTS[id], 0) || 1
+      : 1;
+  const contributors = applicable.map((id) => ({
     dimensionId: id,
     label: byId[id]?.scoreLabel ?? id,
     score: byId[id]?.score ?? 0,
-    weight: CVM_CONTRACT_READINESS_WEIGHTS[id],
+    weight: CVM_CONTRACT_READINESS_WEIGHTS[id] / weightTotal,
   }));
 
   let score = contributors.reduce((sum, item) => sum + item.score * item.weight, 0);

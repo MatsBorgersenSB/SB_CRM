@@ -20,6 +20,7 @@ import { opportunityStageLabel } from "@/lib/opportunity-overview";
 import type { CommercialPackage } from "@/types/commercial-package";
 import {
   canAssignOpportunityOwner,
+  canRenameOpportunity,
   canDeleteOpportunity,
   canEditExpectedCloseDate,
   canEditOpportunityValue,
@@ -29,6 +30,7 @@ import { OpportunityOfferingsPanel } from "@/components/opportunity/opportunity-
 import { OpportunityProbabilityPill } from "@/components/opportunity/opportunity-probability-pill";
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 import { formatOfferingLabels } from "@/lib/standard-bio-offerings";
+import { resolveSalesMotion } from "@/lib/sales-motion";
 import {
   ATTIO_PILL,
   ATTIO_PILL_STATIC,
@@ -89,6 +91,13 @@ export function OpportunityWorkspaceHeader({
   const canEditValue = canEditOpportunityValue(role) && Boolean(onPipelinePatch);
   const canDelete = canDeleteOpportunity(role) && Boolean(onOpportunityDelete);
 
+  const canRename = canRenameOpportunity(role) && Boolean(onPipelinePatch);
+  const handleNameChange = async (nextName: string) => {
+    const name = nextName.trim();
+    if (!name || name === pipeline.assetName) return;
+    await onPipelinePatch?.({ assetName: name });
+  };
+
   const handleOwnerChange = async (nextOwner: SharePointPerson) => {
     await onPipelinePatch?.({ opportunityOwner: nextOwner });
   };
@@ -106,6 +115,7 @@ export function OpportunityWorkspaceHeader({
   };
 
   const offeringsLabel = formatOfferingLabels(pipeline.offeringIds);
+  const salesMotion = resolveSalesMotion(pipeline);
   const sharePointFolder = useOpportunitySharePointFolder(
     pipeline.id,
     pipeline.assetName,
@@ -148,9 +158,11 @@ export function OpportunityWorkspaceHeader({
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="truncate text-[22px] font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-[24px]">
-              {pipeline.assetName}
-            </h1>
+            <EditableTitle
+              value={pipeline.assetName}
+              editable={canRename}
+              onCommit={handleNameChange}
+            />
             <p className="mt-1 font-mono text-[13px] text-slate-500 dark:text-slate-400">
               {opportunityPublicCode(pipeline)}
             </p>
@@ -246,6 +258,12 @@ export function OpportunityWorkspaceHeader({
               editable={canEditTimeline}
               onChange={handleCloseDateChange}
             />
+          </AttributePill>
+
+          <AttributePill label="Sales type">
+            <span className="truncate" title={salesMotion.reason}>
+              {salesMotion.label}
+            </span>
           </AttributePill>
 
           <AttributePill label="Offerings">
@@ -381,6 +399,73 @@ function EditableCloseDate({
     >
       {displayValue}
     </button>
+  );
+}
+
+const TITLE_CLASS =
+  "truncate text-[22px] font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-[24px]";
+
+function EditableTitle({
+  value,
+  editable,
+  onCommit,
+}: {
+  value: string;
+  editable: boolean;
+  onCommit: (name: string) => void | Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  if (!editable) {
+    return <h1 className={TITLE_CLASS}>{value}</h1>;
+  }
+
+  if (editing) {
+    const commit = (raw: string) => {
+      setEditing(false);
+      void onCommit(raw);
+    };
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        defaultValue={value}
+        aria-label="Opportunity name"
+        className="w-full min-w-[16rem] rounded border border-slate-300 bg-white px-2 py-0.5 text-[22px] font-semibold tracking-tight text-slate-900 outline-none focus:border-upcycle-orange dark:border-slate-600 dark:bg-slate-900 dark:text-slate-50 sm:text-[24px]"
+        onBlur={(event) => commit(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            commit(event.currentTarget.value);
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setEditing(false);
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <h1 className={TITLE_CLASS}>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="max-w-full truncate text-left hover:text-upcycle-orange"
+        title="Click to rename this opportunity"
+      >
+        {value}
+      </button>
+    </h1>
   );
 }
 

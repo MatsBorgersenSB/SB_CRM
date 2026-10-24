@@ -1,0 +1,28 @@
+// This file configures the initialization of Sentry on the client.
+// The added config here will be used whenever a users loads a page in their browser.
+// https://docs.sentry.io/platforms/javascript/guides/nextjs/
+
+import * as Sentry from "@sentry/nextjs";
+
+Sentry.init({
+  dsn: "https://db5a34df0b26ec4e7e66c94c7c8f3367@o4512304209788928.ingest.de.sentry.io/4512304210051152",
+
+  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
+  tracesSampleRate: 1,
+
+  // Turns off collection of data that could identify users. Adjust per category:
+  // https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
+  dataCollection: {
+    userInfo: false,
+    graphQL: { document: false, variables: false },
+    genAI: { inputs: false, outputs: false },
+    databaseQueryData: false,
+    queues: false,
+    httpBodies: [],
+    httpHeaders: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+    cookies: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+    urlQueryParams: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+  },
+});
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

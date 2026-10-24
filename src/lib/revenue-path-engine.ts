@@ -236,6 +236,91 @@ export function evaluateRevenuePath(
   };
 }
 
+type LeanPathSpec = { id: RevenuePathId; label: string; doneWhen: "ordered" | "never" };
+
+const LEAN_PATHS: Record<
+  "product" | "consulting",
+  { businessModel: BusinessModel; modelLabel: string; steps: LeanPathSpec[]; summary: string }
+> = {
+  product: {
+    businessModel: "equipment_sale",
+    modelLabel: "Product sale",
+    steps: [
+      { id: "equipment_sale", label: "Quote & order", doneWhen: "ordered" },
+      { id: "service_agreement", label: "Service agreement", doneWhen: "never" },
+    ],
+    summary: "Need → Quote → Order → Delivery",
+  },
+  consulting: {
+    businessModel: "project_development",
+    modelLabel: "Consulting engagement",
+    steps: [
+      { id: "feasibility_study", label: "Scope & fee agreed", doneWhen: "ordered" },
+      { id: "engineering_services", label: "Deliver the work", doneWhen: "never" },
+      { id: "expansion_projects", label: "Follow-on project", doneWhen: "never" },
+    ],
+    summary: "Scope → Fee → Deliver → Follow-on",
+  },
+};
+
+/**
+ * Revenue path for product / consulting sales: a short transactional path with
+ * no feedstock / site / permit ladder. Reality First — "ordered" only when the deal says so.
+ */
+export function evaluateLeanRevenuePath(
+  deal: PipelineRow,
+  packages: CommercialPackage[],
+  motion: "product" | "consulting",
+): RevenuePathAssessment {
+  const config = LEAN_PATHS[motion];
+  const ordered =
+    deal.status === "Contract Negotiation" || getLifecycleStage(deal.status) !== "sales";
+  const quoteSent = packages.some(
+    (p) => isQuotationKind(p.kind) && ["sent", "accepted", "frozen"].includes(p.status),
+  );
+  const firstProbability = ordered ? 80 : quoteSent ? 70 : 55;
+
+  const firstOpen = config.steps.find((step) => step.doneWhen !== "ordered" || !ordered);
+  const recommended = firstOpen ?? config.steps[config.steps.length - 1]!;
+
+  const sequence: RevenuePathStep[] = config.steps.map((step) => {
+    const completed = step.doneWhen === "ordered" && ordered;
+    const status: RevenuePathStep["status"] = completed
+      ? "completed"
+      : step.id === recommended.id
+        ? "recommended"
+        : "future";
+    return {
+      id: step.id,
+      label: step.label,
+      status,
+      probability: step.id === config.steps[0]!.id ? firstProbability : 35,
+      rationale: completed
+        ? "Agreed or in progress"
+        : status === "recommended"
+          ? "Next step to close this sale"
+          : "Follows once the sale is agreed",
+    };
+  });
+
+  const recommendedStep = sequence.find((step) => step.id === recommended.id)!;
+  return {
+    businessModel: config.businessModel,
+    businessModelLabel: config.modelLabel,
+    currentPath: recommended.id,
+    currentPathLabel: recommended.label,
+    recommendedNext: recommended.id,
+    recommendedNextLabel: recommended.label,
+    recommendedProbability: recommendedStep.probability,
+    fastestPathToRevenue: `${recommended.label} — direct path to revenue`,
+    sequence,
+    sequenceSummary: config.summary,
+    whatToSellNext: recommended.label,
+    highestProbabilityPath: `${recommended.label} (${recommendedStep.probability}% path probability)`,
+    ladderToEquipment: config.summary,
+  };
+}
+
 export function scoreRevenuePathDimension(assessment: RevenuePathAssessment): {
   score: number;
   summary: string;

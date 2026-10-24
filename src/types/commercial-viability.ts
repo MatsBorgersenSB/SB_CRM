@@ -1,4 +1,5 @@
 import type { ImpactSignal } from "@/types/impact";
+import type { SalesMotion } from "@/types/sales-motion";
 
 export type BuyingDriverId =
   | "cost_reduction"
@@ -220,6 +221,8 @@ export type CommercialViabilityAssessment = {
   salesValueLabel: string;
   businessModel: BusinessModel;
   businessModelLabel: string;
+  /** How this deal is sold (set by offerings). `null` while offerings are unknown. */
+  salesMotion: SalesMotion | null;
   /** Composite commercial viability score */
   viabilityScore: number;
   contractProbability: number;
