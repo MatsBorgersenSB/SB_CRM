@@ -75,10 +75,11 @@ export function ActivityBriefingView({
   const router = useRouter();
   const { user } = useAuth();
   const [activity, setActivity] = useState(activityProp);
-
-  useEffect(() => {
+  const [prevActivityProp, setPrevActivityProp] = useState(activityProp);
+  if (prevActivityProp !== activityProp) {
+    setPrevActivityProp(activityProp);
     setActivity(activityProp);
-  }, [activityProp]);
+  }
 
   useEffect(() => {
     const type = activityProp.ActivityType.toLowerCase();
@@ -282,6 +283,50 @@ export function ActivityBriefingView({
           </p>
         ) : null}
       </div>
+
+      {activity.SlotProposal ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-carbon-blue/12 bg-carbon-blue/[0.02] px-4 py-2.5 text-xs text-carbon-blue">
+          <div>
+            <span className="font-semibold uppercase tracking-wider text-upcycle-orange">
+              {activity.SlotProposal.status === "confirmed"
+                ? "Slot Confirmed"
+                : activity.SlotProposal.status === "alternative_requested"
+                  ? "Client Requested Alternative Times"
+                  : "Awaiting Client Slot Selection"}
+            </span>
+            <span className="ml-2 text-carbon-blue/75">
+              {activity.SlotProposal.slots.length} proposed option
+              {activity.SlotProposal.slots.length === 1 ? "" : "s"}
+              {activity.SlotProposal.holdOnCalendar ? " · Held tentatively in Outlook" : ""}
+            </span>
+            {activity.SlotProposal.alternativeNote ? (
+              <p className="mt-1 text-carbon-blue/80">
+                Note: “{activity.SlotProposal.alternativeNote}”
+              </p>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-3">
+            <a
+              href={`/meet/${encodeURIComponent(activity.SlotProposal.token)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-upcycle-orange hover:underline"
+            >
+              Open client slot picker →
+            </a>
+            {activity.SlotProposal.draftWebLink ? (
+              <a
+                href={activity.SlotProposal.draftWebLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-carbon-blue/70 hover:text-carbon-blue hover:underline"
+              >
+                Open Outlook draft
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <ActivityWorkspace
         activity={activity}

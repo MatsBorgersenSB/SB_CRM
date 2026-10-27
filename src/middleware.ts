@@ -51,7 +51,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/auth/signin") ||
     pathname.startsWith("/outlook-addin") ||
     pathname.startsWith("/outlook/") ||
-    pathname.startsWith("/teams/")
+    pathname.startsWith("/teams/") ||
+    pathname.startsWith("/meet/") ||
+    pathname.startsWith("/api/public/meeting-slots")
   ) {
     return NextResponse.next({
       request: { headers: requestHeaders },

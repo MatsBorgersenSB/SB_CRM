@@ -433,6 +433,7 @@ export async function createActivity(input: CreateActivityInput): Promise<Activi
     ReconciledFromOutlook: input.ReconciledFromOutlook,
     EventDetails: input.EventDetails ?? null,
     IsAiProposed: input.IsAiProposed ?? false,
+    SlotProposal: input.SlotProposal ?? null,
   };
 
   database.activities.push(activity);
@@ -1531,7 +1532,7 @@ export async function createCompanySmartDocLibraryRecord(
   input: CreateSmartDocInput,
 ): Promise<SmartDocLibraryRecord> {
   const database = await ensureDb();
-  let company =
+  const company =
     database.companies.find(
       (row) =>
         row.CompanyID === companyId ||

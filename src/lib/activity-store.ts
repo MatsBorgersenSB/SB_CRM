@@ -310,6 +310,7 @@ export async function createActivityRecord(input: CreateActivityInput): Promise<
     ReconciledFromOutlook: input.ReconciledFromOutlook,
     EventDetails: input.EventDetails ?? null,
     IsAiProposed: input.IsAiProposed ?? false,
+    SlotProposal: input.SlotProposal ?? null,
   };
 
   const row = await getPrisma().activity.create({

@@ -10,6 +10,7 @@ import type { PipelineRow } from "@/types/pipeline";
 import type {
   CreateActivityInput,
   ActivityPriority,
+  MeetingSlotOption,
   SmartActivityType,
   SmartAssistAssessment,
 } from "@/types/activity";
@@ -208,8 +209,17 @@ function ActivityForm({
   const [resolution, setResolution] = useState<SmartAssistResolution | null>(null);
   const [resolving, setResolving] = useState(false);
 
+  // FS-023: Interactive multi-slot meeting proposal (FindTime)
+  const [meetingMode, setMeetingMode] = useState<"fixed" | "propose_slots">("fixed");
+  const [proposedSlots, setProposedSlots] = useState<MeetingSlotOption[]>([]);
+  const [slotSource, setSlotSource] = useState<"graph" | "fallback" | null>(null);
+  const [findingSlots, setFindingSlots] = useState(false);
+  const [holdOnCalendar, setHoldOnCalendar] = useState(true);
+
   const isEvent = isAllDayActivityType(activityType);
   const isTask = activityType === "TASK";
+  const isMeeting = activityType === "MEETING" || activityType === "TEAMS_MEETING";
+  const isProposingSlots = isMeeting && timing === "planned" && meetingMode === "propose_slots";
   const displayType = SMART_ACTIVITY_DISPLAY[activityType];
   const contextLocked = Boolean(presetDealId(preset) || preset?.ProjectId?.trim());
 
@@ -321,9 +331,67 @@ function ActivityForm({
       .finally(() => setResolving(false));
   };
 
+  const findMutualTimes = () => {
+    setFindingSlots(true);
+    setError("");
+    const colleagueNames = [
+      assignee?.Title,
+      ...sharedWith.map((p) => p.Title),
+    ].filter((v): v is string => Boolean(v?.trim()));
+    const contactEmails = selectedContacts
+      .map((c) => c.Email?.trim())
+      .filter((v): v is string => Boolean(v && v.includes("@")));
+
+    void fetch("/api/m365/meeting-slots/suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        durationMinutes: Number(durationMinutes) || 45,
+        colleagueNamesOrEmails: colleagueNames,
+        attendeeEmails: contactEmails,
+        maxCandidates: 3,
+      }),
+    })
+      .then(async (res) => {
+        const data = (await res.json().catch(() => null)) as {
+          slots?: MeetingSlotOption[];
+          source?: "graph" | "fallback";
+          error?: string;
+        } | null;
+        if (!res.ok || !data?.slots) {
+          throw new Error(data?.error || "Could not check mutual availability.");
+        }
+        setProposedSlots(data.slots);
+        setSlotSource(data.source ?? "fallback");
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Could not check mutual availability.");
+      })
+      .finally(() => setFindingSlots(false));
+  };
+
+  const addCurrentDateTimeAsSlot = () => {
+    const startIso = combineDateTime(date, time);
+    const startMs = new Date(startIso).getTime();
+    const durMin = Math.max(15, Number(durationMinutes) || 45);
+    const endIso = new Date(startMs + durMin * 60_000).toISOString();
+    setProposedSlots((prev) => [
+      ...prev,
+      {
+        id: `slot-${Date.now().toString(36)}`,
+        startIso,
+        endIso,
+      },
+    ]);
+  };
+
+  const removeProposedSlot = (slotId: string) => {
+    setProposedSlots((prev) => prev.filter((s) => s.id !== slotId));
+  };
+
   const canSave =
     Boolean(title.trim()) &&
-    Boolean(date) &&
+    (isProposingSlots ? proposedSlots.length > 0 : Boolean(date)) &&
     (!isEvent || Boolean(endDate && endDate >= date)) &&
     (!isTask || Boolean(assignee)) &&
     (!followUp || Boolean(nextAction.trim())) &&
@@ -364,7 +432,7 @@ function ActivityForm({
         .filter(Boolean)
         .join("\n");
 
-      await syncActivityCreate({
+      const baseInput: CreateActivityInput = {
         ActivityType: displayType,
         ActivityDate: activityDate,
         Subject: title.trim(),
@@ -389,9 +457,10 @@ function ActivityForm({
           contactId: contact.ContactID,
         })),
         ActivityOwner: owner,
-        SharedWith: isTask
-          ? sharedWith.filter((person) => person.Id !== owner?.Id)
-          : undefined,
+        SharedWith:
+          isTask || isMeeting
+            ? sharedWith.filter((person) => person.Id !== owner?.Id)
+            : undefined,
         DurationMinutes: isEvent
           ? inclusiveDayCount(date, endDate || date) * 24 * 60
           : isTask
@@ -407,7 +476,51 @@ function ActivityForm({
         SmartAssistAssessment: assessment ?? undefined,
         EventDetails: eventDetails,
         IsAiProposed: isEvent && eventFromAssist,
-      });
+      };
+
+      if (isProposingSlots) {
+        const primaryContact = selectedContacts[0];
+        const attendeeEmails = selectedContacts
+          .map((c) => c.Email?.trim())
+          .filter((e): e is string => Boolean(e && e.includes("@")));
+        const colleagueEmails = assignableUsers
+          .filter((u) => sharedWith.some((s) => s.Title === u.displayName))
+          .map((u) => u.email?.trim())
+          .filter((e): e is string => Boolean(e && e.includes("@")));
+
+        const res = await fetch("/api/m365/meeting-slots/propose", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            activityInput: baseInput,
+            slots: proposedSlots,
+            holdOnCalendar,
+            toEmail: primaryContact?.Email?.trim() || attendeeEmails[0] || "",
+            recipientName:
+              primaryContact?.Title?.trim() ||
+              (primaryContact ? getContactDisplayName(primaryContact) : undefined),
+            organizerName: owner?.Title || defaultOwner?.displayName || "Standard Bio",
+            organizerEmail: defaultOwner?.email || undefined,
+            attendeeEmails,
+            internalColleagueEmails: colleagueEmails,
+          }),
+        });
+        const payload = (await res.json().catch(() => null)) as {
+          openUrl?: string;
+          error?: string;
+        } | null;
+        if (!res.ok) {
+          throw new Error(payload?.error || "Could not prepare the slot proposal.");
+        }
+        if (payload?.openUrl) {
+          window.open(payload.openUrl, "_blank", "noopener,noreferrer");
+        }
+        onCreated();
+        onClose();
+        return;
+      }
+
+      await syncActivityCreate(baseInput);
       onCreated();
       onClose();
     } catch (reason) {
@@ -638,15 +751,51 @@ function ActivityForm({
             </>
           ) : (
             <>
+              {isMeeting && timing === "planned" ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 border border-carbon-blue/10 bg-carbon-blue/[0.015] px-3 py-2">
+                  <span className={LABEL}>Scheduling mode</span>
+                  <div className="inline-flex border border-carbon-blue/12 bg-white">
+                    {(
+                      [
+                        { id: "fixed", label: "Fixed time" },
+                        { id: "propose_slots", label: "Propose times to client (FindTime)" },
+                      ] as const
+                    ).map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => {
+                          setMeetingMode(mode.id);
+                          if (mode.id === "propose_slots" && proposedSlots.length === 0) {
+                            findMutualTimes();
+                          }
+                        }}
+                        className={`px-3 py-1.5 text-xs font-medium ${
+                          meetingMode === mode.id
+                            ? "bg-carbon-blue text-white"
+                            : "text-carbon-blue/65 hover:bg-carbon-blue/[0.04]"
+                        }`}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div className={`grid gap-3 ${isTask ? "sm:grid-cols-2" : "sm:grid-cols-4"}`}>
                 <label className="block">
-                  <span className={LABEL}>{isTask ? "Due" : timing === "done" ? "Date" : "Date"}</span>
+                  <span className={LABEL}>
+                    {isTask ? "Due" : isProposingSlots ? "Add custom slot date" : "Date"}
+                  </span>
                   <RegionalDateInput value={date} onValueChange={setDate} className={INPUT} />
                 </label>
                 {isTask ? null : (
                   <>
                     <label className="block">
-                      <span className={LABEL}>Time</span>
+                      <span className={LABEL}>
+                        {isProposingSlots ? "Custom slot time" : "Time"}
+                      </span>
                       <RegionalTimeInput value={time} onValueChange={setTime} className={INPUT} />
                     </label>
                     <label className="block">
@@ -678,16 +827,104 @@ function ActivityForm({
                 </label>
               </div>
 
-              <div className={`grid gap-3 ${isTask ? "sm:grid-cols-2" : ""}`}>
+              {isProposingSlots ? (
+                <div className="grid gap-3 border border-carbon-blue/12 bg-carbon-blue/[0.015] p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold text-carbon-blue">
+                        Proposed meeting options ({proposedSlots.length})
+                      </p>
+                      <p className="text-[11px] text-carbon-blue/60">
+                        {slotSource === "graph"
+                          ? "M365 Free/Busy verified across your calendar and selected colleagues"
+                          : "Suggested business hours — client picks 1 slot to auto-book Teams"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={addCurrentDateTimeAsSlot}
+                        className="border border-carbon-blue/15 bg-white px-2.5 py-1 text-xs font-medium text-carbon-blue hover:border-upcycle-orange/40"
+                      >
+                        + Add date/time above
+                      </button>
+                      <button
+                        type="button"
+                        disabled={findingSlots}
+                        onClick={findMutualTimes}
+                        className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2.5 py-1 text-xs font-semibold text-upcycle-orange disabled:opacity-40"
+                      >
+                        {findingSlots ? "Checking M365…" : "Find mutual times"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {proposedSlots.length > 0 ? (
+                    <div className="grid gap-1.5">
+                      {proposedSlots.map((slot, idx) => {
+                        const start = new Date(slot.startIso);
+                        const end = new Date(slot.endIso);
+                        const label = !Number.isNaN(start.getTime())
+                          ? `${start.toLocaleDateString("en-GB", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                            })} · ${start.toLocaleTimeString("en-GB", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}–${end.toLocaleTimeString("en-GB", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}`
+                          : slot.startIso;
+                        return (
+                          <div
+                            key={slot.id}
+                            className="flex items-center justify-between border border-carbon-blue/12 bg-white px-3 py-1.5 text-xs text-carbon-blue"
+                          >
+                            <span>
+                              <strong className="font-semibold">Option {idx + 1}:</strong> {label}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeProposedSlot(slot.id)}
+                              className="text-carbon-blue/45 hover:text-red-600"
+                              aria-label={`Remove option ${idx + 1}`}
+                            >
+                              <X className="size-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-carbon-blue/60">
+                      Click “Find mutual times” or “+ Add date/time above” to add at least one slot.
+                    </p>
+                  )}
+
+                  <label className="flex cursor-pointer items-center gap-2 pt-1 text-xs text-carbon-blue">
+                    <input
+                      type="checkbox"
+                      checked={holdOnCalendar}
+                      onChange={(e) => setHoldOnCalendar(e.target.checked)}
+                      className="size-3.5 accent-upcycle-orange"
+                    />
+                    Hold proposed slots tentatively on my Outlook calendar until client picks one
+                  </label>
+                </div>
+              ) : null}
+
+              <div className={`grid gap-3 ${isTask || isMeeting ? "sm:grid-cols-2" : ""}`}>
                 <TaskAssigneeSelect
                   value={assignee}
                   onChange={setAssignee}
                   options={assigneeOptions}
                   required={isTask}
                   disabled={saving}
-                  label="Assign to"
+                  label={isMeeting ? "Organiser" : "Assign to"}
                 />
-                {isTask ? (
+                {isTask || isMeeting ? (
                   <TaskShareWithPicker
                     value={sharedWith}
                     onChange={setSharedWith}
@@ -945,7 +1182,15 @@ function ActivityForm({
             onClick={() => void handleSubmit()}
             className="border border-upcycle-orange/30 bg-upcycle-orange px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
           >
-            {saving ? "Saving…" : timing === "done" ? "Save" : isEvent ? "Add to calendar" : "Plan"}
+            {saving
+              ? "Saving…"
+              : isProposingSlots
+                ? "Prepare slot proposal in Outlook"
+                : timing === "done"
+                  ? "Save"
+                  : isEvent
+                    ? "Add to calendar"
+                    : "Plan"}
           </button>
         </footer>
       </div>

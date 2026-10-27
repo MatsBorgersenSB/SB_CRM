@@ -331,6 +331,38 @@ export type Activity = {
   TeamsWebLink?: string;
   /** True after Schedule Teams Meeting writes back — stops re-recommending the same action. */
   TeamsScheduled?: boolean;
+  /** FS-023 — Interactive multi-slot meeting proposal & auto-booking state. */
+  SlotProposal?: MeetingSlotProposal | null;
+};
+
+export type MeetingSlotOption = {
+  id: string;
+  startIso: string;
+  endIso: string;
+  /** Optional Graph confidence (0–100) from findMeetingTimes */
+  confidence?: number;
+  /** Graph calendar event ID for tentative [Hold] block on organizer's calendar */
+  holdEventId?: string | null;
+};
+
+export type MeetingSlotProposal = {
+  token: string;
+  status: "pending_client_choice" | "confirmed" | "alternative_requested" | "expired";
+  createdAt: string;
+  confirmedAt?: string | null;
+  confirmedSlotId?: string | null;
+  confirmedByEmail?: string | null;
+  confirmedByName?: string | null;
+  alternativeNote?: string | null;
+  holdOnCalendar: boolean;
+  durationMinutes: number;
+  organizerName: string;
+  organizerEmail?: string | null;
+  integrationId?: string | null;
+  attendeeEmails: string[];
+  internalColleagueEmails?: string[];
+  slots: MeetingSlotOption[];
+  draftWebLink?: string | null;
 };
 
 export type ActivityEventDetails = {
@@ -377,6 +409,7 @@ export type CreateActivityInput = Pick<
   ActivityOwner?: SharePointPerson | null;
   EventDetails?: ActivityEventDetails | null;
   IsAiProposed?: boolean;
+  SlotProposal?: MeetingSlotProposal | null;
 };
 
 export type UpdateActivityInput = Partial<
