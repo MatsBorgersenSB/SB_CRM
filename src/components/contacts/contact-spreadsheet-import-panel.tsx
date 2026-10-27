@@ -48,9 +48,14 @@ function toDrafts(rows: SpreadsheetContact[], companies: Company[]): Draft[] {
   const sources = companies.map((company) => ({
     CompanyID: company.CompanyID,
     Title: company.Title,
+    Domain: company.Domain,
   }));
+  const seenBatchEmails = new Set<string>();
   return rows.map((row, index) => {
-    const match = matchCompanyId(row.companyName, sources);
+    const match = matchCompanyId(row.companyName, sources, row.website);
+    const emailKey = row.email.trim().toLowerCase();
+    const isDuplicateInFile = emailKey ? seenBatchEmails.has(emailKey) : false;
+    if (emailKey) seenBatchEmails.add(emailKey);
     const draft: Draft = {
       ...row,
       key: `row-${index}`,
@@ -58,7 +63,9 @@ function toDrafts(rows: SpreadsheetContact[], companies: Company[]): Draft[] {
       ambiguous: match.ambiguous,
       include: false,
     };
-    draft.include = contactImportNote(draft, known, draft.ambiguous) === null;
+    draft.include =
+      !isDuplicateInFile &&
+      contactImportNote(draft, known, draft.ambiguous) === null;
     return draft;
   });
 }
@@ -115,11 +122,13 @@ export function ContactSpreadsheetImportPanel({
     }
 
     const key = normalizeCompanyName(row.companyName);
-    const cached = key ? createdCompanies.current.get(key) : undefined;
+    const domain = normalizeCompanyDomain(row.website);
+    const cached =
+      (key ? createdCompanies.current.get(key) : undefined) ??
+      (domain ? createdCompanies.current.get(`domain:${domain}`) : undefined);
     if (cached) return cached;
 
     const country = findCountryEntry(row.country);
-    const domain = normalizeCompanyDomain(row.website);
     const base = {
       Title: row.companyName.trim(),
       Industry: "",
@@ -127,6 +136,7 @@ export function ContactSpreadsheetImportPanel({
       City: row.city.trim(),
       Domain: domain,
       Phone: row.companyPhone.trim() || row.phone.trim(),
+      Email: row.companyEmail.trim() || undefined,
       AddressLine1: row.streetAddress.trim(),
       PostalCode: row.postalCode.trim(),
       Country: row.country.trim()
@@ -134,6 +144,9 @@ export function ContactSpreadsheetImportPanel({
         : null,
       countryCode: country?.code ?? null,
       continent: country?.continent ?? null,
+      alternativeNames: row.companyAlternativeName.trim()
+        ? [row.companyAlternativeName.trim()]
+        : undefined,
       CompanyTypes: ["Unclassified" as const],
       Notes: "",
     };
@@ -141,10 +154,18 @@ export function ContactSpreadsheetImportPanel({
     try {
       const created = await createCompanyRecord(base, role);
       if (key) createdCompanies.current.set(key, created);
+      if (domain) createdCompanies.current.set(`domain:${domain}`, created);
       return created;
     } catch (createError) {
       const message = createError instanceof Error ? createError.message : "";
       if (!domain || !/domain/i.test(message)) throw createError;
+      const existingByDomain =
+        companies.find((company) => normalizeCompanyDomain(company.Domain) === domain) ??
+        createdCompanies.current.get(`domain:${domain}`);
+      if (existingByDomain) {
+        if (key) createdCompanies.current.set(key, existingByDomain);
+        return existingByDomain;
+      }
       const created = await createCompanyRecord({ ...base, Domain: "" }, role);
       if (key) createdCompanies.current.set(key, created);
       return created;
@@ -325,7 +346,9 @@ export function ContactSpreadsheetImportPanel({
                               companies.map((company) => ({
                                 CompanyID: company.CompanyID,
                                 Title: company.Title,
+                                Domain: company.Domain,
                               })),
+                              row.website,
                             );
                             update(row.key, {
                               companyName,

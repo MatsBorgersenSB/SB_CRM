@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BulkImportPanel } from "@/components/companies/bulk-import-panel";
 import { CompaniesActionBar } from "@/components/companies/companies-action-bar";
@@ -11,6 +11,7 @@ import {
 } from "@/components/companies/companies-workspace-header";
 import { QuickImportPanel } from "@/components/companies/quick-import-panel";
 import { WebsiteDiscoveryPanel } from "@/components/companies/website-discovery-panel";
+import { ContactSpreadsheetImportPanel } from "@/components/contacts/contact-spreadsheet-import-panel";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
@@ -82,15 +83,17 @@ export function CompaniesOperationsShell({
   const router = useRouter();
   const { user } = useAuth();
   const [companyRows, setCompanyRows] = useState(companies);
+  const [prevCompanies, setPrevCompanies] = useState(companies);
   const [toolbarFilters, setToolbarFilters] = useState<WorkspaceFilterValues>(DEFAULT_FILTERS);
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("all");
   const [activeTool, setActiveTool] = useState<CompaniesWorkspaceTool>(null);
   const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
 
-  useEffect(() => {
+  if (prevCompanies !== companies) {
+    setPrevCompanies(companies);
     setCompanyRows(companies);
-  }, [companies]);
+  }
 
   const applyBridge = useCallback(
     (patch: { filters?: WorkspaceFilterValues; search?: string; owner?: string }) => {
@@ -295,6 +298,29 @@ export function CompaniesOperationsShell({
                   role={user.role}
                   companies={companyRows}
                   onImported={handleImported}
+                />
+              </div>
+            ) : null}
+
+            {activeTool === "spreadsheet-import" ? (
+              <div className="mt-4">
+                <ContactSpreadsheetImportPanel
+                  role={user.role}
+                  companies={companyRows}
+                  onAdded={(company, contact) => {
+                    setCompanyRows((current) => {
+                      const exists = current.some((row) => row.CompanyID === company.CompanyID);
+                      if (!exists) {
+                        return [...current, { ...company, contacts: [contact] }];
+                      }
+                      return current.map((row) =>
+                        row.CompanyID === company.CompanyID
+                          ? { ...row, contacts: [...row.contacts, contact] }
+                          : row,
+                      );
+                    });
+                    router.refresh();
+                  }}
                 />
               </div>
             ) : null}

@@ -176,6 +176,7 @@ export async function createRegistryCompany(
       data: {
         code,
         name: input.Title.trim(),
+        alternativeNames: (input.alternativeNames ?? []).map((n) => n.trim()).filter(Boolean),
         website: domain ? `https://${domain}` : null,
         industry: input.Industry || "Other",
         sectors: normalizeCompanySectors(input.Sectors),
@@ -222,7 +223,7 @@ export async function updateRegistryCompany(
 ): Promise<Company | null> {
   if (!(await prismaRegistryAvailable())) return null;
 
-  let existing = await findPrismaCompanyByRouteKey(String(id));
+  const existing = await findPrismaCompanyByRouteKey(String(id));
 
   // Portfolio may still serve JSON-seeded CO-… records while Prisma is empty.
   // Promote that row into the registry on first save so edits are durable on Vercel.

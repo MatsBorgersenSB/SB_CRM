@@ -10,6 +10,7 @@ export type CompaniesWorkspaceTool =
   | "new-company"
   | "quick-import"
   | "website-discovery"
+  | "spreadsheet-import"
   | "bulk-import";
 
 type CompaniesWorkspaceHeaderProps = {
@@ -22,7 +23,8 @@ const ADD_ITEMS: WorkspaceAddMenuItem<NonNullable<CompaniesWorkspaceTool>>[] = [
   { id: "new-company", label: "New company", hint: "Type it in yourself", primary: true },
   { id: "quick-import", label: "Quick import", hint: "From a registry number or name" },
   { id: "website-discovery", label: "Website discovery", hint: "Read a company website" },
-  { id: "bulk-import", label: "Bulk import", hint: "Paste or upload a list" },
+  { id: "spreadsheet-import", label: "Import spreadsheet", hint: "Excel or CSV — companies and contacts" },
+  { id: "bulk-import", label: "Bulk import", hint: "Paste company blocks" },
 ];
 
 export function CompaniesWorkspaceHeader({

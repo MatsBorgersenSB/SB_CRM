@@ -53,6 +53,9 @@ const COUNTRIES: CountryEntry[] = [
   { name: "Japan", code: "JP", continent: "Asia" },
   { name: "China", code: "CN", continent: "Asia" },
   { name: "India", code: "IN", continent: "Asia" },
+  { name: "Sri Lanka", code: "LK", continent: "Asia" },
+  { name: "Bangladesh", code: "BD", continent: "Asia" },
+  { name: "Romania", code: "RO", continent: "Europe", aliases: ["românia", "romania"] },
   { name: "South Africa", code: "ZA", continent: "Africa" },
 ];
 
@@ -81,6 +84,9 @@ const TLD_TO_COUNTRY: Record<string, string> = {
   nz: "NZ",
   jp: "JP",
   in: "IN",
+  lk: "LK",
+  bd: "BD",
+  ro: "RO",
   za: "ZA",
 };
 

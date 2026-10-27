@@ -1,6 +1,5 @@
-import type { Company, Contact, SharePointPerson } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
-import { buildContactTitle } from "@/types/contact";
 import type { CreateContactInput } from "@/types/contact";
 import type { Activity } from "@/types/activity";
 
@@ -89,6 +88,7 @@ export type NewCompanyInput = Pick<
   continent?: string | null;
   organizationNumber?: string | null;
   vatNumber?: string | null;
+  alternativeNames?: string[];
   Notes?: string;
   ParentCompany?: Company["ParentCompany"];
   CompanyTypes?: CompanyType[];
