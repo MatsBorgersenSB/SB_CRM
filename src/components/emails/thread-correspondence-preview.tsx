@@ -4,6 +4,11 @@ import { formatShortDate, formatTime } from "@/lib/regional-format-preference";
 import { useEffect, useState } from "react";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import { readableMailText } from "@/lib/mail-preview-text";
+import {
+  compareMailDates,
+  newestMessageInList,
+  type MailDateSortOrder,
+} from "@/components/emails/mail-smart-filters";
 import type { UserRole } from "@/types/auth";
 
 export type CorrespondenceMessage = {
@@ -37,6 +42,7 @@ export function ThreadCorrespondencePreview({
   role = "superuser",
   autoExpand = false,
   presentation = "default",
+  dateSort = "desc",
 }: {
   messages: CorrespondenceMessage[];
   contactName?: string | null;
@@ -44,11 +50,12 @@ export function ThreadCorrespondencePreview({
   autoExpand?: boolean;
   /** reader = the thread is already open, so the mails stay visible. */
   presentation?: "default" | "reader";
+  dateSort?: MailDateSortOrder;
 }) {
-  const ordered = [...messages].sort(
-    (a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime(),
+  const ordered = [...messages].sort((a, b) =>
+    compareMailDates(a.sentAt, b.sentAt, dateSort),
   );
-  const latest = ordered[ordered.length - 1] ?? null;
+  const latest = newestMessageInList(messages);
   const [expanded, setExpanded] = useState(presentation === "reader" || autoExpand);
   const [bodies, setBodies] = useState<Record<string, string>>({});
   const [outlookUrl, setOutlookUrl] = useState(latest?.webLink ?? null);
@@ -83,6 +90,7 @@ export function ThreadCorrespondencePreview({
   useEffect(() => {
     if (!expanded) return;
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- begin async fetch when correspondence expands
     setLoading(true);
     setError(null);
     void Promise.allSettled(ordered.map((message) => loadMessage(message))).then((results) => {

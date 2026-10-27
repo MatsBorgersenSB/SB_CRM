@@ -2,13 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { UserRole } from "@/types/auth";
-import type { FilterSummaryChip } from "@/types/workspace-filters";
 import type { SentimentGrade } from "@/generated/prisma";
 import { ThreadCorrespondencePreview } from "@/components/emails/thread-correspondence-preview";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
+import {
+  filterAndSortMailThreads,
+  MailSmartFilterBar,
+  newestMessageInList,
+  useMailSmartFilters,
+} from "@/components/emails/mail-smart-filters";
 import { projectEmailsHref } from "@/types/relationship-navigation";
 
 type ContactEmailMessage = {
@@ -113,7 +117,7 @@ function formatCompactDate(value: string): string {
 }
 
 function latestMessage(thread: ContactEmailThread): ContactEmailMessage | null {
-  return thread.messages[thread.messages.length - 1] ?? null;
+  return newestMessageInList(thread.messages);
 }
 
 function threadSubject(thread: ContactEmailThread): string {
@@ -210,7 +214,23 @@ export function ContactRecentOutlook({
   const [projectOptions, setProjectOptions] = useState<LinkOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [domainFilter, setDomainFilter] = useState<"all" | "external">("external");
+  const {
+    state: filterState,
+    searchQuery,
+    setSearchQuery,
+    sentimentFilter,
+    setSentimentFilter,
+    directionFilter,
+    setDirectionFilter,
+    deletedFilter,
+    setDeletedFilter,
+    domainFilter,
+    setDomainFilter,
+    dateSort,
+    setDateSort,
+    activeFilters,
+    resetFilters,
+  } = useMailSmartFilters();
   const [purgingId, setPurgingId] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -259,13 +279,17 @@ export function ContactRecentOutlook({
   }, [contactId, role]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load initial threads on mount
     void load();
   }, [load]);
 
   const onLatestMailAtRef = useRef(onLatestMailAt);
-  onLatestMailAtRef.current = onLatestMailAt;
   const onLinkedWorkRef = useRef(onLinkedWork);
-  onLinkedWorkRef.current = onLinkedWork;
+
+  useEffect(() => {
+    onLatestMailAtRef.current = onLatestMailAt;
+    onLinkedWorkRef.current = onLinkedWork;
+  }, [onLatestMailAt, onLinkedWork]);
 
   useEffect(() => {
     const stamps = threads.flatMap((thread) =>
@@ -461,34 +485,20 @@ export function ContactRecentOutlook({
     }
   };
 
-  const domainMatched = useMemo(() => {
-    return threads.filter((thread) => {
-      if (domainFilter !== "external") return true;
-      return thread.messages.some((message) => !message.isInternalOnly);
-    });
-  }, [threads, domainFilter]);
-
-  const visibleThreads = useMemo(() => domainMatched.slice(0, 8), [domainMatched]);
-
-  const hasInternalMail = useMemo(
-    () => threads.some((thread) => thread.messages.every((message) => message.isInternalOnly)),
+  const totalMessages = useMemo(
+    () => threads.reduce((sum, thread) => sum + thread.messages.length, 0),
     [threads],
   );
 
-  const domainFilterHidesRows =
-    domainFilter === "external" && domainMatched.length < threads.length;
+  const visibleThreads = useMemo(
+    () => filterAndSortMailThreads(threads, filterState),
+    [threads, filterState],
+  );
 
-  const filterChips = useMemo((): FilterSummaryChip[] => {
-    if (!domainFilterHidesRows) return [];
-    return [
-      {
-        id: "domain",
-        label: "Domain",
-        value: "External",
-        onRemove: () => setDomainFilter("all"),
-      },
-    ];
-  }, [domainFilterHidesRows]);
+  const filteredMessagesCount = useMemo(
+    () => visibleThreads.reduce((sum, thread) => sum + thread.messages.length, 0),
+    [visibleThreads],
+  );
 
   const commercialUnlinked = useMemo(() => {
     return visibleThreads.filter((thread) => {
@@ -524,19 +534,6 @@ export function ContactRecentOutlook({
           <span />
         )}
         <div className="flex items-center gap-3">
-          {hasInternalMail ? (
-            <button
-              type="button"
-              onClick={() =>
-                setDomainFilter((current) =>
-                  current === "external" ? "all" : "external",
-                )
-              }
-              className="text-[12px] font-medium text-carbon-blue/50 hover:text-upcycle-orange"
-            >
-              {domainFilter === "external" ? "Include internal" : "Hide internal"}
-            </button>
-          ) : null}
           <button
             type="button"
             onClick={() => void load()}
@@ -547,16 +544,28 @@ export function ContactRecentOutlook({
         </div>
       </div>
 
-      {!loading && domainFilterHidesRows ? (
-        <FilterTransparencyBar
-          entityLabel="conversations"
-          filteredCount={domainMatched.length}
-          totalCount={threads.length}
-          activeFilters={filterChips}
-          onClearAll={() => setDomainFilter("all")}
-          className="mb-2 border border-carbon-blue/10 px-2 py-1.5 sm:px-2"
+      <div className="mb-3">
+        <MailSmartFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          sentimentFilter={sentimentFilter}
+          onSentimentChange={setSentimentFilter}
+          directionFilter={directionFilter}
+          onDirectionChange={setDirectionFilter}
+          deletedFilter={deletedFilter}
+          onDeletedChange={setDeletedFilter}
+          domainFilter={domainFilter}
+          onDomainChange={setDomainFilter}
+          dateSort={dateSort}
+          onDateSortChange={setDateSort}
+          filteredCount={filteredMessagesCount}
+          totalCount={totalMessages}
+          activeFilters={activeFilters}
+          onClearAll={resetFilters}
+          entityLabel="Emails"
+          compact
         />
-      ) : null}
+      </div>
 
       {!loading && commercialUnlinked.length >= 3 ? (
         <div className="mb-2 flex flex-wrap items-end gap-2 border border-carbon-blue/10 bg-white px-2 py-2">
@@ -603,7 +612,7 @@ export function ContactRecentOutlook({
         <p className="text-[13px] text-carbon-blue/70">{statusMessage}</p>
       ) : null}
 
-      {!loading && !error && visibleThreads.length === 0 ? (
+      {!loading && !error && totalMessages === 0 ? (
         <div className="space-y-1 text-[13px] leading-relaxed text-carbon-blue/55">
           <p>
             No synced Outlook mail for this person yet
@@ -614,11 +623,9 @@ export function ContactRecentOutlook({
             sync, then refresh.
           </p>
         </div>
-      ) : null}
-
-      {domainMatched.length > visibleThreads.length ? (
-        <p className="mb-1 text-[12px] text-carbon-blue/65">
-          Showing the latest 8 of {domainMatched.length} conversations.
+      ) : !loading && !error && visibleThreads.length === 0 ? (
+        <p className="text-[13px] leading-relaxed text-carbon-blue/55">
+          No emails match the active filters.
         </p>
       ) : null}
 
@@ -627,7 +634,10 @@ export function ContactRecentOutlook({
           const latest = latestMessage(thread);
           if (!latest) return null;
           const subject = threadSubject(thread);
-          const stamp = threadStamp(thread);
+          const stamp =
+            dateSort === "asc"
+              ? (thread.messages[0]?.sentAt ?? threadStamp(thread))
+              : threadStamp(thread);
           const risk = thread.summary?.riskAlerts?.[0];
           const dealId = latest.opportunityId;
           const projectId = latest.projectId;
@@ -764,6 +774,7 @@ export function ContactRecentOutlook({
                     contactName={contactName ?? null}
                     role={role}
                     presentation="reader"
+                    dateSort={dateSort}
                   />
 
                   <div className="grid gap-2 sm:grid-cols-2">

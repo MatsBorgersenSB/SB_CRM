@@ -1,8 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
 import { formatDate } from "@/lib/regional-format-preference";
 import Link from "next/link";
 import { ExternalLink, Mail, PenSquare } from "lucide-react";
+import {
+  filterAndSortMailMessages,
+  MailSmartFilterBar,
+  useMailSmartFilters,
+} from "@/components/emails/mail-smart-filters";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePageTitle } from "@/components/ui/workspace-page-title";
@@ -40,6 +46,29 @@ function relatedLink(message: EmailMessageIntelligenceDto) {
 }
 
 export function MailShell({ messages }: { messages: EmailMessageIntelligenceDto[] }) {
+  const {
+    state: filterState,
+    searchQuery,
+    setSearchQuery,
+    sentimentFilter,
+    setSentimentFilter,
+    directionFilter,
+    setDirectionFilter,
+    deletedFilter,
+    setDeletedFilter,
+    domainFilter,
+    setDomainFilter,
+    dateSort,
+    setDateSort,
+    activeFilters,
+    resetFilters,
+  } = useMailSmartFilters();
+
+  const filteredMessages = useMemo(
+    () => filterAndSortMailMessages(messages, filterState),
+    [messages, filterState],
+  );
+
   return (
     <WorkspaceChrome>
       <WorkspaceTopBar icon="document" title="Mail" />
@@ -63,15 +92,39 @@ export function MailShell({ messages }: { messages: EmailMessageIntelligenceDto[
             </a>
           </section>
 
-          <WorkspacePanel title="Recent mail" count={messages.length}>
+          <MailSmartFilterBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            sentimentFilter={sentimentFilter}
+            onSentimentChange={setSentimentFilter}
+            directionFilter={directionFilter}
+            onDirectionChange={setDirectionFilter}
+            deletedFilter={deletedFilter}
+            onDeletedChange={setDeletedFilter}
+            domainFilter={domainFilter}
+            onDomainChange={setDomainFilter}
+            dateSort={dateSort}
+            onDateSortChange={setDateSort}
+            filteredCount={filteredMessages.length}
+            totalCount={messages.length}
+            activeFilters={activeFilters}
+            onClearAll={resetFilters}
+            entityLabel="Emails"
+          />
+
+          <WorkspacePanel title="Recent mail" count={filteredMessages.length}>
             {messages.length === 0 ? (
               <p className="text-[13px] text-carbon-blue/60">
                 No mail is linked to your relationships yet. Sync your mailbox or tag a
                 mail in Outlook and it appears here.
               </p>
+            ) : filteredMessages.length === 0 ? (
+              <p className="text-[13px] text-carbon-blue/60">
+                No emails match the active filters.
+              </p>
             ) : (
               <ul className="-mx-6 -my-5 divide-y divide-border/60">
-                {messages.map((message) => {
+                {filteredMessages.map((message) => {
                   const related = relatedLink(message);
                   return (
                     <li
@@ -84,6 +137,7 @@ export function MailShell({ messages }: { messages: EmailMessageIntelligenceDto[
                       />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium text-carbon-blue">
+                          {message.isDeletedInSource ? "[Deleted in Outlook] " : ""}
                           {message.subject || "(no subject)"}
                         </p>
                         <p className="truncate text-[12px] text-carbon-blue/55">

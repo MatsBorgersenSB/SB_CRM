@@ -11,6 +11,12 @@ import type { SentimentGrade } from "@/generated/prisma";
 import { ThreadCorrespondencePreview } from "@/components/emails/thread-correspondence-preview";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
 import { MailAttachmentBadge } from "@/components/emails/mail-attachment-badge";
+import {
+  filterAndSortMailThreads,
+  MailSmartFilterBar,
+  newestMessageInList,
+  useMailSmartFilters,
+} from "@/components/emails/mail-smart-filters";
 import type { EmailMessageIntelligenceDto } from "@/lib/email-intelligence-data";
 import {
   buildMailOpportunityDraft,
@@ -107,7 +113,23 @@ export function CompanyRecentOutlook({
   const [error, setError] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
-  const [domainFilter, setDomainFilter] = useState<"all" | "external">("external");
+  const {
+    state: filterState,
+    searchQuery,
+    setSearchQuery,
+    sentimentFilter,
+    setSentimentFilter,
+    directionFilter,
+    setDirectionFilter,
+    deletedFilter,
+    setDeletedFilter,
+    domainFilter,
+    setDomainFilter,
+    dateSort,
+    setDateSort,
+    activeFilters,
+    resetFilters,
+  } = useMailSmartFilters();
   const latestMailRef = useRef<string | null>(null);
   const contactMailRef = useRef<string>("");
 
@@ -136,6 +158,7 @@ export function CompanyRecentOutlook({
   }, [companyId, role]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load initial threads on mount/reloadToken
     void load();
   }, [load, reloadToken]);
 
@@ -154,24 +177,33 @@ export function CompanyRecentOutlook({
 
   useEffect(() => {
     if (!focusMailId) return;
-    const focused = threads.some((thread) =>
-      thread.messages.some((message) => message.id === focusMailId && message.isInternalOnly),
-    );
-    if (focused) setDomainFilter("all");
-  }, [focusMailId, threads]);
+    const focusedMsg = threads
+      .flatMap((thread) => thread.messages)
+      .find((message) => message.id === focusMailId);
+    if (!focusedMsg) return;
+    if (focusedMsg.isInternalOnly) setDomainFilter("all");
+    if (focusedMsg.isDeletedInSource) setDeletedFilter("all");
+  }, [focusMailId, threads, setDomainFilter, setDeletedFilter]);
+
+  const totalMessages = useMemo(
+    () => threads.reduce((sum, thread) => sum + thread.messages.length, 0),
+    [threads],
+  );
 
   const visibleThreads = useMemo(() => {
-    const filtered = threads.filter((thread) => {
-      if (domainFilter !== "external") return true;
-      return thread.messages.some((message) => !message.isInternalOnly);
-    });
-    if (!focusMailId) return filtered.slice(0, 8);
+    const filtered = filterAndSortMailThreads(threads, filterState);
+    if (!focusMailId) return filtered;
     const focused = filtered.find((thread) =>
       thread.messages.some((message) => message.id === focusMailId),
     );
-    if (!focused) return filtered.slice(0, 8);
-    return [focused, ...filtered.filter((thread) => thread !== focused)].slice(0, 8);
-  }, [threads, domainFilter, focusMailId]);
+    if (!focused) return filtered;
+    return [focused, ...filtered.filter((thread) => thread !== focused)];
+  }, [threads, filterState, focusMailId]);
+
+  const filteredMessagesCount = useMemo(
+    () => visibleThreads.reduce((sum, thread) => sum + thread.messages.length, 0),
+    [visibleThreads],
+  );
 
   useEffect(() => {
     if (!focusMailId || loading) return;
@@ -183,18 +215,19 @@ export function CompanyRecentOutlook({
     });
   }, [focusMailId, loading, visibleThreads]);
 
-  const hasInternalMail = useMemo(
-    () => threads.some((thread) => thread.messages.every((message) => message.isInternalOnly)),
-    [threads],
-  );
-
   useEffect(() => {
     if (loading || error) return;
-    const latest = visibleThreads[0]?.summary?.latestSentAt ?? visibleThreads[0]?.messages.at(-1)?.sentAt ?? null;
+    let latest: string | null = null;
+    for (const thread of threads) {
+      for (const message of thread.messages) {
+        if (message.isInternalOnly) continue;
+        latest = laterIso(latest, message.sentAt);
+      }
+    }
     if (!latest || latest === latestMailRef.current) return;
     latestMailRef.current = latest;
     onLatestMailAt?.(latest);
-  }, [visibleThreads, onLatestMailAt, loading, error]);
+  }, [threads, onLatestMailAt, loading, error]);
 
   useEffect(() => {
     if (loading || error) return;
@@ -223,19 +256,6 @@ export function CompanyRecentOutlook({
           Recent Outlook
         </p>
         <div className="flex items-center gap-2">
-          {hasInternalMail ? (
-            <select
-              value={domainFilter}
-              onChange={(event) =>
-                setDomainFilter(event.target.value as "all" | "external")
-              }
-              className="border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] text-carbon-blue"
-              aria-label="Domain filter"
-            >
-              <option value="external">External (default)</option>
-              <option value="all">All domains</option>
-            </select>
-          ) : null}
           <button
             type="button"
             onClick={() => void load()}
@@ -246,20 +266,48 @@ export function CompanyRecentOutlook({
         </div>
       </div>
 
+      <div className="mb-3">
+        <MailSmartFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          sentimentFilter={sentimentFilter}
+          onSentimentChange={setSentimentFilter}
+          directionFilter={directionFilter}
+          onDirectionChange={setDirectionFilter}
+          deletedFilter={deletedFilter}
+          onDeletedChange={setDeletedFilter}
+          domainFilter={domainFilter}
+          onDomainChange={setDomainFilter}
+          dateSort={dateSort}
+          onDateSortChange={setDateSort}
+          filteredCount={filteredMessagesCount}
+          totalCount={totalMessages}
+          activeFilters={activeFilters}
+          onClearAll={resetFilters}
+          entityLabel="Emails"
+          compact
+        />
+      </div>
+
       {loading ? (
         <p className="text-[13px] text-carbon-blue/65">Loading Outlook threads…</p>
       ) : null}
       {error ? <p className="text-[13px] text-red-700/80">{error}</p> : null}
 
-      {!loading && !error && visibleThreads.length === 0 ? (
+      {!loading && !error && totalMessages === 0 ? (
         <p className="text-[13px] leading-relaxed text-carbon-blue/55">
           No synced Outlook mail for this company yet. Save mail from Outlook, then refresh.
+        </p>
+      ) : !loading && !error && visibleThreads.length === 0 ? (
+        <p className="text-[13px] leading-relaxed text-carbon-blue/55">
+          No emails match the active filters.
         </p>
       ) : null}
 
       <ul className="mt-2 flex flex-col gap-2">
         {visibleThreads.map((thread) => {
-          const latest = thread.messages[thread.messages.length - 1]!;
+          const latest =
+            newestMessageInList(thread.messages) ?? thread.messages[0]!;
           const displayMessage =
             (focusMailId
               ? thread.messages.find((message) => message.id === focusMailId)
@@ -289,7 +337,11 @@ export function CompanyRecentOutlook({
                   <MailAttachmentBadge messages={thread.messages} />
                 </p>
                 <p className="text-[11px] text-carbon-blue/65">
-                  {formatSentAt(thread.summary?.latestSentAt ?? latest.sentAt)}
+                  {formatSentAt(
+                    dateSort === "asc"
+                      ? (thread.messages[0]?.sentAt ?? latest.sentAt)
+                      : (thread.summary?.latestSentAt ?? latest.sentAt),
+                  )}
                 </p>
               </div>
               <p className="mt-0.5 text-[12px] text-carbon-blue/50">
@@ -344,6 +396,7 @@ export function CompanyRecentOutlook({
                 }
                 role={role}
                 autoExpand={isFocused}
+                dateSort={dateSort}
               />
               {!displayMessage.isDeletedInSource ? (
                 <MailThreadActions

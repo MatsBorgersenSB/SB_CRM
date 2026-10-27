@@ -7,6 +7,7 @@ import {
   gradeEmailSentiment,
 } from "@/lib/email-sentiment";
 import { extractCorrespondenceActionSignals } from "@/lib/correspondence-action-signals";
+import { messageIdVariants, toGraphRestMessageId } from "@/lib/m365/outlook-selection";
 import type { Prisma, SentimentGrade } from "@/generated/prisma";
 import type { IngestedSmartDoc } from "@/lib/smartdocs-ingestion";
 
@@ -328,8 +329,24 @@ async function upsertSeededOutlookMessage(
 ): Promise<boolean> {
   const prisma = getPrisma();
   const addresses = contactEmailsFromJson(contact.emails);
-  const externalMessageId = seed.externalMessageId.trim();
+  const externalMessageId = toGraphRestMessageId(seed.externalMessageId);
   if (!externalMessageId || !conversationId.trim()) return false;
+
+  const variants = messageIdVariants(seed.externalMessageId);
+  if (variants.length > 1) {
+    const legacyRow = await prisma.emailMessageRecord.findFirst({
+      where: { externalMessageId: { in: variants } },
+      select: { id: true, externalMessageId: true },
+    });
+    if (legacyRow && legacyRow.externalMessageId !== externalMessageId) {
+      await prisma.emailMessageRecord
+        .update({
+          where: { id: legacyRow.id },
+          data: { externalMessageId },
+        })
+        .catch(() => undefined);
+    }
+  }
 
   const isOutbound = Boolean(seed.isOutbound);
   const senderEmail =
@@ -569,7 +586,6 @@ export async function readRecentLinkedEmails(
     const prisma = getPrisma();
     const messages = await prisma.emailMessageRecord.findMany({
       where: {
-        isDeletedInSource: false,
         OR: [
           { contactId: { not: null } },
           { opportunityId: { not: null } },
@@ -580,10 +596,7 @@ export async function readRecentLinkedEmails(
       orderBy: { sentAt: "desc" },
       take: limit * 2,
     });
-    return messages
-      .map(toEmailDto)
-      .filter((message) => !message.isInternalOnly)
-      .slice(0, limit);
+    return messages.map(toEmailDto).slice(0, limit);
   } catch {
     return [];
   }
@@ -1259,7 +1272,7 @@ export async function captureOutlookMessageForContact(
   const stored = await prisma.emailMessageRecord.findFirst({
     where: {
       OR: [
-        { externalMessageId: seed.externalMessageId.trim() },
+        { externalMessageId: { in: messageIdVariants(seed.externalMessageId) } },
         { conversationId, contactId: contact.id },
       ],
     },

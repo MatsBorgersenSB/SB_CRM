@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Paperclip } from "lucide-react";
 import { MailAttachmentBadge } from "@/components/emails/mail-attachment-badge";
-import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
+import {
+  filterAndSortMailThreads,
+  MailSmartFilterBar,
+  newestMessageInList,
+  useMailSmartFilters,
+} from "@/components/emails/mail-smart-filters";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
@@ -15,7 +20,6 @@ import {
   type ComposeRecipientOption,
 } from "@/lib/email-compose-recipients";
 import type { UserRole } from "@/types/auth";
-import type { FilterSummaryChip } from "@/types/workspace-filters";
 import type { SentimentGrade } from "@/generated/prisma";
 
 export type EmailAttachmentItem = {
@@ -217,14 +221,23 @@ export function EmailIntelligence({
   const [previewAttachment, setPreviewAttachment] = useState<EmailAttachmentItem | null>(
     null,
   );
-  const [sentimentFilter, setSentimentFilter] = useState<"all" | SentimentGrade>("all");
-  const [directionFilter, setDirectionFilter] = useState<"all" | "inbound" | "outbound">("all");
-  const [deletedFilter, setDeletedFilter] = useState<"all" | "active" | "deleted">("all");
-  // FS-009 Privacy First — exclude internal-only by default (AD-001 chip: Domain · External).
-  // Clearing the chip switches to All domains (transparent).
-  const [domainFilter, setDomainFilter] = useState<"all" | "external" | "internal_only">(
-    "external",
-  );
+  const {
+    state: filterState,
+    searchQuery,
+    setSearchQuery,
+    sentimentFilter,
+    setSentimentFilter,
+    directionFilter,
+    setDirectionFilter,
+    deletedFilter,
+    setDeletedFilter,
+    domainFilter,
+    setDomainFilter,
+    dateSort,
+    setDateSort,
+    activeFilters,
+    resetFilters,
+  } = useMailSmartFilters();
   const [composeTo, setComposeTo] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
@@ -279,11 +292,13 @@ export function EmailIntelligence({
   }, [emailsApiPath, role, scopeId, scopeKind]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load initial threads on mount
     void load();
   }, [load]);
 
   useEffect(() => {
     if (scopeKind !== "project" || !scopeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear project recipients when not in project scope
       setProjectRecipients([]);
       return;
     }
@@ -322,6 +337,7 @@ export function EmailIntelligence({
   useEffect(() => {
     if (!composeOpen || composeTo.trim()) return;
     const preferred = composeRecipientOptions.find((row) => row.isExternal);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill default external recipient when opening compose
     if (preferred) setComposeTo(preferred.email);
   }, [composeOpen, composeRecipientOptions, composeTo]);
 
@@ -330,66 +346,15 @@ export function EmailIntelligence({
     [threads],
   );
 
-  const filteredThreads = useMemo(() => {
-    return threads
-      .map((thread) => {
-        const messages = thread.messages.filter((message) => {
-          if (sentimentFilter !== "all" && message.sentiment !== sentimentFilter) return false;
-          if (directionFilter === "inbound" && message.isOutbound) return false;
-          if (directionFilter === "outbound" && !message.isOutbound) return false;
-          if (deletedFilter === "active" && message.isDeletedInSource) return false;
-          if (deletedFilter === "deleted" && !message.isDeletedInSource) return false;
-          const internalOnly = Boolean(message.isInternalOnly);
-          if (domainFilter === "external" && internalOnly) return false;
-          if (domainFilter === "internal_only" && !internalOnly) return false;
-          return true;
-        });
-        return { ...thread, messages };
-      })
-      .filter((thread) => thread.messages.length > 0);
-  }, [threads, sentimentFilter, directionFilter, deletedFilter, domainFilter]);
+  const filteredThreads = useMemo(
+    () => filterAndSortMailThreads(threads, filterState),
+    [threads, filterState],
+  );
 
   const filteredCount = useMemo(
     () => filteredThreads.reduce((sum, thread) => sum + thread.messages.length, 0),
     [filteredThreads],
   );
-
-  const activeFilters = useMemo((): FilterSummaryChip[] => {
-    const chips: FilterSummaryChip[] = [];
-    if (sentimentFilter !== "all") {
-      chips.push({
-        id: "sentiment",
-        label: "Sentiment",
-        value: labelize(sentimentFilter),
-        onRemove: () => setSentimentFilter("all"),
-      });
-    }
-    if (directionFilter !== "all") {
-      chips.push({
-        id: "direction",
-        label: "Direction",
-        value: labelize(directionFilter),
-        onRemove: () => setDirectionFilter("all"),
-      });
-    }
-    if (deletedFilter !== "all") {
-      chips.push({
-        id: "deleted",
-        label: "Source",
-        value: deletedFilter === "deleted" ? "Deleted in Outlook" : "Active in Outlook",
-        onRemove: () => setDeletedFilter("all"),
-      });
-    }
-    if (domainFilter !== "all") {
-      chips.push({
-        id: "domain",
-        label: "Domain",
-        value: domainFilter === "external" ? "External" : "Internal-only",
-        onRemove: () => setDomainFilter("all"),
-      });
-    }
-    return chips;
-  }, [sentimentFilter, directionFilter, deletedFilter, domainFilter]);
 
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
@@ -574,83 +539,24 @@ export function EmailIntelligence({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-end gap-3 border border-carbon-blue/10 bg-white px-3 py-3">
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
-          Sentiment
-          <select
-            value={sentimentFilter}
-            onChange={(event) =>
-              setSentimentFilter(event.target.value as "all" | SentimentGrade)
-            }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
-          >
-            <option value="all">All sentiments</option>
-            <option value="positive">Positive</option>
-            <option value="neutral">Neutral</option>
-            <option value="cautious">Cautious</option>
-            <option value="negative">Negative</option>
-          </select>
-        </label>
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
-          Direction
-          <select
-            value={directionFilter}
-            onChange={(event) =>
-              setDirectionFilter(event.target.value as "all" | "inbound" | "outbound")
-            }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
-          >
-            <option value="all">Inbound + outbound</option>
-            <option value="inbound">Inbound only</option>
-            <option value="outbound">Outbound only</option>
-          </select>
-        </label>
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
-          Outlook source
-          <select
-            value={deletedFilter}
-            onChange={(event) =>
-              setDeletedFilter(event.target.value as "all" | "active" | "deleted")
-            }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
-          >
-            <option value="all">All (incl. deleted)</option>
-            <option value="active">Active in Outlook</option>
-            <option value="deleted">Deleted in Outlook</option>
-          </select>
-        </label>
-        <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
-          Domains
-          <select
-            value={domainFilter}
-            onChange={(event) =>
-              setDomainFilter(event.target.value as "all" | "external" | "internal_only")
-            }
-            className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
-          >
-            <option value="external">External (default)</option>
-            <option value="all">All domains</option>
-            <option value="internal_only">Internal-only</option>
-          </select>
-        </label>
-      </div>
-
-      <FilterTransparencyBar
-        entityLabel="Emails"
+      <MailSmartFilterBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sentimentFilter={sentimentFilter}
+        onSentimentChange={setSentimentFilter}
+        directionFilter={directionFilter}
+        onDirectionChange={setDirectionFilter}
+        deletedFilter={deletedFilter}
+        onDeletedChange={setDeletedFilter}
+        domainFilter={domainFilter}
+        onDomainChange={setDomainFilter}
+        dateSort={dateSort}
+        onDateSortChange={setDateSort}
         filteredCount={filteredCount}
         totalCount={totalMessages}
         activeFilters={activeFilters}
-        onClearAll={
-          activeFilters.length >= 2
-            ? () => {
-                setSentimentFilter("all");
-                setDirectionFilter("all");
-                setDeletedFilter("all");
-                // Restore constitutional privacy default (not unfiltered "all").
-                setDomainFilter("external");
-              }
-            : undefined
-        }
+        onClearAll={resetFilters}
+        entityLabel="Emails"
       />
 
       {error ? (
@@ -700,7 +606,7 @@ export function EmailIntelligence({
                     {summary?.messageCount ?? thread.messages.length} messages · Latest{" "}
                     {formatSentAt(
                       summary?.latestSentAt ??
-                        thread.messages[thread.messages.length - 1]?.sentAt ??
+                        newestMessageInList(thread.messages)?.sentAt ??
                         "",
                     )}
                   </p>
@@ -734,7 +640,11 @@ export function EmailIntelligence({
                               <DraftInOutlookButton
                                 toEmail={
                                   [...thread.messages]
-                                    .reverse()
+                                    .sort(
+                                      (a, b) =>
+                                        new Date(b.sentAt).getTime() -
+                                        new Date(a.sentAt).getTime(),
+                                    )
                                     .find((m) => !m.isOutbound)?.senderEmail ??
                                   thread.messages[0]?.senderEmail ??
                                   ""
@@ -754,9 +664,12 @@ export function EmailIntelligence({
                 </header>
 
                 <section className="pt-3" aria-label="Email timeline">
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
-                    Interaction thread
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
+                      Interaction thread ·{" "}
+                      {dateSort === "desc" ? "Newest first" : "Oldest first"}
+                    </p>
+                  </div>
                   <ol className="mt-3 flex flex-col gap-3">
                     {thread.messages.map((message) => {
                       const busy = purgingId === message.id;
