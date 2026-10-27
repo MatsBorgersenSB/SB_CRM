@@ -1,3 +1,7 @@
+import type { CreateActivityInput } from "@/types/activity";
+import type { Company } from "@/types/company";
+import { companyRouteKey } from "@/types/company-360";
+
 /**
  * "Add document" is always one click away. Documents live on a record
  * (company, person, opportunity, project), so the action jumps to the
@@ -40,3 +44,49 @@ export function documentsUrlForPath(pathname: string): string | null {
 export function documentsUrlForCompany(companyId: string): string {
   return `/companies/${encodeURIComponent(companyId)}#documents`;
 }
+
+/** Activity preset for the record in `pathname`, or empty when no record is open. */
+export function activityPresetForPath(
+  pathname: string,
+  companies: Company[] = [],
+): Partial<CreateActivityInput> {
+  const match = /^\/(companies|contacts|opportunities|deals|projects)\/([^/?#]+)/.exec(
+    pathname,
+  );
+  if (!match) return {};
+  const [, kind, rawId] = match;
+  if (!rawId) return {};
+  const id = decodeURIComponent(rawId);
+
+  if (kind === "companies") {
+    const matched = companies.find(
+      (company) => company.CompanyID === id || companyRouteKey(company) === id,
+    );
+    return { Company: { CompanyID: matched?.CompanyID ?? id } };
+  }
+
+  if (kind === "contacts") {
+    const matched = companies.find((company) =>
+      company.contacts.some((contact) => contact.ContactID === id),
+    );
+    return {
+      Contact: { ContactID: id },
+      ...(matched ? { Company: { CompanyID: matched.CompanyID } } : {}),
+    };
+  }
+
+  if (kind === "opportunities" || kind === "deals") {
+    const matched = companies.find((company) => company.pipelineIds.includes(id));
+    return {
+      Deal: { DealID: id },
+      ...(matched ? { Company: { CompanyID: matched.CompanyID } } : {}),
+    };
+  }
+
+  if (kind === "projects") {
+    return { ProjectId: id };
+  }
+
+  return {};
+}
+

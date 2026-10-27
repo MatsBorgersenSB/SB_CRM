@@ -3,15 +3,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FilePlus2, FileText, Mail, PenSquare, X } from "lucide-react";
+import { CalendarPlus, FilePlus2, FileText, Mail, PenSquare, X } from "lucide-react";
+import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
+import { useAuth } from "@/context/auth-context";
 import {
   ADD_DOCUMENT_EVENT,
+  activityPresetForPath,
   documentsUrlForCompany,
   documentsUrlForPath,
   markAddDocumentPending,
 } from "@/lib/add-document-intent";
 import { cn } from "@/lib/cn";
 import { outlookComposeUrl } from "@/lib/outlook-compose-link";
+import type { Company } from "@/types/company";
+import type { PipelineRow } from "@/types/pipeline";
 
 const ACTION_CLASS = cn(
   "flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border/60 bg-muted/50 px-2 py-2",
@@ -126,13 +131,62 @@ function CompanyPicker({ onClose }: { onClose: () => void }) {
 }
 
 /**
- * Create mail · View mail · Add document · View documents.
+ * New activity · Create mail · View mail · Add document · View documents.
  * Always visible in the sidebar so none of them is ever more than one click away.
  */
 export function QuickActions({ showMail = true }: { showMail?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
   const [picking, setPicking] = useState(false);
+  const [creatingActivity, setCreatingActivity] = useState(false);
+  const [activityCompanies, setActivityCompanies] = useState<Company[] | null>(null);
+  const [activityPipelines, setActivityPipelines] = useState<PipelineRow[] | null>(null);
+
+  useEffect(() => {
+    if (!creatingActivity) return;
+    if (activityCompanies !== null && activityPipelines !== null) return;
+    let cancelled = false;
+    Promise.all([
+      fetch("/api/companies", { credentials: "include" }).then((res) =>
+        res.ok ? res.json() : [],
+      ),
+      fetch("/api/pipelines", { credentials: "include" }).then((res) =>
+        res.ok ? res.json() : [],
+      ),
+    ])
+      .then(([companies, pipelines]) => {
+        if (cancelled) return;
+        setActivityCompanies(Array.isArray(companies) ? (companies as Company[]) : []);
+        setActivityPipelines(Array.isArray(pipelines) ? (pipelines as PipelineRow[]) : []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setActivityCompanies((current) => current ?? []);
+        setActivityPipelines((current) => current ?? []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [creatingActivity, activityCompanies, activityPipelines]);
+
+  const activityPreset = useMemo(
+    () => activityPresetForPath(pathname, activityCompanies ?? []),
+    [pathname, activityCompanies],
+  );
+
+  const presetKey = [
+    activityPreset.Company && "CompanyID" in activityPreset.Company
+      ? activityPreset.Company.CompanyID
+      : "",
+    activityPreset.Contact && "ContactID" in activityPreset.Contact
+      ? activityPreset.Contact.ContactID
+      : "",
+    activityPreset.Deal && "DealID" in activityPreset.Deal
+      ? activityPreset.Deal.DealID
+      : "",
+    activityPreset.ProjectId ?? "",
+  ].join("|");
 
   const addDocument = () => {
     const target = documentsUrlForPath(pathname);
@@ -158,6 +212,15 @@ export function QuickActions({ showMail = true }: { showMail?: boolean }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-1.5" aria-label="Quick actions">
+        <button
+          type="button"
+          onClick={() => setCreatingActivity(true)}
+          className={cn(ACTION_CLASS, "col-span-2")}
+          title="Plan or log a meeting, call, task, or event"
+        >
+          <CalendarPlus className="size-3.5 shrink-0 text-primary" strokeWidth={2} />
+          New activity
+        </button>
         {showMail ? (
           <a
           href={outlookComposeUrl()}
@@ -191,6 +254,19 @@ export function QuickActions({ showMail = true }: { showMail?: boolean }) {
         </Link>
       </div>
       {picking ? <CompanyPicker onClose={() => setPicking(false)} /> : null}
+      <ActivityCreateWizard
+        key={presetKey}
+        open={creatingActivity}
+        onClose={() => setCreatingActivity(false)}
+        onCreated={() => {
+          setCreatingActivity(false);
+          router.refresh();
+        }}
+        companies={activityCompanies ?? []}
+        pipelines={activityPipelines ?? []}
+        preset={activityPreset}
+        defaultOwner={user}
+      />
     </>
   );
 }
