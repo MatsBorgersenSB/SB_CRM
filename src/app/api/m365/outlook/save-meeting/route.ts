@@ -7,6 +7,7 @@ import {
   toSavedMeetingSummary,
 } from "@/lib/m365/outlook-meeting-capture";
 import { resolveM365PaneCompany } from "@/lib/m365/pane-context";
+import { messageIdVariants, toGraphRestMessageId } from "@/lib/m365/outlook-selection";
 import { getPrisma } from "@/lib/prisma";
 
 /**
@@ -24,7 +25,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const externalMessageId = searchParams.get("externalMessageId")?.trim() ?? "";
+  const rawExternalMessageId = searchParams.get("externalMessageId")?.trim() ?? "";
+  const externalMessageId = toGraphRestMessageId(rawExternalMessageId);
   if (!externalMessageId) {
     return NextResponse.json({ error: "externalMessageId is required" }, { status: 400 });
   }
@@ -32,7 +34,7 @@ export async function GET(request: Request) {
   try {
     const prisma = getPrisma();
     const stored = await prisma.emailMessageRecord.findFirst({
-      where: { externalMessageId },
+      where: { externalMessageId: { in: messageIdVariants(rawExternalMessageId) } },
       select: { id: true },
     });
 
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
       email?: string;
       seed?: { externalMessageId?: string; conversationId?: string; subject?: string };
     };
-    const externalMessageId = body.seed?.externalMessageId?.trim();
+    const externalMessageId = toGraphRestMessageId(body.seed?.externalMessageId);
     if (!externalMessageId) {
       return NextResponse.json(
         { error: "Open the meeting mail in Outlook and try again." },

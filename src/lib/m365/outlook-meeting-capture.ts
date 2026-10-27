@@ -15,6 +15,7 @@ import {
 } from "@/lib/m365/calendar-events";
 import { buildActivityPatchFromCalendarEvent } from "@/lib/m365/match-activity-calendar-event";
 import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
+import { toGraphRestMessageId } from "@/lib/m365/outlook-selection";
 import { getActiveM365AccessToken, graphRequest } from "@/lib/m365-client";
 import { readLiveCompanies } from "@/lib/prisma-data";
 import { STANDARD_BIO_USERS } from "@/types/bio-user";
@@ -56,7 +57,7 @@ async function getGraphToken() {
 export async function resolveMeetingEventForMessage(
   seed: OutlookMeetingSeed,
 ): Promise<{ isMeeting: boolean; event: GraphCalendarEvent | null }> {
-  const messageId = seed.externalMessageId.trim();
+  const messageId = toGraphRestMessageId(seed.externalMessageId);
   if (!messageId) return { isMeeting: false, event: null };
 
   const token = await getGraphToken();

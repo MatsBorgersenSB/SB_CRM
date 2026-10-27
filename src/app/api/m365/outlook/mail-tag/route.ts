@@ -14,6 +14,7 @@ import { readProjects } from "@/lib/project-db";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import { prismaLiveCompanyWhere, prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
 import { readOutlookMessagesFromGraph } from "@/lib/m365/outlook-selected-message-graph";
+import { toGraphRestMessageId } from "@/lib/m365/outlook-selection";
 
 type LinkOption = {
   id: string;
@@ -292,7 +293,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const seedExternalId = body.message?.externalMessageId?.trim();
+    const seedExternalId = toGraphRestMessageId(body.message?.externalMessageId);
     const seedMessage = seedExternalId
       ? {
           externalMessageId: seedExternalId,
@@ -463,7 +464,7 @@ export async function POST(request: Request) {
           ? hydratedByRequest.get(row.message.alternateItemId.trim())
           : undefined);
       const conversationId = row.conversationId?.trim() || graph?.conversationId || "";
-      const externalMessageId = graph?.externalMessageId || requestId;
+      const externalMessageId = toGraphRestMessageId(graph?.externalMessageId || requestId);
       if (!conversationId || !externalMessageId) {
         failed += 1;
         continue;

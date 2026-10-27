@@ -1,4 +1,5 @@
 import { fetchGraphMe, getActiveM365AccessToken, graphRequest } from "@/lib/m365-client";
+import { toGraphRestMessageId } from "@/lib/m365/outlook-selection";
 
 const MESSAGE_SELECT = [
   "id",
@@ -68,7 +69,7 @@ async function readGraphMessage(
   accessToken: string,
   itemId: string,
 ): Promise<GraphMessage | null> {
-  const id = itemId.trim();
+  const id = toGraphRestMessageId(itemId);
   if (!id) return null;
   try {
     return await graphRequest<GraphMessage>(

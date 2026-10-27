@@ -16,6 +16,7 @@ import {
   ingestEmailAttachmentToSmartDocs,
 } from "@/lib/smartdocs-ingestion";
 import { getSessionAzureOid } from "@/lib/m365/session-graph-user";
+import { messageIdVariants, toGraphRestMessageId } from "@/lib/m365/outlook-selection";
 import { resolveOpportunityRelationId } from "@/lib/smartdocs-resolve-opportunity-relation-id";
 import { readProjectById } from "@/lib/project-db";
 import { classifyByFileName } from "@/lib/mock-ai-parser";
@@ -90,8 +91,11 @@ export async function POST(request: Request) {
 
     const emailMessageId = body.emailMessageId?.trim();
     const emailExternalMessageIds = Array.isArray(body.emailExternalMessageIds)
-      ? body.emailExternalMessageIds.map((id) => id?.trim()).filter(Boolean)
+      ? body.emailExternalMessageIds.map((id) => id?.trim()).filter((id): id is string => Boolean(id))
       : [];
+    const lookupExternalMessageIds = [
+      ...new Set(emailExternalMessageIds.flatMap((id) => messageIdVariants(id))),
+    ];
 
     if (!emailMessageId && emailExternalMessageIds.length === 0) {
       return NextResponse.json(
@@ -135,7 +139,7 @@ export async function POST(request: Request) {
             },
           })
         : await prisma.emailMessageRecord.findMany({
-            where: { externalMessageId: { in: emailExternalMessageIds } },
+            where: { externalMessageId: { in: lookupExternalMessageIds } },
             select: {
               id: true,
               externalMessageId: true,
@@ -208,10 +212,19 @@ export async function POST(request: Request) {
     const ingestedDocuments: Array<{ id: string; name: string }> = [];
     const skippedAttachments: M365SkippedAttachment[] = [];
     for (const email of emails) {
-      const messageId = email.externalMessageId;
+      const messageId = toGraphRestMessageId(email.externalMessageId);
       if (!messageId) {
         skippedEmailCount += 1;
         continue;
+      }
+
+      if (messageId !== email.externalMessageId) {
+        await prisma.emailMessageRecord
+          .update({
+            where: { id: email.id },
+            data: { externalMessageId: messageId },
+          })
+          .catch(() => undefined);
       }
 
       const { files: emailAttachments, skipped } = await fetchM365MessageAttachmentsDetailed({

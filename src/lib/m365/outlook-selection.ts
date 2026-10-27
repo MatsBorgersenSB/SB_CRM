@@ -15,10 +15,42 @@ export function outlookSelectionFingerprint(
 }
 
 /**
- * New Outlook and Outlook on the web already hand back REST item ids.
- * convertToRestId on those hosts corrupts the id, and Graph then cannot read the mail.
+ * New Outlook and Outlook on the web already hand back REST item ids on some surfaces,
+ * while getSelectedItemsAsync can still hand back EWS ids (`/` and `+`).
+ * Never call Office.js convertToRestId on those hosts; normalize `/` -> `-` and `+` -> `_` directly.
  */
 export function mailboxHostUsesRestItemIds(hostName: string | null | undefined): boolean {
   const host = hostName?.trim() ?? "";
   return host === "OutlookWebApp" || host === "newOutlookWindows";
+}
+
+/**
+ * Convert an Exchange EWS item id (standard Base64 with `/` and `+`) into a
+ * Microsoft Graph REST v2.0 message id (URL-safe Base64 with `-` and `_`).
+ * Idempotent when the id is already in Graph REST format.
+ */
+export function toGraphRestMessageId(itemId: string | null | undefined): string {
+  const raw = itemId?.trim() ?? "";
+  if (!raw) return "";
+  return raw.replace(/\//g, "-").replace(/\+/g, "_");
+}
+
+/**
+ * Convert a Microsoft Graph REST v2.0 message id (`-` and `_`) into an
+ * Exchange EWS item id (`/` and `+`) for SOAP GetItem requests.
+ */
+export function toEwsMessageId(itemId: string | null | undefined): string {
+  const raw = itemId?.trim() ?? "";
+  if (!raw) return "";
+  return raw.replace(/-/g, "/").replace(/_/g, "+");
+}
+
+/**
+ * Both Graph REST and EWS representations of an Outlook message id so DB
+ * lookups match rows saved before REST id normalization.
+ */
+export function messageIdVariants(itemId: string | null | undefined): string[] {
+  const raw = itemId?.trim() ?? "";
+  if (!raw) return [];
+  return [...new Set([raw, toGraphRestMessageId(raw), toEwsMessageId(raw)].filter(Boolean))];
 }

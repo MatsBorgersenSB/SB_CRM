@@ -5,6 +5,7 @@ import {
   getAzureAdClientSecret,
   getAzureAdTenantId,
 } from "@/lib/auth-env";
+import { toGraphRestMessageId } from "@/lib/m365/outlook-selection";
 import { Buffer } from "buffer";
 
 const GRAPH_BASE =
@@ -310,9 +311,10 @@ async function readMessageCategories(
   existingCategories?: string[],
 ): Promise<string[]> {
   if (existingCategories) return existingCategories;
+  const messageId = toGraphRestMessageId(externalMessageId);
   const message = await graphRequest<{ categories?: string[] }>(
     accessToken,
-    `/me/messages/${encodeURIComponent(externalMessageId)}?$select=categories`,
+    `/me/messages/${encodeURIComponent(messageId)}?$select=categories`,
   );
   return message.categories ?? [];
 }
@@ -338,9 +340,10 @@ export async function applySmartCrmCategories(
       ? buildProjectCategoryName(options.projectName)
       : null;
 
+  const messageId = toGraphRestMessageId(externalMessageId);
   const current = await readMessageCategories(
     accessToken,
-    externalMessageId,
+    messageId,
     options?.existingCategories,
   );
 
@@ -348,7 +351,7 @@ export async function applySmartCrmCategories(
   next.push(SMARTCRM_MASTER_CATEGORY);
   if (dealCategory) next.push(dealCategory);
 
-  await graphRequest(accessToken, `/me/messages/${encodeURIComponent(externalMessageId)}`, {
+  await graphRequest(accessToken, `/me/messages/${encodeURIComponent(messageId)}`, {
     method: "PATCH",
     body: JSON.stringify({ categories: next }),
   });
@@ -362,15 +365,16 @@ export async function stripSmartCrmCategories(
   externalMessageId: string,
   options?: { existingCategories?: string[] },
 ): Promise<boolean> {
+  const messageId = toGraphRestMessageId(externalMessageId);
   const current = await readMessageCategories(
     accessToken,
-    externalMessageId,
+    messageId,
     options?.existingCategories,
   );
   const next = current.filter((category) => !isSmartCrmManagedCategory(category));
   if (next.length === current.length) return false;
 
-  await graphRequest(accessToken, `/me/messages/${encodeURIComponent(externalMessageId)}`, {
+  await graphRequest(accessToken, `/me/messages/${encodeURIComponent(messageId)}`, {
     method: "PATCH",
     body: JSON.stringify({ categories: next }),
   });
@@ -432,13 +436,14 @@ export async function fetchGraphMailMessageView(
   accessToken: string,
   externalMessageId: string,
 ): Promise<GraphMailMessageView> {
+  const messageId = toGraphRestMessageId(externalMessageId);
   const payload = await graphRequest<{
     webLink?: string;
     bodyPreview?: string;
     body?: { contentType?: string; content?: string };
   }>(
     accessToken,
-    `/me/messages/${encodeURIComponent(externalMessageId)}?$select=webLink,bodyPreview,body`,
+    `/me/messages/${encodeURIComponent(messageId)}?$select=webLink,bodyPreview,body`,
     {
       headers: {
         Prefer: 'outlook.body-content-type="text"',
@@ -638,6 +643,7 @@ export async function fetchM365MessageAttachmentsDetailed(input: {
   if (!accessToken) {
     throw new Error("No active M365 access token for integration");
   }
+  const messageId = toGraphRestMessageId(input.messageId);
 
   const payload = await graphRequest<{
     value?: Array<{
@@ -651,7 +657,7 @@ export async function fetchM365MessageAttachmentsDetailed(input: {
     }>;
   }>(
     accessToken,
-    `/me/messages/${encodeURIComponent(input.messageId)}/attachments`,
+    `/me/messages/${encodeURIComponent(messageId)}/attachments`,
   );
 
   const skipped: M365SkippedAttachment[] = [];
@@ -697,7 +703,7 @@ export async function fetchM365MessageAttachmentsDetailed(input: {
   ): Promise<(typeof items)[number]> => {
     if (row.contentBytes) return row;
     const url = `${GRAPH_BASE}/me/messages/${encodeURIComponent(
-      input.messageId,
+      messageId,
     )}/attachments/${encodeURIComponent(row.id)}/$value`;
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -735,8 +741,9 @@ export async function fetchM365MessageMimeSource(input: {
 }): Promise<Buffer | null> {
   const accessToken = await getAccessTokenForIntegration(input.integrationId);
   if (!accessToken) return null;
+  const messageId = toGraphRestMessageId(input.messageId);
   const response = await fetch(
-    `${GRAPH_BASE}/me/messages/${encodeURIComponent(input.messageId)}/$value`,
+    `${GRAPH_BASE}/me/messages/${encodeURIComponent(messageId)}/$value`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
   if (!response.ok) return null;

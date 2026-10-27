@@ -14,6 +14,8 @@ import {
 import {
   mailboxHostUsesRestItemIds,
   outlookSelectionFingerprint,
+  toEwsMessageId,
+  toGraphRestMessageId,
 } from "@/lib/m365/outlook-selection";
 
 export type OutlookSenderDetails = {
@@ -500,27 +502,31 @@ function mailboxHostName(mailbox: Office.Mailbox): string {
 function convertToRestId(mailbox: Office.Mailbox, itemId: string): string {
   const raw = itemId.trim();
   if (!raw) return "";
-  if (mailboxHostUsesRestItemIds(mailboxHostName(mailbox))) return raw;
-  try {
-    const convert = (
-      mailbox as {
-        convertToRestId?: (id: string, version: string) => string;
+  if (
+    !mailboxHostUsesRestItemIds(mailboxHostName(mailbox)) &&
+    (raw.includes("/") || raw.includes("+"))
+  ) {
+    try {
+      const convert = (
+        mailbox as {
+          convertToRestId?: (id: string, version: string) => string;
+        }
+      ).convertToRestId;
+      if (typeof convert === "function") {
+        const restId = convert.call(mailbox, raw, "v2.0")?.trim();
+        if (restId) return toGraphRestMessageId(restId);
       }
-    ).convertToRestId;
-    if (typeof convert === "function") {
-      const restId = convert.call(mailbox, raw, "v2.0")?.trim();
-      if (restId) return restId;
+    } catch {
+      // Fall through to deterministic v2.0 character mapping.
     }
-  } catch {
-    // Keep the id Outlook returned.
   }
-  return raw;
+  return toGraphRestMessageId(raw);
 }
 
 function convertToEwsId(mailbox: Office.Mailbox, itemId: string): string {
   const raw = itemId.trim();
   if (!raw) return "";
-  if (!mailboxHostUsesRestItemIds(mailboxHostName(mailbox))) return raw;
+  if (raw.includes("/") || raw.includes("+")) return raw;
   try {
     const convert = (
       mailbox as {
@@ -534,7 +540,7 @@ function convertToEwsId(mailbox: Office.Mailbox, itemId: string): string {
   } catch {
     // EWS cannot run on a REST id in this host.
   }
-  return raw;
+  return toEwsMessageId(raw);
 }
 
 const OFFICE_CALL_TIMEOUT_MS = 5000;
