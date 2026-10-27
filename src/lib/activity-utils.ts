@@ -196,6 +196,12 @@ export type LiveEntityScope = {
   pipelines?: PipelineRow[];
   /** Live project workspace IDs — when provided, ProjectId refs must resolve. */
   projectIds?: ReadonlySet<string>;
+  /**
+   * Drop activities that link to no company, deal, or project. Only for the
+   * seed JSON store; real (Prisma) activities may legitimately be unlinked,
+   * e.g. a personal task.
+   */
+  dropUnlinked?: boolean;
 };
 
 /**
@@ -216,7 +222,7 @@ export function filterActivitiesToLiveEntities(
   return activities.filter((activity) => {
     if (activity.Company) {
       if (!resolveActivityCompany(activity, companies)) return false;
-    } else {
+    } else if (scope.dropUnlinked) {
       const dealTitle = activity.Deal?.Title?.trim();
       const hasLiveDeal = Boolean(dealTitle && dealIds?.has(dealTitle));
       const hasLiveProject = Boolean(

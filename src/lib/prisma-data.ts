@@ -24,7 +24,7 @@ import { normalizeSmartDocCategory } from "@/types/smartdoc-library";
 import { emptyAnalytics, type AnalyticsDb } from "@/lib/analytics-data";
 import { emptyInventory, type InventoryDb } from "@/lib/inventory-data";
 import { shouldFallbackToJsonPortfolio } from "@/lib/prisma-data-mode";
-import { listActivities as readStoredActivities } from "@/lib/activity-store";
+import { isPrismaActivityStore, listActivities as readStoredActivities } from "@/lib/activity-store";
 import {
   readAnalytics as readJsonAnalytics,
   readCommercialPackages as readJsonCommercialPackages,
@@ -474,6 +474,7 @@ export async function readLiveActivities() {
     companies: portfolio.companies,
     pipelines: portfolio.pipelines,
     projectIds: new Set(projects.map((project) => project.id)),
+    dropUnlinked: !isPrismaActivityStore(),
   });
 }
 
@@ -611,6 +612,7 @@ export async function readLiveFocusContext(): Promise<LiveFocusContext> {
       companies: portfolio.companies,
       pipelines: portfolio.pipelines,
       projectIds,
+      dropUnlinked: !isPrismaActivityStore(),
     }),
     commercialPackages: commercialPackages.filter((pkg) => dealIds.has(pkg.DealId)),
     projects,
