@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/regional-format-preference";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ExplainabilityBlock } from "@/components/ui/explainability-block";
@@ -92,18 +93,18 @@ export function GrowthIntelligenceWorkspace({
   const featuredHealth = data.healthRecords[0] ?? null;
 
   return (
-    <section aria-label="FS-010 Growth & Expansion Intelligence" className="flex flex-col gap-4">
+    <section aria-label="Growth & Expansion Intelligence" className="flex flex-col gap-4">
       <header className={`${ATTIO_SURFACE} overflow-hidden`}>
         <div className={ATTIO_SURFACE_HEADER}>
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
-            FS-010 · Growth & Expansion Intelligence
+            Growth & Expansion Intelligence
           </p>
           <h2 className="mt-0.5 text-[15px] font-semibold text-slate-900 dark:text-slate-50">
             Account Health, Expansion Signals & Whitespace
           </h2>
           <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
-            SmartAssist proposes expansion moves — you decide. AD-001 filter transparency and
-            4-part explainability are mandatory.
+            SmartAssist proposes expansion moves — you decide. Every suggestion shows what it is
+            based on, why it matters, and what to do next.
           </p>
         </div>
       </header>
@@ -212,7 +213,7 @@ function AccountHealthIndexCard({
             Calculated
           </p>
           <p className="mt-1 font-mono text-[13px] tabular-nums text-slate-600 dark:text-slate-300">
-            {new Date(record.calculatedAt).toLocaleString()}
+            {formatDateTime(new Date(record.calculatedAt))}
           </p>
           {all.length > 1 ? (
             <p className="mt-2 text-[12px] text-slate-400">

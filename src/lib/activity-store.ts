@@ -4,6 +4,7 @@ import { shouldFallbackToJsonPortfolio } from "@/lib/prisma-data-mode";
 import { stableNumericId, toContactTrackingId } from "@/lib/prisma-mappers";
 import {
   createActivity as createJsonActivity,
+  deleteActivity as deleteJsonActivity,
   readActivities as readJsonActivities,
   updateActivity as updateJsonActivity,
 } from "@/lib/pipeline-db";
@@ -344,6 +345,21 @@ async function notifyAssignment(previous: Activity | null, next: Activity): Prom
       error instanceof Error ? error.message : error,
     );
   }
+}
+
+export async function deleteActivityRecord(id: string | number): Promise<void> {
+  if (!isPrismaActivityStore()) {
+    await deleteJsonActivity(String(id));
+    return;
+  }
+  const prisma = getPrisma();
+  const seq = seqFromId(id);
+  const existing = await prisma.activity.findFirst({
+    where: seq != null ? { seq } : { id: String(id) },
+    select: { id: true },
+  });
+  if (!existing) throw new Error(`Activity not found: ${id}`);
+  await prisma.activity.delete({ where: { id: existing.id } });
 }
 
 export async function updateActivityRecord(

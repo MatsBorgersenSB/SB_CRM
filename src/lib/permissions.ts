@@ -92,6 +92,11 @@ export function getWritablePipelineFields(
   return PIPELINE_WRITE_FIELDS[role];
 }
 
+/** FS-022: who may drag a deal between stages. The Won gate applies to everyone. */
+export function canMoveOpportunityStage(role: UserRole): boolean {
+  return role === "superuser" || role === "commercial" || role === "engineer";
+}
+
 export function assertPipelinePatchAllowed(
   role: UserRole,
   patch: Partial<PipelineRow>,
@@ -107,6 +112,18 @@ export function assertPipelinePatchAllowed(
   for (const key of Object.keys(patch) as (keyof PipelineRow)[]) {
     if (key === "id") continue;
     if (patch[key] === undefined) continue;
+
+    if (key === "salesStageId") {
+      if (!canMoveOpportunityStage(role)) {
+        throw new Error(`Role "${role}" cannot move an opportunity between stages`);
+      }
+      continue;
+    }
+
+    // A stage move carries its legacy `status` mirror — same permission as the move.
+    if (key === "status" && patch.salesStageId !== undefined && canMoveOpportunityStage(role)) {
+      continue;
+    }
 
     if (key === "team") {
       if (!canManageOpportunityStakeholders(role)) {

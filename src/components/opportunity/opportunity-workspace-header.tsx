@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/regional-format-preference";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import type { SharePointPerson } from "@/types/company";
@@ -47,11 +48,7 @@ import type { Activity } from "@/types/activity";
 
 function formatTimelineDate(value: string | undefined): string {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(new Date(value));
 }
 
 function toDateInputValue(value: string | undefined): string {

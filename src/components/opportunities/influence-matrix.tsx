@@ -236,8 +236,7 @@ export function InfluenceMatrix({
   return (
     <section aria-label="Influence mapping" className="flex flex-col gap-4">
       <div>
-        <p className="text-[12px] font-medium text-carbon-blue/65">FS-006 Influence Mapping</p>
-        <h3 className="mt-1 text-base font-semibold text-carbon-blue">
+        <h3 className="text-base font-semibold text-carbon-blue">
           Stakeholder influence matrix
         </h3>
         <p className="mt-1 text-[13px] text-carbon-blue/55">

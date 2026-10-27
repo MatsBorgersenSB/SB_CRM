@@ -1,5 +1,6 @@
 "use client";
 
+import { RegionalDateInput } from "@/components/ui/regional-inputs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
@@ -238,7 +239,7 @@ export function AnalyticsReportingWorkspace({
             Analytics & Reporting
           </h1>
           <p className="text-[11px] text-carbon-blue/65">
-            FS-014 · Pipeline win/loss, velocity, and weighted forecast
+            Pipeline win/loss, velocity, and weighted forecast
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -333,19 +334,17 @@ export function AnalyticsReportingWorkspace({
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                       From
-                      <input
-                        type="date"
+                      <RegionalDateInput
                         value={from}
-                        onChange={(event) => setFrom(event.target.value)}
+                        onValueChange={setFrom}
                         className="border border-carbon-blue/15 px-2 py-1.5 text-[13px] font-medium normal-case tracking-normal text-carbon-blue"
                       />
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                       To
-                      <input
-                        type="date"
+                      <RegionalDateInput
                         value={to}
-                        onChange={(event) => setTo(event.target.value)}
+                        onValueChange={setTo}
                         className="border border-carbon-blue/15 px-2 py-1.5 text-[13px] font-medium normal-case tracking-normal text-carbon-blue"
                       />
                     </label>

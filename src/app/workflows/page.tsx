@@ -12,7 +12,7 @@ export default async function WorkflowsPage() {
       <WorkspaceHeader
         scope="Workflows"
         title="Autonomous action approvals"
-        context="FS-011 · pending_approval queue — SmartAssist proposes, you decide"
+        context="Actions waiting for your approval — SmartAssist proposes, you decide"
       />
       <WorkspaceMain>
         <WorkspaceStack>

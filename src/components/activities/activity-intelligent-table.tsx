@@ -32,6 +32,7 @@ export function ActivityIntelligentTable({
   embedded = false,
   assigneeOptions = [],
   onAssigneeChange,
+  onToggleComplete,
 }: {
   rows: ActivityIntelligentRow[];
   primaryFocusActivityId?: string | null;
@@ -43,6 +44,7 @@ export function ActivityIntelligentTable({
     activity: Activity,
     assignee: SharePointPerson,
   ) => void | Promise<void>;
+  onToggleComplete?: (activity: Activity, completed: boolean) => void | Promise<void>;
 }) {
   if (rows.length === 0) {
     return (
@@ -80,6 +82,7 @@ export function ActivityIntelligentTable({
                 onOpen={onOpen}
                 assigneeOptions={assigneeOptions}
                 onAssigneeChange={onAssigneeChange}
+                onToggleComplete={onToggleComplete}
               />
             ))}
           </WorkspaceTableBody>
@@ -98,6 +101,7 @@ function ActivityIntelligentTableRow({
   onOpen,
   assigneeOptions = [],
   onAssigneeChange,
+  onToggleComplete,
 }: {
   row: ActivityIntelligentRow;
   primaryFocusActivityId?: string | null;
@@ -107,6 +111,7 @@ function ActivityIntelligentTableRow({
     activity: Activity,
     assignee: SharePointPerson,
   ) => void | Promise<void>;
+  onToggleComplete?: (activity: Activity, completed: boolean) => void | Promise<void>;
 }) {
   const isPrimaryFocus = primaryFocusActivityId === row.id;
   const href = `/activities/${row.activity.ActivityID}`;
@@ -127,23 +132,40 @@ function ActivityIntelligentTableRow({
       onClick={() => onOpen?.(row.activity.ActivityID)}
     >
       <WorkspaceTableBodyCell>
-        <Link
-          href={href}
-          onClick={(event) => event.stopPropagation()}
-          className="block text-[14px] font-semibold leading-snug text-carbon-blue hover:text-upcycle-orange"
-        >
-          {row.headline}
-        </Link>
-        <p className="mt-1 truncate text-[13px] text-carbon-blue/65">
-          {[
-            row.companyLabel,
-            row.dealLabel !== "—" ? row.dealLabel : null,
-            row.activity.ActivityType,
-            sharedCount > 0 ? `Shared: ${sharedCount}` : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        <div className="flex items-start gap-3">
+          {onToggleComplete ? (
+            <input
+              type="checkbox"
+              checked={row.isCompleted}
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => void onToggleComplete(row.activity, event.target.checked)}
+              aria-label={row.isCompleted ? "Mark as not done" : "Mark as done"}
+              title={row.isCompleted ? "Done — click to reopen" : "Mark as done"}
+              className="mt-[3px] size-4 shrink-0 cursor-pointer accent-emerald-600"
+            />
+          ) : null}
+          <div className={`min-w-0 ${row.isCompleted ? "opacity-60" : ""}`}>
+            <Link
+              href={href}
+              onClick={(event) => event.stopPropagation()}
+              className={`block text-[14px] font-semibold leading-snug text-carbon-blue hover:text-upcycle-orange ${
+                row.isCompleted ? "line-through" : ""
+              }`}
+            >
+              {row.headline}
+            </Link>
+            <p className="mt-1 truncate text-[13px] text-carbon-blue/65">
+              {[
+                row.companyLabel,
+                row.dealLabel !== "—" ? row.dealLabel : null,
+                row.activity.ActivityType,
+                sharedCount > 0 ? `Shared: ${sharedCount}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+        </div>
       </WorkspaceTableBodyCell>
 
       <WorkspaceTableBodyCell>

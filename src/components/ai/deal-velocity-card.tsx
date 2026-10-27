@@ -78,7 +78,7 @@ export function DealVelocityCard({ dealId }: { dealId: string }) {
       <div className={`${ATTIO_SURFACE_HEADER} flex flex-wrap items-center justify-between gap-2`}>
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            FS-012 · Deal Velocity
+            Deal momentum
           </p>
           <h2 className="mt-0.5 text-[13px] font-semibold text-slate-800 dark:text-slate-100">
             Deal Velocity & Next Best Action

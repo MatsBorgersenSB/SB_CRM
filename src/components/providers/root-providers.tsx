@@ -8,6 +8,7 @@ import { sessionToAuthUser } from "@/lib/session-user";
 import { AuthProvider } from "@/context/auth-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { SmartAssistProvider } from "@/context/smart-assist-context";
+import { RegionalFormatProvider } from "@/components/providers/regional-format-provider";
 import { UniversalSearchProvider } from "@/components/search/universal-search-provider";
 
 function isLiteShellPath(pathname: string | null | undefined): boolean {
@@ -43,7 +44,11 @@ export function RootProviders({
   // Outlook task panes / dialogs + auth: no SessionProvider, SmartAssist, or search index.
   // Auth is owned by OutlookAuthGate + dialog-bridge instead.
   if (isLiteShellPath(pathname)) {
-    return <ThemeProvider>{children}</ThemeProvider>;
+    return (
+      <ThemeProvider>
+        <RegionalFormatProvider>{children}</RegionalFormatProvider>
+      </ThemeProvider>
+    );
   }
 
   return (
@@ -56,7 +61,9 @@ export function RootProviders({
       >
         <AuthProvider initialUser={sessionToAuthUser(session)}>
           <SmartAssistProvider>
-            <UniversalSearchProvider>{children}</UniversalSearchProvider>
+            <UniversalSearchProvider>
+              <RegionalFormatProvider>{children}</RegionalFormatProvider>
+            </UniversalSearchProvider>
           </SmartAssistProvider>
         </AuthProvider>
       </SessionProvider>

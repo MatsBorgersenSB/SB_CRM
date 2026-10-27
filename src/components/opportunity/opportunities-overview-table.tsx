@@ -126,7 +126,7 @@ export function OpportunitiesOverviewTable({
   }
 
   return (
-    <table className="w-full table-fixed border-collapse text-left">
+    <div className="w-full overflow-x-auto"><table className="w-full min-w-[760px] table-fixed border-collapse text-left">
       <colgroup>
         <col className={compact ? "w-[28%]" : "w-[26%]"} />
         <col className={compact ? "w-[14%]" : "w-[13%]"} />
@@ -238,6 +238,6 @@ export function OpportunitiesOverviewTable({
           );
         })}
       </tbody>
-    </table>
+    </table></div>
   );
 }

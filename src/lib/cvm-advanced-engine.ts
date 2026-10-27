@@ -19,6 +19,7 @@ import type {
   ProjectMaturityStage,
 } from "@/types/commercial-viability";
 import { deal360Href } from "@/types/relationship-navigation";
+import { evaluateProjectConditions } from "@/lib/project-conditions";
 
 type MaturityDistribution = Record<ProjectMaturityStage, number>;
 
@@ -189,102 +190,18 @@ export function detectFatalFlawAlerts(
   >;
   const alerts: FatalFlawAlert[] = [];
 
-  const noFeedstock =
-    !deal.targetFeedstock || deal.targetFeedstock === "—" || (byId.feedstock_readiness?.score ?? 0) < 25;
-  if (noFeedstock) {
+  // Project conditions (FS-022): a flaw is raised only when the evidence is missing —
+  // what a person recorded — never from a score guess or a stage heuristic.
+  for (const condition of evaluateProjectConditions(deal)) {
+    if (condition.status === "confirmed") continue;
     alerts.push(
       flaw(
-        "no_feedstock",
-        "No Feedstock",
-        "Feedstock type, volume, or supply security not validated",
-        "critical",
-        ["Project cannot operate without secure feedstock", "Blocks business case and financing"],
-        "Run feedstock validation before further engineering investment",
-        deal.id,
-      ),
-    );
-  }
-
-  const noSite =
-    (byId.project_readiness?.score ?? 0) < 30 &&
-    !deal.FileLeafRef &&
-    deal.status !== "Contract Negotiation";
-  if (noSite) {
-    alerts.push(
-      flaw(
-        "no_site",
-        "No Site",
-        "Site, utilities, and infrastructure not assessed",
-        "critical",
-        ["Cannot size equipment or validate permitting path", "Blocks FEED and equipment quotation"],
-        "Commission site and utility assessment",
-        deal.id,
-      ),
-    );
-  }
-
-  if ((byId.financial_readiness?.score ?? 0) < 30) {
-    alerts.push(
-      flaw(
-        "no_financing",
-        "No Financing",
-        "Customer financing pathway not confirmed",
-        "critical",
-        ["Customer may not be able to fund CAPEX", "Delays or kills equipment contract"],
-        "Map equity, debt, grants, and board approval process with economic buyer",
-        deal.id,
-      ),
-    );
-  }
-
-  if ((byId.offtake_readiness?.score ?? 0) < 30) {
-    alerts.push(
-      flaw(
-        "no_offtake",
-        "No Offtake",
-        "Biochar, carbon credit, or thermal revenue path not secured",
-        "high",
-        ["Revenue security weak — business case incomplete", "Investment committee will block"],
-        "Validate offtake agreements or carbon credit strategy",
-        deal.id,
-      ),
-    );
-  }
-
-  if (stakeholderCount <= 1 && (byId.decision_readiness?.score ?? 0) < 45) {
-    alerts.push(
-      flaw(
-        "no_sponsor",
-        "No Sponsor",
-        "Executive sponsor and internal champion not identified",
-        "high",
-        ["Single-threaded deals stall at investment committee", "Competitor bypass risk"],
-        "Map executive sponsor, champion, and economic buyer",
-        deal.id,
-      ),
-    );
-    alerts.push(
-      flaw(
-        "no_decision_maker",
-        "No Decision Maker",
-        "Economic buyer and procurement process not engaged",
-        "high",
-        ["Cannot progress to signed contract without decision authority", "Proposals go unanswered"],
-        "Schedule commercial review with budget holder and procurement",
-        deal.id,
-      ),
-    );
-  }
-
-  if ((byId.delivery_readiness?.score ?? 0) < 25) {
-    alerts.push(
-      flaw(
-        "technology_mismatch",
-        "Technology Mismatch",
-        "Standard Bio delivery capacity or technology fit not confirmed",
-        "high",
-        ["Risk of margin erosion or failed delivery", "Damages reference value"],
-        "Confirm technology fit, engineering capacity, and manufacturing schedule",
+        condition.flawId,
+        condition.status === "partial" ? `${condition.label} incomplete` : `${condition.label} not confirmed`,
+        `Still unknown: ${condition.missingLabels.join(", ")}`,
+        condition.severity,
+        [condition.whyItMatters],
+        condition.recommendedAction,
         deal.id,
       ),
     );
@@ -309,24 +226,6 @@ export function detectFatalFlawAlerts(
         "medium",
         ["Site may not support reactor capacity", "CAPEX and schedule risk"],
         "Complete utility assessment before FEED investment",
-        deal.id,
-      ),
-    );
-  }
-
-  if (
-    (byId.project_readiness?.score ?? 0) < 35 &&
-    deal.status === "Prospecting" &&
-    !packages.some((p) => p.kind === "price_indication")
-  ) {
-    alerts.push(
-      flaw(
-        "unrealistic_permitting",
-        "Unrealistic Permitting",
-        "Permitting and infrastructure timeline not validated for this stage",
-        "medium",
-        ["Schedule risk to revenue and customer confidence", "May invalidate business case"],
-        "Validate permits, logistics, and site constraints in FEL-1",
         deal.id,
       ),
     );

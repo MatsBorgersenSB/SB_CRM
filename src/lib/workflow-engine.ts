@@ -245,7 +245,7 @@ async function runSideEffect(
         Subject: subject,
         ActivityDescription:
           payload.recommendation ||
-          "Created by FS-011 Autonomous Workflow Engine after user approval.",
+          "Created by SmartAssist automation after your approval.",
         ActionRequired: true,
         NextAction: payload.recommendation || "Complete workflow follow-up",
         NextActionDate: due.toISOString().slice(0, 10),

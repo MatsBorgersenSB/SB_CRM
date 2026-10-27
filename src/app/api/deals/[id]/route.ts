@@ -7,6 +7,7 @@ import {
   resolveAuditActor,
 } from "@/lib/security/audit-logger";
 import { canUpdateDealStage } from "@/lib/security/rbac";
+import { projectWonGateResponse } from "@/lib/project-won-gate";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
@@ -30,6 +31,8 @@ export async function PATCH(
     assertPipelinePatchAllowed(role, body);
     const { deals } = getServerSharePointServices();
     const before = await deals.getById(id).catch(() => null);
+    const blocked = projectWonGateResponse(before, body);
+    if (blocked) return blocked;
     const updated = await deals.update(id, body);
 
     const actor = resolveAuditActor(request, role);

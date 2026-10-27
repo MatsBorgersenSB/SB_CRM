@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/regional-format-preference";
 import { useCallback, useEffect, useState } from "react";
 
 type M365Status = {
@@ -123,7 +124,7 @@ export function M365ConnectPanel() {
                 ? " · site ready"
                 : " · set SHAREPOINT_TRANSPORT=graph and SHAREPOINT_SITE_ID"}
               {status.lastSyncedAt
-                ? ` · last mail sync ${new Date(status.lastSyncedAt).toLocaleString()}`
+                ? ` · last mail sync ${formatDateTime(new Date(status.lastSyncedAt))}`
                 : " · mail not synced yet"}
             </p>
           ) : null}

@@ -382,6 +382,9 @@ async function upsertGraphMessage(input: {
     subject: input.message.subject?.trim() || "(no subject)",
     bodyPreview: input.message.bodyPreview?.slice(0, 2000) ?? null,
     ...(webLink ? { webLink } : {}),
+    ...(typeof input.message.hasAttachments === "boolean"
+      ? { hasAttachments: input.message.hasAttachments }
+      : {}),
     senderEmail,
     recipientEmails,
     sentAt: parseSentAt(input.message),

@@ -2,7 +2,8 @@ import "server-only";
 
 import type { CreateOpportunityInput } from "@/types/deal";
 import type { PipelineRow, CompanyRole } from "@/types/pipeline";
-import { COMPANY_ROLES } from "@/types/pipeline";
+import { COMPANY_ROLES, SALES_STAGE_IDS } from "@/types/pipeline";
+import { registryStageFor } from "@/lib/sales-pipelines";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import { allocateNextOpportunityCode } from "@/lib/data/opportunities";
 import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
@@ -160,6 +161,11 @@ export async function updateRegistryOpportunity(
   if (patch.assetName !== undefined) {
     const name = patch.assetName.trim();
     if (name) data.name = name;
+  }
+  if (patch.salesStageId !== undefined && SALES_STAGE_IDS.includes(patch.salesStageId)) {
+    const { stage, status } = registryStageFor(patch.salesStageId);
+    data.stage = stage;
+    data.status = status;
   }
   if (patch.salesValue !== undefined && Number.isFinite(patch.salesValue)) {
     data.value = Math.max(0, patch.salesValue);

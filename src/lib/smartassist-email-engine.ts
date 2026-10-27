@@ -1,3 +1,4 @@
+import { formatShortDate } from "@/lib/regional-format-preference";
 import type { AttentionItem } from "@/types/attention-item";
 import type { SmartAssistEmailBriefing, SmartAssistEmailContext } from "@/types/smartassist-email";
 import type { ConfidenceLevel } from "@/lib/opportunity-workspace-intelligence";
@@ -128,7 +129,7 @@ function followUpForItem(item: AttentionItem, contactName: string): string {
     return `If no reply within 5 business days, schedule a follow-up call with ${contactName}.`;
   }
   if (item.dueDate) {
-    return `Follow up by ${new Date(item.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} if no response.`;
+    return `Follow up by ${formatShortDate(new Date(item.dueDate))} if no response.`;
   }
   return "Log a follow-up activity if no reply within one week.";
 }

@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/regional-format-preference";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
@@ -282,11 +283,7 @@ export function scheduleNextMilestone(
 }
 
 function formatPlanDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(new Date(value));
 }
 
 function slugify(value: string): string {

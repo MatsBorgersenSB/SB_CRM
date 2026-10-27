@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate as formatRegionalDate } from "@/lib/regional-format-preference";
 import type { ProjectMilestone } from "@/types/project";
 
 function milestoneTone(status: ProjectMilestone["status"]): string {
@@ -10,11 +11,7 @@ function milestoneTone(status: ProjectMilestone["status"]): string {
 }
 
 function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatRegionalDate(new Date(value));
 }
 
 export function ProjectMilestonesPanel({ milestones }: { milestones: ProjectMilestone[] }) {

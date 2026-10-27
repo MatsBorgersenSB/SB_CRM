@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/regional-format-preference";
 import type { CommercialPackage } from "@/types/commercial-package";
 import {
   COMMERCIAL_PACKAGE_KIND_LABELS,
@@ -36,11 +37,7 @@ function formatCommercialDate(value?: string): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(date);
 }
 
 function formatCommercialStatus(status: CommercialPackage["status"]): string {

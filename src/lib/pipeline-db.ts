@@ -465,6 +465,16 @@ export async function updateActivity(
   return updated;
 }
 
+export async function deleteActivity(activityId: string): Promise<void> {
+  const database = await ensureDb();
+  const index = database.activities.findIndex(
+    (a) => a.ActivityID === activityId || String(a.id) === activityId,
+  );
+  if (index === -1) throw new Error(`Activity not found: ${activityId}`);
+  database.activities.splice(index, 1);
+  await writeDb(database);
+}
+
 export async function readDatabase(): Promise<PipelineDatabase> {
   return ensureDb();
 }

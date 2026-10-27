@@ -21,6 +21,7 @@ import { MarketFactsOnDeal } from "@/components/opportunity/market-facts-on-deal
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
 import { resolveSalesMotion } from "@/lib/sales-motion";
 import { OpportunityMailSignals } from "@/components/opportunity/opportunity-mail-signals";
+import { KnowledgeProposalReview } from "@/components/ai/knowledge-proposal-review";
 import { PRODUCT_SALE_HIDDEN_VIEWS } from "@/types/opportunity-mission-control";
 import { buildOpportunityUnderstanding } from "@/lib/opportunity-workspace-intelligence";
 import { resolveAllUnderstandingFields } from "@/lib/opportunity-understanding-model";
@@ -247,6 +248,13 @@ export function OpportunityMissionControl({
             feedstock={pipeline.targetFeedstock}
             industry={findCompanyForDeal(pipeline.id, companies)?.Industry}
             lean={isProductSale}
+            knowledgeReview={
+              <KnowledgeProposalReview
+                scope={{ opportunityId: pipeline.id }}
+                role={role}
+                variant="collapsed"
+              />
+            }
             mailSignals={
               <OpportunityMailSignals
                 opportunityId={pipeline.id}
@@ -383,7 +391,9 @@ function OverviewPanel({
   industry,
   lean = false,
   mailSignals,
+  knowledgeReview,
 }: {
+  knowledgeReview?: ReactNode;
   lean?: boolean;
   mailSignals?: ReactNode;
   objective: string;
@@ -440,11 +450,11 @@ function OverviewPanel({
         label="What the customer wants"
         answer={objectiveLabel}
         detail={objectiveConfidenceReason}
-        category={objectiveCategory}
-        confidence={objectiveConfidence}
       />
 
       {mailSignals}
+
+      {knowledgeReview}
 
       {lean ? null : blocker ? (
         <ExplainabilityBlock
@@ -462,21 +472,12 @@ function OverviewPanel({
               >
                 Answer Now
               </button>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <SmartAssistCategoryBadge category="missing_critical" />
-                <SmartAssistConfidenceLabel confidence="high" />
-              </div>
-            )
+            ) : undefined
           }
         />
       ) : (
         <div className="rounded-lg border border-slate-200/80 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <p className={EDITORIAL_LABEL}>What is blocking progress</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <SmartAssistCategoryBadge category="known" />
-            <SmartAssistConfidenceLabel confidence="medium" />
-          </div>
           <p className={`mt-2.5 ${EDITORIAL_INSIGHT_STANDARD}`}>
             Nothing critical is blocking progress right now.
           </p>
@@ -501,7 +502,7 @@ function OverviewPanel({
         <section className="border-t border-slate-200/80 pt-8 dark:border-slate-800">
           <p className={`${EDITORIAL_LABEL} mb-1`}>Stakeholders</p>
           <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
-            User-controlled. Add, edit role, or remove — SmartAssist never invents contacts.
+            You decide who is on this deal — SmartAssist only suggests.
           </p>
           {stakeholdersOverview}
         </section>

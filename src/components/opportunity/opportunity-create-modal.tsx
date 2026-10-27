@@ -1,5 +1,6 @@
 "use client";
 
+import { RegionalDateInput } from "@/components/ui/regional-inputs";
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { CompanyCombobox } from "@/components/companies/company-combobox";
@@ -439,13 +440,12 @@ export function OpportunityCreateModal({
               <span className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
                 Expected close (optional)
               </span>
-              <input
-                type="date"
+              <RegionalDateInput
                 value={form.expectedCloseDate}
-                onChange={(event) =>
+                onValueChange={(next) =>
                   setForm((current) => ({
                     ...current,
-                    expectedCloseDate: event.target.value,
+                    expectedCloseDate: next,
                   }))
                 }
                 className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"

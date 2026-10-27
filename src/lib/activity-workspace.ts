@@ -1,3 +1,4 @@
+import { formatTime } from "@/lib/regional-format-preference";
 import type { AttentionItem } from "@/types/attention-item";
 import type {
   Activity,
@@ -330,7 +331,7 @@ export function buildSuggestedActivities(
 
 export function formatActivityTime(value: string): string {
   const date = parseActivityDate(value);
-  return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return formatTime(date);
 }
 
 export function formatDuration(minutes?: number): string {

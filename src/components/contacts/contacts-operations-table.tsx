@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { getActivitiesForContact } from "@/lib/activity-utils";
 import { laterIso } from "@/lib/contact-360-verdict";
 import { formatLastContact, formatRelativeTime } from "@/lib/relative-time";
@@ -28,6 +28,17 @@ import {
   WorkspaceTableHeadRow,
 } from "@/components/ui/workspace-table";
 import type { Activity } from "@/types/activity";
+
+type SortKey = "name" | "role" | "buyingRole" | "company" | "owner" | "lastTouch";
+
+const SORT_COLUMNS: [SortKey, string][] = [
+  ["name", "Name"],
+  ["role", "Role"],
+  ["buyingRole", "Buying role"],
+  ["company", "Company"],
+  ["owner", "Owner"],
+  ["lastTouch", "Last touch"],
+];
 
 const cellTruncate = "min-w-0 max-w-full overflow-hidden";
 const textTruncate = "block min-w-0 truncate";
@@ -60,6 +71,71 @@ export function ContactsOperationsTable({
   onContactUpdate?: (companyId: string, contactId: string, patch: UpdateContactInput) => Promise<void>;
   onOwnerChange?: (companyId: string, contactId: string, owner: SharePointPerson) => void;
 }) {
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" } | null>(null);
+
+  const rows = useMemo(() => {
+    const enriched = records.map((record) => {
+      const lastActivity = getActivitiesForContact(
+        activities,
+        record.contact.ContactID,
+        record.contact,
+      )[0];
+      const lastMailAt = record.contact.Email
+        ? lastMailByEmail[record.contact.Email.trim().toLowerCase()] ?? null
+        : null;
+      const lastTouchAt = laterIso(lastActivity?.ActivityDate ?? null, lastMailAt);
+      return { record, lastMailAt, lastTouchAt };
+    });
+    if (!sort) return enriched;
+
+    const text = (row: (typeof enriched)[number]): string | null => {
+      const { contact } = row.record;
+      switch (sort.key) {
+        case "name":
+          return getContactDisplayName(contact).trim() || null;
+        case "role":
+          return (contact.JobTitle || contact.Role || "").trim() || null;
+        case "buyingRole":
+          return isBuyingRoleUnknown(contact.buyingRole) ? null : String(contact.buyingRole);
+        case "company":
+          return row.record.companyName?.trim() || null;
+        case "owner":
+          return hasContactOwner(contact)
+            ? formatAccountOwnerDisplay(contact.ContactOwner)?.trim() || null
+            : null;
+        default:
+          return null;
+      }
+    };
+    const dirFactor = sort.dir === "asc" ? 1 : -1;
+    return [...enriched].sort((a, b) => {
+      // Empty values always sink to the bottom, whichever direction.
+      if (sort.key === "lastTouch") {
+        const av = a.lastTouchAt ? Date.parse(a.lastTouchAt) : null;
+        const bv = b.lastTouchAt ? Date.parse(b.lastTouchAt) : null;
+        if (av === null && bv === null) return 0;
+        if (av === null) return 1;
+        if (bv === null) return -1;
+        return (av - bv) * dirFactor;
+      }
+      const av = text(a);
+      const bv = text(b);
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return av.localeCompare(bv, undefined, { sensitivity: "base", numeric: true }) * dirFactor;
+    });
+  }, [records, activities, lastMailByEmail, sort]);
+
+  /** Click cycles: ascending → descending → original order. */
+  const toggleSort = (key: SortKey) =>
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: key === "lastTouch" ? "desc" : "asc" };
+      const firstDir = key === "lastTouch" ? "desc" : "asc";
+      return prev.dir === firstDir ? { key, dir: firstDir === "asc" ? "desc" : "asc" } : null;
+    });
+  const dirFor = (key: SortKey) => (sort?.key === key ? sort.dir : null);
+
   if (records.length === 0) {
     return (
       <p className="text-sm text-carbon-blue/65">
@@ -81,25 +157,19 @@ export function ContactsOperationsTable({
         </colgroup>
         <WorkspaceTableHead>
           <WorkspaceTableHeadRow>
-            <WorkspaceTableHeadCell>Name</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>Role</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>Buying role</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>Owner</WorkspaceTableHeadCell>
-            <WorkspaceTableHeadCell>Last touch</WorkspaceTableHeadCell>
+            {SORT_COLUMNS.map(([key, label]) => (
+              <WorkspaceTableHeadCell
+                key={key}
+                sortDirection={dirFor(key)}
+                onSort={() => toggleSort(key)}
+              >
+                {label}
+              </WorkspaceTableHeadCell>
+            ))}
           </WorkspaceTableHeadRow>
         </WorkspaceTableHead>
         <WorkspaceTableBody>
-          {records.map((record) => {
-            const lastActivity = getActivitiesForContact(
-              activities,
-              record.contact.ContactID,
-              record.contact,
-            )[0];
-            const lastMailAt = record.contact.Email
-              ? lastMailByEmail[record.contact.Email.trim().toLowerCase()] ?? null
-              : null;
-            const lastTouchAt = laterIso(lastActivity?.ActivityDate ?? null, lastMailAt);
+          {rows.map(({ record, lastMailAt, lastTouchAt }) => {
             const role = record.contact.JobTitle || record.contact.Role || "—";
 
             return (

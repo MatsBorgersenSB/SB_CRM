@@ -4,6 +4,7 @@ import type { IListRepository } from "@/services/sharepoint/client/types";
 import type { Activity, CreateActivityInput, UpdateActivityInput } from "@/types/activity";
 import {
   createActivityRecord,
+  deleteActivityRecord,
   getActivity,
   listActivities,
   updateActivityRecord,
@@ -31,7 +32,8 @@ export class LocalActivitiesRepository
     return updateActivityRecord(id, patch);
   }
 
-  async delete(): Promise<void> {
-    throw SharePointServiceError.validation("Delete activity is not enabled in local transport");
+  async delete(id: string | number): Promise<void> {
+    if (!(await getActivity(id))) throw SharePointServiceError.notFound("Activity", id);
+    await deleteActivityRecord(id);
   }
 }

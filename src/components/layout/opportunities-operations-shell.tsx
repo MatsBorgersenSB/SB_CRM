@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { OpportunitiesKanbanBoard } from "@/components/opportunity/opportunities-kanban-board";
 import { OpportunitiesOperationsTable } from "@/components/opportunity/opportunities-operations-table";
 import { OpportunityCreateModal } from "@/components/opportunity/opportunity-create-modal";
 import { OpportunityImportDealsPanel } from "@/components/opportunity/opportunity-import-deals-panel";
@@ -32,10 +33,11 @@ import {
   filterPipelinesForUser,
 } from "@/lib/permissions";
 import { EDITORIAL_GAP_BLOCK } from "@/lib/editorial-design-system";
+import { stagePatch, type SalesPipelineId } from "@/lib/sales-pipelines";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
-import type { PipelineRow } from "@/types/pipeline";
+import type { PipelineRow, SalesStageId } from "@/types/pipeline";
 import type { ViabilityRecommendation } from "@/types/commercial-viability";
 import type { FilterDefinition, WorkspaceFilterValues } from "@/types/workspace-filters";
 import { normalizeMultiFilter, normalizeSingleFilter } from "@/types/workspace-filters";
@@ -67,6 +69,10 @@ const ATTENTION_FILTERS = [
   { value: "healthy", label: "Healthy" },
 ];
 
+type OpportunitiesViewMode = "list" | "tiles";
+const VIEW_MODE_KEY = "smartcrm.opportunities.view";
+const PIPELINE_KEY = "smartcrm.opportunities.pipeline";
+
 const OPPORTUNITY_FILTER_KEYS = ["view", "stage", "cvm", "attention"] as const;
 
 const DEFAULT_FILTERS: WorkspaceFilterValues = {
@@ -89,6 +95,49 @@ export function OpportunitiesOperationsShell({
   const [activeTool, setActiveTool] = useState<OpportunitiesWorkspaceTool>(null);
   const [createdPipelines, setCreatedPipelines] = useState<PipelineRow[]>([]);
   const [createdCompanies, setCreatedCompanies] = useState<Company[]>([]);
+  const [viewMode, setViewMode] = useState<OpportunitiesViewMode>("list");
+  const [pipelineId, setPipelineId] = useState<SalesPipelineId>("project-sales");
+  const [stageOverrides, setStageOverrides] = useState<Record<string, SalesStageId>>({});
+
+  useEffect(() => {
+    try {
+      const savedView = window.localStorage.getItem(VIEW_MODE_KEY);
+      if (savedView === "list" || savedView === "tiles") setViewMode(savedView);
+      const savedPipeline = window.localStorage.getItem(PIPELINE_KEY);
+      if (savedPipeline === "project-sales" || savedPipeline === "offer-sales") {
+        setPipelineId(savedPipeline);
+      }
+    } catch {
+      /* storage unavailable — defaults are fine */
+    }
+  }, []);
+
+  const changeViewMode = useCallback((mode: OpportunitiesViewMode) => {
+    setViewMode(mode);
+    try {
+      window.localStorage.setItem(VIEW_MODE_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const changePipeline = useCallback((id: SalesPipelineId) => {
+    setPipelineId(id);
+    try {
+      window.localStorage.setItem(PIPELINE_KEY, id);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const overrideStage = useCallback((dealId: string, stage: SalesStageId | null) => {
+    setStageOverrides((current) => {
+      const next = { ...current };
+      if (stage === null) delete next[dealId];
+      else next[dealId] = stage;
+      return next;
+    });
+  }, []);
 
   const applyBridge = useCallback(
     (patch: { filters?: WorkspaceFilterValues; search?: string; owner?: string }) => {
@@ -115,8 +164,11 @@ export function OpportunitiesOperationsShell({
     const byId = new Map<string, PipelineRow>();
     for (const row of pipelines) byId.set(row.id, row);
     for (const row of createdPipelines) byId.set(row.id, row);
-    return Array.from(byId.values());
-  }, [pipelines, createdPipelines]);
+    return Array.from(byId.values()).map((row) => {
+      const stage = stageOverrides[row.id];
+      return stage ? { ...row, ...stagePatch(stage) } : row;
+    });
+  }, [pipelines, createdPipelines, stageOverrides]);
 
   const scopedPipelines = useMemo(
     () => filterPipelinesForUser(livePipelines, user, companies),
@@ -313,11 +365,45 @@ export function OpportunitiesOperationsShell({
                   defaultValues={DEFAULT_FILTERS}
                   onClearAll={handleClearAllFilters}
                 />
-                <div className="mt-4">
-                  <OpportunitiesOperationsTable
-                    rows={filteredRows}
-                    primaryFocusDealId={primaryFocusDealId}
-                  />
+                <div className="mt-3 flex justify-end">
+                  <div
+                    role="group"
+                    aria-label="Opportunity view"
+                    className="inline-flex rounded-lg border border-carbon-blue/15 p-0.5"
+                  >
+                    {(["list", "tiles"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        aria-pressed={viewMode === mode}
+                        onClick={() => changeViewMode(mode)}
+                        className={`rounded-md px-3 py-1 text-[13px] font-medium transition-colors ${
+                          viewMode === mode
+                            ? "bg-carbon-blue text-white"
+                            : "text-carbon-blue hover:bg-carbon-blue/5"
+                        }`}
+                      >
+                        {mode === "list" ? "List" : "Tiles"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-3">
+                  {viewMode === "tiles" ? (
+                    <OpportunitiesKanbanBoard
+                      rows={filteredRows}
+                      deals={scopedPipelines}
+                      role={user.role}
+                      pipelineId={pipelineId}
+                      onPipelineChange={changePipeline}
+                      onStageOverride={overrideStage}
+                    />
+                  ) : (
+                    <OpportunitiesOperationsTable
+                      rows={filteredRows}
+                      primaryFocusDealId={primaryFocusDealId}
+                    />
+                  )}
                 </div>
               </div>
             </div>

@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { getRequestRole } from "@/lib/api-auth";
 import { getPrisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma";
 import {
-  fetchM365MessageAttachments,
+  EML_ATTACHMENT_ID,
+  fetchM365MessageAttachmentsDetailed,
+  fetchM365MessageMimeSource,
   getActiveM365AccessToken,
+  safeFileStem,
   type M365AttachmentMeta,
+  type M365SkippedAttachment,
 } from "@/lib/m365-client";
 import {
   ingestEmailAttachmentToCompanySmartDocs,
@@ -116,6 +121,8 @@ export async function POST(request: Request) {
             select: {
               id: true,
               externalMessageId: true,
+              subject: true,
+              originalMimeStored: true,
               opportunityId: true,
               contact: {
                 select: {
@@ -132,6 +139,8 @@ export async function POST(request: Request) {
             select: {
               id: true,
               externalMessageId: true,
+              subject: true,
+              originalMimeStored: true,
               opportunityId: true,
               contact: {
                 select: {
@@ -197,6 +206,7 @@ export async function POST(request: Request) {
     let zipFilesExtracted = 0;
 
     const ingestedDocuments: Array<{ id: string; name: string }> = [];
+    const skippedAttachments: M365SkippedAttachment[] = [];
     for (const email of emails) {
       const messageId = email.externalMessageId;
       if (!messageId) {
@@ -204,14 +214,74 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const emailAttachments = await fetchM365MessageAttachments({
+      const { files: emailAttachments, skipped } = await fetchM365MessageAttachmentsDetailed({
         integrationId,
         messageId,
       });
       fetchedAttachments += emailAttachments.length;
+      for (const row of skipped) skippedAttachments.push(row);
 
-      // If opportunityId exists, we file docs under the opportunity folder.
-      // Otherwise (FS-006 phase 1), we file under the company documents folder.
+      // Per-mail control ledger: what was expected vs. what actually got filed.
+      let originalFiled = 0;
+      let failedCount = 0;
+      let noDestination = false;
+
+      const emailOpportunityId = await resolveOpportunityRelationId(
+        email.opportunityId ?? null,
+      );
+      const relationOpportunityId =
+        forcedOpportunityId ??
+        projectMappedOpportunityId ??
+        emailOpportunityId ??
+        undefined;
+      const hasForcedCompany = Boolean(forcedCompany?.id);
+      const companyId =
+        forcedCompany?.id ??
+        email.contact?.companyId ??
+        email.contact?.company?.id ??
+        null;
+      const companyName = forcedCompany?.name ?? email.contact?.company?.name ?? null;
+
+      /** Files one attachment. Returns the doc, or null when there is no destination. */
+      const fileOne = async (attachment: M365AttachmentMeta) => {
+        // Opportunity folder when a deal exists; otherwise company documents (FS-006).
+        if (relationOpportunityId && !hasForcedCompany) {
+          return ingestEmailAttachmentToSmartDocs({
+            opportunityId: relationOpportunityId,
+            emailMessageId: email.id,
+            attachment,
+          });
+        }
+        if (!companyId || !companyName) return null;
+        return ingestEmailAttachmentToCompanySmartDocs({
+          companyId,
+          companyName,
+          opportunityId: relationOpportunityId ?? null,
+          emailMessageId: email.id,
+          attachment,
+        });
+      };
+
+      // Preserve the original message (.eml) once — the legal/audit copy of the mail.
+      let emlStored = email.originalMimeStored;
+      if (!emlStored && (relationOpportunityId || (companyId && companyName))) {
+        try {
+          const originalMime = await fetchM365MessageMimeSource({ integrationId, messageId });
+          if (originalMime) {
+            const emlDoc = await fileOne({
+              id: EML_ATTACHMENT_ID,
+              name: `${safeFileStem(email.subject)}.eml`,
+              contentType: "message/rfc822",
+              size: originalMime.length,
+              contentBytes: originalMime.toString("base64"),
+            });
+            emlStored = Boolean(emlDoc);
+          }
+        } catch (emlError) {
+          console.error("[m365 sync-attachments] .eml preservation failed", emlError);
+        }
+      }
+
       for (const attachment of emailAttachments) {
         let expandedAttachments: M365AttachmentMeta[] = [attachment];
         if (ZIP_EXTENSIONS.has(fileExtension(attachment.name))) {
@@ -222,47 +292,50 @@ export async function POST(request: Request) {
         }
 
         for (const expandedAttachment of expandedAttachments) {
-        const emailOpportunityId = await resolveOpportunityRelationId(
-          email.opportunityId ?? null,
-        );
-        const relationOpportunityId =
-          forcedOpportunityId ??
-          projectMappedOpportunityId ??
-          emailOpportunityId ??
-          undefined;
-        const hasForcedCompany = Boolean(forcedCompany?.id);
-        if (relationOpportunityId && !hasForcedCompany) {
-          const doc = await ingestEmailAttachmentToSmartDocs({
-            opportunityId: relationOpportunityId,
-            emailMessageId: email.id,
-            attachment: expandedAttachment,
-          });
-          documentsSaved += 1;
-          ingestedDocuments.push({ id: doc.id, name: doc.name });
-          continue;
+          const isOriginal = expandedAttachment === attachment;
+          try {
+            const doc = await fileOne(expandedAttachment);
+            if (!doc) {
+              noDestination = true;
+              if (isOriginal) skippedEmailCount += 1;
+              continue;
+            }
+            documentsSaved += 1;
+            // Metadata-only rows (bytes unavailable) do not count as filed.
+            if (isOriginal && doc.hasContent) originalFiled += 1;
+            ingestedDocuments.push({ id: doc.id, name: doc.name });
+          } catch (fileError) {
+            console.error("[m365 sync-attachments] filing failed", fileError);
+            if (isOriginal) failedCount += 1;
+          }
         }
-
-        const companyId =
-          forcedCompany?.id ??
-          email.contact?.companyId ??
-          email.contact?.company?.id ??
-          null;
-        const companyName = forcedCompany?.name ?? email.contact?.company?.name ?? null;
-        if (!companyId || !companyName) {
-          skippedEmailCount += 1;
-          continue;
-        }
-
-        const doc = await ingestEmailAttachmentToCompanySmartDocs({
-          companyId,
-          companyName,
-          opportunityId: relationOpportunityId ?? null,
-          emailMessageId: email.id,
-          attachment: expandedAttachment,
-        });
-        documentsSaved += 1;
-        ingestedDocuments.push({ id: doc.id, name: doc.name });
       }
+
+      const expected = emailAttachments.length;
+      const status =
+        expected === 0
+          ? "none"
+          : originalFiled >= expected
+            ? "complete"
+            : noDestination && originalFiled === 0
+              ? "unfiled"
+              : originalFiled > 0
+                ? "partial"
+                : "failed";
+      await prisma.emailMessageRecord.update({
+        where: { id: email.id },
+        data: {
+          attachmentSyncStatus: status,
+          attachmentsExpected: expected,
+          attachmentsFiled: originalFiled,
+          attachmentsSkipped:
+            skipped.length > 0 ? (skipped as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
+          attachmentSyncedAt: new Date(),
+          originalMimeStored: emlStored,
+        },
+      });
+      if (failedCount > 0) {
+        skippedAttachments.push({ name: `${failedCount} file(s)`, reason: "filing_failed" });
       }
     }
 
@@ -272,6 +345,7 @@ export async function POST(request: Request) {
       fetchedAttachments,
       documentsSaved,
       skippedEmailCount,
+      skippedAttachments: skippedAttachments.slice(0, 40),
       zipArchivesDetected,
       zipFilesExtracted,
       documents: ingestedDocuments.slice(0, 80).map((doc) => {

@@ -5,7 +5,11 @@ import {
 } from "@/lib/company-correspondence";
 import { loadCorrespondenceEvidenceByCompanyId } from "@/lib/company-correspondence-data";
 import { readLiveFocusContext, readLiveSmartDocsLibrary } from "@/lib/prisma-data";
-import { loadRecentInboundMailSignals } from "@/lib/inbound-mail-attention-data";
+import {
+  loadMailFilingGapSignals,
+  loadRecentInboundMailSignals,
+} from "@/lib/inbound-mail-attention-data";
+import type { MailFilingGapSignal } from "@/lib/mail-filing-gaps";
 import type { InboundMailAttentionSignal } from "@/lib/inbound-mail-attention";
 import { listPendingTenders } from "@/lib/tenders/queries";
 import type { Activity } from "@/types/activity";
@@ -57,6 +61,7 @@ export default async function Home() {
   const emptyDocs: SmartDocLibraryRecord[] = [];
   const emptyTenders: TenderListItem[] = [];
   const emptyInbound: InboundMailAttentionSignal[] = [];
+  const emptyFilingGaps: MailFilingGapSignal[] = [];
   const emptyCorrespondence: CorrespondenceByCompanyId = {};
 
   const focusPromise = withTimeout(
@@ -80,7 +85,7 @@ export default async function Home() {
     ),
   );
 
-  const [focus, smartDocs, tenders, inboundMail, correspondence] = await Promise.all([
+  const [focus, smartDocs, tenders, inboundMail, mailFilingGaps, correspondence] = await Promise.all([
     focusPromise,
     withTimeout(
       settle(readLiveSmartDocsLibrary(), emptyDocs, "SmartDocs"),
@@ -104,6 +109,12 @@ export default async function Home() {
       emptyInbound,
       "inbound mail",
     ),
+    withTimeout(
+      settle(loadMailFilingGapSignals(), emptyFilingGaps, "mail filing gaps"),
+      4000,
+      emptyFilingGaps,
+      "mail filing gaps",
+    ),
     correspondencePromise,
   ]);
   const companies = focus.companies;
@@ -120,6 +131,7 @@ export default async function Home() {
       smartDocs={smartDocs}
       tenders={tenders}
       inboundMail={inboundMail}
+      mailFilingGaps={mailFilingGaps}
       correspondenceByCompanyId={correspondence}
     />
   );

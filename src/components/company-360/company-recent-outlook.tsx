@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/regional-format-preference";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
@@ -9,6 +10,8 @@ import type { UserRole } from "@/types/auth";
 import type { SentimentGrade } from "@/generated/prisma";
 import { ThreadCorrespondencePreview } from "@/components/emails/thread-correspondence-preview";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
+import { MailAttachmentBadge } from "@/components/emails/mail-attachment-badge";
+import type { EmailMessageIntelligenceDto } from "@/lib/email-intelligence-data";
 import {
   buildMailOpportunityDraft,
   linkMailConversationToOpportunity,
@@ -39,6 +42,9 @@ type CompanyEmailMessage = {
   isOutbound: boolean;
   isInternalOnly?: boolean;
   isDeletedInSource: boolean;
+  hasAttachments?: boolean | null;
+  attachments?: EmailMessageIntelligenceDto["attachments"];
+  attachmentLedger?: EmailMessageIntelligenceDto["attachmentLedger"];
 };
 
 type CompanyEmailThread = {
@@ -54,13 +60,7 @@ type CompanyEmailThread = {
 function formatSentAt(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Time unknown";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTime(date);
 }
 
 function normalizeEmail(value: string | null | undefined): string {
@@ -284,7 +284,10 @@ export function CompanyRecentOutlook({
               }
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-[13px] font-semibold text-carbon-blue">{subject}</p>
+                <p className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-carbon-blue">
+                  {subject}
+                  <MailAttachmentBadge messages={thread.messages} />
+                </p>
                 <p className="text-[11px] text-carbon-blue/65">
                   {formatSentAt(thread.summary?.latestSentAt ?? latest.sentAt)}
                 </p>

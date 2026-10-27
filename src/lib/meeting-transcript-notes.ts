@@ -5,7 +5,11 @@
 
 import "server-only";
 
-import { extractMeetingInsights } from "@/lib/ai/meeting-intelligence";
+import {
+  extractMeetingInsightsSmart,
+  type SmartMeetingInsights,
+} from "@/lib/ai/meeting-knowledge";
+import { replacePendingMeetingProposals } from "@/lib/ai/knowledge-proposal-store";
 import { parseMeetingTranscript } from "@/lib/m365/meeting-transcript";
 import { getPrisma } from "@/lib/prisma";
 import {
@@ -27,7 +31,7 @@ export type ApplyMeetingTranscriptInput = {
 
 export type ApplyMeetingTranscriptResult = {
   meeting: MeetingIntelligenceDto;
-  insights: ReturnType<typeof extractMeetingInsights>;
+  insights: SmartMeetingInsights;
   createdMeeting: boolean;
   proposedCommitmentCount: number;
   speakersObserved: string[];
@@ -50,7 +54,11 @@ export async function applyMeetingTranscriptNotes(
     throw new Error("Transcript is empty.");
   }
 
-  const insights = extractMeetingInsights(parsed.plainText);
+  const insights = await extractMeetingInsightsSmart(parsed.plainText, {
+    kind: "meeting",
+    id: input.meetingId?.trim() || null,
+    label: input.subject?.trim() || "Meeting transcript",
+  });
   const prisma = getPrisma();
 
   const opportunityId = input.opportunityId?.trim()
@@ -115,6 +123,12 @@ export async function applyMeetingTranscriptNotes(
     insights.keyCommitments.length > 0
       ? `Commitments: ${insights.keyCommitments.join("; ")}`
       : null,
+    (() => {
+      const unknowns = insights.proposals
+        .filter((p) => p.type === "unknown")
+        .map((p) => p.statement);
+      return unknowns.length > 0 ? `Open questions: ${unknowns.join("; ")}` : null;
+    })(),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -152,6 +166,18 @@ export async function applyMeetingTranscriptNotes(
         status: "proposed" as const,
       })),
     });
+  }
+
+  // FS-021: keep non-commitment knowledge as reviewable proposals (never applied).
+  // A failure here (e.g. migration not yet deployed) must not break the import.
+  try {
+    await replacePendingMeetingProposals(
+      meetingId,
+      { opportunityId, companyId: input.companyId?.trim() || null },
+      insights.proposals,
+    );
+  } catch (error) {
+    console.warn("[meeting-notes] could not store knowledge proposals", error);
   }
 
   const row = await prisma.meetingRecord.findUniqueOrThrow({

@@ -1,3 +1,4 @@
+import { salesStageFromRegistry } from "@/lib/sales-pipelines";
 import type { Company, CompanyIndustry, CompanyStatus } from "@/types/company";
 import { resolveCompanyIndustry } from "@/types/company";
 import { normalizeCompanySectors } from "@/lib/company-sectors";
@@ -473,6 +474,7 @@ export function mapPrismaOpportunityToPipelineRow(
     reactorDesignCapacity: 0,
     currentMilestone: opportunity.nextStep?.trim() || opportunity.stage,
     status: mapOpportunityStatus(opportunity.stage, opportunity.status),
+    salesStageId: salesStageFromRegistry(opportunity.stage, opportunity.status),
     salesValue: opportunity.value ?? 0,
     currency,
     probability: opportunity.probability ?? 10,

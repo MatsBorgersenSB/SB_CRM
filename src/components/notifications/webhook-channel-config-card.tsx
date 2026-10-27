@@ -116,8 +116,7 @@ export function WebhookChannelConfigCard() {
     <div className="space-y-4">
       <p className="text-sm text-carbon-blue/55">
         Connect Slack or Microsoft Teams incoming webhooks for deal wins, approvals, and
-        alert fan-out. URLs stay in this browser; tests are audited as{" "}
-        <span className="font-medium text-carbon-blue">WEBHOOK_DISPATCHED</span>.
+        alert fan-out. URLs stay in this browser; test messages are recorded in the audit log.
       </p>
 
       <label className="block">

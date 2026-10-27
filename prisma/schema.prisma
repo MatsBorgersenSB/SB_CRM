@@ -610,6 +610,18 @@ model EmailMessageRecord {
   deletedAtInSource DateTime?
   createdAt         DateTime       @default(now())
 
+  /// Outlook says the message has attachments (null = unknown, e.g. saved before this field was captured).
+  hasAttachments       Boolean?
+  /// Correspondence control ledger — none | complete | partial | unfiled | failed (null = never synced)
+  attachmentSyncStatus String?
+  attachmentsExpected  Int?
+  attachmentsFiled     Int?
+  /// Attachments intentionally not filed (inline images, blocked types) with reasons.
+  attachmentsSkipped   Json?
+  attachmentSyncedAt   DateTime?
+  /// Original RFC-822 message (.eml) preserved as a SmartDoc.
+  originalMimeStored   Boolean        @default(false)
+
   documents DocumentRecord[]
 
   @@index([conversationId])
@@ -645,6 +657,7 @@ model DocumentRecord {
   contentBase64        String? // Optional local cache for small files; SharePoint is SoT
   sharepointItemId     String? // Graph drive item id when filed in SharePoint
   sharepointWebUrl     String? // Browser URL in SharePoint Online
+  contentSha256        String? // SHA-256 of the file bytes — integrity proof + duplicate detection
 
   /// Opportunity link when deal-owned / deal-linked (optional for company-owned FS-006).
   opportunityId  String?
@@ -664,6 +677,7 @@ model DocumentRecord {
   @@index([emailMessageId])
   @@index([source])
   @@index([sharepointItemId])
+  @@index([contentSha256])
   @@map("document_records")
 }
 
@@ -1001,6 +1015,45 @@ model SmartAssistExploration {
   @@index([subject])
   @@index([createdAt])
   @@map("smartassist_explorations")
+}
+
+/// FS-021 - AI-proposed knowledge awaiting user review (fact, decision, risk, relationship, unknown).
+/// Commitments are NOT stored here: they live in MeetingCommitmentRecord (FS-014).
+/// Only the evidence quote and a source reference are kept; raw source text is never stored.
+/// Scope ids are plain strings (no FK) so this table never blocks deleting a record.
+model KnowledgeProposalRecord {
+  id              String    @id @default(uuid())
+  /// fact | decision | risk | relationship | unknown
+  type            String
+  statement       String
+  /// Why it matters - mandatory.
+  impact          String
+  evidence        String
+  /// high | moderate | low
+  confidence      String
+  /// meeting | email | document | teams | note
+  sourceKind      String
+  sourceId        String?
+  /// Plain-language label, e.g. "Teams meeting on 12 Oct".
+  sourceLabel     String
+  ownerHint       String?
+  dueHint         String?
+  /// proposed | accepted | edited | dismissed
+  status          String    @default("proposed")
+  /// The user's own wording when status = edited.
+  editedStatement String?
+  meetingId       String?
+  opportunityId   String?
+  companyId       String?
+  decidedBy       String?
+  decidedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([meetingId, status])
+  @@index([opportunityId, status])
+  @@index([companyId, status])
+  @@map("knowledge_proposals")
 }
 
 model MarketFactDecision {

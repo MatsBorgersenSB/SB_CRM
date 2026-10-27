@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/regional-format-preference";
 import { useCallback, useMemo, useState } from "react";
 import { ExplainabilityBlock } from "@/components/ui/explainability-block";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
@@ -146,7 +147,7 @@ export function WorkflowApprovalWorkspace({
       <header className={`${ATTIO_SURFACE} overflow-hidden`}>
         <div className={ATTIO_SURFACE_HEADER}>
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
-            FS-011 · Autonomous Workflow Engine
+            Automated workflows
           </p>
           <h1 className="mt-0.5 text-[18px] font-semibold tracking-tight text-slate-900 dark:text-slate-50">
             Pending Action Approval Queue
@@ -178,7 +179,7 @@ export function WorkflowApprovalWorkspace({
               Executions
             </h2>
             <p className="mt-0.5 text-[13px] text-slate-500">
-              Filter by status and trigger type (AD-001).
+              Filter by status and trigger type.
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -345,7 +346,7 @@ function ExecutionCard({
           ) : (
             <span className="text-[12px] text-slate-400">
               {execution.executedAt
-                ? `Executed ${new Date(execution.executedAt).toLocaleString()}`
+                ? `Executed ${formatDateTime(new Date(execution.executedAt))}`
                 : execution.ruleName}
             </span>
           )}

@@ -26,34 +26,29 @@ export type ExplainabilityBlockProps = ExplainabilityParts & {
 const PARTS: Array<{
   key: keyof ExplainabilityParts;
   label: string;
-  hint: string;
   accent?: boolean;
 }> = [
   {
     key: "observation",
-    label: "Observation",
-    hint: "What SmartAssist detected",
+    label: "What we see",
   },
   {
     key: "reasoning",
-    label: "Reasoning",
-    hint: "Why it matters commercially",
+    label: "Why it matters",
   },
   {
     key: "recommendedAction",
-    label: "Recommended Action",
-    hint: "What step to take next",
+    label: "What to do",
     accent: true,
   },
   {
     key: "expectedOutcome",
-    label: "Expected Outcome",
-    hint: "The expected deal impact",
+    label: "What it changes",
   },
 ];
 
 /**
- * FR-015 / FR-016 — standardized 4-part SmartAssist explainability.
+ * Standardized 4-part SmartAssist explanation.
  * AI proposes; users approve. Structure never auto-applies CRM changes.
  */
 export function ExplainabilityBlock({
@@ -80,10 +75,7 @@ export function ExplainabilityBlock({
     >
       {title ? (
         <header className={ATTIO_SURFACE_HEADER}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">
-            SmartAssist
-          </p>
-          <h3 className="mt-0.5 text-[13px] font-semibold text-slate-800 dark:text-slate-100">
+          <h3 className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">
             {title}
           </h3>
         </header>
@@ -106,7 +98,6 @@ export function ExplainabilityBlock({
               <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
                 {part.label}
               </dt>
-              <dd className="mt-0.5 text-[11px] text-slate-400">{part.hint}</dd>
               <dd
                 className={`mt-1 text-[13px] leading-relaxed ${
                   part.accent

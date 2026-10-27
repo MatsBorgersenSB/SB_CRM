@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate as formatRegionalDate } from "@/lib/regional-format-preference";
 import { ContactCareerTimeline } from "@/components/contacts/contact-career-timeline";
 import { ActivityTimeline } from "@/components/activities/activity-timeline";
 import type { CareerHistoryEntry, CompanyTransferRecord } from "@/types/contact-lifecycle";
@@ -8,11 +9,7 @@ import type { Contact } from "@/types/contact";
 
 function formatDate(value: string | null): string {
   if (!value) return "Present";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatRegionalDate(new Date(value));
 }
 
 /**

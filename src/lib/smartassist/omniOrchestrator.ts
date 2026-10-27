@@ -1,3 +1,4 @@
+import { openAiJsonText } from "@/lib/ai/openai-json";
 import type { GraphSearchResultItem } from "@/lib/smartassist/graphSearch";
 
 export type DataFreshness = "FRESH" | "AGING" | "OUTDATED" | "EXTERNAL_ONLY";
@@ -255,55 +256,28 @@ export function composeResolution(input: TaskContextInput & {
 }
 
 async function askModel(input: TaskContextInput, nowIso: string): Promise<unknown | null> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) return null;
-
-  const baseUrl = (process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1").replace(
-    /\/$/,
-    "",
-  );
   const model =
     process.env.OPENAI_SMARTASSIST_MODEL?.trim() ||
     process.env.OPENAI_TENDER_MODEL?.trim() ||
     "gpt-4o-mini";
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: JSON.stringify({
-            now: nowIso,
-            dateLimit: input.dateLimit ?? null,
-            taskDescription: input.taskDescription.slice(0, 4_000),
-            internalHits: input.internalHits.slice(0, 5).map((hit) => ({
-              title: hit.title,
-              timestamp: hit.timestamp,
-              sourceType: hit.sourceType,
-              snippet: hit.snippet.slice(0, 300),
-              webUrl: hit.webUrl,
-            })),
-          }),
-        },
-      ],
+  const content = await openAiJsonText({
+    task: "smartassist-task-context",
+    model,
+    system: SYSTEM_PROMPT,
+    user: JSON.stringify({
+      now: nowIso,
+      dateLimit: input.dateLimit ?? null,
+      taskDescription: input.taskDescription.slice(0, 4_000),
+      internalHits: input.internalHits.slice(0, 5).map((hit) => ({
+        title: hit.title,
+        timestamp: hit.timestamp,
+        sourceType: hit.sourceType,
+        snippet: hit.snippet.slice(0, 300),
+        webUrl: hit.webUrl,
+      })),
     }),
-    signal: AbortSignal.timeout(20_000),
   });
-
-  if (!response.ok) return null;
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = payload.choices?.[0]?.message?.content?.trim();
   if (!content) return null;
   try {
     return JSON.parse(content) as unknown;

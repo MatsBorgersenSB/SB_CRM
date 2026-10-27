@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/regional-format-preference";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
@@ -109,11 +110,7 @@ function formatModifiedDate(value: string): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(date);
 }
 
 function relatedObjectForDeal(

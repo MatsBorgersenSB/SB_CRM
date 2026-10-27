@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AssistedEverythingPanel } from "@/components/administration/assisted-everything-panel";
+import { RegionalFormatCard } from "@/components/administration/regional-format-card";
 import { WebhookChannelConfigCard } from "@/components/notifications/webhook-channel-config-card";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
@@ -34,6 +35,10 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
         <WorkspaceMain>
           <WorkspaceStack>
             <AssistedEverythingPanel />
+
+            <WorkspacePanel title="Date & time format">
+              <RegionalFormatCard />
+            </WorkspacePanel>
 
             {showWorkspaceArchitect ? (
               <WorkspacePanel title={WORKSPACE_ARCHITECT.title}>
@@ -91,7 +96,7 @@ export function AdministrationShell({ companies }: { companies: Company[] }) {
 
             <WorkspacePanel title="Collaboration webhooks">
               <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-                FS-015 · Slack & Teams
+                Slack & Teams
               </p>
               <WebhookChannelConfigCard />
             </WorkspacePanel>

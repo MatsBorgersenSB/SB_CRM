@@ -205,7 +205,7 @@ export function DuplicateManagerShell() {
         <WorkspaceStack>
           <section className="border border-carbon-blue/10 bg-white px-5 py-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
-              FS-020 · Data quality
+              Data quality
             </p>
             <h1 className="mt-1 text-lg font-semibold text-carbon-blue">
               What needs cleanup?

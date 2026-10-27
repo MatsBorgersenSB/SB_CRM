@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/regional-format-preference";
 import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { ACTIVITY_TYPE_OPTIONS } from "@/components/activities/activity-type-icon";
@@ -28,6 +29,7 @@ import type { SmartAssistResolution } from "@/lib/smartassist/omniOrchestrator";
 import type { EventProposal } from "@/lib/smartassist/eventExtract";
 import { TaskAssigneeSelect } from "@/components/activities/task-assignee-select";
 import { TaskShareWithPicker } from "@/components/activities/task-share-control";
+import { RegionalDateInput, RegionalTimeInput } from "@/components/ui/regional-inputs";
 import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import type { StandardBioUserRecord } from "@/types/user-access";
 
@@ -119,11 +121,7 @@ function presetDealId(preset?: Partial<CreateActivityInput>): string {
 function formatProposalDates(proposal: EventProposal): string {
   if (!proposal.startDate) return "Dates not found";
   const fmt = (value: string) =>
-    new Date(`${value}T00:00:00`).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    formatDate(new Date(`${value}T00:00:00`));
   if (!proposal.endDate || proposal.endDate === proposal.startDate) return fmt(proposal.startDate);
   return `${fmt(proposal.startDate)} – ${fmt(proposal.endDate)}`;
 }
@@ -573,11 +571,9 @@ function ActivityForm({
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className={LABEL}>First day</span>
-                  <input
-                    type="date"
+                  <RegionalDateInput
                     value={date}
-                    onChange={(e) => {
-                      const next = e.target.value;
+                    onValueChange={(next) => {
                       setDate(next);
                       setEndDate((current) => (current && current >= next ? current : next));
                     }}
@@ -586,11 +582,10 @@ function ActivityForm({
                 </label>
                 <label className="block">
                   <span className={LABEL}>Last day</span>
-                  <input
-                    type="date"
+                  <RegionalDateInput
                     value={endDate}
                     min={date}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onValueChange={setEndDate}
                     className={INPUT}
                   />
                 </label>
@@ -646,13 +641,13 @@ function ActivityForm({
               <div className={`grid gap-3 ${isTask ? "sm:grid-cols-2" : "sm:grid-cols-4"}`}>
                 <label className="block">
                   <span className={LABEL}>{isTask ? "Due" : timing === "done" ? "Date" : "Date"}</span>
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={INPUT} />
+                  <RegionalDateInput value={date} onValueChange={setDate} className={INPUT} />
                 </label>
                 {isTask ? null : (
                   <>
                     <label className="block">
                       <span className={LABEL}>Time</span>
-                      <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={INPUT} />
+                      <RegionalTimeInput value={time} onValueChange={setTime} className={INPUT} />
                     </label>
                     <label className="block">
                       <span className={LABEL}>Minutes</span>
@@ -925,7 +920,7 @@ function ActivityForm({
                   </label>
                   <label className="block">
                     <span className={LABEL}>By</span>
-                    <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={INPUT} />
+                    <RegionalDateInput value={dueDate} onValueChange={setDueDate} className={INPUT} />
                   </label>
                 </div>
               ) : null}

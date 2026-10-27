@@ -144,7 +144,7 @@ export function IntelligenceCenterShell({
 
             {growthIntelligence ? (
               <CollapsibleSection
-                title="Growth & Expansion (FS-010)"
+                title="Growth & Expansion"
                 description="Account Health Index, expansion signals, and whitespace matrix"
                 tier="nice-to-have"
               >

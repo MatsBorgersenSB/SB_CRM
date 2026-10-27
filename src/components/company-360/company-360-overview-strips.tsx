@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/regional-format-preference";
 import { useMemo, useState, type ReactNode } from "react";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -30,11 +31,7 @@ import type { MailOpportunityDraft } from "@/lib/mail-opportunity-draft";
 
 function formatCloseDate(value: string | undefined): string {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(new Date(value));
 }
 
 function OpportunityKeyAttribute({

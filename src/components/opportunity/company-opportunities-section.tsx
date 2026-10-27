@@ -1,5 +1,6 @@
 "use client";
 
+import { RegionalDateInput } from "@/components/ui/regional-inputs";
 import { useEffect, useMemo, useState } from "react";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
@@ -466,13 +467,12 @@ export function CompanyOpportunitiesSection({
                 Expected Decision Date{" "}
                 <span className="font-medium normal-case">(optional)</span>
               </span>
-              <input
-                type="date"
+              <RegionalDateInput
                 value={form.expectedCloseDate}
-                onChange={(event) =>
+                onValueChange={(next) =>
                   setForm((current) => ({
                     ...current,
-                    expectedCloseDate: event.target.value,
+                    expectedCloseDate: next,
                   }))
                 }
                 className="mt-1 w-full border border-carbon-blue/15 bg-white px-3 py-2 text-[13px] text-carbon-blue"

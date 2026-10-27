@@ -128,7 +128,7 @@ export function GenerateAiDraftControl({
             <header className="flex items-start justify-between gap-3 border-b border-carbon-blue/10 px-4 py-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-                  FS-012 · Email Copilot
+                  Email assistant
                 </p>
                 <h2 id={titleId} className="mt-0.5 text-sm font-semibold text-carbon-blue">
                   Generate AI Draft

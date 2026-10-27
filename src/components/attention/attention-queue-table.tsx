@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/regional-format-preference";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { resolveAttentionActions } from "@/lib/attention-action-resolver";
@@ -27,11 +28,7 @@ import {
 
 function formatDueDate(iso?: string): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(new Date(iso));
 }
 
 /**

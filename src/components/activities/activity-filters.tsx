@@ -1,5 +1,6 @@
 "use client";
 
+import { RegionalDateInput } from "@/components/ui/regional-inputs";
 import { Search } from "lucide-react";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
@@ -92,10 +93,9 @@ export function ActivityFiltersBar({
           <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             From
           </span>
-          <input
-            type="date"
+          <RegionalDateInput
             value={filters.dateFrom}
-            onChange={(e) => set({ dateFrom: e.target.value })}
+            onValueChange={(next) => set({ dateFrom: next })}
             className="mt-0.5 w-full border border-carbon-blue/12 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange/40"
           />
         </label>

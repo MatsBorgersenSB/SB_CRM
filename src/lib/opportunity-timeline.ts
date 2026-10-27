@@ -1,3 +1,4 @@
+import { formatDate, formatShortDate } from "@/lib/regional-format-preference";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { PipelineRow } from "@/types/pipeline";
@@ -248,7 +249,7 @@ function formatWeekLabel(date: Date): string {
   if (diffDays <= 0) return "This week";
   if (diffDays <= 7) return "This week";
   if (diffDays <= 14) return "Next week";
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return formatShortDate(date);
 }
 
 function addDays(date: Date, days: number): Date {
@@ -263,11 +264,7 @@ function startOfDay(date: Date): Date {
 
 function formatActivityDate(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(new Date(value));
 }
 
 function summarizeActivity(activity: Activity): string {

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate, formatTime } from "@/lib/regional-format-preference";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
@@ -54,13 +55,10 @@ function formatMeetingWhen(startIso: string, endIso: string): string {
     month: "short",
     day: "numeric",
   });
-  const startTime = start.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const startTime = formatTime(start);
   const endTime = Number.isNaN(end.getTime())
     ? ""
-    : end.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    : formatTime(end);
   return endTime ? `${dateLabel} · ${startTime} – ${endTime}` : `${dateLabel} · ${startTime}`;
 }
 
@@ -68,11 +66,7 @@ function formatDueDate(value: string | null): string {
   if (!value) return "No due date";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "No due date";
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatDate(date);
 }
 
 function commitmentDraftHtml(commitment: {
@@ -258,8 +252,7 @@ export function MeetingIntelligence({
   return (
     <section aria-label="Meeting intelligence" className="flex flex-col gap-4">
       <div>
-        <p className="text-[12px] font-medium text-carbon-blue/65">FS-008 Meeting Intelligence</p>
-        <h3 className="mt-1 text-base font-semibold text-carbon-blue">Meetings & commitments</h3>
+        <h3 className="text-base font-semibold text-carbon-blue">Meetings & commitments</h3>
         <p className="mt-1 text-[13px] text-carbon-blue/55">
           Review synced meetings, resolve attendees against the Contact Registry, and confirm
           SmartAssist commitments — the system proposes; you decide.

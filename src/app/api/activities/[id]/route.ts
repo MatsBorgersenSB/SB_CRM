@@ -18,6 +18,21 @@ export async function GET(
   }
 }
 
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  try {
+    const { activities } = getServerSharePointServices();
+    await activities.delete(id);
+    return NextResponse.json({ deleted: true, id });
+  } catch (error) {
+    return sharePointErrorResponse(error);
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

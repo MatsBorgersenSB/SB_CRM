@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/regional-format-preference";
 import type { CommercialPackage } from "@/types/commercial-package";
 import { inferCommercialStage } from "@/lib/deal-document-context";
 import type { PipelineRow } from "@/types/pipeline";
@@ -77,11 +78,7 @@ export function getProbabilityStatus(probability: number): ProbabilityStatus {
 
 export function formatExpectedCloseDate(value: string | undefined): string {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(new Date(value));
 }
 
 export function opportunityStageLabel(

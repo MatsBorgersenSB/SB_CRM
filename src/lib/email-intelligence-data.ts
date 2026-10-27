@@ -17,6 +17,8 @@ export type EmailAttachmentDto = {
   sizeBytes: number | null;
   source: string;
   hasContent: boolean;
+  /** True when the file lives in SharePoint (opens in SharePoint; cannot be framed inline). */
+  inSharePoint?: boolean;
   downloadUrl: string;
 };
 
@@ -52,7 +54,53 @@ export type EmailMessageIntelligenceDto = {
   deletedAtInSource: string | null;
   createdAt: string;
   attachments: EmailAttachmentDto[];
+  /** Correspondence control ledger — null when attachments were never synced. */
+  attachmentLedger: EmailAttachmentLedgerDto | null;
+  /** Outlook flag captured at ingest — null when unknown. */
+  hasAttachments: boolean | null;
 };
+
+export type EmailAttachmentLedgerDto = {
+  status: "none" | "complete" | "partial" | "unfiled" | "failed";
+  expected: number;
+  filed: number;
+  skipped: Array<{ name: string; reason: string }>;
+  originalStored: boolean;
+  syncedAt: string | null;
+};
+
+function toAttachmentLedger(message: {
+  attachmentSyncStatus?: string | null;
+  attachmentsExpected?: number | null;
+  attachmentsFiled?: number | null;
+  attachmentsSkipped?: unknown;
+  attachmentSyncedAt?: Date | null;
+  originalMimeStored?: boolean;
+}): EmailAttachmentLedgerDto | null {
+  const status = message.attachmentSyncStatus;
+  if (
+    status !== "none" &&
+    status !== "complete" &&
+    status !== "partial" &&
+    status !== "unfiled" &&
+    status !== "failed"
+  ) {
+    return null;
+  }
+  const skipped = Array.isArray(message.attachmentsSkipped)
+    ? (message.attachmentsSkipped as Array<{ name?: unknown; reason?: unknown }>)
+        .filter((row) => typeof row?.name === "string")
+        .map((row) => ({ name: String(row.name), reason: String(row.reason ?? "") }))
+    : [];
+  return {
+    status,
+    expected: message.attachmentsExpected ?? 0,
+    filed: message.attachmentsFiled ?? 0,
+    skipped,
+    originalStored: Boolean(message.originalMimeStored),
+    syncedAt: message.attachmentSyncedAt?.toISOString() ?? null,
+  };
+}
 
 export type EmailThreadSummary = {
   conversationId: string;
@@ -96,6 +144,7 @@ function toAttachmentDto(doc: {
       Boolean(doc.contentBase64) ||
       Boolean(doc.sharepointItemId) ||
       (doc.sizeBytes ?? 0) > 0,
+    inSharePoint: !doc.contentBase64 && Boolean(doc.sharepointItemId),
     downloadUrl: `/api/documents/${encodeURIComponent(doc.id)}/download`,
   };
 }
@@ -159,6 +208,13 @@ function toEmailDto(message: {
   isDeletedInSource: boolean;
   deletedAtInSource: Date | null;
   createdAt: Date;
+  hasAttachments?: boolean | null;
+  attachmentSyncStatus?: string | null;
+  attachmentsExpected?: number | null;
+  attachmentsFiled?: number | null;
+  attachmentsSkipped?: unknown;
+  attachmentSyncedAt?: Date | null;
+  originalMimeStored?: boolean;
   contact: {
     fullName: string | null;
     firstName: string | null;
@@ -225,6 +281,8 @@ function toEmailDto(message: {
     deletedAtInSource: message.deletedAtInSource?.toISOString() ?? null,
     createdAt: message.createdAt.toISOString(),
     attachments: message.documents.map(toAttachmentDto),
+    attachmentLedger: toAttachmentLedger(message),
+    hasAttachments: message.hasAttachments ?? null,
   };
 }
 

@@ -8,6 +8,7 @@ import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import { ActivityKnowledgeCapturePanel } from "@/components/activities/activity-knowledge-capture-panel";
 import { ActivityKnowledgeSections } from "@/components/activities/activity-knowledge-sections";
+import { RegionalDateInput } from "@/components/ui/regional-inputs";
 import { syncActivityUpdate } from "@/lib/sync-activity";
 import {
   parseAgreedActions,
@@ -203,6 +204,12 @@ function Field({
           onChange={(e) => onChange(e.target.value)}
           rows={3}
           className="mt-1 w-full resize-none border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+        />
+      ) : type === "date" ? (
+        <RegionalDateInput
+          value={value}
+          onValueChange={onChange}
+          className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
         />
       ) : (
         <input

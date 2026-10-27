@@ -1,13 +1,10 @@
 "use client";
 
+import { formatDate as formatRegionalDate } from "@/lib/regional-format-preference";
 import type { ProjectDecision } from "@/types/project";
 
 function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatRegionalDate(new Date(value));
 }
 
 export function ProjectDecisionsPanel({ decisions }: { decisions: ProjectDecision[] }) {

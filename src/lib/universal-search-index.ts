@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/regional-format-preference";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
@@ -327,6 +328,7 @@ function buildDocumentItems(
   const seen = new Set<string>();
 
   for (const record of library) {
+    if (seen.has(record.SmartDocID)) continue;
     seen.add(record.SmartDocID);
     if (record.DealId && record.FileLeafRef) {
       seen.add(`${record.DealId}::${record.FileLeafRef}`);
@@ -590,7 +592,7 @@ function buildResearchReportItems(reports: StoredResearchReport[]): SearchIndexI
       name: report.title,
       typeLabel: report.typeLabel,
       contextPreview: `${report.subject} · ${report.priority} priority · Rev ${report.revision}`,
-      lastActivityLabel: `Generated · ${new Date(report.generatedAt).toLocaleDateString("en-GB")}`,
+      lastActivityLabel: `Generated · ${formatDate(new Date(report.generatedAt))}`,
       lastActivityAt: report.generatedAt,
       href: `/knowledge?report=${encodeURIComponent(report.reportId)}`,
       keywords: [
@@ -635,7 +637,7 @@ export function buildUniversalSearchIndex(
     extras,
   );
 
-  return [
+  const all = [
     ...buildCompanyItems(companies, pipelines, activities, countByCompany),
     ...buildContactItems(companies, activities),
     ...buildDealItems(pipelines, companies, activities),
@@ -648,4 +650,12 @@ export function buildUniversalSearchIndex(
     ...buildRawMaterialItems(materials),
     ...buildResearchReportItems(researchReports),
   ];
+
+  // Result ids are React keys — keep the first occurrence of any repeated id.
+  const seenIds = new Set<string>();
+  return all.filter((entry) => {
+    if (seenIds.has(entry.id)) return false;
+    seenIds.add(entry.id);
+    return true;
+  });
 }

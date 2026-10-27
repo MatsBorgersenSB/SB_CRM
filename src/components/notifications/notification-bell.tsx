@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDate, formatTime } from "@/lib/regional-format-preference";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
@@ -18,12 +19,7 @@ const TYPE_STYLES: Record<string, string> = {
 function formatWhen(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return `${formatShortDate(date)}, ${formatTime(date)}`;
 }
 
 /**
@@ -167,9 +163,6 @@ export function NotificationBell() {
           >
             <header className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-2.5">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-                  FS-015
-                </p>
                 <h2 id={titleId} className="text-[13px] font-semibold text-carbon-blue">
                   Notifications
                 </h2>

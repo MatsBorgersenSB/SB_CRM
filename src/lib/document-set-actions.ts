@@ -70,7 +70,7 @@ export async function assignDocumentToSet(
 
   if (!record.DealId) {
     throw new Error(
-      "Company-owned SmartDocs cannot be assigned to opportunity Document Sets (FS-006)",
+      "Company-owned SmartDocs cannot be assigned to opportunity Document Sets",
     );
   }
 

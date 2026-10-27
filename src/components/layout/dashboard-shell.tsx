@@ -32,6 +32,7 @@ import type { PipelineRow } from "@/types/pipeline";
 import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import type { TenderListItem } from "@/lib/tenders/types";
+import type { MailFilingGapSignal } from "@/lib/mail-filing-gaps";
 import {
   mergeInboundMailIntoCorrespondence,
   type InboundMailAttentionSignal,
@@ -48,6 +49,7 @@ type DashboardShellProps = {
   smartDocs?: SmartDocLibraryRecord[];
   tenders?: TenderListItem[];
   inboundMail?: InboundMailAttentionSignal[];
+  mailFilingGaps?: MailFilingGapSignal[];
 };
 
 export function DashboardShell(props: DashboardShellProps) {
@@ -67,6 +69,7 @@ function DashboardShellContent({
   smartDocs,
   tenders,
   inboundMail,
+  mailFilingGaps,
 }: DashboardShellProps) {
   const searchParams = useSearchParams();
   const ownerFilter = searchParams.get("owner") ?? undefined;
@@ -149,6 +152,7 @@ function DashboardShellContent({
         smartDocs,
         tenders,
         inboundMail,
+        mailFilingGaps,
       });
     } catch (error) {
       console.error("[today] attention queue failed", error);
@@ -163,6 +167,7 @@ function DashboardShellContent({
     smartDocs,
     tenders,
     inboundMail,
+    mailFilingGaps,
   ]);
 
 

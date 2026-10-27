@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDate } from "@/lib/regional-format-preference";
 import Link from "next/link";
 import { resolveAttentionActions } from "@/lib/attention-action-resolver";
 import type { AttentionItem, AttentionSeverity } from "@/types/attention-item";
@@ -58,7 +59,7 @@ export function AttentionItemRow({
           {item.dueDate ? (
             <p className="mt-1 flex items-center gap-1 text-[11px] text-carbon-blue/60">
               <SmartCRMIcon name="meeting" size="xs" />
-              Due {new Date(item.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+              Due {formatShortDate(new Date(item.dueDate))}
             </p>
           ) : null}
         </div>

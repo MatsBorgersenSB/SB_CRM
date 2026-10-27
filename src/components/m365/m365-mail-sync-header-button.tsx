@@ -1,5 +1,6 @@
 "use client";
 
+import { formatTime } from "@/lib/regional-format-preference";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
@@ -88,7 +89,7 @@ export function M365MailSyncHeaderButton({ compact = false }: { compact?: boolea
     : message
       ? message
       : status.lastSyncedAt
-        ? `Last sync ${new Date(status.lastSyncedAt).toLocaleTimeString()}`
+        ? `Last sync ${formatTime(new Date(status.lastSyncedAt))}`
         : null;
 
   return (

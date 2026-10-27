@@ -526,7 +526,7 @@ export function CompanyContactsTable({
         </p>
       ) : null}
       {sortedContacts.length > 0 ? (
-        <table className="w-full table-fixed border-collapse text-left">
+        <div className="w-full overflow-x-auto"><table className="w-full min-w-[760px] table-fixed border-collapse text-left">
           <colgroup>
             <col className="w-[16%]" />
             <col className="w-[11%]" />
@@ -595,7 +595,7 @@ export function CompanyContactsTable({
               />
             ))}
           </tbody>
-        </table>
+        </table></div>
       ) : (
         <p className="text-sm text-carbon-blue/65">No contacts yet.</p>
       )}

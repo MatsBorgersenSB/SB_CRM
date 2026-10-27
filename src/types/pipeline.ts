@@ -27,6 +27,30 @@ export type PipelineStatus =
   | "Live Production"
   | "Scheduled Maintenance";
 
+/**
+ * FS-022 sales stage — where the deal sits in its sales pipeline.
+ * Neutral ids shared by both pipelines (labels live in `sales-pipelines.ts`);
+ * they line up with the registry `OpportunityStage` enum, so no schema change.
+ */
+export type SalesStageId =
+  | "prospecting"
+  | "qualification"
+  | "discovery"
+  | "proposal"
+  | "negotiation"
+  | "won"
+  | "lost";
+
+export const SALES_STAGE_IDS: readonly SalesStageId[] = [
+  "prospecting",
+  "qualification",
+  "discovery",
+  "proposal",
+  "negotiation",
+  "won",
+  "lost",
+];
+
 export const PIPELINE_STATUSES: PipelineStatus[] = [
   "Prospecting",
   "Feedstock Analysis",
@@ -96,6 +120,8 @@ export type PipelineRow = {
   reactorDesignCapacity: number;
   currentMilestone: string;
   status: PipelineStatus;
+  /** FS-022 sales stage. Absent on legacy rows — derive with `salesStageOf`. */
+  salesStageId?: SalesStageId;
   salesValue: number;
   currency: PipelineCurrency;
   probability: number;

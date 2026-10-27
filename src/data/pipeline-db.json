@@ -1037,6 +1037,43 @@
           "Title": "Sofia Marchetti"
         }
       ]
+    },
+    {
+      "id": 9,
+      "ActivityID": "ACT-9009",
+      "ActivityType": "Task",
+      "ActivityDate": "2026-10-27T08:00:00.000Z",
+      "Subject": "Test",
+      "ActivityDescription": "Test",
+      "Summary": "Test",
+      "KeyDecisions": [],
+      "AgreedActions": [],
+      "Risks": [],
+      "LinkedDocuments": [],
+      "LinkedDeals": [],
+      "LinkedContacts": [],
+      "Stakeholders": [],
+      "SharedWith": [],
+      "Company": null,
+      "Contact": null,
+      "Deal": null,
+      "ProjectId": null,
+      "ProjectName": null,
+      "ActivityOwner": {
+        "Id": 1,
+        "Title": "Mats Borgersen"
+      },
+      "ActionRequired": true,
+      "NextAction": "Test",
+      "NextActionDate": "2026-10-27",
+      "ActionStatus": "Open",
+      "ActionOutcome": "",
+      "Priority": "Normal",
+      "M365Targets": {
+        "planner": true
+      },
+      "EventDetails": null,
+      "IsAiProposed": false
     }
   ],
   "commercialPackages": [

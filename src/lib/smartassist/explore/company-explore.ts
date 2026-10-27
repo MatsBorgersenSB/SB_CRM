@@ -1,3 +1,4 @@
+import { formatDate as formatRegionalDate } from "@/lib/regional-format-preference";
 import type { WebsiteDiscoveryResult } from "@/lib/discovery/types";
 import type { GraphSearchResultItem } from "@/lib/smartassist/graphSearch";
 import type {
@@ -228,7 +229,7 @@ function latestTimestamp(hits: ExploreInternalHit[]): string | null {
 function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return formatRegionalDate(date);
 }
 
 export function composeSummary(input: {

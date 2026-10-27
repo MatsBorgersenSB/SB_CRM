@@ -1,4 +1,5 @@
 import type { Activity } from "@/types/activity";
+import { PROJECT_CONDITION_FLAW_IDS } from "@/lib/project-conditions";
 import type { CommercialPackage } from "@/types/commercial-package";
 import { isQuotationKind } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
@@ -677,6 +678,9 @@ function buildNextActions(
   return actions.slice(0, 4);
 }
 
+/** Flaws that mean "not yet known", never a reason to walk away on their own. */
+const UNCONFIRMED_FLAW_IDS: ReadonlySet<string> = new Set([...PROJECT_CONDITION_FLAW_IDS, "no_engagement"]);
+
 export function computeCommercialViability(
   deal: PipelineRow,
   companies: Company[],
@@ -785,7 +789,10 @@ export function computeCommercialViability(
 
   let recommendation: ViabilityRecommendation = "qualify";
   if (
-    fatalFlawAlerts.some((f) => f.severity === "critical") ||
+    // Unconfirmed conditions and missing engagement are unknowns to resolve, not proof to walk away.
+    fatalFlawAlerts.some(
+      (f) => f.severity === "critical" && !UNCONFIRMED_FLAW_IDS.has(f.id),
+    ) ||
     contractProbability < 20 ||
     resourceScore < 25
   ) {

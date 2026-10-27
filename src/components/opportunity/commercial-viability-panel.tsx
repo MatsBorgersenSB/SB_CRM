@@ -263,7 +263,7 @@ export function CommercialViabilityPanel({
   return (
     <div className="flex flex-col gap-4">
       <IntelligenceLead
-        eyebrow={`CVM v${assessment.moduleVersion} · ${assessment.engineLabel}`}
+        eyebrow="Commercial viability"
         title={pipeline.assetName ?? pipeline.id}
         summary={coreQuestions.shouldInvestResources}
         vitals={[

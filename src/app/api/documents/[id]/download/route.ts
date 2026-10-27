@@ -17,6 +17,10 @@ export async function GET(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
     if (!doc.contentBase64) {
+      // SharePoint is the source of truth once filed — the local blob is cleared.
+      if (doc.sharepointWebUrl) {
+        return NextResponse.redirect(doc.sharepointWebUrl, 302);
+      }
       return NextResponse.json(
         {
           error: "No file content stored for this document",

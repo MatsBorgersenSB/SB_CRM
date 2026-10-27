@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDate, formatTime } from "@/lib/regional-format-preference";
 import { useEffect, useState } from "react";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import { readableMailText } from "@/lib/mail-preview-text";
@@ -17,12 +18,7 @@ export type CorrespondenceMessage = {
 function formatSentAt(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Time unknown";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return `${formatShortDate(date)}, ${formatTime(date)}`;
 }
 
 function messageLabel(message: CorrespondenceMessage, contactName: string | null): string {

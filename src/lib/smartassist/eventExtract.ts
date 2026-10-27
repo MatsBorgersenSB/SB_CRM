@@ -1,3 +1,4 @@
+import { openAiJsonText } from "@/lib/ai/openai-json";
 import { stripHtml } from "@/lib/smartassist/graphSearch";
 
 /**
@@ -291,31 +292,17 @@ Rules: use only what the text states. If a value is not in the text, return null
 type ModelDraft = Partial<Record<keyof EventProposal, unknown>>;
 
 async function askModel(text: string, nowIso: string): Promise<ModelDraft | null> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) return null;
-  const baseUrl = (process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1").replace(/\/$/, "");
   const model =
     process.env.OPENAI_SMARTASSIST_MODEL?.trim() ||
     process.env.OPENAI_TENDER_MODEL?.trim() ||
     "gpt-4o-mini";
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        temperature: 0,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: JSON.stringify({ now: nowIso, text: text.slice(0, MAX_TEXT_CHARS) }) },
-        ],
-      }),
-      signal: AbortSignal.timeout(20_000),
+    const content = await openAiJsonText({
+      task: "event-extract",
+      model,
+      system: SYSTEM_PROMPT,
+      user: JSON.stringify({ now: nowIso, text: text.slice(0, MAX_TEXT_CHARS) }),
     });
-    if (!response.ok) return null;
-    const payload = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const content = payload.choices?.[0]?.message?.content?.trim();
     if (!content) return null;
     return JSON.parse(content) as ModelDraft;
   } catch {

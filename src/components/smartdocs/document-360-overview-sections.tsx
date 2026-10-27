@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/regional-format-preference";
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { DocumentLink, DocumentSetLink } from "@/components/relationship/relationship-links";
@@ -184,13 +185,7 @@ export function Document360IntelligenceCard({
       "Created date",
       Number.isNaN(created.getTime())
         ? smartDocsMeta.createdAt
-        : created.toLocaleString("en-GB", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+        : formatDateTime(created),
     ],
     ["Uploaded by", smartDocsMeta.uploadedBy],
   ] as const;

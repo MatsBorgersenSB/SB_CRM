@@ -1,15 +1,12 @@
 "use client";
 
+import { formatDate as formatRegionalDate } from "@/lib/regional-format-preference";
 import Link from "next/link";
 import type { CareerHistoryEntry, CompanyTransferRecord } from "@/types/contact-lifecycle";
 
 function formatDate(value: string | null): string {
   if (!value) return "Present";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatRegionalDate(new Date(value));
 }
 
 export function ContactCareerTimeline({

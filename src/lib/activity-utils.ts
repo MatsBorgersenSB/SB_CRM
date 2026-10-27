@@ -1,3 +1,4 @@
+import { formatShortDate, formatTime } from "@/lib/regional-format-preference";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
 import type { PipelineRow } from "@/types/pipeline";
@@ -39,10 +40,7 @@ export function formatActivityDateTime(value: string): string {
   const today = startOfDay(now);
   const activityDay = startOfDay(date);
 
-  const time = date.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const time = formatTime(date);
 
   if (activityDay.getTime() === today.getTime()) return `Today ${time}`;
 
@@ -50,21 +48,14 @@ export function formatActivityDateTime(value: string): string {
   yesterday.setDate(yesterday.getDate() - 1);
   if (activityDay.getTime() === yesterday.getTime()) return `Yesterday ${time}`;
 
-  const datePart = date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: activityDay.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  });
+  const datePart = formatShortDate(date);
 
   return `${datePart} ${time}`;
 }
 
 export function formatDueDate(value: string): string {
   if (!value) return "";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-  });
+  return formatShortDate(new Date(value));
 }
 
 export function getActivityDateGroup(value: string): ActivityDateGroup {

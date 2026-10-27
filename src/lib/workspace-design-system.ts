@@ -52,7 +52,7 @@ export const WORKSPACE_PANEL_COLLAPSE_COLLAPSED = "grid-rows-[0fr]";
 
 export const WORKSPACE_PANEL_COLLAPSE_INNER = "min-h-0 overflow-hidden";
 
-export const WORKSPACE_TABLE_CLASS = "w-full table-fixed border-collapse text-left";
+export const WORKSPACE_TABLE_CLASS = "w-full min-w-[720px] table-fixed border-collapse text-left";
 
 export const WORKSPACE_TABLE_HEAD_ROW_CLASS =
   "border-b-2 border-carbon-blue/10 bg-carbon-blue/[0.05]";

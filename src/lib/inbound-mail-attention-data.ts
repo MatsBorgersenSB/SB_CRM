@@ -3,6 +3,7 @@ import "server-only";
 import { getPrisma } from "@/lib/prisma";
 import { toCompanyTrackingId, toContactTrackingId } from "@/lib/prisma-mappers";
 import type { InboundMailAttentionSignal } from "@/lib/inbound-mail-attention";
+import type { MailFilingGapSignal } from "@/lib/mail-filing-gaps";
 
 const LOOKBACK_HOURS = 48;
 
@@ -109,6 +110,59 @@ export async function loadRecentInboundMailSignals(): Promise<InboundMailAttenti
   } catch (error) {
     console.warn(
       "[inbound-mail] load failed",
+      error instanceof Error ? error.message : error,
+    );
+    return [];
+  }
+}
+
+/**
+ * Mail whose attachments are not fully filed — correspondence control for My Attention.
+ * Reality First: only mail we can place on a known company.
+ */
+export async function loadMailFilingGapSignals(): Promise<MailFilingGapSignal[]> {
+  try {
+    const prisma = getPrisma();
+    const rows = await prisma.emailMessageRecord.findMany({
+      where: {
+        isDeletedInSource: false,
+        attachmentSyncStatus: { in: ["partial", "unfiled", "failed"] },
+      },
+      select: {
+        id: true,
+        subject: true,
+        sentAt: true,
+        attachmentSyncStatus: true,
+        attachmentsExpected: true,
+        attachmentsFiled: true,
+        contact: { select: { company: { select: { id: true, code: true, name: true } } } },
+        opportunity: { select: { company: { select: { id: true, code: true, name: true } } } },
+      },
+      orderBy: { sentAt: "desc" },
+      take: 50,
+    });
+
+    const signals: MailFilingGapSignal[] = [];
+    for (const row of rows) {
+      const company = row.contact?.company ?? row.opportunity?.company ?? null;
+      if (!company) continue;
+      const status = row.attachmentSyncStatus;
+      if (status !== "partial" && status !== "unfiled" && status !== "failed") continue;
+      signals.push({
+        id: row.id,
+        subject: row.subject,
+        sentAt: row.sentAt.toISOString(),
+        companyId: company.code?.trim() || toCompanyTrackingId(company.id),
+        companyName: company.name,
+        status,
+        expected: row.attachmentsExpected ?? 0,
+        filed: row.attachmentsFiled ?? 0,
+      });
+    }
+    return signals;
+  } catch (error) {
+    console.warn(
+      "[mail-filing-gaps] load failed",
       error instanceof Error ? error.message : error,
     );
     return [];

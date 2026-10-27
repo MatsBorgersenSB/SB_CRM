@@ -1,5 +1,12 @@
 import { getPrisma } from "@/lib/prisma";
-import type { M365AttachmentMeta } from "@/lib/m365-client";
+import { createHash } from "node:crypto";
+import { EML_ATTACHMENT_ID, type M365AttachmentMeta } from "@/lib/m365-client";
+
+/** SHA-256 fingerprint of a base64 payload — proves what was received and detects duplicates. */
+function sha256OfBase64(contentBase64: string | null | undefined): string | null {
+  if (!contentBase64) return null;
+  return createHash("sha256").update(Buffer.from(contentBase64, "base64")).digest("hex");
+}
 import { getGraphAccessToken } from "@/lib/m365/get-graph-access-token";
 import {
   ensureCompanyDocumentsSharePointFolder,
@@ -214,9 +221,10 @@ export async function ingestEmailAttachmentToSmartDocs(input: {
     name: input.attachment.name,
     mimeType: input.attachment.contentType || null,
     sizeBytes: input.attachment.size ?? null,
-    source: "m365_email",
+    source: input.attachment.id === EML_ATTACHMENT_ID ? "m365_eml" : "m365_email",
     externalAttachmentId: input.attachment.id,
     contentBase64: input.attachment.contentBytes ?? null,
+    contentSha256: sha256OfBase64(input.attachment.contentBytes),
     opportunityId: input.opportunityId,
     emailMessageId: input.emailMessageId,
   };
@@ -275,9 +283,10 @@ export async function ingestEmailAttachmentToCompanySmartDocs(input: {
     name: input.attachment.name,
     mimeType: input.attachment.contentType || null,
     sizeBytes: input.attachment.size ?? null,
-    source: "m365_email",
+    source: input.attachment.id === EML_ATTACHMENT_ID ? "m365_eml" : "m365_email",
     externalAttachmentId: input.attachment.id,
     contentBase64: input.attachment.contentBytes ?? null,
+    contentSha256: sha256OfBase64(input.attachment.contentBytes),
     opportunityId: input.opportunityId ?? null,
     companyId: input.companyId,
     emailMessageId: input.emailMessageId,

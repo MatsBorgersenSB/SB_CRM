@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/regional-format-preference";
 import { getActivitiesForDeal } from "@/lib/activity-utils";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
@@ -56,13 +57,7 @@ function formatSentDate(value?: string): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTime(date);
 }
 
 function memberSummary(pkg: CommercialPackage | null): string {

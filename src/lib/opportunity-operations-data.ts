@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/regional-format-preference";
 import type { InsightCategory } from "@/types/smartassist-intelligence";
 import type { Activity } from "@/types/activity";
 import type { AuthUser } from "@/types/auth";
@@ -247,11 +248,7 @@ function buildRow(
     salesValue: deal.salesValue,
     expectedCloseDate: deal.expectedCloseDate,
     closeDateLabel: deal.expectedCloseDate
-      ? new Date(deal.expectedCloseDate).toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })
+      ? formatDate(new Date(deal.expectedCloseDate))
       : "—",
     stageLabel: opportunityStageLabel(deal, commercialPackages),
     probability: deal.probability,

@@ -85,6 +85,7 @@ export type GraphMailMessage = {
   sentDateTime?: string;
   receivedDateTime?: string;
   categories?: string[];
+  hasAttachments?: boolean;
   "@removed"?: { reason?: string };
 };
 
@@ -409,7 +410,7 @@ export async function fetchMailDelta(
 ): Promise<MailDeltaPage> {
   const path =
     deltaOrNextUrl ||
-    "/me/mailFolders/inbox/messages/delta?$select=id,conversationId,subject,bodyPreview,webLink,from,toRecipients,ccRecipients,sentDateTime,receivedDateTime,categories";
+    "/me/mailFolders/inbox/messages/delta?$select=id,conversationId,subject,bodyPreview,webLink,from,toRecipients,ccRecipients,sentDateTime,receivedDateTime,categories,hasAttachments";
 
   const payload = await graphRequest<{
     value?: GraphMailMessage[];
@@ -588,13 +589,23 @@ export async function getAccessTokenForIntegration(
   return resolved?.integrationId === integrationId ? resolved.accessToken : null;
 }
 
-const COMMERCIAL_ATTACHMENT_EXTENSIONS = new Set([
-  ".pdf",
-  ".docx",
-  ".xlsx",
-  ".pptx",
-  ".png",
-  ".zip",
+/**
+ * Correspondence control: keep every real file attachment. Only block file types
+ * that are executable / script content (security), plus inline signature images.
+ */
+const BLOCKED_ATTACHMENT_EXTENSIONS = new Set([
+  ".exe",
+  ".dll",
+  ".bat",
+  ".cmd",
+  ".com",
+  ".scr",
+  ".msi",
+  ".vbs",
+  ".js",
+  ".jar",
+  ".ps1",
+  ".lnk",
 ]);
 
 export type M365AttachmentMeta = {
@@ -605,24 +616,24 @@ export type M365AttachmentMeta = {
   contentBytes: string | null;
 };
 
+export type M365SkippedAttachment = {
+  name: string;
+  reason: "inline_image" | "blocked_type" | "not_a_file" | "no_name" | "filing_failed";
+};
+
 function fileExtension(name: string): string {
   const idx = name.lastIndexOf(".");
   return idx >= 0 ? name.slice(idx).toLowerCase() : "";
 }
 
-function isCommercialAttachment(name: string, isInline?: boolean): boolean {
-  if (isInline) return false;
-  return COMMERCIAL_ATTACHMENT_EXTENSIONS.has(fileExtension(name));
-}
-
 /**
- * Fetch message attachments from Graph; drop inline signature images;
- * keep commercial docs (.pdf, .docx, .xlsx, .pptx, .png).
+ * Fetch message attachments from Graph. Nothing is dropped silently: inline
+ * signature images, executables and non-file items are reported in `skipped`.
  */
-export async function fetchM365MessageAttachments(input: {
+export async function fetchM365MessageAttachmentsDetailed(input: {
   integrationId: string;
   messageId: string;
-}): Promise<M365AttachmentMeta[]> {
+}): Promise<{ files: M365AttachmentMeta[]; skipped: M365SkippedAttachment[] }> {
   const accessToken = await getAccessTokenForIntegration(input.integrationId);
   if (!accessToken) {
     throw new Error("No active M365 access token for integration");
@@ -643,31 +654,43 @@ export async function fetchM365MessageAttachments(input: {
     `/me/messages/${encodeURIComponent(input.messageId)}/attachments`,
   );
 
-  const items = (payload.value ?? [])
-    .filter((item) => {
-      if (!item.id || !item.name) return false;
-      // File attachments only (skip itemAttachment / referenceAttachment without bytes).
-      if (
-        item["@odata.type"] &&
-        !item["@odata.type"].toLowerCase().includes("fileattachment")
-      ) {
-        return false;
-      }
-      return isCommercialAttachment(item.name, item.isInline);
-    })
-    .map((item) => ({
-      id: item.id!,
-      name: item.name!,
+  const skipped: M365SkippedAttachment[] = [];
+  const items: M365AttachmentMeta[] = [];
+  for (const item of payload.value ?? []) {
+    if (!item.id || !item.name) {
+      skipped.push({ name: item.name ?? "(unnamed)", reason: "no_name" });
+      continue;
+    }
+    // File attachments only (itemAttachment / referenceAttachment carry no bytes).
+    if (
+      item["@odata.type"] &&
+      !item["@odata.type"].toLowerCase().includes("fileattachment")
+    ) {
+      skipped.push({ name: item.name, reason: "not_a_file" });
+      continue;
+    }
+    if (item.isInline) {
+      skipped.push({ name: item.name, reason: "inline_image" });
+      continue;
+    }
+    if (BLOCKED_ATTACHMENT_EXTENSIONS.has(fileExtension(item.name))) {
+      skipped.push({ name: item.name, reason: "blocked_type" });
+      continue;
+    }
+    items.push({
+      id: item.id,
+      name: item.name,
       contentType: item.contentType ?? "application/octet-stream",
       size: typeof item.size === "number" ? item.size : 0,
       contentBytes: item.contentBytes ?? null,
-    }));
+    });
+  }
 
   // Graph often omits `contentBytes` on larger attachments. When that happens,
   // our SharePoint upload is skipped (it needs bytes). Re-fetch bytes via
   // `/$value` so filing still lands in SharePoint.
   const needsFill = items.some((row) => !row.contentBytes);
-  if (!needsFill) return items;
+  if (!needsFill) return { files: items, skipped };
 
   const fillMissingContentBytes = async (
     row: (typeof items)[number],
@@ -685,7 +708,47 @@ export async function fetchM365MessageAttachments(input: {
     return { ...row, contentBytes: base64 };
   };
 
-  return Promise.all(items.map((row) => fillMissingContentBytes(row)));
+  const files = await Promise.all(items.map((row) => fillMissingContentBytes(row)));
+  return { files, skipped };
+}
+
+/** Stable id of the preserved original message (.eml) inside DocumentRecord. */
+export const EML_ATTACHMENT_ID = "__original_message_eml__";
+
+/** Safe file-name stem from a mail subject. */
+export function safeFileStem(subject: string | null | undefined): string {
+  const cleaned = (subject ?? "")
+    .replace(/[\\/:*?"<>|\r\n\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+  return cleaned || "Original message";
+}
+
+/**
+ * Raw RFC-822 source of a message (headers + body + attachments) — the
+ * audit-grade original. Returns null when Graph cannot provide it.
+ */
+export async function fetchM365MessageMimeSource(input: {
+  integrationId: string;
+  messageId: string;
+}): Promise<Buffer | null> {
+  const accessToken = await getAccessTokenForIntegration(input.integrationId);
+  if (!accessToken) return null;
+  const response = await fetch(
+    `${GRAPH_BASE}/me/messages/${encodeURIComponent(input.messageId)}/$value`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!response.ok) return null;
+  return Buffer.from(await response.arrayBuffer());
+}
+
+/** Back-compat wrapper: files only. */
+export async function fetchM365MessageAttachments(input: {
+  integrationId: string;
+  messageId: string;
+}): Promise<M365AttachmentMeta[]> {
+  return (await fetchM365MessageAttachmentsDetailed(input)).files;
 }
 
 export type CreateM365DraftInput = {

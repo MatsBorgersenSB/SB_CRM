@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/regional-format-preference";
 import Link from "next/link";
 import type { Activity } from "@/types/activity";
 import type { ActivityBriefing } from "@/lib/activity-briefing";
@@ -84,11 +85,7 @@ export function ActivityWorkspaceRecord({
                     {item.Subject}
                   </Link>
                   <p className={EDITORIAL_META}>
-                    {new Date(item.ActivityDate).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {formatDate(new Date(item.ActivityDate))}
                     <span className="mx-1.5 text-carbon-blue/20">·</span>
                     {item.ActivityType}
                     {item.ActionStatus !== "Completed" ? (

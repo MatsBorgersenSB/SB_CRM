@@ -15,8 +15,8 @@ export function OpportunityCvmSummaryCards({
     <div className="grid gap-3 sm:grid-cols-3">
       <SummaryCard
         label="Commercial Viability"
-        value={`${assessment.viabilityScore}/100`}
-        detail={VIABILITY_RECOMMENDATION_LABELS[assessment.recommendation]}
+        value={VIABILITY_RECOMMENDATION_LABELS[assessment.recommendation]}
+        detail={`Viability ${assessment.viabilityScore} out of 100`}
         tone={
           assessment.recommendation === "pursue"
             ? "positive"

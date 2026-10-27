@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { MeetingInsights } from "@/lib/ai/meeting-intelligence";
 import type { UserRole } from "@/types/auth";
+import { KnowledgeProposalReview } from "@/components/ai/knowledge-proposal-review";
 
 /**
  * FS-014 — Paste Teams transcript / notes → proposed meeting commitments.
@@ -23,6 +24,10 @@ export function MeetingNotesAnalyzer({
   const [error, setError] = useState<string | null>(null);
   const [insights, setInsights] = useState<MeetingInsights | null>(null);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [reviewScope, setReviewScope] = useState<{
+    meetingId: string | null;
+  } | null>(null);
+  const [reviewKey, setReviewKey] = useState(0);
 
   if (role === "client_lead") return null;
 
@@ -74,6 +79,7 @@ export function MeetingNotesAnalyzer({
       const payload = (await response.json().catch(() => ({}))) as {
         insights?: MeetingInsights;
         proposedCommitmentCount?: number;
+        meeting?: { id?: string };
         nextStep?: string;
         error?: string;
       };
@@ -85,6 +91,8 @@ export function MeetingNotesAnalyzer({
         payload.nextStep ??
           `Saved ${payload.proposedCommitmentCount ?? 0} proposed commitment(s) for review.`,
       );
+      setReviewScope({ meetingId: payload.meeting?.id ?? null });
+      setReviewKey((k) => k + 1);
       onImported?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed");
@@ -94,60 +102,74 @@ export function MeetingNotesAnalyzer({
   };
 
   return (
-    <div className="border border-carbon-blue/10 bg-white px-3 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-        FS-014 · Post-meeting notes
-      </p>
-      <h4 className="mt-0.5 text-[13px] font-semibold text-carbon-blue">
-        Import Teams transcript
-      </h4>
-      <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/55">
-        Paste the Teams transcript (or VTT). SmartAssist prepares notes — you Approve
-        commitments.
-      </p>
-      <textarea
-        value={notes}
-        onChange={(event) => setNotes(event.target.value)}
-        rows={4}
-        placeholder="Paste Teams transcript or meeting notes…"
-        className="mt-2 w-full resize-y border border-carbon-blue/15 px-2 py-1.5 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
-      />
-      <div className="mt-2 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={busy || !notes.trim()}
-          onClick={() => void importTranscript()}
-          className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white hover:brightness-105 disabled:opacity-50"
-        >
-          {busy ? "Working…" : "Import & propose notes"}
-        </button>
-        <button
-          type="button"
-          disabled={busy || !notes.trim()}
-          onClick={() => void analyzeOnly()}
-          className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/70 hover:border-carbon-blue/30 disabled:opacity-50"
-        >
-          Preview only
-        </button>
-      </div>
-      {error ? <p className="mt-2 text-[12px] text-thermal-red">{error}</p> : null}
-      {importMessage ? (
-        <p className="mt-2 text-[12px] text-emerald-700">{importMessage}</p>
-      ) : null}
-      {insights ? (
-        <div className="mt-3 space-y-2 border-t border-carbon-blue/10 pt-3">
-          <p className="text-[13px] text-carbon-blue/70">{insights.summary}</p>
-          <p className="text-[12px] text-carbon-blue/55">
-            Sentiment: {insights.sentimentLabel} · Confidence {insights.confidenceScore}
-          </p>
-          {insights.actionItems.length > 0 ? (
-            <ul className="list-disc space-y-1 pl-4 text-[12px] text-carbon-blue/70">
-              {insights.actionItems.slice(0, 6).map((item) => (
-                <li key={item.action}>{item.action}</li>
-              ))}
-            </ul>
-          ) : null}
+    <div className="space-y-3">
+      <div className="border border-carbon-blue/10 bg-white px-3 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
+          Post-meeting notes
+        </p>
+        <h4 className="mt-0.5 text-[13px] font-semibold text-carbon-blue">
+          Import Teams transcript
+        </h4>
+        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/55">
+          Paste the Teams transcript (or VTT). SmartAssist prepares notes — you
+          Approve commitments.
+        </p>
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          rows={4}
+          placeholder="Paste Teams transcript or meeting notes…"
+          className="mt-2 w-full resize-y border border-carbon-blue/15 px-2 py-1.5 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy || !notes.trim()}
+            onClick={() => void importTranscript()}
+            className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white hover:brightness-105 disabled:opacity-50"
+          >
+            {busy ? "Working…" : "Import & propose notes"}
+          </button>
+          <button
+            type="button"
+            disabled={busy || !notes.trim()}
+            onClick={() => void analyzeOnly()}
+            className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/70 hover:border-carbon-blue/30 disabled:opacity-50"
+          >
+            Preview only
+          </button>
         </div>
+        {error ? (
+          <p className="mt-2 text-[12px] text-thermal-red">{error}</p>
+        ) : null}
+        {importMessage ? (
+          <p className="mt-2 text-[12px] text-emerald-700">{importMessage}</p>
+        ) : null}
+        {insights ? (
+          <div className="mt-3 space-y-2 border-t border-carbon-blue/10 pt-3">
+            <p className="text-[13px] text-carbon-blue/70">
+              {insights.summary}
+            </p>
+            <p className="text-[12px] text-carbon-blue/55">
+              Sentiment: {insights.sentimentLabel} · Confidence{" "}
+              {insights.confidenceScore}
+            </p>
+            {insights.actionItems.length > 0 ? (
+              <ul className="list-disc space-y-1 pl-4 text-[12px] text-carbon-blue/70">
+                {insights.actionItems.slice(0, 6).map((item) => (
+                  <li key={item.action}>{item.action}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      {reviewScope?.meetingId ? (
+        <KnowledgeProposalReview
+          scope={{ meetingId: reviewScope.meetingId }}
+          role={role}
+          refreshKey={reviewKey}
+        />
       ) : null}
     </div>
   );

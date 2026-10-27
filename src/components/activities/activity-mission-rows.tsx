@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDate } from "@/lib/regional-format-preference";
 import Link from "next/link";
 import type { ActivityFocusItem } from "@/lib/activity-mission-control";
 import type { Activity } from "@/types/activity";
@@ -100,10 +101,7 @@ export function ActivityHistoryRow({
           </p>
         </div>
         <span className={`shrink-0 ${EDITORIAL_META}`}>
-          {new Date(activity.ActivityDate).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "short",
-          })}
+          {formatShortDate(new Date(activity.ActivityDate))}
         </span>
       </button>
       {expanded ? (

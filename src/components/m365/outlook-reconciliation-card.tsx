@@ -1,16 +1,13 @@
 "use client";
 
+import { formatDate as formatRegionalDate } from "@/lib/regional-format-preference";
 import { useState } from "react";
 import Link from "next/link";
 import type { MissingTouchpointCandidate, ReconciliationImportMode } from "@/types/outlook-reconciliation";
 
 function formatDate(value: string | null): string {
   if (!value) return "None";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatRegionalDate(new Date(value));
 }
 
 const IMPORT_ACTIONS: { mode: ReconciliationImportMode; label: string }[] = [

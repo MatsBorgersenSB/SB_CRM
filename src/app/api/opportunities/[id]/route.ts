@@ -7,6 +7,7 @@ import {
   resolveAuditActor,
 } from "@/lib/security/audit-logger";
 import { canUpdateDealStage } from "@/lib/security/rbac";
+import { projectWonGateResponse } from "@/lib/project-won-gate";
 import { sharePointErrorResponse } from "@/services/sharepoint/server/api-utils";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
@@ -20,7 +21,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const body = (await request.json()) as UpdateDealInput;
+  const { stageReason: rawReason, ...body } = (await request.json()) as UpdateDealInput & {
+    stageReason?: string;
+  };
+  const stageReason =
+    typeof rawReason === "string" ? rawReason.trim().slice(0, 500) || null : null;
   const role = getRequestRole(request);
 
   if (!canUpdateDealStage({ role })) {
@@ -33,11 +38,15 @@ export async function PATCH(
     assertPipelinePatchAllowed(role, body);
     const { deals } = getServerSharePointServices();
     const before = await deals.getById(id).catch(() => null);
+    const blocked = projectWonGateResponse(before, body);
+    if (blocked) return blocked;
     const updated = await deals.update(id, body);
 
     const actor = resolveAuditActor(request, role);
     const stageChanged =
-      body.status !== undefined && before?.status !== updated.status;
+      (body.salesStageId !== undefined &&
+        before?.salesStageId !== updated.salesStageId) ||
+      (body.status !== undefined && before?.status !== updated.status);
 
     await logAuditEvent({
       ...actor,
@@ -48,7 +57,13 @@ export async function PATCH(
       metadata: {
         fields: Object.keys(body),
         ...(stageChanged
-          ? { previousStatus: before?.status ?? null, newStatus: updated.status }
+          ? {
+              previousStatus: before?.status ?? null,
+              newStatus: updated.status,
+              previousStage: before?.salesStageId ?? null,
+              newStage: updated.salesStageId ?? null,
+              ...(stageReason ? { reason: stageReason } : {}),
+            }
           : {}),
       },
     });

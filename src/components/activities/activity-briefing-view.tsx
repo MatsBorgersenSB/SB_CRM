@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil, Video } from "lucide-react";
+import { Check, Pencil, Trash2, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
@@ -152,13 +152,60 @@ export function ActivityBriefingView({
     [activity.ActivityID, router],
   );
 
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = useCallback(async () => {
+    const label = activity.Subject?.trim() || activity.ActivityID;
+    if (
+      !window.confirm(
+        `Delete "${label}"? This removes the activity permanently and cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const response = await fetch(
+        `/api/activities/${encodeURIComponent(activity.ActivityID)}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Could not delete this activity.");
+      }
+      router.push("/activities");
+      router.refresh();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Could not delete this activity.");
+      setDeleting(false);
+    }
+  }, [activity.ActivityID, activity.Subject, router]);
+
+  const [togglingDone, setTogglingDone] = useState(false);
+  const isDone = activity.ActionStatus === "Completed";
+
+  const handleToggleDone = useCallback(async () => {
+    setTogglingDone(true);
+    try {
+      const updated = await syncActivityUpdate(activity.ActivityID, {
+        ActionStatus: isDone ? "Open" : "Completed",
+      });
+      setActivity(updated);
+      router.refresh();
+    } finally {
+      setTogglingDone(false);
+    }
+  }, [activity.ActivityID, isDone, router]);
+
   const briefing = buildActivityBriefing(activity, pipelines, companies, allActivities);
   const hasRecord = briefingHasSupportContent(briefing.support);
   const isTask = activity.ActivityType === "Task";
 
   return (
     <div className={`${WORKSPACE_SURFACE} ${EDITORIAL_GAP_BLOCK}`}>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <Link
           href="/activities"
           className="text-[12px] font-medium text-carbon-blue/65 transition-colors hover:text-upcycle-orange"
@@ -204,7 +251,36 @@ export function ActivityBriefingView({
               Edit
             </button>
           ) : null}
+          {activity.ActionStatus !== "Cancelled" ? (
+            <button
+              type="button"
+              onClick={() => void handleToggleDone()}
+              disabled={togglingDone}
+              className={`inline-flex items-center gap-1 text-[12px] font-medium transition-colors disabled:opacity-50 ${
+                isDone
+                  ? "text-emerald-700 hover:text-carbon-blue"
+                  : "text-carbon-blue/65 hover:text-emerald-700"
+              }`}
+            >
+              <Check className="size-3" strokeWidth={2} />
+              {isDone ? "Done · Reopen" : "Mark done"}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void handleDelete()}
+            disabled={deleting}
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-carbon-blue/65 transition-colors hover:text-red-600 disabled:opacity-50"
+          >
+            <Trash2 className="size-3" strokeWidth={2} />
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
         </div>
+        {deleteError ? (
+          <p role="alert" className="basis-full text-[12px] text-red-600">
+            {deleteError}
+          </p>
+        ) : null}
       </div>
 
       <ActivityWorkspace

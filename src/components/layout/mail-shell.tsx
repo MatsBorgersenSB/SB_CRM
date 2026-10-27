@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/regional-format-preference";
 import Link from "next/link";
 import { ExternalLink, Mail, PenSquare } from "lucide-react";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
@@ -13,11 +14,7 @@ import { outlookComposeUrl } from "@/lib/outlook-compose-link";
 function formatSent(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(date);
 }
 
 function relatedLink(message: EmailMessageIntelligenceDto) {

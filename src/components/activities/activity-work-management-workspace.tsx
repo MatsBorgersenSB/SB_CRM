@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDate } from "@/lib/regional-format-preference";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -168,6 +169,28 @@ export function ActivityWorkManagementWorkspace({
     [refreshActivities],
   );
 
+  const handleToggleComplete = useCallback(
+    async (activity: Activity, completed: boolean) => {
+      const previous = activity.ActionStatus;
+      const nextStatus = completed ? "Completed" : "Open";
+      const apply = (status: Activity["ActionStatus"]) =>
+        setActivities((current) =>
+          current.map((item) =>
+            item.ActivityID === activity.ActivityID ? { ...item, ActionStatus: status } : item,
+          ),
+        );
+      apply(nextStatus);
+      try {
+        await syncActivityUpdate(activity.ActivityID, { ActionStatus: nextStatus });
+        refreshActivities();
+        router.refresh();
+      } catch {
+        apply(previous);
+      }
+    },
+    [refreshActivities, router],
+  );
+
   const isEmpty = allRows.length === 0;
 
   return (
@@ -218,6 +241,7 @@ export function ActivityWorkManagementWorkspace({
               embedded
               assigneeOptions={assigneeOptions}
               onAssigneeChange={handleAssigneeChange}
+              onToggleComplete={handleToggleComplete}
             />
           </div>
         </>
@@ -250,12 +274,7 @@ function EmptyActivities({
 }) {
   const mailCount = syncedMail?.messageCount ?? 0;
   const latestMail = syncedMail?.latestSentAt
-    ? new Date(syncedMail.latestSentAt).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        // Fixed zone: server (UTC) and browser must agree on the day, or hydration mismatches near midnight.
-        timeZone: "Europe/Oslo",
-      })
+    ? formatShortDate(new Date(syncedMail.latestSentAt))
     : null;
 
   return (

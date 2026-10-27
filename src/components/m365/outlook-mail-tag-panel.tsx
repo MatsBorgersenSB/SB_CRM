@@ -461,6 +461,8 @@ export function OutlookMailTagPanel({
       if (crmState?.isMeeting && seeds.length === 1 && seeds[0]) {
         await saveMeetingActivity(seeds[0]);
       }
+      // One click = mail + attachments. Failures here never undo the saved mail.
+      void syncAttachmentsToSmartDocs({ seeds: matchedSeeds, link });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not save mail");
     } finally {
@@ -481,15 +483,24 @@ export function OutlookMailTagPanel({
     );
   };
 
-  const syncAttachmentsToSmartDocs = async () => {
-    if (seeds.length === 0) return;
+  /**
+   * Files attachments of the selected mails into SmartDocs.
+   * `auto` is used right after "Save mail": no extra click, destination follows the
+   * save link (opportunity / project) or the contact's company.
+   */
+  const syncAttachmentsToSmartDocs = async (auto?: {
+    seeds: OutlookOpenMessageSeed[];
+    link?: { opportunityId?: string | null; projectId?: string | null };
+  }) => {
+    const sourceSeeds = auto?.seeds ?? seeds;
+    if (sourceSeeds.length === 0) return;
     setSyncBusy(true);
     setSyncError(null);
     setSyncStatus(null);
     setReviewStatus(null);
     setReviewError(null);
     try {
-      const emailExternalMessageIds = seeds
+      const emailExternalMessageIds = sourceSeeds
         .map((row) => row.externalMessageId?.trim())
         .filter(Boolean) as string[];
       if (emailExternalMessageIds.length === 0) {
@@ -503,26 +514,36 @@ export function OutlookMailTagPanel({
           [AUTH_ROLE_HEADER]: role,
         },
         credentials: "include",
-        body: JSON.stringify({
-          emailExternalMessageIds,
-          ...(attachmentTarget === "company" && attachmentCompanyId
-            ? { companyId: attachmentCompanyId }
-            : {}),
-          ...(attachmentTarget === "opportunity" && selectedId
-            ? { opportunityId: selectedId }
-            : {}),
-          ...(attachmentTarget === "project" && selectedId ? { projectId: selectedId } : {}),
-          ...(attachmentTarget === "company" &&
-          attachmentRelationKind === "opportunity" &&
-          attachmentRelationId
-            ? { opportunityId: attachmentRelationId }
-            : {}),
-          ...(attachmentTarget === "company" &&
-          attachmentRelationKind === "project" &&
-          attachmentRelationId
-            ? { projectId: attachmentRelationId }
-            : {}),
-        }),
+        body: JSON.stringify(
+          auto
+            ? {
+                emailExternalMessageIds,
+                ...(auto.link?.opportunityId ? { opportunityId: auto.link.opportunityId } : {}),
+                ...(auto.link?.projectId ? { projectId: auto.link.projectId } : {}),
+              }
+            : {
+                emailExternalMessageIds,
+                ...(attachmentTarget === "company" && attachmentCompanyId
+                  ? { companyId: attachmentCompanyId }
+                  : {}),
+                ...(attachmentTarget === "opportunity" && selectedId
+                  ? { opportunityId: selectedId }
+                  : {}),
+                ...(attachmentTarget === "project" && selectedId
+                  ? { projectId: selectedId }
+                  : {}),
+                ...(attachmentTarget === "company" &&
+                attachmentRelationKind === "opportunity" &&
+                attachmentRelationId
+                  ? { opportunityId: attachmentRelationId }
+                  : {}),
+                ...(attachmentTarget === "company" &&
+                attachmentRelationKind === "project" &&
+                attachmentRelationId
+                  ? { projectId: attachmentRelationId }
+                  : {}),
+              },
+        ),
       });
 
       const payload = (await response.json().catch(() => ({}))) as {
@@ -530,6 +551,8 @@ export function OutlookMailTagPanel({
         detail?: string;
         documentsSaved?: number;
         fetchedAttachments?: number;
+        skippedEmailCount?: number;
+        skippedAttachments?: Array<{ name: string; reason: string }>;
         documents?: Array<{
           id: string;
           name: string;
@@ -544,10 +567,23 @@ export function OutlookMailTagPanel({
 
       const saved = payload.documentsSaved ?? 0;
       const fetched = payload.fetchedAttachments ?? 0;
+      const skippedFiles = payload.skippedAttachments ?? [];
+      const notFiled = skippedFiles.filter((row) => row.reason !== "inline_image");
+      const skippedNote = [
+        notFiled.length > 0
+          ? ` ${notFiled.length} not filed: ${notFiled
+              .slice(0, 3)
+              .map((row) => row.name)
+              .join(", ")}${notFiled.length > 3 ? "…" : ""}.`
+          : "",
+        (payload.skippedEmailCount ?? 0) > 0
+          ? ` ${payload.skippedEmailCount} mail(s) not filed — no company or opportunity to file under.`
+          : "",
+      ].join("");
       setSyncStatus(
         saved > 0
-          ? `${destinationSummary} Filed ${saved} attachment(s) into SmartDocs (${fetched} fetched).`
-          : `No attachments were filed into SmartDocs (${fetched} fetched).`,
+          ? `${auto ? "" : `${destinationSummary} `}Filed ${saved} attachment(s) into SmartDocs (${fetched} fetched).${skippedNote}`
+          : `No attachments were filed into SmartDocs (${fetched} fetched).${skippedNote}`,
       );
       setReviewDocs(Array.isArray(payload.documents) ? payload.documents.slice(0, 20) : []);
     } catch (syncErr) {

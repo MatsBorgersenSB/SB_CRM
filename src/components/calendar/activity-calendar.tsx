@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate, formatShortDate, formatTime } from "@/lib/regional-format-preference";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { COMPANY_SECTOR_PRESETS } from "@/lib/company-sectors";
@@ -331,8 +332,8 @@ function periodLabel(view: CalendarView, anchor: Date): string {
   }
   const start = startOfWeek(anchor);
   const end = addDays(start, 6);
-  const startLabel = start.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  const endLabel = end.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const startLabel = formatShortDate(start);
+  const endLabel = formatDate(end);
   return `${startLabel} – ${endLabel}`;
 }
 
@@ -711,11 +712,11 @@ function formatWhen(activity: CalendarActivity): string {
   const start = new Date(activity.startDate);
   if (isAllDayActivityType(activity.type)) {
     const end = activity.endDate ? new Date(activity.endDate) : start;
-    const startLabel = start.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-    const endLabel = end.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    const startLabel = formatShortDate(start);
+    const endLabel = formatShortDate(end);
     return startLabel === endLabel ? `${startLabel} · all day` : `${startLabel} – ${endLabel} · all day`;
   }
-  const time = start.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const time = formatTime(start);
   const day = start.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   return `${day} · ${time}`;
 }

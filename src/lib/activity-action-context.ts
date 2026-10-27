@@ -1,3 +1,4 @@
+import { formatShortDate } from "@/lib/regional-format-preference";
 import type { Activity } from "@/types/activity";
 import type { ActivityActionRecommendations } from "@/types/activity-action-recommendations";
 import type {
@@ -72,10 +73,7 @@ function actionKeywords(recommendations: ActivityActionRecommendations): string[
 }
 
 function formatActivityDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-  });
+  return formatShortDate(new Date(value));
 }
 
 function documentDisplayName(title: string): string {

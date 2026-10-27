@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { getDefaultTransport, type LlmAttachment } from "@/lib/ai/llm-client";
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
@@ -8,8 +8,8 @@ import { POST as matchCard } from "../route";
 
 export const dynamic = "force-dynamic";
 
-/** Claude 3.5 Haiku is retired (404). Override with ANTHROPIC_INTAKE_MODEL when a newer Haiku ships. */
-const MODEL = process.env.ANTHROPIC_INTAKE_MODEL?.trim() || "claude-haiku-4-5";
+/** Legacy per-feature override; the shared client otherwise picks the default extraction model. */
+const PINNED_MODEL = process.env.ANTHROPIC_INTAKE_MODEL?.trim() || undefined;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 /** Vercel request bodies cap at ~4.5 MB. */
 const MAX_PDF_BYTES = 4 * 1024 * 1024;
@@ -22,7 +22,7 @@ type SupportedMediaType = (typeof SUPPORTED_MEDIA_TYPES)[number];
 const PDF_MEDIA_TYPE = "application/pdf";
 
 const SYSTEM_PROMPT =
-  "You are a strict data extraction engine. Extract contact details from the business card image/document into valid JSON only, without markdown fences, explanation, or conversational filler. Schema: { fullName: string|null, jobTitle: string|null, companyName: string|null, email: string|null, phone: string|null, website: string|null, address: string|null }.";
+  "You are a strict data extraction engine. Read the business card in the attachment and record only what is printed on it. Use null for any field that is not clearly present; never guess or infer a value.";
 
 type ExtractedCard = {
   name: string;
@@ -34,7 +34,16 @@ type ExtractedCard = {
   address: string;
 };
 
-type ContentBlock = Anthropic.ImageBlockParam | Anthropic.DocumentBlockParam;
+const CARD_TOOL_SCHEMA = {
+  type: "object",
+  properties: Object.fromEntries(
+    ["fullName", "jobTitle", "companyName", "email", "phone", "website", "address"].map((k) => [
+      k,
+      { type: ["string", "null"] },
+    ]),
+  ),
+  required: ["fullName", "jobTitle", "companyName", "email", "phone", "website", "address"],
+} as const;
 
 type MatchResponse = {
   status: "existing_contact" | "candidates" | "no_match";
@@ -68,17 +77,7 @@ function asString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function parseExtractedCard(text: string): ExtractedCard | null {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text.slice(start, end + 1));
-  } catch {
-    return null;
-  }
+function parseExtractedCard(parsed: unknown): ExtractedCard | null {
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
 
   const record = parsed as Record<string, unknown>;
@@ -108,19 +107,23 @@ async function sliceFirstPages(bytes: Uint8Array): Promise<Uint8Array> {
   return sliced.save();
 }
 
-async function extractCard(client: Anthropic, block: ContentBlock): Promise<ExtractedCard | null> {
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: MAX_OUTPUT_TOKENS,
-    temperature: 0,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: [block] }],
-  });
+async function extractCard(attachment: LlmAttachment): Promise<ExtractedCard | null> {
+  const transport = getDefaultTransport();
+  if (!transport) return null;
 
-  const text = message.content
-    .flatMap((block) => (block.type === "text" ? [block.text] : []))
-    .join("\n");
-  return parseExtractedCard(text);
+  // Budget gate, usage ledger and model choice all live in the shared client.
+  const raw = await transport({
+    task: "card-scan",
+    model: PINNED_MODEL,
+    system: SYSTEM_PROMPT,
+    user: "Extract the contact details from this business card.",
+    toolName: "record_business_card",
+    toolDescription: "Record the contact details printed on the business card.",
+    inputSchema: CARD_TOOL_SCHEMA as unknown as Record<string, unknown>,
+    maxTokens: MAX_OUTPUT_TOKENS,
+    attachment,
+  });
+  return parseExtractedCard(raw);
 }
 
 async function runMatch(request: Request, extracted: ExtractedCard): Promise<MatchResult> {
@@ -209,7 +212,7 @@ export async function POST(request: Request) {
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
 
-    let block: ContentBlock;
+    let attachment: LlmAttachment;
     if (isPdf) {
       let pdfBytes: Uint8Array;
       try {
@@ -220,34 +223,27 @@ export async function POST(request: Request) {
           { status: 422 },
         );
       }
-      block = {
-        type: "document",
-        source: {
-          type: "base64",
-          media_type: PDF_MEDIA_TYPE,
-          data: Buffer.from(pdfBytes).toString("base64"),
-        },
+      attachment = {
+        kind: "document",
+        mediaType: PDF_MEDIA_TYPE,
+        base64: Buffer.from(pdfBytes).toString("base64"),
       };
     } else {
-      block = {
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: file.type as SupportedMediaType,
-          data: Buffer.from(bytes).toString("base64"),
-        },
+      attachment = {
+        kind: "image",
+        mediaType: file.type as SupportedMediaType,
+        base64: Buffer.from(bytes).toString("base64"),
       };
     }
 
-    const client = new Anthropic({ apiKey });
     const [blob, extracted] = await Promise.all([
       put(file.name, file, { access: "public", addRandomSuffix: true, token: blobToken }),
-      extractCard(client, block),
+      extractCard(attachment),
     ]);
 
     if (!extracted) {
       return NextResponse.json(
-        { error: "Could not read contact details from the image", evidenceUrl: blob.url },
+        { error: "Could not read contact details from the image. Try a clearer photo, or enter the contact manually", evidenceUrl: blob.url },
         { status: 422 },
       );
     }

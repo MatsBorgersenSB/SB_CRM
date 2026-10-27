@@ -50,6 +50,10 @@ import {
   buildInboundMailAttention,
   type InboundMailAttentionSignal,
 } from "@/lib/inbound-mail-attention";
+import {
+  buildMailFilingGapAttention,
+  type MailFilingGapSignal,
+} from "@/lib/mail-filing-gaps";
 import { formatAccountOwnerDisplay } from "@/lib/company-owner";
 import { resolveOpportunityOwner } from "@/lib/opportunity-owner";
 import type { SharePointPerson } from "@/types/company";
@@ -73,6 +77,8 @@ export type AttentionEngineContext = {
   tenders?: TenderListItem[];
   /** Recent inbound mail already linked to a company. */
   inboundMail?: InboundMailAttentionSignal[];
+  /** Mail whose attachments are not fully filed (correspondence control). */
+  mailFilingGaps?: MailFilingGapSignal[];
 };
 
 function parseActivityDate(value: string): Date {
@@ -486,6 +492,7 @@ function buildOpportunityAttention(
   pipelines: PipelineRow[],
   activities: Activity[],
   companyId?: string,
+  correspondenceByCompanyId?: Map<string, CompanyCorrespondenceEvidence>,
 ): AttentionItem[] {
   const items: AttentionItem[] = [];
 
@@ -505,19 +512,47 @@ function buildOpportunityAttention(
 
     const dealActivities = getActivitiesForDeal(activities, deal.id);
     const lastDealActivity = dealActivities[0];
+    // Mail with the company is real contact — never claim "no contact" when we hold it.
+    const correspondence = company
+      ? (correspondenceByCompanyId?.get(company.CompanyID) ?? null)
+      : null;
+    const mailDays =
+      correspondence?.lastSentAt && hasCorrespondence(correspondence)
+        ? daysBetween(correspondence.lastSentAt)
+        : null;
+    const mailIsRecent = mailDays != null && Number.isFinite(mailDays) && mailDays < STALLED_DAYS;
+
     const daysSince = lastDealActivity
       ? daysBetween(lastDealActivity.ActivityDate)
       : null;
 
     if (daysSince == null || !Number.isFinite(daysSince)) {
-      pushItem(items, {
+      // Nothing logged on the deal itself: say so honestly. "Re-engage" is reserved
+      // for deals that were engaged before.
+      if (mailIsRecent) {
+        pushItem(items, {
+          id: `attn-stalled-${deal.id}`,
+          sourceObjectId: deal.id,
+          sourceObjectName: deal.assetName,
+          objectType: "Opportunity",
+          severity: "needs_attention",
+          recommendation: `Nothing is logged on this deal yet, although we last emailed ${company?.Title} ${mailDays} day${mailDays === 1 ? "" : "s"} ago — record the next step so momentum can be tracked.`,
+          suggestedAiAction: "Log Next Step",
+          href: deal360Href(deal.id),
+          companyId: company?.CompanyID,
+          companyName: company?.Title,
+          ruleId: "stalled_opportunity",
+          contactEmail: company?.contacts[0]?.Email,
+          contactPhone: company?.contacts[0]?.Mobile || company?.contacts[0]?.Phone,
+        });
+      } else pushItem(items, {
         id: `attn-stalled-${deal.id}`,
         sourceObjectId: deal.id,
         sourceObjectName: deal.assetName,
         objectType: "Opportunity",
         severity: "needs_attention",
         recommendation: `No contact recorded at ${deal.status} — momentum cannot be confirmed.`,
-        suggestedAiAction: "Re-engage Stalled Opportunity",
+        suggestedAiAction: "Log First Interaction",
         href: deal360Href(deal.id),
         companyId: company?.CompanyID,
         companyName: company?.Title,
@@ -840,7 +875,18 @@ function dedupeAttentionItems(items: AttentionItem[]): AttentionItem[] {
     }
   }
 
-  return sortAttentionItems([...byKey.values()]);
+  // Second pass: different rules can say the same thing about the same object —
+  // the user should see one row, not two.
+  const byText = new Map<string, AttentionItem>();
+  for (const item of byKey.values()) {
+    const key = `${item.objectType}-${item.sourceObjectId}-${item.recommendation.trim().toLowerCase()}`;
+    const existing = byText.get(key);
+    if (!existing || SEVERITY_RANK[item.severity] < SEVERITY_RANK[existing.severity]) {
+      byText.set(key, item);
+    }
+  }
+
+  return sortAttentionItems([...byText.values()]);
 }
 
 function attentionItemReferencesLiveEntity(
@@ -932,6 +978,7 @@ export function buildAttentionItems(ctx: AttentionEngineContext): AttentionItem[
       scoped.pipelines,
       scoped.activities,
       scoped.companyId,
+      scoped.correspondenceByCompanyId,
     ),
     ...buildCommercialPackageAttention(
       scoped.companies,
@@ -949,6 +996,11 @@ export function buildAttentionItems(ctx: AttentionEngineContext): AttentionItem[
     ...buildTenderAttention(scoped.tenders ?? [], scoped.companyId),
     ...buildInboundMailAttention(
       scoped.inboundMail ?? [],
+      scoped.companies,
+      scoped.companyId,
+    ),
+    ...buildMailFilingGapAttention(
+      scoped.mailFilingGaps ?? [],
       scoped.companies,
       scoped.companyId,
     ),

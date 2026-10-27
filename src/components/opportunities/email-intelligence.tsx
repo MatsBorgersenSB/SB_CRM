@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Paperclip } from "lucide-react";
+import { MailAttachmentBadge } from "@/components/emails/mail-attachment-badge";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 import { SyncedMailPreview } from "@/components/emails/synced-mail-preview";
@@ -24,6 +25,7 @@ export type EmailAttachmentItem = {
   sizeBytes: number | null;
   source: string;
   hasContent: boolean;
+  inSharePoint?: boolean;
   downloadUrl: string;
 };
 
@@ -56,7 +58,57 @@ export type EmailIntelligenceItem = {
   deletedAtInSource: string | null;
   createdAt: string;
   attachments: EmailAttachmentItem[];
+  attachmentLedger?: EmailAttachmentLedger | null;
 };
+
+type EmailAttachmentLedger = {
+  status: "none" | "complete" | "partial" | "unfiled" | "failed";
+  expected: number;
+  filed: number;
+  skipped: Array<{ name: string; reason: string }>;
+  originalStored: boolean;
+  syncedAt: string | null;
+};
+
+const SKIP_REASON_LABEL: Record<string, string> = {
+  inline_image: "inline image",
+  blocked_type: "blocked file type",
+  not_a_file: "not a file",
+  no_name: "no file name",
+  filing_failed: "could not be saved",
+};
+
+/** Plain-language filing line + whether it needs attention. */
+function describeAttachmentLedger(ledger: EmailAttachmentLedger): {
+  text: string;
+  attention: boolean;
+} {
+  const original = ledger.originalStored ? " · original message saved" : "";
+  switch (ledger.status) {
+    case "none":
+      return { text: `No attachments${original}`, attention: false };
+    case "complete":
+      return {
+        text: `All ${ledger.expected} attachment${ledger.expected === 1 ? "" : "s"} filed${original}`,
+        attention: false,
+      };
+    case "partial":
+      return {
+        text: `${ledger.filed} of ${ledger.expected} attachments filed — the rest are missing from the record`,
+        attention: true,
+      };
+    case "unfiled":
+      return {
+        text: `${ledger.expected} attachment${ledger.expected === 1 ? "" : "s"} not filed — link this mail to a company or deal first`,
+        attention: true,
+      };
+    default:
+      return {
+        text: `Attachments could not be filed — the record of this correspondence is incomplete`,
+        attention: true,
+      };
+  }
+}
 
 export type EmailThreadPayload = {
   conversationId: string;
@@ -339,6 +391,37 @@ export function EmailIntelligence({
     return chips;
   }, [sentimentFilter, directionFilter, deletedFilter, domainFilter]);
 
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  const retryFiling = async (message: EmailIntelligenceItem) => {
+    if (readOnly) return;
+    setRetryingId(message.id);
+    setError(null);
+    try {
+      const response = await fetch("/api/m365/sync-attachments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", [AUTH_ROLE_HEADER]: role },
+        body: JSON.stringify({
+          emailMessageId: message.id,
+          opportunityId: message.opportunityId ?? opportunityId ?? undefined,
+          projectId: projectId ?? undefined,
+        }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          detail?: string;
+        };
+        throw new Error(payload.detail || payload.error || "Could not file attachments");
+      }
+      await load();
+    } catch (retryError) {
+      setError(retryError instanceof Error ? retryError.message : "Could not file attachments");
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
   const purgeEmail = async (emailId: string) => {
     if (readOnly) return;
     const confirmed = window.confirm(
@@ -386,10 +469,7 @@ export function EmailIntelligence({
     <section aria-label="Email intelligence" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-medium text-carbon-blue/65">
-            FS-009 Email & Interaction Intelligence
-          </p>
-          <h3 className="mt-1 text-base font-semibold text-carbon-blue">
+          <h3 className="text-base font-semibold text-carbon-blue">
             {scopeKind === "project"
               ? "Project email threads"
               : "Email threads & sentiment"}
@@ -608,11 +688,14 @@ export function EmailIntelligence({
               >
                 <header className="border-b border-carbon-blue/8 pb-3">
                   <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-carbon-blue/60">
-                    SmartAssist thread summary
+                    Conversation
                   </p>
-                  <h4 className="mt-1 text-[15px] font-semibold text-carbon-blue">
-                    {summary?.subject ?? thread.messages[0]?.subject ?? "Conversation"}
-                  </h4>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <h4 className="text-[15px] font-semibold text-carbon-blue">
+                      {summary?.subject ?? thread.messages[0]?.subject ?? "Conversation"}
+                    </h4>
+                    <MailAttachmentBadge messages={thread.messages} />
+                  </div>
                   <p className="mt-1 text-[13px] text-carbon-blue/55">
                     {summary?.messageCount ?? thread.messages.length} messages · Latest{" "}
                     {formatSentAt(
@@ -813,6 +896,47 @@ export function EmailIntelligence({
                                   ))}
                                 </ul>
                               ) : null}
+                              {message.attachmentLedger && message.attachmentLedger.status !== "none"
+                                ? (() => {
+                                    const ledger = message.attachmentLedger;
+                                    const { text, attention } = describeAttachmentLedger(ledger);
+                                    const notFiled = ledger.skipped.filter(
+                                      (row) => row.reason !== "inline_image",
+                                    );
+                                    return (
+                                      <div
+                                        className={`mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] ${
+                                          attention ? "text-thermal-red" : "text-carbon-blue/65"
+                                        }`}
+                                      >
+                                        <span>{text}</span>
+                                        {attention && !readOnly ? (
+                                          <button
+                                            type="button"
+                                            disabled={retryingId === message.id}
+                                            onClick={() => void retryFiling(message)}
+                                            className="border border-thermal-red/40 bg-white px-2 py-0.5 font-semibold text-thermal-red hover:bg-thermal-red/5 disabled:opacity-50"
+                                          >
+                                            {retryingId === message.id ? "Filing…" : "Try again"}
+                                          </button>
+                                        ) : null}
+                                        {notFiled.length > 0 ? (
+                                          <span className="w-full text-carbon-blue/60">
+                                            Not filed:{" "}
+                                            {notFiled
+                                              .slice(0, 4)
+                                              .map(
+                                                (row) =>
+                                                  `${row.name} (${SKIP_REASON_LABEL[row.reason] ?? row.reason})`,
+                                              )
+                                              .join(", ")}
+                                            {notFiled.length > 4 ? ` +${notFiled.length - 4} more` : ""}
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })()
+                                : null}
                               <p className="mt-2 text-[12px] text-carbon-blue/65">
                                 {formatSentAt(message.sentAt)}
                                 {message.contactName
@@ -884,6 +1008,7 @@ export function EmailIntelligence({
             </div>
             <div className="px-4 py-3">
               {previewAttachment.hasContent &&
+              !previewAttachment.inSharePoint &&
               (previewAttachment.mimeType?.startsWith("image/") ||
                 previewAttachment.mimeType === "application/pdf") ? (
                 <iframe
@@ -893,7 +1018,9 @@ export function EmailIntelligence({
                 />
               ) : (
                 <p className="border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-6 text-[13px] text-carbon-blue/60">
-                  {previewAttachment.hasContent
+                  {previewAttachment.inSharePoint
+                    ? "This file is stored in SharePoint. Use Open to view it there."
+                    : previewAttachment.hasContent
                     ? "Inline preview is not available for this file type. Download to open locally."
                     : "Only metadata is stored for this attachment. Re-sync from Outlook to fetch file bytes."}
                 </p>
@@ -902,12 +1029,12 @@ export function EmailIntelligence({
                 {previewAttachment.hasContent ? (
                   <a
                     href={previewAttachment.downloadUrl}
-                    download={previewAttachment.name}
+                    {...(previewAttachment.inSharePoint ? {} : { download: previewAttachment.name })}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white"
                   >
-                    Download
+                    {previewAttachment.inSharePoint ? "Open in SharePoint" : "Download"}
                   </a>
                 ) : null}
                 <button

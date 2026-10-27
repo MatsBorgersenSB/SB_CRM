@@ -1,3 +1,4 @@
+import { openAiJsonText } from "@/lib/ai/openai-json";
 import "server-only";
 
 import {
@@ -100,13 +101,6 @@ async function classifyWithOpenAi(
   notice: ThermalNoticeInput,
   filter: Extract<ThermalFilterResult, { accepted: true }>,
 ): Promise<SmartAssistTenderClassification | null> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) return null;
-
-  const baseUrl = (process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1").replace(
-    /\/$/,
-    "",
-  );
   const model = process.env.OPENAI_TENDER_MODEL?.trim() || "gpt-4o-mini";
 
   const userPayload = {
@@ -120,32 +114,13 @@ async function classifyWithOpenAi(
     source: notice.source,
   };
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: CLASSIFIER_PROMPT },
-        { role: "user", content: JSON.stringify(userPayload) },
-      ],
-    }),
+  const content = await openAiJsonText({
+    task: "tender-classify",
+    model,
+    system: CLASSIFIER_PROMPT,
+    user: JSON.stringify(userPayload),
+    timeoutMs: 30_000,
   });
-
-  if (!response.ok) {
-    console.warn("[tenders] OpenAI classifier HTTP", response.status);
-    return null;
-  }
-
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = payload.choices?.[0]?.message?.content;
   if (!content) return null;
   return parseClassificationJson(content);
 }
