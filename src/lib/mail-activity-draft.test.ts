@@ -62,4 +62,13 @@ describe("buildMailActivityPreset", () => {
     assert.deepEqual(linked.Company, { CompanyID: "CO-MEPEX" });
     assert.deepEqual(linked.Deal, { DealID: "deal-1" });
   });
+
+  it("sets ActivityOwner when delegating a mail directly to a colleague", () => {
+    const delegated = buildMailActivityPreset({
+      ...base,
+      status: { kind: "reply_needed", days: 1, ask: "Can you send the revised price by Friday?" },
+      assignee: { Id: 4, Title: "Ola" },
+    });
+    assert.deepEqual(delegated.ActivityOwner, { Id: 4, Title: "Ola" });
+  });
 });

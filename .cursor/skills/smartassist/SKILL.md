@@ -36,6 +36,7 @@ This skill is a super skill because it owns **decision partnership on live recor
 | Where should we play — feasibility, machinery, walk away? | `growth-intelligence` |
 | Which event, membership, or channel? | `strategic-marketing-intelligence` |
 | How should a 360/list/owner control be built? | `living-workspace` |
+| How does `/mail` triage, bounce recovery, or attachment/work filing work? | `mail-intelligence` |
 
 ## Loop (always)
 

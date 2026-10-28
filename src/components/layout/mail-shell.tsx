@@ -5,8 +5,9 @@ import { PenSquare } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
 import { useAuth } from "@/context/auth-context";
 import { buildMailActivityPreset } from "@/lib/mail-activity-draft";
+import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import type { CreateActivityInput } from "@/types/activity";
-import type { Company } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { StandardBioUserRecord } from "@/types/user-access";
 import {
@@ -150,6 +151,116 @@ export function MailShell({
         projectName: projectMessage?.projectName ?? null,
       }),
     );
+  };
+
+  const assignableOptions = useMemo(
+    () => mergeStandardBioUserOptions(assignableUsers),
+    [assignableUsers],
+  );
+
+  const assignThreadToColleague = async (thread: Thread, assignee: SharePointPerson) => {
+    const lead = leadMessageOf(thread.messages);
+    if (!lead) return;
+    const withContact = thread.messages.find((message) => message.contactId);
+    const dealMessage = thread.messages.find((message) => message.opportunityId);
+    const projectMessage = thread.messages.find((message) => message.projectId);
+    const preset = buildMailActivityPreset({
+      lead,
+      status: thread.status,
+      contactId: withContact?.contactId ?? null,
+      contactName: withContact?.contactName ?? null,
+      companyId: withContact?.companyId ?? null,
+      companyCode: withContact?.companyCode ?? null,
+      opportunityId: dealMessage?.opportunityId ?? null,
+      projectId: projectMessage?.projectId ?? null,
+      projectName: projectMessage?.projectName ?? null,
+      assignee,
+    });
+    setBusyId(thread.conversationId);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await fetch("/api/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", [AUTH_ROLE_HEADER]: role },
+        body: JSON.stringify(preset),
+      });
+      if (!response.ok) throw new Error(await readError(response, "Could not assign task"));
+      setNotice(`Assigned “${preset.Subject ?? "Task"}” to ${assignee.Title}.`);
+    } catch (assignError) {
+      setError(
+        assignError instanceof Error ? assignError.message : "Could not assign task",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const fileThreadAttachments = async (thread: Thread) => {
+    const externalIds = [
+      ...new Set(
+        thread.messages
+          .map((message) => message.externalMessageId?.trim())
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (externalIds.length === 0) return;
+    const withContact = thread.messages.find((message) => message.contactId);
+    const dealMessage = thread.messages.find((message) => message.opportunityId);
+    const projectMessage = thread.messages.find((message) => message.projectId);
+
+    setBusyId(thread.conversationId);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await fetch("/api/m365/sync-attachments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", [AUTH_ROLE_HEADER]: role },
+        body: JSON.stringify({
+          emailExternalMessageIds: externalIds,
+          ...(withContact?.companyId ? { companyId: withContact.companyId } : {}),
+          ...(dealMessage?.opportunityId ? { opportunityId: dealMessage.opportunityId } : {}),
+          ...(projectMessage?.projectId ? { projectId: projectMessage.projectId } : {}),
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(await readError(response, "Could not file attachments"));
+      }
+      const payload = (await response.json().catch(() => ({}))) as {
+        documentsSaved?: number;
+        fetchedAttachments?: number;
+      };
+      const saved = Number(payload.documentsSaved ?? 0);
+      const fetched = Number(payload.fetchedAttachments ?? saved);
+      setLocalMessages((current) =>
+        current.map((message) => {
+          if (message.conversationId !== thread.conversationId) return message;
+          if (!message.hasAttachments && !message.attachmentLedger) return message;
+          return {
+            ...message,
+            attachmentLedger: {
+              status: "complete",
+              expected: Math.max(fetched, 1),
+              filed: Math.max(saved, 1),
+              skipped: [],
+              originalStored: true,
+              syncedAt: new Date().toISOString(),
+            },
+          };
+        }),
+      );
+      setNotice(
+        saved > 0
+          ? `Filed ${saved} attachment${saved === 1 ? "" : "s"} into SmartDocs.`
+          : "Checked attachments — nothing new to file.",
+      );
+    } catch (syncError) {
+      setError(
+        syncError instanceof Error ? syncError.message : "Could not file attachments",
+      );
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const allThreads = useMemo(() => groupMailIntoThreads(localMessages), [localMessages]);
@@ -476,6 +587,7 @@ export function MailShell({
                     dateSort={dateSort}
                     opportunityOptions={opportunityOptions}
                     projectOptions={projectOptions}
+                    assignableOptions={assignableOptions}
                     onToggle={() =>
                       setExpandedId((current) =>
                         current === thread.conversationId ? null : thread.conversationId,
@@ -484,6 +596,8 @@ export function MailShell({
                     onLink={linkThread}
                     onRemove={removeThread}
                     onCreateActivity={openActivityFromThread}
+                    onAssignColleague={assignThreadToColleague}
+                    onFileAttachments={fileThreadAttachments}
                     onHandled={markHandled}
                   />
                 ))}

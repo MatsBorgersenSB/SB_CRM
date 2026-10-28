@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { openOutlookDraft } from "@/components/opportunities/draft-in-outlook-button";
 import { telHref, teamsMeetingComposeHref } from "@/lib/compose-actions";
+import { buildSmartMailReplyDraft } from "@/lib/mail-reply-draft";
+import type { MailThreadStatus } from "@/lib/mail-triage";
 import { stashSmartAssistPrefill } from "@/lib/smart-assist-prefill";
 import type { UserRole } from "@/types/auth";
 
@@ -12,22 +14,6 @@ const PRIMARY_ACTION_CLASS =
 
 const SECONDARY_ACTION_CLASS =
   "inline-flex items-center border border-carbon-blue/20 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange/50 hover:text-upcycle-orange disabled:opacity-50";
-
-function replySubject(subject: string): string {
-  return /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`;
-}
-
-function replyBodyHtml(bodyPreview: string | null): string {
-  const preview = bodyPreview
-    ? `<blockquote style="border-left:3px solid #ccc;padding-left:8px;color:#555">${bodyPreview}</blockquote>`
-    : "";
-  return [
-    `<p>Hi,</p>`,
-    `<p>Thank you for your note. Following up on the points below and confirming next steps.</p>`,
-    preview,
-    `<p>Best regards</p>`,
-  ].join("");
-}
 
 function meetingSubject(subject: string, contactName: string | null): string {
   const topic = subject.replace(/^re:\s*/i, "").trim() || "follow-up";
@@ -56,7 +42,10 @@ export function EmailMessageActions({
   contactName = null,
   contactPhone = null,
   opportunityId,
+  opportunityName = null,
   projectId,
+  projectName = null,
+  status,
   role = "superuser",
   disabled = false,
   compact = false,
@@ -69,7 +58,10 @@ export function EmailMessageActions({
   contactName?: string | null;
   contactPhone?: string | null;
   opportunityId?: string;
+  opportunityName?: string | null;
   projectId?: string;
+  projectName?: string | null;
+  status?: MailThreadStatus;
   role?: UserRole;
   disabled?: boolean;
   /** Reply only — Call / meeting live on the contact header. */
@@ -82,6 +74,14 @@ export function EmailMessageActions({
   const [replyError, setReplyError] = useState<string | null>(null);
   const phone = contactPhone?.trim() || "";
   const title = meetingSubject(subject, contactName);
+  const replyDraft = buildSmartMailReplyDraft({
+    subject,
+    bodyPreview,
+    contactName,
+    status,
+    opportunityName,
+    projectName,
+  });
 
   const reply = async () => {
     if (!toEmail.trim()) return;
@@ -91,8 +91,8 @@ export function EmailMessageActions({
       await openOutlookDraft(
         {
           toEmail,
-          subject: replySubject(subject),
-          bodyHtml: replyBodyHtml(bodyPreview),
+          subject: replyDraft.subject,
+          bodyHtml: replyDraft.bodyHtml,
           opportunityId,
           projectId,
         },
@@ -134,6 +134,7 @@ export function EmailMessageActions({
           type="button"
           disabled={disabled || replyBusy || !toEmail.trim()}
           onClick={() => void reply()}
+          title={replyDraft.objective}
           className={PRIMARY_ACTION_CLASS}
         >
           {replyBusy ? "Opening…" : "Reply"}

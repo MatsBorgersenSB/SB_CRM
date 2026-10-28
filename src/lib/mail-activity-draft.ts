@@ -3,6 +3,7 @@ import { readableMailText } from "@/lib/mail-preview-text";
 import type { MailThreadStatus } from "@/lib/mail-triage";
 import { toCompanyTrackingId, toContactTrackingId } from "@/lib/prisma-mappers";
 import type { CreateActivityInput } from "@/types/activity";
+import type { SharePointPerson } from "@/types/company";
 
 /**
  * Starting point for a task made from a mail. Everything is taken from the mail and the
@@ -25,6 +26,7 @@ export function buildMailActivityPreset(input: {
   opportunityId: string | null;
   projectId: string | null;
   projectName: string | null;
+  assignee?: SharePointPerson | null;
   today?: string;
 }): Partial<CreateActivityInput> {
   const topic = mailTopic(input.lead.subject) || input.lead.subject.trim() || "Mail";
@@ -62,6 +64,7 @@ export function buildMailActivityPreset(input: {
     Deal: input.opportunityId ? { DealID: input.opportunityId } : null,
     ProjectId: input.projectId,
     ProjectName: input.projectName,
+    ...(input.assignee ? { ActivityOwner: input.assignee } : {}),
     OutlookMessageId: input.lead.id,
     OutlookConversationId: input.lead.conversationId,
   };

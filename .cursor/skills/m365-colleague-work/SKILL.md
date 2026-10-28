@@ -22,7 +22,7 @@ Living-workspace owns owner **controls on screens**. This skill owns **assign vs
 - Mapping session users to `STANDARD_BIO_USERS` / Users & Access
 - Anything that might create a Contact for `@standard.bio`
 
-**Hand off:** next action on the record → `smartassist`. Owner dropdown chrome → `living-workspace`.
+**Hand off:** next action on the record → `smartassist`. Owner dropdown chrome → `living-workspace`. `/mail` triage, bounce recovery, and 1-click mail execution → `mail-intelligence`.
 
 ## Protocol
 

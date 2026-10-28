@@ -12,6 +12,7 @@ Gate: [QUALITY.md](QUALITY.md).
 | [growth-intelligence](growth-intelligence/SKILL.md) | Which commercial bet: paid feasibility, engineering, machinery, watch, or walk away | **Step 2 — split** |
 | [strategic-marketing-intelligence](strategic-marketing-intelligence/SKILL.md) | Where Standard Bio should be seen — events, memberships, channels | **Step 2 — split** |
 | [living-workspace](living-workspace/SKILL.md) | How 360s, lists, owners, and Attention are built as decision surfaces | **Step 3 — written** |
+| [mail-intelligence](mail-intelligence/SKILL.md) | Correspondence triage, bounce recovery, work/SmartDocs filing, and 1-click mail execution across `/mail` and Outlook | **Step 5 — written** |
 
 ## Skills (not super)
 

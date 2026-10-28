@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { ChevronDown, ExternalLink, Trash2 } from "lucide-react";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
-import { MailAttachmentBadge } from "@/components/emails/mail-attachment-badge";
+import {
+  MailAttachmentBadge,
+  summarizeMailAttachments,
+} from "@/components/emails/mail-attachment-badge";
 import type { MailDateSortOrder } from "@/components/emails/mail-smart-filters";
 import { ThreadCorrespondencePreview } from "@/components/emails/thread-correspondence-preview";
 import { formatDate } from "@/lib/regional-format-preference";
@@ -31,6 +34,7 @@ import {
   project360Href,
 } from "@/types/relationship-navigation";
 import type { UserRole } from "@/types/auth";
+import type { SharePointPerson } from "@/types/company";
 
 export type MailLinkOption = {
   id: string;
@@ -156,10 +160,13 @@ export function MailThreadRow({
   dateSort,
   opportunityOptions,
   projectOptions,
+  assignableOptions = [],
   onToggle,
   onLink,
   onRemove,
   onCreateActivity,
+  onAssignColleague,
+  onFileAttachments,
   onHandled,
 }: {
   thread: Thread;
@@ -169,11 +176,14 @@ export function MailThreadRow({
   dateSort: MailDateSortOrder;
   opportunityOptions: MailLinkOption[];
   projectOptions: MailLinkOption[];
+  assignableOptions?: SharePointPerson[];
   onToggle: () => void;
   onLink: (thread: Thread, contactId: string | null, links: MailThreadLinks) => void;
   onRemove: (thread: Thread, contactId: string | null) => void;
   onCreateActivity: (thread: Thread) => void;
-  /** Mark "no reply needed" — the ask stays quiet until something newer arrives. */
+  onAssignColleague?: (thread: Thread, assignee: SharePointPerson) => void;
+  onFileAttachments?: (thread: Thread) => void;
+  /** Mark "no reply needed" — the ask stays quiet until something new arrives. */
   onHandled: (thread: Thread) => void;
 }) {
   const lead = leadMessageOf(thread.messages);
@@ -252,6 +262,15 @@ export function MailThreadRow({
     Boolean(companyKey) &&
     withContact?.companySellTo === true &&
     canCreateOpportunity(role);
+
+  const attachmentSummary = summarizeMailAttachments(thread.messages);
+  const hasUnfiledAttachments =
+    attachmentSummary.kind === "unfiled" || attachmentSummary.kind === "incomplete";
+  const canFileAttachments =
+    hasUnfiledAttachments &&
+    !lead.isDeletedInSource &&
+    Boolean(companyUuid || dealId || projectId) &&
+    Boolean(onFileAttachments);
 
   return (
     <li
@@ -332,7 +351,10 @@ export function MailThreadRow({
                 contactName={contactName}
                 contactPhone={contactPhone}
                 opportunityId={dealId ?? undefined}
+                opportunityName={dealMessage?.opportunityName ?? null}
                 projectId={projectId ?? undefined}
+                projectName={projectMessage?.projectName ?? null}
+                status={thread.status}
                 role={role}
               />
             </>
@@ -426,7 +448,10 @@ export function MailThreadRow({
                 contactName={contactName}
                 contactPhone={contactPhone}
                 opportunityId={dealId ?? undefined}
+                opportunityName={dealMessage?.opportunityName ?? null}
                 projectId={projectId ?? undefined}
+                projectName={projectMessage?.projectName ?? null}
+                status={thread.status}
                 role={role}
               />
             ) : null}
@@ -437,6 +462,41 @@ export function MailThreadRow({
                 className="inline-flex items-center border border-carbon-blue/20 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
               >
                 Create task
+              </button>
+            ) : null}
+            {!lead.isDeletedInSource &&
+            onAssignColleague &&
+            assignableOptions.length > 0 ? (
+              <select
+                value=""
+                disabled={busy}
+                aria-label="Assign task from this conversation to a colleague"
+                onChange={(event) => {
+                  const chosen = assignableOptions.find(
+                    (option) => String(option.Id) === event.target.value,
+                  );
+                  if (chosen) onAssignColleague(thread, chosen);
+                }}
+                className="border border-carbon-blue/20 bg-white px-2 py-1 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange disabled:opacity-50"
+              >
+                <option value="" disabled>
+                  Assign to colleague…
+                </option>
+                {assignableOptions.map((option) => (
+                  <option key={option.Id} value={option.Id}>
+                    {option.Title}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            {canFileAttachments ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onFileAttachments?.(thread)}
+                className="inline-flex items-center border border-carbon-blue/20 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+              >
+                File attachments
               </button>
             ) : null}
             {needsAnswerStatus ? (
