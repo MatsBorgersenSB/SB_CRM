@@ -538,7 +538,13 @@ function ContextLinks({ briefing }: { briefing: ActivityBriefing }) {
     items.push(<span key="company">{context.companyName}</span>);
   }
 
-  if (context.contactName) {
+  if (context.contactName && context.contactHref) {
+    items.push(
+      <Link key="contact" href={context.contactHref} className="hover:text-upcycle-orange">
+        {context.contactName}
+      </Link>,
+    );
+  } else if (context.contactName) {
     items.push(<span key="contact">{context.contactName}</span>);
   }
 
@@ -550,6 +556,16 @@ function ContextLinks({ briefing }: { briefing: ActivityBriefing }) {
     );
   } else if (context.dealName) {
     items.push(<span key="deal">{context.dealName}</span>);
+  }
+
+  if (context.projectName && context.projectHref) {
+    items.push(
+      <Link key="project" href={context.projectHref} className="hover:text-upcycle-orange">
+        {context.projectName}
+      </Link>,
+    );
+  } else if (context.projectName) {
+    items.push(<span key="project">{context.projectName}</span>);
   }
 
   if (items.length === 0) {

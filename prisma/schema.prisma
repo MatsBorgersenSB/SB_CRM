@@ -646,6 +646,15 @@ model EmailIngestExclusion {
   @@map("email_ingest_exclusions")
 }
 
+/// "No reply needed" on a mail conversation — a newer message brings the ask back.
+model MailThreadHandled {
+  conversationId String   @id
+  handledAt      DateTime @default(now())
+  handledBy      String?
+
+  @@map("mail_thread_handled")
+}
+
 /// SmartDocs / commercial file ingested from M365 email (Gap 4).
 model DocumentRecord {
   id                   String  @id @default(uuid())

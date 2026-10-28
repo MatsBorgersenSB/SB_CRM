@@ -16,6 +16,7 @@ export async function GET() {
         name: p.name,
         status: p.status,
         linkedCompanyId: p.linkedCompanyId ?? null,
+        linkedDealId: p.linkedDealId ?? null,
       })),
     });
   } catch (error) {

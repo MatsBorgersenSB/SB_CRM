@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Pencil, Save } from "lucide-react";
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import type { ActivityProjectOption } from "@/components/activities/activity-create-wizard";
 import { ActivityKnowledgeCapturePanel } from "@/components/activities/activity-knowledge-capture-panel";
 import { ActivityKnowledgeSections } from "@/components/activities/activity-knowledge-sections";
 import { RegionalDateInput } from "@/components/ui/regional-inputs";
+import { getContactDisplayName } from "@/types/contact";
 import { syncActivityUpdate } from "@/lib/sync-activity";
 import {
   parseAgreedActions,
@@ -50,12 +52,49 @@ export function ActivityKnowledgeEditor({
   const [followUp, setFollowUp] = useState(activity.ActionRequired);
   const [assessment, setAssessment] = useState(activity.SmartAssistAssessment ?? null);
 
-  const company = companies.find((c) => c.Title === activity.Company?.Title);
-  const deal = pipelines.find((p) => p.id === activity.Deal?.Title);
+  const initialCompany = companies.find((c) => c.Title === activity.Company?.Title);
+  const [companyId, setCompanyId] = useState(initialCompany?.CompanyID ?? "");
+  const [dealId, setDealId] = useState(activity.Deal?.Title ?? "");
+  const [projectId, setProjectId] = useState(activity.ProjectId?.trim() ?? "");
+  const [contactId, setContactId] = useState(() => {
+    const contactTitle = activity.Contact?.Title?.trim();
+    if (!contactTitle) return "";
+    const match = companies
+      .flatMap((c) => c.contacts)
+      .find((ct) => (ct.Title?.trim() || getContactDisplayName(ct)) === contactTitle);
+    return match?.ContactID ?? "";
+  });
+  const [projects, setProjects] = useState<ActivityProjectOption[]>([]);
+
+  useEffect(() => {
+    if (!editing) return;
+    let cancelled = false;
+    fetch("/api/projects", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload: { projects?: ActivityProjectOption[] } | null) => {
+        if (!cancelled && Array.isArray(payload?.projects)) {
+          setProjects(payload.projects);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [editing]);
+
+  const company = companies.find((c) => c.CompanyID === companyId);
+  const deal = pipelines.find((p) => p.id === dealId);
+  const contactPool = (company?.contacts.length ? company.contacts : companies.flatMap((c) => c.contacts));
+  const selectedContact = companies.flatMap((c) => c.contacts).find((ct) => ct.ContactID === contactId);
+  const selectedProject = projects.find((p) => p.id === projectId);
 
   const handleSave = async () => {
     setSaving(true);
     try {
+      const resolvedProjectName = projectId
+        ? selectedProject?.name?.trim() ||
+          (projectId === activity.ProjectId?.trim() ? activity.ProjectName?.trim() || projectId : projectId)
+        : null;
       await syncActivityUpdate(activity.ActivityID, {
         Summary: summary.trim(),
         ActivityDescription: notes.trim(),
@@ -66,6 +105,11 @@ export function ActivityKnowledgeEditor({
         NextActionDate: followUp ? dueDate : "",
         ActionRequired: followUp,
         SmartAssistAssessment: assessment ?? undefined,
+        Company: companyId ? ({ CompanyID: companyId } as unknown as Activity["Company"]) : null,
+        Deal: dealId ? ({ DealID: dealId } as unknown as Activity["Deal"]) : null,
+        Contact: contactId ? ({ ContactID: contactId } as unknown as Activity["Contact"]) : null,
+        ProjectId: projectId || null,
+        ProjectName: resolvedProjectName,
       });
       setEditing(false);
       router.refresh();
@@ -106,7 +150,11 @@ export function ActivityKnowledgeEditor({
         subject={activity.Subject}
         company={company}
         deal={deal}
-        contactName={activity.Contact?.Title}
+        contactName={
+          selectedContact
+            ? selectedContact.Title?.trim() || getContactDisplayName(selectedContact)
+            : activity.Contact?.Title
+        }
         existingNotes={notes}
         onApply={(state) => {
           setSummary(state.summary);
@@ -122,6 +170,87 @@ export function ActivityKnowledgeEditor({
       />
 
       <div className="dashboard-card space-y-3 p-5">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
+              Company
+            </span>
+            <select
+              value={companyId}
+              onChange={(e) => setCompanyId(e.target.value)}
+              className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+            >
+              <option value="">None</option>
+              {companies.map((c) => (
+                <option key={c.CompanyID} value={c.CompanyID}>
+                  {c.Title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
+              Opportunity
+            </span>
+            <select
+              value={dealId}
+              onChange={(e) => {
+                const nextDeal = e.target.value;
+                setDealId(nextDeal);
+                const dealCompany = companies.find((c) => c.pipelineIds.includes(nextDeal));
+                if (dealCompany) setCompanyId(dealCompany.CompanyID);
+              }}
+              className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+            >
+              <option value="">None</option>
+              {pipelines.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.code ?? p.id} — {p.assetName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
+              Project
+            </span>
+            <select
+              value={projectId}
+              onChange={(e) => {
+                const nextProject = e.target.value;
+                setProjectId(nextProject);
+                const proj = projects.find((p) => p.id === nextProject);
+                if (proj?.linkedCompanyId && !companyId) setCompanyId(proj.linkedCompanyId);
+                if (proj?.linkedDealId && !dealId) setDealId(proj.linkedDealId);
+              }}
+              className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+            >
+              <option value="">None</option>
+              {projects.map((proj) => (
+                <option key={proj.id} value={proj.id}>
+                  {proj.name && proj.name !== proj.id ? `${proj.name} (${proj.id})` : proj.id}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
+              Person
+            </span>
+            <select
+              value={contactId}
+              onChange={(e) => setContactId(e.target.value)}
+              className="mt-1 w-full border border-carbon-blue/12 px-3 py-2 text-sm text-carbon-blue outline-none focus:border-upcycle-orange/40"
+            >
+              <option value="">None</option>
+              {contactPool.map((ct) => (
+                <option key={ct.ContactID} value={ct.ContactID}>
+                  {ct.Title?.trim() || getContactDisplayName(ct)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <Field label="Summary" value={summary} onChange={setSummary} />
         <Field label="What happened" value={notes} onChange={setNotes} multiline />
         <Field label="Decisions" value={keyDecisionsText} onChange={setKeyDecisionsText} multiline />

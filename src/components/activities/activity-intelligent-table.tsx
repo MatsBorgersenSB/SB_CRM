@@ -156,8 +156,11 @@ function ActivityIntelligentTableRow({
             </Link>
             <p className="mt-1 truncate text-[13px] text-carbon-blue/65">
               {[
-                row.companyLabel,
+                row.companyLabel !== "—" || (row.dealLabel === "—" && row.projectLabel === "—")
+                  ? row.companyLabel
+                  : null,
                 row.dealLabel !== "—" ? row.dealLabel : null,
+                row.projectLabel !== "—" ? row.projectLabel : null,
                 row.activity.ActivityType,
                 sharedCount > 0 ? `Shared: ${sharedCount}` : null,
               ]

@@ -4,6 +4,7 @@ import { formatShortDate, formatTime } from "@/lib/regional-format-preference";
 import { useEffect, useState } from "react";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import { readableMailText } from "@/lib/mail-preview-text";
+import { classifyMailMessage } from "@/lib/mail-triage";
 import {
   compareMailDates,
   newestMessageInList,
@@ -16,6 +17,7 @@ export type CorrespondenceMessage = {
   sentAt: string;
   isOutbound: boolean;
   senderEmail: string;
+  subject?: string;
   bodyPreview: string | null;
   webLink?: string | null;
 };
@@ -28,6 +30,16 @@ function formatSentAt(value: string): string {
 
 function messageLabel(message: CorrespondenceMessage, contactName: string | null): string {
   if (message.isOutbound) return "Sent";
+  // System mail is labelled for what it is — never attributed to the contact.
+  if (message.subject !== undefined) {
+    const kind = classifyMailMessage({
+      subject: message.subject,
+      senderEmail: message.senderEmail,
+    });
+    if (kind === "delivery_failure") return "Delivery notice";
+    if (kind === "meeting_notice") return "Calendar response";
+    if (kind === "automatic") return "Automatic message";
+  }
   const name = contactName?.trim();
   return name ? `From ${name}` : `From ${message.senderEmail}`;
 }
@@ -169,7 +181,10 @@ export function ThreadCorrespondencePreview({
 
       {error ? <p className="mt-1 text-[12px] text-red-700/80">{error}</p> : null}
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      {/* In the reader the row already offers Open in Outlook. */}
+      <div
+        className={`mt-1.5 flex flex-wrap items-center gap-1.5 ${presentation === "reader" ? "hidden" : ""}`}
+      >
         {presentation === "reader" ? null : (
           <button
             type="button"

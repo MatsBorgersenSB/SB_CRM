@@ -284,6 +284,8 @@ export type MailSmartFilterBarProps = {
   onClearAll?: () => void;
   entityLabel?: string;
   compact?: boolean;
+  /** Search stays visible; sentiment, direction, source, domain and sort sit behind "More filters". */
+  collapseSecondary?: boolean;
 };
 
 export function MailSmartFilterBar({
@@ -305,7 +307,17 @@ export function MailSmartFilterBar({
   onClearAll,
   entityLabel = "Emails",
   compact = false,
+  collapseSecondary = false,
 }: MailSmartFilterBarProps) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  // A filter that is doing something stays visible — never hide an active filter.
+  const secondaryActive =
+    sentimentFilter !== "all" ||
+    directionFilter !== "all" ||
+    deletedFilter !== "all" ||
+    domainFilter !== "external" ||
+    dateSort !== "desc";
+  const showSecondary = !collapseSecondary || moreOpen || secondaryActive;
   return (
     <div className="flex flex-col gap-2">
       <div
@@ -341,6 +353,19 @@ export function MailSmartFilterBar({
           </div>
         </label>
 
+        {collapseSecondary ? (
+          <button
+            type="button"
+            aria-expanded={showSecondary}
+            onClick={() => setMoreOpen((open) => !open)}
+            className="inline-flex items-center gap-1.5 self-end border border-carbon-blue/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-carbon-blue/75 transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange"
+          >
+            {showSecondary ? "Fewer filters" : "More filters"}
+          </button>
+        ) : null}
+
+        {showSecondary ? (
+          <>
         <label className="flex min-w-[9.5rem] flex-col gap-1 text-[12px] font-semibold text-carbon-blue/55">
           Sentiment
           <select
@@ -417,6 +442,8 @@ export function MailSmartFilterBar({
             <option value="asc">Ascending (oldest first)</option>
           </select>
         </label>
+          </>
+        ) : null}
       </div>
 
       <FilterTransparencyBar

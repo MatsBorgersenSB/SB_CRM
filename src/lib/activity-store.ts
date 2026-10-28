@@ -387,15 +387,33 @@ export async function updateActivityRecord(
 
   let companyId = existing.companyId;
   let opportunityId = existing.opportunityId;
-  if (patch.Company && "CompanyID" in patch.Company) {
-    const links = await resolveLinks({ ...patch, Company: patch.Company } as CreateActivityInput);
-    companyId = links.companyId;
-    merged.Company = links.companyLookup;
+  if ("Company" in patch) {
+    if (patch.Company && "CompanyID" in patch.Company) {
+      const links = await resolveLinks({ ...patch, Company: patch.Company } as CreateActivityInput);
+      companyId = links.companyId;
+      merged.Company = links.companyLookup;
+    } else if (patch.Company === null) {
+      companyId = null;
+      merged.Company = null;
+    }
   }
-  if (patch.Deal && "DealID" in patch.Deal) {
-    const links = await resolveLinks({ ...patch, Deal: patch.Deal } as CreateActivityInput);
-    opportunityId = links.opportunityId;
-    merged.Deal = links.dealLookup;
+  if ("Deal" in patch) {
+    if (patch.Deal && "DealID" in patch.Deal) {
+      const links = await resolveLinks({ ...patch, Deal: patch.Deal } as CreateActivityInput);
+      opportunityId = links.opportunityId;
+      merged.Deal = links.dealLookup;
+    } else if (patch.Deal === null) {
+      opportunityId = null;
+      merged.Deal = null;
+    }
+  }
+  if ("Contact" in patch) {
+    if (patch.Contact && "ContactID" in patch.Contact) {
+      const links = await resolveLinks({ ...patch, Contact: patch.Contact } as CreateActivityInput);
+      merged.Contact = links.contactLookup;
+    } else if (patch.Contact === null) {
+      merged.Contact = null;
+    }
   }
 
   const row = await prisma.activity.update({

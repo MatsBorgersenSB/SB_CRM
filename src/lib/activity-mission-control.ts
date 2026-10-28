@@ -377,6 +377,7 @@ export const ACTIVITY_WORK_FILTERS: Array<{ id: ActivityWorkFilter; label: strin
 export type ActivityIntelligentRow = ActivityFocusItem & {
   companyLabel: string;
   dealLabel: string;
+  projectLabel: string;
   statusLabel: string;
   isCompleted: boolean;
 };
@@ -392,6 +393,7 @@ export function buildActivityIntelligentRows(
         ...focus,
         companyLabel: activity.Company?.Title ?? "—",
         dealLabel: activity.Deal?.Title ?? "—",
+        projectLabel: activity.ProjectName?.trim() || activity.ProjectId?.trim() || "—",
         statusLabel: activity.ActionStatus,
         isCompleted: activity.ActionStatus === "Completed",
       };

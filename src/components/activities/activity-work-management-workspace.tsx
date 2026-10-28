@@ -83,6 +83,7 @@ export function ActivityWorkManagementWorkspace({
         row.recommendedAction,
         row.companyLabel,
         row.dealLabel,
+        row.projectLabel,
         row.activity.ActivityType,
         row.activity.NextAction,
         row.activity.ActivityOwner?.Title,

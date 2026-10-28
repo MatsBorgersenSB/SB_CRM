@@ -5,7 +5,7 @@ import { formatActivityDateTime, formatDueDate, isFollowUpOpen, isFollowUpOverdu
 import { buildActivityFocusItem } from "@/lib/activity-mission-control";
 import { isExecutionStatus } from "@/lib/activity-workspace";
 import { buildRelationshipMemory } from "@/lib/relationship-memory";
-import { companyHref, deal360Href } from "@/types/relationship-navigation";
+import { companyHref, contact360Href, deal360Href, project360Href } from "@/types/relationship-navigation";
 
 export type ActivityBusinessState =
   | "overdue"
@@ -51,8 +51,11 @@ export type ActivityBriefingContext = {
   companyName: string | null;
   companyHref: string | null;
   contactName: string | null;
+  contactHref?: string | null;
   dealName: string | null;
   dealHref: string | null;
+  projectName?: string | null;
+  projectHref?: string | null;
 };
 
 export type ActivityBriefingSupport = {
@@ -250,6 +253,7 @@ function buildSupport(
     .filter((item) => {
       if (activity.Company?.Title && item.Company?.Title === activity.Company.Title) return true;
       if (activity.Deal?.Title && item.Deal?.Title === activity.Deal.Title) return true;
+      if (activity.ProjectId && item.ProjectId === activity.ProjectId) return true;
       return false;
     })
     .slice(0, 5)
@@ -275,7 +279,12 @@ export function buildActivityBriefing(
   const focus = buildActivityFocusItem(activity, pipelines);
   const memory = buildRelationshipMemory(activity);
   const company = companies.find((item) => item.Title === activity.Company?.Title);
+  const contact = company?.contacts.find(
+    (c) => c.Title === activity.Contact?.Title,
+  );
   const deal = pipelines.find((item) => item.id === activity.Deal?.Title);
+  const projectId = activity.ProjectId?.trim() || null;
+  const projectName = activity.ProjectName?.trim() || projectId;
   const businessState = resolveBusinessState(activity, focus.requiresAttention);
   const blockerCategory = inferBlockerCategory(activity, focus.blockingProgress);
 
@@ -302,8 +311,13 @@ export function buildActivityBriefing(
       companyName: activity.Company?.Title ?? null,
       companyHref: company ? companyHref(company.CompanyID) : null,
       contactName: activity.Contact?.Title ?? null,
+      contactHref: contact
+        ? contact360Href(contact.ContactID, company?.CompanyID)
+        : null,
       dealName: deal?.assetName ?? activity.Deal?.Title ?? null,
       dealHref: deal ? deal360Href(deal.id) : null,
+      projectName,
+      projectHref: projectId ? project360Href(projectId) : null,
     },
     situationParagraph: buildSituationParagraph(
       whyItMatters,

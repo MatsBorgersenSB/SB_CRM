@@ -17,6 +17,16 @@ function htmlToText(value: string): string {
     .replace(/&#39;/gi, "'");
 }
 
+const CODE_AFTER_LABEL = /\b(code|kode|passcode|passord|pin|otp)\b([^\d\n]{0,30})\b\d{4,8}\b/gi;
+const CODE_BEFORE_LABEL = /\b\d{4,8}\b(?=\s+(?:is|er)\s+(?:your|din|ditt|deres)[^.\n]{0,30}\b(?:code|kode)\b)/gi;
+
+/** One-time codes are credentials — never shown in a mail list. */
+export function maskVerificationCodes(text: string): string {
+  return text
+    .replace(CODE_AFTER_LABEL, (_match, label: string, gap: string) => `${label}${gap}••••••`)
+    .replace(CODE_BEFORE_LABEL, "••••••");
+}
+
 /** The words of one mail, without the signature, disclaimer, or quoted earlier mail. */
 export function readableMailText(raw: string | null | undefined): string {
   if (!raw?.trim()) return "";
@@ -31,7 +41,7 @@ export function readableMailText(raw: string | null | undefined): string {
     const match = pattern.exec(text);
     if (match && match.index >= 24 && match.index < cut) cut = match.index;
   }
-  text = text.slice(0, cut);
+  text = maskVerificationCodes(text.slice(0, cut));
   return text
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")

@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDate } from "@/lib/regional-format-preference";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { ACTIVITY_TYPE_OPTIONS } from "@/components/activities/activity-type-icon";
 import type { AuthUser } from "@/types/auth";
@@ -45,12 +45,21 @@ import type { StandardBioUserRecord } from "@/types/user-access";
 
 type Timing = "planned" | "done";
 
+export type ActivityProjectOption = {
+  id: string;
+  name: string;
+  status?: string;
+  linkedCompanyId?: string | null;
+  linkedDealId?: string | null;
+};
+
 type ActivityCreateWizardProps = {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
   companies: Company[];
   pipelines: PipelineRow[];
+  projects?: ActivityProjectOption[];
   preset?: Partial<CreateActivityInput>;
   defaultOwner?: AuthUser;
   /** Assignable Standard Bio colleagues — who owns this activity. */
@@ -138,6 +147,7 @@ function ActivityForm({
   onCreated,
   companies,
   pipelines,
+  projects: initialProjects,
   preset,
   defaultOwner,
   assignableUsers = [],
@@ -168,9 +178,45 @@ function ActivityForm({
   const [companyId, setCompanyId] = useState(() => presetCompanyId(preset));
   const [contactIds, setContactIds] = useState(() => presetContactIds(preset));
   const [dealId, setDealId] = useState(() => presetDealId(preset));
-  // Project context comes from the caller (project workspace); the form does not change it.
-  const projectId = preset?.ProjectId?.trim() ?? "";
-  const projectName = preset?.ProjectName?.trim() ?? "";
+  const [projectId, setProjectId] = useState(() => preset?.ProjectId?.trim() ?? "");
+  const [fetchedProjects, setFetchedProjects] = useState<ActivityProjectOption[]>(
+    () => initialProjects ?? [],
+  );
+
+  useEffect(() => {
+    if (initialProjects && initialProjects.length > 0) return;
+    let cancelled = false;
+    fetch("/api/projects", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload: { projects?: ActivityProjectOption[] } | null) => {
+        if (!cancelled && Array.isArray(payload?.projects)) {
+          setFetchedProjects(payload.projects);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [initialProjects]);
+
+  const projectOptions = useMemo(() => {
+    const base = initialProjects && initialProjects.length > 0 ? initialProjects : fetchedProjects;
+    const presetPid = preset?.ProjectId?.trim();
+    if (presetPid && !base.some((p) => p.id === presetPid)) {
+      return [
+        { id: presetPid, name: preset?.ProjectName?.trim() || presetPid },
+        ...base,
+      ];
+    }
+    return base;
+  }, [initialProjects, fetchedProjects, preset?.ProjectId, preset?.ProjectName]);
+
+  const selectedProject = projectOptions.find((p) => p.id === projectId);
+  const projectName =
+    selectedProject?.name?.trim() ||
+    (projectId && projectId === preset?.ProjectId?.trim()
+      ? preset?.ProjectName?.trim() ?? ""
+      : "");
 
   const [assignee, setAssignee] = useState<SharePointPerson | null>(
     me ?? preset?.ActivityOwner ?? null,
@@ -243,6 +289,18 @@ function ActivityForm({
     setDealId(id);
     const company = companies.find((c) => c.pipelineIds.includes(id));
     if (company) setCompanyId(company.CompanyID);
+  };
+
+  const handleProjectChange = (id: string) => {
+    setProjectId(id);
+    if (!id) return;
+    const proj = projectOptions.find((p) => p.id === id);
+    if (proj?.linkedCompanyId && !companyId) {
+      setCompanyId(proj.linkedCompanyId);
+    }
+    if (proj?.linkedDealId && !dealId) {
+      setDealId(proj.linkedDealId);
+    }
   };
 
   const handleAddContact = (id: string) => {
@@ -476,6 +534,9 @@ function ActivityForm({
         SmartAssistAssessment: assessment ?? undefined,
         EventDetails: eventDetails,
         IsAiProposed: isEvent && eventFromAssist,
+        // Keeps the activity traceable to the mail it came from.
+        OutlookMessageId: preset?.OutlookMessageId,
+        OutlookConversationId: preset?.OutlookConversationId,
       };
 
       if (isProposingSlots) {
@@ -963,24 +1024,40 @@ function ActivityForm({
                       ))}
                     </select>
                   </label>
-                  {projectId ? null : (
-                    <label className="block">
-                      <span className={LABEL}>Opportunity</span>
-                      <select
-                        value={dealId}
-                        onChange={(e) => handleDealChange(e.target.value)}
-                        disabled={Boolean(presetDealId(preset))}
-                        className={INPUT}
-                      >
-                        <option value="">None</option>
-                        {pipelines.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.code ?? p.id} — {p.assetName}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
+                  <label className="block">
+                    <span className={LABEL}>Opportunity</span>
+                    <select
+                      value={dealId}
+                      onChange={(e) => handleDealChange(e.target.value)}
+                      disabled={Boolean(presetDealId(preset))}
+                      className={INPUT}
+                    >
+                      <option value="">None</option>
+                      {pipelines.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.code ?? p.id} — {p.assetName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className={LABEL}>Project</span>
+                    <select
+                      value={projectId}
+                      onChange={(e) => handleProjectChange(e.target.value)}
+                      disabled={Boolean(preset?.ProjectId?.trim())}
+                      className={INPUT}
+                    >
+                      <option value="">None</option>
+                      {projectOptions.map((proj) => (
+                        <option key={proj.id} value={proj.id}>
+                          {proj.name && proj.name !== proj.id
+                            ? `${proj.name} (${proj.id})`
+                            : proj.id}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <label className="block sm:col-span-2">
                     <span className={LABEL}>People</span>
                     {selectedContacts.length > 0 ? (

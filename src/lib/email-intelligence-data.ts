@@ -2,6 +2,8 @@ import { getPrisma } from "@/lib/prisma";
 import { resolveOpportunityId } from "@/lib/meeting-intelligence-data";
 import { isExternalEmail, isInternalEmail } from "@/lib/domain-rules";
 import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
+import { isOpportunityEligibleCompany } from "@/lib/company-classification";
+import type { CompanyType } from "@/types/company-type";
 import {
   extractEmailCommitments,
   gradeEmailSentiment,
@@ -34,6 +36,17 @@ export type EmailMessageIntelligenceDto = {
   projectName: string | null;
   contactId: string | null;
   contactName: string | null;
+  /** Company of the linked contact — null when the contact has none (never guessed). */
+  companyId?: string | null;
+  /** Public tracking code (CO-…) used in routes — null until the company has one. */
+  companyCode?: string | null;
+  companyName?: string | null;
+  /** True only when the company is typed Customer / Prospect / Offtaker (opportunity-eligible). */
+  companySellTo?: boolean;
+  /** Current email addresses on the linked contact — lets mail triage see a corrected address. */
+  contactEmails?: string[];
+  /** When someone marked this conversation "no reply needed" (same value on every message of the thread). */
+  handledAt?: string | null;
   /** Primary phone from linked contact — empty when unknown (Reality First). */
   contactPhone: string | null;
   subject: string;
@@ -171,6 +184,10 @@ const emailMessageInclude = {
       firstName: true,
       lastName: true,
       phoneNumbers: true,
+      emails: true,
+      company: {
+        select: { id: true, code: true, name: true, types: true, companyType: true },
+      },
     },
   },
   opportunity: {
@@ -221,6 +238,14 @@ function toEmailDto(message: {
     firstName: string | null;
     lastName: string | null;
     phoneNumbers: unknown;
+    emails?: unknown;
+    company?: {
+      id: string;
+      code: string | null;
+      name: string;
+      types?: string[];
+      companyType?: string | null;
+    } | null;
   } | null;
   opportunity: {
     id: string;
@@ -261,6 +286,17 @@ function toEmailDto(message: {
     projectName: message.projectName,
     contactId: message.contactId,
     contactName: contactDisplayName(message.contact),
+    companyId: message.contact?.company?.id ?? null,
+    companyCode: message.contact?.company?.code ?? null,
+    companyName: message.contact?.company?.name ?? null,
+    companySellTo: message.contact?.company
+      ? isOpportunityEligibleCompany({
+          CompanyTypes: (message.contact.company.types ?? []) as CompanyType[],
+          companyType: message.contact.company.companyType ?? undefined,
+          Status: "Active",
+        })
+      : false,
+    contactEmails: contactEmailsFromJson(message.contact?.emails),
     contactPhone: contactPrimaryPhone(message.contact?.phoneNumbers),
     subject: message.subject,
     bodyPreview: message.bodyPreview,
@@ -596,10 +632,47 @@ export async function readRecentLinkedEmails(
       orderBy: { sentAt: "desc" },
       take: limit * 2,
     });
-    return messages.map(toEmailDto).slice(0, limit);
+    const dtos = messages.map(toEmailDto).slice(0, limit);
+    const handled = await readHandledConversations(dtos.map((dto) => dto.conversationId));
+    return dtos.map((dto) => ({ ...dto, handledAt: handled.get(dto.conversationId) ?? null }));
   } catch {
     return [];
   }
+}
+
+/** When each conversation was marked "no reply needed". Quiet if the table is not migrated yet. */
+async function readHandledConversations(
+  conversationIds: readonly string[],
+): Promise<Map<string, string>> {
+  const handled = new Map<string, string>();
+  if (conversationIds.length === 0) return handled;
+  try {
+    const rows = await getPrisma().mailThreadHandled.findMany({
+      where: { conversationId: { in: [...new Set(conversationIds)] } },
+      select: { conversationId: true, handledAt: true },
+    });
+    for (const row of rows) handled.set(row.conversationId, row.handledAt.toISOString());
+  } catch (error) {
+    console.warn("[mail] handled-thread lookup failed — run npm run db:migrate", error);
+  }
+  return handled;
+}
+
+/** "No reply needed" — the ask stays quiet until a newer message arrives. */
+export async function markConversationHandled(
+  conversationId: string,
+  handledBy?: string | null,
+): Promise<string> {
+  const row = await getPrisma().mailThreadHandled.upsert({
+    where: { conversationId },
+    create: { conversationId, handledBy: handledBy?.trim() || null },
+    update: { handledAt: new Date(), handledBy: handledBy?.trim() || null },
+  });
+  return row.handledAt.toISOString();
+}
+
+export async function clearConversationHandled(conversationId: string): Promise<void> {
+  await getPrisma().mailThreadHandled.deleteMany({ where: { conversationId } });
 }
 
 /**
@@ -900,6 +973,34 @@ export async function purgeConversationForContact(
 }
 
 /**
+ * Purge a whole conversation by id, for mail that has no contact on it.
+ * Removes every EmailMessageRecord in the thread and blocks re-ingest. Outlook is unchanged.
+ */
+export async function purgeConversation(
+  conversationId: string,
+): Promise<{ purged: number }> {
+  const threadId = conversationId.trim();
+  if (!threadId) return { purged: 0 };
+  const prisma = getPrisma();
+  const messages = await prisma.emailMessageRecord.findMany({
+    where: { conversationId: threadId },
+    select: { id: true, externalMessageId: true, conversationId: true },
+  });
+  if (messages.length === 0) return { purged: 0 };
+
+  await recordEmailIngestExclusions(
+    messages.map((message) => ({
+      externalMessageId: message.externalMessageId,
+      conversationId: message.conversationId,
+    })),
+  );
+  await prisma.emailMessageRecord.deleteMany({
+    where: { id: { in: messages.map((message) => message.id) } },
+  });
+  return { purged: messages.length };
+}
+
+/**
  * Link the contact's company onto a project's related organizations when missing.
  * Buy-from → supplier; collaborate → partner; sell-to → customer; else other.
  * Reality First: only links an existing company id already on the contact.
@@ -971,13 +1072,25 @@ async function ensureContactCompanyOnProject(
  * Set or clear opportunity / project links for every message in a contact conversation.
  * When the conversation is not yet synced, optionally seed from the open Outlook item.
  */
+export type ConversationLinksResult = {
+  updated: number;
+  opportunityId: string | null | undefined;
+  opportunityName: string | null;
+  opportunityCode: string | null;
+  projectId: string | null | undefined;
+  projectName: string | null;
+  seeded?: boolean;
+};
+
+type ConversationLinksInput = {
+  opportunityId?: string | null;
+  projectId?: string | null;
+};
+
 export async function setConversationLinksForContact(
   contactKey: string,
   conversationId: string,
-  links: {
-    opportunityId?: string | null;
-    projectId?: string | null;
-  },
+  links: ConversationLinksInput,
   options?: {
     seedMessage?: {
       externalMessageId: string;
@@ -990,18 +1103,52 @@ export async function setConversationLinksForContact(
       isOutbound?: boolean;
     };
   },
-): Promise<{
-  updated: number;
-  opportunityId: string | null | undefined;
-  opportunityName: string | null;
-  opportunityCode: string | null;
-  projectId: string | null | undefined;
-  projectName: string | null;
-  seeded?: boolean;
-}> {
-  const prisma = getPrisma();
+): Promise<ConversationLinksResult> {
   const contact = await findPrismaContactByIdOrEmail(contactKey);
-  if (!contact || !conversationId.trim()) {
+  if (!contact) {
+    return {
+      updated: 0,
+      opportunityId: links.opportunityId,
+      opportunityName: null,
+      opportunityCode: null,
+      projectId: links.projectId,
+      projectName: null,
+    };
+  }
+  return applyConversationLinks(contact, conversationId, links, options);
+}
+
+/**
+ * Set or clear opportunity / project links for a conversation that has no contact
+ * (or when the caller does not know one). Same side effects as the contact path,
+ * except the contact's company is not added to the project.
+ */
+export async function setConversationLinks(
+  conversationId: string,
+  links: ConversationLinksInput,
+): Promise<ConversationLinksResult> {
+  return applyConversationLinks(null, conversationId, links);
+}
+
+async function applyConversationLinks(
+  contact: NonNullable<Awaited<ReturnType<typeof findPrismaContactByIdOrEmail>>> | null,
+  conversationId: string,
+  links: ConversationLinksInput,
+  options?: {
+    seedMessage?: {
+      externalMessageId: string;
+      subject?: string;
+      senderEmail?: string;
+      recipientEmails?: string[];
+      sentAt?: string;
+      bodyPreview?: string;
+      webLink?: string;
+      isOutbound?: boolean;
+    };
+  },
+): Promise<ConversationLinksResult> {
+  const prisma = getPrisma();
+  if (!conversationId.trim()) {
     return {
       updated: 0,
       opportunityId: links.opportunityId,
@@ -1095,7 +1242,7 @@ export async function setConversationLinksForContact(
     };
   }
 
-  const addresses = contactEmailsFromJson(contact.emails);
+  const addresses = contact ? contactEmailsFromJson(contact.emails) : [];
   let seeded = false;
 
   // If Outlook opened a thread that mail sync has not ingested yet, seed one
@@ -1104,7 +1251,11 @@ export async function setConversationLinksForContact(
     where: { conversationId },
     select: { id: true },
   });
-  if (!anyInConversation && options?.seedMessage?.externalMessageId?.trim()) {
+  if (
+    contact &&
+    !anyInConversation &&
+    options?.seedMessage?.externalMessageId?.trim()
+  ) {
     seeded = await upsertSeededOutlookMessage(
       contact,
       conversationId,
@@ -1118,19 +1269,22 @@ export async function setConversationLinksForContact(
   }
 
   // Authorize: contact must appear on at least one message in this conversation.
+  // Without a contact, the conversation just has to exist.
   const participates = await prisma.emailMessageRecord.findFirst({
-    where: {
-      conversationId,
-      OR: [
-        { contactId: contact.id },
-        ...(addresses.length > 0
-          ? [
-              { senderEmail: { in: addresses } },
-              { recipientEmails: { hasSome: addresses } },
-            ]
-          : []),
-      ],
-    },
+    where: contact
+      ? {
+          conversationId,
+          OR: [
+            { contactId: contact.id },
+            ...(addresses.length > 0
+              ? [
+                  { senderEmail: { in: addresses } },
+                  { recipientEmails: { hasSome: addresses } },
+                ]
+              : []),
+          ],
+        }
+      : { conversationId },
     select: { id: true },
   });
   if (!participates) {
@@ -1154,7 +1308,7 @@ export async function setConversationLinksForContact(
 
   // When mail is tagged to a project, ensure the contact's company is a related
   // organization (supplier for buy-from). User confirmed the project link.
-  if (data.projectId && contact.companyId) {
+  if (data.projectId && contact?.companyId) {
     await ensureContactCompanyOnProject(contact.companyId, data.projectId).catch(
       (error) => {
         console.warn(
