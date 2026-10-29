@@ -15,6 +15,10 @@ import {
   resolveOutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
 import {
+  showOutlookImportCompletedBanner,
+  showSmartCrmCategoryOnOpenMail,
+} from "@/lib/m365/outlook-smartcrm-category";
+import {
   resolveDevMessageBody,
   resolveOutlookMessageBody,
 } from "@/lib/m365/outlook-message-body";
@@ -264,6 +268,10 @@ export function OutlookNoContactState({
       }
 
       const result = (await response.json()) as RelationshipIntakeApproveResult;
+      if (result.threadLinked) {
+        void showSmartCrmCategoryOnOpenMail();
+        void showOutlookImportCompletedBanner("Import completed (Outlook → SmartCRM)");
+      }
       if (seed?.externalMessageId?.trim()) {
         void fetch("/api/m365/sync-attachments", {
           method: "POST",
@@ -368,15 +376,29 @@ export function OutlookNoContactState({
 
         {phase === "done" && created ? (
           <>
-            <p className="mt-2 text-sm font-semibold text-carbon-blue">Added to SmartCRM</p>
+            <div
+              role="alert"
+              aria-live="polite"
+              className="mt-3 border-2 border-emerald-600 bg-emerald-600 px-3 py-2.5 text-white"
+            >
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em]">
+                ✓ Import completed (Outlook → SmartCRM)
+              </p>
+              <p className="mt-1 text-[12px] leading-snug text-white/95">
+                {created.companyCreated
+                  ? "Contact, company, and mail imported into SmartCRM."
+                  : "Contact linked to the existing company and mail imported into SmartCRM."}
+              </p>
+            </div>
+            <p className="mt-3 text-sm font-semibold text-carbon-blue">Added to SmartCRM</p>
             <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
               {created.companyCreated
                 ? "Contact and company created — stay in Outlook, or open SmartCRM."
                 : "Contact linked to the existing company."}
               {created.threadLinked
                 ? variant === "compose"
-                  ? " This draft was connected."
-                  : " This thread was connected."
+                  ? " This draft was imported into SmartCRM."
+                  : " This mail thread was imported into SmartCRM."
                 : ""}
             </p>
             <a

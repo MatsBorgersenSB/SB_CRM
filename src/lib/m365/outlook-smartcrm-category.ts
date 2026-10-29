@@ -2,6 +2,53 @@ import { whenOfficeReady } from "@/lib/outlook-office";
 
 export const SMARTCRM_OUTLOOK_CATEGORY = "SmartCRM";
 
+const SMARTCRM_NOTIFICATION_KEY = "smartcrm-import-status";
+
+type OutlookItemNotificationMessages = {
+  replaceAsync?: (
+    key: string,
+    message: {
+      type: string;
+      message: string;
+      icon?: string;
+      persistent?: boolean;
+    },
+    callback?: () => void,
+  ) => void;
+};
+
+/**
+ * Show a native Outlook notification banner at the top of the open email/draft
+ * confirming the Outlook -> SmartCRM import completed.
+ */
+export async function showOutlookImportCompletedBanner(
+  message = "Import completed (Outlook → SmartCRM)",
+): Promise<void> {
+  const office = await whenOfficeReady(4_000);
+  const item = office?.context?.mailbox?.item as
+    | (Office.MailboxItem & { notificationMessages?: OutlookItemNotificationMessages })
+    | undefined;
+  const notifications = item?.notificationMessages;
+  if (!notifications?.replaceAsync) return;
+
+  await new Promise<void>((resolve) => {
+    try {
+      notifications.replaceAsync!(
+        SMARTCRM_NOTIFICATION_KEY,
+        {
+          type: "informationalMessage",
+          message: message.slice(0, 150),
+          icon: "Icon.16x16",
+          persistent: false,
+        },
+        () => resolve(),
+      );
+    } catch {
+      resolve();
+    }
+  });
+}
+
 /**
  * Put the SmartCRM category on the mail that is open, so the inbox shows it is connected.
  * Best-effort: a missing Office host must not block the save.

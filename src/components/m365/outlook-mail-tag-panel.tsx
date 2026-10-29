@@ -12,7 +12,11 @@ import {
   subscribeOutlookMailboxItemChanged,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
-import { showSmartCrmCategoryOnOpenMail, openMicrosoftConsentDialog } from "@/lib/m365/outlook-smartcrm-category";
+import {
+  showOutlookImportCompletedBanner,
+  showSmartCrmCategoryOnOpenMail,
+  openMicrosoftConsentDialog,
+} from "@/lib/m365/outlook-smartcrm-category";
 import {
   SMARTDOC_CATEGORIES,
   SMARTDOC_TYPES,
@@ -126,6 +130,11 @@ export function OutlookMailTagPanel({
   const [needsMicrosoftConsent, setNeedsMicrosoftConsent] = useState(false);
   const [smartSuggestedLabel, setSmartSuggestedLabel] = useState<string | null>(null);
   const [showAdvancedFiling, setShowAdvancedFiling] = useState(false);
+  const [importCompletedBanner, setImportCompletedBanner] = useState<{
+    headline: string;
+    detail: string;
+    savedCount: number;
+  } | null>(null);
 
   const seedMessageId = seed?.externalMessageId ?? "";
   const seedConversationId = seed?.conversationId ?? "";
@@ -134,6 +143,7 @@ export function OutlookMailTagPanel({
   if (seedMessageId !== prevSeedMessageId) {
     setPrevSeedMessageId(seedMessageId);
     setCrmState(null);
+    setImportCompletedBanner(null);
   }
   useEffect(() => {
     if (!seedMessageId) return;
@@ -491,15 +501,28 @@ export function OutlookMailTagPanel({
           ? context.projectOptions.find((row) => row.id === link.projectId)?.name ??
             "the project"
           : null;
-      setStatus(
+      const summaryDetail =
         failed + skipped > 0
-          ? `Saved ${saved} of ${seeds.length} mails on ${context.companyName}${linkedLabel ? ` (${linkedLabel})` : ""}.`
+          ? `Imported ${saved} of ${seeds.length} mails from Outlook to SmartCRM on ${context.companyName}${linkedLabel ? ` (${linkedLabel})` : ""}.`
           : saved === 1
-            ? `Saved on ${context.companyName}${linkedLabel ? ` and linked to ${linkedLabel}` : ""} in SmartCRM.`
-            : `Saved ${saved} mails on ${context.companyName}${linkedLabel ? ` and linked to ${linkedLabel}` : ""} in SmartCRM.`,
-      );
+            ? `1 mail imported from Outlook to SmartCRM on ${context.companyName}${linkedLabel ? ` and linked to ${linkedLabel}` : ""}.`
+            : `${saved} mails imported from Outlook to SmartCRM on ${context.companyName}${linkedLabel ? ` and linked to ${linkedLabel}` : ""}.`;
+      setStatus(summaryDetail);
+      setImportCompletedBanner({
+        headline:
+          saved === 1
+            ? "Import completed (Outlook → SmartCRM)"
+            : `Import completed — ${saved} mails saved (Outlook → SmartCRM)`,
+        detail: summaryDetail,
+        savedCount: saved,
+      });
       setSavedMailTick((tick) => tick + 1);
       void showSmartCrmCategoryOnOpenMail();
+      void showOutlookImportCompletedBanner(
+        saved === 1
+          ? `Import completed (Outlook → SmartCRM) · ${context.companyName}`
+          : `Import completed: ${saved} mails saved to SmartCRM`,
+      );
       if (crmState?.isMeeting && seeds.length === 1 && seeds[0]) {
         await saveMeetingActivity(seeds[0]);
       }
@@ -725,6 +748,30 @@ export function OutlookMailTagPanel({
         </div>
       ) : null}
 
+      {importCompletedBanner && !error ? (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mt-2 border-2 border-emerald-600 bg-emerald-600 px-3 py-2.5 text-white"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em]">
+            ✓ {importCompletedBanner.headline}
+          </p>
+          <p className="mt-1 text-[12px] leading-snug text-white/95">
+            {importCompletedBanner.detail}
+          </p>
+          {syncBusy ? (
+            <p className="mt-1 text-[11px] font-medium text-white/85">
+              Filing attachments into SmartDocs…
+            </p>
+          ) : syncStatus ? (
+            <p className="mt-1 text-[11px] font-medium text-white/90">
+              {syncStatus}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {seed ? (
         <div
           className={`mt-2 border px-2.5 py-2 text-[12px] leading-snug ${
@@ -739,7 +786,7 @@ export function OutlookMailTagPanel({
           {error ? (
             <p className="font-semibold text-thermal-red">Not saved: {error}</p>
           ) : null}
-          {!error && status ? (
+          {!error && status && !importCompletedBanner ? (
             <p className="font-semibold text-emerald-700">✓ {status}</p>
           ) : null}
           {crmState?.mailSaved || crmState?.meeting || savedMails.length > 0 ? (
@@ -910,7 +957,7 @@ export function OutlookMailTagPanel({
             className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
           >
             {busy
-              ? "Saving…"
+              ? "Importing Outlook → SmartCRM…"
               : selectedCount > 1
                 ? selectedTagLabel
                   ? `Save ${selectedCount} mails & link to ${selectedTagLabel}`
@@ -919,15 +966,19 @@ export function OutlookMailTagPanel({
                   ? crmState.meeting
                     ? selectedTagLabel
                       ? `Update link to ${selectedTagLabel}`
-                      : "Saved — save again"
+                      : "✓ Import completed — save again"
                     : "Save meeting in SmartCRM"
-                  : openMailSaved
+                  : importCompletedBanner
                     ? selectedTagLabel
-                      ? `Update link to ${selectedTagLabel}`
-                      : "Saved — save again"
-                    : selectedTagLabel
-                      ? `Save & link to ${selectedTagLabel}`
-                      : `Save to ${context.companyName}`}
+                      ? `✓ Import completed · Update link to ${selectedTagLabel}`
+                      : "✓ Import completed (Outlook → SmartCRM)"
+                    : openMailSaved
+                      ? selectedTagLabel
+                        ? `Update link to ${selectedTagLabel}`
+                        : "Saved — save again"
+                      : selectedTagLabel
+                        ? `Save & link to ${selectedTagLabel}`
+                        : `Save to ${context.companyName}`}
           </button>
         ) : (
           <p className="text-[11px] text-carbon-blue/65">
