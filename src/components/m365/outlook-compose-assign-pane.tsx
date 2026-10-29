@@ -19,6 +19,10 @@ import {
   type OutlookComposeRecipient,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
+import {
+  showOutlookImportCompletedBanner,
+  showSmartCrmCategoryOnOpenMail,
+} from "@/lib/m365/outlook-smartcrm-category";
 import type { UserRole } from "@/types/auth";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -116,13 +120,12 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
 
   const applyReadyContext = (email: string, context: TagContextPayload) => {
     setPhase({ status: "ready", email, context });
-    const opportunityEligible = context.opportunityEligible ?? true;
-    if (context.currentProjectId) {
-      setLinkKind("project");
-      setSelectedId(context.currentProjectId);
-    } else if (context.currentOpportunityId && opportunityEligible) {
+    if (context.currentOpportunityId) {
       setLinkKind("opportunity");
       setSelectedId(context.currentOpportunityId);
+    } else if (context.currentProjectId) {
+      setLinkKind("project");
+      setSelectedId(context.currentProjectId);
     } else {
       setLinkKind("company");
       setSelectedId("");
@@ -365,10 +368,7 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEmail, recipients, role]);
 
-  const opportunityEligible =
-    phase.status === "ready"
-      ? (phase.context.opportunityEligible ?? true)
-      : true;
+  const opportunityEligible = true;
 
   const options =
     phase.status === "ready"
@@ -434,13 +434,15 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
         throw new Error(payload.detail || payload.error || "Could not assign mail");
       }
 
-      setStatus(
+      const summaryText =
         linkKind === "project"
-          ? "Assigned to project in SmartCRM."
+          ? `Draft imported and linked to ${payload.projectName ?? "project"} in SmartCRM.`
           : linkKind === "opportunity"
-            ? "Assigned to opportunity in SmartCRM."
-            : `Saved on ${phase.context.companyName} — no opportunity or project link.`,
-      );
+            ? `Draft imported and linked to ${payload.opportunityName ?? "opportunity"} in SmartCRM.`
+            : `Draft imported on ${phase.context.companyName} in SmartCRM.`;
+      setStatus(summaryText);
+      void showSmartCrmCategoryOnOpenMail();
+      void showOutlookImportCompletedBanner("Import completed (Outlook → SmartCRM)");
     } catch (assignError) {
       setError(assignError instanceof Error ? assignError.message : "Could not assign mail");
     } finally {
@@ -667,15 +669,28 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
             className="inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
           >
             {busy
-              ? "Assigning…"
-              : linkKind === "company"
-                ? "Save on company"
-                : "Assign this mail"}
+              ? "Importing Outlook → SmartCRM…"
+              : status
+                ? "✓ Import completed (Outlook → SmartCRM)"
+                : linkKind === "company"
+                  ? "Save on company"
+                  : "Assign this mail"}
           </button>
         </div>
       ) : null}
 
-      {status ? <p className="mt-3 text-[11px] text-emerald-700">{status}</p> : null}
+      {status ? (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mt-3 border-2 border-emerald-600 bg-emerald-600 px-3 py-2.5 text-white"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em]">
+            ✓ Import completed (Outlook → SmartCRM)
+          </p>
+          <p className="mt-1 text-[12px] leading-snug text-white/95">{status}</p>
+        </div>
+      ) : null}
       {error ? <p className="mt-3 text-[11px] text-thermal-red">{error}</p> : null}
     </div>
   );
