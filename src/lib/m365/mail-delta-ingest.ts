@@ -72,15 +72,26 @@ type ContactMatch = {
   companyId: string | null;
 };
 
-async function findContactsByEmails(
-  emails: string[],
-): Promise<ContactMatch[]> {
-  if (emails.length === 0) return [];
+type PreloadedContactRow = {
+  id: string;
+  companyId: string | null;
+  emails: unknown;
+};
+
+async function loadActiveContactRows(): Promise<PreloadedContactRow[]> {
   const prisma = getPrisma();
-  const contacts = await prisma.contact.findMany({
+  return prisma.contact.findMany({
     where: { status: "active" },
     select: { id: true, companyId: true, emails: true },
   });
+}
+
+async function findContactsByEmails(
+  emails: string[],
+  preloaded?: PreloadedContactRow[],
+): Promise<ContactMatch[]> {
+  if (emails.length === 0) return [];
+  const contacts = preloaded ?? (await loadActiveContactRows());
 
   const emailSet = new Set(emails.map((email) => email.toLowerCase()));
   return contacts
@@ -88,6 +99,42 @@ async function findContactsByEmails(
       [...emailSet].some((email) => emailsIncludeAddress(contact.emails, email)),
     )
     .map((contact) => ({ id: contact.id, companyId: contact.companyId }));
+}
+
+type DualDeltaTokenState = {
+  inbox: string | null;
+  sentitems: string | null;
+};
+
+function parseDeltaSyncToken(raw: string | null | undefined): DualDeltaTokenState {
+  if (!raw?.trim()) return { inbox: null, sentitems: null };
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed) as {
+        inbox?: unknown;
+        sentitems?: unknown;
+      };
+      return {
+        inbox: typeof parsed.inbox === "string" && parsed.inbox.trim() ? parsed.inbox.trim() : null,
+        sentitems:
+          typeof parsed.sentitems === "string" && parsed.sentitems.trim()
+            ? parsed.sentitems.trim()
+            : null,
+      };
+    } catch {
+      return { inbox: null, sentitems: null };
+    }
+  }
+  return { inbox: trimmed, sentitems: null };
+}
+
+function serializeDeltaSyncToken(state: DualDeltaTokenState): string | null {
+  if (!state.inbox && !state.sentitems) return null;
+  return JSON.stringify({
+    inbox: state.inbox ?? null,
+    sentitems: state.sentitems ?? null,
+  });
 }
 
 type ConversationLinkState = {
@@ -314,6 +361,7 @@ async function syncOutlookCategoriesForRecord(input: {
 async function attributeForNewMessage(input: {
   conversationId: string;
   participantEmails: string[];
+  preloadedContacts?: PreloadedContactRow[];
 }): Promise<{
   contactId: string | null;
   opportunityId: string | null;
@@ -321,7 +369,10 @@ async function attributeForNewMessage(input: {
   projectName: string | null;
   opportunityName?: string;
 }> {
-  const contacts = await findContactsByEmails(input.participantEmails);
+  const contacts = await findContactsByEmails(
+    input.participantEmails,
+    input.preloadedContacts,
+  );
   const contactId = contacts[0]?.id ?? null;
   const links = await resolveConversationLinks(input.conversationId);
   return {
@@ -337,6 +388,7 @@ async function upsertGraphMessage(input: {
   message: GraphMailMessage;
   mailboxEmail: string;
   accessToken: string;
+  preloadedContacts?: PreloadedContactRow[];
 }): Promise<"upserted" | "skipped"> {
   const externalMessageId = input.message.id?.trim();
   if (!externalMessageId) return "skipped";
@@ -366,7 +418,10 @@ async function upsertGraphMessage(input: {
   const isOutbound = Boolean(mailbox) && senderEmail === mailbox;
 
   // Still persist internal-only mail; UI defaults to external filter (FS-009).
-  const contacts = await findContactsByEmails(participantEmails);
+  const contacts = await findContactsByEmails(
+    participantEmails,
+    input.preloadedContacts,
+  );
   const contactId = contacts[0]?.id ?? null;
 
   const prisma = getPrisma();
@@ -436,6 +491,7 @@ async function upsertGraphMessage(input: {
     const attribution = await attributeForNewMessage({
       conversationId,
       participantEmails,
+      preloadedContacts: input.preloadedContacts,
     });
     // Inherit intentional Outlook category onto replies in a user-tagged thread.
     const intentional = await resolveIntentionalCategory({
@@ -552,56 +608,76 @@ export async function syncMailDeltaForIntegration(
     const me = await fetchGraphMe(accessToken);
     const mailboxEmail =
       normalizeEmail(me.mail) || normalizeEmail(me.userPrincipalName);
+    const preloadedContacts = await loadActiveContactRows();
 
-    let cursor: string | null | undefined = integration.deltaSyncToken;
+    const tokenState = parseDeltaSyncToken(integration.deltaSyncToken);
     let pages = 0;
     let upserted = 0;
     let tombstoned = 0;
-    let safety = 0;
 
-    while (safety < 40) {
-      safety += 1;
-      pages += 1;
-      const page = await fetchMailDelta(accessToken, cursor);
+    const syncFolderStream = async (
+      folder: "inbox" | "sentitems",
+      initialCursor: string | null,
+    ): Promise<string | null> => {
+      let cursor: string | null | undefined = initialCursor;
+      let safety = 0;
+      let latestDeltaLink = initialCursor;
 
-      for (const message of page.value) {
-        if (message["@removed"]) {
-          if (message.id) {
-            await markEmailDeletedInSource(message.id);
-            tombstoned += 1;
+      while (safety < 40) {
+        safety += 1;
+        pages += 1;
+        const page = await fetchMailDelta(accessToken, cursor, folder);
+
+        for (const message of page.value) {
+          if (message["@removed"]) {
+            if (message.id) {
+              await markEmailDeletedInSource(message.id);
+              tombstoned += 1;
+            }
+            continue;
           }
+          const result = await upsertGraphMessage({
+            message,
+            mailboxEmail,
+            accessToken,
+            preloadedContacts,
+          });
+          if (result === "upserted") upserted += 1;
+        }
+
+        if (page.nextLink) {
+          cursor = page.nextLink;
           continue;
         }
-        const result = await upsertGraphMessage({
-          message,
-          mailboxEmail,
-          accessToken,
-        });
-        if (result === "upserted") upserted += 1;
+
+        if (page.deltaLink) {
+          latestDeltaLink = page.deltaLink;
+        }
+        break;
       }
 
-      if (page.nextLink) {
-        cursor = page.nextLink;
-        continue;
-      }
+      return latestDeltaLink;
+    };
 
-      if (page.deltaLink) {
-        await prisma.externalIntegration.update({
-          where: { id: integrationId },
-          data: {
-            deltaSyncToken: page.deltaLink,
-            lastSyncedAt: new Date(),
-            status: "active",
-          },
-        });
-      } else {
-        await prisma.externalIntegration.update({
-          where: { id: integrationId },
-          data: { lastSyncedAt: new Date() },
-        });
-      }
-      break;
+    tokenState.inbox = await syncFolderStream("inbox", tokenState.inbox);
+    try {
+      tokenState.sentitems = await syncFolderStream("sentitems", tokenState.sentitems);
+    } catch (sentError) {
+      console.warn(
+        "[mail-delta-ingest] sentitems delta sync skipped:",
+        sentError instanceof Error ? sentError.message : sentError,
+      );
     }
+
+    const serializedToken = serializeDeltaSyncToken(tokenState);
+    await prisma.externalIntegration.update({
+      where: { id: integrationId },
+      data: {
+        ...(serializedToken ? { deltaSyncToken: serializedToken } : {}),
+        lastSyncedAt: new Date(),
+        status: "active",
+      },
+    });
 
     try {
       await ensureMailInboxSubscription(integrationId, accessToken);

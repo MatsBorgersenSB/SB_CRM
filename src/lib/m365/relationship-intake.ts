@@ -5,7 +5,10 @@
 
 import { addOutlookContact, buildOutlookSenderPrepopulation } from "@/lib/m365/outlook-add-contact";
 import { assertExternalContactEmail } from "@/lib/internal-colleague";
-import { setConversationLinksForContact } from "@/lib/email-intelligence-data";
+import {
+  captureOutlookMessageForContact,
+  setConversationLinksForContact,
+} from "@/lib/email-intelligence-data";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
@@ -273,6 +276,26 @@ export async function approveRelationshipIntake(
       threadLinked = linkResult.updated > 0;
       linkedOpportunityId = linkResult.opportunityId;
       linkedProjectId = linkResult.projectId;
+    } catch {
+      threadLinked = false;
+    }
+  } else if (conversationId && input.message?.externalMessageId?.trim()) {
+    try {
+      const captured = await captureOutlookMessageForContact(
+        created.contactId,
+        conversationId,
+        {
+          externalMessageId: input.message.externalMessageId.trim(),
+          subject: input.message.subject,
+          senderEmail: input.message.senderEmail,
+          recipientEmails: input.message.recipientEmails,
+          sentAt: input.message.sentAt,
+          bodyPreview: input.message.bodyPreview,
+          webLink: input.message.webLink,
+          isOutbound: input.message.isOutbound === true,
+        },
+      );
+      threadLinked = captured.captured;
     } catch {
       threadLinked = false;
     }

@@ -75,10 +75,16 @@ export function OutlookNoContactState({
     null,
   );
 
-  useEffect(() => {
-    let active = true;
+  const [prevIntakeKey, setPrevIntakeKey] = useState(`${email}|${displayName ?? ""}`);
+  const currentIntakeKey = `${email}|${displayName ?? ""}`;
+  if (currentIntakeKey !== prevIntakeKey) {
+    setPrevIntakeKey(currentIntakeKey);
     setPhase("loading");
     setError(null);
+  }
+
+  useEffect(() => {
+    let active = true;
 
     void (async () => {
       try {
@@ -242,6 +248,8 @@ export function OutlookNoContactState({
                       ? [email]
                       : undefined,
                 sentAt: seed.sentAt,
+                bodyPreview: seed.bodyPreview,
+                webLink: seed.webLink,
                 isOutbound: variant === "compose" || seed.isOutbound === true,
               }
             : undefined,
@@ -256,6 +264,19 @@ export function OutlookNoContactState({
       }
 
       const result = (await response.json()) as RelationshipIntakeApproveResult;
+      if (seed?.externalMessageId?.trim()) {
+        void fetch("/api/m365/sync-attachments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            emailExternalMessageIds: [seed.externalMessageId.trim()],
+            ...(result.companyId ? { companyId: result.companyId } : {}),
+            ...(result.linkedOpportunityId ? { opportunityId: result.linkedOpportunityId } : {}),
+            ...(result.linkedProjectId ? { projectId: result.linkedProjectId } : {}),
+          }),
+        }).catch(() => undefined);
+      }
       setCreated(result);
       setPhase("done");
       setBusy(false);

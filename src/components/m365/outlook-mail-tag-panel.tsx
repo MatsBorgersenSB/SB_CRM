@@ -5,7 +5,7 @@ import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outloo
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
 import { company360Href } from "@/types/company-360";
-import { contact360Href, project360Href } from "@/types/relationship-navigation";
+import { contact360Href, deal360Href, project360Href } from "@/types/relationship-navigation";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
 import {
   resolveOutlookSelectedMessageSeeds,
@@ -18,12 +18,14 @@ import {
   SMARTDOC_TYPES,
   type SmartDocCategory,
 } from "@/types/smartdoc-library";
+import { mailTopic, matchingOpportunityForTopic } from "@/lib/mail-opportunity-draft";
 import type { UserRole } from "@/types/auth";
 
 type LinkOption = {
   id: string;
   label: string;
   name: string;
+  companyId?: string | null;
 };
 
 type TagContextPayload = {
@@ -122,12 +124,18 @@ export function OutlookMailTagPanel({
   const [savedMails, setSavedMails] = useState<SavedOutlookMail[]>([]);
   const [savedMailTick, setSavedMailTick] = useState(0);
   const [needsMicrosoftConsent, setNeedsMicrosoftConsent] = useState(false);
+  const [smartSuggestedLabel, setSmartSuggestedLabel] = useState<string | null>(null);
+  const [showAdvancedFiling, setShowAdvancedFiling] = useState(false);
 
   const seedMessageId = seed?.externalMessageId ?? "";
   const seedConversationId = seed?.conversationId ?? "";
   const seedSubject = seed?.subject ?? "";
-  useEffect(() => {
+  const [prevSeedMessageId, setPrevSeedMessageId] = useState(seedMessageId);
+  if (seedMessageId !== prevSeedMessageId) {
+    setPrevSeedMessageId(seedMessageId);
     setCrmState(null);
+  }
+  useEffect(() => {
     if (!seedMessageId) return;
     let cancelled = false;
     const params = new URLSearchParams({ externalMessageId: seedMessageId });
@@ -203,14 +211,51 @@ export function OutlookMailTagPanel({
         setContext(payload);
         setSavedMails(payload.savedMails ?? []);
         setNeedsMicrosoftConsent(payload.needsMicrosoftConsent === true);
-        const canUseOpportunity =
+        setSmartSuggestedLabel(null);
+        const preferOpportunity =
           payload.opportunityEligible ?? opportunityEligible ?? true;
-        if (payload.currentProjectId) {
-          setLinkKind("project");
-          setSelectedId(payload.currentProjectId);
-        } else if (payload.currentOpportunityId && canUseOpportunity) {
+        const topic = openSeeds[0]?.subject ? mailTopic(openSeeds[0].subject) : "";
+        const companyDeals = (payload.opportunityOptions ?? [])
+          .filter(
+            (row) =>
+              !payload.selectedCompanyId ||
+              !row.companyId ||
+              row.companyId === payload.selectedCompanyId,
+          )
+          .map((row) => ({ id: row.id, assetName: row.name, label: row.label }));
+        const companyProjects = (payload.projectOptions ?? []).map((row) => ({
+          id: row.id,
+          assetName: row.name,
+          label: row.label,
+        }));
+        const matchedDeal =
+          preferOpportunity && topic
+            ? matchingOpportunityForTopic(companyDeals, topic)
+            : null;
+        const matchedProject = topic
+          ? matchingOpportunityForTopic(companyProjects, topic)
+          : null;
+
+        if (payload.currentOpportunityId) {
           setLinkKind("opportunity");
           setSelectedId(payload.currentOpportunityId);
+        } else if (payload.currentProjectId) {
+          setLinkKind("project");
+          setSelectedId(payload.currentProjectId);
+        } else if (matchedDeal) {
+          setLinkKind("opportunity");
+          setSelectedId(matchedDeal.id);
+          setSmartSuggestedLabel(matchedDeal.label);
+        } else if (matchedProject) {
+          setLinkKind("project");
+          setSelectedId(matchedProject.id);
+          setSmartSuggestedLabel(matchedProject.label);
+        } else if (
+          preferOpportunity &&
+          (payload.opportunityOptions?.length ?? 0) > 0
+        ) {
+          setLinkKind("opportunity");
+          setSelectedId("");
         } else {
           setLinkKind("project");
           setSelectedId("");
@@ -229,11 +274,10 @@ export function OutlookMailTagPanel({
     return () => {
       cancelled = true;
     };
-  }, [email, role]);
+  }, [email, role, opportunityEligible]);
 
   useEffect(() => {
-    if (!email || !seedConversationId) {
-      setSavedMails([]);
+    if (!email || !seedConversationId || savedMailTick === 0) {
       return;
     }
     let cancelled = false;
@@ -265,29 +309,14 @@ export function OutlookMailTagPanel({
     void showSmartCrmCategoryOnOpenMail();
   }, [openMailSaved, seedMessageId]);
 
-  useEffect(() => {
-    // Keep filing destination valid when no opportunity/project is selected.
-    if ((attachmentTarget === "opportunity" || attachmentTarget === "project") && !selectedId) {
-      setAttachmentTarget("company");
-    }
-  }, [attachmentTarget, selectedId]);
+  // Keep filing destination valid when no opportunity/project is selected.
+  if ((attachmentTarget === "opportunity" || attachmentTarget === "project") && !selectedId) {
+    setAttachmentTarget("company");
+  }
 
-  const opportunityTagging =
-    opportunityEligible ?? context?.opportunityEligible ?? true;
-
-  useEffect(() => {
-    if (!opportunityTagging && attachmentTarget === "opportunity") {
-      setAttachmentTarget("company");
-    }
-    if (!opportunityTagging && attachmentRelationKind === "opportunity") {
-      setAttachmentRelationKind("none");
-      setAttachmentRelationId("");
-    }
-    if (!opportunityTagging && linkKind === "opportunity") {
-      setLinkKind("project");
-      setSelectedId("");
-    }
-  }, [opportunityTagging, attachmentTarget, attachmentRelationKind, linkKind]);
+  // Relating an email or attachment in Outlook to an existing Opportunity or Project
+  // is always allowed (including when correspondents are partners, consultants, or prospects).
+  const opportunityTagging = true;
 
   const options =
     linkKind === "project"
@@ -383,18 +412,9 @@ export function OutlookMailTagPanel({
     projectId?: string | null;
   }) => {
     if (!context?.contactId || seeds.length === 0) return;
-    const contactEmail = email.trim().toLowerCase();
-    const matchedSeeds = seeds.filter((row) => {
-      const sender = row.senderEmail.trim().toLowerCase();
-      const recipients = (row.recipientEmails ?? [])
-        .map((address) => address.trim().toLowerCase())
-        .filter(Boolean);
-      if (!sender || sender === contactEmail) return true;
-      if (recipients.includes(contactEmail)) return true;
-      return recipients.length === 0;
-    });
+    const matchedSeeds = seeds.filter((row) => Boolean(row.externalMessageId?.trim()));
     if (matchedSeeds.length === 0) {
-      setError("These mails are with someone else. Open that person, then save.");
+      setError("Select one or more mails in Outlook, then save.");
       return;
     }
     setBusy(true);
@@ -449,12 +469,34 @@ export function OutlookMailTagPanel({
         isMeeting: prev?.isMeeting ?? false,
         meeting: prev?.meeting ?? null,
       }));
+      if (link) {
+        setContext((prev) =>
+          prev
+            ? {
+                ...prev,
+                ...(link.opportunityId !== undefined
+                  ? { currentOpportunityId: link.opportunityId }
+                  : {}),
+                ...(link.projectId !== undefined
+                  ? { currentProjectId: link.projectId }
+                  : {}),
+              }
+            : prev,
+        );
+      }
+      const linkedLabel = link?.opportunityId
+        ? context.opportunityOptions.find((row) => row.id === link.opportunityId)?.name ??
+          "the opportunity"
+        : link?.projectId
+          ? context.projectOptions.find((row) => row.id === link.projectId)?.name ??
+            "the project"
+          : null;
       setStatus(
         failed + skipped > 0
-          ? `Saved ${saved} of ${seeds.length} mails on ${context.companyName}.`
+          ? `Saved ${saved} of ${seeds.length} mails on ${context.companyName}${linkedLabel ? ` (${linkedLabel})` : ""}.`
           : saved === 1
-            ? `Saved on ${context.companyName} in SmartCRM.`
-            : `Saved ${saved} mails on ${context.companyName} in SmartCRM.`,
+            ? `Saved on ${context.companyName}${linkedLabel ? ` and linked to ${linkedLabel}` : ""} in SmartCRM.`
+            : `Saved ${saved} mails on ${context.companyName}${linkedLabel ? ` and linked to ${linkedLabel}` : ""} in SmartCRM.`,
       );
       setSavedMailTick((tick) => tick + 1);
       void showSmartCrmCategoryOnOpenMail();
@@ -470,17 +512,14 @@ export function OutlookMailTagPanel({
     }
   };
 
-  const markRelationshipInOutlook = async () => {
-    await saveSelectedMails();
-  };
+  const currentSelectionLink = selectedId
+    ? linkKind === "project"
+      ? { projectId: selectedId }
+      : { opportunityId: selectedId }
+    : undefined;
 
-  const applyTag = async () => {
-    if (!selectedId) return;
-    await saveSelectedMails(
-      linkKind === "project"
-        ? { projectId: selectedId }
-        : { opportunityId: selectedId },
-    );
+  const markRelationshipInOutlook = async () => {
+    await saveSelectedMails(currentSelectionLink);
   };
 
   /**
@@ -760,7 +799,16 @@ export function OutlookMailTagPanel({
       <Outlook360Links
         companyId={context.companyId ?? context.selectedCompanyId}
         contactId={context.contactId}
-        projectId={linkKind === "project" ? selectedId || context.currentProjectId : context.currentProjectId}
+        opportunityId={
+          linkKind === "opportunity"
+            ? selectedId || context.currentOpportunityId
+            : context.currentOpportunityId
+        }
+        projectId={
+          linkKind === "project"
+            ? selectedId || context.currentProjectId
+            : context.currentProjectId
+        }
       />
 
       <div className="mt-2 flex gap-1">
@@ -778,15 +826,15 @@ export function OutlookMailTagPanel({
             key={entry.kind}
             type="button"
             disabled={!entry.enabled}
-            title={
-              entry.enabled
-                ? undefined
-                : "Opportunities are only for sell-to relationships (Customer / Prospect / Offtaker)."
-            }
             onClick={() => {
               if (!entry.enabled) return;
               setLinkKind(entry.kind);
-              setSelectedId("");
+              setSelectedId(
+                entry.kind === "opportunity"
+                  ? context.currentOpportunityId ?? ""
+                  : context.currentProjectId ?? "",
+              );
+              setSmartSuggestedLabel(null);
               setStatus(null);
             }}
             className={`flex-1 border px-2 py-1 text-[11px] font-semibold uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-40 ${
@@ -801,55 +849,86 @@ export function OutlookMailTagPanel({
       </div>
 
       <label className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-        {linkKind === "opportunity" ? "Opportunity" : "Project"}
+        {linkKind === "opportunity" ? "Opportunity (optional)" : "Project (optional)"}
         <select
           value={selectedId}
-          onChange={(event) => setSelectedId(event.target.value)}
+          onChange={(event) => {
+            setSelectedId(event.target.value);
+            setSmartSuggestedLabel(null);
+          }}
           className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
         >
-          <option value="">Select…</option>
-          {options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
+          <option value="">Company only ({context.companyName})</option>
+          {(() => {
+            const sameCompany = context.selectedCompanyId
+              ? options.filter((opt) => opt.companyId === context.selectedCompanyId)
+              : [];
+            const otherOptions = options.filter((opt) => !sameCompany.includes(opt));
+            if (sameCompany.length === 0) {
+              return options.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ));
+            }
+            return (
+              <>
+                <optgroup label={`On ${context.companyName}`}>
+                  {sameCompany.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
+                {otherOptions.length > 0 ? (
+                  <optgroup label="Other open work">
+                    {otherOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </>
+            );
+          })()}
         </select>
       </label>
 
+      {smartSuggestedLabel && selectedId ? (
+        <p className="mt-1 text-[11px] text-emerald-700">
+          SmartAssist pre-selected <span className="font-semibold">{smartSuggestedLabel}</span> from this email subject.
+        </p>
+      ) : null}
+
       <div className="mt-2 flex flex-col gap-1.5">
         {seed ? (
-          <>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void markRelationshipInOutlook()}
-              className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
-            >
-              {busy
-                ? "Saving…"
-                : selectedCount > 1
-                  ? `Save ${selectedCount} mails in SmartCRM`
-                  : crmState?.isMeeting
-                    ? crmState.meeting
-                      ? "Saved — save again"
-                      : "Save meeting in SmartCRM"
-                    : crmState?.mailSaved
-                      ? "Saved — save again"
-                      : "Save mail in SmartCRM"}
-            </button>
-            <button
-              type="button"
-              disabled={!selectedId || busy}
-              onClick={() => void applyTag()}
-              className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-            >
-              {busy
-                ? "Tagging…"
-                : selectedCount > 1
-                  ? `Tag ${selectedCount} threads`
-                  : "Tag this thread"}
-            </button>
-          </>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void markRelationshipInOutlook()}
+            className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105 disabled:opacity-50"
+          >
+            {busy
+              ? "Saving…"
+              : selectedCount > 1
+                ? selectedTagLabel
+                  ? `Save ${selectedCount} mails & link to ${selectedTagLabel}`
+                  : `Save ${selectedCount} mails in SmartCRM`
+                : crmState?.isMeeting
+                  ? crmState.meeting
+                    ? selectedTagLabel
+                      ? `Update link to ${selectedTagLabel}`
+                      : "Saved — save again"
+                    : "Save meeting in SmartCRM"
+                  : openMailSaved
+                    ? selectedTagLabel
+                      ? `Update link to ${selectedTagLabel}`
+                      : "Saved — save again"
+                    : selectedTagLabel
+                      ? `Save & link to ${selectedTagLabel}`
+                      : `Save to ${context.companyName}`}
+          </button>
         ) : (
           <p className="text-[11px] text-carbon-blue/65">
             Select one or more mails in Outlook, then save them here.
@@ -857,39 +936,55 @@ export function OutlookMailTagPanel({
         )}
 
         {seed ? (
-          <>
-            <AttachmentFilingControls
-              attachmentTarget={attachmentTarget}
-              setAttachmentTarget={setAttachmentTarget}
-              attachmentCompanyId={attachmentCompanyId}
-              setAttachmentCompanyId={setAttachmentCompanyId}
-              attachmentRelationKind={attachmentRelationKind}
-              setAttachmentRelationKind={setAttachmentRelationKind}
-              attachmentRelationId={attachmentRelationId}
-              setAttachmentRelationId={setAttachmentRelationId}
-              selectedId={selectedId}
-              linkKind={linkKind}
-              selectedTagLabel={selectedTagLabel}
-              destinationSummary={destinationSummary}
-              companyOptions={companyOptions}
-              opportunityOptions={
-                opportunityTagging ? context.opportunityOptions : []
-              }
-              projectOptions={context.projectOptions}
-              allowOpportunity={opportunityTagging}
-            />
-            <button
-              type="button"
-              disabled={!canFileAttachments}
-              onClick={() => void syncAttachmentsToSmartDocs()}
-              className="inline-flex items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-            >
-              {syncBusy ? "Filing attachments…" : `File attachments (${selectedCount})`}
-            </button>
-            {attachmentBlockingReason ? (
-              <p className="mt-1 text-[11px] text-carbon-blue/65">{attachmentBlockingReason}</p>
+          <div className="mt-1 border border-carbon-blue/10 bg-white px-2.5 py-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] leading-snug text-carbon-blue/70">
+                {destinationSummary}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedFiling((prev) => !prev)}
+                className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
+              >
+                {showAdvancedFiling ? "Hide options" : "Options"}
+              </button>
+            </div>
+            {showAdvancedFiling ? (
+              <div className="mt-2 space-y-1.5">
+                <AttachmentFilingControls
+                  attachmentTarget={attachmentTarget}
+                  setAttachmentTarget={setAttachmentTarget}
+                  attachmentCompanyId={attachmentCompanyId}
+                  setAttachmentCompanyId={setAttachmentCompanyId}
+                  attachmentRelationKind={attachmentRelationKind}
+                  setAttachmentRelationKind={setAttachmentRelationKind}
+                  attachmentRelationId={attachmentRelationId}
+                  setAttachmentRelationId={setAttachmentRelationId}
+                  selectedId={selectedId}
+                  linkKind={linkKind}
+                  selectedTagLabel={selectedTagLabel}
+                  destinationSummary={destinationSummary}
+                  companyOptions={companyOptions}
+                  opportunityOptions={
+                    opportunityTagging ? context.opportunityOptions : []
+                  }
+                  projectOptions={context.projectOptions}
+                  allowOpportunity={opportunityTagging}
+                />
+                <button
+                  type="button"
+                  disabled={!canFileAttachments}
+                  onClick={() => void syncAttachmentsToSmartDocs()}
+                  className="inline-flex w-full items-center justify-center border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+                >
+                  {syncBusy ? "Filing attachments…" : `File attachments only (${selectedCount})`}
+                </button>
+                {attachmentBlockingReason ? (
+                  <p className="text-[11px] text-carbon-blue/65">{attachmentBlockingReason}</p>
+                ) : null}
+              </div>
             ) : null}
-          </>
+          </div>
         ) : null}
 
         <DraftInOutlookButton
@@ -928,13 +1023,15 @@ export function OutlookMailTagPanel({
 function Outlook360Links({
   companyId,
   contactId,
+  opportunityId,
   projectId,
 }: {
   companyId?: string | null;
   contactId?: string | null;
+  opportunityId?: string | null;
   projectId?: string | null;
 }) {
-  if (!companyId && !contactId && !projectId) return null;
+  if (!companyId && !contactId && !opportunityId && !projectId) return null;
   const linkClass =
     "font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange";
   return (
@@ -966,6 +1063,16 @@ function Outlook360Links({
           className={linkClass}
         >
           Contact 360
+        </a>
+      ) : null}
+      {opportunityId ? (
+        <a
+          href={buildSmartCrmUrl(deal360Href(opportunityId))}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClass}
+        >
+          Opportunity 360
         </a>
       ) : null}
       {projectId ? (

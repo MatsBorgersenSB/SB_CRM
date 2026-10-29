@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { RelationshipCard } from "@/components/m365/relationship-card";
 import { OutlookAddOpportunityDialog } from "@/components/m365/outlook-add-opportunity-dialog";
 import { OutlookMailTagPanel } from "@/components/m365/outlook-mail-tag-panel";
-import { OutlookReconciliationCard } from "@/components/m365/outlook-reconciliation-card";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
 import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
 import {
@@ -13,7 +12,6 @@ import {
   outlookSelectionNeedsMicrosoftConsent,
 } from "@/lib/m365/outlook-context";
 import { openMicrosoftConsentDialog } from "@/lib/m365/outlook-smartcrm-category";
-import { analyzeOutlookReconciliation } from "@/lib/outlook-reconciliation-engine";
 import { useOutlookM365PaneLoad } from "@/hooks/use-outlook-m365-pane-load";
 import type { M365RelationshipCardPayload } from "@/types/m365";
 
@@ -27,35 +25,7 @@ export function OutlookRelationshipCardPane() {
       unexpectedPayloadMessage: "Unexpected intelligence payload.",
     });
 
-  const [reconciliationAudit, setReconciliationAudit] = useState<
-    ReturnType<typeof analyzeOutlookReconciliation> | null
-  >(null);
   const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (!resolvedEmail) return;
-    let cancelled = false;
-    void fetch("/api/m365/reconciliation")
-      .then(async (response) => {
-        if (!response.ok || cancelled) return;
-        const audit = (await response.json()) as ReturnType<typeof analyzeOutlookReconciliation>;
-        if (!cancelled) setReconciliationAudit(audit);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [resolvedEmail]);
-
-  const emailTouchpoint = useMemo(() => {
-    if (!resolvedEmail || !reconciliationAudit) return null;
-    const normalized = resolvedEmail.trim().toLowerCase();
-    return (
-      reconciliationAudit.missingTouchpoints.find(
-        (row) => row.contactEmail?.trim().toLowerCase() === normalized,
-      ) ?? null
-    );
-  }, [resolvedEmail, reconciliationAudit]);
 
   if (state.status === "loading") {
     return (
@@ -157,21 +127,6 @@ export function OutlookRelationshipCardPane() {
   if (state.status === "ready") {
     return (
       <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto bg-white p-3">
-        {emailTouchpoint ? (
-          <OutlookReconciliationCard
-            candidate={emailTouchpoint}
-            compact
-            onImported={() => {
-              reload();
-              void fetch("/api/m365/reconciliation")
-                .then(async (response) => {
-                  if (!response.ok) return;
-                  setReconciliationAudit(await response.json());
-                })
-                .catch(() => undefined);
-            }}
-          />
-        ) : null}
         {resolvedEmail ? (
           <OutlookMailTagPanel
             email={resolvedEmail}

@@ -12,6 +12,7 @@ import { resolveM365PaneCompany } from "@/lib/m365/pane-context";
 import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
+import { findPrismaContactByIdOrEmail } from "@/lib/resolve-contact-route";
 import { prismaLiveCompanyWhere, prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
 import { readOutlookMessagesFromGraph } from "@/lib/m365/outlook-selected-message-graph";
 import { toGraphRestMessageId } from "@/lib/m365/outlook-selection";
@@ -21,6 +22,7 @@ type LinkOption = {
   label: string;
   name: string;
   code?: string | null;
+  companyId?: string | null;
 };
 
 /**
@@ -74,9 +76,15 @@ export async function GET(request: Request) {
             companyId: prismaCompanyId,
             AND: prismaLiveOpportunityWhere.AND,
           },
-          select: { id: true, name: true, code: true },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            companyId: true,
+            company: { select: { name: true } },
+          },
           orderBy: { updatedAt: "desc" },
-          take: 20,
+          take: 30,
         })
       : [];
     const companyRows = await prisma.company.findMany({
@@ -110,9 +118,15 @@ export async function GET(request: Request) {
           ? { id: { notIn: companyScoped.map((row) => row.id) } }
           : {}),
       },
-      select: { id: true, name: true, code: true },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        companyId: true,
+        company: { select: { name: true } },
+      },
       orderBy: { updatedAt: "desc" },
-      take: 15,
+      take: 80,
     });
     const opportunityRows = [...companyScoped, ...broader];
 
@@ -144,13 +158,20 @@ export async function GET(request: Request) {
         return a.name.localeCompare(b.name);
       })
       .slice(0, 80)
-      .map((project) => ({
-        id: project.id,
-        label: project.linkedCompanyId
-          ? `${project.name} · ${project.linkedCompanyId}`
-          : project.name,
-        name: project.name,
-      }));
+      .map((project) => {
+        const orgs = getProjectRelatedOrganizations(project);
+        const matchesCompany =
+          companyKeys.has(project.linkedCompanyId ?? "") ||
+          orgs.some((org) => companyKeys.has(org.companyId));
+        return {
+          id: project.id,
+          label: project.linkedCompanyId
+            ? `${project.name} · ${project.linkedCompanyId}`
+            : project.name,
+          name: project.name,
+          companyId: matchesCompany ? prismaCompanyId : project.linkedCompanyId ?? null,
+        };
+      });
 
     let currentOpportunityId: string | null = null;
     let currentProjectId: string | null = null;
@@ -161,7 +182,7 @@ export async function GET(request: Request) {
       sentAt: string;
       senderEmail: string;
     }> = [];
-    let needsMicrosoftConsent = false;
+    const needsMicrosoftConsent = false;
     if (conversationId) {
       const rows = await prisma.emailMessageRecord.findMany({
         where: { conversationId, isDeletedInSource: false },
@@ -187,41 +208,6 @@ export async function GET(request: Request) {
         sentAt: row.sentAt.toISOString(),
         senderEmail: row.senderEmail,
       }));
-      try {
-        const {
-          applySmartCrmCategories,
-          getActiveM365AccessToken,
-          SMARTCRM_MASTER_CATEGORY,
-          toIntentionalCategoryLabel,
-        } = await import("@/lib/m365-client");
-        await prisma.emailMessageRecord.updateMany({
-          where: {
-            conversationId,
-            isDeletedInSource: false,
-            OR: [
-              { m365CategoryName: null },
-              { NOT: { m365CategoryName: { startsWith: "intent:" } } },
-            ],
-          },
-          data: { m365CategoryName: toIntentionalCategoryLabel(SMARTCRM_MASTER_CATEGORY) },
-        });
-        const token = await getActiveM365AccessToken();
-        if (token) {
-          await Promise.all(
-            savedMails.map((mail) =>
-              applySmartCrmCategories(token.accessToken, mail.externalMessageId).catch(
-                () => undefined,
-              ),
-            ),
-          );
-        }
-      } catch (stampError) {
-        const message = stampError instanceof Error ? stampError.message : "";
-        console.warn("[m365 outlook mail-tag] category stamp skipped:", message);
-        if (/AADSTS65001|has not consented|consent_required/i.test(message)) {
-          needsMicrosoftConsent = true;
-        }
-      }
     }
 
     return NextResponse.json({
@@ -239,12 +225,20 @@ export async function GET(request: Request) {
       opportunityEligible: isOpportunityEligibleCompany(resolved.company),
       companyOptions,
       opportunityOptions: opportunityRows.map(
-        (row): LinkOption => ({
-          id: row.id,
-          label: row.code ? `${row.code} · ${row.name}` : row.name,
-          code: row.code,
-          name: row.name,
-        }),
+        (row): LinkOption => {
+          const base = row.code ? `${row.code} · ${row.name}` : row.name;
+          const companySuffix =
+            row.company?.name && row.companyId !== prismaCompanyId
+              ? ` · ${row.company.name}`
+              : "";
+          return {
+            id: row.id,
+            label: `${base}${companySuffix}`,
+            code: row.code,
+            name: row.name,
+            companyId: row.companyId,
+          };
+        },
       ),
       projectOptions,
     });
@@ -445,13 +439,17 @@ export async function POST(request: Request) {
     );
 
     const opportunityId =
-      typeof body.opportunityId === "string" && body.opportunityId.trim()
-        ? body.opportunityId.trim()
-        : undefined;
+      body.opportunityId === undefined
+        ? undefined
+        : typeof body.opportunityId === "string" && body.opportunityId.trim()
+          ? body.opportunityId.trim()
+          : null;
     const projectId =
-      typeof body.projectId === "string" && body.projectId.trim()
-        ? body.projectId.trim()
-        : undefined;
+      body.projectId === undefined
+        ? undefined
+        : typeof body.projectId === "string" && body.projectId.trim()
+          ? body.projectId.trim()
+          : null;
 
     let saved = 0;
     let failed = 0;
@@ -484,11 +482,29 @@ export async function POST(request: Request) {
           : graph?.isOutbound === true,
       };
 
+      // Resolve the contact for each message when bulk-selecting across different senders.
+      let targetContactId = contactId;
+      const candidateAddresses = [
+        seedMessage.senderEmail?.trim().toLowerCase(),
+        ...(seedMessage.recipientEmails ?? []).map((addr) => addr.trim().toLowerCase()),
+      ].filter((addr): addr is string => Boolean(addr && addr.includes("@")));
+
+      for (const candidateEmail of candidateAddresses) {
+        const matched = await findPrismaContactByIdOrEmail(candidateEmail).catch(() => null);
+        if (matched?.id) {
+          targetContactId = matched.id;
+          break;
+        }
+      }
+
       if (opportunityId !== undefined || projectId !== undefined) {
         const result = await setConversationLinksForContact(
-          contactId,
+          targetContactId,
           conversationId,
-          { opportunityId: opportunityId ?? null, projectId: projectId ?? null },
+          {
+            ...(opportunityId !== undefined ? { opportunityId } : {}),
+            ...(projectId !== undefined ? { projectId } : {}),
+          },
           { seedMessage },
         );
         if (result.updated > 0) saved += 1;
@@ -497,7 +513,7 @@ export async function POST(request: Request) {
       }
 
       const captured = await captureOutlookMessageForContact(
-        contactId,
+        targetContactId,
         conversationId,
         seedMessage,
       );

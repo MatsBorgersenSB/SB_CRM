@@ -408,13 +408,16 @@ export async function fetchMessagesWithSmartCrmMasterCategory(
     }));
 }
 
+export type MailDeltaFolder = "inbox" | "sentitems";
+
 export async function fetchMailDelta(
   accessToken: string,
   deltaOrNextUrl?: string | null,
+  folder: MailDeltaFolder = "inbox",
 ): Promise<MailDeltaPage> {
   const path =
     deltaOrNextUrl ||
-    "/me/mailFolders/inbox/messages/delta?$select=id,conversationId,subject,bodyPreview,webLink,from,toRecipients,ccRecipients,sentDateTime,receivedDateTime,categories,hasAttachments";
+    `/me/mailFolders/${folder}/messages/delta?$select=id,conversationId,subject,bodyPreview,webLink,from,toRecipients,ccRecipients,sentDateTime,receivedDateTime,categories,hasAttachments`;
 
   const payload = await graphRequest<{
     value?: GraphMailMessage[];

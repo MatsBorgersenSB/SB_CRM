@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PenSquare } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { PenSquare, RefreshCw } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
 import { useAuth } from "@/context/auth-context";
 import { buildMailActivityPreset } from "@/lib/mail-activity-draft";
@@ -75,6 +76,7 @@ export function MailShell({
   assignableUsers?: StandardBioUserRecord[];
 }) {
   const { user } = useAuth();
+  const router = useRouter();
   const {
     state: filterState,
     searchQuery,
@@ -93,7 +95,43 @@ export function MailShell({
     resetFilters,
   } = useMailSmartFilters();
 
+  const [prevMessagesProp, setPrevMessagesProp] = useState(messages);
   const [localMessages, setLocalMessages] = useState(messages);
+  if (messages !== prevMessagesProp) {
+    setPrevMessagesProp(messages);
+    setLocalMessages(messages);
+  }
+  const [syncingMailbox, setSyncingMailbox] = useState(false);
+
+  const syncMailboxNow = async () => {
+    setSyncingMailbox(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await fetch("/api/m365/mail-sync", {
+        method: "POST",
+        credentials: "include",
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        result?: { upserted?: number };
+      };
+      if (!response.ok) {
+        throw new Error(body.error ?? "Mail sync failed");
+      }
+      const upserted = body.result?.upserted ?? 0;
+      setNotice(
+        upserted === 0
+          ? "Outlook mailbox is up to date."
+          : `Synced ${upserted} message${upserted === 1 ? "" : "s"} from Outlook.`,
+      );
+      router.refresh();
+    } catch (syncErr) {
+      setError(syncErr instanceof Error ? syncErr.message : "Mail sync failed");
+    } finally {
+      setSyncingMailbox(false);
+    }
+  };
   // Decide first: open on what needs the user, when anything does.
   const [view, setView] = useState<MailView>(() =>
     countMailViews(groupMailIntoThreads(messages)).needs_you > 0 ? "needs_you" : "all",
@@ -475,15 +513,29 @@ export function MailShell({
               title="Mail"
               subtitle="What needs you first — then everything SmartCRM has tied to your work."
             />
-            <a
-              href={outlookComposeUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[13px] font-semibold text-white hover:bg-upcycle-orange/90"
-            >
-              <PenSquare className="size-4" aria-hidden />
-              New mail
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={syncingMailbox}
+                onClick={() => void syncMailboxNow()}
+                className="inline-flex items-center gap-2 border border-carbon-blue/20 bg-white px-3.5 py-2 text-[13px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`size-4 ${syncingMailbox ? "animate-spin" : ""}`}
+                  aria-hidden
+                />
+                {syncingMailbox ? "Syncing Outlook…" : "Sync Outlook"}
+              </button>
+              <a
+                href={outlookComposeUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[13px] font-semibold text-white hover:bg-upcycle-orange/90"
+              >
+                <PenSquare className="size-4" aria-hidden />
+                New mail
+              </a>
+            </div>
           </section>
 
           <nav

@@ -3,6 +3,7 @@
 import { formatTime } from "@/lib/regional-format-preference";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -16,6 +17,7 @@ type M365Status = {
  * Quiet Outlook mail sync control — lives in the sidebar footer, not a product header.
  */
 export function M365MailSyncHeaderButton({ compact = false }: { compact?: boolean }) {
+  const router = useRouter();
   const [status, setStatus] = useState<M365Status | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -35,8 +37,23 @@ export function M365MailSyncHeaderButton({ compact = false }: { compact?: boolea
   }, []);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let active = true;
+    void fetch("/api/m365/status", { credentials: "include" })
+      .then(async (response) => {
+        if (!active) return;
+        if (!response.ok) {
+          setStatus(null);
+          return;
+        }
+        setStatus((await response.json()) as M365Status);
+      })
+      .catch(() => {
+        if (active) setStatus(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const syncNow = async () => {
     setSyncing(true);
@@ -61,6 +78,7 @@ export function M365MailSyncHeaderButton({ compact = false }: { compact?: boolea
           : `Synced ${upserted} message${upserted === 1 ? "" : "s"}`,
       );
       await reload();
+      router.refresh();
     } catch (syncError) {
       setError(syncError instanceof Error ? syncError.message : "Mail sync failed");
     } finally {
