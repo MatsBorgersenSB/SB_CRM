@@ -51,6 +51,7 @@ export function AttentionQueueTable({
   const [dismissTick, setDismissTick] = useState(0);
   const [hydrated, setHydrated] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate client-only dismissal state after mount
   useEffect(() => setHydrated(true), []);
 
   const visible = useMemo(() => {
@@ -79,9 +80,9 @@ export function AttentionQueueTable({
   return (
     <WorkspaceTable>
       <colgroup>
-        <col className="w-[8%]" />
+        <col className="w-[11%]" />
         <col className="w-[14%]" />
-        <col className="w-[26%]" />
+        <col className="w-[23%]" />
         <col className="w-[18%]" />
         <col className="w-[11%]" />
         <col className="w-[11%]" />
@@ -105,9 +106,9 @@ export function AttentionQueueTable({
           return (
             <WorkspaceTableBodyRow key={item.id}>
               <WorkspaceTableBodyCell>
-                <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-medium text-carbon-blue/80">
                   <SeverityIcon severity={item.severity} size="sm" />
-                  <span className="sr-only">{ATTENTION_SEVERITY_LABELS[item.severity]}</span>
+                  <span className="truncate">{ATTENTION_SEVERITY_LABELS[item.severity]}</span>
                 </span>
               </WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell>

@@ -13,11 +13,11 @@
   --dashboard-surface: #ffffff;
   --dashboard-card: #ffffff;
   --dashboard-card-border: rgba(31, 28, 36, 0.08);
-  --dashboard-muted: rgba(31, 28, 36, 0.45);
+  --dashboard-muted: rgba(31, 28, 36, 0.62);
   --command-overlay: rgba(15, 14, 17, 0.52);
   --command-surface: #ffffff;
   --command-border: rgba(31, 28, 36, 0.1);
-  --command-muted: rgba(31, 28, 36, 0.45);
+  --command-muted: rgba(31, 28, 36, 0.62);
   --command-subtle: rgba(31, 28, 36, 0.06);
   --command-hover: rgba(230, 81, 37, 0.08);
   --command-text: #1f1c24;
@@ -25,15 +25,17 @@
   --card: #ffffff;
   --card-foreground: #1f1c24;
   --muted: #f4f4f5;
-  --muted-foreground: rgba(31, 28, 36, 0.58);
+  --muted-foreground: rgba(31, 28, 36, 0.68);
   --border: rgba(31, 28, 36, 0.1);
   --accent: rgba(230, 81, 37, 0.08);
   --accent-foreground: #1f1c24;
-  --primary: #e65125;
+  --primary: #d6451b;
   --primary-foreground: #ffffff;
+  --upcycle-orange: #d6451b;
+  --thermal-red: #801712;
   --destructive: #801712;
   --destructive-foreground: #ffffff;
-  --ring: #e65125;
+  --ring: #d6451b;
   color-scheme: light;
 }
 
@@ -47,11 +49,11 @@ html.dark {
   --dashboard-surface: #161418;
   --dashboard-card: #1a181c;
   --dashboard-card-border: rgba(255, 255, 255, 0.08);
-  --dashboard-muted: rgba(243, 243, 243, 0.5);
+  --dashboard-muted: rgba(243, 243, 243, 0.68);
   --command-overlay: rgba(0, 0, 0, 0.72);
   --command-surface: #1a181c;
   --command-border: rgba(255, 255, 255, 0.1);
-  --command-muted: rgba(243, 243, 243, 0.45);
+  --command-muted: rgba(243, 243, 243, 0.68);
   --command-subtle: rgba(255, 255, 255, 0.04);
   --command-hover: rgba(230, 81, 37, 0.14);
   --command-text: #eceaee;
@@ -59,15 +61,17 @@ html.dark {
   --card: #1a181c;
   --card-foreground: #eceaee;
   --muted: rgba(255, 255, 255, 0.05);
-  --muted-foreground: rgba(236, 234, 238, 0.58);
+  --muted-foreground: rgba(236, 234, 238, 0.72);
   --border: rgba(255, 255, 255, 0.1);
   --accent: rgba(230, 81, 37, 0.14);
   --accent-foreground: #eceaee;
-  --primary: #e65125;
-  --primary-foreground: #ffffff;
+  --primary: #ff7347;
+  --primary-foreground: #121014;
+  --upcycle-orange: #ff7347;
+  --thermal-red: #f0b4ae;
   --destructive: #f0b4ae;
   --destructive-foreground: #1f1c24;
-  --ring: #e65125;
+  --ring: #ff7347;
   color-scheme: dark;
 }
 
@@ -87,9 +91,9 @@ html.dark {
   --color-destructive-foreground: var(--destructive-foreground);
   --color-ring: var(--ring);
 
-  --color-upcycle-orange: #e65125;
+  --color-upcycle-orange: var(--upcycle-orange);
   --color-carbon-blue: var(--carbon-blue);
-  --color-thermal-red: #801712;
+  --color-thermal-red: var(--thermal-red);
   --color-flame: #fad491;
   --color-light-grey: var(--light-grey);
 

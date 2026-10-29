@@ -549,23 +549,27 @@ export function getHealthScoreExplanation(): string {
 /** Shown wherever a status badge would otherwise claim a health we cannot know. */
 export const HEALTH_NO_SIGNAL_LABEL = "No data yet";
 export const HEALTH_NO_SIGNAL_STYLE =
-  "border-carbon-blue/15 bg-carbon-blue/[0.03] text-carbon-blue/50";
+  "border-carbon-blue/15 bg-carbon-blue/[0.03] text-carbon-blue/65";
 
 export const HEALTH_STATUS_STYLES: Record<
   RelationshipHealthStatus,
   string
 > = {
-  Strategic: "border-violet-500/35 bg-violet-500/10 text-violet-700",
-  Strong: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700",
-  Healthy: "border-sky-500/30 bg-sky-500/10 text-sky-700",
+  Strategic:
+    "border-violet-500/35 bg-violet-500/10 text-violet-700 dark:border-violet-400/35 dark:bg-violet-400/15 dark:text-violet-300",
+  Strong:
+    "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/35 dark:bg-emerald-400/15 dark:text-emerald-300",
+  Healthy:
+    "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:border-sky-400/35 dark:bg-sky-400/15 dark:text-sky-300",
   Weak: "border-upcycle-orange/30 bg-upcycle-orange/10 text-upcycle-orange",
-  "At Risk": "border-red-500/30 bg-red-500/10 text-red-700",
+  "At Risk":
+    "border-red-500/30 bg-red-500/10 text-red-700 dark:border-red-400/35 dark:bg-red-400/15 dark:text-red-300",
 };
 
 export const TREND_STYLES: Record<RelationshipTrend, string> = {
-  Improving: "text-emerald-600",
-  Stable: "text-carbon-blue/50",
-  Declining: "text-red-600",
+  Improving: "text-emerald-700 dark:text-emerald-300",
+  Stable: "text-carbon-blue/65",
+  Declining: "text-red-700 dark:text-red-300",
 };
 
 export type { RecommendedAction, RelationshipHealthSnapshot } from "@/lib/next-best-action-engine";

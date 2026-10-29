@@ -22,7 +22,15 @@ import {
   suggestDocumentName,
   suggestDocumentNames,
 } from "@/lib/smartdoc-identity";
-import { normalizeSmartDocCategory } from "@/types/smartdoc-library";
+import {
+  isCompanyOwnedSmartDoc,
+  isProjectOwnedSmartDoc,
+  normalizeSmartDocCategory,
+  normalizeSmartDocOrigin,
+  SMARTDOC_ORIGIN_LABELS,
+} from "@/types/smartdoc-library";
+import { company360Href } from "@/types/company-360";
+import { deal360Href, projectDocumentsHref } from "@/types/relationship-navigation";
 import { buildSmartDocRegistry } from "@/lib/smartdoc-registry";
 import {
   getActivitiesReferencingDocument,
@@ -51,10 +59,18 @@ export type Document360Header = {
 };
 
 export type Document360BusinessContext = {
+  ownershipKind: "company" | "project" | "opportunity";
   plNumber: string;
   dealName: string;
+  dealHref?: string;
   clientName: string;
+  clientHref?: string;
+  projectName?: string;
+  projectHref?: string;
   commercialStage: string;
+  originLabel?: string;
+  counterparty?: string;
+  sharePointPath?: string;
 };
 
 export type Document360SmartDocsMeta = {
@@ -186,23 +202,65 @@ function buildRelatedGroups(
   const currentId = libraryRecord?.SmartDocID ?? document.id;
 
   if (libraryRecord) {
-    const sameDeal = library
-      .filter((record) => record.DealId === libraryRecord.DealId && record.SmartDocID !== currentId)
-      .map((record) => ({
-        id: record.SmartDocID,
-        name: record.DocumentName,
-        href: document360Href(record.SmartDocID),
-        meta: `${resolveCategoryLabel(record.DocCategory)} · ${record.DocType}`,
-      }));
+    if (libraryRecord.DealId) {
+      const sameDeal = library
+        .filter((record) => record.DealId === libraryRecord.DealId && record.SmartDocID !== currentId)
+        .map((record) => ({
+          id: record.SmartDocID,
+          name: record.DocumentName,
+          href: document360Href(record.SmartDocID),
+          meta: `${resolveCategoryLabel(record.DocCategory)} · ${record.DocType}`,
+        }));
 
-    if (sameDeal.length > 0) {
-      groups.push({ id: "deal", label: "Same deal", documents: sameDeal });
+      if (sameDeal.length > 0) {
+        groups.push({ id: "deal", label: "Same deal", documents: sameDeal });
+      }
+    }
+
+    if (libraryRecord.OwnerCompanyId) {
+      const sameCompany = library
+        .filter(
+          (record) =>
+            record.OwnerCompanyId === libraryRecord.OwnerCompanyId &&
+            record.SmartDocID !== currentId,
+        )
+        .map((record) => ({
+          id: record.SmartDocID,
+          name: record.DocumentName,
+          href: document360Href(record.SmartDocID),
+          meta: `${resolveCategoryLabel(record.DocCategory)} · ${record.DocType}`,
+        }));
+
+      if (sameCompany.length > 0) {
+        groups.push({ id: "company", label: "Same company", documents: sameCompany });
+      }
+    }
+
+    if (libraryRecord.LinkedProjectId) {
+      const sameProject = library
+        .filter(
+          (record) =>
+            record.LinkedProjectId === libraryRecord.LinkedProjectId &&
+            record.SmartDocID !== currentId,
+        )
+        .map((record) => ({
+          id: record.SmartDocID,
+          name: record.DocumentName,
+          href: document360Href(record.SmartDocID),
+          meta: `${resolveCategoryLabel(record.DocCategory)} · ${record.DocType}`,
+        }));
+
+      if (sameProject.length > 0) {
+        groups.push({ id: "project", label: "Same project", documents: sameProject });
+      }
     }
 
     const sameCategory = library
       .filter(
         (record) =>
-          record.DealId === libraryRecord.DealId &&
+          ((libraryRecord.DealId && record.DealId === libraryRecord.DealId) ||
+            (libraryRecord.OwnerCompanyId &&
+              record.OwnerCompanyId === libraryRecord.OwnerCompanyId)) &&
           record.DocCategory === libraryRecord.DocCategory &&
           record.SmartDocID !== currentId,
       )
@@ -332,11 +390,34 @@ export function buildDocument360Snapshot(
         createdAt: libraryRecord?.CreatedAt ?? new Date().toISOString(),
       };
 
+  const primaryCompany = linkedCompanies[0];
+  const companyOwned = libraryRecord ? isCompanyOwnedSmartDoc(libraryRecord) : false;
+  const projectOwned = libraryRecord ? isProjectOwnedSmartDoc(libraryRecord) : false;
+  const origin = libraryRecord ? normalizeSmartDocOrigin(libraryRecord.Origin) : "unknown";
+
   const businessContext: Document360BusinessContext = {
+    ownershipKind: projectOwned ? "project" : companyOwned ? "company" : "opportunity",
     plNumber: dealContext.plNumber,
     dealName: dealContext.dealName,
-    clientName: dealContext.clientName,
+    dealHref: pipeline
+      ? deal360Href(pipeline.id)
+      : libraryRecord?.DealId
+        ? deal360Href(libraryRecord.DealId)
+        : undefined,
+    clientName: primaryCompany?.Title ?? dealContext.clientName,
+    clientHref: primaryCompany
+      ? company360Href(primaryCompany.CompanyID)
+      : libraryRecord?.OwnerCompanyId
+        ? company360Href(libraryRecord.OwnerCompanyId)
+        : undefined,
+    projectName: projectOwned ? libraryRecord?.DealName || "Project" : undefined,
+    projectHref: libraryRecord?.LinkedProjectId
+      ? projectDocumentsHref(libraryRecord.LinkedProjectId)
+      : undefined,
     commercialStage: dealContext.commercialStage,
+    originLabel: origin !== "unknown" ? SMARTDOC_ORIGIN_LABELS[origin] : undefined,
+    counterparty: libraryRecord?.Counterparty,
+    sharePointPath: libraryRecord?.SharePointFolderPath,
   };
 
   const documentId = libraryRecord?.SmartDocID ?? document.id;

@@ -1,8 +1,21 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { workspaceDocumentsHref } from "../types/relationship-navigation";
-import { workspaceDocumentsContextFromProject, WORKSPACE_PROJECT_DOCUMENT_PRESETS, workspaceDocumentsLinkSummary } from "./workspace-documents-data";
-import { SMARTDOC_TYPES } from "../types/smartdoc-library";
+import {
+  buildAllWorkspaceDocumentRows,
+  workspaceDocumentsContextFromProject,
+  WORKSPACE_PROJECT_DOCUMENT_PRESETS,
+  workspaceDocumentsLinkSummary,
+} from "./workspace-documents-data";
+import {
+  buildWorkspaceDocumentFilterDefinitions,
+  filterWorkspaceDocumentRows,
+} from "./workspace-documents-table";
+import { computeDocumentIntelligence } from "./document-intelligence-engine";
+import { buildDocument360Snapshot } from "./document-360-data";
+import { smartDocFromLibraryRecord } from "../types/smartdoc";
+import { SMARTDOC_TYPES, type SmartDocLibraryRecord } from "../types/smartdoc-library";
+import type { Company } from "../types/company";
 import type { PipelineRow } from "../types/pipeline";
 import type { Project } from "../types/project";
 
@@ -73,5 +86,81 @@ describe("project documents stay on the project", () => {
       workspaceDocumentsLinkSummary(context),
       /\/Projects\/Carbón Emergente\/Escalante/,
     );
+  });
+
+  it("assigns statusKind='project' to project-owned SmartDocs and exposes 'On a project' filter", () => {
+    const projectDoc: SmartDocLibraryRecord = {
+      id: 1,
+      SmartDocID: "PRJ-CARBON-EMERGENTE-E-DRW-0001",
+      DealId: null,
+      Ownership: "project",
+      LinkedProjectId: "PRJ-CARBON-EMERGENTE",
+      PlNumber: "PRJ-CARBON-EMERGENTE",
+      ClientName: "Carbón Emergente",
+      DealName: "Escalante",
+      CommercialStage: "Commissioning",
+      CreatedAt: "2026-10-01T10:00:00.000Z",
+      DocCategory: "Engineering",
+      DocType: "Drawing",
+      DocumentName: "P&ID Layout",
+      Revision: "01",
+      FileLeafRef: "pid.pdf",
+    };
+
+    const rows = buildAllWorkspaceDocumentRows([projectDoc], [], []);
+    assert.equal(rows[0]?.statusKind, "project");
+
+    const defs = buildWorkspaceDocumentFilterDefinitions(rows);
+    const statusDef = defs.find((d) => d.id === "status");
+    assert.ok(statusDef?.options.some((opt) => opt.value === "project" && opt.label === "On a project"));
+
+    const filtered = filterWorkspaceDocumentRows(rows, {
+      search: "",
+      filters: { status: "project" },
+    });
+    assert.equal(filtered.length, 1);
+  });
+
+  it("resolves company ownership, AccountOwner, and Reality First permit intelligence for company-owned SmartDocs", () => {
+    const company = {
+      id: 1,
+      CompanyID: "CO-1009",
+      Title: "Vest Biogass AS",
+      Industry: "Biogas",
+      Status: "Active",
+      AccountOwner: { Id: 1, Title: "Mats" },
+      contacts: [],
+      pipelineIds: [],
+    } as unknown as Company;
+    const permitRecord: SmartDocLibraryRecord = {
+      id: 2,
+      SmartDocID: "CO-1009-Q-CER-0001",
+      DealId: null,
+      OwnerCompanyId: "CO-1009",
+      Ownership: "company",
+      PlNumber: "CO-1009",
+      ClientName: "Vest Biogass AS",
+      DealName: "Vest Biogass AS",
+      CommercialStage: "Company",
+      CreatedAt: "2026-10-15T10:00:00.000Z",
+      DocCategory: "Quality",
+      DocType: "Certificate",
+      DocumentName: "Utslippstillatelse Statsforvalteren",
+      Revision: "01",
+      FileLeafRef: "tillatelse.pdf",
+      Origin: "external",
+    };
+
+    const doc = smartDocFromLibraryRecord(permitRecord);
+    const intel = computeDocumentIntelligence(doc, [], [company], []);
+    assert.equal(intel.ownerLabel, "Mats");
+    assert.equal(intel.approvalStatus, "Approved");
+    assert.ok(!intel.risks.some((r) => r.type === "missing_owner"));
+    assert.ok(!intel.risks.some((r) => r.type === "expiring_certificate"));
+
+    const snapshot = buildDocument360Snapshot(doc, [], [company], [], [permitRecord], []);
+    assert.equal(snapshot.businessContext.ownershipKind, "company");
+    assert.equal(snapshot.businessContext.clientName, "Vest Biogass AS");
+    assert.equal(snapshot.businessContext.originLabel, "External");
   });
 });

@@ -31,6 +31,10 @@ export type SmartDocRecord = {
   revision: string;
   clientLookup: string;
   pipelineId: string | null;
+  ownerCompanyId?: string;
+  linkedProjectId?: string | null;
+  origin?: import("@/types/smartdoc-library").SmartDocOrigin;
+  counterparty?: string;
   source: "pipeline" | "activity";
 };
 
@@ -51,7 +55,11 @@ export function smartDocFromLibraryRecord(
     docType: record.DocType,
     revision: record.Revision,
     clientLookup: record.PlNumber,
-    pipelineId: record.DealId,
+    pipelineId: record.DealId ?? record.LinkedDealId ?? null,
+    ownerCompanyId: record.OwnerCompanyId,
+    linkedProjectId: record.LinkedProjectId ?? null,
+    origin: record.Origin,
+    counterparty: record.Counterparty,
     source: "pipeline",
   };
 }

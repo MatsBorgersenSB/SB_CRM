@@ -85,6 +85,18 @@ export function getLinkedCompaniesForDocument(
   companies: Company[],
   pipelines: PipelineRow[],
 ): Company[] {
+  if (document.ownerCompanyId) {
+    const owned = companies.find(
+      (c) => c.CompanyID.toLowerCase() === document.ownerCompanyId!.toLowerCase(),
+    );
+    if (owned) return [owned];
+  }
+
+  const byClientLookupCompany = companies.find(
+    (c) => c.CompanyID.toLowerCase() === document.clientLookup.toLowerCase(),
+  );
+  if (byClientLookupCompany) return [byClientLookupCompany];
+
   const dealId = document.pipelineId ?? document.clientLookup;
   const company = findCompanyForDeal(dealId, companies);
   if (company) return [company];

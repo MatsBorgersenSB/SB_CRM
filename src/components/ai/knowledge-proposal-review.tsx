@@ -22,6 +22,7 @@ type Scope = {
   meetingId?: string | null;
   opportunityId?: string | null;
   companyId?: string | null;
+  all?: boolean;
 };
 
 const TYPE_LABEL: Record<StoredProposal["type"], string> = {
@@ -38,6 +39,7 @@ function scopeQuery(scope: Scope): string {
   if (scope.meetingId) q.set("meetingId", scope.meetingId);
   if (scope.opportunityId) q.set("opportunityId", scope.opportunityId);
   if (scope.companyId) q.set("companyId", scope.companyId);
+  if (scope.all) q.set("all", "1");
   return q.toString();
 }
 

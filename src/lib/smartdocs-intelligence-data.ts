@@ -114,9 +114,15 @@ export function buildSmartDocsIntelligence(
   const missingCritical: SmartDocsIntelligenceSnapshot["missingCriticalDocuments"] = [];
 
   for (const deal of pipelines) {
+    const dealCompany = companies.find((c) => c.pipelineIds.includes(deal.id));
+    const dealCompanyId = dealCompany?.CompanyID.toLowerCase();
     const hasDoc = documents.some(
       (d) =>
-        (d.pipelineId === deal.id || d.clientLookup === deal.id) &&
+        (d.pipelineId === deal.id ||
+          d.clientLookup === deal.id ||
+          (dealCompanyId !== undefined &&
+            (d.ownerCompanyId?.toLowerCase() === dealCompanyId ||
+              d.clientLookup.toLowerCase() === dealCompanyId))) &&
         (d.docCategory === "Legal" || isPermitSmartDocCategory(d.docCategory)),
     );
     if (

@@ -3,7 +3,11 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { WorkspaceDocumentsBrowseTable } from "@/components/documents/workspace-documents-browse-table";
-import { MissingCriticalDocumentRow } from "@/components/smartdocs/smartdocs-intelligence-row";
+import { KnowledgeProposalReview } from "@/components/ai/knowledge-proposal-review";
+import {
+  MissingCriticalDocumentRow,
+  SmartDocsIntelligenceRow,
+} from "@/components/smartdocs/smartdocs-intelligence-row";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { IntelligenceLead } from "@/components/ui/intelligence-lead";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
@@ -31,8 +35,11 @@ import {
 import type { Activity } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import type { StoredResearchReport } from "@/types/research-report";
 import type { SmartDocLibraryRecord } from "@/types/smartdoc-library";
 import type { WorkspaceFilterValues } from "@/types/workspace-filters";
+import { company360Href } from "@/types/company-360";
+import { deal360Href } from "@/types/relationship-navigation";
 
 const DOCUMENT_FILTER_KEYS = ["origin", "category", "type", "status", "recency"];
 
@@ -41,6 +48,8 @@ type KnowledgeShellProps = {
   pipelines: PipelineRow[];
   activities: Activity[];
   library: SmartDocLibraryRecord[];
+  researchReports?: StoredResearchReport[];
+  selectedReportId?: string;
 };
 
 export function KnowledgeShell({
@@ -48,6 +57,8 @@ export function KnowledgeShell({
   pipelines,
   activities,
   library,
+  researchReports = [],
+  selectedReportId,
 }: KnowledgeShellProps) {
   const { user } = useAuth();
   const [tableQuery, setTableQuery] = useState(defaultDocumentTableQuery);
@@ -75,9 +86,40 @@ export function KnowledgeShell({
     [pipelines, user, companies],
   );
 
+  const scopedLibrary = useMemo(() => {
+    if (user.role !== "client_lead") return library;
+    const companyIds = new Set(scopedCompanies.map((c) => c.CompanyID));
+    const companyNames = new Set(scopedCompanies.map((c) => c.Title.toLowerCase()));
+    const dealIds = new Set(scopedPipelines.map((p) => p.id));
+    return library.filter(
+      (record) =>
+        (record.OwnerCompanyId && companyIds.has(record.OwnerCompanyId)) ||
+        (record.DealId && dealIds.has(record.DealId)) ||
+        (record.LinkedDealId && dealIds.has(record.LinkedDealId)) ||
+        (record.ClientName && companyNames.has(record.ClientName.toLowerCase())),
+    );
+  }, [library, scopedCompanies, scopedPipelines, user.role]);
+
+  const scopedActivities = useMemo(() => {
+    if (user.role !== "client_lead") return activities;
+    const companyNames = new Set(scopedCompanies.map((c) => c.Title.toLowerCase()));
+    const dealIds = new Set(scopedPipelines.map((p) => p.id));
+    return activities.filter(
+      (activity) =>
+        (activity.Company?.Title && companyNames.has(activity.Company.Title.toLowerCase())) ||
+        (activity.Deal?.Title && dealIds.has(activity.Deal.Title)),
+    );
+  }, [activities, scopedCompanies, scopedPipelines, user.role]);
+
   const rows = useMemo(
-    () => buildAllWorkspaceDocumentRows(library, scopedPipelines, scopedCompanies),
-    [library, scopedPipelines, scopedCompanies],
+    () =>
+      buildAllWorkspaceDocumentRows(
+        scopedLibrary,
+        scopedPipelines,
+        scopedCompanies,
+        scopedActivities,
+      ),
+    [scopedLibrary, scopedPipelines, scopedCompanies, scopedActivities],
   );
 
   const smartDocs = useMemo(
@@ -85,10 +127,10 @@ export function KnowledgeShell({
       buildSmartDocsIntelligence(
         scopedPipelines,
         scopedCompanies,
-        activities,
-        library,
+        scopedActivities,
+        scopedLibrary,
       ),
-    [activities, library, scopedCompanies, scopedPipelines],
+    [scopedActivities, scopedLibrary, scopedCompanies, scopedPipelines],
   );
 
   const missing = smartDocs.missingCriticalDocuments;
@@ -104,6 +146,17 @@ export function KnowledgeShell({
     () => applyWorkspaceDocumentTableQuery(rows, tableQuery),
     [rows, tableQuery],
   );
+
+  const selectedReport = useMemo(() => {
+    if (!selectedReportId) return null;
+    return (
+      researchReports.find(
+        (r) =>
+          r.reportId.toLowerCase() === selectedReportId.toLowerCase() ||
+          r.id.toLowerCase() === selectedReportId.toLowerCase(),
+      ) ?? null
+    );
+  }, [researchReports, selectedReportId]);
 
   const handleClearAllFilters = useCallback(() => {
     setTableQuery(defaultDocumentTableQuery());
@@ -141,9 +194,81 @@ export function KnowledgeShell({
             <WorkspacePageTitle
               icon="document"
               title="Knowledge"
-              subtitle="The documents behind our relationships and deals — what we hold, where it lives, and what is still missing."
+              subtitle="The documents and validated intelligence behind our relationships and deals — what we hold, where it lives, and what is still missing."
             />
           </section>
+
+          {selectedReport ? (
+            <WorkspacePanel title={selectedReport.typeLabel}>
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-[11px] font-semibold text-upcycle-orange">
+                      {selectedReport.reportId} · Rev {selectedReport.revision}
+                    </p>
+                    <h2 className="mt-1 text-lg font-semibold text-carbon-blue">
+                      {selectedReport.title}
+                    </h2>
+                    <p className="mt-1 text-sm text-carbon-blue/65">
+                      {selectedReport.strategicPriority}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-[12px] font-semibold">
+                    {selectedReport.metadata.companyId ? (
+                      <Link
+                        href={company360Href(selectedReport.metadata.companyId)}
+                        className="text-upcycle-orange hover:underline"
+                      >
+                        {selectedReport.metadata.companyName ?? "Open company"} →
+                      </Link>
+                    ) : null}
+                    {selectedReport.metadata.dealId ? (
+                      <Link
+                        href={deal360Href(selectedReport.metadata.dealId)}
+                        className="text-upcycle-orange hover:underline"
+                      >
+                        {selectedReport.metadata.dealName ?? "Open opportunity"} →
+                      </Link>
+                    ) : null}
+                    <Link
+                      href="/knowledge"
+                      className="border border-carbon-blue/15 px-2.5 py-1 text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange"
+                    >
+                      Close report
+                    </Link>
+                  </div>
+                </div>
+                <div className="grid gap-4 border-t border-carbon-blue/8 pt-4 sm:grid-cols-2">
+                  {selectedReport.sections.map((section) => (
+                    <div key={section.id} className="space-y-1.5">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-carbon-blue/60">
+                        {section.title}
+                      </h3>
+                      {section.paragraphs.map((paragraph, index) => (
+                        <p key={index} className="text-[13px] leading-relaxed text-carbon-blue/80">
+                          {paragraph}
+                        </p>
+                      ))}
+                      {section.bullets.length > 0 ? (
+                        <ul className="space-y-1 text-[13px] text-carbon-blue/80">
+                          {section.bullets.map((bullet, index) => (
+                            <li key={index}>
+                              <span className="font-semibold text-carbon-blue">
+                                {bullet.label}
+                              </span>
+                              {bullet.detail ? (
+                                <span className="text-carbon-blue/65"> — {bullet.detail}</span>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </WorkspacePanel>
+          ) : null}
 
           {hero ? (
             <IntelligenceLead
@@ -186,6 +311,25 @@ export function KnowledgeShell({
               </div>
             </WorkspacePanel>
           ) : null}
+
+          {smartDocs.knowledgeAtRisk.length > 0 ? (
+            <WorkspacePanel
+              title="Knowledge at risk"
+              count={smartDocs.knowledgeAtRisk.length}
+            >
+              <div className="-mx-6 -my-5">
+                {smartDocs.knowledgeAtRisk.slice(0, 3).map((item) => (
+                  <SmartDocsIntelligenceRow key={item.document.id} item={item} />
+                ))}
+              </div>
+            </WorkspacePanel>
+          ) : null}
+
+          <KnowledgeProposalReview
+            scope={{ all: true }}
+            role={user.role}
+            variant="collapsed"
+          />
 
           <WorkspacePanel title="Documents" count={displayedRows.length}>
             <div className="flex flex-col gap-4">

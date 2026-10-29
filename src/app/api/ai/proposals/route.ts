@@ -27,10 +27,11 @@ export async function GET(request: Request) {
     meetingId: param(url, "meetingId"),
     opportunityId: param(url, "opportunityId"),
     companyId: param(url, "companyId"),
+    all: param(url, "all") === "1",
   };
-  if (!scope.meetingId && !scope.opportunityId && !scope.companyId) {
+  if (!scope.all && !scope.meetingId && !scope.opportunityId && !scope.companyId) {
     return NextResponse.json(
-      { error: "Provide meetingId, opportunityId or companyId." },
+      { error: "Provide meetingId, opportunityId, companyId, or all=1." },
       { status: 400 },
     );
   }

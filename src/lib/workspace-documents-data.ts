@@ -49,7 +49,7 @@ export type WorkspaceDocumentRow = {
   counterparty?: string;
   version: string;
   status: string;
-  statusKind: "in_set" | "library" | "activity_link" | "company";
+  statusKind: "in_set" | "library" | "activity_link" | "company" | "project";
   relatedObjectLabel: string;
   relatedObjectHref?: string;
   modifiedLabel: string;
@@ -198,7 +198,7 @@ function workspaceDocumentRowFromLibraryRecord(
           ? `In ${record.DocumentSetID}`
           : "Library",
     statusKind: projectOwned
-      ? "library"
+      ? "project"
       : companyOwned
         ? "company"
         : record.DocumentSetID
@@ -317,19 +317,93 @@ export function buildWorkspaceDocumentRows(
   );
 }
 
-/** Organizational SmartDocs home — every library record, no workspace filter. */
+/** Organizational SmartDocs home — every library record and linked activity/deal doc, no workspace filter. */
 export function buildAllWorkspaceDocumentRows(
   library: SmartDocLibraryRecord[],
   pipelines: PipelineRow[],
   companies: Company[],
+  activities: Activity[] = [],
 ): WorkspaceDocumentRow[] {
   const rows: WorkspaceDocumentRow[] = [];
   const seen = new Set<string>();
+  const seenFilesByDeal = new Set<string>();
 
   for (const record of library) {
     if (seen.has(record.SmartDocID)) continue;
     seen.add(record.SmartDocID);
+    if (record.DealId && record.FileLeafRef) {
+      seenFilesByDeal.add(`${record.DealId}:${record.FileLeafRef}`);
+    }
     rows.push(workspaceDocumentRowFromLibraryRecord(record, pipelines, companies));
+  }
+
+  for (const pipeline of pipelines) {
+    if (!pipeline.FileLeafRef) continue;
+    if (seen.has(pipeline.id) || seenFilesByDeal.has(`${pipeline.id}:${pipeline.FileLeafRef}`)) {
+      continue;
+    }
+    seen.add(pipeline.id);
+    seenFilesByDeal.add(`${pipeline.id}:${pipeline.FileLeafRef}`);
+    const related = relatedObjectForDeal(pipeline.id, pipelines, companies, {
+      dealName: pipeline.assetName,
+      clientName: pipeline.ClientLookup,
+    });
+    rows.push({
+      id: pipeline.id,
+      name: pipeline.FileLeafRef,
+      docType: pipeline.DocType ?? "Document",
+      docCategory: pipeline.DocCategory ?? "General",
+      origin: "unknown",
+      originLabel: SMARTDOC_ORIGIN_LABELS.unknown,
+      version: pipeline.Revision ? `Rev ${pipeline.Revision}` : "Rev 01",
+      status: "Library",
+      statusKind: "library",
+      relatedObjectLabel: related.label,
+      relatedObjectHref: related.href,
+      modifiedLabel: "—",
+      modifiedAt: "",
+      href: documentHref(pipeline.id),
+    });
+  }
+
+  for (const activity of activities) {
+    for (const linked of activity.LinkedDocuments ?? []) {
+      const dealId = linked.DealId;
+      if (dealId && seen.has(dealId)) continue;
+      if (dealId && seenFilesByDeal.has(`${dealId}:${linked.Title}`)) continue;
+
+      const id =
+        dealId ??
+        `doc-${linked.Title.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48)}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+
+      const related = dealId
+        ? relatedObjectForDeal(dealId, pipelines, companies)
+        : {
+            label:
+              [activity.Contact?.Title, activity.Company?.Title]
+                .filter(Boolean)
+                .join(" · ") || activity.Subject,
+          };
+
+      rows.push({
+        id,
+        name: linked.Title,
+        docType: linked.DocCategory ?? "Linked",
+        docCategory: linked.DocCategory ?? "General",
+        origin: "unknown",
+        originLabel: SMARTDOC_ORIGIN_LABELS.unknown,
+        version: linked.Revision ? `Rev ${linked.Revision}` : "—",
+        status: "Activity link",
+        statusKind: "activity_link",
+        relatedObjectLabel: related.label,
+        relatedObjectHref: related.href,
+        modifiedLabel: formatRelativeTime(activity.ActivityDate),
+        modifiedAt: activity.ActivityDate,
+        href: documentHref(id),
+      });
+    }
   }
 
   return rows.sort(

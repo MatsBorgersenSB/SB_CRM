@@ -118,11 +118,11 @@ const SEARCH_ENTITY_ICON: Record<SearchEntityType, SmartCRMIconName> = {
  * contradict its word (no green tick beside "Needs attention").
  */
 const SEVERITY_ICON: Record<AttentionSeverity, { name: SmartCRMIconName; className: string; label: string }> = {
-  urgent: { name: "urgent", className: "text-red-600", label: "Urgent" },
-  needs_attention: { name: "needsAttention", className: "text-amber-600", label: "Needs attention" },
-  waiting: { name: "waiting", className: "text-carbon-blue/65", label: "Waiting" },
-  healthy: { name: "healthy", className: "text-emerald-600", label: "Healthy" },
-  completed: { name: "completed", className: "text-carbon-blue/65", label: "Completed" },
+  urgent: { name: "urgent", className: "text-red-600 dark:text-red-400", label: "Urgent" },
+  needs_attention: { name: "needsAttention", className: "text-amber-600 dark:text-amber-400", label: "Needs attention" },
+  waiting: { name: "waiting", className: "text-carbon-blue/70", label: "Waiting" },
+  healthy: { name: "healthy", className: "text-emerald-600 dark:text-emerald-400", label: "Healthy" },
+  completed: { name: "completed", className: "text-carbon-blue/70", label: "Completed" },
 };
 
 export function SmartCRMIcon({
@@ -313,6 +313,7 @@ export function WorkspacePanel({
 
   useEffect(() => {
     if (!collapsible || !collapseStorageKey) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate client collapse preference after mount
       setHydrated(true);
       return;
     }

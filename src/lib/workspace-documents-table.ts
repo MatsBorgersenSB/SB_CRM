@@ -150,6 +150,9 @@ export function buildWorkspaceDocumentFilterDefinitions(
     ...(rows.some((row) => row.statusKind === "company")
       ? [{ value: "company", label: "On a company" }]
       : []),
+    ...(rows.some((row) => row.statusKind === "project")
+      ? [{ value: "project", label: "On a project" }]
+      : []),
     ...(rows.some((row) => row.statusKind === "activity_link")
       ? [{ value: "activity_link", label: "On an activity" }]
       : []),

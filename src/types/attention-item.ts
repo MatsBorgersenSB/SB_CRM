@@ -96,11 +96,13 @@ import {
 export { ATTENTION_SEVERITY_ICONS, ATTENTION_OBJECT_ICONS };
 
 export const ATTENTION_SEVERITY_STYLES: Record<AttentionSeverity, string> = {
-  urgent: "border-red-500/25 bg-red-500/5 text-red-700",
+  urgent:
+    "border-red-500/25 bg-red-500/5 text-red-700 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-300",
   needs_attention: "border-upcycle-orange/25 bg-upcycle-orange/5 text-upcycle-orange",
-  waiting: "border-carbon-blue/15 bg-carbon-blue/[0.03] text-carbon-blue/70",
-  healthy: "border-emerald-500/20 bg-emerald-500/5 text-emerald-700",
-  completed: "border-carbon-blue/10 bg-carbon-blue/[0.02] text-carbon-blue/65",
+  waiting: "border-carbon-blue/15 bg-carbon-blue/[0.03] text-carbon-blue/75",
+  healthy:
+    "border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300",
+  completed: "border-carbon-blue/10 bg-carbon-blue/[0.02] text-carbon-blue/70",
 };
 
 export const SEVERITY_RANK: Record<AttentionSeverity, number> = {

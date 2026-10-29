@@ -19,12 +19,17 @@ import type {
   KnowledgeSourceRef,
   KnowledgeType,
 } from "@/lib/ai/knowledge-proposal";
+import {
+  loadCompanyDocumentKnowledge,
+  saveCompanyDocumentKnowledge,
+} from "@/lib/company-document-knowledge-data";
 import { getPrisma } from "@/lib/prisma";
 
 export type ProposalScope = {
   meetingId?: string | null;
   opportunityId?: string | null;
   companyId?: string | null;
+  all?: boolean;
 };
 
 export type StoredProposal = {
@@ -38,6 +43,9 @@ export type StoredProposal = {
   source: KnowledgeSourceRef;
   ownerHint: string | null;
   dueHint: string | null;
+  meetingId?: string | null;
+  opportunityId?: string | null;
+  companyId?: string | null;
   status: ProposalStatus;
   createdAt: string;
 };
@@ -54,6 +62,9 @@ type Row = {
   sourceLabel: string;
   ownerHint: string | null;
   dueHint: string | null;
+  meetingId?: string | null;
+  opportunityId?: string | null;
+  companyId?: string | null;
   status: string;
   editedStatement: string | null;
   createdAt: Date;
@@ -74,6 +85,9 @@ function toStored(row: Row): StoredProposal {
     },
     ownerHint: row.ownerHint,
     dueHint: row.dueHint,
+    meetingId: row.meetingId ?? null,
+    opportunityId: row.opportunityId ?? null,
+    companyId: row.companyId ?? null,
     status: row.status as ProposalStatus,
     createdAt: row.createdAt.toISOString(),
   };
@@ -143,10 +157,11 @@ export async function replacePendingMeetingProposals(
 
 export async function listPendingProposals(scope: ProposalScope): Promise<StoredProposal[]> {
   const where = scopeWhere(scope);
-  if (Object.keys(where).length === 0) return [];
+  if (!scope.all && Object.keys(where).length === 0) return [];
   const rows = await getPrisma().knowledgeProposalRecord.findMany({
     where: { ...where, status: "proposed" },
     orderBy: { createdAt: "asc" },
+    take: scope.all ? 25 : undefined,
   });
   return rows.map(toStored);
 }
@@ -192,5 +207,46 @@ export async function decideProposal(
   }
 
   const fresh = await prisma.knowledgeProposalRecord.findUniqueOrThrow({ where: { id } });
-  return { ok: true, proposal: toStored(fresh) };
+  const stored = toStored(fresh);
+
+  // FS-021 Persistence rule: accepted/edited proposals materialize into the owning
+  // company knowledge record as a confirmed finding (never auto-creating contacts/relationships).
+  if (
+    (stored.status === "accepted" || stored.status === "edited") &&
+    stored.companyId &&
+    stored.type !== "relationship"
+  ) {
+    try {
+      const currentState = await loadCompanyDocumentKnowledge(stored.companyId);
+      const existingFindings = currentState.findings ?? [];
+      const findingId = `proposal-${stored.id}`;
+      if (!existingFindings.some((f) => f.id === findingId)) {
+        await saveCompanyDocumentKnowledge(stored.companyId, {
+          ...currentState,
+          findings: [
+            ...existingFindings,
+            {
+              id: findingId,
+              title: stored.source.label || "Meeting knowledge",
+              note: stored.evidence,
+              kind: "note",
+              addedAt: new Date().toISOString(),
+              claims: [
+                {
+                  id: `${findingId}-claim`,
+                  statement: stored.statement,
+                  impact: stored.impact,
+                  decision: "confirmed",
+                },
+              ],
+            },
+          ],
+        });
+      }
+    } catch {
+      /* Materialization is best-effort if the company row is not in Prisma. */
+    }
+  }
+
+  return { ok: true, proposal: stored };
 }

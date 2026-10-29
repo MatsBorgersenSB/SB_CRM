@@ -96,7 +96,7 @@ export function Document360PageShell({
     <WorkspaceChrome>
       <header className="flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)] px-4">
           <p className="text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-            SmartDocs
+            Knowledge
           </p>
           <RoleSwitcher companies={scopedCompanies} />
         </header>

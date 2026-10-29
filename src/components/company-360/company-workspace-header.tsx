@@ -123,30 +123,32 @@ export function CompanyWorkspaceHeader({
         />
       ) : null}
 
-      <div className="mt-3 border-l-2 border-upcycle-orange/50 pl-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/60">
-          Next
+      <div className="mt-3 max-w-[70ch] border-l-2 border-upcycle-orange/70 pl-3.5">
+        <p className="text-xs font-semibold tracking-tight text-carbon-blue/70">
+          Next recommended action
         </p>
         {nextLabel === "Collect competitor knowledge" ? (
           <a
             href="#add-finding"
-            className="mt-0.5 inline-block text-[14px] font-semibold text-upcycle-orange hover:underline"
+            className="mt-0.5 inline-flex items-center gap-1.5 text-[15px] font-semibold text-upcycle-orange underline-offset-2 hover:underline"
           >
             {nextLabel}
           </a>
         ) : (
-          <p className="mt-0.5 text-[14px] font-semibold text-carbon-blue">{nextLabel}</p>
+          <p className="mt-0.5 text-[15px] font-semibold leading-snug text-carbon-blue">
+            {nextLabel}
+          </p>
         )}
         {nextReason ? (
-          <p className="mt-0.5 text-[13px] leading-relaxed text-carbon-blue/55">{nextReason}</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-carbon-blue/70">{nextReason}</p>
         ) : null}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-carbon-blue/60">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-carbon-blue/70">
         {canEditOwner ? (
           <span
             className={`inline-flex min-w-0 items-center gap-1.5 ${
-              ownerAssigned ? "text-carbon-blue/60" : "font-medium text-thermal-red"
+              ownerAssigned ? "text-carbon-blue/70" : "font-medium text-thermal-red"
             }`}
           >
             <span>Owner</span>
@@ -165,7 +167,7 @@ export function CompanyWorkspaceHeader({
           <span
             className={
               ownerAssigned
-                ? "text-carbon-blue/60"
+                ? "text-carbon-blue/70"
                 : "font-medium text-thermal-red"
             }
           >

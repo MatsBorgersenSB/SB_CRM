@@ -162,16 +162,18 @@ function buildComponent(
 function scoreVersionCurrency(
   revision: string,
   pipeline: PipelineRow | undefined,
+  docCategory?: string,
 ): { score: number; detail: string } {
   const revNum = Number.parseInt(revision, 10) || 1;
-  let score = revNum >= 3 ? 100 : revNum === 2 ? 85 : 60;
+  let score = revNum >= 2 ? 100 : 90;
 
   if (
     pipeline &&
+    (docCategory === "Technical" || docCategory === "Engineering") &&
     ["Site Installation", "Commissioning Phase", "Live Production"].includes(pipeline.status) &&
     revNum < 2
   ) {
-    score = Math.min(score, 40);
+    score = 45;
   }
 
   return {
@@ -186,7 +188,7 @@ function scoreReviewStatus(daysSinceRef: number | null): {
   detail: string;
 } {
   if (daysSinceRef === null) {
-    return { score: 25, status: "Unknown", detail: "Never referenced in activity timeline" };
+    return { score: 65, status: "Unknown", detail: "Not yet referenced in an activity" };
   }
   if (daysSinceRef <= REVIEW_DUE_DAYS) {
     return { score: 100, status: "Current", detail: `Reviewed via activity ${daysSinceRef}d ago` };
@@ -205,13 +207,25 @@ function scoreApprovalStatus(
   doc: SmartDocRecord,
   pipeline: PipelineRow | undefined,
 ): { score: number; status: SmartDocApprovalStatus; detail: string } {
-  const needsApproval =
-    isPermitSmartDocCategory(doc.docCategory) ||
-    doc.docCategory === "Legal" ||
-    pipeline?.status === "Contract Negotiation";
+  if (doc.origin === "external" || isPermitSmartDocCategory(doc.docCategory)) {
+    return {
+      score: 100,
+      status: "Approved",
+      detail: isPermitSmartDocCategory(doc.docCategory)
+        ? "Filed permit / certificate record"
+        : "External counterparty document on file",
+    };
+  }
 
-  if (!needsApproval) {
-    return { score: 100, status: "Not Required", detail: "Approval not required for this category" };
+  const inContractNegotiation =
+    doc.docCategory === "Legal" && pipeline?.status === "Contract Negotiation";
+
+  if (!inContractNegotiation) {
+    return {
+      score: 100,
+      status: "Not Required",
+      detail: "Approval gate not active for this stage",
+    };
   }
 
   const rev = Number.parseInt(doc.revision, 10) || 1;
@@ -219,7 +233,7 @@ function scoreApprovalStatus(
     return { score: 100, status: "Approved", detail: `Revision ${doc.revision} approved` };
   }
   if (rev === 1) {
-    return { score: 50, status: "Pending", detail: "Initial revision pending approval" };
+    return { score: 60, status: "Pending", detail: "Contract negotiation draft (Rev 01)" };
   }
   return { score: 15, status: "Missing", detail: "Approval metadata missing" };
 }
@@ -286,13 +300,14 @@ function detectDocumentRisks(
   if (
     isPermitSmartDocCategory(doc.docCategory) &&
     (Number.parseInt(doc.revision, 10) || 1) <= CERTIFICATE_EXPIRY_REVISION &&
-    (daysSinceRef === null || daysSinceRef >= REVIEW_DUE_DAYS)
+    daysSinceRef !== null &&
+    daysSinceRef >= REVIEW_OVERDUE_DAYS
   ) {
     risks.push({
       id: `${doc.id}-expiring`,
       type: "expiring_certificate",
-      label: "Expiring certificate",
-      detail: "Permit or licence may expire without renewal review",
+      label: "Permit review overdue",
+      detail: `Permit or certificate has not been reviewed in ${daysSinceRef} days`,
       severity: "critical",
     });
   }
@@ -471,7 +486,7 @@ export function computeDocumentIntelligence(
   const linkedCompanies = getLinkedCompaniesForDocument(document, companies, pipelines);
   const contacts = getLinkedContactsForDocument(document, linkedCompanies, activities);
 
-  const version = scoreVersionCurrency(document.revision, pipeline);
+  const version = scoreVersionCurrency(document.revision, pipeline, document.docCategory);
   const review = scoreReviewStatus(daysSinceRef);
   const approval = scoreApprovalStatus(document, pipeline);
   const metadata = scoreMetadataCompleteness(document);
@@ -612,11 +627,27 @@ export function computeMissingDocumentsForCompany(
   allDocs: SmartDocRecord[],
 ): MissingDocumentsReport {
   const linked = pipelines.filter((p) => company.pipelineIds.includes(p.id));
+  const companyIdLower = company.CompanyID.toLowerCase();
   const companyDocs = allDocs.filter(
     (d) =>
+      d.ownerCompanyId?.toLowerCase() === companyIdLower ||
+      d.clientLookup.toLowerCase() === companyIdLower ||
       linked.some((p) => p.id === d.pipelineId) ||
       company.pipelineIds.includes(d.clientLookup),
   );
+
+  // Reality First: only require account-level commercial/permit governance docs
+  // when the company actually has active opportunities on file.
+  if (linked.length === 0) {
+    return {
+      entityId: company.CompanyID,
+      entityName: company.Title,
+      entityKind: "company",
+      items: [],
+      criticalCount: 0,
+      missingCount: 0,
+    };
+  }
 
   const specs: RequiredDocumentSpec[] = [
     { id: "nda", label: "Master NDA", docCategory: "Legal", critical: true },
