@@ -38,6 +38,13 @@ const HOUR_END = 19;
 const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, index) => HOUR_START + index);
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+function isBannerCalendarActivity(activity: CalendarActivity): boolean {
+  if (isAllDayActivityType(activity.type)) return true;
+  const startKey = activityDateKey(activity.startDate);
+  const endKey = activityDateKey(activity.endDate);
+  return Boolean(startKey && endKey && endKey > startKey);
+}
+
 const inputClass =
   "mt-1 w-full border border-border bg-white px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-primary/40";
 
@@ -47,12 +54,19 @@ export function ActivityCalendar() {
   const [sector, setSector] = useState<CalendarSectorFilter>("all");
   const [type, setType] = useState<SmartActivityType | "all">("all");
   const [activities, setActivities] = useState<CalendarActivity[]>([]);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [loadedRangeKey, setLoadedRangeKey] = useState<string>("");
+  const [errorRangeKey, setErrorRangeKey] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
 
   const range = useMemo(() => visibleRange(view, anchor), [view, anchor]);
   const rangeKey = `${range.start.toISOString()}|${range.end.toISOString()}`;
+  const status: "loading" | "ready" | "error" =
+    errorRangeKey === rangeKey
+      ? "error"
+      : loadedRangeKey === rangeKey
+        ? "ready"
+        : "loading";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -62,7 +76,6 @@ export function ActivityCalendar() {
     if (CALENDAR_QUERY.revalidateOnFocus) {
       window.addEventListener("focus", onFocus);
     }
-    setStatus("loading");
     const params = new URLSearchParams({
       startDate: range.start.toISOString(),
       endDate: range.end.toISOString(),
@@ -77,11 +90,12 @@ export function ActivityCalendar() {
       })
       .then((body) => {
         setActivities(body.activities);
-        setStatus("ready");
+        setLoadedRangeKey(rangeKey);
+        setErrorRangeKey("");
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setStatus("error");
+        setErrorRangeKey(rangeKey);
       });
     return () => {
       controller.abort();
@@ -364,7 +378,7 @@ function MonthGrid({
       </div>
       {weeks.map((week) => {
         const banners = activities
-          .filter((activity) => isAllDayActivityType(activity.type))
+          .filter((activity) => isBannerCalendarActivity(activity))
           .map((activity) => ({ activity, span: spanForDays(activity, week) }))
           .filter((item): item is { activity: CalendarActivity; span: { start: number; span: number } } =>
             Boolean(item.span),
@@ -403,7 +417,7 @@ function MonthGrid({
                 const key = dateKey(day);
                 const blocks = activities.filter(
                   (activity) =>
-                    !isAllDayActivityType(activity.type) && activityDateKey(activity.startDate) === key,
+                    !isBannerCalendarActivity(activity) && activityDateKey(activity.startDate) === key,
                 );
                 return (
                   <div key={key} className="flex min-h-16 flex-col gap-1 px-1 pb-1.5">
@@ -430,8 +444,8 @@ function TimeGrid({
   activities: CalendarActivity[];
   onOpen: (id: string) => void;
 }) {
-  const banners = activities.filter((activity) => isAllDayActivityType(activity.type));
-  const blocks = activities.filter((activity) => !isAllDayActivityType(activity.type));
+  const banners = activities.filter((activity) => isBannerCalendarActivity(activity));
+  const blocks = activities.filter((activity) => !isBannerCalendarActivity(activity));
   const today = dateKey(new Date());
 
   return (
@@ -710,11 +724,14 @@ function ActivityDetail({
 function formatWhen(activity: CalendarActivity): string {
   if (!activity.startDate) return "No date";
   const start = new Date(activity.startDate);
-  if (isAllDayActivityType(activity.type)) {
+  if (isBannerCalendarActivity(activity)) {
     const end = activity.endDate ? new Date(activity.endDate) : start;
     const startLabel = formatShortDate(start);
     const endLabel = formatShortDate(end);
-    return startLabel === endLabel ? `${startLabel} · all day` : `${startLabel} – ${endLabel} · all day`;
+    if (isAllDayActivityType(activity.type)) {
+      return startLabel === endLabel ? `${startLabel} · all day` : `${startLabel} – ${endLabel} · all day`;
+    }
+    return startLabel === endLabel ? `${startLabel}` : `${startLabel} – ${endLabel}`;
   }
   const time = formatTime(start);
   const day = start.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });

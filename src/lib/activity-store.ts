@@ -128,6 +128,7 @@ export function rowToActivity(row: Row): Activity {
     ActivityID: activityTrackingId(row.seq),
     ActivityType: displayType,
     ActivityDate: activityDate,
+    ActivityEndDate: row.endDate?.toISOString() ?? stored.ActivityEndDate,
     Subject: row.title || stored.Subject || "",
     Company: company,
     Deal: deal,
@@ -149,10 +150,14 @@ function columnsFromActivity(activity: Activity) {
   const smartType = toSmartActivityType(activity.ActivityType) || "NOTE";
   const start = activity.ActivityDate ? new Date(activity.ActivityDate) : null;
   const validStart = start && !Number.isNaN(start.getTime()) ? start : null;
+  const parsedEnd = activity.ActivityEndDate ? new Date(activity.ActivityEndDate) : null;
+  const validExplicitEnd =
+    parsedEnd && !Number.isNaN(parsedEnd.getTime()) ? parsedEnd : null;
   const end =
-    validStart && activity.DurationMinutes
+    validExplicitEnd ??
+    (validStart && activity.DurationMinutes
       ? new Date(validStart.getTime() + activity.DurationMinutes * 60_000)
-      : null;
+      : null);
   const event = activity.EventDetails;
   return {
     activityType: smartType,
@@ -279,6 +284,7 @@ export async function createActivityRecord(input: CreateActivityInput): Promise<
     ActivityID: "",
     ActivityType: input.ActivityType,
     ActivityDate: input.ActivityDate,
+    ActivityEndDate: input.ActivityEndDate,
     Subject: input.Subject,
     ActivityDescription: input.ActivityDescription,
     Summary: input.Summary,

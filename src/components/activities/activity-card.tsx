@@ -15,6 +15,7 @@ import {
   formatDueDate,
   isFollowUpOverdue,
 } from "@/lib/activity-utils";
+import { formatDuration } from "@/lib/activity-workspace";
 import { buildRelationshipMemory } from "@/lib/relationship-memory";
 import type { Activity } from "@/types/activity";
 
@@ -163,7 +164,13 @@ export function ActivityCard({
                   )}
 
                   <p className="mt-0.5 text-[11px] text-carbon-blue/60">
-                    {formatActivityDateTime(activity.ActivityDate)}
+                    {formatActivityDateTime(activity.ActivityDate, activity.ActivityEndDate)}
+                    {activity.DurationMinutes && activity.ActivityType !== "Task" ? (
+                      <>
+                        <span className="mx-1.5">·</span>
+                        {formatDuration(activity.DurationMinutes)}
+                      </>
+                    ) : null}
                     {activity.ActivityOwner?.Title ? (
                       <>
                         <span className="mx-1.5">·</span>

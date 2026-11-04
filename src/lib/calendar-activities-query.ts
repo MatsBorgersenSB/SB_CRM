@@ -145,9 +145,13 @@ function legacyToCalendarActivity(
   if (!type) return null;
   const start = new Date(activity.ActivityDate);
   if (Number.isNaN(start.getTime())) return null;
-  const end = activity.DurationMinutes
-    ? new Date(start.getTime() + activity.DurationMinutes * 60_000)
-    : null;
+  const explicitEnd = activity.ActivityEndDate ? new Date(activity.ActivityEndDate) : null;
+  const end =
+    explicitEnd && !Number.isNaN(explicitEnd.getTime())
+      ? explicitEnd
+      : activity.DurationMinutes
+        ? new Date(start.getTime() + activity.DurationMinutes * 60_000)
+        : null;
   const company = resolveActivityCompany(activity, companies);
   const dealId = activity.Deal?.Title ?? null;
   const deal = dealId ? pipelines.find((row) => row.id === dealId) : undefined;
@@ -183,13 +187,15 @@ export async function listCalendarActivities(start: Date, end: Date): Promise<Ca
       .filter((item): item is CalendarActivity => Boolean(item?.startDate))
       .filter((item) => {
         const when = new Date(item.startDate!);
-        return when >= start && when <= end;
+        const whenEnd = item.endDate ? new Date(item.endDate) : when;
+        return when <= end && whenEnd >= start;
       })
       .sort((a, b) => a.startDate!.localeCompare(b.startDate!));
   }
   const rows = await getPrisma().activity.findMany({
     where: {
-      startDate: { gte: start, lte: end },
+      startDate: { lte: end },
+      OR: [{ endDate: { gte: start } }, { startDate: { gte: start } }],
     },
     select: calendarActivitySelect,
     orderBy: { startDate: "asc" },

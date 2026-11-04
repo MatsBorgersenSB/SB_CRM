@@ -123,7 +123,7 @@ export function ActivityPlanningRow({
             {isTask ? (
               <>Due {formatDueDate(activity.NextActionDate || activity.ActivityDate)}</>
             ) : (
-              formatActivityDateTime(activity.ActivityDate)
+              formatActivityDateTime(activity.ActivityDate, activity.ActivityEndDate)
             )}
           </span>
           {activity.DurationMinutes && !isTask ? (

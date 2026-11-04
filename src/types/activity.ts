@@ -273,6 +273,8 @@ export type Activity = {
   ActivityID: string;
   ActivityType: ActivityType;
   ActivityDate: string;
+  /** Optional end ISO timestamp for multi-day or range-scheduled activities. */
+  ActivityEndDate?: string;
   Subject: string;
   ActivityDescription: string;
   Company: SharePointLookup | null;
@@ -394,6 +396,7 @@ export type CreateActivityInput = Pick<
   LinkedContacts?: SharePointLookup[];
   Stakeholders?: ActivityStakeholder[];
   SmartAssistAssessment?: SmartAssistAssessment;
+  ActivityEndDate?: string;
   DurationMinutes?: number;
   Priority?: ActivityPriority;
   M365Targets?: M365ActivityTargets;

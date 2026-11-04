@@ -20,7 +20,15 @@ import {
   SMART_ACTIVITY_DISPLAY,
   toSmartActivityType,
 } from "@/types/activity";
-import { inferM365Targets } from "@/lib/activity-workspace";
+import {
+  combineDurationMinutes,
+  defaultDurationMinutesForType,
+  formatDuration,
+  inferM365Targets,
+  MINUTES_PER_DAY,
+  MINUTES_PER_HOUR,
+  splitDurationMinutes,
+} from "@/lib/activity-workspace";
 import { syncActivityCreate } from "@/lib/sync-activity";
 import { getContactDisplayName } from "@/types/contact";
 import { parseAgreedActions, parseMemoryLines } from "@/lib/relationship-memory";
@@ -104,6 +112,25 @@ function inclusiveDayCount(start: string, end: string): number {
   return Math.max(1, Math.round((endUtc - startUtc) / 86_400_000) + 1);
 }
 
+function addDaysToIsoDate(isoDate: string, daysToAdd: number): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  if (!year || !month || !day) return isoDate;
+  const utc = new Date(
+    Date.UTC(year, month - 1, day + Math.max(0, Math.floor(daysToAdd))),
+  );
+  return utc.toISOString().slice(0, 10);
+}
+
+const DURATION_QUICK_PRESETS: { label: string; minutes: number }[] = [
+  { label: "30m", minutes: 30 },
+  { label: "1h", minutes: MINUTES_PER_HOUR },
+  { label: "2h", minutes: 2 * MINUTES_PER_HOUR },
+  { label: "4h", minutes: 4 * MINUTES_PER_HOUR },
+  { label: "1d", minutes: MINUTES_PER_DAY },
+  { label: "2d", minutes: 2 * MINUTES_PER_DAY },
+  { label: "3d", minutes: 3 * MINUTES_PER_DAY },
+];
+
 function presetCompanyId(preset?: Partial<CreateActivityInput>): string {
   const company = preset?.Company;
   return company && "CompanyID" in company ? company.CompanyID : "";
@@ -158,11 +185,18 @@ function ActivityForm({
   );
   const presetDate = preset?.ActivityDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
 
+  const initialType: SmartActivityType =
+    toSmartActivityType(preset?.ActivityType) || "MEETING";
+  const initialTotalMinutes =
+    preset?.DurationMinutes ?? defaultDurationMinutesForType(initialType);
+  const initialDurationParts = splitDurationMinutes(initialTotalMinutes);
+  const initialEndDate =
+    preset?.ActivityEndDate?.slice(0, 10) ||
+    addDaysToIsoDate(presetDate, Math.max(0, initialDurationParts.days - 1));
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [activityType, setActivityType] = useState<SmartActivityType>(
-    () => toSmartActivityType(preset?.ActivityType) || "MEETING",
-  );
+  const [activityType, setActivityType] = useState<SmartActivityType>(initialType);
   const [timing, setTiming] = useState<Timing>(
     preset?.ActionStatus === "Completed" ? "done" : "planned",
   );
@@ -170,10 +204,77 @@ function ActivityForm({
   const [title, setTitle] = useState(preset?.Subject ?? "");
   const [notes, setNotes] = useState(preset?.ActivityDescription ?? "");
   const [date, setDate] = useState(presetDate);
-  const [endDate, setEndDate] = useState(presetDate);
+  const [endDate, setEndDate] = useState(initialEndDate);
   const [time, setTime] = useState(preset?.ActivityDate?.slice(11, 16) || "09:00");
-  const [durationMinutes, setDurationMinutes] = useState(String(preset?.DurationMinutes ?? 60));
+  const [durationDays, setDurationDays] = useState(String(initialDurationParts.days));
+  const [durationHours, setDurationHours] = useState(String(initialDurationParts.hours));
+  const [durationMins, setDurationMins] = useState(String(initialDurationParts.minutes));
+  const [durationTouched, setDurationTouched] = useState(
+    Boolean(preset?.DurationMinutes || preset?.ActivityEndDate),
+  );
   const [priority, setPriority] = useState<ActivityPriority>(preset?.Priority ?? "Normal");
+
+  const totalDurationMinutes = useMemo(
+    () =>
+      combineDurationMinutes(
+        Number(durationDays) || 0,
+        Number(durationHours) || 0,
+        Number(durationMins) || 0,
+      ),
+    [durationDays, durationHours, durationMins],
+  );
+
+  const applyDurationMinutes = (minutes: number, baseStartDate = date) => {
+    const parts = splitDurationMinutes(minutes);
+    setDurationDays(String(parts.days));
+    setDurationHours(String(parts.hours));
+    setDurationMins(String(parts.minutes));
+    setEndDate(addDaysToIsoDate(baseStartDate, Math.max(0, parts.days - 1)));
+  };
+
+  const handleStartDateChange = (nextDate: string) => {
+    setDate(nextDate);
+    if (!nextDate) return;
+    const daysCount = Math.max(0, Math.floor(Number(durationDays) || 0));
+    if (daysCount > 1) {
+      setEndDate(addDaysToIsoDate(nextDate, daysCount - 1));
+    } else if (!endDate || endDate < nextDate || endDate === date) {
+      setEndDate(nextDate);
+    } else {
+      const spanDays = inclusiveDayCount(nextDate, endDate);
+      setDurationDays(String(spanDays));
+    }
+  };
+
+  const handleEndDateChange = (nextEndDate: string) => {
+    const safeEnd = nextEndDate && nextEndDate >= date ? nextEndDate : date;
+    setEndDate(safeEnd);
+    setDurationTouched(true);
+    if (safeEnd > date) {
+      const spanDays = inclusiveDayCount(date, safeEnd);
+      setDurationDays(String(spanDays));
+    } else if ((Number(durationDays) || 0) > 1) {
+      const hasSubDay = (Number(durationHours) || 0) > 0 || (Number(durationMins) || 0) > 0;
+      setDurationDays(hasSubDay ? "0" : "1");
+    }
+  };
+
+  const handleDurationDaysChange = (value: string) => {
+    setDurationTouched(true);
+    setDurationDays(value);
+    const parsedDays = Math.max(0, Math.floor(Number(value) || 0));
+    setEndDate(addDaysToIsoDate(date, Math.max(0, parsedDays - 1)));
+  };
+
+  const handleDurationHoursChange = (value: string) => {
+    setDurationTouched(true);
+    setDurationHours(value);
+  };
+
+  const handleDurationMinsChange = (value: string) => {
+    setDurationTouched(true);
+    setDurationMins(value);
+  };
 
   const [companyId, setCompanyId] = useState(() => presetCompanyId(preset));
   const [contactIds, setContactIds] = useState(() => presetContactIds(preset));
@@ -358,8 +459,13 @@ function ActivityForm({
   const applyEventProposal = (proposal: EventProposal) => {
     if (proposal.title) setTitle(proposal.title);
     if (proposal.startDate) {
+      const nextEnd = proposal.endDate ?? proposal.startDate;
       setDate(proposal.startDate);
-      setEndDate(proposal.endDate ?? proposal.startDate);
+      setEndDate(nextEnd);
+      setDurationDays(String(inclusiveDayCount(proposal.startDate, nextEnd)));
+      setDurationHours("0");
+      setDurationMins("0");
+      setDurationTouched(true);
     }
     setEventLocation(proposal.location ?? "");
     setEventWebsite(proposal.website ?? "");
@@ -404,7 +510,7 @@ function ActivityForm({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        durationMinutes: Number(durationMinutes) || 45,
+        durationMinutes: totalDurationMinutes || 45,
         colleagueNamesOrEmails: colleagueNames,
         attendeeEmails: contactEmails,
         maxCandidates: 3,
@@ -431,7 +537,7 @@ function ActivityForm({
   const addCurrentDateTimeAsSlot = () => {
     const startIso = combineDateTime(date, time);
     const startMs = new Date(startIso).getTime();
-    const durMin = Math.max(15, Number(durationMinutes) || 45);
+    const durMin = Math.max(15, totalDurationMinutes || 45);
     const endIso = new Date(startMs + durMin * 60_000).toISOString();
     setProposedSlots((prev) => [
       ...prev,
@@ -450,7 +556,7 @@ function ActivityForm({
   const canSave =
     Boolean(title.trim()) &&
     (isProposingSlots ? proposedSlots.length > 0 : Boolean(date)) &&
-    (!isEvent || Boolean(endDate && endDate >= date)) &&
+    (isTask || isProposingSlots || Boolean(endDate && endDate >= date)) &&
     (!isTask || Boolean(assignee)) &&
     (!followUp || Boolean(nextAction.trim())) &&
     (timing === "planned" || isEvent || Boolean(notes.trim()));
@@ -465,6 +571,31 @@ function ActivityForm({
         : isTask
           ? combineDateTime(date, "09:00")
           : combineDateTime(date, time);
+      const effectiveDurationMinutes = isEvent
+        ? totalDurationMinutes > 0
+          ? totalDurationMinutes
+          : inclusiveDayCount(date, endDate || date) * MINUTES_PER_DAY
+        : isTask
+          ? undefined
+          : totalDurationMinutes > 0
+            ? totalDurationMinutes
+            : undefined;
+      const resolvedEndDate = endDate && endDate >= date ? endDate : date;
+      const isWholeDaysOnly =
+        (Number(durationDays) || 0) >= 1 &&
+        (Number(durationHours) || 0) === 0 &&
+        (Number(durationMins) || 0) === 0;
+      const activityEndDate = isTask
+        ? undefined
+        : isEvent
+          ? combineDateTime(resolvedEndDate, "23:59")
+          : resolvedEndDate > date || isWholeDaysOnly
+            ? combineDateTime(resolvedEndDate, "17:00")
+            : effectiveDurationMinutes
+              ? new Date(
+                  new Date(activityDate).getTime() + effectiveDurationMinutes * 60_000,
+                ).toISOString()
+              : undefined;
       const owner = assignee ?? me;
       const eventDetails = isEvent
         ? {
@@ -493,6 +624,7 @@ function ActivityForm({
       const baseInput: CreateActivityInput = {
         ActivityType: displayType,
         ActivityDate: activityDate,
+        ActivityEndDate: activityEndDate,
         Subject: title.trim(),
         Summary: summary.trim() || title.trim(),
         ActivityDescription: description,
@@ -519,11 +651,7 @@ function ActivityForm({
           isTask || isMeeting
             ? sharedWith.filter((person) => person.Id !== owner?.Id)
             : undefined,
-        DurationMinutes: isEvent
-          ? inclusiveDayCount(date, endDate || date) * 24 * 60
-          : isTask
-            ? undefined
-            : Number(durationMinutes) || undefined,
+        DurationMinutes: effectiveDurationMinutes,
         Priority: priority,
         M365Targets: inferM365Targets(displayType),
         ActionRequired: isTask ? true : followUp,
@@ -620,7 +748,11 @@ function ActivityForm({
                 onChange={(e) => {
                   const next = e.target.value as SmartActivityType;
                   setActivityType(next);
-                  if (isAllDayActivityType(next)) setEndDate((current) => current || date);
+                  if (!durationTouched) {
+                    applyDurationMinutes(defaultDurationMinutesForType(next), date);
+                  } else if (isAllDayActivityType(next)) {
+                    setEndDate((current) => (current && current >= date ? current : date));
+                  }
                 }}
                 className={INPUT}
               >
@@ -742,24 +874,32 @@ function ActivityForm({
 
           {isEvent ? (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <label className="block">
-                  <span className={LABEL}>First day</span>
+                  <span className={LABEL}>From date</span>
                   <RegionalDateInput
                     value={date}
-                    onValueChange={(next) => {
-                      setDate(next);
-                      setEndDate((current) => (current && current >= next ? current : next));
-                    }}
+                    onValueChange={handleStartDateChange}
                     className={INPUT}
                   />
                 </label>
                 <label className="block">
-                  <span className={LABEL}>Last day</span>
+                  <span className={LABEL}>To date</span>
                   <RegionalDateInput
                     value={endDate}
                     min={date}
-                    onValueChange={setEndDate}
+                    onValueChange={handleEndDateChange}
+                    className={INPUT}
+                  />
+                </label>
+                <label className="block">
+                  <span className={LABEL}>Days</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={durationDays || String(inclusiveDayCount(date, endDate || date))}
+                    onChange={(e) => handleDurationDaysChange(e.target.value)}
                     className={INPUT}
                   />
                 </label>
@@ -844,31 +984,47 @@ function ActivityForm({
                 </div>
               ) : null}
 
-              <div className={`grid gap-3 ${isTask ? "sm:grid-cols-2" : "sm:grid-cols-4"}`}>
+              <div
+                className={`grid gap-3 ${
+                  isTask
+                    ? "sm:grid-cols-2"
+                    : isProposingSlots
+                      ? "sm:grid-cols-3"
+                      : "sm:grid-cols-4"
+                }`}
+              >
                 <label className="block">
                   <span className={LABEL}>
-                    {isTask ? "Due" : isProposingSlots ? "Add custom slot date" : "Date"}
+                    {isTask
+                      ? "Due"
+                      : isProposingSlots
+                        ? "Add custom slot date"
+                        : "From date"}
                   </span>
-                  <RegionalDateInput value={date} onValueChange={setDate} className={INPUT} />
+                  <RegionalDateInput
+                    value={date}
+                    onValueChange={isTask || isProposingSlots ? setDate : handleStartDateChange}
+                    className={INPUT}
+                  />
                 </label>
                 {isTask ? null : (
                   <>
+                    {isProposingSlots ? null : (
+                      <label className="block">
+                        <span className={LABEL}>To date</span>
+                        <RegionalDateInput
+                          value={endDate}
+                          min={date}
+                          onValueChange={handleEndDateChange}
+                          className={INPUT}
+                        />
+                      </label>
+                    )}
                     <label className="block">
                       <span className={LABEL}>
-                        {isProposingSlots ? "Custom slot time" : "Time"}
+                        {isProposingSlots ? "Custom slot time" : "Start time"}
                       </span>
                       <RegionalTimeInput value={time} onValueChange={setTime} className={INPUT} />
-                    </label>
-                    <label className="block">
-                      <span className={LABEL}>Minutes</span>
-                      <input
-                        type="number"
-                        min={15}
-                        step={15}
-                        value={durationMinutes}
-                        onChange={(e) => setDurationMinutes(e.target.value)}
-                        className={INPUT}
-                      />
                     </label>
                   </>
                 )}
@@ -887,6 +1043,87 @@ function ActivityForm({
                   </select>
                 </label>
               </div>
+
+              {isTask ? null : (
+                <div className="grid gap-2.5 border border-carbon-blue/10 bg-carbon-blue/[0.015] p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className={LABEL}>Duration</span>
+                      {totalDurationMinutes > 0 ? (
+                        <span className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-0.5 text-[11px] font-semibold text-upcycle-orange">
+                          {formatDuration(totalDurationMinutes)}
+                          {endDate && endDate > date
+                            ? ` · ${formatDate(new Date(`${date}T00:00:00`))} – ${formatDate(new Date(`${endDate}T00:00:00`))}`
+                            : ""}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {DURATION_QUICK_PRESETS.map((presetItem) => {
+                        const active = totalDurationMinutes === presetItem.minutes;
+                        return (
+                          <button
+                            key={presetItem.label}
+                            type="button"
+                            onClick={() => {
+                              setDurationTouched(true);
+                              applyDurationMinutes(presetItem.minutes, date);
+                            }}
+                            className={`border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                              active
+                                ? "border-carbon-blue bg-carbon-blue text-white"
+                                : "border-carbon-blue/15 bg-white text-carbon-blue/75 hover:border-upcycle-orange/40 hover:text-carbon-blue"
+                            }`}
+                          >
+                            {presetItem.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <label className="block">
+                      <span className={LABEL}>Days</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={365}
+                        step={1}
+                        value={durationDays}
+                        onChange={(e) => handleDurationDaysChange(e.target.value)}
+                        placeholder="0"
+                        className={INPUT}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={LABEL}>Hours</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={23}
+                        step={1}
+                        value={durationHours}
+                        onChange={(e) => handleDurationHoursChange(e.target.value)}
+                        placeholder="0"
+                        className={INPUT}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={LABEL}>Minutes</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={59}
+                        step={5}
+                        value={durationMins}
+                        onChange={(e) => handleDurationMinsChange(e.target.value)}
+                        placeholder="0"
+                        className={INPUT}
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
 
               {isProposingSlots ? (
                 <div className="grid gap-3 border border-carbon-blue/12 bg-carbon-blue/[0.015] p-3">

@@ -8,6 +8,7 @@ import type {
   ActionStatus,
   CreateActivityInput,
   M365ActivityTargets,
+  SmartActivityType,
 } from "@/types/activity";
 import {
   isFollowUpOpen,
@@ -334,12 +335,67 @@ export function formatActivityTime(value: string): string {
   return formatTime(date);
 }
 
+export const MINUTES_PER_HOUR = 60;
+export const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
+
+export type DurationParts = {
+  days: number;
+  hours: number;
+  minutes: number;
+};
+
+export function splitDurationMinutes(totalMinutes?: number): DurationParts {
+  if (!totalMinutes || !Number.isFinite(totalMinutes) || totalMinutes <= 0) {
+    return { days: 0, hours: 0, minutes: 0 };
+  }
+  const rounded = Math.max(0, Math.round(totalMinutes));
+  const days = Math.floor(rounded / MINUTES_PER_DAY);
+  const remAfterDays = rounded % MINUTES_PER_DAY;
+  const hours = Math.floor(remAfterDays / MINUTES_PER_HOUR);
+  const minutes = remAfterDays % MINUTES_PER_HOUR;
+  return { days, hours, minutes };
+}
+
+export function combineDurationMinutes(
+  days: number,
+  hours: number,
+  minutes: number,
+): number {
+  const d = Number.isFinite(days) ? Math.max(0, Math.floor(days)) : 0;
+  const h = Number.isFinite(hours) ? Math.max(0, Math.floor(hours)) : 0;
+  const m = Number.isFinite(minutes) ? Math.max(0, Math.floor(minutes)) : 0;
+  return d * MINUTES_PER_DAY + h * MINUTES_PER_HOUR + m;
+}
+
+export function defaultDurationMinutesForType(type: SmartActivityType): number {
+  switch (type) {
+    case "SITE_VISIT":
+      return 4 * MINUTES_PER_HOUR;
+    case "TRADESHOW":
+    case "SEMINAR":
+      return MINUTES_PER_DAY;
+    case "PHONE_CALL":
+      return 30;
+    case "EMAIL_FOLLOW_UP":
+    case "NOTE":
+      return 15;
+    case "MEETING":
+    case "TEAMS_MEETING":
+    case "COMMERCIAL_REVIEW":
+    case "TASK":
+    default:
+      return MINUTES_PER_HOUR;
+  }
+}
+
 export function formatDuration(minutes?: number): string {
-  if (!minutes) return "";
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  if (!minutes || minutes <= 0) return "";
+  const { days, hours, minutes: mins } = splitDurationMinutes(minutes);
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (mins > 0) parts.push(`${mins}m`);
+  return parts.join(" ");
 }
 
 export function statusBadgeClass(status: ActionStatus): string {

@@ -402,6 +402,7 @@ export async function createActivity(input: CreateActivityInput): Promise<Activi
     ActivityID: nextActivityId(database.activities),
     ActivityType: input.ActivityType,
     ActivityDate: input.ActivityDate,
+    ActivityEndDate: input.ActivityEndDate,
     Subject: input.Subject,
     ActivityDescription: input.ActivityDescription,
     Summary: input.Summary,

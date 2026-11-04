@@ -34,11 +34,21 @@ function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-export function formatActivityDateTime(value: string): string {
+export function formatActivityDateTime(value: string, endDateValue?: string): string {
   const date = parseActivityDate(value);
   const now = new Date();
   const today = startOfDay(now);
   const activityDay = startOfDay(date);
+
+  if (endDateValue) {
+    const endDate = parseActivityDate(endDateValue);
+    if (!Number.isNaN(endDate.getTime())) {
+      const endDay = startOfDay(endDate);
+      if (endDay.getTime() > activityDay.getTime()) {
+        return `${formatShortDate(date)} – ${formatShortDate(endDate)}`;
+      }
+    }
+  }
 
   const time = formatTime(date);
 
