@@ -32,10 +32,26 @@ export function RegionalDateInput({
   disabled,
   required,
   min,
+  max,
   "aria-label": ariaLabel,
-}: BaseProps & { min?: string }) {
+}: BaseProps & { min?: string; max?: string }) {
   const [draft, setDraft] = useState<string | null>(null);
   const pickerRef = useRef<HTMLInputElement>(null);
+
+  const openPicker = () => {
+    const el = pickerRef.current;
+    if (!el || disabled) return;
+    try {
+      if (typeof el.showPicker === "function") {
+        el.showPicker();
+        return;
+      }
+    } catch {
+      /* Fallback to focus + click */
+    }
+    el.focus();
+    el.click();
+  };
 
   const commit = () => {
     if (draft === null) return;
@@ -60,10 +76,20 @@ export function RegionalDateInput({
         disabled={disabled}
         required={required}
         aria-label={ariaLabel}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          const val = e.target.value;
+          setDraft(val);
+          const iso = parseDateInput(val);
+          if (iso) {
+            onValueChange(iso);
+          }
+        }}
         onBlur={commit}
         onKeyDown={(e) => {
-          if (e.key === "Enter") commit();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          }
         }}
         className={`${className ?? ""} pr-8`}
       />
@@ -72,7 +98,7 @@ export function RegionalDateInput({
         tabIndex={-1}
         disabled={disabled}
         aria-label="Open calendar"
-        onClick={() => pickerRef.current?.showPicker?.()}
+        onClick={openPicker}
         className="absolute inset-y-0 right-1.5 flex items-center text-carbon-blue/50 hover:text-carbon-blue"
       >
         <CalendarDays className="size-3.5" strokeWidth={1.75} />
@@ -83,6 +109,7 @@ export function RegionalDateInput({
         tabIndex={-1}
         aria-hidden
         min={min}
+        max={max}
         value={value}
         onChange={(e) => {
           setDraft(null);

@@ -116,7 +116,7 @@ function addDaysToIsoDate(isoDate: string, daysToAdd: number): string {
   const [year, month, day] = isoDate.split("-").map(Number);
   if (!year || !month || !day) return isoDate;
   const utc = new Date(
-    Date.UTC(year, month - 1, day + Math.max(0, Math.floor(daysToAdd))),
+    Date.UTC(year, month - 1, day + Math.trunc(daysToAdd)),
   );
   return utc.toISOString().slice(0, 10);
 }
@@ -247,11 +247,21 @@ function ActivityForm({
   };
 
   const handleEndDateChange = (nextEndDate: string) => {
-    const safeEnd = nextEndDate && nextEndDate >= date ? nextEndDate : date;
-    setEndDate(safeEnd);
+    if (!nextEndDate) return;
+    if (nextEndDate < date) {
+      setDate(nextEndDate);
+      setEndDate(nextEndDate);
+      setDurationTouched(true);
+      if ((Number(durationDays) || 0) > 1) {
+        const hasSubDay = (Number(durationHours) || 0) > 0 || (Number(durationMins) || 0) > 0;
+        setDurationDays(hasSubDay ? "0" : "1");
+      }
+      return;
+    }
+    setEndDate(nextEndDate);
     setDurationTouched(true);
-    if (safeEnd > date) {
-      const spanDays = inclusiveDayCount(date, safeEnd);
+    if (nextEndDate > date) {
+      const spanDays = inclusiveDayCount(date, nextEndDate);
       setDurationDays(String(spanDays));
     } else if ((Number(durationDays) || 0) > 1) {
       const hasSubDay = (Number(durationHours) || 0) > 0 || (Number(durationMins) || 0) > 0;
@@ -887,7 +897,7 @@ function ActivityForm({
                   <span className={LABEL}>To date</span>
                   <RegionalDateInput
                     value={endDate}
-                    min={date}
+                    min={timing === "done" ? undefined : date}
                     onValueChange={handleEndDateChange}
                     className={INPUT}
                   />
@@ -984,6 +994,47 @@ function ActivityForm({
                 </div>
               ) : null}
 
+              {timing === "done" && !isTask ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className={LABEL}>Quick date:</span>
+                  {(
+                    [
+                      { label: "Yesterday", offset: -1 },
+                      { label: "2 days ago", offset: -2 },
+                      { label: "3 days ago", offset: -3 },
+                      { label: "1 week ago", offset: -7 },
+                      { label: "Today", offset: 0 },
+                    ] as const
+                  ).map((item) => {
+                    const todayIso = new Date().toISOString().slice(0, 10);
+                    const targetIso = addDaysToIsoDate(todayIso, item.offset);
+                    const active = date === targetIso && endDate === targetIso;
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => {
+                          const daysCount = Math.max(1, Math.floor(Number(durationDays) || 1));
+                          setDate(targetIso);
+                          setEndDate(
+                            daysCount > 1
+                              ? addDaysToIsoDate(targetIso, daysCount - 1)
+                              : targetIso,
+                          );
+                        }}
+                        className={`border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                          active
+                            ? "border-carbon-blue bg-carbon-blue text-white"
+                            : "border-carbon-blue/15 bg-white text-carbon-blue/75 hover:border-upcycle-orange/40 hover:text-carbon-blue"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
               <div
                 className={`grid gap-3 ${
                   isTask
@@ -1014,7 +1065,7 @@ function ActivityForm({
                         <span className={LABEL}>To date</span>
                         <RegionalDateInput
                           value={endDate}
-                          min={date}
+                          min={timing === "done" ? undefined : date}
                           onValueChange={handleEndDateChange}
                           className={INPUT}
                         />
