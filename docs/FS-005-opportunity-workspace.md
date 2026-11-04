@@ -9,6 +9,7 @@
 | Status | Approval Review |
 | Owner | SmartCRM |
 | Category | Core Capability |
+| Addenda | FS-005A Customer-Centric Deal Brief (`docs/FS-005A-customer-centric-deal-brief.md`) |
 
 ---
 

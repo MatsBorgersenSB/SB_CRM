@@ -139,7 +139,7 @@ export function buildGapsFromUnderstandingModel(
 ): UnderstandingGap[] {
   const priorityRank = { high: 0, medium: 1, low: 2 };
 
-  return resolveAllUnderstandingFields(pipeline)
+  const gaps = resolveAllUnderstandingFields(pipeline)
     .filter((entry) => entry.source === "empty")
     .map((entry) => ({
       id: entry.definition.id,
@@ -149,8 +149,11 @@ export function buildGapsFromUnderstandingModel(
       whyItMatters: entry.definition.whyItMatters,
       recommendedAction: entry.definition.recommendedAction,
     }))
-    .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority])
-    .slice(0, 10);
+    .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
+
+  // Cap the list, but never drop a high-priority gap to make room.
+  const highCount = gaps.filter((gap) => gap.priority === "high").length;
+  return gaps.slice(0, Math.max(10, highCount));
 }
 
 /**

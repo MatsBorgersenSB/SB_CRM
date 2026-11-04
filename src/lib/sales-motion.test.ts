@@ -74,8 +74,8 @@ describe("opportunity owner", () => {
 });
 
 describe("investigation depth", () => {
-  it("asks 16 questions for a system sale but only 3 for a product sale", () => {
-    assert.equal(understandingFieldsForPipeline(deal(["sys-complete-turnkey-pyrolysis"])).length, 16);
+  it("asks 20 questions for a system sale but only 3 for a product sale", () => {
+    assert.equal(understandingFieldsForPipeline(deal(["sys-complete-turnkey-pyrolysis"])).length, 20);
     const product = understandingFieldsForPipeline(deal(["prod-biochar"]));
     assert.deepEqual(
       product.map((field) => field.id).sort(),

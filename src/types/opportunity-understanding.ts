@@ -3,6 +3,7 @@
 import type { SourceFinding } from "@/lib/source-findings";
 
 export type UnderstandingCategory =
+  | "customer"
   | "commercial"
   | "technical"
   | "feedstock"
@@ -11,6 +12,7 @@ export type UnderstandingCategory =
   | "stakeholders";
 
 export const UNDERSTANDING_CATEGORIES: UnderstandingCategory[] = [
+  "customer",
   "commercial",
   "technical",
   "feedstock",
@@ -20,6 +22,7 @@ export const UNDERSTANDING_CATEGORIES: UnderstandingCategory[] = [
 ];
 
 export const UNDERSTANDING_CATEGORY_LABELS: Record<UnderstandingCategory, string> = {
+  customer: "Customer",
   commercial: "Commercial",
   technical: "Technical",
   feedstock: "Feedstock",
@@ -29,6 +32,10 @@ export const UNDERSTANDING_CATEGORY_LABELS: Record<UnderstandingCategory, string
 };
 
 export type UnderstandingFieldId =
+  | "customer_problem"
+  | "why_now"
+  | "customer_vision"
+  | "customer_value"
   | "decision_maker"
   | "economic_buyer"
   | "offtake_strategy"
@@ -65,6 +72,54 @@ export type UnderstandingFieldDefinition = {
  * Users answer here; they never enter the same fact twice.
  */
 export const UNDERSTANDING_FIELDS: UnderstandingFieldDefinition[] = [
+  {
+    id: "customer_problem",
+    category: "customer",
+    label: "Customer problem",
+    prompt: "What is the customer trying to fix, and who feels it?",
+    placeholder: "In their words — e.g. Waste disposal cost is rising; plant manager wants it solved",
+    gapLabel: "Customer problem not confirmed",
+    whyItMatters:
+      "Without a confirmed problem, every next step is a guess and the deal can stall without warning.",
+    recommendedAction: "Ask the customer to describe the problem in their own words and record who feels it",
+    priority: "high",
+  },
+  {
+    id: "why_now",
+    category: "customer",
+    label: "Why now",
+    prompt: "What forces a decision, and by when?",
+    placeholder: "e.g. Landfill ban from 2027; funding call closes in March",
+    gapLabel: "No reason to act now",
+    whyItMatters:
+      "Deals without a reason to decide drift. A deadline or event is what turns interest into a decision.",
+    recommendedAction: "Find the event, deadline or funding window that makes this urgent for the customer",
+    priority: "high",
+  },
+  {
+    id: "customer_vision",
+    category: "customer",
+    label: "What they picture",
+    prompt: "What does a good outcome look like to the customer?",
+    placeholder: "e.g. Waste processed on site, no transport, heat reused in the plant",
+    gapLabel: "Customer's picture of a good outcome unknown",
+    whyItMatters:
+      "A proposal that does not match what the customer pictures is rejected even when it is technically sound.",
+    recommendedAction: "Ask what a successful result would look like and write it down in their terms",
+    priority: "medium",
+  },
+  {
+    id: "customer_value",
+    category: "customer",
+    label: "What it is worth to them",
+    prompt: "What does the problem cost, or the solution gain, in the customer's own terms?",
+    placeholder: "e.g. About €400k a year in disposal fees (stated by CFO); optional amount",
+    gapLabel: "Value to the customer not stated",
+    whyItMatters:
+      "If the customer has not put a value on the problem, price will be the only thing they compare.",
+    recommendedAction: "Ask what the problem costs today and what solving it would be worth",
+    priority: "medium",
+  },
   {
     id: "decision_maker",
     category: "stakeholders",
@@ -261,7 +316,7 @@ export type OpportunityUnderstandingCapture = {
 };
 
 export function isUnderstandingFieldId(value: string | null | undefined): value is UnderstandingFieldId {
-  return Boolean(value && value in UNDERSTANDING_FIELD_BY_ID);
+  return Boolean(value && Object.hasOwn(UNDERSTANDING_FIELD_BY_ID, value));
 }
 
 export function fieldsForCategory(

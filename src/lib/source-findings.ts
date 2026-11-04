@@ -1,4 +1,7 @@
-import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
+import {
+  isUnderstandingFieldId,
+  type UnderstandingFieldId,
+} from "@/types/opportunity-understanding";
 
 export type SourceFindingDecision = "confirmed" | "dismissed";
 
@@ -110,28 +113,8 @@ function parseClaims(raw: unknown): SourceFindingClaim[] {
   return claims;
 }
 
-const UNDERSTANDING_FIELD_IDS: UnderstandingFieldId[] = [
-  "decision_maker",
-  "economic_buyer",
-  "offtake_strategy",
-  "budget",
-  "timeline",
-  "end_product",
-  "capacity",
-  "technical_fit",
-  "feedstock_volume",
-  "feedstock_quality",
-  "business_case_strength",
-  "funding_source",
-  "utilities",
-  "site_readiness",
-  "permitting",
-  "stakeholder_map",
-];
-
-function isUnderstandingField(value: string): value is UnderstandingFieldId {
-  return UNDERSTANDING_FIELD_IDS.includes(value as UnderstandingFieldId);
-}
+/** Single source of truth: the understanding model. */
+const isUnderstandingField = isUnderstandingFieldId;
 
 export function createSourceFinding(input: {
   title: string;
