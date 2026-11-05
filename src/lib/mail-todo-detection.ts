@@ -15,6 +15,7 @@ import {
   extractCorrespondenceActionSignals,
   type CorrespondenceMailSnippet,
 } from "@/lib/correspondence-action-signals";
+import { extractSourceFindingPreview } from "@/lib/source-findings";
 
 export type MailTodoSide = "we_owe" | "client_owes";
 
@@ -102,13 +103,14 @@ function clip(text: string, max = 110): string {
   return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
 }
 
-/** Facts the client stated in mail, keyed by understanding field. */
+/** Facts the client or subsupplier stated in mail, keyed by understanding field. */
 function detectClientFacts(
   inbound: CorrespondenceMailSnippet[],
 ): Array<{ fieldId: string; excerpt: string; messageId: string; sentAt: string }> {
   const out: Array<{ fieldId: string; excerpt: string; messageId: string; sentAt: string }> =
     [];
-  // Newest statement wins — the client may have revised an earlier figure.
+  const seenFields = new Set<string>();
+  // Newest statement wins — the client or subsupplier may have revised an earlier figure.
   const newestFirst = [...inbound].sort(
     (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime(),
   );
@@ -119,10 +121,28 @@ function detectClientFacts(
         fieldId === "capacity" ? quantityWindow(text) : dateWindow(text, NEEDED_BY_PATTERNS);
       if (excerpt) {
         out.push({ fieldId, excerpt, messageId: message.id, sentAt: message.sentAt });
+        seenFields.add(fieldId);
         break;
       }
     }
   }
+
+  for (const message of newestFirst) {
+    const text = `${message.subject}\n${message.bodyPreview ?? ""}`;
+    if (text.trim().length < 20) continue;
+    const preview = extractSourceFindingPreview(text, "", message.subject);
+    for (const claim of preview.claims) {
+      if (!claim.fieldId || seenFields.has(claim.fieldId) || claim.id === "attached") continue;
+      seenFields.add(claim.fieldId);
+      out.push({
+        fieldId: claim.fieldId,
+        excerpt: claim.statement,
+        messageId: message.id,
+        sentAt: message.sentAt,
+      });
+    }
+  }
+
   return out;
 }
 

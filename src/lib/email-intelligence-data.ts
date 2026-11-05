@@ -677,6 +677,9 @@ export async function clearConversationHandled(conversationId: string): Promise<
 
 /**
  * Load EmailMessageRecord rows for an opportunity, oldest → newest within threads.
+ * Includes direct opportunityId matches plus unlinked correspondence with the
+ * opportunity's stakeholder roster (clients & subsuppliers), same-thread replies,
+ * and company contacts when this is the company's sole open opportunity.
  */
 export async function readEmailsForOpportunity(
   opportunityKey: string,
@@ -685,8 +688,113 @@ export async function readEmailsForOpportunity(
   const opportunityId = await resolveOpportunityId(opportunityKey);
   if (!opportunityId) return [];
 
+  const [opportunity, directConvRows] = await Promise.all([
+    prisma.opportunity
+      .findUnique({
+        where: { id: opportunityId },
+        select: {
+          id: true,
+          companyId: true,
+          team: true,
+          company: {
+            select: {
+              contacts: {
+                where: { status: "active" },
+                select: { id: true, emails: true },
+              },
+              _count: { select: { opportunities: { where: { status: "open" } } } },
+            },
+          },
+        },
+      })
+      .catch(() => null),
+    prisma.emailMessageRecord
+      .findMany({
+        where: { opportunityId, isDeletedInSource: false },
+        select: { conversationId: true },
+      })
+      .catch(() => []),
+  ]);
+
+  const orClauses: Prisma.EmailMessageRecordWhereInput[] = [{ opportunityId }];
+
+  const linkedConversationIds = [
+    ...new Set(directConvRows.map((row) => row.conversationId).filter(Boolean)),
+  ];
+  if (linkedConversationIds.length > 0) {
+    orClauses.push({
+      opportunityId: null,
+      conversationId: { in: linkedConversationIds },
+    });
+  }
+
+  if (opportunity) {
+    const rawTeam = Array.isArray(opportunity.team) ? opportunity.team : [];
+    const teamContactRefs = rawTeam
+      .map((entry) =>
+        entry && typeof entry === "object" && "contactId" in entry
+          ? String((entry as { contactId?: unknown }).contactId ?? "").trim()
+          : "",
+      )
+      .filter(Boolean);
+
+    const teamContactPrefixes = teamContactRefs
+      .map((ref) => {
+        const match = ref.match(/^CT-([0-9A-F]{6,12})$/i);
+        return match ? match[1].toLowerCase() : null;
+      })
+      .filter((p): p is string => Boolean(p));
+
+    const teamUuids = teamContactRefs.filter((ref) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(ref),
+    );
+
+    let rosterContacts: Array<{ id: string; emails: unknown }> = [];
+    if (teamUuids.length > 0 || teamContactPrefixes.length > 0) {
+      rosterContacts = await prisma.contact
+        .findMany({
+          where: {
+            OR: [
+              ...(teamUuids.length > 0 ? [{ id: { in: teamUuids } }] : []),
+              ...teamContactPrefixes.map((prefix) => ({
+                id: { startsWith: prefix },
+              })),
+            ],
+          },
+          select: { id: true, emails: true },
+        })
+        .catch(() => []);
+    }
+
+    const soleCompanyDeal =
+      (opportunity.company?._count?.opportunities ?? 0) <= 1;
+    const eligibleContacts = [
+      ...rosterContacts,
+      ...(soleCompanyDeal ? (opportunity.company?.contacts ?? []) : []),
+    ];
+
+    const contactIds = [...new Set(eligibleContacts.map((c) => c.id))];
+    const addresses = [
+      ...new Set(eligibleContacts.flatMap((c) => contactEmailsFromJson(c.emails))),
+    ];
+
+    if (contactIds.length > 0) {
+      orClauses.push({ opportunityId: null, contactId: { in: contactIds } });
+    }
+    if (addresses.length > 0) {
+      orClauses.push({ opportunityId: null, senderEmail: { in: addresses } });
+      orClauses.push({
+        opportunityId: null,
+        recipientEmails: { hasSome: addresses },
+      });
+    }
+  }
+
   const messages = await prisma.emailMessageRecord.findMany({
-    where: { opportunityId },
+    where: {
+      isDeletedInSource: false,
+      OR: orClauses,
+    },
     include: emailMessageInclude,
     orderBy: [{ conversationId: "asc" }, { sentAt: "asc" }],
   });

@@ -439,10 +439,33 @@ function buildConfirmedUnderstanding(
     });
   }
 
+  for (const finding of pipeline.understanding?.findings ?? []) {
+    for (const claim of finding.claims) {
+      if (claim.decision !== "confirmed") continue;
+      const statement = claim.statement.trim();
+      if (!statement) continue;
+      if (
+        rows.some(
+          (row) =>
+            row.answer.toLowerCase().includes(statement.toLowerCase()) ||
+            row.id === claim.id,
+        )
+      ) {
+        continue;
+      }
+      rows.push({
+        id: claim.id,
+        topic: finding.title || "Confirmed finding",
+        answer: statement,
+        fieldId: claim.fieldId,
+      });
+    }
+  }
+
   // Keep company unused warning quiet for signature compatibility
   void company;
 
-  return rows.slice(0, 12);
+  return rows.slice(0, 28);
 }
 
 function toLegacyLearningGaps(gaps: CriticalKnowledgeGap[]): LearningGap[] {

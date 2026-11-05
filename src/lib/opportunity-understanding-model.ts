@@ -11,6 +11,7 @@ import {
 import {
   confirmedFindingAnswerForField,
   type SourceFinding,
+  type SourceFindingClaim,
 } from "@/lib/source-findings";
 
 export type ResolvedUnderstandingField = {
@@ -220,16 +221,60 @@ export function patchDiscoveryNote(
   };
 }
 
+export function proposedFindingClaimsForField(
+  findings: SourceFinding[] | undefined,
+  fieldId: UnderstandingFieldId,
+): Array<{ finding: SourceFinding; claim: SourceFindingClaim }> {
+  const out: Array<{ finding: SourceFinding; claim: SourceFindingClaim }> = [];
+  for (const finding of findings ?? []) {
+    for (const claim of finding.claims) {
+      if (claim.fieldId !== fieldId || claim.decision) continue;
+      out.push({ finding, claim });
+    }
+  }
+  return out;
+}
+
+export function confirmedFindingClaimsForField(
+  findings: SourceFinding[] | undefined,
+  fieldId: UnderstandingFieldId,
+): Array<{ finding: SourceFinding; claim: SourceFindingClaim }> {
+  const out: Array<{ finding: SourceFinding; claim: SourceFindingClaim }> = [];
+  for (const finding of findings ?? []) {
+    for (const claim of finding.claims) {
+      if (claim.fieldId !== fieldId || claim.decision !== "confirmed") continue;
+      out.push({ finding, claim });
+    }
+  }
+  return out;
+}
+
 export function patchSourceFindings(
   current: OpportunityUnderstandingCapture | undefined,
   findings: SourceFinding[],
 ): OpportunityUnderstandingCapture {
   const fields = { ...(current?.fields ?? {}) };
+  const previouslyConfirmed = new Set<string>();
+  for (const prev of current?.findings ?? []) {
+    for (const claim of prev.claims) {
+      if (claim.decision === "confirmed") {
+        previouslyConfirmed.add(claim.id);
+      }
+    }
+  }
+
   for (const finding of findings) {
     for (const claim of finding.claims) {
       if (claim.decision !== "confirmed" || !claim.fieldId) continue;
-      if (fields[claim.fieldId]?.trim()) continue;
-      fields[claim.fieldId] = claim.statement;
+      const existing = fields[claim.fieldId]?.trim() ?? "";
+      if (!existing) {
+        fields[claim.fieldId] = claim.statement;
+      } else if (
+        !previouslyConfirmed.has(claim.id) &&
+        !existing.toLowerCase().includes(claim.statement.toLowerCase())
+      ) {
+        fields[claim.fieldId] = `${existing}\n• ${claim.statement} (${finding.title})`;
+      }
     }
   }
   return {

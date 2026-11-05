@@ -14,7 +14,14 @@ export type SourceFindingClaim = {
   decision?: SourceFindingDecision;
 };
 
-export type SourceFindingKind = "url" | "note" | "document" | "competitor";
+export type SourceFindingKind =
+  | "url"
+  | "note"
+  | "document"
+  | "competitor"
+  | "email"
+  | "activity"
+  | "image";
 
 export type SourceFinding = {
   id: string;
@@ -70,7 +77,10 @@ export function parseSourceFindings(raw: unknown): SourceFinding[] {
       row.kind === "url" ||
       row.kind === "note" ||
       row.kind === "document" ||
-      row.kind === "competitor"
+      row.kind === "competitor" ||
+      row.kind === "email" ||
+      row.kind === "activity" ||
+      row.kind === "image"
         ? row.kind
         : undefined;
     const addedAt =
@@ -251,12 +261,23 @@ export function appendSourceFinding(
   filledFieldIds?: readonly UnderstandingFieldId[],
 ): SourceFinding[] {
   const existing = current ?? [];
+  const isEvidenceRecord =
+    finding.kind === "document" ||
+    finding.kind === "image" ||
+    finding.kind === "email" ||
+    finding.kind === "activity";
   const incoming: SourceFinding =
     finding.kind === "competitor"
       ? finding
       : {
           ...finding,
-          claims: settleIncomingClaims(finding.claims, existing, filledFieldIds),
+          claims: settleIncomingClaims(
+            finding.claims,
+            existing,
+            // Evidence from documents, pictures, client/subsupplier mail, and activities
+            // must flow into the opportunity even when a field already has a rough note.
+            isEvidenceRecord ? undefined : filledFieldIds,
+          ),
         };
 
   if (existing.some((row) => row.id === incoming.id)) return existing;
@@ -280,12 +301,12 @@ export function appendSourceFinding(
     );
   }
   if (
-    incoming.kind === "document" &&
+    isEvidenceRecord &&
     incoming.note &&
-    existing.some((row) => row.kind === "document" && row.note === incoming.note)
+    existing.some((row) => row.kind === incoming.kind && row.note === incoming.note)
   ) {
     return existing.map((row) =>
-      row.kind === "document" && row.note === incoming.note
+      row.kind === incoming.kind && row.note === incoming.note
         ? mergeReadFinding(row, incoming)
         : row,
     );
@@ -305,6 +326,21 @@ export function applySourceFindingDecision(
       ...finding,
       claims: finding.claims.map((claim) =>
         claim.id === claimId ? { ...claim, decision } : claim,
+      ),
+    };
+  });
+}
+
+export function applySourceFindingConfirmAll(
+  current: SourceFinding[] | undefined,
+  findingId: string,
+): SourceFinding[] {
+  return (current ?? []).map((finding) => {
+    if (finding.id !== findingId) return finding;
+    return {
+      ...finding,
+      claims: finding.claims.map((claim) =>
+        claim.decision === "dismissed" ? claim : { ...claim, decision: "confirmed" },
       ),
     };
   });
@@ -624,6 +660,120 @@ export function extractSourceFindingPreview(
     );
   }
 
+  // Throughput / design capacity (kg/h, t/h, GWh/yr, MW, kW)
+  const capacityMatch = text.match(
+    /\b(\d[\d\s.,]*\s*(?:kg\/h|t\/h|tonn\/t|tonn\/time|t\/d|tonn\/dag|nm3\/h|m3\/h|m³\/h|gwh(?:\s*\/\s*(?:år|year|yr))?|mwh(?:\s*\/\s*(?:år|year|yr))?|mw\b|kw\b))/i,
+  );
+  if (capacityMatch?.[1]) {
+    claims.push(
+      claim(
+        "capacity",
+        `Reported throughput or thermal capacity: ${capacityMatch[1].replace(/\s+/g, " ").trim()}.`,
+        "Capacity drives reactor sizing, heat integration, and commercial scope.",
+        "capacity",
+      ),
+    );
+  }
+
+  // Subsupplier / feedstock supply terms (e.g. Allskog G30 wood chips)
+  if (/\ballskog\b|\bg30\b|\btreflis\b|\bwood\s*chips\b|\btørket\s+flis\b/i.test(text)) {
+    const volMatch = text.match(
+      /(\d[\d\s.,]*(?:til|-|–)\s*\d[\d\s.,]*\s*(?:t\/år|tonn\/år|t\/year|tonn)|\d[\d\s.,]*\s*(?:t\/år|tonn\/år|t\/year))\b/i,
+    );
+    const moisture = /fukt\s*%|moisture/i.test(text)
+      ? " Supplier requested moisture % specification and storage capacity."
+      : "";
+    claims.push(
+      claim(
+        "feedstock-agreement",
+        `Feedstock / subsupplier dialogue on record${volMatch?.[1] ? ` (${volMatch[1].replace(/\s+/g, " ").trim()} G30 wood chips)` : ""}.${moisture}`,
+        "Committed feedstock supply, moisture limits, and on-site storage are prerequisites for plant operation.",
+        "feedstock_agreement",
+      ),
+    );
+  }
+
+  // Customer problem (digestate / biorest / Gjødselforskriften / disposal cost)
+  if (
+    /gjødselforskriften|gjødsel\s*forskriften|biorest\s*utfordring|løsning\s+på\s+bioresten|løsning\s+på\s+fastfraksjonen|disposal\s+of\s+aggregated\s+digestate/i.test(
+      text,
+    )
+  ) {
+    claims.push(
+      claim(
+        "customer-problem",
+        "Customer needs a solution for solid digestate / biorest disposal driven by nutrient spreading limits.",
+        "Confirms the core customer problem driving both drying heat demand and pyrolysis interest.",
+        "customer_problem",
+      ),
+    );
+  }
+
+  // Site space confirmation from client / site visit
+  if (
+    !claims.some((c) => c.fieldId === "site_readiness") &&
+    (/nok\s+plass\s+på\s+anlegget|80\s*x\s*120\s*m|footprint\s+approved|equipment\s+footprint/i.test(
+      text,
+    ))
+  ) {
+    claims.push(
+      claim(
+        "site-space",
+        "Client confirmed sufficient plot space at the biogas plant for a pyrolysis installation.",
+        "Site availability unblocks layout engineering and permitting.",
+        "site_readiness",
+      ),
+    );
+  }
+
+  // Thermal energy / utility integration
+  if (
+    !claims.some((c) => c.fieldId === "utilities") &&
+    (/overskuddsenergi|7\s*[-–]\s*8\s*gwh|thermal\s+heat\s+exchange|utility\s+capacity/i.test(text))
+  ) {
+    claims.push(
+      claim(
+        "utilities-heat",
+        "Surplus thermal energy integration between pyrolysis and digestate drying is part of the scope.",
+        "Heat tie-in and utility capacity define the technical interface with the client plant.",
+        "utilities",
+      ),
+    );
+  }
+
+  // Mass flow / block flow / technical process
+  if (
+    !claims.some((c) => c.fieldId === "technical_fit") &&
+    (/masseflyt|blokkflyt|flow\s*diagram|flytdiagram|back-of-the-envelope|fraksjon\s*\(?a\)?/i.test(
+      text,
+    ))
+  ) {
+    claims.push(
+      claim(
+        "technical-flow",
+        "Mass / block flow and process line integration (Fraction A / Line B / wood chips) documented.",
+        "Grounds technical fit and mass-balance engineering in customer-provided figures.",
+        "technical_fit",
+      ),
+    );
+  }
+
+  // Customer vision / BOO ownership appetite
+  if (
+    /investering\s+og\s+drifting\s+av\s+pyrolyse|establish(?:ing)?\s+a\s+pyrolysis\s+plant\s+in\s+direct\s+proximity/i.test(
+      text,
+    )
+  ) {
+    claims.push(
+      claim(
+        "customer-vision",
+        "Client envisions Standard Bio investing in and operating the pyrolysis line adjacent to the biogas plant and selling the biochar.",
+        "Clarifies the desired commercial model (Build-Own-Operate) and division of responsibility.",
+        "customer_vision",
+      ),
+    );
+  }
+
   const unique = uniqueClaims(claims);
   if (unique.length === 0) {
     const snippet = text.slice(0, 220).trim();
@@ -639,6 +789,129 @@ export function extractSourceFindingPreview(
   }
 
   return { title: title || "Public source", claims: unique };
+}
+
+/**
+ * Extract structured knowledge claims from a filed document or picture's identity,
+ * classification, origin (client / subsupplier / Standard Bio), and counterparty.
+ * Ensures drawings, flow diagrams, presentations, permits, subsupplier quotes, and
+ * pictures always flow into opportunity knowledge even when scanned or SharePoint-hosted.
+ */
+export function extractDocumentMetadataClaims(input: {
+  name: string;
+  mimeType?: string | null;
+  docCategory?: string | null;
+  docType?: string | null;
+  origin?: string | null;
+  counterparty?: string | null;
+}): SourceFindingClaim[] {
+  const name = input.name.trim();
+  const cleanTitle = name.replace(/\.[^.]+$/, "").replace(/^(?:PL|CO|PRJ)-\d+-[A-Z]-[A-Z]+-\d+\s*/i, "").trim() || name;
+  const lower = `${name} ${input.docCategory ?? ""} ${input.docType ?? ""}`.toLowerCase();
+  const counterparty = input.counterparty?.trim();
+  const fromWho = counterparty
+    ? ` from ${counterparty}`
+    : input.origin === "external"
+      ? " (external / subsupplier or authority)"
+      : "";
+  const claims: SourceFindingClaim[] = [];
+
+  if (/tillatelse|permit|utslipp|forurensning|konsesjon|certificate|miljøgodkj/i.test(lower)) {
+    const refNo = cleanTitle.match(/\b(\d{5,8})\b/)?.[1];
+    claims.push(
+      claim(
+        "doc-permitting",
+        `Permit / certificate filed on record: “${cleanTitle}”${refNo ? ` (ref. ${refNo})` : ""}${fromWho}.`,
+        "Provides regulatory and permitting evidence for plant approval and operating limits.",
+        "permitting",
+      ),
+    );
+  }
+
+  if (/flow\s*diagram|flytdiagram|prosessflyt|process\s*flow|p&id|pnid|drawing|tegning|layout/i.test(lower)) {
+    claims.push(
+      claim(
+        "doc-technical-fit",
+        `Engineering drawing / process flow diagram on file: “${cleanTitle}”${fromWho}.`,
+        "Defines process flow, equipment interfaces, and technical fit for the plant.",
+        "technical_fit",
+      ),
+    );
+  }
+
+  if (/flow\s*hjelpefil|hjelpefil|calculation|beregning|heat\s*balance|massebalanse|mass\s*balance|kapasitet/i.test(lower)) {
+    claims.push(
+      claim(
+        "doc-capacity",
+        `Process flow / capacity calculation file on record: “${cleanTitle}”${fromWho}.`,
+        "Supports throughput sizing, mass/energy balance, and reactor capacity validation.",
+        "capacity",
+      ),
+    );
+  }
+
+  if (/presentasjon|presentation|strategisk|pitch|slide/i.test(lower)) {
+    claims.push(
+      claim(
+        "doc-vision",
+        `Strategic presentation on file: “${cleanTitle}”${fromWho}.`,
+        "Captures the project concept, target outcome, and commercial positioning.",
+        "customer_vision",
+      ),
+    );
+  }
+
+  if (/tilbud|quote|quotation|rfq|pris|price|invoice|faktura|ordrebekreftelse|order\s*confirm/i.test(lower)) {
+    claims.push(
+      claim(
+        "doc-budget",
+        `Commercial quote / pricing document on file: “${cleanTitle}”${fromWho}.`,
+        "Grounds CAPEX, subsupplier pricing, or commercial scope in a filed document.",
+        "budget",
+      ),
+    );
+  }
+
+  if (/datasheet|data\s*sheet|spesifikasjon|specification|kravspesifikasjon|io[-\s]?link|scada|plc/i.test(lower)) {
+    claims.push(
+      claim(
+        "doc-spec",
+        `Technical specification / datasheet on file: “${cleanTitle}”${fromWho}.`,
+        "Documents technical requirements, subsupplier equipment interfaces, or control specs.",
+        "technical_fit",
+      ),
+    );
+  }
+
+  const isImage =
+    (input.mimeType ?? "").toLowerCase().startsWith("image/") ||
+    /\.(png|jpe?g|webp|gif|bmp|tiff?|svg)$/i.test(name);
+  if (isImage && claims.length === 0) {
+    const isTechnical = /reactor|silo|io[-\s]?link|scada|plc|flow|diagram|tegning|skjermbilde/i.test(lower);
+    claims.push(
+      claim(
+        isTechnical ? "img-technical" : "img-site",
+        `Visual evidence / picture on file: “${cleanTitle}”${fromWho}.`,
+        isTechnical
+          ? "Visual documentation of equipment, control interface, or process layout."
+          : "Visual site or equipment photo supporting site readiness and installation planning.",
+        isTechnical ? "technical_fit" : "site_readiness",
+      ),
+    );
+  }
+
+  if (claims.length === 0) {
+    claims.push(
+      claim(
+        "doc-filed",
+        `Document filed on opportunity: “${cleanTitle}”${fromWho}.`,
+        "Filed documentation is tracked as project evidence — confirm how it informs the deal.",
+        "technical_fit",
+      ),
+    );
+  }
+
+  return uniqueClaims(claims);
 }
 
 export function previewFromNote(note: string): SourceFindingPreview {

@@ -177,7 +177,7 @@ export function OpportunityMailSignals({
 
           {suggestions.length > 0 ? (
             <div>
-              <p className={EDITORIAL_LABEL}>The client already told us</p>
+              <p className={EDITORIAL_LABEL}>Client &amp; subsupplier mail already tells us</p>
               <ul className="mt-1.5 space-y-2">
                 {suggestions.map((suggestion) => (
                   <li
@@ -208,7 +208,7 @@ export function OpportunityMailSignals({
             <div>
               <p className={EDITORIAL_LABEL}>Still missing — ask the client</p>
               <ul className="mt-1.5 space-y-1">
-                {analysis.askClient.map((item) => (
+                {analysis.askClient.slice(0, 3).map((item) => (
                   <li key={item.fieldId} className="text-[14px] text-carbon-blue/85">
                     {item.label}
                   </li>

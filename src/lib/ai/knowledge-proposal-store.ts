@@ -23,7 +23,11 @@ import {
   loadCompanyDocumentKnowledge,
   saveCompanyDocumentKnowledge,
 } from "@/lib/company-document-knowledge-data";
+import { patchSourceFindings } from "@/lib/opportunity-understanding-model";
+import { mapPrismaOpportunityToPipelineRow } from "@/lib/prisma-mappers";
+import { extractSourceFindingPreview } from "@/lib/source-findings";
 import { getPrisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma";
 
 export type ProposalScope = {
   meetingId?: string | null;
@@ -210,41 +214,97 @@ export async function decideProposal(
   const stored = toStored(fresh);
 
   // FS-021 Persistence rule: accepted/edited proposals materialize into the owning
-  // company knowledge record as a confirmed finding (never auto-creating contacts/relationships).
+  // company and/or opportunity knowledge record as a confirmed finding (never auto-creating contacts/relationships).
   if (
     (stored.status === "accepted" || stored.status === "edited") &&
-    stored.companyId &&
     stored.type !== "relationship"
   ) {
-    try {
-      const currentState = await loadCompanyDocumentKnowledge(stored.companyId);
-      const existingFindings = currentState.findings ?? [];
-      const findingId = `proposal-${stored.id}`;
-      if (!existingFindings.some((f) => f.id === findingId)) {
-        await saveCompanyDocumentKnowledge(stored.companyId, {
-          ...currentState,
-          findings: [
-            ...existingFindings,
-            {
-              id: findingId,
-              title: stored.source.label || "Meeting knowledge",
-              note: stored.evidence,
-              kind: "note",
-              addedAt: new Date().toISOString(),
-              claims: [
-                {
-                  id: `${findingId}-claim`,
-                  statement: stored.statement,
-                  impact: stored.impact,
-                  decision: "confirmed",
-                },
-              ],
-            },
-          ],
-        });
+    const findingId = `proposal-${stored.id}`;
+    const preview = extractSourceFindingPreview(
+      `${stored.statement}\n${stored.evidence}`,
+      "",
+      stored.source.label || "Confirmed knowledge",
+    );
+    const inferredFieldId = preview.claims.find((c) => c.fieldId)?.fieldId;
+
+    if (stored.companyId) {
+      try {
+        const currentState = await loadCompanyDocumentKnowledge(stored.companyId);
+        const existingFindings = currentState.findings ?? [];
+        if (!existingFindings.some((f) => f.id === findingId)) {
+          await saveCompanyDocumentKnowledge(stored.companyId, {
+            ...currentState,
+            findings: [
+              ...existingFindings,
+              {
+                id: findingId,
+                title: stored.source.label || "Meeting knowledge",
+                note: stored.evidence,
+                kind: "note",
+                addedAt: new Date().toISOString(),
+                claims: [
+                  {
+                    id: `${findingId}-claim`,
+                    statement: stored.statement,
+                    impact: stored.impact,
+                    fieldId: inferredFieldId,
+                    decision: "confirmed",
+                  },
+                ],
+              },
+            ],
+          });
+        }
+      } catch {
+        /* Materialization is best-effort if the company row is not in Prisma. */
       }
-    } catch {
-      /* Materialization is best-effort if the company row is not in Prisma. */
+    }
+
+    if (stored.opportunityId) {
+      try {
+        const opp = await prisma.opportunity.findUnique({
+          where: { id: stored.opportunityId },
+          include: { company: { select: { id: true, name: true } } },
+        });
+        if (opp) {
+          const mapped = mapPrismaOpportunityToPipelineRow(opp);
+          const existingFindings = mapped.understanding?.findings ?? [];
+          if (!existingFindings.some((f) => f.id === findingId)) {
+            const nextUnderstanding = patchSourceFindings(mapped.understanding, [
+              ...existingFindings,
+              {
+                id: findingId,
+                title: stored.source.label || "Confirmed knowledge",
+                note: stored.evidence,
+                kind:
+                  stored.source.kind === "email"
+                    ? "email"
+                    : stored.source.kind === "document"
+                      ? "document"
+                      : "activity",
+                addedAt: new Date().toISOString(),
+                claims: [
+                  {
+                    id: `${findingId}-claim`,
+                    statement: stored.statement,
+                    impact: stored.impact,
+                    fieldId: inferredFieldId,
+                    decision: "confirmed",
+                  },
+                ],
+              },
+            ]);
+            await prisma.opportunity.update({
+              where: { id: opp.id },
+              data: {
+                understanding: nextUnderstanding as unknown as Prisma.InputJsonValue,
+              },
+            });
+          }
+        }
+      } catch {
+        /* Materialization is best-effort if the opportunity row is not in Prisma. */
+      }
     }
   }
 

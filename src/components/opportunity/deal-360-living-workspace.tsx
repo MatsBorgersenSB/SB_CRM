@@ -325,6 +325,23 @@ export function Deal360LivingWorkspace({
             activities={activities}
             readOnly={dealTeam.readOnly}
             onDocumentCountChange={setDocumentCount}
+            onExtractKnowledge={
+              onPipelinePatch
+                ? async () => {
+                    const proposed = await handleReadDocuments();
+                    if (proposed.length === 0) return;
+                    const { appendSourceFinding } = await import(
+                      "@/lib/source-findings"
+                    );
+                    let next = pipeline.understanding?.findings ?? [];
+                    for (const item of proposed) {
+                      next = appendSourceFinding(next, item);
+                    }
+                    await handleSaveFindings(next);
+                  }
+                : undefined
+            }
+            onOpenUnderstanding={() => setMissionView("understanding")}
           />
         );
       default:
@@ -341,6 +358,10 @@ export function Deal360LivingWorkspace({
     dealTeam,
     activities,
     documentsContext,
+    onPipelinePatch,
+    handleReadDocuments,
+    handleSaveFindings,
+    setMissionView,
   ]);
 
   const stakeholdersOverview = useMemo(

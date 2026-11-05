@@ -134,6 +134,8 @@ type WorkspaceDocumentsPanelProps = {
   activities?: Activity[];
   readOnly?: boolean;
   onDocumentCountChange?: (count: number) => void;
+  onExtractKnowledge?: () => Promise<void>;
+  onOpenUnderstanding?: () => void;
 };
 
 export function WorkspaceDocumentsPanel({
@@ -143,12 +145,16 @@ export function WorkspaceDocumentsPanel({
   activities = [],
   readOnly = false,
   onDocumentCountChange,
+  onExtractKnowledge,
+  onOpenUnderstanding,
 }: WorkspaceDocumentsPanelProps) {
   const { user } = useAuth();
   const [mode, setMode] = useState<DocumentsMode>("browse");
   const [library, setLibrary] = useState<SmartDocLibraryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [extractingKnowledge, setExtractingKnowledge] = useState(false);
+  const [knowledgeNotice, setKnowledgeNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [targetDealId, setTargetDealId] = useState<string>("");
   /** Company scope: file as company-owned when no deal (or user chooses company). */
@@ -777,15 +783,63 @@ export function WorkspaceDocumentsPanel({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="text-[13px] text-carbon-blue/60">{workspaceDocumentsLinkSummary(context)}</p>
-        <ViewInSharePointButton
-          fileUrl={importedSharePointUrl}
-          companyId={sharePointCompanyId}
-          dealId={sharePointDealId}
-          projectId={sharePointProjectId}
-          dealName={context.dealName || targetPipeline?.assetName}
-          companyName={context.companyName || ownerCompany?.Title}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          {!readOnly && onExtractKnowledge && rows.length > 0 ? (
+            <button
+              type="button"
+              disabled={extractingKnowledge}
+              onClick={async () => {
+                setExtractingKnowledge(true);
+                setError(null);
+                setKnowledgeNotice(null);
+                try {
+                  await onExtractKnowledge();
+                  setKnowledgeNotice(
+                    "Extracted findings from documents, pictures, and client & subsupplier communications into opportunity knowledge.",
+                  );
+                } catch (err) {
+                  setError(
+                    err instanceof Error
+                      ? err.message
+                      : "Could not extract knowledge from documents.",
+                  );
+                } finally {
+                  setExtractingKnowledge(false);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md border border-upcycle-orange/40 bg-upcycle-orange/[0.08] px-3 py-1.5 text-[12px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              {extractingKnowledge
+                ? "Extracting knowledge…"
+                : "Extract into opportunity knowledge"}
+            </button>
+          ) : null}
+          <ViewInSharePointButton
+            fileUrl={importedSharePointUrl}
+            companyId={sharePointCompanyId}
+            dealId={sharePointDealId}
+            projectId={sharePointProjectId}
+            dealName={context.dealName || targetPipeline?.assetName}
+            companyName={context.companyName || ownerCompany?.Title}
+          />
+        </div>
       </div>
+
+      {knowledgeNotice ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-2.5 text-[13px] text-emerald-900">
+          <span>{knowledgeNotice}</span>
+          {onOpenUnderstanding ? (
+            <button
+              type="button"
+              onClick={onOpenUnderstanding}
+              className="font-semibold text-upcycle-orange hover:underline"
+            >
+              Review in Understanding →
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <WorkspaceModeNav
         ariaLabel="Documents"
@@ -867,7 +921,7 @@ export function WorkspaceDocumentsPanel({
                   type="file"
                   multiple
                   className="mt-3 text-[12px] text-carbon-blue/70"
-                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.svg,.eml,.zip"
                   onChange={(event) => {
                     handleFilePick(event.target.files);
                     event.target.value = "";

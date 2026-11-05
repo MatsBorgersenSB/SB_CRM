@@ -241,7 +241,7 @@ export function OpportunityMissionControl({
             onAnswerNow={onAnswerNow}
             findings={pipeline.understanding?.findings ?? []}
             onSaveFindings={onSaveFindings}
-            documentCount={dealDocuments.length}
+            documentCount={Math.max(dealDocuments.length, actionCounts?.documents ?? 0)}
             onReadDocuments={onReadDocuments}
             knownFieldIds={knownFieldIds}
             country={findCompanyForDeal(pipeline.id, companies)?.Country?.Title}
@@ -282,12 +282,27 @@ export function OpportunityMissionControl({
         ) : null}
 
         {view === "understanding" ? (
-          <OpportunityUnderstandingCapturePanel
-            pipeline={pipeline}
-            focusFieldId={focusFieldId}
-            onSaveField={onSaveUnderstandingField}
-            readOnly={!onSaveUnderstandingField}
-          />
+          <div className="flex flex-col gap-10">
+            <OpportunityUnderstandingCapturePanel
+              pipeline={pipeline}
+              focusFieldId={focusFieldId}
+              onSaveField={onSaveUnderstandingField}
+              onSaveFindings={onSaveFindings}
+              onReadDocuments={onReadDocuments}
+              documentCount={Math.max(dealDocuments.length, actionCounts?.documents ?? 0)}
+              readOnly={!onSaveUnderstandingField}
+            />
+            {onSaveFindings ? (
+              <AddFindingPanel
+                targetLabel="this opportunity"
+                findings={pipeline.understanding?.findings ?? []}
+                onFindingsChange={onSaveFindings}
+                documentCount={Math.max(dealDocuments.length, actionCounts?.documents ?? 0)}
+                onReadDocuments={onReadDocuments}
+                knownFieldIds={knownFieldIds}
+              />
+            ) : null}
+          </div>
         ) : null}
 
         {view === "influence" ? (

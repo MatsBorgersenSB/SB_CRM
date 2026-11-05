@@ -22,6 +22,21 @@ import {
 } from "@/lib/pipeline-db";
 import { readProjectById } from "@/lib/project-db";
 import { isGraphTransport } from "@/services/sharepoint/config/environment";
+import {
+  extractTextFromDocumentBytes,
+  looksLikeImage,
+} from "@/lib/document-text-extract";
+import {
+  appendSourceFinding,
+  createSourceFinding,
+  extractDocumentMetadataClaims,
+  extractSourceFindingPreview,
+  type SourceFindingClaim,
+} from "@/lib/source-findings";
+import { patchSourceFindings } from "@/lib/opportunity-understanding-model";
+import { mapPrismaOpportunityToPipelineRow } from "@/lib/prisma-mappers";
+import { smartDocHref } from "@/types/smartdoc";
+import type { Prisma } from "@/generated/prisma";
 import type {
   CreateSmartDocInput,
   SmartDocLibraryRecord,
@@ -359,6 +374,79 @@ export async function importOpportunitySmartDoc(input: {
         opportunityId: pipeline.id,
       },
     });
+
+    // Flow imported document/picture into Opportunity understanding as a proposed finding
+    try {
+      const oppRow = await prisma.opportunity.findUnique({
+        where: { id: pipeline.id },
+        include: { company: { select: { id: true, name: true } } },
+      });
+      if (oppRow) {
+        const mapped = mapPrismaOpportunityToPipelineRow(oppRow);
+        const docUrl = document.sharepointWebUrl || smartDocHref(document.id);
+        const cleanTitle =
+          fileName
+            .replace(/\.[^.]+$/, "")
+            .replace(/^(?:PL|CO|PRJ)-\d+-[A-Z]-[A-Z]+-\d+\s*/i, "")
+            .trim() || fileName;
+        const metaClaims = extractDocumentMetadataClaims({
+          name: fileName,
+          mimeType: document.mimeType,
+          docCategory: libraryRecord.DocCategory,
+          docType: libraryRecord.DocType,
+          origin: libraryRecord.Origin,
+          counterparty: libraryRecord.Counterparty,
+        });
+        let contentClaims: SourceFindingClaim[] = [];
+        if (input.file?.bytes?.length && input.file.bytes.length <= 15_000_000) {
+          const extracted = await extractTextFromDocumentBytes({
+            bytes: input.file.bytes,
+            name: fileName,
+            mimeType: document.mimeType,
+          });
+          if (extracted.text.length >= 20) {
+            contentClaims = extractSourceFindingPreview(
+              extracted.text,
+              docUrl,
+              cleanTitle,
+            ).claims.filter((c) => c.id !== "attached");
+          }
+        }
+        const mergedClaims = [...contentClaims, ...metaClaims].slice(0, 8);
+        if (mergedClaims.length > 0) {
+          const isImg = looksLikeImage({
+            name: fileName,
+            mimeType: document.mimeType,
+            bytes: input.file?.bytes,
+          });
+          const nextFindings = appendSourceFinding(
+            mapped.understanding?.findings,
+            createSourceFinding({
+              title: cleanTitle,
+              url: docUrl,
+              note: fileName,
+              kind: isImg ? "image" : "document",
+              claims: mergedClaims,
+            }),
+          );
+          const nextUnderstanding = patchSourceFindings(
+            mapped.understanding,
+            nextFindings,
+          );
+          await prisma.opportunity.update({
+            where: { id: oppRow.id },
+            data: {
+              understanding: nextUnderstanding as unknown as Prisma.InputJsonValue,
+            },
+          });
+        }
+      }
+    } catch (findingErr) {
+      console.warn(
+        "[SmartDocs import] Opportunity finding sync skipped:",
+        findingErr instanceof Error ? findingErr.message : findingErr,
+      );
+    }
 
     return {
       libraryRecord: sharepointWebUrl

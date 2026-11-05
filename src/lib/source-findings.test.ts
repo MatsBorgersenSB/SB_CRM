@@ -3,9 +3,12 @@ import { describe, it } from "node:test";
 import {
   appendSourceFinding,
   createSourceFinding,
+  extractDocumentMetadataClaims,
+  extractSourceFindingPreview,
   type SourceFinding,
   type SourceFindingClaim,
 } from "./source-findings";
+import { patchSourceFindings } from "./opportunity-understanding-model";
 
 function claim(
   id: string,
@@ -112,5 +115,89 @@ describe("URL findings stay unconfirmed until a person validates them", () => {
     const timeline = next[0]?.claims.find((row) => row.fieldId === "timeline");
     assert.equal(volume?.decision, "confirmed");
     assert.equal(timeline?.decision, undefined);
+  });
+
+  it("extracts structured claims from documents, drawings, permits, presentations, and pictures", () => {
+    const permitClaims = extractDocumentMetadataClaims({
+      name: "PL-1044-G-GEN-0001 142236 Tillatelse (1).pdf",
+      docCategory: "Quality",
+      docType: "Certificate",
+      origin: "external",
+    });
+    assert.equal(permitClaims[0]?.fieldId, "permitting");
+    assert.match(permitClaims[0]?.statement ?? "", /142236/);
+
+    const flowClaims = extractDocumentMetadataClaims({
+      name: "PL-1044-T-PSU-0002 2026 02 26 Flow diagram Antec.pdf",
+      docCategory: "Engineering",
+      docType: "Drawing",
+      origin: "external",
+    });
+    assert.equal(flowClaims[0]?.fieldId, "technical_fit");
+
+    const imageClaims = extractDocumentMetadataClaims({
+      name: "IO-Link Reactor.png",
+      mimeType: "image/png",
+      origin: "external",
+      counterparty: "Guard Automation",
+    });
+    assert.equal(imageClaims[0]?.fieldId, "technical_fit");
+    assert.match(imageClaims[0]?.statement ?? "", /Guard Automation/);
+  });
+
+  it("extracts subsupplier feedstock terms and client site confirmations from correspondence", () => {
+    const subsupplierMail = extractSourceFindingPreview(
+      "SV: Hornindal - G30 Tørket flis - 8 000 til 10 000 t/år\nHvilket krav til fukt % er det på leveransen og hvor stor lagerplass er planlagt tilgjengelig?",
+      "/opportunities/PL-1044?view=actions&action=emails",
+      "Subsupplier mail (allskog.no)",
+    );
+    const feedstockClaim = subsupplierMail.claims.find(
+      (c) => c.fieldId === "feedstock_agreement",
+    );
+    assert.ok(feedstockClaim);
+    assert.match(feedstockClaim.statement, /8 000 til 10 000 t\/år G30 wood chips/);
+    assert.match(feedstockClaim.statement, /moisture %/i);
+
+    const clientMail = extractSourceFindingPreview(
+      "Jeg har nå hatt en prat med Erik. Han bekrefter at det er nok plass på anlegget til Vest Biogass til et pyrolyseanlegg.",
+      "/opportunities/PL-1044?view=actions&action=emails",
+      "Client mail",
+    );
+    assert.ok(clientMail.claims.some((c) => c.fieldId === "site_readiness"));
+  });
+
+  it("keeps document, picture, email, and activity findings even when a field already has a rough note, and appends newly confirmed evidence", () => {
+    const docFinding = createSourceFinding({
+      title: "142236 Tillatelse (1)",
+      kind: "document",
+      note: "PL-1044-G-GEN-0001 142236 Tillatelse (1).pdf",
+      claims: [
+        claim(
+          "doc-permitting",
+          "Permit / certificate filed on record: “142236 Tillatelse (1)” (ref. 142236).",
+          "permitting",
+        ),
+      ],
+    });
+
+    const appended = appendSourceFinding([], docFinding, ["permitting"]);
+    assert.equal(appended.length, 1);
+    assert.equal(appended[0]?.claims.length, 1);
+
+    const confirmed = [
+      {
+        ...appended[0]!,
+        claims: appended[0]!.claims.map((c) => ({ ...c, decision: "confirmed" as const })),
+      },
+    ];
+    const updated = patchSourceFindings(
+      {
+        fields: { permitting: "Antec holds the biogas plant permit." },
+        findings: appended,
+      },
+      confirmed,
+    );
+    assert.match(updated.fields.permitting ?? "", /Antec holds the biogas plant permit/);
+    assert.match(updated.fields.permitting ?? "", /142236 Tillatelse/);
   });
 });

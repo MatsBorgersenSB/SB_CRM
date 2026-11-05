@@ -51,7 +51,15 @@ export type UnderstandingFieldId =
   | "utilities"
   | "site_readiness"
   | "permitting"
-  | "stakeholder_map";
+  | "stakeholder_map"
+  | "feedstock_agreement"
+  | "public_funding";
+
+/** Asked only on Build-Own-Operate deals (FS-005B). */
+export const BOO_ONLY_FIELD_IDS: readonly UnderstandingFieldId[] = [
+  "feedstock_agreement",
+  "public_funding",
+];
 
 export type UnderstandingFieldDefinition = {
   id: UnderstandingFieldId;
@@ -295,6 +303,28 @@ export const UNDERSTANDING_FIELDS: UnderstandingFieldDefinition[] = [
     whyItMatters: "Permitting delays are a common source of project failure and timeline slip.",
     recommendedAction: "Review permitting status and environmental constraints",
     priority: "high",
+  },
+  {
+    id: "feedstock_agreement",
+    category: "feedstock",
+    label: "Feedstock Agreement",
+    prompt: "Is there an agreement for the feedstock, and on what terms?",
+    placeholder: "e.g. Heads of terms signed; 10 years; gate fee per ton; volume commitment",
+    gapLabel: "No feedstock agreement confirmed",
+    whyItMatters: "Without committed feedstock there is no plant to finance.",
+    recommendedAction: "Agree feedstock volume, term and price with the supplier",
+    priority: "high",
+  },
+  {
+    id: "public_funding",
+    category: "business_case",
+    label: "Public Funding and Subsidies",
+    prompt: "Which grants or subsidies apply, and where does each stand?",
+    placeholder: "e.g. Scheme named, application date, decision date — or 'none planned'",
+    gapLabel: "Public funding not confirmed",
+    whyItMatters: "Grants and subsidies can decide whether the plant is financeable.",
+    recommendedAction: "Identify applicable schemes and record application status",
+    priority: "medium",
   },
 ];
 

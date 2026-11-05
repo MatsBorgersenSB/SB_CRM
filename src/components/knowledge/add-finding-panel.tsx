@@ -279,7 +279,7 @@ export function AddFindingPanel({
                   ? "Add to our knowledge"
                   : `Add to ${targetLabel}`}
             </button>
-            {onReadDocuments && documentCount > 0 ? (
+            {onReadDocuments ? (
               <button
                 type="button"
                 onClick={() => void readDocuments()}
@@ -287,8 +287,10 @@ export function AddFindingPanel({
                 className="inline-flex rounded-md border border-upcycle-orange/40 bg-white px-3.5 py-2 text-[13px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {readingDocs
-                  ? "Reading documents…"
-                  : `Read ${documentCount} document${documentCount === 1 ? "" : "s"} on ${targetLabel}`}
+                  ? "Reading sources…"
+                  : documentCount > 0
+                    ? `Read ${documentCount} document${documentCount === 1 ? "" : "s"}, pictures & correspondence`
+                    : `Read documents, pictures & correspondence on ${targetLabel}`}
               </button>
             ) : null}
             <span className="text-[13px] text-carbon-blue/50">
@@ -325,11 +327,17 @@ export function AddFindingPanel({
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/65">
                 {finding.kind === "document"
                   ? "From the document"
-                  : finding.kind === "note"
-                    ? "From you"
-                    : finding.kind === "competitor"
-                      ? "Internal knowledge"
-                      : "From the market"}
+                  : finding.kind === "image"
+                    ? "From the picture / drawing"
+                    : finding.kind === "email"
+                      ? "From client & subsupplier correspondence"
+                      : finding.kind === "activity"
+                        ? "From meeting & site visit"
+                        : finding.kind === "note"
+                          ? "From you"
+                          : finding.kind === "competitor"
+                            ? "Internal knowledge"
+                            : "From the market"}
               </p>
               <p className="mt-1 text-[14px] font-semibold text-carbon-blue">
                 {finding.title}
@@ -359,6 +367,7 @@ export function AddFindingPanel({
                       </p>
                       <p className="mt-0.5 text-[13px] text-carbon-blue/55">{claim.impact}</p>
                       {!claim.decision &&
+                      finding.kind === "url" &&
                       claim.fieldId &&
                       knownFieldIds?.includes(claim.fieldId) ? (
                         <p className="mt-1 text-[12px] font-semibold text-carbon-blue/55">
