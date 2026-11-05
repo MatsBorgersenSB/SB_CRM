@@ -7,7 +7,16 @@ import type { CommercialViabilityAssessment } from "@/types/commercial-viability
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import { OpportunityActionsTabBar } from "@/components/opportunity/opportunity-actions-tab-bar";
-import { OpportunityKnowledgeView } from "@/components/opportunity/opportunity-knowledge-view";
+import { OpportunityDealBriefHero } from "@/components/opportunity/opportunity-deal-brief";
+import {
+  buildDealBrief,
+  dealBriefApplies,
+  type DealBrief,
+} from "@/lib/opportunity-deal-brief";
+import {
+  getCompanyRelationshipPosture,
+  isOpportunityEligibleCompany,
+} from "@/lib/company-classification";
 import { OpportunityUnderstandingCapturePanel } from "@/components/opportunity/opportunity-understanding-capture-panel";
 import { InfluenceMatrix } from "@/components/opportunities/influence-matrix";
 import { MeetingIntelligence } from "@/components/opportunities/meeting-intelligence";
@@ -163,6 +172,34 @@ export function OpportunityMissionControl({
 
   const topGap = understanding.knowledgeModel.criticalGaps[0];
 
+  // FS-005A Deal Brief: investigation deals only, and never for a company that is
+  // classified as something other than sell-to (unclassified still gets it).
+  // FS-005B: a Build-Own-Operate deal is about suppliers, hosts and offtakers, so the
+  // sell-to gate does not apply.
+  const brief = useMemo(() => {
+    if (isProductSale || !dealBriefApplies(pipeline)) return null;
+    const company = findCompanyForDeal(pipeline.id, companies);
+    if (
+      resolveSalesMotion(pipeline).motion !== "boo" &&
+      company &&
+      getCompanyRelationshipPosture(company) !== "unclassified" &&
+      !isOpportunityEligibleCompany(company)
+    ) {
+      return null;
+    }
+    return buildDealBrief({
+      pipeline,
+      activities: activities.filter(
+        (activity) =>
+          activity.Deal?.Title === pipeline.id ||
+          activity.LinkedDeals?.some((deal) => deal.Title === pipeline.id),
+      ),
+      fatalFlawAlerts: assessment.fatalFlawAlerts,
+      attentionItems,
+      assumedProblem: understanding.clientObjective.statement,
+    });
+  }, [isProductSale, pipeline, companies, activities, assessment, attentionItems, understanding]);
+
   const activityContext = useMemo<ActivityWorkspaceContext>(() => {
     const company = companies.find((row) => row.pipelineIds.includes(pipeline.id));
     return {
@@ -248,6 +285,7 @@ export function OpportunityMissionControl({
             feedstock={pipeline.targetFeedstock}
             industry={findCompanyForDeal(pipeline.id, companies)?.Industry}
             lean={isProductSale}
+            brief={brief}
             knowledgeReview={
               <KnowledgeProposalReview
                 scope={{ opportunityId: pipeline.id }}
@@ -266,18 +304,9 @@ export function OpportunityMissionControl({
                         onSaveUnderstandingField(fieldId as UnderstandingFieldId, value)
                     : undefined
                 }
-                onOpenEmails={() => onViewChange("emails")}
+                onOpenEmails={() => onActionTabChange("emails")}
               />
             }
-          />
-        ) : null}
-
-        {view === "gaps" ? (
-          <OpportunityKnowledgeView
-            variant="gaps"
-            criticalGaps={understanding.knowledgeModel.criticalGaps}
-            confirmedUnderstanding={[]}
-            onAnswerNow={onAnswerNow}
           />
         ) : null}
 
@@ -302,35 +331,37 @@ export function OpportunityMissionControl({
                 knownFieldIds={knownFieldIds}
               />
             ) : null}
+            <details className="group border-t border-slate-200/80 pt-6 dark:border-slate-800">
+              <summary className="cursor-pointer list-none text-[13px] font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200">
+                Who influences this deal
+              </summary>
+              <div className="mt-4">
+                <InfluenceMatrix
+                  opportunityId={pipeline.id}
+                  role={role}
+                  readOnly={influenceReadOnly}
+                />
+              </div>
+            </details>
           </div>
-        ) : null}
-
-        {view === "influence" ? (
-          <InfluenceMatrix
-            opportunityId={pipeline.id}
-            role={role}
-            readOnly={influenceReadOnly}
-          />
-        ) : null}
-
-        {view === "meetings" ? (
-          <MeetingIntelligence
-            opportunityId={pipeline.id}
-            role={role}
-            readOnly={influenceReadOnly}
-          />
-        ) : null}
-
-        {view === "emails" ? (
-          <EmailIntelligence
-            opportunityId={pipeline.id}
-            role={role}
-            readOnly={influenceReadOnly}
-          />
         ) : null}
 
         {view === "actions" ? (
           <div className="pt-1">
+            {actionTab === "emails" ? (
+              <EmailIntelligence
+                opportunityId={pipeline.id}
+                role={role}
+                readOnly={influenceReadOnly}
+              />
+            ) : null}
+            {actionTab === "meetings" ? (
+              <MeetingIntelligence
+                opportunityId={pipeline.id}
+                role={role}
+                readOnly={influenceReadOnly}
+              />
+            ) : null}
             {actionTab === "questions" ? (
               <OpportunityQuestionsWorkspace
                 pipeline={pipeline}
@@ -366,11 +397,7 @@ export function OpportunityMissionControl({
                 )}
               />
             ) : null}
-            {actionTab === "activities" ||
-            actionTab === "documents" ||
-            actionTab === "stakeholders"
-              ? actionContent
-              : null}
+            {actionTab === "activities" || actionTab === "documents" ? actionContent : null}
           </div>
         ) : null}
 
@@ -405,9 +432,11 @@ function OverviewPanel({
   feedstock,
   industry,
   lean = false,
+  brief,
   mailSignals,
   knowledgeReview,
 }: {
+  brief?: DealBrief | null;
   knowledgeReview?: ReactNode;
   lean?: boolean;
   mailSignals?: ReactNode;
@@ -436,6 +465,49 @@ function OverviewPanel({
   feedstock?: string | null;
   industry?: string | null;
 }) {
+  if (brief) {
+    // FS-005A: verdict + three answers above the fold; tools and evidence below, collapsed.
+    return (
+      <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
+        <OpportunityDealBriefHero brief={brief} onAnswerNow={onAnswerNow} />
+
+        {stakeholdersOverview ? (
+          <section>
+            <p className={`${EDITORIAL_LABEL} mb-1`}>Stakeholders</p>
+            <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
+              You decide who is on this deal — SmartAssist only suggests.
+            </p>
+            {stakeholdersOverview}
+          </section>
+        ) : null}
+
+        <details className="border-t border-slate-200/80 pt-6 dark:border-slate-800">
+          <summary className="cursor-pointer list-none text-[13px] font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200">
+            Evidence and inbox
+          </summary>
+          <div className={`mt-4 flex flex-col ${EDITORIAL_GAP_SECTION}`}>
+            <AddFindingPanel
+              targetLabel="this opportunity"
+              findings={findings}
+              onFindingsChange={
+                onSaveFindings ??
+                (async () => {
+                  throw new Error("You cannot add findings with this role");
+                })
+              }
+              documentCount={documentCount}
+              onReadDocuments={onReadDocuments}
+              knownFieldIds={knownFieldIds}
+            />
+            <MarketFactsOnDeal country={country} feedstock={feedstock} industry={industry} />
+            {mailSignals}
+            {knowledgeReview}
+          </div>
+        </details>
+      </div>
+    );
+  }
+
   const objectiveCategory = confidenceToCategory(objectiveConfidence);
   const objectiveLabel =
     objectiveCategory === "known" ? objective : `Working view (assumed): ${objective}`;

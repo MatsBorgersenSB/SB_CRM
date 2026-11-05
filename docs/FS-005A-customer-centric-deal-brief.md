@@ -23,7 +23,7 @@ The Opportunity Overview does not pass the 10-second test. Findings from the rev
 4. Header duplication (Stage and Offerings shown twice).
 5. Each answer is a four-part essay (observation, reasoning, action, outcome).
 6. The understanding model has 16 fields, all about the **project** (technical, feedstock, infrastructure, permitting). It holds nothing about the **customer's problem**, so "What the customer wants" is inferred from keywords. That conflicts with Reality First.
-7. Drift from the mission-control spec: 8 tabs instead of 5, 7 Action sub-tabs, stakeholders in two places.
+7. Drift from the mission-control spec: 8 tabs, 7 Action sub-tabs, stakeholders in two places, and Gaps duplicating Understanding.
 
 ## 2. Business Goals
 
@@ -126,26 +126,26 @@ Above the fold, in this order, and nothing else:
 4. What changed.
 
 Below the fold:
-- Stakeholders (one place only: the Overview; removed from Actions).
+- Stakeholders (one place only: the Overview, full table; removed from Actions).
 - "Evidence and inbox", collapsed by default: Add finding, market facts, mail signals, knowledge proposals.
 
 Removed or merged:
-- `DealVelocityCard` as a separate card. Its output feeds row 3 (single next-action source).
-- Duplicate Stage pill and Offerings pill. The offerings picker moves behind an Edit action.
+- `DealVelocityCard` as a separate card (deleted). The Brief engine is the single next-action source. AI-suggested actions return in phase 5 as Assumed proposals.
+- Duplicate Stage pill and Offerings pill. Offerings show once on the metadata line; the picker sits behind Edit.
 
 ### 5.8 Tabs
 
-Return to the five specified tabs: **Overview, Gaps, Understanding, Actions, Ask.**
+Four tabs: **Overview, Understanding, Actions, Ask.** The separate Gaps tab is removed because it was a read-only filtered view of Understanding.
 
-- Influence Map moves under Understanding.
-- Meetings and Emails move under Actions.
-- Gaps lists customer-layer gaps first, then project viability gaps.
-- Actions sub-tabs are reduced; Stakeholders is removed from Actions.
-
+- **Overview**: the Deal Brief.
+- **Understanding**: one list. *Not known yet* comes first, ordered by priority then decision-critical facts (Customer problem, Who decides, Why now), each with an inline answer box. *What we know* follows. Answering moves the item down without leaving the page. Influence Map sits at the bottom, collapsed.
+- **Actions**: Activities, Documents, Emails, Meetings, Questions, Validations, Conversations, Timeline. Stakeholders is removed (Overview owns it).
+- **Ask**: opportunity-scoped question.
+- Old links keep working: `view=gaps` and `view=influence` open Understanding; `view=meetings` and `view=emails` open the matching Actions sub-tab; the old Stakeholders action opens Overview.
 ### 5.9 Scope gates
 
 - **Sales motion:** applies to investigation-type deals only. Product sales and consulting keep the lean path (buyer, quantity, date, quote) and are untouched.
-- **Relationship posture:** applies only where `isOpportunityEligibleCompany` is true. Buy-from, collaborate, watch/fund and unclassified companies never get customer-problem or sponsor prompts.
+- **Relationship posture:** the Brief is hidden when the company is classified as something other than sell-to (buy-from, collaborate, watch/fund), which never get customer-problem or sponsor prompts. An unclassified company that already has an opportunity still gets the Brief, so a seller working a deal is not left on the old layout; the company page keeps recommending *Classify this relationship*.
 
 ## 6. SmartAssist Behaviour
 
@@ -199,7 +199,7 @@ Return to the five specified tabs: **Overview, Gaps, Understanding, Actions, Ask
 - **AC-A6** Every Confirmed value shows its source.
 - **AC-A7** The verdict follows the rule table in 5.4 and is not rendered without an impact line.
 - **AC-A8** Stage and Offerings each appear once in the header area.
-- **AC-A9** Mission control has five tabs; stakeholders appear in one place.
+- **AC-A9** Mission control has four tabs; stakeholders appear in one place; gaps are answerable inline in Understanding.
 - **AC-A10** Product-sale and non-sell-to opportunities are unchanged and show no customer-layer prompts.
 - **AC-A11** No sales-method terminology appears in the UI.
 - **AC-A12** Existing opportunities load without migration, with customer fields Unknown.
@@ -216,13 +216,13 @@ Return to the five specified tabs: **Overview, Gaps, Understanding, Actions, Ask
 1. **Silence threshold.** After how many days without customer contact does the verdict become At risk? Proposal: 21 days for investigation deals.
 2. **Source requirement.** Is a user-typed answer with no document or conversation reference acceptable as Confirmed? Proposal: yes, with source "Stated by {user}".
 3. **Why now vs Timeline.** Keep the existing `timeline` field as a date and treat `why_now` as the reason, or merge them? Proposal: keep both.
-4. **Tab relocation.** Confirm Influence Map under Understanding and Meetings/Emails under Actions.
+4. ~~Tab relocation~~ Decided: Influence under Understanding, Meetings and Emails under Actions.
 5. **Value field.** Should `customer_value` accept a currency amount, free text, or both? Proposal: free text, with an optional amount.
 
 ## 14. Suggested Delivery Phases
 
 1. **Model.** Add the Customer category and four fields, knowledge states and source tracking. No UI change.
 2. **Engine.** Verdict, weakest link, derived agreed next step, What changed. Unit tests for the rule table.
-3. **Deal Brief UI.** New hero, collapse evidence and inbox, remove duplicates, merge `DealVelocityCard` into row 3.
-4. **Tab consolidation.** Five tabs, relocate Influence, Meetings, Emails, stakeholders.
+3. **Deal Brief UI.** (Done) New hero, collapsed evidence and inbox, duplicates removed, `DealVelocityCard` retired.
+4. **Tab consolidation.** (Done) Four tabs; Gaps merged into Understanding; Influence, Meetings, Emails, stakeholders relocated.
 5. **SmartAssist proposals.** Extract problem, why now, vision and value statements from mail, meetings and documents as Assumed proposals.

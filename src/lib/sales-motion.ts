@@ -8,7 +8,8 @@ import type {
   UnderstandingFieldDefinition,
   UnderstandingFieldId,
 } from "@/types/opportunity-understanding";
-import { UNDERSTANDING_FIELDS } from "@/types/opportunity-understanding";
+import { BOO_ONLY_FIELD_IDS, UNDERSTANDING_FIELDS } from "@/types/opportunity-understanding";
+import { isSalesMotion } from "@/types/sales-motion";
 import { resolveOfferings } from "@/lib/standard-bio-offerings";
 
 const ALL_VIABILITY_DIMENSIONS = [
@@ -54,8 +55,110 @@ export const SALES_MOTION_PROFILES: Record<SalesMotion, SalesMotionProfile> = {
     label: "Pyrolysis system sale",
     process: "Qualify the project → validate feasibility → propose → negotiate CAPEX contract",
     depth: "full",
-    understandingFieldIds: UNDERSTANDING_FIELDS.map((field) => field.id),
+    understandingFieldIds: UNDERSTANDING_FIELDS.map((field) => field.id).filter(
+      (id) => !BOO_ONLY_FIELD_IDS.includes(id),
+    ),
     fieldOverrides: {},
+    viabilityDimensionIds: [...ALL_VIABILITY_DIMENSIONS],
+    fatalFlawIds: [...ALL_FATAL_FLAWS],
+    engagementGap: true,
+    offeringQuestionLimit: 3,
+    projectInvestigation: true,
+  },
+  // FS-005B — Standard Bio develops the plant project (BOO, JV, or co-owned SPV).
+  // How final ownership and financing end up is decided along the way; customer CAPEX budget is not asked.
+  boo: {
+    motion: "boo",
+    label: "Project development (BOO / JV)",
+    process:
+      "Secure offtake, feedstock and site → permit → agree ownership & financing → financial close",
+    depth: "full",
+    understandingFieldIds: UNDERSTANDING_FIELDS.map((field) => field.id).filter(
+      (id) => id !== "economic_buyer" && id !== "budget",
+    ),
+    fieldOverrides: {
+      customer_problem: {
+        label: "What they need solved",
+        prompt: "What does the supplier or host need solved, and who feels it?",
+        placeholder: "e.g. Digestate disposal cost and limits on spreading",
+        gapLabel: "Their problem not confirmed",
+        whyItMatters: "An agreement only holds if it solves something they feel.",
+        recommendedAction: "Ask them to describe the problem in their own words",
+      },
+      customer_value: {
+        label: "What it is worth to them",
+        prompt: "What does solving it save or earn them, such as disposal cost avoided or energy value?",
+        gapLabel: "Value to them not stated",
+        whyItMatters: "Agreements on price and term depend on what the problem costs them today.",
+        recommendedAction: "Ask what the problem costs them today",
+      },
+      decision_maker: {
+        label: "Who signs the agreements",
+        prompt: "Who can sign the feedstock, energy and site agreements?",
+        placeholder: "Name and role — e.g. Plant owner",
+        gapLabel: "Signatory not identified",
+        whyItMatters: "Agreements stall when the person who can sign has not been engaged.",
+        recommendedAction: "Identify who signs and engage them",
+      },
+      feedstock_volume: {
+        prompt: "What volume is committed, and for how long?",
+        gapLabel: "Committed volume unknown",
+        whyItMatters: "Committed volume sets plant size and what investors will fund.",
+        recommendedAction: "Confirm committed volume and contract term",
+      },
+      site_readiness: {
+        label: "Site control (land plot)",
+        prompt:
+          "Is a land plot available, and have we decided and secured rent/lease vs. ownership and access?",
+        placeholder:
+          "e.g. Plot available next to host plant; rent/lease vs. purchase and terms to be determined",
+        gapLabel: "Land plot rent or ownership not yet secured",
+        whyItMatters:
+          "Even when a plot is available, we cannot permit or finance a plant until land lease or ownership terms are agreed.",
+        recommendedAction: "Agree and secure lease/rent or purchase terms for the land plot",
+        priority: "high",
+      },
+      utilities: {
+        label: "Shared utilities",
+        prompt:
+          "Which utilities and tie-ins (heat, power, water, logistics) are needed with the neighbouring plant, and are they secured?",
+        placeholder: "e.g. Heat exchange ducts/piping, power and water capacity — terms to be secured",
+        gapLabel: "Utilities and tie-ins not yet secured",
+        whyItMatters: "Shared infrastructure and utility capacity can make or break the plant's economics.",
+        recommendedAction: "Confirm utility capacity and secure shared utility terms with the neighbour",
+        priority: "high",
+      },
+      offtake_strategy: {
+        label: "Energy and heat offtake",
+        prompt: "Who will buy the surplus thermal energy (heat/steam/power), on what terms and price?",
+        placeholder: "e.g. Vest Biogas buys ~7–8 GWh/year thermal heat for drying; tariff and term",
+        gapLabel: "Energy / heat offtake not agreed",
+        whyItMatters: "Without a committed buyer for the surplus thermal energy, the local heat revenue is a guess.",
+        recommendedAction: "Agree thermal energy volume, price and contract term with the host",
+        priority: "high",
+      },
+      end_product: {
+        label: "Biochar product offtake",
+        prompt: "How will Standard Bio secure offtake for the biochar product (buyers, spec, volume, price, carbon credits)?",
+        placeholder: "e.g. Biochar from wood chips — offtake buyers, price per ton and carbon credit route to be secured",
+        gapLabel: "Biochar product offtake not secured",
+        whyItMatters: "Biochar (and carbon removal value) is a core revenue stream of the plant and must have secured offtake.",
+        recommendedAction: "Secure biochar offtake buyers, specifications and pricing",
+        priority: "high",
+      },
+      funding_source: {
+        label: "Ownership and financing",
+        prompt:
+          "How will ownership and financing be structured (BOO, JV with partner, investors, project finance)?",
+        placeholder: "e.g. To be discussed — evaluating SB BOO vs. JV with host and project finance",
+        gapLabel: "Ownership and financing not yet decided",
+        whyItMatters:
+          "The ownership and financing structure determines who carries capital and how returns are shared.",
+        recommendedAction:
+          "Discuss and agree the ownership and financing model with the partner and investors",
+        priority: "high",
+      },
+    },
     viabilityDimensionIds: [...ALL_VIABILITY_DIMENSIONS],
     fatalFlawIds: [...ALL_FATAL_FLAWS],
     engagementGap: true,
@@ -175,17 +278,29 @@ const PLANT_CORE_OFFERING_IDS = ["prod-pyrolysis-reactor"];
  * Services only → consulting. No offerings → unclassified (Reality First).
  */
 export function resolveSalesMotion(
-  pipeline: Pick<PipelineRow, "offeringIds">,
+  pipeline: Pick<PipelineRow, "offeringIds" | "dealModel">,
 ): ResolvedSalesMotion {
+  // FS-005B 4.1 — the user's choice always wins.
+  if (isSalesMotion(pipeline.dealModel)) {
+    return {
+      motion: pipeline.dealModel,
+      source: "chosen",
+      label: SALES_MOTION_PROFILES[pipeline.dealModel].label,
+      reason: "Chosen on this opportunity.",
+    };
+  }
+
   const offerings = resolveOfferings(pipeline.offeringIds);
   if (offerings.length === 0) {
     return {
       motion: null,
+      source: "none",
       label: UNCLASSIFIED_SALES_MOTION_LABEL,
       reason: "No offerings selected — select what we are selling to set the sales type.",
     };
   }
 
+  // The offerings guess never selects Build-Own-Operate; only the user does.
   const motion: SalesMotion = offerings.some(
     (o) => o.category === "system" || PLANT_CORE_OFFERING_IDS.includes(o.id),
   )
@@ -197,14 +312,14 @@ export function resolveSalesMotion(
   const names = offerings.map((o) => o.name).join(", ");
   return {
     motion,
+    source: "offerings",
     label: SALES_MOTION_PROFILES[motion].label,
-    reason: `Set by offerings in scope: ${names}.`,
+    reason: `Assumed from offerings in scope: ${names}.`,
   };
 }
-
 /** Profile for the deal, or `null` while unclassified (callers keep full investigation). */
 export function salesMotionProfileFor(
-  pipeline: Pick<PipelineRow, "offeringIds">,
+  pipeline: Pick<PipelineRow, "offeringIds" | "dealModel">,
 ): SalesMotionProfile | null {
   const { motion } = resolveSalesMotion(pipeline);
   return motion ? SALES_MOTION_PROFILES[motion] : null;
@@ -217,10 +332,13 @@ export function isLeanSalesMotion(profile: SalesMotionProfile | null): boolean {
 
 /** Understanding fields that apply to this deal, with motion-specific wording. */
 export function understandingFieldsForPipeline(
-  pipeline: Pick<PipelineRow, "offeringIds">,
+  pipeline: Pick<PipelineRow, "offeringIds" | "dealModel">,
 ): UnderstandingFieldDefinition[] {
   const profile = salesMotionProfileFor(pipeline);
-  if (!profile || profile.motion === "system") return UNDERSTANDING_FIELDS;
+  // Unclassified keeps the full investigation, minus the Build-Own-Operate-only fields.
+  if (!profile) {
+    return UNDERSTANDING_FIELDS.filter((field) => !BOO_ONLY_FIELD_IDS.includes(field.id));
+  }
 
   const allowed = new Set<UnderstandingFieldId>(profile.understandingFieldIds);
   return UNDERSTANDING_FIELDS.filter((field) => allowed.has(field.id)).map((field) => ({

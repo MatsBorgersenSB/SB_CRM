@@ -160,6 +160,13 @@ export function assertPipelinePatchAllowed(
       continue;
     }
 
+    if (key === "dealModel") {
+      if (!canCaptureOpportunityUnderstanding(role)) {
+        throw new Error(`Role "${role}" cannot change how this opportunity is done`);
+      }
+      continue;
+    }
+
     if (key === "offeringIds") {
       if (!canCaptureOpportunityUnderstanding(role)) {
         throw new Error(`Role "${role}" cannot update opportunity offerings`);

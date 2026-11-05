@@ -285,6 +285,8 @@ model Opportunity {
   // Opportunity commercial shape (PipelineRow / CreateOpportunityInput)
   companyRole String?
   offeringIds String[] @default([])
+  // How the deal is done, chosen by the user (FS-005B): system | boo | product | consulting
+  dealModel String?
 
   // User-captured opportunity understanding (gaps / confirmed answers)
   understanding Json?

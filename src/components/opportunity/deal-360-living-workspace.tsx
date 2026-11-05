@@ -11,6 +11,7 @@ import type { UserRole } from "@/types/auth";
 import {
   DEFAULT_MISSION_CONTROL_VIEW,
   isOpportunityMissionControlView,
+  mapLegacyDealLocation,
   type OpportunityMissionControlView,
 } from "@/types/opportunity-mission-control";
 import {
@@ -21,7 +22,6 @@ import {
 } from "@/types/opportunity-actions";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
-import { DealVelocityCard } from "@/components/ai/deal-velocity-card";
 import { workspaceDocumentsContextFromOpportunity } from "@/lib/workspace-documents-data";
 import { getActivitiesForDeal } from "@/lib/activity-utils";
 import { findCompanyForDeal } from "@/lib/opportunity-intelligence-engine";
@@ -44,7 +44,6 @@ import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 const LEGACY_HASH_TO_ACTION: Record<string, OpportunityActionTab> = {
   activities: "activities",
   "activities-full": "activities",
-  stakeholders: "stakeholders",
   documents: "documents",
 };
 
@@ -62,12 +61,8 @@ function buildDealUrl(
     const tab = actionTab ?? DEFAULT_OPPORTUNITY_ACTION_TAB;
     params.set("action", tab);
   }
-  if (fieldId && (view === "understanding" || view === "gaps")) {
+  if (fieldId && view === "understanding") {
     params.set("field", fieldId);
-    if (view === "gaps") {
-      // Answer Now always lands on the capture surface
-      params.set("view", "understanding");
-    }
   }
   const query = params.toString();
   return `/opportunities/${encodeURIComponent(dealId)}${query ? `?${query}` : ""}`;
@@ -114,17 +109,26 @@ export function Deal360LivingWorkspace({
 
   const [documentCount, setDocumentCount] = useState(0);
 
+  // Old links (gaps, influence, meetings, emails, stakeholders) keep working.
+  const legacyLocation = useMemo(
+    () => mapLegacyDealLocation(viewParam, actionParam),
+    [viewParam, actionParam],
+  );
+
   const actionTab = useMemo(() => {
+    if (legacyLocation?.action) return legacyLocation.action;
     if (isOpportunityActionTab(actionParam)) return actionParam;
     const fromLegacy = legacyWorkspaceTabToActionTab(legacyTabParam);
     if (fromLegacy) return fromLegacy;
     return DEFAULT_OPPORTUNITY_ACTION_TAB;
-  }, [actionParam, legacyTabParam]);
+  }, [actionParam, legacyTabParam, legacyLocation]);
 
   const missionView = useMemo(() => {
+    if (legacyLocation) return legacyLocation.view;
     if (isOpportunityMissionControlView(viewParam)) {
       return viewParam;
     }
+    if (legacyTabParam === "stakeholders") return "overview";
     if (legacyTabParam === "knowledge" || legacyTabParam === "intelligence") {
       return "understanding";
     }
@@ -132,7 +136,7 @@ export function Deal360LivingWorkspace({
       return "actions";
     }
     return DEFAULT_MISSION_CONTROL_VIEW;
-  }, [viewParam, legacyTabParam]);
+  }, [viewParam, legacyTabParam, legacyLocation]);
 
   const setMissionView = useCallback(
     (view: OpportunityMissionControlView) => {
@@ -269,7 +273,6 @@ export function Deal360LivingWorkspace({
   const actionCounts = useMemo(
     () => ({
       activities: dealActivities.length,
-      stakeholders: dealTeam.team.length,
       documents: documentCount,
       questions: understanding.suggestedQuestions.length,
       validations: understanding.suggestedValidations.length,
@@ -277,7 +280,6 @@ export function Deal360LivingWorkspace({
     }),
     [
       dealActivities.length,
-      dealTeam.team.length,
       documentCount,
       understanding.suggestedQuestions.length,
       understanding.suggestedValidations.length,
@@ -300,20 +302,6 @@ export function Deal360LivingWorkspace({
               dealId: pipeline.id,
               dealName: pipeline.assetName,
             }}
-          />
-        );
-      case "stakeholders":
-        return (
-          <DealStakeholdersTable
-            team={dealTeam.team}
-            companies={companies}
-            dealId={pipeline.id}
-            activities={activities}
-            onAssign={dealTeam.onAssign}
-            onRemove={dealTeam.onRemove}
-            onUpdateRole={dealTeam.onUpdateRole}
-            readOnly={dealTeam.readOnly}
-            offeringIds={pipeline.offeringIds}
           />
         );
       case "documents":
@@ -376,7 +364,6 @@ export function Deal360LivingWorkspace({
         onUpdateRole={dealTeam.onUpdateRole}
         readOnly={dealTeam.readOnly}
         offeringIds={pipeline.offeringIds}
-        compact
       />
     ),
     [dealTeam, companies, pipeline.id, pipeline.offeringIds, activities],
@@ -394,8 +381,6 @@ export function Deal360LivingWorkspace({
         onPipelinePatch={onPipelinePatch}
         onOpportunityDelete={onOpportunityDelete}
       />
-
-      <DealVelocityCard dealId={pipeline.id} />
 
       <OpportunityMissionControl
         view={missionView}

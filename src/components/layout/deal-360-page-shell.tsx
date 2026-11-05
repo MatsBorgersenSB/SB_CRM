@@ -78,7 +78,10 @@ export function Deal360PageShell({
   );
 
   const dealKey = dealId.trim().toLowerCase();
-  const matchDeal = (row: { id: string }) => row.id.toLowerCase() === dealKey;
+  const matchDeal = useCallback(
+    (row: { id: string }) => row.id.toLowerCase() === dealKey,
+    [dealKey],
+  );
 
   const initialPipeline =
     scopedPipelines.find(matchDeal) ??
@@ -90,8 +93,9 @@ export function Deal360PageShell({
     const incoming =
       scopedPipelines.find(matchDeal) ??
       (user.role === "client_lead" ? undefined : pipelines.find(matchDeal));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync local optimistic deal state when upstream pipelines refresh
     setPipeline((current) => mergeDealPreservingUnderstanding(current, incoming));
-  }, [scopedPipelines, pipelines, dealId, user.role]);
+  }, [scopedPipelines, pipelines, matchDeal, user.role]);
 
   const attentionItems = useMemo(() => {
     if (!pipeline) return [];
@@ -175,9 +179,9 @@ export function Deal360PageShell({
       overview: "",
       intelligence: "view=understanding",
       knowledge: "view=understanding",
-      influence: "view=influence",
-      meetings: "view=meetings",
-      emails: "view=emails",
+      influence: "view=understanding",
+      meetings: "view=actions&action=meetings",
+      emails: "view=actions&action=emails",
       viability: "view=actions&action=activities",
       cvm: "view=actions&action=activities",
       commercial: "view=actions&action=activities",

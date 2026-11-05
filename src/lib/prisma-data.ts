@@ -103,6 +103,7 @@ export const OPPORTUNITY_LIST_SELECT = {
   expectedCloseDate: true,
   ownerId: true,
   offeringIds: true,
+  dealModel: true,
   team: true,
   understanding: true,
   sharepointFolderId: true,

@@ -24,6 +24,7 @@ import {
   canRenameOpportunity,
   canDeleteOpportunity,
   canEditExpectedCloseDate,
+  canCaptureOpportunityUnderstanding,
   canEditOpportunityValue,
 } from "@/lib/permissions";
 import type { UserRole } from "@/types/auth";
@@ -32,6 +33,13 @@ import { OpportunityProbabilityPill } from "@/components/opportunity/opportunity
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 import { formatOfferingLabels } from "@/lib/standard-bio-offerings";
 import { resolveSalesMotion } from "@/lib/sales-motion";
+import {
+  DEAL_MODEL_LABELS,
+  SALES_MOTIONS,
+  isSalesMotion,
+  type ResolvedSalesMotion,
+  type SalesMotion,
+} from "@/types/sales-motion";
 import {
   ATTIO_PILL,
   ATTIO_PILL_STATIC,
@@ -113,6 +121,10 @@ export function OpportunityWorkspaceHeader({
 
   const offeringsLabel = formatOfferingLabels(pipeline.offeringIds);
   const salesMotion = resolveSalesMotion(pipeline);
+  const canEditDealModel = canCaptureOpportunityUnderstanding(role) && Boolean(onPipelinePatch);
+  const handleDealModelChange = async (dealModel: SalesMotion | null) => {
+    await onPipelinePatch?.({ dealModel });
+  };
   const sharePointFolder = useOpportunitySharePointFolder(
     pipeline.id,
     pipeline.assetName,
@@ -164,12 +176,6 @@ export function OpportunityWorkspaceHeader({
               {opportunityPublicCode(pipeline)}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className={ATTIO_PILL_STATIC}>
-                <span className={ATTIO_STATUS_DOT} aria-hidden />
-                <span className="font-medium text-slate-700 dark:text-slate-200">
-                  {stageLabel}
-                </span>
-              </span>
               {company ? (
                 <CompanyLink
                   companyId={company.CompanyID}
@@ -257,24 +263,36 @@ export function OpportunityWorkspaceHeader({
             />
           </AttributePill>
 
-          <AttributePill label="Sales type">
-            <span className="truncate" title={salesMotion.reason}>
-              {salesMotion.label}
-            </span>
+          <AttributePill label="Deal type">
+            <DealModelSelect
+              resolved={salesMotion}
+              editable={canEditDealModel}
+              onChange={handleDealModelChange}
+            />
           </AttributePill>
 
-          <AttributePill label="Offerings">
-            <span className="truncate">{offeringsLabel}</span>
-          </AttributePill>
         </dl>
 
-        <div className="border-t border-slate-200/80 pt-3 dark:border-slate-800">
-          <OpportunityOfferingsPanel
-            pipeline={pipeline}
-            onSave={onPipelinePatch ? handleOfferingsChange : undefined}
-            readOnly={!onPipelinePatch}
-          />
-        </div>
+        <details className="border-t border-slate-200/80 pt-3 dark:border-slate-800">
+          <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 text-[13px]">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+              Offerings
+            </span>
+            <span className="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">
+              {offeringsLabel}
+            </span>
+            <span className="text-[12px] font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400">
+              {onPipelinePatch ? "Edit" : "View"}
+            </span>
+          </summary>
+          <div className="mt-3">
+            <OpportunityOfferingsPanel
+              pipeline={pipeline}
+              onSave={onPipelinePatch ? handleOfferingsChange : undefined}
+              readOnly={!onPipelinePatch}
+            />
+          </div>
+        </details>
       </div>
     </header>
   );
@@ -294,6 +312,53 @@ function AttributePill({
       </dt>
       <dd className="min-w-0 font-medium text-slate-800 dark:text-slate-100">{children}</dd>
     </div>
+  );
+}
+
+/** FS-005B: the user picks how the deal is done; an offerings guess is only ever Assumed. */
+function DealModelSelect({
+  resolved,
+  editable,
+  onChange,
+}: {
+  resolved: ResolvedSalesMotion;
+  editable: boolean;
+  onChange: (dealModel: SalesMotion | null) => void | Promise<void>;
+}) {
+  const assumed = resolved.source === "offerings";
+  const display =
+    resolved.motion === null
+      ? "Not set"
+      : assumed
+        ? `${DEAL_MODEL_LABELS[resolved.motion]} (assumed)`
+        : DEAL_MODEL_LABELS[resolved.motion];
+
+  if (!editable) {
+    return (
+      <span className="truncate" title={resolved.reason}>
+        {display}
+      </span>
+    );
+  }
+
+  return (
+    <select
+      value={resolved.source === "chosen" ? (resolved.motion ?? "") : ""}
+      onChange={(event) => {
+        const next = event.target.value;
+        void onChange(isSalesMotion(next) ? next : null);
+      }}
+      title={resolved.reason}
+      className="max-w-[12rem] cursor-pointer border-0 bg-transparent py-0 pl-0 pr-4 text-[13px] font-medium text-slate-800 outline-none dark:text-slate-100"
+      aria-label="Deal type"
+    >
+      <option value="">{resolved.source === "chosen" ? "Not set — assume from offerings" : display}</option>
+      {SALES_MOTIONS.map((motion) => (
+        <option key={motion} value={motion}>
+          {DEAL_MODEL_LABELS[motion]}
+        </option>
+      ))}
+    </select>
   );
 }
 

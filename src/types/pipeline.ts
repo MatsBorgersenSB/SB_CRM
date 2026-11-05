@@ -134,6 +134,11 @@ export type PipelineRow = {
    * Required for SmartAssist to understand what we are selling.
    */
   offeringIds?: string[];
+  /**
+   * How this deal is done, chosen by the user (FS-005B). `null` or absent means not
+   * chosen — the offerings-based guess then applies and is shown as Assumed.
+   */
+  dealModel?: import("@/types/sales-motion").SalesMotion | null;
   /** User-captured opportunity understanding — source of truth for gaps. */
   understanding?: import("@/types/opportunity-understanding").OpportunityUnderstandingCapture;
   ClientLookup?: string;

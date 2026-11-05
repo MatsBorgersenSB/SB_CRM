@@ -16,7 +16,7 @@ import {
   type UnderstandingFieldId,
 } from "@/types/opportunity-understanding";
 import { resolveUnderstandingField } from "@/lib/opportunity-understanding-model";
-import { understandingFieldsForPipeline } from "@/lib/sales-motion";
+import { resolveSalesMotion, understandingFieldsForPipeline } from "@/lib/sales-motion";
 
 export type KnowledgeState = "confirmed" | "assumed" | "unknown";
 
@@ -26,7 +26,16 @@ export type BriefElementId =
   | "why_now"
   | "next_step"
   | "customer_value"
-  | "customer_vision";
+  | "customer_vision"
+  // Build-Own-Operate only (FS-005B)
+  | "feedstock_agreement"
+  | "site_control"
+  | "utilities"
+  | "permitting"
+  | "funding"
+  | "public_funding"
+  | "offtake"
+  | "biochar_offtake";
 
 export type DealVerdictId = "at_risk" | "not_understood" | "needs_attention" | "clear_path";
 
@@ -58,6 +67,8 @@ export type DealBrief = {
   want: BriefRow;
   blocker: BriefRow;
   next: BriefRow;
+  /** Column headings, worded for the deal model. */
+  columns: { want: string; blocker: string; next: string };
   /** One line: last customer touch plus anything new since the last visit. */
   whatChanged: string;
   /** Weakest unconfirmed element, null when everything is Confirmed. */
@@ -81,6 +92,40 @@ export type BuildDealBriefInput = {
 };
 
 export const DEFAULT_SILENCE_DAYS = 21;
+
+/**
+ * Stages from which permits and funding gate a Build-Own-Operate "Clear path" (FS-005B 6, 8).
+ * Build-Own-Operate shares the Project sales pipeline: Negotiation is where agreements and
+ * financing are negotiated, and Won means financial close.
+ */
+export const BOO_FINANCING_GATE_STAGE_IDS: readonly string[] = ["negotiation", "won"];
+
+/** Build-Own-Operate weakest-link order (FS-005B 6). */
+export const BOO_WEAKEST_LINK_ORDER: readonly BriefElementId[] = [
+  "customer_problem",
+  "who_decides",
+  "offtake",
+  "biochar_offtake",
+  "feedstock_agreement",
+  "site_control",
+  "utilities",
+  "why_now",
+  "next_step",
+  "permitting",
+  "funding",
+  "public_funding",
+  "customer_value",
+  "customer_vision",
+];
+
+/** Items that only gate the verdict once the deal reaches the financing stage. */
+const BOO_LATE_GATES: readonly BriefElementId[] = ["permitting", "funding", "public_funding"];
+/** Shown as the next step on a Clear path, but never a gate. */
+const BOO_LATER_FOLLOW_UPS: readonly BriefElementId[] = [
+  "permitting",
+  "funding",
+  "public_funding",
+];
 
 /** Order of weakness: the first element not Confirmed is the blocker. */
 export const WEAKEST_LINK_ORDER: readonly BriefElementId[] = [
@@ -123,6 +168,20 @@ const ELEMENT_LABEL: Record<BriefElementId, string> = {
   next_step: "Agreed next step",
   customer_value: "What it is worth to them",
   customer_vision: "What they picture",
+  feedstock_agreement: "Feedstock agreement",
+  site_control: "Site control (land plot)",
+  utilities: "Shared utilities",
+  permitting: "Permits",
+  funding: "Ownership and financing",
+  public_funding: "Public funding",
+  offtake: "Energy and heat offtake",
+  biochar_offtake: "Biochar product offtake",
+};
+
+const BOO_LABEL: Partial<Record<BriefElementId, string>> = {
+  customer_problem: "What they need solved",
+  who_decides: "Who signs the agreements",
+  next_step: "Agreed next step",
 };
 
 const ELEMENT_ACTION: Record<BriefElementId, string> = {
@@ -132,6 +191,21 @@ const ELEMENT_ACTION: Record<BriefElementId, string> = {
   next_step: "Agree a dated next step with the customer",
   customer_value: "Ask what the problem costs them today",
   customer_vision: "Ask what a good outcome looks like to them",
+  feedstock_agreement: "Agree feedstock volume, term and price with the supplier",
+  site_control: "Agree and secure lease/rent or purchase terms for the land plot",
+  utilities: "Confirm utility capacity and secure shared heat, power and water tie-in terms",
+  permitting: "Confirm which permits are needed and where each stands",
+  funding: "Agree the ownership and financing structure (BOO, JV, investors or lenders)",
+  public_funding: "Identify applicable grants or subsidies and record their status",
+  offtake: "Agree who takes the surplus thermal energy, and at what price and term",
+  biochar_offtake: "Secure offtake buyers, specifications and pricing for the biochar product",
+};
+
+const BOO_ACTION: Partial<Record<BriefElementId, string>> = {
+  customer_problem: "Ask them to describe what they need solved, in their own words",
+  who_decides: "Find out who can sign the feedstock, energy and site agreements",
+  why_now: "Ask what forces a decision and by when",
+  next_step: "Agree a dated next step with them",
 };
 
 const ELEMENT_UNKNOWN_LINE: Record<BriefElementId, string> = {
@@ -141,6 +215,21 @@ const ELEMENT_UNKNOWN_LINE: Record<BriefElementId, string> = {
   next_step: "No dated next step is agreed with the customer",
   customer_value: "The customer has not put a value on the problem",
   customer_vision: "We do not know what a good outcome looks like to the customer",
+  feedstock_agreement: "No feedstock agreement is in place",
+  site_control: "Land plot lease or ownership is not secured",
+  utilities: "Utilities and tie-ins are not yet secured",
+  permitting: "Permits are not confirmed",
+  funding: "Ownership and financing structure is not yet decided",
+  public_funding: "Public funding is not confirmed",
+  offtake: "Offtake for the surplus thermal energy is not agreed",
+  biochar_offtake: "Offtake for the biochar product is not yet secured",
+};
+
+const BOO_UNKNOWN: Partial<Record<BriefElementId, string>> = {
+  customer_problem: "We do not yet know what they need solved",
+  who_decides: "We do not yet know who can sign the agreements",
+  why_now: "There is no stated reason to decide now",
+  next_step: "No dated next step is agreed",
 };
 
 const ELEMENT_IMPACT: Record<BriefElementId, string> = {
@@ -152,7 +241,46 @@ const ELEMENT_IMPACT: Record<BriefElementId, string> = {
   customer_value: "If the customer has not valued the problem, price becomes the only comparison.",
   customer_vision:
     "A proposal that does not match what the customer pictures gets rejected even when it is sound.",
+  feedstock_agreement: "Without committed feedstock there is no plant to finance.",
+  site_control: "We cannot permit or finance a plant on a land plot we have not secured.",
+  utilities: "Shared heat, power and water tie-ins can make or break the plant's economics and layout.",
+  permitting: "Without permits the plant cannot be financed or built.",
+  funding: "Before financial close, the ownership split and financing structure must be agreed.",
+  public_funding: "Grants and subsidies can decide whether the plant is financeable.",
+  offtake: "Without a committed buyer for the surplus thermal energy, local heat income is a guess.",
+  biochar_offtake: "Biochar sales and carbon credits are a core revenue pillar of the plant.",
 };
+
+const BOO_IMPACT: Partial<Record<BriefElementId, string>> = {
+  customer_problem:
+    "Without a confirmed problem we cannot judge what they will commit to, and the agreement can stall without warning.",
+  who_decides: "Agreements stall when the person who can sign has not been engaged.",
+  why_now: "Without a reason to decide, agreements drift; a deadline turns interest into a signature.",
+  next_step: "Without a dated step agreed with them, momentum depends on chance.",
+};
+
+type ElementText = {
+  label: Record<BriefElementId, string>;
+  action: Record<BriefElementId, string>;
+  unknown: Record<BriefElementId, string>;
+  impact: Record<BriefElementId, string>;
+};
+
+function elementText(boo: boolean): ElementText {
+  return boo
+    ? {
+        label: { ...ELEMENT_LABEL, ...BOO_LABEL },
+        action: { ...ELEMENT_ACTION, ...BOO_ACTION },
+        unknown: { ...ELEMENT_UNKNOWN_LINE, ...BOO_UNKNOWN },
+        impact: { ...ELEMENT_IMPACT, ...BOO_IMPACT },
+      }
+    : {
+        label: ELEMENT_LABEL,
+        action: ELEMENT_ACTION,
+        unknown: ELEMENT_UNKNOWN_LINE,
+        impact: ELEMENT_IMPACT,
+      };
+}
 
 function parseDate(value: string | undefined | null): Date | null {
   if (!value?.trim()) return null;
@@ -180,20 +308,25 @@ function hasCustomerContact(activity: Activity): boolean {
   );
 }
 
+const OPEN_WORK_NOTE_PATTERN =
+  /\b(not yet decided|yet to be discussed|to be discussed|to be investigated|must apply|must prepare|tbd|tbc)\b/i;
+
 function customerFieldElement(
   pipeline: PipelineRow,
   fieldId: UnderstandingFieldId,
   id: BriefElementId,
+  label: string,
   assumed?: string | null,
 ): BriefElement {
   const resolved = resolveUnderstandingField(pipeline, fieldId);
-  const label = ELEMENT_LABEL[id];
   if (resolved.source === "captured") {
     const entered = pipeline.understanding?.fields?.[fieldId]?.trim();
+    const isPendingLateGate =
+      BOO_LATE_GATES.includes(id) && OPEN_WORK_NOTE_PATTERN.test(resolved.value);
     return {
       id,
       label,
-      state: "confirmed",
+      state: isPendingLateGate ? "assumed" : "confirmed",
       statement: resolved.value,
       source: entered ? "Entered on this opportunity" : "Confirmed from a source finding",
     };
@@ -210,13 +343,13 @@ function customerFieldElement(
   return { id, label, state: "unknown", statement: null, source: null };
 }
 
-function whoDecidesElement(pipeline: PipelineRow): BriefElement {
+function whoDecidesElement(pipeline: PipelineRow, label: string): BriefElement {
   for (const fieldId of ["decision_maker", "economic_buyer"] as const) {
     const resolved = resolveUnderstandingField(pipeline, fieldId);
     if (resolved.source === "captured") {
       return {
         id: "who_decides",
-        label: ELEMENT_LABEL.who_decides,
+        label,
         state: "confirmed",
         statement: resolved.value,
         source: "Entered on this opportunity",
@@ -226,7 +359,7 @@ function whoDecidesElement(pipeline: PipelineRow): BriefElement {
     if (resolved.source === "derived") {
       return {
         id: "who_decides",
-        label: ELEMENT_LABEL.who_decides,
+        label,
         state: "confirmed",
         statement: resolved.value,
         source: "Assigned on the opportunity roster",
@@ -235,7 +368,7 @@ function whoDecidesElement(pipeline: PipelineRow): BriefElement {
   }
   return {
     id: "who_decides",
-    label: ELEMENT_LABEL.who_decides,
+    label,
     state: "unknown",
     statement: null,
     source: null,
@@ -248,19 +381,35 @@ function agreedNextStepElement(activities: Activity[], now: Date): BriefElement 
   const candidates: Array<{ when: Date; text: string; source: string }> = [];
 
   for (const activity of activities) {
-    if (!OPEN_STATUSES.has(activity.ActionStatus) || !hasCustomerContact(activity)) continue;
+    if (activity.ActionStatus === "Cancelled" || !hasCustomerContact(activity)) continue;
 
     const followUp = parseDate(activity.NextActionDate);
     if (activity.ActionRequired && followUp && followUp >= today) {
       candidates.push({
         when: followUp,
         text: activity.NextAction?.trim() || activity.Subject,
-        source: `Planned activity ${activity.ActivityID}`,
+        source: `Activity ${activity.ActivityID}`,
       });
     }
 
+    for (const agreed of activity.AgreedActions ?? []) {
+      const due = parseDate(agreed.dueDate);
+      if (agreed.text?.trim() && due && due >= today) {
+        candidates.push({
+          when: due,
+          text: agreed.text.trim(),
+          source: `Agreed action on ${activity.ActivityID}`,
+        });
+      }
+    }
+
     const held = parseDate(activity.ActivityDate);
-    if (held && held >= now && MEETING_TYPES.has(activity.ActivityType)) {
+    if (
+      OPEN_STATUSES.has(activity.ActionStatus) &&
+      held &&
+      held >= now &&
+      MEETING_TYPES.has(activity.ActivityType)
+    ) {
       candidates.push({
         when: held,
         text: activity.Subject,
@@ -415,35 +564,99 @@ function elementFieldId(id: BriefElementId): UnderstandingFieldId | undefined {
       return "customer_value";
     case "customer_vision":
       return "customer_vision";
+    case "feedstock_agreement":
+      return "feedstock_agreement";
+    case "site_control":
+      return "site_readiness";
+    case "utilities":
+      return "utilities";
+    case "permitting":
+      return "permitting";
+    case "funding":
+      return "funding_source";
+    case "public_funding":
+      return "public_funding";
+    case "offtake":
+      return "offtake_strategy";
+    case "biochar_offtake":
+      return "end_product";
     default:
       return undefined;
   }
 }
+
+const BOO_FIELD_ELEMENTS: readonly BriefElementId[] = [
+  "feedstock_agreement",
+  "site_control",
+  "utilities",
+  "permitting",
+  "funding",
+  "public_funding",
+  "offtake",
+  "biochar_offtake",
+];
 
 export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
   const now = input.now ?? new Date();
   const silenceDays = input.silenceDays ?? DEFAULT_SILENCE_DAYS;
   const { pipeline, activities } = input;
 
+  // FS-005B: Build-Own-Operate changes the questions and the gates, not the engine.
+  const boo = resolveSalesMotion(pipeline).motion === "boo";
+  const text = elementText(boo);
+  const financingGate =
+    boo && BOO_FINANCING_GATE_STAGE_IDS.includes(String(pipeline.salesStageId ?? ""));
+  const fieldDefs = new Map(understandingFieldsForPipeline(pipeline).map((field) => [field.id, field]));
+  const defOf = (id: UnderstandingFieldId) => fieldDefs.get(id) ?? UNDERSTANDING_FIELD_BY_ID[id];
+
   const elements: BriefElement[] = [
-    customerFieldElement(pipeline, "customer_problem", "customer_problem", input.assumedProblem),
-    whoDecidesElement(pipeline),
-    customerFieldElement(pipeline, "why_now", "why_now"),
+    customerFieldElement(
+      pipeline,
+      "customer_problem",
+      "customer_problem",
+      text.label.customer_problem,
+      input.assumedProblem,
+    ),
+    whoDecidesElement(pipeline, text.label.who_decides),
+    customerFieldElement(pipeline, "why_now", "why_now", text.label.why_now),
     agreedNextStepElement(activities, now),
-    customerFieldElement(pipeline, "customer_value", "customer_value"),
-    customerFieldElement(pipeline, "customer_vision", "customer_vision"),
+    customerFieldElement(pipeline, "customer_value", "customer_value", text.label.customer_value),
+    customerFieldElement(pipeline, "customer_vision", "customer_vision", text.label.customer_vision),
   ];
+  if (boo) {
+    for (const id of BOO_FIELD_ELEMENTS) {
+      elements.push(customerFieldElement(pipeline, elementFieldId(id)!, id, text.label[id]));
+    }
+  }
   const byId = Object.fromEntries(elements.map((element) => [element.id, element])) as Record<
     BriefElementId,
     BriefElement
   >;
 
   const weakestLink =
-    WEAKEST_LINK_ORDER.find((id) => byId[id].state !== "confirmed") ?? null;
+    (boo ? BOO_WEAKEST_LINK_ORDER : WEAKEST_LINK_ORDER).find(
+      (id) => byId[id].state !== "confirmed",
+    ) ?? null;
 
   const risk = findRisk(input, now, silenceDays);
 
-  // Verdict — first match wins (FS-005A 5.4).
+  // Items that stop "Clear path". Permits and funding join them from the financing stage.
+  const gates: readonly BriefElementId[] = boo
+    ? [
+        "who_decides",
+        "offtake",
+        "biochar_offtake",
+        "feedstock_agreement",
+        "site_control",
+        "utilities",
+        "why_now",
+        "next_step",
+        ...(financingGate ? BOO_LATE_GATES : []),
+      ]
+    : ["who_decides", "why_now", "next_step"];
+  const openGate = gates.find((id) => byId[id].state !== "confirmed");
+
+  // Verdict — first match wins (FS-005A 5.4, FS-005B 6).
   let verdictId: DealVerdictId;
   let verdictImpact: string;
   if (risk) {
@@ -451,20 +664,17 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
     verdictImpact = risk.impact;
   } else if (byId.customer_problem.state !== "confirmed") {
     verdictId = "not_understood";
-    verdictImpact = ELEMENT_IMPACT.customer_problem;
-  } else if (
-    byId.who_decides.state !== "confirmed" ||
-    byId.why_now.state !== "confirmed" ||
-    byId.next_step.state !== "confirmed"
-  ) {
+    verdictImpact = text.impact.customer_problem;
+  } else if (openGate) {
     verdictId = "needs_attention";
-    const gap = (["who_decides", "why_now", "next_step"] as const).find(
-      (id) => byId[id].state !== "confirmed",
-    )!;
-    verdictImpact = `${ELEMENT_UNKNOWN_LINE[gap]}. ${ELEMENT_IMPACT[gap]}`;
+    verdictImpact = `${text.unknown[openGate]}. ${text.impact[openGate]}`;
   } else {
     verdictId = "clear_path";
-    verdictImpact = "The customer has a reason, a decider and a dated next step.";
+    verdictImpact = !boo
+      ? "The customer has a reason, a decider and a dated next step."
+      : financingGate
+        ? "Agreements, site, permits and funding are confirmed."
+        : "Inputs are secured; the next step is permits and funding.";
   }
 
   // Row 1 — what the customer wants.
@@ -477,7 +687,9 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
             vision.state === "confirmed"
               ? `${problem.statement} — they picture: ${vision.statement}`
               : (problem.statement as string),
-          impact: "This is what the customer told us, so a proposal can speak to it directly.",
+          impact: boo
+            ? "This is what they told us, so the proposal can speak to it directly."
+            : "This is what the customer told us, so a proposal can speak to it directly.",
           state: "confirmed",
           source: problem.source,
           fieldId: "customer_problem",
@@ -485,7 +697,7 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
       : problem.state === "assumed"
         ? {
             headline: `Working view, not confirmed: ${problem.statement}`,
-            impact: ELEMENT_IMPACT.customer_problem,
+            impact: text.impact.customer_problem,
             why: problem.source ?? undefined,
             state: "assumed",
             source: problem.source,
@@ -493,27 +705,37 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
           }
         : {
             headline: "Not confirmed yet",
-            impact: ELEMENT_IMPACT.customer_problem,
-            why: UNDERSTANDING_FIELD_BY_ID.customer_problem.prompt,
+            impact: text.impact.customer_problem,
+            why: defOf("customer_problem").prompt,
             state: "unknown",
             source: null,
             fieldId: "customer_problem",
           };
 
   // On a Clear path, "what it is worth" and "what they picture" never override the
-  // agreed customer step — they stay visible as elements, not as blockers.
-  const activeLink = verdictId === "clear_path" ? null : weakestLink;
+  // agreed step. A Build-Own-Operate Clear path still points at permits and funding.
+  const activeLink: BriefElementId | null =
+    verdictId === "clear_path"
+      ? boo
+        ? (BOO_LATER_FOLLOW_UPS.find((id) => byId[id].state !== "confirmed") ?? null)
+        : null
+      : weakestLink;
 
   // Row 2 — what is blocking progress.
   let blocker: BriefRow;
   if (risk) {
     blocker = { headline: risk.headline, impact: risk.impact, why: risk.why };
   } else if (activeLink) {
+    const activeElement = byId[activeLink];
     blocker = {
-      headline: ELEMENT_UNKNOWN_LINE[activeLink],
-      impact: ELEMENT_IMPACT[activeLink],
-      why: UNDERSTANDING_FIELD_BY_ID[elementFieldId(activeLink) ?? "customer_problem"]?.whyItMatters,
-      state: byId[activeLink].state,
+      headline:
+        activeElement.state === "assumed" && activeElement.statement
+          ? activeElement.statement
+          : text.unknown[activeLink],
+      impact: text.impact[activeLink],
+      why: defOf(elementFieldId(activeLink) ?? "customer_problem").whyItMatters,
+      state: activeElement.state,
+      source: activeElement.source,
       fieldId: elementFieldId(activeLink),
     };
   } else {
@@ -527,11 +749,13 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
     blocker = overdue
       ? {
           headline: `Overdue follow-up: ${overdue.NextAction?.trim() || overdue.Subject}`,
-          impact: "A promised follow-up that slips tells the customer we are not ready to move.",
+          impact: "A promised follow-up that slips tells the other side we are not ready to move.",
         }
       : {
           headline: "Nothing is blocking progress",
-          impact: "The customer's problem, decider, reason and next step are all confirmed.",
+          impact: boo
+            ? "Agreements, site and next step are all confirmed."
+            : "The customer's problem, decider, reason and next step are all confirmed.",
         };
   }
 
@@ -541,14 +765,16 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
     next = { headline: risk.action, impact: risk.impact, why: risk.why };
   } else if (activeLink) {
     next = {
-      headline: ELEMENT_ACTION[activeLink],
-      impact: ELEMENT_IMPACT[activeLink],
+      headline: text.action[activeLink],
+      impact: text.impact[activeLink],
       fieldId: elementFieldId(activeLink),
     };
   } else {
     next = {
       headline: `Keep the agreed step on track: ${byId.next_step.statement}`,
-      impact: "The customer has agreed the next move; protecting it keeps the deal moving.",
+      impact: boo
+        ? "They have agreed the next move; protecting it keeps the agreements moving."
+        : "The customer has agreed the next move; protecting it keeps the deal moving.",
       source: byId.next_step.source,
     };
   }
@@ -558,6 +784,17 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
     want,
     blocker,
     next,
+    columns: boo
+      ? {
+          want: "What they need solved",
+          blocker: "What is blocking the plant",
+          next: "What should happen next",
+        }
+      : {
+          want: "What the customer wants",
+          blocker: "What is blocking progress",
+          next: "What should happen next",
+        },
     whatChanged: buildWhatChanged(activities, pipeline, now, parseDate(input.lastVisitedAt)),
     weakestLink,
     elements,

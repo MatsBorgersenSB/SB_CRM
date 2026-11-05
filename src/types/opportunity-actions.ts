@@ -1,7 +1,8 @@
 export const OPPORTUNITY_ACTION_TABS = [
   { id: "activities", label: "Activities" },
   { id: "documents", label: "Documents" },
-  { id: "stakeholders", label: "Stakeholders" },
+  { id: "emails", label: "Emails" },
+  { id: "meetings", label: "Meetings" },
   { id: "questions", label: "Questions" },
   { id: "validations", label: "Validations" },
   { id: "conversations", label: "Conversations" },
@@ -22,16 +23,5 @@ export function legacyWorkspaceTabToActionTab(
 ): OpportunityActionTab | null {
   if (!tab) return null;
   if (isOpportunityActionTab(tab)) return tab;
-
-  const redirectOnly = new Set([
-    "commercial",
-    "knowledge",
-    "viability",
-    "cvm",
-    "intelligence",
-    "attention",
-  ]);
-  if (redirectOnly.has(tab)) return null;
-
   return null;
 }

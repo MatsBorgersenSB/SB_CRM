@@ -10,6 +10,7 @@ import { isPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import { mapPrismaOpportunityToPipelineRow } from "@/lib/prisma-mappers";
 import { scheduleOpportunitySharePointFolderProvision } from "@/lib/m365/provision-opportunity-folder";
 import type { Prisma } from "@/generated/prisma";
+import { isSalesMotion } from "@/types/sales-motion";
 import { prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
 
 async function prismaRegistryAvailable(): Promise<boolean> {
@@ -184,6 +185,11 @@ export async function updateRegistryOpportunity(
   }
   if (patch.offeringIds !== undefined) {
     data.offeringIds = patch.offeringIds.map((entry) => entry.trim()).filter(Boolean);
+  }
+  if (patch.dealModel !== undefined) {
+    // null clears the choice; anything else must be a known deal model.
+    if (patch.dealModel === null) data.dealModel = null;
+    else if (isSalesMotion(patch.dealModel)) data.dealModel = patch.dealModel;
   }
   if (patch.currentMilestone !== undefined) {
     data.nextStep = patch.currentMilestone.trim() || null;

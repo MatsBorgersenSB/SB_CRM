@@ -32,6 +32,7 @@ import type {
 import { COMPANY_ROLES } from "@/types/pipeline";
 import type { OpportunityUnderstandingCapture } from "@/types/opportunity-understanding";
 import { isUnderstandingFieldId } from "@/types/opportunity-understanding";
+import { isSalesMotion } from "@/types/sales-motion";
 import { parseSourceFindings } from "@/lib/source-findings";
 import type {
   Company as PrismaCompany,
@@ -71,6 +72,7 @@ type PrismaOpportunityWithCompany = Pick<
   | "offeringIds"
   | "team"
 > & {
+  dealModel?: string | null;
   understanding?: PrismaOpportunity["understanding"];
   sharepointFolderId?: string | null;
   sharepointFolderUrl?: string | null;
@@ -485,6 +487,7 @@ export function mapPrismaOpportunityToPipelineRow(
     offeringIds: Array.isArray(opportunity.offeringIds)
       ? opportunity.offeringIds.filter(Boolean)
       : [],
+    dealModel: isSalesMotion(opportunity.dealModel) ? opportunity.dealModel : undefined,
     team: mapTeam(opportunity.team),
     understanding: mapUnderstanding(opportunity.understanding),
     sharepointFolderId: opportunity.sharepointFolderId,
