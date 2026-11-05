@@ -124,6 +124,13 @@ body {
   font-family: var(--font-sans);
 }
 
+select,
+select option,
+select optgroup {
+  color: var(--foreground);
+  background-color: var(--dashboard-card);
+}
+
 .dashboard-card {
   background: var(--dashboard-card);
   border: 1px solid var(--dashboard-card-border);

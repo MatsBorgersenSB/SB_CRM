@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Activity } from "@/types/activity";
+import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import { buildDealBrief, dealBriefApplies } from "./opportunity-deal-brief";
+import {
+  companyTypeForProjectOrganizationType,
+  filterAvailableProjectCompanies,
+  suggestProjectOrganizationType,
+} from "./project-relationship-utils";
 import { resolveSalesMotion, understandingFieldsForPipeline } from "./sales-motion";
 
 const NOW = new Date("2026-11-04T12:00:00Z");
@@ -314,5 +320,54 @@ describe("Build-Own-Operate Brief (FS-005B 6)", () => {
     });
     const feedstock = brief.elements.find((element) => element.id === "feedstock_agreement");
     assert.equal(feedstock?.state, "unknown");
+  });
+});
+
+describe("Project related organization company picker helpers (FS-015)", () => {
+  const companies: Company[] = [
+    {
+      id: 1,
+      CompanyID: "CO-1014",
+      Title: "ANTEC BIOGAS AS",
+      CompanyTypes: ["Partner"],
+    } as unknown as Company,
+    {
+      id: 2,
+      CompanyID: "CO-1031",
+      Title: "Allskog",
+      CompanyTypes: ["Supplier / Vendor"],
+      City: "Trondheim",
+    } as unknown as Company,
+    {
+      id: 3,
+      CompanyID: "CO-1074",
+      Title: "Moelven Telemarksbruket AS",
+      CompanyTypes: ["Supplier / Vendor"],
+      City: "Bø i Telemark",
+    } as unknown as Company,
+  ];
+
+  it("excludes already-linked organizations and filters by search query", () => {
+    const linked = [
+      { id: "org-1", companyId: "CO-1014", organizationType: "partner" as const, isPrimary: true },
+    ];
+    const available = filterAvailableProjectCompanies(companies, linked);
+    assert.deepEqual(
+      available.map((c) => c.CompanyID),
+      ["CO-1031", "CO-1074"],
+    );
+
+    const bySearch = filterAvailableProjectCompanies(companies, linked, { query: "moelven" });
+    assert.deepEqual(
+      bySearch.map((c) => c.CompanyID),
+      ["CO-1074"],
+    );
+  });
+
+  it("suggests organization type from company classification and maps back to CompanyType", () => {
+    assert.equal(suggestProjectOrganizationType(companies[1]!), "supplier");
+    assert.equal(suggestProjectOrganizationType(companies[0]!), "partner");
+    assert.equal(companyTypeForProjectOrganizationType("supplier"), "Supplier / Vendor");
+    assert.equal(companyTypeForProjectOrganizationType("regulator"), "Public / Government");
   });
 });

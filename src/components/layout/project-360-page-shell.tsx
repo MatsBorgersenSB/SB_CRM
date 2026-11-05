@@ -10,9 +10,11 @@ import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
 import {
   canAssignProjectOwner,
+  canCreateCompany,
   canManageProjectStakeholders,
 } from "@/lib/permissions";
 import {
+  companyTypeForProjectOrganizationType,
   getProjectStakeholders,
   upsertProjectManagerStakeholder,
 } from "@/lib/project-relationship-utils";
@@ -22,6 +24,7 @@ import {
   mergeRemovedStakeholders,
 } from "@/lib/project-stakeholder-contacts";
 import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
+import { createCompanyRecord } from "@/lib/sync-company";
 import {
   syncProjectOrganizations,
   syncProjectOwner,
@@ -35,6 +38,7 @@ import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project } from "@/types/project";
 import type {
+  ProjectOrganizationType,
   ProjectRelatedOrganization,
   ProjectStakeholderRecord,
 } from "@/types/project-relationships";
@@ -59,11 +63,41 @@ export function Project360PageShell({
 }) {
   const { user } = useAuth();
   const [currentProject, setCurrentProject] = useState(project);
+  const [currentCompanies, setCurrentCompanies] = useState(companies);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sync server-rendered project prop into local state
     setCurrentProject(project);
   }, [project]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync server-rendered companies prop into local state
+    setCurrentCompanies(companies);
+  }, [companies]);
+
+  useEffect(() => {
+    let active = true;
+    const refreshCompanies = () => {
+      fetch("/api/companies", { credentials: "include", cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((items: Company[] | null) => {
+          if (!active || !Array.isArray(items) || items.length === 0) return;
+          setCurrentCompanies((prev) => {
+            const byId = new Map<string, Company>();
+            for (const row of prev) byId.set(row.CompanyID, row);
+            for (const row of items) byId.set(row.CompanyID, row);
+            return Array.from(byId.values());
+          });
+        })
+        .catch(() => undefined);
+    };
+    refreshCompanies();
+    window.addEventListener("focus", refreshCompanies);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refreshCompanies);
+    };
+  }, []);
 
   const resolvedProject = useMemo(() => currentProject ?? null, [currentProject]);
 
@@ -119,6 +153,36 @@ export function Project360PageShell({
     [resolvedProject, user.role],
   );
 
+  const handleCreateCompany = useCallback(
+    async (
+      title: string,
+      organizationType: ProjectOrganizationType,
+    ): Promise<Company | null> => {
+      if (!canCreateCompany(user.role)) return null;
+      const companyType = companyTypeForProjectOrganizationType(organizationType);
+      const created = await createCompanyRecord(
+        {
+          Title: title.trim(),
+          Industry: "",
+          Status: "Active",
+          City: "",
+          Domain: "",
+          Phone: "",
+          CompanyTypes: [companyType],
+        },
+        user.role,
+      );
+      setCurrentCompanies((prev) => {
+        if (prev.some((row) => row.CompanyID === created.CompanyID)) {
+          return prev;
+        }
+        return [...prev, created];
+      });
+      return created;
+    },
+    [user.role],
+  );
+
   const persistUnderstanding = useCallback(
     async (understanding: OpportunityUnderstandingCapture) => {
       if (!resolvedProject) return;
@@ -171,13 +235,13 @@ export function Project360PageShell({
             Projects
           </Link>
         </div>
-        <RoleSwitcher companies={companies} />
+        <RoleSwitcher companies={currentCompanies} />
       </header>
 
       <WorkspaceMain>
         <Project360LivingWorkspace
           project={resolvedProject}
-          companies={companies}
+          companies={currentCompanies}
           pipelines={pipelines}
           activities={activities}
           attentionItems={[]}
@@ -185,6 +249,7 @@ export function Project360PageShell({
           onOwnerChange={handleOwnerChange}
           onStakeholdersChange={persistStakeholders}
           onOrganizationsChange={persistOrganizations}
+          onCreateCompany={canCreateCompany(user.role) ? handleCreateCompany : undefined}
           onUnderstandingChange={persistUnderstanding}
           standardBioUsers={standardBioUserOptions}
           relationshipsReadOnly={!canManageProjectStakeholders(user.role)}

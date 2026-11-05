@@ -10,6 +10,7 @@ import {
   replaceProjectAccount,
 } from "@/lib/project-account-utils";
 import { CompanyLink } from "@/components/relationship/relationship-links";
+import { CompanyCombobox } from "@/components/project/project-related-organizations-panel";
 
 export function ProjectAccountControl({
   accountCompanyId,
@@ -77,21 +78,19 @@ export function ProjectAccountControl({
 
   if (mode === "change" || mode === "replace") {
     return (
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <select
-          value={accountCompanyId ?? ""}
+      <div className="flex min-w-[16rem] max-w-sm flex-col gap-1.5">
+        <CompanyCombobox
+          companies={companyOptions}
+          selectedCompanyId={accountCompanyId ?? ""}
           disabled={saving}
-          onChange={(event) => void handleAccountSelect(event.target.value)}
-          className="max-w-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-5 text-[13px] font-medium text-carbon-blue outline-none hover:text-upcycle-orange focus:text-upcycle-orange"
-          aria-label={mode === "replace" ? "Replace project account" : "Change project account"}
-        >
-          <option value="">{mode === "replace" ? "Select replacement account…" : "Select account…"}</option>
-          {companyOptions.map((company) => (
-            <option key={company.CompanyID} value={company.CompanyID}>
-              {company.Title}
-            </option>
-          ))}
-        </select>
+          label=""
+          placeholder={mode === "replace" ? "Select replacement account…" : "Select account…"}
+          onSelect={(company) => {
+            if (company) {
+              void handleAccountSelect(company.CompanyID);
+            }
+          }}
+        />
         <div className="flex flex-wrap gap-2 text-[12px]">
           <button
             type="button"

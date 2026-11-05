@@ -19,6 +19,7 @@ import {
   type ProjectMissionControlView,
 } from "@/types/project-mission-control";
 import type {
+  ProjectOrganizationType,
   ProjectRelatedOrganization,
   ProjectStakeholderRecord,
 } from "@/types/project-relationships";
@@ -100,6 +101,7 @@ export function Project360LivingWorkspace({
   onOwnerChange,
   onStakeholdersChange,
   onOrganizationsChange,
+  onCreateCompany,
   onUnderstandingChange,
   standardBioUsers,
   relationshipsReadOnly = false,
@@ -113,6 +115,10 @@ export function Project360LivingWorkspace({
   onOwnerChange?: (owner: SharePointPerson) => Promise<void>;
   onStakeholdersChange?: (stakeholders: ProjectStakeholderRecord[]) => Promise<void>;
   onOrganizationsChange?: (organizations: ProjectRelatedOrganization[]) => Promise<void>;
+  onCreateCompany?: (
+    title: string,
+    organizationType: ProjectOrganizationType,
+  ) => Promise<Company | null>;
   onUnderstandingChange?: (understanding: OpportunityUnderstandingCapture) => Promise<void>;
   standardBioUsers: SharePointPerson[];
   relationshipsReadOnly?: boolean;
@@ -341,9 +347,10 @@ export function Project360LivingWorkspace({
         companies={companies}
         readOnly={relationshipsReadOnly}
         onChange={onOrganizationsChange}
+        onCreateCompany={onCreateCompany}
       />
     ),
-    [organizations, companies, relationshipsReadOnly, onOrganizationsChange],
+    [organizations, companies, relationshipsReadOnly, onOrganizationsChange, onCreateCompany],
   );
 
   const stakeholdersOverview = useMemo(

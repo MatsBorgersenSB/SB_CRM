@@ -1,4 +1,5 @@
 import type { Company } from "@/types/company";
+import type { CompanyType } from "@/types/company-type";
 import type { Project, ProjectTeamMember } from "@/types/project";
 import { getProjectTeam } from "@/lib/project-team-utils";
 import type {
@@ -350,6 +351,109 @@ export function upsertProjectManagerStakeholder(
 
 export function getCompanyIdsForProject(project: Project): string[] {
   return getProjectRelatedOrganizations(project).map((org) => org.companyId);
+}
+
+export function filterAvailableProjectCompanies(
+  companies: Company[],
+  organizations: ProjectRelatedOrganization[],
+  options?: {
+    editingId?: string | null;
+    includeCompanyId?: string;
+    query?: string;
+  },
+): Company[] {
+  const editingId = options?.editingId ?? null;
+  const includeCompanyId = options?.includeCompanyId?.trim() ?? "";
+  const q = (options?.query ?? "").trim().toLowerCase();
+
+  return companies
+    .filter((company) => {
+      if (!company.Title?.trim()) return false;
+      if (includeCompanyId && company.CompanyID === includeCompanyId) return true;
+      return !organizations.some(
+        (org) => org.companyId === company.CompanyID && org.id !== editingId,
+      );
+    })
+    .filter((company) => {
+      if (!q) return true;
+      const title = company.Title.toLowerCase();
+      const code = (company.CompanyID ?? "").toLowerCase();
+      const domain = (company.Domain ?? "").toLowerCase();
+      const industry = (company.Industry ?? "").toLowerCase();
+      const city = (company.City ?? "").toLowerCase();
+      const country = (company.Country?.Title ?? "").toLowerCase();
+      const types = (company.CompanyTypes ?? []).join(" ").toLowerCase();
+      return (
+        title.includes(q) ||
+        code.includes(q) ||
+        domain.includes(q) ||
+        industry.includes(q) ||
+        city.includes(q) ||
+        country.includes(q) ||
+        types.includes(q)
+      );
+    })
+    .sort((a, b) => a.Title.localeCompare(b.Title));
+}
+
+export function suggestProjectOrganizationType(
+  company: Pick<Company, "CompanyTypes" | "companyType">,
+): ProjectOrganizationType {
+  const rawTypes = [
+    ...(company.CompanyTypes ?? []),
+    ...(company.companyType ? [company.companyType] : []),
+  ].map((t) => t.toLowerCase());
+
+  if (rawTypes.some((t) => t.includes("supplier") || t.includes("vendor"))) {
+    return "supplier";
+  }
+  if (rawTypes.some((t) => t.includes("partner"))) {
+    return "partner";
+  }
+  if (rawTypes.some((t) => t.includes("consultant") || t.includes("service provider"))) {
+    return "consultant";
+  }
+  if (
+    rawTypes.some(
+      (t) =>
+        t.includes("public") ||
+        t.includes("government") ||
+        t.includes("authority") ||
+        t.includes("grant"),
+    )
+  ) {
+    return "regulator";
+  }
+  if (rawTypes.some((t) => t.includes("investor"))) {
+    return "investor";
+  }
+  if (rawTypes.some((t) => t.includes("internal"))) {
+    return "internal";
+  }
+  return "customer";
+}
+
+export function companyTypeForProjectOrganizationType(
+  type: ProjectOrganizationType,
+): CompanyType {
+  switch (type) {
+    case "customer":
+      return "Customer";
+    case "partner":
+      return "Partner";
+    case "supplier":
+      return "Supplier / Vendor";
+    case "consultant":
+      return "Consultant";
+    case "regulator":
+      return "Public / Government";
+    case "investor":
+      return "Investor";
+    case "internal":
+      return "Internal Company";
+    default:
+      return "Unclassified";
+  }
 }
 
 export { DEFAULT_PROJECT_STAKEHOLDER_ROLES, INTERNAL_ORGANIZATION_ID, UNASSIGNED_ORGANIZATION_ID };
