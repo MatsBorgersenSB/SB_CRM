@@ -100,31 +100,41 @@ export const DEFAULT_SILENCE_DAYS = 21;
  */
 export const BOO_FINANCING_GATE_STAGE_IDS: readonly string[] = ["negotiation", "won"];
 
-/** Build-Own-Operate weakest-link order (FS-005B 6). */
-export const BOO_WEAKEST_LINK_ORDER: readonly BriefElementId[] = [
-  "customer_problem",
-  "who_decides",
+/**
+ * Seven core project development pillars (FEL 1 → Realisation) for Standard Bio's own projects.
+ */
+export const BOO_DEVELOPMENT_PILLARS: readonly BriefElementId[] = [
+  "site_control",
+  "feedstock_agreement",
+  "utilities",
   "offtake",
   "biochar_offtake",
-  "feedstock_agreement",
+  "public_funding",
+  "permitting",
+];
+
+/** Build-Own-Operate weakest-link order (FS-005B 6): our own project development pillars first. */
+export const BOO_WEAKEST_LINK_ORDER: readonly BriefElementId[] = [
   "site_control",
+  "feedstock_agreement",
   "utilities",
-  "why_now",
-  "next_step",
+  "offtake",
+  "biochar_offtake",
+  "public_funding",
   "permitting",
   "funding",
-  "public_funding",
-  "customer_value",
-  "customer_vision",
+  "who_decides",
+  "why_now",
+  "next_step",
 ];
 
 /** Items that only gate the verdict once the deal reaches the financing stage. */
-const BOO_LATE_GATES: readonly BriefElementId[] = ["permitting", "funding", "public_funding"];
-/** Shown as the next step on a Clear path, but never a gate. */
+const BOO_LATE_GATES: readonly BriefElementId[] = ["public_funding", "permitting", "funding"];
+/** Shown as the next step on a Clear path, but never a gate before negotiation. */
 const BOO_LATER_FOLLOW_UPS: readonly BriefElementId[] = [
+  "public_funding",
   "permitting",
   "funding",
-  "public_funding",
 ];
 
 /** Order of weakness: the first element not Confirmed is the blocker. */
@@ -179,7 +189,14 @@ const ELEMENT_LABEL: Record<BriefElementId, string> = {
 };
 
 const BOO_LABEL: Partial<Record<BriefElementId, string>> = {
-  customer_problem: "What they need solved",
+  site_control: "Secure land plot",
+  feedstock_agreement: "Secure feedstock",
+  utilities: "Secure required utilities",
+  offtake: "Secure energy offtake",
+  biochar_offtake: "Secure product offtake (biochar)",
+  public_funding: "Secure subsidies",
+  permitting: "Secure permitting",
+  funding: "Ownership and financing",
   who_decides: "Who signs the agreements",
   next_step: "Agreed next step",
 };
@@ -309,7 +326,7 @@ function hasCustomerContact(activity: Activity): boolean {
 }
 
 const OPEN_WORK_NOTE_PATTERN =
-  /\b(not yet decided|yet to be discussed|to be discussed|to be investigated|must apply|must prepare|tbd|tbc)\b/i;
+  /\b(not yet decided|yet to be discussed|to be discussed|to be investigated|to be determined|to be agreed|to be secured|must apply|must prepare|must secure|supplier requested|tbd|tbc)\b/i;
 
 function customerFieldElement(
   pipeline: PipelineRow,
@@ -317,16 +334,18 @@ function customerFieldElement(
   id: BriefElementId,
   label: string,
   assumed?: string | null,
+  boo = false,
 ): BriefElement {
   const resolved = resolveUnderstandingField(pipeline, fieldId);
   if (resolved.source === "captured") {
     const entered = pipeline.understanding?.fields?.[fieldId]?.trim();
-    const isPendingLateGate =
-      BOO_LATE_GATES.includes(id) && OPEN_WORK_NOTE_PATTERN.test(resolved.value);
+    const isPendingWork =
+      (BOO_LATE_GATES.includes(id) || (boo && BOO_FIELD_ELEMENTS.includes(id))) &&
+      OPEN_WORK_NOTE_PATTERN.test(resolved.value);
     return {
       id,
       label,
-      state: isPendingLateGate ? "assumed" : "confirmed",
+      state: isPendingWork ? "assumed" : "confirmed",
       statement: resolved.value,
       source: entered ? "Entered on this opportunity" : "Confirmed from a source finding",
     };
@@ -542,6 +561,7 @@ function findRisk(
 }
 
 export function dealBriefApplies(pipeline: PipelineRow): boolean {
+  if (resolveSalesMotion(pipeline).motion === "boo") return true;
   return understandingFieldsForPipeline(pipeline).some((field) => field.id === "customer_problem");
 }
 
@@ -586,22 +606,84 @@ function elementFieldId(id: BriefElementId): UnderstandingFieldId | undefined {
 }
 
 const BOO_FIELD_ELEMENTS: readonly BriefElementId[] = [
-  "feedstock_agreement",
   "site_control",
+  "feedstock_agreement",
   "utilities",
-  "permitting",
-  "funding",
-  "public_funding",
   "offtake",
   "biochar_offtake",
+  "public_funding",
+  "permitting",
+  "funding",
 ];
+
+function buildBooDevelopmentWantRow(
+  byId: Record<BriefElementId, BriefElement>,
+  activeLink: BriefElementId | null,
+): BriefRow {
+  const pillars = BOO_DEVELOPMENT_PILLARS.map((id) => byId[id]);
+  const confirmed = pillars.filter((el) => el.state === "confirmed");
+  const assumed = pillars.filter((el) => el.state === "assumed");
+  const open = pillars.filter((el) => el.state !== "confirmed");
+  const focusId =
+    (activeLink && BOO_DEVELOPMENT_PILLARS.includes(activeLink) ? activeLink : null) ??
+    open[0]?.id ??
+    "site_control";
+  const focusFieldId = elementFieldId(focusId) ?? "site_readiness";
+
+  if (confirmed.length === 0 && assumed.length === 0) {
+    return {
+      headline: `0 of ${pillars.length} project development pillars confirmed`,
+      impact:
+        "Taking our development project from FEL 1 to realisation requires securing land plot, feedstock, utilities, energy & biochar offtake, subsidies, and permitting.",
+      why: `Open pillars: ${pillars.map((el) => el.label).join(" · ")}`,
+      state: "unknown",
+      source: null,
+      fieldId: focusFieldId,
+    };
+  }
+
+  const securedNames = confirmed.map((el) => el.label.replace(/^Secure\s+/i, ""));
+  const inProgressNames = assumed.map((el) => el.label.replace(/^Secure\s+/i, ""));
+  const missingNames = pillars
+    .filter((el) => el.state === "unknown")
+    .map((el) => el.label.replace(/^Secure\s+/i, ""));
+
+  const summaryBits: string[] = [];
+  if (securedNames.length > 0) {
+    summaryBits.push(`Secured (${securedNames.length}/${pillars.length}): ${securedNames.join(", ")}`);
+  }
+  if (inProgressNames.length > 0) {
+    summaryBits.push(`In progress (${inProgressNames.length}): ${inProgressNames.join(", ")}`);
+  }
+  if (missingNames.length > 0) {
+    summaryBits.push(`Not started (${missingNames.length}): ${missingNames.join(", ")}`);
+  }
+
+  const detailLines = pillars
+    .filter((el) => el.statement)
+    .map((el) => `• ${el.label}: ${el.statement}`);
+
+  const allConfirmed = confirmed.length === pillars.length;
+  return {
+    headline: allConfirmed
+      ? `All ${pillars.length} project development pillars secured for realisation`
+      : summaryBits.join(" · "),
+    impact: allConfirmed
+      ? "Land plot, feedstock, utilities, energy & biochar offtake, subsidies, and permitting are secured."
+      : "Standard Bio's own project development (FEL 1 → realisation): every pillar must be secured to finance and build the plant.",
+    why: detailLines.length > 0 ? detailLines.join("\n") : undefined,
+    state: allConfirmed ? "confirmed" : confirmed.length > 0 ? "confirmed" : "assumed",
+    source: `${confirmed.length} confirmed, ${assumed.length} in progress, ${missingNames.length} open`,
+    fieldId: focusFieldId,
+  };
+}
 
 export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
   const now = input.now ?? new Date();
   const silenceDays = input.silenceDays ?? DEFAULT_SILENCE_DAYS;
   const { pipeline, activities } = input;
 
-  // FS-005B: Build-Own-Operate changes the questions and the gates, not the engine.
+  // FS-005B: Build-Own-Operate investigates our own project development (FEL 1 → realisation).
   const boo = resolveSalesMotion(pipeline).motion === "boo";
   const text = elementText(boo);
   const financingGate =
@@ -616,16 +698,17 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
       "customer_problem",
       text.label.customer_problem,
       input.assumedProblem,
+      boo,
     ),
     whoDecidesElement(pipeline, text.label.who_decides),
-    customerFieldElement(pipeline, "why_now", "why_now", text.label.why_now),
+    customerFieldElement(pipeline, "why_now", "why_now", text.label.why_now, null, boo),
     agreedNextStepElement(activities, now),
-    customerFieldElement(pipeline, "customer_value", "customer_value", text.label.customer_value),
-    customerFieldElement(pipeline, "customer_vision", "customer_vision", text.label.customer_vision),
+    customerFieldElement(pipeline, "customer_value", "customer_value", text.label.customer_value, null, boo),
+    customerFieldElement(pipeline, "customer_vision", "customer_vision", text.label.customer_vision, null, boo),
   ];
   if (boo) {
     for (const id of BOO_FIELD_ELEMENTS) {
-      elements.push(customerFieldElement(pipeline, elementFieldId(id)!, id, text.label[id]));
+      elements.push(customerFieldElement(pipeline, elementFieldId(id)!, id, text.label[id], null, true));
     }
   }
   const byId = Object.fromEntries(elements.map((element) => [element.id, element])) as Record<
@@ -640,21 +723,27 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
 
   const risk = findRisk(input, now, silenceDays);
 
-  // Items that stop "Clear path". Permits and funding join them from the financing stage.
+  // Items that stop "Clear path". Permits, subsidies and financing join them from the financing stage.
   const gates: readonly BriefElementId[] = boo
     ? [
-        "who_decides",
+        "site_control",
+        "feedstock_agreement",
+        "utilities",
         "offtake",
         "biochar_offtake",
-        "feedstock_agreement",
-        "site_control",
-        "utilities",
+        ...(financingGate ? BOO_LATE_GATES : []),
+        "who_decides",
         "why_now",
         "next_step",
-        ...(financingGate ? BOO_LATE_GATES : []),
       ]
     : ["who_decides", "why_now", "next_step"];
   const openGate = gates.find((id) => byId[id].state !== "confirmed");
+
+  const anyBooElementCaptured =
+    boo &&
+    BOO_FIELD_ELEMENTS.some(
+      (id) => byId[id].state === "confirmed" || byId[id].state === "assumed",
+    );
 
   // Verdict — first match wins (FS-005A 5.4, FS-005B 6).
   let verdictId: DealVerdictId;
@@ -662,9 +751,13 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
   if (risk) {
     verdictId = "at_risk";
     verdictImpact = risk.impact;
-  } else if (byId.customer_problem.state !== "confirmed") {
+  } else if (!boo && byId.customer_problem.state !== "confirmed") {
     verdictId = "not_understood";
     verdictImpact = text.impact.customer_problem;
+  } else if (boo && !anyBooElementCaptured) {
+    verdictId = "not_understood";
+    verdictImpact =
+      "No project development pillars (land plot, feedstock, utilities, energy & biochar offtake, subsidies, permitting) are recorded yet.";
   } else if (openGate) {
     verdictId = "needs_attention";
     verdictImpact = `${text.unknown[openGate]}. ${text.impact[openGate]}`;
@@ -677,19 +770,27 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
         : "Inputs are secured; the next step is permits and funding.";
   }
 
-  // Row 1 — what the customer wants.
+  // On a Clear path, "what it is worth" and "what they picture" never override the
+  // agreed step. A Build-Own-Operate Clear path still points at subsidies, permits and funding.
+  const activeLink: BriefElementId | null =
+    verdictId === "clear_path"
+      ? boo
+        ? (BOO_LATER_FOLLOW_UPS.find((id) => byId[id].state !== "confirmed") ?? null)
+        : null
+      : weakestLink;
+
+  // Row 1 — for BOO: project development status (FEL 1 → realisation); for system sale: what the customer wants.
   const problem = byId.customer_problem;
   const vision = byId.customer_vision;
-  const want: BriefRow =
-    problem.state === "confirmed"
+  const want: BriefRow = boo
+    ? buildBooDevelopmentWantRow(byId, activeLink)
+    : problem.state === "confirmed"
       ? {
           headline:
             vision.state === "confirmed"
               ? `${problem.statement} — they picture: ${vision.statement}`
               : (problem.statement as string),
-          impact: boo
-            ? "This is what they told us, so the proposal can speak to it directly."
-            : "This is what the customer told us, so a proposal can speak to it directly.",
+          impact: "This is what the customer told us, so a proposal can speak to it directly.",
           state: "confirmed",
           source: problem.source,
           fieldId: "customer_problem",
@@ -711,15 +812,6 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
             source: null,
             fieldId: "customer_problem",
           };
-
-  // On a Clear path, "what it is worth" and "what they picture" never override the
-  // agreed step. A Build-Own-Operate Clear path still points at permits and funding.
-  const activeLink: BriefElementId | null =
-    verdictId === "clear_path"
-      ? boo
-        ? (BOO_LATER_FOLLOW_UPS.find((id) => byId[id].state !== "confirmed") ?? null)
-        : null
-      : weakestLink;
 
   // Row 2 — what is blocking progress.
   let blocker: BriefRow;
@@ -786,7 +878,7 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
     next,
     columns: boo
       ? {
-          want: "What they need solved",
+          want: "Project development (FEL 1 → Realisation)",
           blocker: "What is blocking the plant",
           next: "What should happen next",
         }

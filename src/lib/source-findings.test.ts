@@ -200,4 +200,45 @@ describe("URL findings stay unconfirmed until a person validates them", () => {
     assert.match(updated.fields.permitting ?? "", /Antec holds the biogas plant permit/);
     assert.match(updated.fields.permitting ?? "", /142236 Tillatelse/);
   });
+
+  it("extracts internal (@standard.bio) engineering & offtake correspondence and keeps separate email threads distinct", () => {
+    const internalCase = extractSourceFindingPreview(
+      "ANTEC\nPyrolyselinjen - Treflis. Formål - høy-kvalitet biokull produksjon, overskuddsenergien selges til Antec for tørking av bioresten.",
+      "/projects/PRJ-ANTEC-HORNINDAL?view=emails",
+      "Internal team mail (standard.bio): ANTEC",
+    );
+    assert.ok(internalCase.claims.some((c) => c.fieldId === "feedstock_agreement"));
+    assert.ok(internalCase.claims.some((c) => c.fieldId === "end_product"));
+    assert.ok(internalCase.claims.some((c) => c.fieldId === "offtake_strategy"));
+
+    const terramarineMail = extractSourceFindingPreview(
+      "NO - Terramarine - Offtake\nHei Eric og Torgeir, vi skulle gjerne hatt en samtale med dere vedrørende muligheter og interesse for aktivert biokull og eventuelt hvilken kvalitet biokullet må ha.",
+      "/projects/PRJ-ANTEC-HORNINDAL?view=emails",
+      "Partner / supplier mail (terramarine.no): NO - Terramarine - Offtake",
+    );
+    assert.ok(terramarineMail.claims.some((c) => c.fieldId === "end_product"));
+
+    let list: SourceFinding[] = [];
+    list = appendSourceFinding(
+      list,
+      createSourceFinding({
+        title: "Internal team mail (standard.bio): ANTEC",
+        url: "/projects/PRJ-ANTEC-HORNINDAL?view=emails",
+        note: "mail-thread:conv-1",
+        kind: "email",
+        claims: internalCase.claims,
+      }),
+    );
+    list = appendSourceFinding(
+      list,
+      createSourceFinding({
+        title: "Partner / supplier mail (terramarine.no): NO - Terramarine - Offtake",
+        url: "/projects/PRJ-ANTEC-HORNINDAL?view=emails",
+        note: "mail-thread:conv-2",
+        kind: "email",
+        claims: terramarineMail.claims,
+      }),
+    );
+    assert.equal(list.length, 2);
+  });
 });

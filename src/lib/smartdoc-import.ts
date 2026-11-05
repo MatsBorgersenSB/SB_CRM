@@ -196,6 +196,16 @@ async function resolveProjectGraphFolder(
     throw new Error(`Project not found: ${projectId}`);
   }
 
+  if (project.sharepointFolderId?.trim()) {
+    return {
+      accessToken,
+      siteId,
+      folderId: project.sharepointFolderId.trim(),
+      folderPath:
+        project.sharepointFolderPath?.trim() || `/Projects/${project.name}`,
+    };
+  }
+
   let companyName: string | undefined;
   if (project.linkedCompanyId?.trim()) {
     const company = await resolveCompanyForSmartDocs(

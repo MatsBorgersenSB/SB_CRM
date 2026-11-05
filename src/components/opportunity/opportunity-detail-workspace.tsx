@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Deal360PageShell } from "@/components/layout/deal-360-page-shell";
 import { normalizeEntityParam } from "@/lib/resolvers/entity-resolver";
@@ -7,12 +7,14 @@ import {
   readLiveCommercialPackages,
   readLivePortfolio,
 } from "@/lib/prisma-data";
+import { readProjects } from "@/lib/project-db";
 import {
   findOpportunityInPortfolio,
   findPrismaOpportunityByRouteKey,
   resolveOpportunityRouteRecord,
 } from "@/lib/resolve-opportunity-route";
 import { mapPrismaOpportunityToPipelineRow } from "@/lib/prisma-mappers";
+import { project360Href } from "@/types/relationship-navigation";
 import type { PipelineRow } from "@/types/pipeline";
 
 type OpportunityRouteParams = {
@@ -50,23 +52,44 @@ export async function OpportunityDetailWorkspace({
     notFound();
   }
 
-  const [{ companies, pipelines: portfolioPipelines }, activities, commercialPackages] =
-    await Promise.all([
-      readLivePortfolio(),
-      readLiveActivities(),
-      readLiveCommercialPackages(),
-    ]);
+  const [
+    { companies, pipelines: portfolioPipelines },
+    activities,
+    commercialPackages,
+    projects,
+  ] = await Promise.all([
+    readLivePortfolio(),
+    readLiveActivities(),
+    readLiveCommercialPackages(),
+    readProjects().catch(() => []),
+  ]);
 
   let prismaMapped: PipelineRow | null = null;
+  let prismaArchived = false;
   try {
     const prismaRow =
       (await findPrismaOpportunityByRouteKey(rawKey)) ??
       (await findPrismaOpportunityByRouteKey(cleanKey));
     if (prismaRow) {
-      prismaMapped = mapPrismaOpportunityToPipelineRow(prismaRow);
+      if (prismaRow.status === "archived") {
+        prismaArchived = true;
+      } else {
+        prismaMapped = mapPrismaOpportunityToPipelineRow(prismaRow);
+      }
     }
   } catch (error) {
     console.warn("DB opportunity lookup bypassed:", error);
+  }
+
+  // If this opportunity was moved into a Development Project, redirect directly to the Project 360.
+  const migratedProject = projects.find(
+    (p) =>
+      p.migratedFromDealId?.toLowerCase() === cleanKey ||
+      p.migratedFromDealCode?.toLowerCase() === cleanKey ||
+      (prismaArchived && p.linkedDealId?.toLowerCase() === cleanKey),
+  );
+  if (migratedProject) {
+    redirect(project360Href(migratedProject.id));
   }
 
   // Prisma is the source of truth for captured understanding. Never prefer a

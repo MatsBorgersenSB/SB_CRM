@@ -10,8 +10,9 @@ import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import type { ProjectKind } from "@/types/project";
 
 const PROJECT_KINDS: Array<{ value: ProjectKind; label: string }> = [
-  { value: "internal", label: "Internal development" },
+  { value: "development", label: "Project development (FEL 1 → Realisation)" },
   { value: "customer", label: "Customer project" },
+  { value: "internal", label: "Internal development" },
   { value: "strategic", label: "Strategic initiative" },
   { value: "research", label: "Research" },
 ];
@@ -21,7 +22,7 @@ export function ProjectCreateButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<ProjectKind>("internal");
+  const [kind, setKind] = useState<ProjectKind>("development");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

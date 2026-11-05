@@ -6,9 +6,12 @@ import type {
 } from "@/types/sales-motion";
 import type {
   UnderstandingFieldDefinition,
-  UnderstandingFieldId,
 } from "@/types/opportunity-understanding";
-import { BOO_ONLY_FIELD_IDS, UNDERSTANDING_FIELDS } from "@/types/opportunity-understanding";
+import {
+  BOO_ONLY_FIELD_IDS,
+  UNDERSTANDING_FIELD_BY_ID,
+  UNDERSTANDING_FIELDS,
+} from "@/types/opportunity-understanding";
 import { isSalesMotion } from "@/types/sales-motion";
 import { resolveOfferings } from "@/lib/standard-bio-offerings";
 
@@ -65,98 +68,139 @@ export const SALES_MOTION_PROFILES: Record<SalesMotion, SalesMotionProfile> = {
     offeringQuestionLimit: 3,
     projectInvestigation: true,
   },
-  // FS-005B — Standard Bio develops the plant project (BOO, JV, or co-owned SPV).
-  // How final ownership and financing end up is decided along the way; customer CAPEX budget is not asked.
+  // FS-005B — Standard Bio develops its own plant project (FEL 1 to realisation: BOO, JV, or SPV).
+  // Counterparties (such as Antec / Vest Biogas buying thermal heat) are offtakers, suppliers, or hosts —
+  // not buyers of the plant. We investigate our own project across the 7 development pillars rather than
+  // a customer's plant-buying problem or CAPEX budget.
   boo: {
     motion: "boo",
     label: "Project development (BOO / JV)",
     process:
-      "Secure offtake, feedstock and site → permit → agree ownership & financing → financial close",
+      "FEL 1 → Realisation: secure land plot, feedstock, utilities, energy & biochar offtake, subsidies and permitting → financial close",
     depth: "full",
-    understandingFieldIds: UNDERSTANDING_FIELDS.map((field) => field.id).filter(
-      (id) => id !== "economic_buyer" && id !== "budget",
-    ),
+    understandingFieldIds: [
+      "site_readiness",
+      "feedstock_agreement",
+      "utilities",
+      "offtake_strategy",
+      "end_product",
+      "public_funding",
+      "permitting",
+      "funding_source",
+      "decision_maker",
+      "feedstock_volume",
+      "feedstock_quality",
+      "capacity",
+      "technical_fit",
+      "business_case_strength",
+      "timeline",
+      "why_now",
+      "stakeholder_map",
+    ],
     fieldOverrides: {
-      customer_problem: {
-        label: "What they need solved",
-        prompt: "What does the supplier or host need solved, and who feels it?",
-        placeholder: "e.g. Digestate disposal cost and limits on spreading",
-        gapLabel: "Their problem not confirmed",
-        whyItMatters: "An agreement only holds if it solves something they feel.",
-        recommendedAction: "Ask them to describe the problem in their own words",
-      },
-      customer_value: {
-        label: "What it is worth to them",
-        prompt: "What does solving it save or earn them, such as disposal cost avoided or energy value?",
-        gapLabel: "Value to them not stated",
-        whyItMatters: "Agreements on price and term depend on what the problem costs them today.",
-        recommendedAction: "Ask what the problem costs them today",
-      },
-      decision_maker: {
-        label: "Who signs the agreements",
-        prompt: "Who can sign the feedstock, energy and site agreements?",
-        placeholder: "Name and role — e.g. Plant owner",
-        gapLabel: "Signatory not identified",
-        whyItMatters: "Agreements stall when the person who can sign has not been engaged.",
-        recommendedAction: "Identify who signs and engage them",
-      },
-      feedstock_volume: {
-        prompt: "What volume is committed, and for how long?",
-        gapLabel: "Committed volume unknown",
-        whyItMatters: "Committed volume sets plant size and what investors will fund.",
-        recommendedAction: "Confirm committed volume and contract term",
-      },
       site_readiness: {
-        label: "Site control (land plot)",
+        label: "Secure land plot",
         prompt:
           "Is a land plot available, and have we decided and secured rent/lease vs. ownership and access?",
         placeholder:
-          "e.g. Plot available next to host plant; rent/lease vs. purchase and terms to be determined",
-        gapLabel: "Land plot rent or ownership not yet secured",
+          "e.g. Plot (~80 x 120 m²) next to host plant; rent/lease vs. purchase terms and access to be secured",
+        gapLabel: "Land plot not yet secured",
         whyItMatters:
-          "Even when a plot is available, we cannot permit or finance a plant until land lease or ownership terms are agreed.",
+          "Even when a plot is identified, we cannot permit, finance, or build our project until land lease or ownership terms are secured.",
         recommendedAction: "Agree and secure lease/rent or purchase terms for the land plot",
         priority: "high",
       },
-      utilities: {
-        label: "Shared utilities",
+      feedstock_agreement: {
+        label: "Secure feedstock",
         prompt:
-          "Which utilities and tie-ins (heat, power, water, logistics) are needed with the neighbouring plant, and are they secured?",
-        placeholder: "e.g. Heat exchange ducts/piping, power and water capacity — terms to be secured",
-        gapLabel: "Utilities and tie-ins not yet secured",
-        whyItMatters: "Shared infrastructure and utility capacity can make or break the plant's economics.",
-        recommendedAction: "Confirm utility capacity and secure shared utility terms with the neighbour",
+          "Have we secured feedstock supply for our plant (supplier, volume, moisture/quality spec, price, and term)?",
+        placeholder:
+          "e.g. 8,000–10,000 t/yr G30 wood chips — supplier agreement, moisture spec, storage and price to be secured",
+        gapLabel: "Feedstock supply not yet secured",
+        whyItMatters:
+          "Without a secured feedstock supply agreement there is no project to finance or build.",
+        recommendedAction: "Agree feedstock volume, moisture/quality spec, term and price with the supplier",
+        priority: "high",
+      },
+      utilities: {
+        label: "Secure required utilities",
+        prompt:
+          "Which utilities and tie-ins (heat, power, water, logistics) are required for our project, and are they secured?",
+        placeholder: "e.g. Heat exchange ducts/piping, power and water capacity — tie-in terms to be secured",
+        gapLabel: "Required utilities not yet secured",
+        whyItMatters: "Required utilities and tie-in capacity can make or break the project's engineering and economics.",
+        recommendedAction: "Confirm utility capacity and secure required utility tie-in terms",
         priority: "high",
       },
       offtake_strategy: {
-        label: "Energy and heat offtake",
-        prompt: "Who will buy the surplus thermal energy (heat/steam/power), on what terms and price?",
-        placeholder: "e.g. Vest Biogas buys ~7–8 GWh/year thermal heat for drying; tariff and term",
-        gapLabel: "Energy / heat offtake not agreed",
-        whyItMatters: "Without a committed buyer for the surplus thermal energy, the local heat revenue is a guess.",
-        recommendedAction: "Agree thermal energy volume, price and contract term with the host",
+        label: "Secure energy offtake",
+        prompt: "Who will buy the surplus energy (e.g. thermal heat/steam/power), and have we secured volume, price, and term?",
+        placeholder: "e.g. Antec / Vest Biogas buys ~7–8 GWh/year thermal heat for drying — tariff and contract term to be secured",
+        gapLabel: "Energy offtake not yet secured",
+        whyItMatters: "Without a committed energy/heat offtake agreement, local thermal energy revenue for our project is a guess.",
+        recommendedAction: "Agree thermal energy volume, price and contract term with the energy offtaker",
         priority: "high",
       },
       end_product: {
-        label: "Biochar product offtake",
-        prompt: "How will Standard Bio secure offtake for the biochar product (buyers, spec, volume, price, carbon credits)?",
-        placeholder: "e.g. Biochar from wood chips — offtake buyers, price per ton and carbon credit route to be secured",
-        gapLabel: "Biochar product offtake not secured",
-        whyItMatters: "Biochar (and carbon removal value) is a core revenue stream of the plant and must have secured offtake.",
-        recommendedAction: "Secure biochar offtake buyers, specifications and pricing",
+        label: "Secure product offtake (biochar)",
+        prompt: "How will Standard Bio secure offtake for the biochar product from pyrolysis (buyers, spec, volume, price, carbon credits)?",
+        placeholder: "e.g. Biochar from pyrolysis — offtake buyers, product spec, price per ton and carbon credit route to be secured",
+        gapLabel: "Product offtake (biochar) not yet secured",
+        whyItMatters: "Biochar (and carbon removal value) is a core revenue stream of our plant and must have secured offtake.",
+        recommendedAction: "Secure biochar product offtake buyers, specifications and pricing",
+        priority: "high",
+      },
+      public_funding: {
+        label: "Secure subsidies (if we qualify)",
+        prompt: "Do we qualify for public subsidies or grants, and where does each application stand?",
+        placeholder: "e.g. Qualify for Enova / Innovation Norway subsidies — eligibility, application and grant status",
+        gapLabel: "Subsidies not yet secured",
+        whyItMatters: "Public subsidies and grants can decide whether our development project is financeable from FEL 1 to realisation.",
+        recommendedAction: "Confirm subsidy qualification and prepare/submit grant applications",
+        priority: "high",
+      },
+      permitting: {
+        label: "Secure permitting",
+        prompt: "Which permits are needed for our pyrolysis plant and auxiliary equipment, and where does each stand?",
+        placeholder: "e.g. Separate permit required for Standard Bio pyrolysis plant and dryer — authority and application status",
+        gapLabel: "Permitting not yet secured",
+        whyItMatters: "Without environmental and building permits, our development project cannot be financed or built.",
+        recommendedAction: "Confirm required permits, submit applications, and secure permitting approval",
         priority: "high",
       },
       funding_source: {
         label: "Ownership and financing",
         prompt:
-          "How will ownership and financing be structured (BOO, JV with partner, investors, project finance)?",
-        placeholder: "e.g. To be discussed — evaluating SB BOO vs. JV with host and project finance",
+          "How will ownership and financing be structured from FEL 1 to realisation (BOO, JV with partner, investors, project finance)?",
+        placeholder: "e.g. To be discussed — evaluating SB BOO vs. JV with partner and project finance",
         gapLabel: "Ownership and financing not yet decided",
         whyItMatters:
-          "The ownership and financing structure determines who carries capital and how returns are shared.",
+          "The ownership and financing structure determines who carries capital and how returns are shared at realisation.",
         recommendedAction:
-          "Discuss and agree the ownership and financing model with the partner and investors",
+          "Discuss and agree the ownership and financing model with partners and investors",
         priority: "high",
+      },
+      decision_maker: {
+        label: "Who signs the agreements",
+        prompt: "Who signs the land plot, feedstock, utility, and energy offtake agreements?",
+        placeholder: "Name and role — e.g. Host plant CEO/CFO, landowner, feedstock supplier MD",
+        gapLabel: "Signatory not identified",
+        whyItMatters: "Project agreements stall when the people who can sign have not been engaged.",
+        recommendedAction: "Identify who signs each project agreement and engage them",
+      },
+      feedstock_volume: {
+        prompt: "What annual feedstock volume is committed for our plant, and for how long?",
+        gapLabel: "Committed feedstock volume unknown",
+        whyItMatters: "Committed feedstock volume sets plant sizing and what investors will finance.",
+        recommendedAction: "Confirm committed annual feedstock volume and contract term",
+      },
+      why_now: {
+        label: "Project timing and drivers",
+        prompt: "What drives the project schedule from FEL 1 to realisation, and what deadlines apply?",
+        placeholder: "e.g. Host drying decision within 6 months; subsidy application window",
+        gapLabel: "Project timing and deadlines not confirmed",
+        whyItMatters: "Clear project milestones and external deadlines keep FEL progression and counterparty agreements on track.",
+        recommendedAction: "Confirm key project deadlines and FEL gate schedule",
       },
     },
     viabilityDimensionIds: [...ALL_VIABILITY_DIMENSIONS],
@@ -340,9 +384,11 @@ export function understandingFieldsForPipeline(
     return UNDERSTANDING_FIELDS.filter((field) => !BOO_ONLY_FIELD_IDS.includes(field.id));
   }
 
-  const allowed = new Set<UnderstandingFieldId>(profile.understandingFieldIds);
-  return UNDERSTANDING_FIELDS.filter((field) => allowed.has(field.id)).map((field) => ({
-    ...field,
-    ...profile.fieldOverrides[field.id],
-  }));
+  return profile.understandingFieldIds
+    .map((id) => UNDERSTANDING_FIELD_BY_ID[id])
+    .filter((field): field is UnderstandingFieldDefinition => Boolean(field))
+    .map((field) => ({
+      ...field,
+      ...profile.fieldOverrides[field.id],
+    }));
 }

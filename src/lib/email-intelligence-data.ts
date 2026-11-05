@@ -675,10 +675,107 @@ export async function clearConversationHandled(conversationId: string): Promise<
   await getPrisma().mailThreadHandled.deleteMany({ where: { conversationId } });
 }
 
+const GENERIC_MAIL_STOPWORDS = new Set([
+  "project",
+  "prosjekt",
+  "development",
+  "utvikling",
+  "pyrolysis",
+  "pyrolyse",
+  "pyrolyseanlegg",
+  "plant",
+  "anlegg",
+  "system",
+  "complete",
+  "turnkey",
+  "standard",
+  "biogas",
+  "biogass",
+  "biogassanlegg",
+  "biokull",
+  "biochar",
+  "energy",
+  "energi",
+  "thermal",
+  "heat",
+  "holding",
+  "group",
+  "norway",
+  "norge",
+  "nordic",
+  "industri",
+  "industrier",
+  "services",
+  "solutions",
+  "technology",
+  "teknologi",
+  "partner",
+  "customer",
+  "supplier",
+  "offtake",
+  "with",
+  "from",
+  "line",
+  "linje",
+]);
+
+/**
+ * Extract distinctive site, project, code, and counterparty keywords that safely
+ * identify internal (@standard.bio ↔ @standard.bio) and unlinked external mail threads
+ * belonging to a project or development opportunity.
+ */
+export function extractDistinctiveMailKeywords(
+  names: Array<string | null | undefined>,
+  explicitKeywords?: readonly string[],
+): string[] {
+  const out = new Set<string>();
+
+  for (const kw of explicitKeywords ?? []) {
+    const trimmed = kw.trim();
+    if (trimmed.length >= 4) out.add(trimmed);
+  }
+
+  for (const rawName of names) {
+    if (!rawName?.trim()) continue;
+    const cleaned = rawName.trim();
+
+    // Keep explicit deal/project codes like PL-1044
+    for (const codeMatch of cleaned.matchAll(/\b(?:PL|PRJ)-\d{3,6}\b/gi)) {
+      out.add(codeMatch[0]);
+    }
+
+    // Multi-word compound names like "Vest Biogass" / "Vest Biogas"
+    if (/vest\s+biogass?/i.test(cleaned)) {
+      out.add("Vest Biogass");
+      out.add("Vest Biogas");
+    }
+
+    const tokens = cleaned
+      .replace(/[()[\],./:—–-]+/g, " ")
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 4);
+
+    for (const token of tokens) {
+      const lower = token.toLowerCase();
+      if (GENERIC_MAIL_STOPWORDS.has(lower)) continue;
+      if (/^(?:as|ab|asa|ltd|inc|gmbh|oy|aps|sa|bv|nv)$/i.test(lower)) continue;
+      out.add(token);
+      if (lower === "hornindal") out.add("Honindal");
+      if (lower === "honindal") out.add("Hornindal");
+      if (lower === "antec") out.add("Antech");
+      if (lower === "antech") out.add("Antec");
+    }
+  }
+
+  return [...out];
+}
+
 /**
  * Load EmailMessageRecord rows for an opportunity, oldest → newest within threads.
- * Includes direct opportunityId matches plus unlinked correspondence with the
- * opportunity's stakeholder roster (clients & subsuppliers), same-thread replies,
+ * Includes direct opportunityId matches, unlinked correspondence with the
+ * opportunity's stakeholder roster (clients & subsuppliers), internal (@standard.bio)
+ * and external threads matching distinctive project/site keywords, same-thread replies,
  * and company contacts when this is the company's sole open opportunity.
  */
 export async function readEmailsForOpportunity(
@@ -694,10 +791,14 @@ export async function readEmailsForOpportunity(
         where: { id: opportunityId },
         select: {
           id: true,
+          code: true,
+          name: true,
+          dealModel: true,
           companyId: true,
           team: true,
           company: {
             select: {
+              name: true,
               contacts: {
                 where: { status: "active" },
                 select: { id: true, emails: true },
@@ -788,9 +889,29 @@ export async function readEmailsForOpportunity(
         recipientEmails: { hasSome: addresses },
       });
     }
+
+    // Catch internal (@standard.bio) and unlinked external correspondence mentioning
+    // distinctive project/site keywords when this is a BOO deal or sole company opportunity.
+    if (opportunity.dealModel === "boo" || soleCompanyDeal) {
+      const keywords = extractDistinctiveMailKeywords([
+        opportunity.name,
+        opportunity.code,
+        soleCompanyDeal ? opportunity.company?.name : null,
+      ]);
+      for (const kw of keywords) {
+        orClauses.push({
+          opportunityId: null,
+          subject: { contains: kw, mode: "insensitive" },
+        });
+        orClauses.push({
+          opportunityId: null,
+          bodyPreview: { contains: kw, mode: "insensitive" },
+        });
+      }
+    }
   }
 
-  const messages = await prisma.emailMessageRecord.findMany({
+  const initialMessages = await prisma.emailMessageRecord.findMany({
     where: {
       isDeletedInSource: false,
       OR: orClauses,
@@ -799,11 +920,39 @@ export async function readEmailsForOpportunity(
     orderBy: [{ conversationId: "asc" }, { sentAt: "asc" }],
   });
 
-  return messages.map(toEmailDto);
+  // Expand to full conversation threads so internal forwards and replies on matched threads are never split.
+  const allConvIds = [
+    ...new Set(initialMessages.map((m) => m.conversationId).filter(Boolean)),
+  ];
+  const initialIds = new Set(initialMessages.map((m) => m.id));
+  const threadSiblings =
+    allConvIds.length > 0
+      ? await prisma.emailMessageRecord
+          .findMany({
+            where: {
+              isDeletedInSource: false,
+              conversationId: { in: allConvIds },
+              id: { notIn: [...initialIds] },
+            },
+            include: emailMessageInclude,
+          })
+          .catch(() => [])
+      : [];
+
+  const combined = [...initialMessages, ...threadSiblings].sort(
+    (a, b) =>
+      a.conversationId.localeCompare(b.conversationId) ||
+      a.sentAt.getTime() - b.sentAt.getTime(),
+  );
+
+  return combined.map(toEmailDto);
 }
 
 /**
- * Load EmailMessageRecord rows linked to a project workspace.
+ * Load EmailMessageRecord rows linked to or matching a project workspace — including
+ * direct project links, linked deal correspondence, related organization / stakeholder
+ * correspondence, and internal (@standard.bio ↔ @standard.bio) discussions matching
+ * project/site keywords.
  */
 export async function readEmailsForProject(
   projectId: string,
@@ -812,13 +961,194 @@ export async function readEmailsForProject(
   if (!id) return [];
 
   const prisma = getPrisma();
-  const messages = await prisma.emailMessageRecord.findMany({
-    where: { projectId: id },
+  const { readProjectById } = await import("@/lib/project-db");
+  const project = await readProjectById(id).catch(() => null);
+
+  const orClauses: Prisma.EmailMessageRecordWhereInput[] = [{ projectId: id }];
+
+  if (project) {
+    if (project.name?.trim()) {
+      orClauses.push({
+        projectName: { equals: project.name.trim(), mode: "insensitive" },
+      });
+    }
+
+    if (project.linkedDealId?.trim()) {
+      const oppUuid = await resolveOpportunityId(project.linkedDealId.trim());
+      if (oppUuid) {
+        orClauses.push({ opportunityId: oppUuid });
+      }
+    }
+
+    // Collect related company refs and external stakeholder contact refs
+    const companyRefs = [
+      ...new Set(
+        [
+          project.linkedCompanyId,
+          ...(project.relatedOrganizations ?? []).map((org) => org.companyId),
+        ]
+          .map((c) => c?.trim())
+          .filter((c): c is string => Boolean(c)),
+      ),
+    ];
+
+    const stakeholderContactRefs = [
+      ...new Set(
+        [
+          ...(project.projectStakeholders ?? []).map((s) => s.contactId),
+          ...(project.team ?? []).map((m) => m.contactId),
+        ]
+          .map((c) => c?.trim())
+          .filter((c): c is string => Boolean(c)),
+      ),
+    ];
+
+    const contactPrefixes = stakeholderContactRefs
+      .map((ref) => {
+        const match = ref.match(/^CT-([0-9A-F]{6,12})$/i);
+        return match ? match[1].toLowerCase() : null;
+      })
+      .filter((p): p is string => Boolean(p));
+    const contactUuids = stakeholderContactRefs.filter((ref) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(ref),
+    );
+
+    const companyCodes = companyRefs.filter((ref) => /^CO-\d+/i.test(ref));
+    const companyUuids = companyRefs.filter((ref) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(ref),
+    );
+
+    const [relatedCompanies, rosterContacts] = await Promise.all([
+      companyCodes.length > 0 || companyUuids.length > 0
+        ? prisma.company
+            .findMany({
+              where: {
+                OR: [
+                  ...(companyCodes.length > 0 ? [{ code: { in: companyCodes } }] : []),
+                  ...(companyUuids.length > 0 ? [{ id: { in: companyUuids } }] : []),
+                ],
+              },
+              select: {
+                id: true,
+                name: true,
+                contacts: {
+                  where: { status: "active" },
+                  select: { id: true, emails: true },
+                },
+              },
+            })
+            .catch(() => [])
+        : Promise.resolve([]),
+      contactUuids.length > 0 || contactPrefixes.length > 0
+        ? prisma.contact
+            .findMany({
+              where: {
+                OR: [
+                  ...(contactUuids.length > 0 ? [{ id: { in: contactUuids } }] : []),
+                  ...contactPrefixes.map((prefix) => ({
+                    id: { startsWith: prefix },
+                  })),
+                ],
+              },
+              select: { id: true, emails: true },
+            })
+            .catch(() => [])
+        : Promise.resolve([]),
+    ]);
+
+    const allContacts = [
+      ...rosterContacts,
+      ...relatedCompanies.flatMap((c) => c.contacts),
+    ];
+    const contactIds = [...new Set(allContacts.map((c) => c.id))];
+    const addresses = [
+      ...new Set(allContacts.flatMap((c) => contactEmailsFromJson(c.emails))),
+    ];
+
+    if (contactIds.length > 0) {
+      orClauses.push({ projectId: null, contactId: { in: contactIds } });
+    }
+    if (addresses.length > 0) {
+      orClauses.push({ projectId: null, senderEmail: { in: addresses } });
+      orClauses.push({
+        projectId: null,
+        recipientEmails: { hasSome: addresses },
+      });
+    }
+
+    // Match internal (@standard.bio) & unlinked external correspondence by project/site keywords
+    const keywords = extractDistinctiveMailKeywords(
+      [project.name, ...relatedCompanies.map((c) => c.name)],
+      project.mailKeywords,
+    );
+    for (const kw of keywords) {
+      orClauses.push({
+        projectId: null,
+        subject: { contains: kw, mode: "insensitive" },
+      });
+      orClauses.push({
+        projectId: null,
+        bodyPreview: { contains: kw, mode: "insensitive" },
+      });
+    }
+  }
+
+  const initialMessages = await prisma.emailMessageRecord.findMany({
+    where: {
+      isDeletedInSource: false,
+      OR: orClauses,
+    },
     include: emailMessageInclude,
     orderBy: [{ conversationId: "asc" }, { sentAt: "asc" }],
   });
 
-  return messages.map(toEmailDto);
+  // Expand to full conversation threads so internal forwards and replies on matched threads are never lost.
+  const allConvIds = [
+    ...new Set(initialMessages.map((m) => m.conversationId).filter(Boolean)),
+  ];
+  const initialIds = new Set(initialMessages.map((m) => m.id));
+  const threadSiblings =
+    allConvIds.length > 0
+      ? await prisma.emailMessageRecord
+          .findMany({
+            where: {
+              isDeletedInSource: false,
+              conversationId: { in: allConvIds },
+              id: { notIn: [...initialIds] },
+            },
+            include: emailMessageInclude,
+          })
+          .catch(() => [])
+      : [];
+
+  const combined = [...initialMessages, ...threadSiblings].sort(
+    (a, b) =>
+      a.conversationId.localeCompare(b.conversationId) ||
+      a.sentAt.getTime() - b.sentAt.getTime(),
+  );
+
+  // Backfill projectId on unlinked messages that matched this project so future queries and /mail see the link.
+  if (project) {
+    const unlinkedIds = combined
+      .filter((m) => !m.projectId)
+      .map((m) => m.id);
+    if (unlinkedIds.length > 0) {
+      await prisma.emailMessageRecord
+        .updateMany({
+          where: { id: { in: unlinkedIds }, projectId: null },
+          data: { projectId: project.id, projectName: project.name },
+        })
+        .catch(() => undefined);
+      for (const msg of combined) {
+        if (!msg.projectId) {
+          msg.projectId = project.id;
+          msg.projectName = project.name;
+        }
+      }
+    }
+  }
+
+  return combined.map(toEmailDto);
 }
 
 /**
@@ -1353,15 +1683,9 @@ async function applyConversationLinks(
   const addresses = contact ? contactEmailsFromJson(contact.emails) : [];
   let seeded = false;
 
-  // If Outlook opened a thread that mail sync has not ingested yet, seed one
-  // record from the open item so intentional tagging still works.
-  const anyInConversation = await prisma.emailMessageRecord.findFirst({
-    where: { conversationId },
-    select: { id: true },
-  });
+  // Ensure the open Outlook item is stored in SmartCRM before applying links across the thread.
   if (
     contact &&
-    !anyInConversation &&
     options?.seedMessage?.externalMessageId?.trim()
   ) {
     seeded = await upsertSeededOutlookMessage(

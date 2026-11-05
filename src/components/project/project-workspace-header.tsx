@@ -115,9 +115,21 @@ export function ProjectWorkspaceHeader({
       ) : null}
 
       <div className="flex flex-col gap-8 pb-1">
-        <div className="min-w-0">
-          <p className={`${EDITORIAL_LABEL} mb-2`}>{kindLabel}</p>
-          <h1 className={EDITORIAL_PAGE_TITLE}>{project.name}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className={`${EDITORIAL_LABEL} mb-2`}>{kindLabel}</p>
+            <h1 className={EDITORIAL_PAGE_TITLE}>{project.name}</h1>
+          </div>
+          {project.sharepointFolderUrl ? (
+            <a
+              href={project.sharepointFolderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-sky-700 transition-colors hover:bg-sky-500/15"
+            >
+              Open SharePoint folder
+            </a>
+          ) : null}
         </div>
 
         <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-[13px] text-carbon-blue/70">

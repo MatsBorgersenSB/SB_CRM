@@ -237,7 +237,7 @@ export function EmailIntelligence({
     setDateSort,
     activeFilters,
     resetFilters,
-  } = useMailSmartFilters();
+  } = useMailSmartFilters({ domainFilter: "all" });
   const [composeTo, setComposeTo] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);

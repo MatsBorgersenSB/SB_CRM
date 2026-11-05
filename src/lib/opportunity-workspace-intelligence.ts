@@ -556,6 +556,14 @@ function buildDiscoveryQuestionItems(
       question: "Is the site ready for installation?",
       fieldId: "site_readiness",
     },
+    feedstock_agreement: {
+      question: "Have we secured feedstock supply for our plant (supplier, volume, moisture/quality spec, price, and term)?",
+      fieldId: "feedstock_agreement",
+    },
+    public_funding: {
+      question: "Do we qualify for public subsidies or grants, and where does each application stand?",
+      fieldId: "public_funding",
+    },
     engagement: {
       question:
         "Who should we speak with first to advance discovery on this opportunity?",
@@ -576,7 +584,9 @@ function buildDiscoveryQuestionItems(
     const mapped = questionMap[gap.id];
     if (!mapped || seen.has(gap.id)) continue;
     const fieldPrompt =
-      lean && mapped.fieldId ? profile!.fieldOverrides[mapped.fieldId]?.prompt : undefined;
+      profile && profile.motion !== "system" && mapped.fieldId
+        ? profile.fieldOverrides[mapped.fieldId]?.prompt
+        : undefined;
     items.push({
       id: gap.id,
       question: fieldPrompt ?? mapped.question,
@@ -639,7 +649,7 @@ function buildDiscoveryQuestionItems(
         },
       ];
 
-  for (const item of lean ? [] : defaults) {
+  for (const item of lean || profile?.motion === "boo" ? [] : defaults) {
     if (seen.has(item.id)) continue;
     items.push(item);
     seen.add(item.id);

@@ -9,7 +9,10 @@ import { PROJECT_STAGE_LABELS } from "@/types/project";
 import type { ProjectActionTab } from "@/types/project-actions";
 import type { ProjectMissionControlView } from "@/types/project-mission-control";
 import { EmailIntelligence } from "@/components/opportunities/email-intelligence";
+import { OpportunityDealBriefHero } from "@/components/opportunity/opportunity-deal-brief";
 import { OpportunityKnowledgeView } from "@/components/opportunity/opportunity-knowledge-view";
+import { OpportunityUnderstandingCapturePanel } from "@/components/opportunity/opportunity-understanding-capture-panel";
+import { AddFindingPanel } from "@/components/knowledge/add-finding-panel";
 import { ProjectActionsTabBar } from "@/components/project/project-actions-tab-bar";
 import { ProjectInsightCatalogPanel } from "@/components/project/project-insight-catalog-panel";
 import { ProjectMissionControlTabBar } from "@/components/project/project-mission-control-tab-bar";
@@ -21,6 +24,13 @@ import {
   SmartAssistConfidenceLabel,
 } from "@/components/smartassist/smartassist-intelligence-display";
 import { projectFieldCategory } from "@/lib/project-discovery-intelligence";
+import type { DealBrief } from "@/lib/opportunity-deal-brief";
+import {
+  buildGapsFromUnderstandingModel,
+  resolveAllUnderstandingFields,
+} from "@/lib/opportunity-understanding-model";
+import type { SourceFinding } from "@/lib/source-findings";
+import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
 import type { UserRole } from "@/types/auth";
 import type { InsightCategory } from "@/types/smartassist-intelligence";
 import {
@@ -49,6 +59,13 @@ export function ProjectMissionControl({
   activityContext,
   role = "superuser",
   emailsReadOnly = false,
+  developmentPipeline = null,
+  developmentBrief = null,
+  focusFieldId = null,
+  onAnswerNow,
+  onSaveUnderstandingField,
+  onSaveFindings,
+  onReadDocuments,
 }: {
   view: ProjectMissionControlView;
   onViewChange: (view: ProjectMissionControlView) => void;
@@ -66,6 +83,13 @@ export function ProjectMissionControl({
   activityContext: ActivityWorkspaceContext;
   role?: UserRole;
   emailsReadOnly?: boolean;
+  developmentPipeline?: PipelineRow | null;
+  developmentBrief?: DealBrief | null;
+  focusFieldId?: string | null;
+  onAnswerNow?: (fieldId: string) => void;
+  onSaveUnderstandingField?: (fieldId: UnderstandingFieldId, value: string) => Promise<void>;
+  onSaveFindings?: (findings: SourceFinding[]) => Promise<void>;
+  onReadDocuments?: () => Promise<SourceFinding[]>;
 }) {
   const discovery = intelligence.discovery;
   const discoveryReady = intelligence.discoveryReady ?? false;
@@ -95,6 +119,14 @@ export function ProjectMissionControl({
         : `Working view (assumed): ${project.objective}`;
 
   const stageLabel = project.stage ? PROJECT_STAGE_LABELS[project.stage] : "Planning";
+  const developmentGaps = developmentPipeline
+    ? buildGapsFromUnderstandingModel(developmentPipeline)
+    : [];
+  const knownDevelopmentFieldIds = developmentPipeline
+    ? resolveAllUnderstandingFields(developmentPipeline)
+        .filter((f) => f.source === "captured")
+        .map((f) => f.definition.id)
+    : [];
 
   return (
     <section aria-label="Project mission control" className="flex flex-col">
@@ -119,7 +151,41 @@ export function ProjectMissionControl({
 
       <div className="mt-10">
         {view === "overview" ? (
-          realityFirst ? (
+          developmentBrief ? (
+            <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
+              <OpportunityDealBriefHero
+                brief={developmentBrief}
+                onAnswerNow={onAnswerNow}
+              />
+              {organizationsOverview ? (
+                <section className="border-t border-carbon-blue/10 pt-8">
+                  <p className={`${EDITORIAL_LABEL} mb-1`}>Related organizations</p>
+                  <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
+                    Host / energy offtaker, feedstock supplier, biochar offtake partner, regulator, and investors.
+                  </p>
+                  {organizationsOverview}
+                </section>
+              ) : null}
+              {stakeholdersOverview ? (
+                <section className="border-t border-carbon-blue/10 pt-8">
+                  <p className={`${EDITORIAL_LABEL} mb-1`}>Stakeholders</p>
+                  <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
+                    Who plays which role, from which organization, and with what responsibility.
+                  </p>
+                  {stakeholdersOverview}
+                </section>
+              ) : null}
+              {stakeholderIntelligenceOverview ? (
+                <section className="border-t border-carbon-blue/10 pt-8">
+                  <p className={`${EDITORIAL_LABEL} mb-1`}>Stakeholder intelligence</p>
+                  <p className={`${EDITORIAL_BODY_MUTED} mb-4 text-[13px]`}>
+                    SmartAssist evaluates coverage, relationship health, execution ownership, and missing roles.
+                  </p>
+                  {stakeholderIntelligenceOverview}
+                </section>
+              ) : null}
+            </div>
+          ) : realityFirst ? (
             <OperationalOverviewPanel
               stageLabel={stageLabel}
               purpose={project.objective.trim() || null}
@@ -154,11 +220,19 @@ export function ProjectMissionControl({
           )
         ) : null}
 
-        {view === "gaps" && discovery && !realityFirst ? (
+        {view === "gaps" && !realityFirst ? (
           <OpportunityKnowledgeView
             variant="gaps"
-            criticalGaps={discovery.knowledgeModel.criticalGaps}
+            criticalGaps={
+              developmentPipeline
+                ? [
+                    ...developmentGaps,
+                    ...(discovery?.knowledgeModel.criticalGaps ?? []),
+                  ]
+                : (discovery?.knowledgeModel.criticalGaps ?? [])
+            }
             confirmedUnderstanding={[]}
+            onAnswerNow={onAnswerNow}
           />
         ) : null}
 
@@ -171,19 +245,41 @@ export function ProjectMissionControl({
 
         {view === "understanding" ? (
           <div className={`${EDITORIAL_CONTENT} flex flex-col gap-10`}>
-            {discovery ? (
+            {developmentPipeline ? (
+              <>
+                <OpportunityUnderstandingCapturePanel
+                  pipeline={developmentPipeline}
+                  focusFieldId={focusFieldId}
+                  onSaveField={onSaveUnderstandingField}
+                  onSaveFindings={onSaveFindings}
+                  onReadDocuments={onReadDocuments}
+                  documentCount={actionCounts?.documents ?? 0}
+                  readOnly={!onSaveUnderstandingField}
+                />
+                {onSaveFindings ? (
+                  <AddFindingPanel
+                    targetLabel="this project"
+                    findings={developmentPipeline.understanding?.findings ?? []}
+                    onFindingsChange={onSaveFindings}
+                    documentCount={actionCounts?.documents ?? 0}
+                    onReadDocuments={onReadDocuments}
+                    knownFieldIds={knownDevelopmentFieldIds}
+                  />
+                ) : null}
+              </>
+            ) : discovery ? (
               <OpportunityKnowledgeView
                 variant="understanding"
                 criticalGaps={[]}
                 confirmedUnderstanding={discovery.knowledgeModel.confirmedUnderstanding}
               />
             ) : null}
-            {intelligence.insightCatalog && !realityFirst ? (
+            {intelligence.insightCatalog && !realityFirst && !developmentPipeline ? (
               <ProjectInsightCatalogPanel catalog={intelligence.insightCatalog} />
             ) : null}
-            {!realityFirst ? (
+            {!realityFirst && !developmentPipeline ? (
               <ProjectObjectivePanel project={project} discovery={discovery} />
-            ) : project.objective.trim() ? (
+            ) : project.objective.trim() && !developmentPipeline ? (
               <div>
                 <p className={EDITORIAL_LABEL}>Purpose</p>
                 <p className="mt-2 text-[14px] leading-relaxed text-carbon-blue">{project.objective}</p>

@@ -91,19 +91,40 @@ describe("Build-Own-Operate understanding fields (FS-005B 5)", () => {
   const ids = (pipeline: Pick<PipelineRow, "offeringIds" | "dealModel">) =>
     understandingFieldsForPipeline(pipeline).map((field) => field.id);
 
-  it("drops budget and economic buyer, adds feedstock agreement and public funding", () => {
+  it("drops customer-problem/budget/economic buyer and leads with the 7 development pillars", () => {
     const list = ids(boo({}));
     assert.ok(!list.includes("budget"));
     assert.ok(!list.includes("economic_buyer"));
-    assert.ok(list.includes("feedstock_agreement"));
-    assert.ok(list.includes("public_funding"));
-    assert.ok(list.includes("customer_problem"));
+    assert.ok(!list.includes("customer_problem"));
+    assert.ok(!list.includes("customer_vision"));
+    assert.ok(!list.includes("customer_value"));
+    assert.deepEqual(list.slice(0, 7), [
+      "site_readiness",
+      "feedstock_agreement",
+      "utilities",
+      "offtake_strategy",
+      "end_product",
+      "public_funding",
+      "permitting",
+    ]);
   });
 
-  it("rewords shared fields for Build-Own-Operate", () => {
+  it("rewords shared fields for our own project development (FEL 1 → Realisation)", () => {
     const fields = understandingFieldsForPipeline(boo({}));
     const site = fields.find((field) => field.id === "site_readiness");
-    assert.equal(site?.label, "Site control (land plot)");
+    assert.equal(site?.label, "Secure land plot");
+    const feedstock = fields.find((field) => field.id === "feedstock_agreement");
+    assert.equal(feedstock?.label, "Secure feedstock");
+    const utilities = fields.find((field) => field.id === "utilities");
+    assert.equal(utilities?.label, "Secure required utilities");
+    const energy = fields.find((field) => field.id === "offtake_strategy");
+    assert.equal(energy?.label, "Secure energy offtake");
+    const biochar = fields.find((field) => field.id === "end_product");
+    assert.equal(biochar?.label, "Secure product offtake (biochar)");
+    const subsidies = fields.find((field) => field.id === "public_funding");
+    assert.equal(subsidies?.label, "Secure subsidies (if we qualify)");
+    const permitting = fields.find((field) => field.id === "permitting");
+    assert.equal(permitting?.label, "Secure permitting");
     const decider = fields.find((field) => field.id === "decision_maker");
     assert.equal(decider?.label, "Who signs the agreements");
   });
@@ -133,10 +154,10 @@ describe("Build-Own-Operate understanding fields (FS-005B 5)", () => {
 });
 
 describe("Build-Own-Operate Brief (FS-005B 6)", () => {
-  it("applies and uses Build-Own-Operate column headings", () => {
+  it("applies and uses Project development (FEL 1 → Realisation) column headings", () => {
     assert.equal(dealBriefApplies(boo({})), true);
     const brief = buildDealBrief({ pipeline: boo({}), activities: [], now: NOW });
-    assert.equal(brief.columns.want, "What they need solved");
+    assert.equal(brief.columns.want, "Project development (FEL 1 → Realisation)");
     assert.equal(brief.columns.blocker, "What is blocking the plant");
     assert.equal(brief.verdict.id, "not_understood");
   });
@@ -146,83 +167,68 @@ describe("Build-Own-Operate Brief (FS-005B 6)", () => {
     assert.equal(brief.columns.want, "What the customer wants");
   });
 
-  it("needs attention while energy/output offtake is missing", () => {
-    const brief = buildDealBrief({
-      pipeline: boo(CUSTOMER_LAYER),
+  it("checks development pillars in FEL 1 → Realisation order: land plot → feedstock → utilities → energy offtake → biochar offtake", () => {
+    const step1 = buildDealBrief({
+      pipeline: boo({ site_readiness: "Plot identified; lease terms to be determined" }),
       activities: [plannedStep],
       now: NOW,
     });
-    assert.equal(brief.verdict.id, "needs_attention");
-    assert.equal(brief.weakestLink, "offtake");
-    assert.equal(brief.blocker.fieldId, "offtake_strategy");
-    assert.equal(brief.next.fieldId, "offtake_strategy");
-  });
+    assert.equal(step1.verdict.id, "needs_attention");
+    assert.equal(step1.weakestLink, "site_control");
+    assert.equal(step1.blocker.fieldId, "site_readiness");
+    assert.equal(step1.blocker.state, "assumed");
 
-  it("needs attention while biochar product offtake is missing", () => {
-    const brief = buildDealBrief({
-      pipeline: boo({
-        ...CUSTOMER_LAYER,
-        offtake_strategy: INPUTS.offtake_strategy,
-      }),
+    const step2 = buildDealBrief({
+      pipeline: boo({ site_readiness: INPUTS.site_readiness }),
       activities: [plannedStep],
       now: NOW,
     });
-    assert.equal(brief.verdict.id, "needs_attention");
-    assert.equal(brief.weakestLink, "biochar_offtake");
-    assert.equal(brief.blocker.fieldId, "end_product");
-  });
+    assert.equal(step2.verdict.id, "needs_attention");
+    assert.equal(step2.weakestLink, "feedstock_agreement");
+    assert.match(step2.verdict.impact, /no plant to finance/);
+    assert.equal(step2.blocker.fieldId, "feedstock_agreement");
 
-  it("needs attention while the feedstock agreement is missing", () => {
-    const brief = buildDealBrief({
+    const step3 = buildDealBrief({
       pipeline: boo({
-        ...CUSTOMER_LAYER,
-        offtake_strategy: INPUTS.offtake_strategy,
-        end_product: INPUTS.end_product,
-      }),
-      activities: [plannedStep],
-      now: NOW,
-    });
-    assert.equal(brief.verdict.id, "needs_attention");
-    assert.equal(brief.weakestLink, "feedstock_agreement");
-    assert.match(brief.verdict.impact, /no plant to finance/);
-    assert.equal(brief.blocker.fieldId, "feedstock_agreement");
-    assert.equal(brief.next.fieldId, "feedstock_agreement");
-  });
-
-  it("needs attention while site control is missing", () => {
-    const brief = buildDealBrief({
-      pipeline: boo({
-        ...CUSTOMER_LAYER,
-        offtake_strategy: INPUTS.offtake_strategy,
-        end_product: INPUTS.end_product,
-        feedstock_agreement: INPUTS.feedstock_agreement,
-      }),
-      activities: [plannedStep],
-      now: NOW,
-    });
-    assert.equal(brief.verdict.id, "needs_attention");
-    assert.equal(brief.weakestLink, "site_control");
-    assert.equal(brief.blocker.fieldId, "site_readiness");
-  });
-
-  it("needs attention while utilities are missing", () => {
-    const brief = buildDealBrief({
-      pipeline: boo({
-        ...CUSTOMER_LAYER,
-        offtake_strategy: INPUTS.offtake_strategy,
-        end_product: INPUTS.end_product,
-        feedstock_agreement: INPUTS.feedstock_agreement,
         site_readiness: INPUTS.site_readiness,
+        feedstock_agreement: INPUTS.feedstock_agreement,
       }),
       activities: [plannedStep],
       now: NOW,
     });
-    assert.equal(brief.verdict.id, "needs_attention");
-    assert.equal(brief.weakestLink, "utilities");
-    assert.equal(brief.blocker.fieldId, "utilities");
+    assert.equal(step3.verdict.id, "needs_attention");
+    assert.equal(step3.weakestLink, "utilities");
+    assert.equal(step3.blocker.fieldId, "utilities");
+
+    const step4 = buildDealBrief({
+      pipeline: boo({
+        site_readiness: INPUTS.site_readiness,
+        feedstock_agreement: INPUTS.feedstock_agreement,
+        utilities: INPUTS.utilities,
+      }),
+      activities: [plannedStep],
+      now: NOW,
+    });
+    assert.equal(step4.verdict.id, "needs_attention");
+    assert.equal(step4.weakestLink, "offtake");
+    assert.equal(step4.blocker.fieldId, "offtake_strategy");
+
+    const step5 = buildDealBrief({
+      pipeline: boo({
+        site_readiness: INPUTS.site_readiness,
+        feedstock_agreement: INPUTS.feedstock_agreement,
+        utilities: INPUTS.utilities,
+        offtake_strategy: INPUTS.offtake_strategy,
+      }),
+      activities: [plannedStep],
+      now: NOW,
+    });
+    assert.equal(step5.verdict.id, "needs_attention");
+    assert.equal(step5.weakestLink, "biochar_offtake");
+    assert.equal(step5.blocker.fieldId, "end_product");
   });
 
-  it("is a Clear path once inputs are secured, and points at permits and funding", () => {
+  it("is a Clear path once core inputs are secured, and points at subsidies, permits and funding", () => {
     const brief = buildDealBrief({
       pipeline: boo({ ...CUSTOMER_LAYER, ...INPUTS }),
       activities: [plannedStep],
@@ -230,8 +236,8 @@ describe("Build-Own-Operate Brief (FS-005B 6)", () => {
     });
     assert.equal(brief.verdict.id, "clear_path");
     assert.match(brief.verdict.impact, /permits and funding/);
-    assert.equal(brief.blocker.fieldId, "permitting");
-    assert.equal(brief.next.fieldId, "permitting");
+    assert.equal(brief.blocker.fieldId, "public_funding");
+    assert.equal(brief.next.fieldId, "public_funding");
   });
 
   it("does not let permits or funding change the verdict before the negotiation stage", () => {
@@ -245,7 +251,7 @@ describe("Build-Own-Operate Brief (FS-005B 6)", () => {
     }
   });
 
-  it("gates on permits and funding from the negotiation stage onward", () => {
+  it("gates on subsidies, permits and funding from the negotiation stage onward", () => {
     const base = { ...CUSTOMER_LAYER, ...INPUTS };
     const open = buildDealBrief({
       pipeline: boo(base, { salesStageId: "negotiation" }),
@@ -253,10 +259,21 @@ describe("Build-Own-Operate Brief (FS-005B 6)", () => {
       now: NOW,
     });
     assert.equal(open.verdict.id, "needs_attention");
-    assert.equal(open.weakestLink, "permitting");
+    assert.equal(open.weakestLink, "public_funding");
+
+    const withSubsidies = buildDealBrief({
+      pipeline: boo({ ...base, public_funding: "Enova grant awarded" }, { salesStageId: "negotiation" }),
+      activities: [plannedStep],
+      now: NOW,
+    });
+    assert.equal(withSubsidies.weakestLink, "permitting");
+    assert.equal(withSubsidies.verdict.id, "needs_attention");
 
     const partly = buildDealBrief({
-      pipeline: boo({ ...base, permitting: "Permit granted" }, { salesStageId: "negotiation" }),
+      pipeline: boo(
+        { ...base, public_funding: "Enova grant awarded", permitting: "Permit granted" },
+        { salesStageId: "negotiation" },
+      ),
       activities: [plannedStep],
       now: NOW,
     });

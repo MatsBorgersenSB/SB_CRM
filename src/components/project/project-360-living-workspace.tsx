@@ -22,7 +22,18 @@ import type {
   ProjectRelatedOrganization,
   ProjectStakeholderRecord,
 } from "@/types/project-relationships";
+import type {
+  OpportunityUnderstandingCapture,
+  UnderstandingFieldId,
+} from "@/types/opportunity-understanding";
 import type { UserRole } from "@/types/auth";
+import type { SourceFinding } from "@/lib/source-findings";
+import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
+import { buildDealBrief } from "@/lib/opportunity-deal-brief";
+import {
+  patchSourceFindings,
+  patchUnderstandingCapture,
+} from "@/lib/opportunity-understanding-model";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { SmartActivityWorkspace } from "@/components/activities/smart-activity-workspace";
 import { ProjectActivitiesPanel } from "@/components/project/project-activities-panel";
@@ -89,6 +100,7 @@ export function Project360LivingWorkspace({
   onOwnerChange,
   onStakeholdersChange,
   onOrganizationsChange,
+  onUnderstandingChange,
   standardBioUsers,
   relationshipsReadOnly = false,
 }: {
@@ -101,6 +113,7 @@ export function Project360LivingWorkspace({
   onOwnerChange?: (owner: SharePointPerson) => Promise<void>;
   onStakeholdersChange?: (stakeholders: ProjectStakeholderRecord[]) => Promise<void>;
   onOrganizationsChange?: (organizations: ProjectRelatedOrganization[]) => Promise<void>;
+  onUnderstandingChange?: (understanding: OpportunityUnderstandingCapture) => Promise<void>;
   standardBioUsers: SharePointPerson[];
   relationshipsReadOnly?: boolean;
 }) {
@@ -109,10 +122,26 @@ export function Project360LivingWorkspace({
   const viewParam = searchParams.get("view");
   const actionParam = searchParams.get("action");
   const legacyTabParam = searchParams.get("tab");
+  const focusFieldParam = searchParams.get("field");
 
   const [documentCount, setDocumentCount] = useState(0);
   const organizations = useMemo(() => getProjectRelatedOrganizations(project), [project]);
   const stakeholders = useMemo(() => getProjectStakeholders(project), [project]);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/projects/${encodeURIComponent(project.id)}/smartdocs`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { documents?: unknown[] } | null) => {
+        if (active && Array.isArray(data?.documents)) {
+          setDocumentCount(data.documents.length);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
 
   const actionTab = useMemo(() => {
     if (actionParam === "team") return "stakeholders";
@@ -174,6 +203,107 @@ export function Project360LivingWorkspace({
   );
 
   const linkedPipeline = pipelines.find((row) => row.id === project.linkedDealId);
+
+  const isDevelopmentProject =
+    project.kind === "development" ||
+    Boolean(project.understanding) ||
+    linkedPipeline?.dealModel === "boo";
+
+  const effectiveUnderstanding = useMemo(
+    () => project.understanding ?? linkedPipeline?.understanding ?? { fields: {} },
+    [project.understanding, linkedPipeline?.understanding],
+  );
+
+  const developmentPipeline = useMemo<PipelineRow | null>(() => {
+    if (!isDevelopmentProject) return null;
+    const isLateStage =
+      project.stage === "Execution" ||
+      project.stage === "Commissioning" ||
+      project.stage === "Operational";
+    return {
+      id: project.id,
+      assetName: project.name,
+      companyRole: "Infrastructure Partner",
+      targetFeedstock: linkedPipeline?.targetFeedstock ?? "",
+      reactorDesignCapacity: linkedPipeline?.reactorDesignCapacity ?? 0,
+      currentMilestone: project.stage ?? "Planning",
+      status: "Prospecting",
+      salesStageId: isLateStage ? "negotiation" : "qualification",
+      salesValue: linkedPipeline?.salesValue ?? 0,
+      currency: linkedPipeline?.currency ?? "EUR",
+      probability: linkedPipeline?.probability ?? 25,
+      offeringIds: linkedPipeline?.offeringIds ?? ["sys-complete-turnkey-pyrolysis"],
+      dealModel: "boo",
+      team: stakeholders.map((s) => ({
+        contactId: s.contactId ?? `user-${s.userId ?? s.id}`,
+        projectRole: s.role,
+      })),
+      understanding: effectiveUnderstanding,
+    } as PipelineRow;
+  }, [isDevelopmentProject, project.id, project.name, project.stage, linkedPipeline, stakeholders, effectiveUnderstanding]);
+
+  const developmentBrief = useMemo(() => {
+    if (!developmentPipeline) return null;
+    return buildDealBrief({
+      pipeline: developmentPipeline,
+      activities: projectActivities,
+      attentionItems,
+    });
+  }, [developmentPipeline, projectActivities, attentionItems]);
+
+  const handleAnswerNow = useCallback(
+    (fieldId: string) => {
+      router.replace(
+        `/projects/${encodeURIComponent(project.id)}?view=understanding&field=${encodeURIComponent(fieldId)}`,
+        { scroll: false },
+      );
+    },
+    [project.id, router],
+  );
+
+  const handleSaveUnderstandingField = useCallback(
+    async (fieldId: UnderstandingFieldId, value: string) => {
+      if (!onUnderstandingChange) return;
+      const next = patchUnderstandingCapture(effectiveUnderstanding, fieldId, value);
+      await onUnderstandingChange(next);
+    },
+    [onUnderstandingChange, effectiveUnderstanding],
+  );
+
+  const handleSaveFindings = useCallback(
+    async (findings: SourceFinding[]) => {
+      if (!onUnderstandingChange) return;
+      const next = patchSourceFindings(effectiveUnderstanding, findings);
+      await onUnderstandingChange(next);
+    },
+    [onUnderstandingChange, effectiveUnderstanding],
+  );
+
+  const handleReadDocuments = useCallback(async (): Promise<SourceFinding[]> => {
+    const response = await fetch(
+      `/api/projects/${encodeURIComponent(project.id)}/findings/from-documents`,
+      {
+        method: "POST",
+        headers: {
+          [AUTH_ROLE_HEADER]: role,
+        },
+      },
+    );
+    const payload = (await response.json().catch(() => null)) as {
+      findings?: SourceFinding[];
+      unread?: Array<{ name: string; reason: string }>;
+      error?: string;
+    } | null;
+    if (!response.ok) {
+      throw new Error(payload?.error || "Could not read project sources");
+    }
+    const unread = payload?.unread ?? [];
+    const proposed = Array.isArray(payload?.findings) ? payload.findings : [];
+    if (proposed.length === 0 && unread.length > 0) {
+      throw new Error(unread[0]?.reason || "Could not read the filed sources");
+    }
+    return proposed;
+  }, [project.id, role]);
 
   const intelligence = useMemo(
     () => buildProjectIntelligence(project, projectActivities, companies, linkedPipeline),
@@ -312,6 +442,23 @@ export function Project360LivingWorkspace({
             pipelines={pipelines}
             activities={activities}
             onDocumentCountChange={setDocumentCount}
+            onExtractKnowledge={
+              !relationshipsReadOnly && onUnderstandingChange
+                ? async () => {
+                    const proposed = await handleReadDocuments();
+                    if (proposed.length === 0) return;
+                    const { appendSourceFinding } = await import(
+                      "@/lib/source-findings"
+                    );
+                    let next = effectiveUnderstanding.findings ?? [];
+                    for (const item of proposed) {
+                      next = appendSourceFinding(next, item);
+                    }
+                    await handleSaveFindings(next);
+                  }
+                : undefined
+            }
+            onOpenUnderstanding={() => setMissionView("understanding")}
           />
         );
       case "milestones":
@@ -337,10 +484,17 @@ export function Project360LivingWorkspace({
     relationshipsReadOnly,
     onStakeholdersChange,
     intelligence.discovery,
+    intelligence.stakeholderIntelligence,
+    linkedPipeline?.id,
     documentsContext,
     activities,
     project.milestones,
     project.decisions,
+    onUnderstandingChange,
+    handleReadDocuments,
+    effectiveUnderstanding.findings,
+    handleSaveFindings,
+    setMissionView,
   ]);
 
   return (
@@ -383,6 +537,21 @@ export function Project360LivingWorkspace({
         }}
         role={role}
         emailsReadOnly={relationshipsReadOnly}
+        developmentPipeline={developmentPipeline}
+        developmentBrief={developmentBrief}
+        focusFieldId={focusFieldParam}
+        onAnswerNow={handleAnswerNow}
+        onSaveUnderstandingField={
+          !relationshipsReadOnly && onUnderstandingChange
+            ? handleSaveUnderstandingField
+            : undefined
+        }
+        onSaveFindings={
+          !relationshipsReadOnly && onUnderstandingChange
+            ? handleSaveFindings
+            : undefined
+        }
+        onReadDocuments={handleReadDocuments}
       />
     </WorkspaceStack>
   );

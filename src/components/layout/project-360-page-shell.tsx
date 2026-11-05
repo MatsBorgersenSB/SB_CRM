@@ -25,8 +25,10 @@ import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import {
   syncProjectOrganizations,
   syncProjectOwner,
+  syncProjectRecord,
   syncProjectStakeholders,
 } from "@/lib/sync-project";
+import type { OpportunityUnderstandingCapture } from "@/types/opportunity-understanding";
 import type { Activity } from "@/types/activity";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company, SharePointPerson } from "@/types/company";
@@ -59,6 +61,7 @@ export function Project360PageShell({
   const [currentProject, setCurrentProject] = useState(project);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync server-rendered project prop into local state
     setCurrentProject(project);
   }, [project]);
 
@@ -109,6 +112,19 @@ export function Project360PageShell({
       const updated = await syncProjectOrganizations(
         resolvedProject.id,
         relatedOrganizations,
+        user.role,
+      );
+      setCurrentProject(updated);
+    },
+    [resolvedProject, user.role],
+  );
+
+  const persistUnderstanding = useCallback(
+    async (understanding: OpportunityUnderstandingCapture) => {
+      if (!resolvedProject) return;
+      const updated = await syncProjectRecord(
+        resolvedProject.id,
+        { understanding },
         user.role,
       );
       setCurrentProject(updated);
@@ -169,6 +185,7 @@ export function Project360PageShell({
           onOwnerChange={handleOwnerChange}
           onStakeholdersChange={persistStakeholders}
           onOrganizationsChange={persistOrganizations}
+          onUnderstandingChange={persistUnderstanding}
           standardBioUsers={standardBioUserOptions}
           relationshipsReadOnly={!canManageProjectStakeholders(user.role)}
         />

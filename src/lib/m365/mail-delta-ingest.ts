@@ -3,6 +3,7 @@ import "server-only";
 import { getPrisma } from "@/lib/prisma";
 import { emailsIncludeAddress } from "@/lib/entity-route-utils";
 import {
+  extractDistinctiveMailKeywords,
   isEmailIngestExcluded,
   markEmailDeletedInSource,
 } from "@/lib/email-intelligence-data";
@@ -361,6 +362,8 @@ async function syncOutlookCategoriesForRecord(input: {
 async function attributeForNewMessage(input: {
   conversationId: string;
   participantEmails: string[];
+  subject?: string | null;
+  bodyPreview?: string | null;
   preloadedContacts?: PreloadedContactRow[];
 }): Promise<{
   contactId: string | null;
@@ -375,12 +378,42 @@ async function attributeForNewMessage(input: {
   );
   const contactId = contacts[0]?.id ?? null;
   const links = await resolveConversationLinks(input.conversationId);
+
+  let projectId = links.projectId;
+  let projectName = links.projectName;
+  let opportunityId = links.opportunityId;
+  const opportunityName = links.opportunityName;
+
+  // Catch internal (@standard.bio ↔ @standard.bio) and unlinked project correspondence
+  // when the subject or body matches a single project's distinctive keywords.
+  if (!projectId && (input.subject?.trim() || input.bodyPreview?.trim())) {
+    try {
+      const { readProjects } = await import("@/lib/project-db");
+      const projects = await readProjects();
+      const haystack = `${input.subject ?? ""}\n${input.bodyPreview ?? ""}`.toLowerCase();
+      const matched = projects.filter((project) => {
+        const keywords = extractDistinctiveMailKeywords([project.name], project.mailKeywords);
+        return keywords.some((kw) => haystack.includes(kw.toLowerCase()));
+      });
+      if (matched.length === 1) {
+        const target = matched[0]!;
+        projectId = target.id;
+        projectName = target.name;
+        if (!opportunityId && target.linkedDealId && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(target.linkedDealId)) {
+          opportunityId = target.linkedDealId;
+        }
+      }
+    } catch {
+      // Non-fatal fallback
+    }
+  }
+
   return {
     contactId,
-    opportunityId: links.opportunityId,
-    projectId: links.projectId,
-    projectName: links.projectName,
-    opportunityName: links.opportunityName,
+    opportunityId,
+    projectId,
+    projectName,
+    opportunityName,
   };
 }
 
@@ -491,6 +524,8 @@ async function upsertGraphMessage(input: {
     const attribution = await attributeForNewMessage({
       conversationId,
       participantEmails,
+      subject: contentData.subject,
+      bodyPreview: contentData.bodyPreview,
       preloadedContacts: input.preloadedContacts,
     });
     // Inherit intentional Outlook category onto replies in a user-tagged thread.

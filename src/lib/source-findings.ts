@@ -164,6 +164,7 @@ export function settleIncomingClaims(
   claims: SourceFindingClaim[],
   existing: SourceFinding[] | undefined,
   filledFieldIds?: readonly UnderstandingFieldId[],
+  allowMultiplePerField = false,
 ): SourceFindingClaim[] {
   const filled = new Set(filledFieldIds ?? []);
   const confirmedStatements = new Set<string>();
@@ -189,7 +190,11 @@ export function settleIncomingClaims(
     if (!key || seen.has(key)) continue;
     seen.add(key);
     if (dismissedStatements.has(key) || confirmedStatements.has(key)) continue;
-    if (claim.fieldId && (filled.has(claim.fieldId) || confirmedFields.has(claim.fieldId))) {
+    if (
+      !allowMultiplePerField &&
+      claim.fieldId &&
+      (filled.has(claim.fieldId) || confirmedFields.has(claim.fieldId))
+    ) {
       continue;
     }
     next.push({
@@ -274,9 +279,10 @@ export function appendSourceFinding(
           claims: settleIncomingClaims(
             finding.claims,
             existing,
-            // Evidence from documents, pictures, client/subsupplier mail, and activities
-            // must flow into the opportunity even when a field already has a rough note.
+            // Evidence from documents, pictures, client/subsupplier/internal mail, and activities
+            // must flow into the opportunity/project even when a field already has a rough note.
             isEvidenceRecord ? undefined : filledFieldIds,
+            isEvidenceRecord,
           ),
         };
 
@@ -290,23 +296,23 @@ export function appendSourceFinding(
       );
     }
   }
+  if (isEvidenceRecord && incoming.note) {
+    if (existing.some((row) => row.kind === incoming.kind && row.note === incoming.note)) {
+      return existing.map((row) =>
+        row.kind === incoming.kind && row.note === incoming.note
+          ? mergeReadFinding(row, incoming)
+          : row,
+      );
+    }
+    if (incoming.claims.length === 0) return existing;
+    return [...existing, incoming];
+  }
   if (
     incoming.url &&
     existing.some((row) => row.url && row.url.toLowerCase() === incoming.url!.toLowerCase())
   ) {
     return existing.map((row) =>
       row.url && row.url.toLowerCase() === incoming.url!.toLowerCase()
-        ? mergeReadFinding(row, incoming)
-        : row,
-    );
-  }
-  if (
-    isEvidenceRecord &&
-    incoming.note &&
-    existing.some((row) => row.kind === incoming.kind && row.note === incoming.note)
-  ) {
-    return existing.map((row) =>
-      row.kind === incoming.kind && row.note === incoming.note
         ? mergeReadFinding(row, incoming)
         : row,
     );
@@ -680,15 +686,69 @@ export function extractSourceFindingPreview(
     const volMatch = text.match(
       /(\d[\d\s.,]*(?:til|-|–)\s*\d[\d\s.,]*\s*(?:t\/år|tonn\/år|t\/year|tonn)|\d[\d\s.,]*\s*(?:t\/år|tonn\/år|t\/year))\b/i,
     );
-    const moisture = /fukt\s*%|moisture/i.test(text)
-      ? " Supplier requested moisture % specification and storage capacity."
-      : "";
+    const dsMatch = text.match(/tørrstoff\s*(\d{1,2}\s*%)/i)?.[1];
+    const details: string[] = [];
+    if (dsMatch) details.push(`target dry matter ${dsMatch.replace(/\s+/g, "")}`);
+    if (/fukt\s*%|moisture/i.test(text)) {
+      details.push("supplier requested moisture % specification and monthly storage/consumption capacity");
+    }
+    if (/ingen\s+lokal\s+flishugger|sidetipp\s+eller\s+baktipp/i.test(text)) {
+      details.push("no local chipper in area; truck access (side/rear tip) and storage layout must be specified");
+    }
+    const detailSuffix = details.length > 0 ? ` (${details.join("; ")})` : "";
     claims.push(
       claim(
         "feedstock-agreement",
-        `Feedstock / subsupplier dialogue on record${volMatch?.[1] ? ` (${volMatch[1].replace(/\s+/g, " ").trim()} G30 wood chips)` : ""}.${moisture}`,
-        "Committed feedstock supply, moisture limits, and on-site storage are prerequisites for plant operation.",
+        `Feedstock supply dialogue on record${volMatch?.[1] ? `: ${volMatch[1].replace(/\s+/g, " ").trim()} G30 wood chips` : " (wood chips / treflis)"}${detailSuffix}.`,
+        "Committed feedstock supply, moisture limits, and on-site storage/delivery access are prerequisites for plant operation.",
         "feedstock_agreement",
+      ),
+    );
+  }
+
+  // Biochar product offtake (e.g. TerraMarine activated biochar / biokull)
+  if (
+    /terramarine|aktivert\s+biokull|activated\s+biochar|høy-kvalitet\s+biokull\s+produksjon|biochar\s+offtake/i.test(
+      text,
+    )
+  ) {
+    const isTerraMarine = /terramarine/i.test(text);
+    claims.push(
+      claim(
+        "biochar-offtake",
+        isTerraMarine
+          ? "Biochar product offtake dialogue initiated with TerraMarine regarding interest and quality requirements for activated biochar."
+          : "High-quality biochar production identified as core plant output requiring product offtake and specification alignment.",
+        "Securing biochar product offtake and quality specifications is a core revenue pillar for project realisation.",
+        "end_product",
+      ),
+    );
+  }
+
+  // Energy / thermal heat offtake (e.g. surplus energy sold to Antec / Vest Biogass for drying)
+  if (
+    /overskuddsenergi(?:en)?\s+selges|tørking\s+av\s+bioresten|strategisk\s+energiløsning|7\s*[-–]\s*8\s*gwh/i.test(
+      text,
+    )
+  ) {
+    claims.push(
+      claim(
+        "energy-offtake",
+        "Surplus thermal energy from the wood-chip pyrolysis plant is planned sold to the adjacent biogas plant for digestate drying.",
+        "Securing the thermal energy offtake agreement (volume, tariff, and term) anchors local project heat revenue.",
+        "offtake_strategy",
+      ),
+    );
+  }
+
+  // Multi-line pyrolysis / internal engineering layout notes
+  if (/to\s+pyrolyse\s+linjer|2\s+biokull\s+linje|enkel\s+flow\s+på\s+to\s+pyrolyse/i.test(text)) {
+    claims.push(
+      claim(
+        "technical-two-lines",
+        "Internal engineering evaluation covers two pyrolysis lines integrated with the biogas plant mass/energy flow.",
+        "Defines the number of reactor lines and thermal/mass integration basis for FEL engineering.",
+        "technical_fit",
       ),
     );
   }
@@ -806,7 +866,7 @@ export function extractDocumentMetadataClaims(input: {
   counterparty?: string | null;
 }): SourceFindingClaim[] {
   const name = input.name.trim();
-  const cleanTitle = name.replace(/\.[^.]+$/, "").replace(/^(?:PL|CO|PRJ)-\d+-[A-Z]-[A-Z]+-\d+\s*/i, "").trim() || name;
+  const cleanTitle = name.replace(/\.[^.]+$/, "").replace(/^(?:PL|CO|PRJ)-[A-Z0-9]+(?:-[A-Z0-9]+)*-[A-Z]-[A-Z]{2,4}-\d{4}\s*/i, "").trim() || name;
   const lower = `${name} ${input.docCategory ?? ""} ${input.docType ?? ""}`.toLowerCase();
   const counterparty = input.counterparty?.trim();
   const fromWho = counterparty

@@ -22,6 +22,8 @@ export async function syncProjectRecord(
       | "problem"
       | "successCriteria"
       | "discoveryAnswers"
+      | "understanding"
+      | "mailKeywords"
       | "name"
       | "kind"
       | "status"

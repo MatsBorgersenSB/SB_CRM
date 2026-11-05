@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { PipelineRow } from "@/types/pipeline";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
 import { isUnderstandingFieldId } from "@/types/opportunity-understanding";
-import { understandingFieldsForPipeline } from "@/lib/sales-motion";
+import { resolveSalesMotion, understandingFieldsForPipeline } from "@/lib/sales-motion";
 import {
   confirmedFindingClaimsForField,
   proposedFindingClaimsForField,
@@ -85,15 +85,29 @@ export function OpportunityUnderstandingCapturePanel({
   };
 
   // One list, unknowns first. Order within each group: priority, then the most
-  // decision-critical customer facts, then model order.
+  // decision-critical facts (development pillars for BOO, customer layer for system sale), then model order.
   const { unknown, known } = useMemo(() => {
     const rank = { high: 0, medium: 1, low: 2 } as const;
-    const critical: UnderstandingFieldId[] = [
-      "customer_problem",
-      "decision_maker",
-      "economic_buyer",
-      "why_now",
-    ];
+    const isBoo = resolveSalesMotion(pipeline).motion === "boo";
+    const critical: UnderstandingFieldId[] = isBoo
+      ? [
+          "site_readiness",
+          "feedstock_agreement",
+          "utilities",
+          "offtake_strategy",
+          "end_product",
+          "public_funding",
+          "permitting",
+          "funding_source",
+          "decision_maker",
+          "why_now",
+        ]
+      : [
+          "customer_problem",
+          "decision_maker",
+          "economic_buyer",
+          "why_now",
+        ];
     const weight = (id: UnderstandingFieldId) => {
       const index = critical.indexOf(id);
       return index === -1 ? critical.length : index;

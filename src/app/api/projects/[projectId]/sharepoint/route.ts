@@ -11,6 +11,18 @@ async function resolveProjectDocumentsFolder(projectId: string) {
   const project = await readProjectById(projectId);
   if (!project) return null;
 
+  if (project.sharepointFolderId?.trim() && project.sharepointFolderUrl?.trim()) {
+    return {
+      project,
+      companyName: undefined,
+      folder: {
+        folderId: project.sharepointFolderId.trim(),
+        webUrl: project.sharepointFolderUrl.trim(),
+        path: project.sharepointFolderPath?.trim() || `/Projects/${project.name}`,
+      },
+    };
+  }
+
   let companyName: string | undefined;
   if (project.linkedCompanyId?.trim()) {
     const company = await resolveCompanyForSmartDocs(project.linkedCompanyId).catch(

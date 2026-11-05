@@ -85,35 +85,33 @@ Vest Biogas therefore plays these roles on the deal — each recorded only when 
 
 Energy price, thermal form (steam, hot water, temperature), volume (MWh/year), wood-chip supply terms, and whether dried digestate will be treated are **Unknown** until captured.
 
-## 5. BOO Understanding
+## 5. BOO Understanding (FEL 1 → Realisation)
 
-Plain language only. Existing fields are reused; reworded for BOO where noted.
+Plain language only. In our own project development (`boo`), what the counterparty needs solved for their own plant (`customer_problem`, `customer_vision`, `customer_value`, `budget`, `economic_buyer`) is not the primary investigation. Instead, Understanding leads with the **7 project development pillars** required to take our project from FEL 1 to realisation:
 
 | Field | BOO wording | Status |
 |---|---|---|
-| `customer_problem` | What the host or supplier needs solved (e.g. digestate disposal) | Reworded |
-| `why_now` | Why now | Same |
-| `customer_value` | What it is worth to them (e.g. disposal cost avoided) | Reworded |
-| `decision_maker` | Who signs the feedstock and site agreements | Reworded |
-| `feedstock_volume` | Committed volume | Same |
-| `feedstock_quality` | Quality and consistency | Same |
-| `feedstock_agreement` | **Feedstock agreement:** status, term, price or gate fee | **New** |
-| `site_readiness` | Site control: our lease or purchase of the property, and access (Standard Bio leases or owns the site; a landowner is not a deal counterparty) | Reworded |
-| `utilities` | Shared utilities with the neighbouring plant (heat, power, logistics) | Reworded |
-| `permitting` | Permits and authorities | Same |
-| `offtake_strategy` | **Energy and heat offtake:** who buys the surplus thermal energy (heat/steam/power), on what terms and price | Reworded |
-| `end_product` | **Biochar product offtake:** buyers, specification, volume, pricing and carbon credits for the biochar product | Reworded |
-| `funding_source` | **Ownership and financing:** how ownership and capital are structured (BOO, JV, investors, project finance) — often undecided in early stages | Reworded |
-| `public_funding` | **Public funding and subsidies:** schemes identified, applied, granted | **New** |
-| `capacity`, `technical_fit`, `timeline`, `stakeholder_map`, `business_case_strength` | Plant-level, as today | Same |
-| `economic_buyer`, `budget` | Not asked in BOO (customer pays nothing for the plant) | Hidden |
-| `customer_vision` | Optional | Same |
+| `site_readiness` | **Secure land plot:** availability, lease/rent vs. purchase terms, and access | Reworded (Pillar 1) |
+| `feedstock_agreement` | **Secure feedstock:** supplier, committed volume, moisture/quality spec, price, and term | **New** (Pillar 2) |
+| `utilities` | **Secure required utilities:** shared heat, power, water, and logistics tie-ins | Reworded (Pillar 3) |
+| `offtake_strategy` | **Secure energy offtake:** who buys surplus thermal energy (heat/steam/power), volume, price, and term | Reworded (Pillar 4) |
+| `end_product` | **Secure product offtake (biochar):** buyers, specification, volume, pricing, and carbon credits | Reworded (Pillar 5) |
+| `public_funding` | **Secure subsidies (if we qualify):** schemes identified, applied, and granted | **New** (Pillar 6) |
+| `permitting` | **Secure permitting:** required permits and authorities for our plant | Reworded (Pillar 7) |
+| `funding_source` | **Ownership and financing:** how ownership and capital are structured (BOO, JV, investors, project finance) | Reworded |
+| `decision_maker` | **Who signs the agreements:** signatories for land, feedstock, utility, and energy offtake agreements | Reworded |
+| `feedstock_volume`, `feedstock_quality`, `capacity`, `technical_fit`, `business_case_strength`, `timeline`, `why_now`, `stakeholder_map` | Project-level engineering and schedule inputs | Reworded / Same |
+| `customer_problem`, `customer_vision`, `customer_value`, `economic_buyer`, `budget` | Not asked in BOO (preserved if switching models) | Hidden |
 
-Each answer keeps the FS-005A states: **Confirmed** (with source), **Assumed**, **Unknown**.
+Each answer keeps the FS-005A states: **Confirmed** (with source), **Assumed** (including work-in-progress notes such as *"to be determined"*, *"to be secured"*, *"must apply"*), **Unknown**.
 
 ## 6. BOO Verdict
 
-The FS-005A verdict engine stays deterministic with the same four verdicts. BOO changes the inputs.
+The FS-005A verdict engine stays deterministic with the same four verdicts. BOO evaluates our own project development pillars rather than a customer's plant-buying problem:
+
+- **Column 1 (`Project development (FEL 1 → Realisation)`):** Summarises how many of the 7 development pillars are secured, in progress, or not started, with full pillar details under *Why*.
+- **Column 2 (`What is blocking the plant`):** Points to the first unsecured development pillar in FEL 1 → Realisation order (`Secure land plot` → `Secure feedstock` → `Secure required utilities` → `Secure energy offtake` → `Secure product offtake (biochar)` → `Secure subsidies` → `Secure permitting` → `Ownership and financing`).
+- **Column 3 (`What should happen next`):** Recommends the concrete action to secure that pillar.
 
 | Verdict | BOO rule |
 |---|---|

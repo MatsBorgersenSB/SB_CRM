@@ -5,11 +5,12 @@ import type {
   ProjectStakeholderRecord,
 } from "@/types/project-relationships";
 import type { ProjectUnderstanding } from "@/lib/project-discovery-intelligence";
+import type { OpportunityUnderstandingCapture } from "@/types/opportunity-understanding";
 import type { SmartAssistInsightCatalog } from "@/types/smartassist-intelligence";
 
 /** Phase 2.1 — Project Workspace Light */
 
-export type ProjectKind = "customer" | "internal" | "strategic" | "research";
+export type ProjectKind = "development" | "customer" | "internal" | "strategic" | "research";
 
 export type ProjectStatus = "Planning" | "Active" | "On Hold" | "At Risk" | "Completed";
 
@@ -112,8 +113,25 @@ export type Project = {
    * Core fields (objective / successCriteria) are also mirrored when those ids are answered.
    */
   discoveryAnswers?: Record<string, string>;
+  /**
+   * Structured FEL 1 → Realisation understanding & source findings (land plot, feedstock,
+   * utilities, energy offtake, biochar offtake, subsidies, permitting, documents & correspondence).
+   */
+  understanding?: OpportunityUnderstandingCapture;
+  /**
+   * Distinctive project/site/counterparty keywords used to catch internal (@standard.bio)
+   * and external correspondence threads automatically.
+   */
+  mailKeywords?: string[];
   linkedCompanyId?: string;
   linkedDealId?: string;
+  /** Original opportunity ID/code when an opportunity was converted into this project. */
+  migratedFromDealId?: string;
+  migratedFromDealCode?: string;
+  /** SharePoint folder for project documents (migrated or provisioned). */
+  sharepointFolderId?: string;
+  sharepointFolderUrl?: string;
+  sharepointFolderPath?: string;
   /** Phase 2.2A — related organizations on the project */
   relatedOrganizations?: ProjectRelatedOrganization[];
   /** Phase 2.2A — stakeholder roster with roles and org linkage */
@@ -164,6 +182,7 @@ export type ProjectIntelligence = {
 };
 
 export const PROJECT_KIND_LABELS: Record<ProjectKind, string> = {
+  development: "Project Development (FEL 1 → Realisation)",
   customer: "Customer Project",
   internal: "Internal Project",
   strategic: "Strategic Initiative",

@@ -57,7 +57,14 @@ export type ProjectPatch = Partial<
     | "problem"
     | "successCriteria"
     | "discoveryAnswers"
+    | "understanding"
+    | "mailKeywords"
     | "linkedDealId"
+    | "migratedFromDealId"
+    | "migratedFromDealCode"
+    | "sharepointFolderId"
+    | "sharepointFolderUrl"
+    | "sharepointFolderPath"
   >
 >;
 
@@ -78,6 +85,13 @@ function normalizeProject(project: Project): Project {
         ? project.projectStakeholders
         : seed?.projectStakeholders,
     removedStakeholders: project.removedStakeholders ?? seed?.removedStakeholders ?? [],
+    understanding: project.understanding ?? seed?.understanding,
+    mailKeywords: project.mailKeywords ?? seed?.mailKeywords,
+    migratedFromDealId: project.migratedFromDealId ?? seed?.migratedFromDealId,
+    migratedFromDealCode: project.migratedFromDealCode ?? seed?.migratedFromDealCode,
+    sharepointFolderId: project.sharepointFolderId ?? seed?.sharepointFolderId,
+    sharepointFolderUrl: project.sharepointFolderUrl ?? seed?.sharepointFolderUrl,
+    sharepointFolderPath: project.sharepointFolderPath ?? seed?.sharepointFolderPath,
     stakeholders: project.stakeholders ?? seed?.stakeholders,
     internalMembers: project.internalMembers ?? seed?.internalMembers,
   };
@@ -291,6 +305,18 @@ export async function updateProject(projectId: string, patch: ProjectPatch): Pro
       patch.discoveryAnswers !== undefined
         ? { ...(current.discoveryAnswers ?? {}), ...patch.discoveryAnswers }
         : current.discoveryAnswers,
+    understanding:
+      patch.understanding !== undefined
+        ? {
+            ...(current.understanding ?? { fields: {} }),
+            ...patch.understanding,
+            fields: {
+              ...(current.understanding?.fields ?? {}),
+              ...(patch.understanding.fields ?? {}),
+            },
+            updatedAt: patch.understanding.updatedAt ?? new Date().toISOString(),
+          }
+        : current.understanding,
   });
 
   await prisma.projectWorkspace.update({

@@ -61,6 +61,8 @@ export async function PATCH(
     body.problem === undefined &&
     body.successCriteria === undefined &&
     body.discoveryAnswers === undefined &&
+    body.understanding === undefined &&
+    body.mailKeywords === undefined &&
     body.name === undefined &&
     body.kind === undefined &&
     body.status === undefined &&

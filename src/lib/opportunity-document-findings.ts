@@ -19,7 +19,10 @@ import {
   type SourceFindingClaim,
 } from "@/lib/source-findings";
 import { parseCompanyDocumentKnowledgeState } from "@/lib/company-document-knowledge";
-import { readEmailsForOpportunity } from "@/lib/email-intelligence-data";
+import {
+  readEmailsForOpportunity,
+  readEmailsForProject,
+} from "@/lib/email-intelligence-data";
 import { isInternalEmail } from "@/lib/domain-rules";
 import { isUnderstandingFieldId, UNDERSTANDING_FIELDS } from "@/types/opportunity-understanding";
 import { smartDocHref } from "@/types/smartdoc";
@@ -36,7 +39,7 @@ function cleanDocumentTitle(name: string): string {
   return (
     name
       .replace(/\.[^.]+$/, "")
-      .replace(/^(?:PL|CO|PRJ)-\d+-[A-Z]-[A-Z]+-\d+\s*/i, "")
+      .replace(/^(?:PL|CO|PRJ)-[A-Z0-9]+(?:-[A-Z0-9]+)*-[A-Z]-[A-Z]{2,4}-\d{4}\s*/i, "")
       .trim() || name
   );
 }
@@ -321,17 +324,16 @@ export async function buildOpportunityDocumentFindings(
     }
   }
 
-  const externalEmails = emails.filter(
+  const validEmails = emails.filter(
     (msg) =>
-      !msg.isInternalOnly &&
       !msg.isDeletedInSource &&
       !/^(automatic reply|autosvar|undeliverable|accepted:|declined:|canceled:|godtatt:)/i.test(
         msg.subject.trim(),
       ),
   );
 
-  const byConversation = new Map<string, typeof externalEmails>();
-  for (const msg of externalEmails) {
+  const byConversation = new Map<string, typeof validEmails>();
+  for (const msg of validEmails) {
     const list = byConversation.get(msg.conversationId) ?? [];
     list.push(msg);
     byConversation.set(msg.conversationId, list);
@@ -346,7 +348,6 @@ export async function buildOpportunityDocumentFindings(
           .filter((e) => e.includes("@") && !isInternalEmail(e)),
       ),
     ];
-    if (externalParticipants.length === 0) continue;
 
     const externalDomains = [
       ...new Set(externalParticipants.map((e) => e.split("@")[1] ?? "").filter(Boolean)),
@@ -363,9 +364,12 @@ export async function buildOpportunityDocumentFindings(
               .slice(0, 6),
           )),
     );
-    const counterpartyLabel = isClientThread
-      ? `Client mail (${opportunity.company?.name || externalDomains[0]})`
-      : `Subsupplier / partner mail (${externalDomains.join(", ")})`;
+    const counterpartyLabel =
+      externalParticipants.length === 0
+        ? "Internal team mail (standard.bio)"
+        : isClientThread
+          ? `Client mail (${opportunity.company?.name || externalDomains[0]})`
+          : `Subsupplier / partner mail (${externalDomains.join(", ")})`;
 
     const latestSubject =
       threadMessages[threadMessages.length - 1]?.subject ||
@@ -526,6 +530,386 @@ export async function buildOpportunityDocumentFindings(
         },
       ],
     };
+  }
+
+  return { findings, unread };
+}
+
+/**
+ * Read ALL project knowledge sources — documents, pictures/drawings, external
+ * partner/supplier/offtaker emails, internal (@standard.bio) team emails,
+ * activities/meetings, and related company findings — and propose structured
+ * findings that flow into the project's FEL 1 → Realisation understanding.
+ */
+export async function buildProjectDocumentFindings(
+  projectId: string,
+): Promise<DocumentFindingsResult> {
+  const { readProjectById } = await import("@/lib/project-db");
+  const { resolveOpportunityId } = await import("@/lib/meeting-intelligence-data");
+  const project = await readProjectById(projectId);
+  if (!project) {
+    throw Object.assign(new Error("Project not found"), { status: 404 });
+  }
+
+  const prisma = getPrisma();
+  const linkedOppUuid = project.linkedDealId?.trim()
+    ? await resolveOpportunityId(project.linkedDealId.trim())
+    : null;
+
+  const companyRefs = [
+    ...new Set(
+      [
+        project.linkedCompanyId,
+        ...(project.relatedOrganizations ?? []).map((o) => o.companyId),
+      ]
+        .map((c) => c?.trim())
+        .filter((c): c is string => Boolean(c)),
+    ),
+  ];
+  const companyCodes = companyRefs.filter((ref) => /^CO-\d+/i.test(ref));
+  const companyUuids = companyRefs.filter((ref) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(ref),
+  );
+
+  const relatedCompanies =
+    companyCodes.length > 0 || companyUuids.length > 0
+      ? await prisma.company
+          .findMany({
+            where: {
+              OR: [
+                ...(companyCodes.length > 0 ? [{ code: { in: companyCodes } }] : []),
+                ...(companyUuids.length > 0 ? [{ id: { in: companyUuids } }] : []),
+              ],
+            },
+            select: {
+              id: true,
+              name: true,
+              documentKnowledge: true,
+              contacts: { select: { emails: true } },
+            },
+          })
+          .catch(() => [])
+      : [];
+
+  const relatedCompanyUuids = relatedCompanies.map((c) => c.id);
+
+  const [records, activities, meetings, emails] = await Promise.all([
+    prisma.documentRecord.findMany({
+      where: {
+        OR: [
+          { name: { startsWith: `${project.id}-`, mode: "insensitive" } },
+          ...(linkedOppUuid ? [{ opportunityId: linkedOppUuid }] : []),
+          ...(relatedCompanyUuids.length > 0
+            ? [{ companyId: { in: relatedCompanyUuids } }]
+            : []),
+          { emailMessage: { projectId: project.id } },
+          ...(linkedOppUuid
+            ? [{ emailMessage: { opportunityId: linkedOppUuid } }]
+            : []),
+        ],
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 30,
+      select: {
+        id: true,
+        name: true,
+        mimeType: true,
+        source: true,
+        contentBase64: true,
+        sharepointItemId: true,
+        sharepointWebUrl: true,
+      },
+    }),
+    prisma.activity
+      .findMany({
+        where: {
+          OR: [
+            ...(linkedOppUuid ? [{ opportunityId: linkedOppUuid }] : []),
+            ...(relatedCompanyUuids.length > 0
+              ? [{ companyId: { in: relatedCompanyUuids } }]
+              : []),
+          ],
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          seq: true,
+          title: true,
+          activityType: true,
+          details: true,
+          opportunityId: true,
+        },
+      })
+      .catch(() => []),
+    prisma.meetingRecord
+      .findMany({
+        where: {
+          OR: [
+            ...(linkedOppUuid ? [{ opportunityId: linkedOppUuid }] : []),
+            ...(relatedCompanyUuids.length > 0
+              ? [{ companyId: { in: relatedCompanyUuids } }]
+              : []),
+          ],
+        },
+        include: { commitments: true },
+        orderBy: { startTime: "desc" },
+        take: 10,
+      })
+      .catch(() => []),
+    readEmailsForProject(project.id).catch(() => []),
+  ]);
+
+  const findings: SourceFinding[] = [];
+  const unread: Array<{ name: string; reason: string }> = [];
+
+  // 1. Documents & Pictures
+  const seenDocNames = new Set<string>();
+  for (const record of records) {
+    if (record.source === "m365_eml" || /\.eml$/i.test(record.name)) continue;
+    const dedupeKey = record.name.trim().toLowerCase();
+    if (seenDocNames.has(dedupeKey)) continue;
+    seenDocNames.add(dedupeKey);
+
+    const classified = classifyByFileName(record.name);
+    const isImage = looksLikeImage({ name: record.name, mimeType: record.mimeType });
+    const cleanTitle = cleanDocumentTitle(record.name);
+    const docUrl = record.sharepointWebUrl || smartDocHref(record.id);
+
+    const metadataClaims = extractDocumentMetadataClaims({
+      name: record.name,
+      mimeType: record.mimeType,
+      docCategory: classified.DocCategory,
+      docType: classified.DocType,
+      origin: classified.Origin,
+      counterparty: classified.Counterparty,
+    });
+
+    try {
+      const bytes = await loadDocumentBytes(record);
+      let contentClaims: SourceFindingClaim[] = [];
+
+      if (bytes && bytes.length <= MAX_FILE_BYTES) {
+        const extracted = await extractTextFromDocumentBytes({
+          bytes,
+          name: record.name,
+          mimeType: record.mimeType,
+        });
+        if (extracted.text.length >= 20) {
+          const preview = extractSourceFindingPreview(extracted.text, docUrl, cleanTitle);
+          contentClaims = preview.claims;
+        } else if (extracted.kind === "image" || extracted.kind === "pdf") {
+          contentClaims = await extractVisualOrDocumentClaimsWithLlm({
+            bytes,
+            name: record.name,
+            mimeType: record.mimeType,
+          });
+        }
+      }
+
+      const combinedClaims = mergeClaims(contentClaims, metadataClaims);
+      if (combinedClaims.length > 0) {
+        findings.push(
+          createSourceFinding({
+            title: cleanTitle,
+            url: docUrl,
+            note: record.name,
+            kind: isImage ? "image" : "document",
+            claims: combinedClaims,
+          }),
+        );
+      }
+    } catch (error) {
+      if (metadataClaims.length > 0) {
+        findings.push(
+          createSourceFinding({
+            title: cleanTitle,
+            url: docUrl,
+            note: record.name,
+            kind: isImage ? "image" : "document",
+            claims: metadataClaims,
+          }),
+        );
+      } else {
+        unread.push({
+          name: record.name,
+          reason: error instanceof Error ? error.message : "Could not read this file",
+        });
+      }
+    }
+  }
+
+  // 2. External (Partner / Offtaker / Supplier) & Internal (@standard.bio) Correspondence
+  const validEmails = emails.filter(
+    (msg) =>
+      !msg.isDeletedInSource &&
+      !/^(automatic reply|autosvar|undeliverable|accepted:|declined:|canceled:|godtatt:)/i.test(
+        msg.subject.trim(),
+      ),
+  );
+
+  const byConversation = new Map<string, typeof validEmails>();
+  for (const msg of validEmails) {
+    const list = byConversation.get(msg.conversationId) ?? [];
+    list.push(msg);
+    byConversation.set(msg.conversationId, list);
+  }
+
+  for (const [conversationId, threadMessages] of byConversation) {
+    const externalParticipants = [
+      ...new Set(
+        threadMessages
+          .flatMap((m) => [m.senderEmail, ...m.recipientEmails])
+          .map((e) => e.trim().toLowerCase())
+          .filter((e) => e.includes("@") && !isInternalEmail(e)),
+      ),
+    ];
+    const externalDomains = [
+      ...new Set(externalParticipants.map((e) => e.split("@")[1] ?? "").filter(Boolean)),
+    ];
+    const counterpartyLabel =
+      externalParticipants.length === 0
+        ? "Internal team mail (standard.bio)"
+        : `Partner / supplier mail (${externalDomains.join(", ")})`;
+
+    const latestSubject =
+      threadMessages[threadMessages.length - 1]?.subject ||
+      threadMessages[0]?.subject ||
+      "Correspondence";
+    const combinedText = threadMessages
+      .map((m) => `${m.subject}\n${m.bodyPreview ?? ""}`)
+      .join("\n\n");
+    if (combinedText.trim().length < 20) continue;
+
+    const mailUrl = `/projects/${encodeURIComponent(project.id)}?view=emails`;
+    const preview = extractSourceFindingPreview(
+      combinedText,
+      mailUrl,
+      `${counterpartyLabel}: ${latestSubject}`,
+    );
+    const meaningfulClaims = preview.claims.filter((c) => c.id !== "attached");
+    if (meaningfulClaims.length > 0) {
+      findings.push(
+        createSourceFinding({
+          title: `${counterpartyLabel}: ${latestSubject}`,
+          url: mailUrl,
+          note: `mail-thread:${conversationId}`,
+          kind: "email",
+          claims: meaningfulClaims,
+        }),
+      );
+    }
+  }
+
+  // 3. Activities & Meetings
+  for (const act of activities) {
+    const details = (act.details ?? {}) as Record<string, unknown>;
+    const description =
+      typeof details.ActivityDescription === "string" ? details.ActivityDescription : "";
+    const summary = typeof details.Summary === "string" ? details.Summary : "";
+    const decisions = Array.isArray(details.KeyDecisions)
+      ? (details.KeyDecisions as unknown[]).filter((d): d is string => typeof d === "string")
+      : [];
+    const agreedActions = Array.isArray(details.AgreedActions)
+      ? (details.AgreedActions as Array<{ text?: string; dueDate?: string }>)
+      : [];
+    const risks = Array.isArray(details.Risks)
+      ? (details.Risks as unknown[]).filter((r): r is string => typeof r === "string")
+      : [];
+
+    const textCorpus = [act.title, summary, description, ...decisions, ...risks]
+      .filter(Boolean)
+      .join("\n");
+    if (textCorpus.trim().length < 20) continue;
+
+    const actIdLabel = `ACT-${act.seq}`;
+    const actUrl = `/activities/${encodeURIComponent(actIdLabel)}`;
+    const preview = extractSourceFindingPreview(
+      textCorpus,
+      actUrl,
+      `${act.title || act.activityType} (${actIdLabel})`,
+    );
+    const structuredClaims: SourceFindingClaim[] = [];
+
+    for (const dec of decisions) {
+      if (!dec.trim()) continue;
+      structuredClaims.push({
+        id: `decision-${act.id}`,
+        statement: `Decision recorded in ${act.title || actIdLabel}: ${dec.trim()}.`,
+        impact: "Confirmed meeting/site-visit decisions reduce project uncertainty.",
+        fieldId: /footprint|site|plot|layout|plass/i.test(dec) ? "site_readiness" : undefined,
+      });
+    }
+    for (const agreed of agreedActions) {
+      if (!agreed?.text?.trim()) continue;
+      const due = agreed.dueDate ? ` (due ${agreed.dueDate})` : "";
+      structuredClaims.push({
+        id: `agreed-${act.id}-${agreed.text.slice(0, 16)}`,
+        statement: `Agreed action: ${agreed.text.trim()}${due}.`,
+        impact: "Tracks concrete follow-through agreed with the partner or subsupplier.",
+        fieldId: /utility|utilities|power|water|heat/i.test(agreed.text)
+          ? "utilities"
+          : /layout|site|drawing/i.test(agreed.text)
+            ? "site_readiness"
+            : undefined,
+      });
+    }
+
+    const combined = mergeClaims(
+      structuredClaims,
+      preview.claims.filter((c) => c.id !== "attached"),
+    );
+    if (combined.length > 0) {
+      findings.push(
+        createSourceFinding({
+          title: `${act.title || act.activityType} (${actIdLabel})`,
+          url: actUrl,
+          note: `activity:${act.id}`,
+          kind: "activity",
+          claims: combined,
+        }),
+      );
+    }
+  }
+
+  for (const meeting of meetings) {
+    const summaryText = [
+      meeting.subject,
+      meeting.aiSummary ?? "",
+      ...meeting.commitments.map((c) => c.description),
+    ]
+      .filter(Boolean)
+      .join("\n");
+    if (summaryText.trim().length < 20) continue;
+
+    const preview = extractSourceFindingPreview(
+      summaryText,
+      `/projects/${encodeURIComponent(project.id)}?view=actions&action=activities`,
+      `Meeting: ${meeting.subject}`,
+    );
+    const claims = preview.claims.filter((c) => c.id !== "attached");
+    if (claims.length > 0) {
+      findings.push(
+        createSourceFinding({
+          title: `Meeting: ${meeting.subject}`,
+          url: `/projects/${encodeURIComponent(project.id)}?view=actions&action=activities`,
+          note: `meeting:${meeting.id}`,
+          kind: "activity",
+          claims,
+        }),
+      );
+    }
+  }
+
+  // 4. Related company findings
+  for (const companyRow of relatedCompanies) {
+    if (!companyRow.documentKnowledge) continue;
+    const companyState = parseCompanyDocumentKnowledgeState(companyRow.documentKnowledge);
+    for (const companyFinding of companyState.findings ?? []) {
+      if (companyFinding.claims.length > 0) {
+        findings.push(companyFinding);
+      }
+    }
   }
 
   return { findings, unread };
