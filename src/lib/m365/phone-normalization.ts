@@ -81,3 +81,36 @@ export function normalizePhoneNumber(raw: string): string {
 export function hasExplicitCountryCode(value: string): boolean {
   return value.trim().includes("+");
 }
+
+/** True when value is only a bare "+" or "+countryCode" with no subscriber digits after it. */
+export function isBareDialCode(value: string | null | undefined): boolean {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return false;
+  return /^\+\d{0,4}$/.test(trimmed);
+}
+
+/** Strip a bare country code if the user never entered any phone digits after it. */
+export function stripBareDialCode(value: string | null | undefined): string {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed || isBareDialCode(trimmed)) return "";
+  return trimmed;
+}
+
+/** Ensure a phone number includes an international calling code (e.g. "+47 905 78 288"). */
+export function ensurePhoneWithDialCode(
+  raw: string | null | undefined,
+  defaultDialCode = "+47",
+): string {
+  const cleaned = stripBareDialCode(raw);
+  if (!cleaned) return "";
+  if (cleaned.startsWith("+")) {
+    return normalizePhoneNumber(cleaned);
+  }
+  if (cleaned.startsWith("00") && cleaned.length > 4) {
+    return normalizePhoneNumber(`+${cleaned.slice(2)}`);
+  }
+  const dial = defaultDialCode.trim().startsWith("+")
+    ? defaultDialCode.trim()
+    : "+47";
+  return normalizePhoneNumber(`${dial} ${cleaned}`);
+}

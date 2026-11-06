@@ -77,6 +77,7 @@ type PrismaOpportunityWithCompany = Pick<
   sharepointFolderId?: string | null;
   sharepointFolderUrl?: string | null;
   sharepointFolderPath?: string | null;
+  companyId?: string | null;
   company?: Pick<PrismaCompany, "id" | "name"> | null;
 };
 
@@ -381,14 +382,40 @@ function mapTeam(team: unknown): PipelineTeamMember[] {
   return team
     .map((entry) => {
       if (!entry || typeof entry !== "object") return null;
-      const row = entry as { contactId?: string; projectRole?: string };
+      const row = entry as {
+        contactId?: string;
+        projectRole?: string;
+        companyId?: string;
+      };
       if (!row.contactId || !row.projectRole) return null;
       return {
         contactId: toContactTrackingId(row.contactId),
         projectRole: row.projectRole,
+        ...(row.companyId?.trim() ? { companyId: row.companyId.trim() } : {}),
       };
     })
     .filter((entry): entry is PipelineTeamMember => Boolean(entry));
+}
+
+function mapLinkedCompanyIds(
+  team: unknown,
+  primaryCompanyId: string | null | undefined,
+): string[] {
+  const ids = new Set<string>();
+  if (primaryCompanyId?.trim()) {
+    ids.add(primaryCompanyId.trim());
+    ids.add(toCompanyTrackingId(primaryCompanyId.trim()));
+  }
+  if (Array.isArray(team)) {
+    for (const entry of team) {
+      if (!entry || typeof entry !== "object") continue;
+      const companyId = (entry as { companyId?: unknown }).companyId;
+      if (typeof companyId === "string" && companyId.trim()) {
+        ids.add(companyId.trim());
+      }
+    }
+  }
+  return [...ids];
 }
 
 function mapUnderstanding(value: unknown): OpportunityUnderstandingCapture | undefined {
@@ -489,6 +516,10 @@ export function mapPrismaOpportunityToPipelineRow(
       : [],
     dealModel: isSalesMotion(opportunity.dealModel) ? opportunity.dealModel : undefined,
     team: mapTeam(opportunity.team),
+    linkedCompanyIds: mapLinkedCompanyIds(
+      opportunity.team,
+      opportunity.companyId ?? opportunity.company?.id,
+    ),
     understanding: mapUnderstanding(opportunity.understanding),
     sharepointFolderId: opportunity.sharepointFolderId,
     sharepointFolderUrl: opportunity.sharepointFolderUrl,

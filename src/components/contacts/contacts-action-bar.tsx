@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createContactRecord } from "@/lib/sync-company";
+import { stripBareDialCode } from "@/lib/m365/phone-normalization";
 import type { Company, Contact } from "@/lib/companies-data";
 import type { CreateContactInput } from "@/types/contact";
 import {
@@ -45,8 +46,8 @@ export function ContactsActionBar({
         JobTitle: form.JobTitle.trim() || form.Role,
         Role: form.Role,
         Email: form.Email.trim(),
-        Phone: form.Phone.trim(),
-        Mobile: form.Mobile.trim(),
+        Phone: stripBareDialCode(form.Phone),
+        Mobile: stripBareDialCode(form.Mobile),
         LinkedInURL: form.LinkedInURL.trim(),
         Status: form.Status,
         RelationshipLevel: form.RelationshipLevel,

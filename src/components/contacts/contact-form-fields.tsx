@@ -12,8 +12,9 @@ import {
 } from "@/types/contact";
 import { EMPLOYMENT_STATUSES } from "@/types/contact-lifecycle";
 import { CountryContinentFields } from "@/components/companies/country-continent-fields";
-import { findCountryEntry } from "@/lib/geo/country-continent";
+import { findCountryEntry, inferPhoneDialCode } from "@/lib/geo/country-continent";
 import { ContactRoleSelect } from "@/components/ui/contact-role-select";
+import { PhoneInputWithCountryCode } from "@/components/ui/phone-input-with-country-code";
 import { isInternalEmail } from "@/lib/domain-rules";
 import { fillContactFormFromPastedText } from "@/lib/contact-paste";
 import {
@@ -61,6 +62,8 @@ type ContactFormFieldsProps = {
     Title: string;
     City?: string;
     Domain?: string;
+    Phone?: string;
+    countryCode?: string | null;
     Country?: string | { Title?: string } | null;
     contacts?: Array<{ ContactID: string; Title: string }>;
   }>;
@@ -132,6 +135,17 @@ export function ContactFormFields({
   const selectedCompany = companies.find((company) => company.CompanyID === companyId);
   const managerOptions =
     selectedCompany?.contacts?.filter((contact) => contact.ContactID !== currentContactId) ?? [];
+  const companyCountryName =
+    typeof selectedCompany?.Country === "string"
+      ? selectedCompany.Country.trim()
+      : selectedCompany?.Country?.Title?.trim() || "";
+  const defaultDialCode = inferPhoneDialCode({
+    countryCode: form.countryCode || selectedCompany?.countryCode,
+    country: form.country || companyCountryName,
+    domain: selectedCompany?.Domain,
+    email: form.Email,
+    companyPhone: selectedCompany?.Phone,
+  });
 
   const applyCompanyInheritance = (nextCompanyId: string) => {
     onCompanyChange?.(nextCompanyId);
@@ -353,20 +367,20 @@ export function ContactFormFields({
           </label>
           <label className="block">
             <span className={LABEL_CLASS}>Direct Phone</span>
-            <input
-              type="text"
+            <PhoneInputWithCountryCode
               value={form.Phone}
-              onChange={(event) => onChange({ ...form, Phone: event.target.value })}
-              className={`${FIELD_CLASS} font-mono`}
+              defaultDialCode={defaultDialCode}
+              onChange={(Phone) => onChange({ ...form, Phone })}
+              className={FIELD_CLASS}
             />
           </label>
           <label className="block">
             <span className={LABEL_CLASS}>Mobile</span>
-            <input
-              type="text"
+            <PhoneInputWithCountryCode
               value={form.Mobile}
-              onChange={(event) => onChange({ ...form, Mobile: event.target.value })}
-              className={`${FIELD_CLASS} font-mono`}
+              defaultDialCode={defaultDialCode}
+              onChange={(Mobile) => onChange({ ...form, Mobile })}
+              className={FIELD_CLASS}
             />
           </label>
           <label className="block">

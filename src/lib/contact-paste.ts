@@ -1,4 +1,6 @@
 import { isInternalEmail } from "@/lib/domain-rules";
+import { inferPhoneDialCode } from "@/lib/geo/country-continent";
+import { ensurePhoneWithDialCode } from "@/lib/m365/phone-normalization";
 import { parsePersonName } from "@/lib/m365/outlook-sender-utils";
 import {
   parseSignatureIntelligence,
@@ -66,11 +68,17 @@ export function fillContactFormFromPastedText(
   apply("Email", Boolean(email), () => {
     next.Email = email;
   });
+  const dialCode = inferPhoneDialCode({
+    countryCode: form.countryCode,
+    country: form.country,
+    email: email || form.Email,
+  });
+
   apply("Mobile", Boolean(byId.mobile), () => {
-    next.Mobile = byId.mobile!;
+    next.Mobile = ensurePhoneWithDialCode(byId.mobile!, dialCode);
   });
   apply("Phone", Boolean(byId.phone), () => {
-    next.Phone = byId.phone!;
+    next.Phone = ensurePhoneWithDialCode(byId.phone!, dialCode);
   });
   apply("LinkedIn", Boolean(linkedInMatch?.[0]), () => {
     const href = linkedInMatch![0]!;

@@ -88,13 +88,12 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
         return;
       }
       setPhase({ status: "ready", email: targetEmail, context: payload });
-      const eligible = payload.opportunityEligible ?? true;
-      if (payload.currentProjectId) {
-        setLinkKind("project");
-        setSelectedId(payload.currentProjectId);
-      } else if (payload.currentOpportunityId && eligible) {
+      if (payload.currentOpportunityId) {
         setLinkKind("opportunity");
         setSelectedId(payload.currentOpportunityId);
+      } else if (payload.currentProjectId) {
+        setLinkKind("project");
+        setSelectedId(payload.currentProjectId);
       } else {
         setLinkKind("company");
         setSelectedId("");
@@ -110,6 +109,8 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
       searchParams.get("chatId")?.trim() ||
       `teams-${Date.now()}`;
     const qMsg = searchParams.get("messageId")?.trim() || qConvo;
+    // Read the Teams context from the URL once it is available.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setConversationId(qConvo);
     setMessageId(qMsg);
     if (qEmail && EMAIL_RE.test(qEmail)) {
@@ -126,11 +127,6 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
     setError(null);
     setStatus(null);
     try {
-      const opportunityEligible = phase.context.opportunityEligible ?? true;
-      if (linkKind === "opportunity" && !opportunityEligible) {
-        setError("Opportunity assign is only for sell-to relationships.");
-        return;
-      }
       const body: Record<string, unknown> = {
         contactId: phase.context.contactId,
         conversationId,
@@ -254,7 +250,7 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
   }
 
   const ctx = phase.context;
-  const opportunityEligible = ctx.opportunityEligible ?? true;
+  const opportunityEligible = true;
 
   return (
     <div className="min-h-[100dvh] space-y-4 bg-white px-4 py-5">

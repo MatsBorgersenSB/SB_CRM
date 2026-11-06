@@ -19,14 +19,16 @@ import { CountryContinentFields } from "@/components/companies/country-continent
 import { EuropeanRegistrySearch } from "@/components/companies/european-registry-search";
 import type { UnifiedEuropeanCompany } from "@/lib/integrations/company-registers/types";
 import type { UserRole } from "@/types/auth";
-import { findCountryEntry } from "@/lib/geo/country-continent";
+import { findCountryEntry, inferPhoneDialCode } from "@/lib/geo/country-continent";
+import { stripBareDialCode } from "@/lib/m365/phone-normalization";
+import { PhoneInputWithCountryCode } from "@/components/ui/phone-input-with-country-code";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 import { STANDARD_BIO_USERS } from "@/types/bio-user";
 import { company360Href, companyRouteKey } from "@/types/company-360";
 import {
   isSharePointServiceError,
 } from "@/services/sharepoint/client/errors";
 import Link from "next/link";
-import { useWhenChanged } from "@/hooks/use-when-changed";
 
 function normalizeOrganizationNumber(value: string): string {
   return value.trim().toLowerCase().replace(/[\s.-]/g, "");
@@ -202,7 +204,7 @@ export function CompaniesActionBar({
           CompanyTypes: form.CompanyTypes,
           City: form.City.trim(),
           Domain: form.Domain.trim(),
-          Phone: form.Phone.trim(),
+          Phone: stripBareDialCode(form.Phone),
           AddressLine1: form.AddressLine1.trim() || undefined,
           PostalCode: form.PostalCode.trim() || undefined,
           Country: form.Country.trim()
@@ -546,16 +548,20 @@ export function CompaniesActionBar({
             <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
               Phone
             </span>
-            <input
-              type="text"
+            <PhoneInputWithCountryCode
               value={form.Phone}
-              onChange={(event) =>
+              defaultDialCode={inferPhoneDialCode({
+                countryCode: form.countryCode,
+                country: form.Country,
+                domain: form.Domain,
+              })}
+              onChange={(Phone) =>
                 setForm((current) => ({
                   ...current,
-                  Phone: event.target.value,
+                  Phone,
                 }))
               }
-              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+              className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
             />
           </label>
           <button

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getPrisma } from "@/lib/prisma";
+import { isInternalEmail } from "@/lib/domain-rules";
 import { emailsIncludeAddress } from "@/lib/entity-route-utils";
 import {
   extractDistinctiveMailKeywords,
@@ -56,9 +57,21 @@ function collectRecipientEmails(message: GraphMailMessage): string[] {
   return [...new Set(addresses)];
 }
 
-function extractParticipantEmails(message: GraphMailMessage): string[] {
+function extractParticipantEmails(
+  message: GraphMailMessage,
+  mailboxEmail?: string,
+): string[] {
   const sender = normalizeEmail(message.from?.emailAddress?.address);
-  return [...new Set([sender, ...collectRecipientEmails(message)].filter(Boolean))];
+  const mailbox = normalizeEmail(mailboxEmail);
+  const recipients = collectRecipientEmails(message);
+  const isOutbound = Boolean(mailbox && sender === mailbox);
+  const ordered = isOutbound
+    ? [...recipients, sender]
+    : [sender, ...recipients];
+  const external = ordered.filter(
+    (addr) => Boolean(addr && addr !== mailbox && !isInternalEmail(addr)),
+  );
+  return [...new Set(external)];
 }
 
 function parseSentAt(message: GraphMailMessage): Date {
@@ -94,12 +107,23 @@ async function findContactsByEmails(
   if (emails.length === 0) return [];
   const contacts = preloaded ?? (await loadActiveContactRows());
 
-  const emailSet = new Set(emails.map((email) => email.toLowerCase()));
-  return contacts
-    .filter((contact) =>
-      [...emailSet].some((email) => emailsIncludeAddress(contact.emails, email)),
-    )
-    .map((contact) => ({ id: contact.id, companyId: contact.companyId }));
+  const orderedEmails = emails
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => Boolean(email && !isInternalEmail(email)));
+  if (orderedEmails.length === 0) return [];
+
+  const matchedIds = new Set<string>();
+  const matches: ContactMatch[] = [];
+  for (const email of orderedEmails) {
+    for (const contact of contacts) {
+      if (matchedIds.has(contact.id)) continue;
+      if (emailsIncludeAddress(contact.emails, email)) {
+        matchedIds.add(contact.id);
+        matches.push({ id: contact.id, companyId: contact.companyId });
+      }
+    }
+  }
+  return matches;
 }
 
 type DualDeltaTokenState = {
@@ -446,7 +470,10 @@ async function upsertGraphMessage(input: {
   if (!senderEmail) return "skipped";
 
   const recipientEmails = collectRecipientEmails(input.message);
-  const participantEmails = extractParticipantEmails(input.message);
+  const participantEmails = extractParticipantEmails(
+    input.message,
+    input.mailboxEmail,
+  );
   const mailbox = normalizeEmail(input.mailboxEmail);
   const isOutbound = Boolean(mailbox) && senderEmail === mailbox;
 

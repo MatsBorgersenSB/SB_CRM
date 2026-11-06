@@ -131,13 +131,7 @@ export function isMisclassifiedCommercialTarget(
   evidence: CompanyCorrespondenceEvidence | null | undefined,
 ): boolean {
   if (!hasCorrespondence(evidence)) return false;
-  const types = normalizeCompanyTypes(company);
-  const hasTrueCustomer = types.some(
-    (type) => type === "Customer" || type === "Offtaker",
-  );
-  if (hasTrueCustomer) return false;
-  if (isProjectDeliveryPartner(company, evidence)) return true;
-  return types.length === 1 && types[0] === "Prospect";
+  return isProjectDeliveryPartner(company, evidence);
 }
 
 /** Create Opportunity only when sell-to AND not a project-delivery / misclassified supplier. */

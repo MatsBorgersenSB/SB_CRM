@@ -207,9 +207,23 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
       return { companies: jsonCompanies, pipelines: jsonPipelines, source: "json" };
     }
 
+    const mappedPipelines = opportunities.map(mapPrismaOpportunityToPipelineRow);
+    const { getLinkedPipelines } = await import("@/lib/company-utils");
+    const mappedCompanies = companies.map((row) => {
+      const appCompany = mapPrismaCompanyToApp(row);
+      const linked = getLinkedPipelines(appCompany, mappedPipelines);
+      if (linked.length === 0) return appCompany;
+      const mergedIds = [
+        ...new Set([...appCompany.pipelineIds, ...linked.map((deal) => deal.id)]),
+      ];
+      return mergedIds.length === appCompany.pipelineIds.length
+        ? appCompany
+        : { ...appCompany, pipelineIds: mergedIds };
+    });
+
     return {
-      companies: companies.map(mapPrismaCompanyToApp),
-      pipelines: opportunities.map(mapPrismaOpportunityToPipelineRow),
+      companies: mappedCompanies,
+      pipelines: mappedPipelines,
       source: "prisma",
     };
   } catch (error) {

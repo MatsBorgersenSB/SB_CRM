@@ -194,11 +194,42 @@ export async function updateRegistryOpportunity(
   if (patch.currentMilestone !== undefined) {
     data.nextStep = patch.currentMilestone.trim() || null;
   }
-  if (patch.team !== undefined) {
-    data.team = patch.team.map((member) => ({
-      contactId: member.contactId,
-      projectRole: member.projectRole,
-    })) as Prisma.InputJsonValue[];
+  if (patch.team !== undefined || patch.linkedCompanyIds !== undefined) {
+    const existingRawTeam = Array.isArray(existing.team) ? existing.team : [];
+    const existingCompanyEntries = existingRawTeam.filter((entry) => {
+      if (!entry || typeof entry !== "object") return false;
+      const row = entry as { contactId?: unknown; companyId?: unknown };
+      const hasContact = typeof row.contactId === "string" && row.contactId.trim().length > 0;
+      const hasCompany = typeof row.companyId === "string" && row.companyId.trim().length > 0;
+      return !hasContact && hasCompany;
+    }) as Prisma.InputJsonValue[];
+
+    const contactEntries: Prisma.InputJsonValue[] =
+      patch.team !== undefined
+        ? patch.team.map((member) => ({
+            contactId: member.contactId,
+            projectRole: member.projectRole,
+            ...(member.companyId ? { companyId: member.companyId } : {}),
+          }))
+        : (existingRawTeam.filter((entry) => {
+            if (!entry || typeof entry !== "object") return false;
+            const row = entry as { contactId?: unknown };
+            return typeof row.contactId === "string" && row.contactId.trim().length > 0;
+          }) as Prisma.InputJsonValue[]);
+
+    const companyEntries: Prisma.InputJsonValue[] =
+      patch.linkedCompanyIds !== undefined
+        ? patch.linkedCompanyIds
+            .map((id) => id.trim())
+            .filter(Boolean)
+            .map((companyId) => ({
+              companyId,
+              contactId: "",
+              projectRole: "Associated Organization",
+            }))
+        : existingCompanyEntries;
+
+    data.team = [...contactEntries, ...companyEntries];
   }
   if (patch.understanding !== undefined) {
     data.understanding = patch.understanding as Prisma.InputJsonValue;
@@ -241,4 +272,65 @@ export async function deleteRegistryOpportunity(
     }),
   );
   return true;
+}
+
+/**
+ * Connect an existing company (any posture: customer, supplier, partner, consultant)
+ * to an existing opportunity without overwriting the opportunity's primary customer companyId.
+ */
+export async function linkCompanyToRegistryOpportunity(
+  companyRouteKey: string,
+  opportunityRouteKey: string,
+): Promise<PipelineRow | null> {
+  if (!(await prismaRegistryAvailable())) return null;
+
+  const { findPrismaOpportunityByRouteKey } = await import(
+    "@/lib/resolve-opportunity-route"
+  );
+  const [company, opportunity] = await Promise.all([
+    findPrismaCompanyByRouteKey(companyRouteKey),
+    findPrismaOpportunityByRouteKey(opportunityRouteKey),
+  ]);
+  if (!opportunity) return null;
+
+  const canonicalCompanyCode =
+    company?.code?.trim() || company?.id || companyRouteKey.trim();
+  if (!canonicalCompanyCode) return loadMappedOpportunity(opportunity.id);
+
+  const existingRawTeam = Array.isArray(opportunity.team) ? opportunity.team : [];
+  const alreadyLinked =
+    (company && opportunity.companyId === company.id) ||
+    existingRawTeam.some((entry) => {
+      if (!entry || typeof entry !== "object") return false;
+      const cid = (entry as { companyId?: unknown }).companyId;
+      if (typeof cid !== "string") return false;
+      const norm = cid.trim().toUpperCase();
+      return (
+        norm === canonicalCompanyCode.toUpperCase() ||
+        (company?.id ? norm === company.id.toUpperCase() : false) ||
+        (company?.code ? norm === company.code.trim().toUpperCase() : false)
+      );
+    });
+
+  if (!alreadyLinked) {
+    const nextTeam: Prisma.InputJsonValue[] = [
+      ...(existingRawTeam as Prisma.InputJsonValue[]),
+      {
+        companyId: canonicalCompanyCode,
+        ...(company?.id && company.id !== canonicalCompanyCode
+          ? { prismaCompanyId: company.id }
+          : {}),
+        contactId: "",
+        projectRole: "Associated Organization",
+      },
+    ];
+    await withPrismaRetry((prisma) =>
+      prisma.opportunity.update({
+        where: { id: opportunity.id },
+        data: { team: nextTeam },
+      }),
+    );
+  }
+
+  return loadMappedOpportunity(opportunity.id);
 }

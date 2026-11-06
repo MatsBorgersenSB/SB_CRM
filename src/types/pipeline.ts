@@ -102,6 +102,7 @@ export type SmartDocsDocument = {
 export type PipelineTeamMember = {
   contactId: string;
   projectRole: string;
+  companyId?: string;
 };
 
 /**
@@ -147,6 +148,8 @@ export type PipelineRow = {
   Revision?: string;
   FileLeafRef?: string;
   team?: PipelineTeamMember[];
+  /** Additional companies associated with this opportunity (suppliers, partners, customers). */
+  linkedCompanyIds?: string[];
   /** SharePoint Online opportunity document folder (from Prisma registry provision). */
   sharepointFolderId?: string | null;
   sharepointFolderUrl?: string | null;

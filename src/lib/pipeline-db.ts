@@ -536,39 +536,24 @@ export async function linkCompanyToPipeline(
 ): Promise<Company> {
   const database = await ensureDb();
   const companyIndex = database.companies.findIndex(
-    (company) => company.CompanyID === companyId,
+    (company) =>
+      company.CompanyID === companyId ||
+      company.code === companyId ||
+      company.CompanyID.toUpperCase() === companyId.toUpperCase(),
   );
-  if (companyIndex === -1) {
-    throw new Error(`Company not found: ${companyId}`);
-  }
 
-  const pipeline = database.pipelines.find((row) => row.id === pipelineId);
-  if (!pipeline) {
-    // May exist only in Prisma — still try registry link below.
-  }
-
-  const company = database.companies[companyIndex];
-  if (!company.pipelineIds.includes(pipelineId)) {
-    database.companies[companyIndex] = {
-      ...company,
-      pipelineIds: [...company.pipelineIds, pipelineId],
-    };
-    await writeDb(database);
-  }
+  let resolvedPipelineId = pipelineId;
 
   try {
-    const { findPrismaCompanyByRouteKey } = await import("@/lib/resolve-company-route");
-    const { withPrismaRetry } = await import("@/lib/prisma");
-    const prismaCompany = await findPrismaCompanyByRouteKey(companyId);
-    if (prismaCompany) {
-      await withPrismaRetry((prisma) =>
-        prisma.opportunity.updateMany({
-          where: {
-            OR: [{ id: pipelineId }, { code: pipelineId }],
-          },
-          data: { companyId: prismaCompany.id },
-        }),
-      );
+    const { linkCompanyToRegistryOpportunity } = await import(
+      "@/lib/opportunity-registry"
+    );
+    const updatedDeal = await linkCompanyToRegistryOpportunity(
+      companyId,
+      pipelineId,
+    );
+    if (updatedDeal?.id) {
+      resolvedPipelineId = updatedDeal.id;
     }
   } catch (error) {
     console.warn(
@@ -577,7 +562,54 @@ export async function linkCompanyToPipeline(
     );
   }
 
-  return database.companies[companyIndex];
+  if (companyIndex !== -1) {
+    const company = database.companies[companyIndex]!;
+    const nextIds = new Set(company.pipelineIds);
+    nextIds.add(pipelineId);
+    nextIds.add(resolvedPipelineId);
+    database.companies[companyIndex] = {
+      ...company,
+      pipelineIds: [...nextIds],
+    };
+    const dealIdx = database.pipelines.findIndex(
+      (row) => row.id === pipelineId || row.id === resolvedPipelineId,
+    );
+    if (dealIdx !== -1) {
+      const existingDeal = database.pipelines[dealIdx]!;
+      const linkedCompanyIds = new Set(existingDeal.linkedCompanyIds ?? []);
+      linkedCompanyIds.add(company.CompanyID);
+      database.pipelines[dealIdx] = {
+        ...existingDeal,
+        linkedCompanyIds: [...linkedCompanyIds],
+      };
+    }
+    await writeDb(database);
+  }
+
+  try {
+    const { getCompanyById } = await import("@/lib/data/companies");
+    const prismaCompany = await getCompanyById(
+      companyId,
+      database.companies,
+    );
+    if (prismaCompany) {
+      const nextIds = new Set(prismaCompany.pipelineIds);
+      nextIds.add(pipelineId);
+      nextIds.add(resolvedPipelineId);
+      return {
+        ...prismaCompany,
+        pipelineIds: [...nextIds],
+      };
+    }
+  } catch {
+    // Fall back to JSON company below
+  }
+
+  if (companyIndex === -1) {
+    throw new Error(`Company not found: ${companyId}`);
+  }
+
+  return database.companies[companyIndex]!;
 }
 
 export async function createPipeline(

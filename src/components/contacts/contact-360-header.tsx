@@ -5,11 +5,19 @@ import { useEffect, useState } from "react";
 import { CalendarPlus, Mail, Sparkles } from "lucide-react";
 import type { BuyingRole, Contact } from "@/types/contact";
 import { getContactDisplayName, isBuyingRoleUnknown } from "@/types/contact";
-import { CompanyLink } from "@/components/relationship/relationship-links";
-import { EmailActionMenu, PhoneActionMenu } from "@/components/relationship/relationship-links";
+import {
+  CompanyLink,
+  DealLink,
+  EmailActionMenu,
+  PhoneActionMenu,
+  ProjectLink,
+} from "@/components/relationship/relationship-links";
 import { BuyingRoleSelect } from "@/components/contacts/contact-form-fields";
 import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
-import { ActionableField, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import { ActionableField, IconLabel, SmartCRMIcon } from "@/components/ui/smartcrm-icon";
+import type { PipelineRow } from "@/types/pipeline";
+import { opportunityPublicCode } from "@/types/pipeline";
+import type { ContactProjectRole } from "@/lib/project-team-utils";
 import { outlookComposeHref, outlookMeetingComposeHref } from "@/lib/compose-actions";
 import { useUniversalSearchOptional } from "@/context/universal-search-context";
 import { formatAccountOwnerDisplay, hasContactOwner } from "@/lib/company-owner";
@@ -56,6 +64,10 @@ export function Contact360Header({
   verdict,
   onBuyingRoleChange,
   onOwnerChange,
+  linkedDeals = [],
+  projectRoles = [],
+  onConnectOpportunity,
+  onConnectProject,
 }: {
   contact: Contact;
   companyId: string;
@@ -68,6 +80,10 @@ export function Contact360Header({
   /** Persist a buying-role decision; absent → read-only chip. */
   onBuyingRoleChange?: (role: BuyingRole | undefined) => Promise<void>;
   onOwnerChange?: (owner: SharePointPerson) => Promise<void>;
+  linkedDeals?: PipelineRow[];
+  projectRoles?: ContactProjectRole[];
+  onConnectOpportunity?: () => void;
+  onConnectProject?: () => void;
 }) {
   const displayName = getContactDisplayName(contact);
   const position = contact.JobTitle || contact.Role || "—";
@@ -255,6 +271,80 @@ export function Contact360Header({
               Local time {localTime}
             </span>
           ) : null}
+        </div>
+
+        <div className="mt-3 grid gap-2 border-t border-carbon-blue/8 pt-3 text-[13px] sm:grid-cols-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <IconLabel
+              icon="opportunity"
+              iconSize="xs"
+              className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+            >
+              Opportunities:
+            </IconLabel>
+            {linkedDeals.length === 0 ? (
+              <span className="text-carbon-blue/50">None linked</span>
+            ) : (
+              linkedDeals.map((deal) => (
+                <DealLink
+                  key={deal.id}
+                  dealId={deal.id}
+                  showIcon={false}
+                  className="inline-flex items-center gap-1 border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2 py-0.5 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange/35 hover:text-upcycle-orange"
+                >
+                  <span>{deal.assetName}</span>
+                  <span className="font-mono text-[10px] text-carbon-blue/55">
+                    {opportunityPublicCode(deal)}
+                  </span>
+                </DealLink>
+              ))
+            )}
+            {onConnectOpportunity ? (
+              <button
+                type="button"
+                onClick={onConnectOpportunity}
+                className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange/[0.06] px-2 py-0.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+              >
+                + Add to opportunity
+              </button>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <IconLabel
+              icon="project"
+              iconSize="xs"
+              className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+            >
+              Projects:
+            </IconLabel>
+            {projectRoles.length === 0 ? (
+              <span className="text-carbon-blue/50">None linked</span>
+            ) : (
+              projectRoles.map((entry) => (
+                <ProjectLink
+                  key={`${entry.projectId}-${entry.projectRole}`}
+                  projectId={entry.projectId}
+                  showIcon={false}
+                  className="inline-flex items-center gap-1 border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2 py-0.5 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange/35 hover:text-upcycle-orange"
+                >
+                  <span>{entry.projectName}</span>
+                  <span className="text-[11px] font-normal text-carbon-blue/55">
+                    · {entry.projectRole}
+                  </span>
+                </ProjectLink>
+              ))
+            )}
+            {onConnectProject ? (
+              <button
+                type="button"
+                onClick={onConnectProject}
+                className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange/[0.06] px-2 py-0.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+              >
+                + Add to project
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

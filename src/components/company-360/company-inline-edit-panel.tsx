@@ -15,7 +15,9 @@ import { IndustrySelect } from "@/components/ui/industry-select";
 import { CompanyTypeMultiSelect } from "@/components/companies/company-type-multi-select";
 import { CountryContinentFields } from "@/components/companies/country-continent-fields";
 import type { OsmLookupResult } from "@/lib/geo/nominatim";
-import { findCountryEntry } from "@/lib/geo/country-continent";
+import { findCountryEntry, inferPhoneDialCode } from "@/lib/geo/country-continent";
+import { stripBareDialCode } from "@/lib/m365/phone-normalization";
+import { PhoneInputWithCountryCode } from "@/components/ui/phone-input-with-country-code";
 
 const EDIT_FIELD_CLASS =
   "mt-1 w-full rounded-md border-2 border-upcycle-orange/25 bg-white px-3 py-2 text-carbon-blue outline-none transition-colors focus:border-upcycle-orange focus:ring-2 focus:ring-upcycle-orange/20";
@@ -53,6 +55,8 @@ export function CompanyInlineEditPanel({
     if (!next.accountOwnerId) {
       next.accountOwnerId = authUserToAccountOwner(user).Id;
     }
+    // Re-sync the form when the company or signed-in user changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm(next);
   }, [company, user]);
 
@@ -84,7 +88,7 @@ export function CompanyInlineEditPanel({
     setError(null);
 
     try {
-      await onSave(form);
+      await onSave({ ...form, Phone: stripBareDialCode(form.Phone) });
     } catch (saveError) {
       const message =
         saveError instanceof Error && saveError.message.trim()
@@ -208,10 +212,16 @@ export function CompanyInlineEditPanel({
 
           <label className="block">
             <span className={EDIT_LABEL_CLASS}>Phone</span>
-            <input
-              type="text"
+            <PhoneInputWithCountryCode
               value={form.Phone}
-              onChange={(event) => setForm((current) => ({ ...current, Phone: event.target.value }))}
+              defaultDialCode={inferPhoneDialCode({
+                countryCode: form.countryCode,
+                country: form.country,
+                domain: form.Domain,
+                email: form.Email,
+                companyPhone: company.Phone,
+              })}
+              onChange={(Phone) => setForm((current) => ({ ...current, Phone }))}
               disabled={saving}
               className={`${EDIT_FIELD_CLASS} text-[13px]`}
             />

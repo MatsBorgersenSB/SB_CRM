@@ -10,6 +10,7 @@ import type { GlobalContactRecord } from "@/lib/contact-utils";
 import type { Company } from "@/types/company";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
 import { buildContactTitle } from "@/types/contact";
+import { stripBareDialCode } from "@/lib/m365/phone-normalization";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 
 type Contact360EditPanelProps = {
@@ -80,6 +81,7 @@ export function Contact360EditPanel({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm(contactToForm(record.contact, record.companyName));
     setCompanyId(record.companyId);
     // Reset only when switching people — a new `record` object on parent render
@@ -105,8 +107,8 @@ export function Contact360EditPanel({
         JobTitle: form.JobTitle.trim() || form.Role,
         Role: form.Role,
         Email: form.Email.trim(),
-        Phone: form.Phone.trim(),
-        Mobile: form.Mobile.trim(),
+        Phone: stripBareDialCode(form.Phone),
+        Mobile: stripBareDialCode(form.Mobile),
         LinkedInURL: form.LinkedInURL.trim(),
         Status: form.Status,
         RelationshipLevel: form.RelationshipLevel,

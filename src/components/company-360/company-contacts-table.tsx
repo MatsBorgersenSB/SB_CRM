@@ -33,6 +33,7 @@ import { getCompanyRelationshipPosture } from "@/lib/company-classification";
 import { syncProjectRecord } from "@/lib/sync-project";
 import { linkCompanyToOpportunity } from "@/lib/sync-company-opportunity-link";
 import { findCountryEntry } from "@/lib/geo/country-continent";
+import { stripBareDialCode } from "@/lib/m365/phone-normalization";
 import type { UserRole } from "@/types/auth";
 import {
   ContactLink,
@@ -982,8 +983,8 @@ export function CompanyContactsTable({
         LastName: contactForm.LastName.trim(),
         JobTitle: contactForm.JobTitle.trim() || contactForm.Role,
         Email: contactForm.Email.trim(),
-        Phone: contactForm.Phone.trim(),
-        Mobile: contactForm.Mobile.trim(),
+        Phone: stripBareDialCode(contactForm.Phone),
+        Mobile: stripBareDialCode(contactForm.Mobile),
         Company: { CompanyID: companyId },
       });
       setContactForm(buildDefaultContactForm());

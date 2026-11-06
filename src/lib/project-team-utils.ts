@@ -294,10 +294,8 @@ export function getContactProjectRoleSummary(
 
 export function getContactProjectRolesOnCompany(
   contactId: string,
-  companyId: string,
+  _companyId: string,
   projects: Project[],
 ): ContactProjectRole[] {
-  return getContactProjectRoles(contactId, projects).filter(
-    (role) => role.companyId === companyId || !role.companyId,
-  );
+  return getContactProjectRoles(contactId, projects);
 }

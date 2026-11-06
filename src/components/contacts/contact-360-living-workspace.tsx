@@ -128,6 +128,8 @@ export function Contact360LivingWorkspace({
   const [archiving, setArchiving] = useState(false);
   const [employmentBusy, setEmploymentBusy] = useState(false);
   const [workRevealed, setWorkRevealed] = useState(false);
+  const [assignOpportunityRequestId, setAssignOpportunityRequestId] = useState(0);
+  const [assignProjectRequestId, setAssignProjectRequestId] = useState(0);
 
   const { user } = useAuth();
   const { openEmailAssistant, EmailAssistantModal } = useSmartAssistActionHost({
@@ -276,6 +278,28 @@ export function Contact360LivingWorkspace({
 
   const displayName = getContactDisplayName(contact);
 
+  const handleConnectOpportunity = () => {
+    setWorkRevealed(true);
+    setAssignOpportunityRequestId((value) => value + 1);
+    requestAnimationFrame(() => {
+      document.getElementById("opportunities")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const handleConnectProject = () => {
+    setWorkRevealed(true);
+    setAssignProjectRequestId((value) => value + 1);
+    requestAnimationFrame(() => {
+      document.getElementById("projects")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
   // Opportunities / Projects fold into one line until there is something to show or add.
   const workEmpty = linkedDeals.length === 0 && projectRoles.length === 0;
   const showWorkPanels = !workEmpty || workRevealed;
@@ -311,6 +335,10 @@ export function Contact360LivingWorkspace({
           role={role}
           trailing={contactTools}
           verdict={verdict}
+          linkedDeals={linkedDeals}
+          projectRoles={projectRoles}
+          onConnectOpportunity={handleConnectOpportunity}
+          onConnectProject={handleConnectProject}
           onBuyingRoleChange={(next) =>
             onContactUpdate(contact.ContactID, { buyingRole: (next ?? "") as BuyingRole })
           }
@@ -405,6 +433,7 @@ export function Contact360LivingWorkspace({
                 pipelines={pipelines}
                 role={role}
                 onPipelineUpdated={onPipelineUpdated}
+                assignRequestId={assignOpportunityRequestId}
               />
               {linkedDeals.length > 0 ? (
                 <OpportunitiesOverviewTable
@@ -424,6 +453,7 @@ export function Contact360LivingWorkspace({
               projects={projects}
               role={role}
               onProjectUpdated={onProjectUpdated}
+              assignRequestId={assignProjectRequestId}
             />
           </WorkspacePanel>
         </>
@@ -432,10 +462,18 @@ export function Contact360LivingWorkspace({
           {displayName} is not on any opportunity or project yet.{" "}
           <button
             type="button"
-            onClick={() => setWorkRevealed(true)}
+            onClick={handleConnectOpportunity}
             className="font-semibold text-upcycle-orange hover:underline"
           >
-            Add
+            Add to opportunity
+          </button>
+          {" · "}
+          <button
+            type="button"
+            onClick={handleConnectProject}
+            className="font-semibold text-upcycle-orange hover:underline"
+          >
+            Add to project
           </button>
         </p>
       )}

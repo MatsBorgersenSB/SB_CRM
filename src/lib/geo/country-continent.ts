@@ -14,49 +14,52 @@ type CountryEntry = {
   name: string;
   code: string;
   continent: Exclude<Continent, "">;
+  dialCode: string;
   aliases?: string[];
 };
 
 const COUNTRIES: CountryEntry[] = [
-  { name: "Norway", code: "NO", continent: "Europe", aliases: ["norge", "noreg"] },
-  { name: "Sweden", code: "SE", continent: "Europe", aliases: ["sverige"] },
-  { name: "Denmark", code: "DK", continent: "Europe", aliases: ["danmark"] },
-  { name: "Finland", code: "FI", continent: "Europe", aliases: ["suomi"] },
-  { name: "Iceland", code: "IS", continent: "Europe", aliases: ["island"] },
-  { name: "Germany", code: "DE", continent: "Europe", aliases: ["deutschland"] },
-  { name: "France", code: "FR", continent: "Europe" },
-  { name: "Spain", code: "ES", continent: "Europe", aliases: ["españa", "espana"] },
-  { name: "Portugal", code: "PT", continent: "Europe" },
-  { name: "Italy", code: "IT", continent: "Europe", aliases: ["italia"] },
-  { name: "Netherlands", code: "NL", continent: "Europe", aliases: ["holland", "the netherlands"] },
-  { name: "Belgium", code: "BE", continent: "Europe" },
-  { name: "Austria", code: "AT", continent: "Europe", aliases: ["österreich", "osterreich"] },
-  { name: "Switzerland", code: "CH", continent: "Europe", aliases: ["schweiz", "suisse", "svizzera"] },
-  { name: "Poland", code: "PL", continent: "Europe", aliases: ["polska"] },
-  { name: "Ireland", code: "IE", continent: "Europe" },
+  { name: "Norway", code: "NO", continent: "Europe", dialCode: "+47", aliases: ["norge", "noreg"] },
+  { name: "Sweden", code: "SE", continent: "Europe", dialCode: "+46", aliases: ["sverige"] },
+  { name: "Denmark", code: "DK", continent: "Europe", dialCode: "+45", aliases: ["danmark"] },
+  { name: "Finland", code: "FI", continent: "Europe", dialCode: "+358", aliases: ["suomi"] },
+  { name: "Iceland", code: "IS", continent: "Europe", dialCode: "+354", aliases: ["island"] },
+  { name: "Germany", code: "DE", continent: "Europe", dialCode: "+49", aliases: ["deutschland"] },
+  { name: "France", code: "FR", continent: "Europe", dialCode: "+33" },
+  { name: "Spain", code: "ES", continent: "Europe", dialCode: "+34", aliases: ["españa", "espana"] },
+  { name: "Portugal", code: "PT", continent: "Europe", dialCode: "+351" },
+  { name: "Italy", code: "IT", continent: "Europe", dialCode: "+39", aliases: ["italia"] },
+  { name: "Netherlands", code: "NL", continent: "Europe", dialCode: "+31", aliases: ["holland", "the netherlands"] },
+  { name: "Belgium", code: "BE", continent: "Europe", dialCode: "+32" },
+  { name: "Austria", code: "AT", continent: "Europe", dialCode: "+43", aliases: ["österreich", "osterreich"] },
+  { name: "Switzerland", code: "CH", continent: "Europe", dialCode: "+41", aliases: ["schweiz", "suisse", "svizzera"] },
+  { name: "Poland", code: "PL", continent: "Europe", dialCode: "+48", aliases: ["polska"] },
+  { name: "Ireland", code: "IE", continent: "Europe", dialCode: "+353" },
   {
     name: "United Kingdom",
     code: "GB",
     continent: "Europe",
+    dialCode: "+44",
     aliases: ["uk", "great britain", "england", "scotland", "wales"],
   },
   {
     name: "United States",
     code: "US",
     continent: "North America",
+    dialCode: "+1",
     aliases: ["usa", "united states of america", "u.s.", "u.s.a."],
   },
-  { name: "Canada", code: "CA", continent: "North America" },
-  { name: "Brazil", code: "BR", continent: "South America", aliases: ["brasil"] },
-  { name: "Australia", code: "AU", continent: "Oceania" },
-  { name: "New Zealand", code: "NZ", continent: "Oceania" },
-  { name: "Japan", code: "JP", continent: "Asia" },
-  { name: "China", code: "CN", continent: "Asia" },
-  { name: "India", code: "IN", continent: "Asia" },
-  { name: "Sri Lanka", code: "LK", continent: "Asia" },
-  { name: "Bangladesh", code: "BD", continent: "Asia" },
-  { name: "Romania", code: "RO", continent: "Europe", aliases: ["românia", "romania"] },
-  { name: "South Africa", code: "ZA", continent: "Africa" },
+  { name: "Canada", code: "CA", continent: "North America", dialCode: "+1" },
+  { name: "Brazil", code: "BR", continent: "South America", dialCode: "+55", aliases: ["brasil"] },
+  { name: "Australia", code: "AU", continent: "Oceania", dialCode: "+61" },
+  { name: "New Zealand", code: "NZ", continent: "Oceania", dialCode: "+64" },
+  { name: "Japan", code: "JP", continent: "Asia", dialCode: "+81" },
+  { name: "China", code: "CN", continent: "Asia", dialCode: "+86" },
+  { name: "India", code: "IN", continent: "Asia", dialCode: "+91" },
+  { name: "Sri Lanka", code: "LK", continent: "Asia", dialCode: "+94" },
+  { name: "Bangladesh", code: "BD", continent: "Asia", dialCode: "+880" },
+  { name: "Romania", code: "RO", continent: "Europe", dialCode: "+40", aliases: ["românia", "romania"] },
+  { name: "South Africa", code: "ZA", continent: "Africa", dialCode: "+27" },
 ];
 
 const TLD_TO_COUNTRY: Record<string, string> = {
@@ -150,12 +153,18 @@ export type CountryOption = {
   name: string;
   code: string;
   continent: Exclude<Continent, "">;
+  dialCode: string;
 };
 
 /** Sorted catalog for country dropdowns. */
 export function listCountries(): CountryOption[] {
   return [...COUNTRIES]
-    .map(({ name, code, continent }) => ({ name, code, continent }))
+    .map(({ name, code, continent, dialCode }) => ({
+      name,
+      code,
+      continent,
+      dialCode,
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -165,5 +174,57 @@ export function findCountryEntry(input: string): CountryOption | null {
   if (!resolved) return null;
   const entry = byCode.get(resolved.code);
   if (!entry) return null;
-  return { name: entry.name, code: entry.code, continent: entry.continent };
+  return {
+    name: entry.name,
+    code: entry.code,
+    continent: entry.continent,
+    dialCode: entry.dialCode,
+  };
+}
+
+/** Resolve international calling code (e.g. "+47") from country name or ISO code. */
+export function getDialCodeForCountry(input?: string | null): string {
+  if (!input?.trim()) return "";
+  return findCountryEntry(input.trim())?.dialCode ?? "";
+}
+
+/**
+ * Infer default international calling code from known country, domain, email, or company phone.
+ * Defaults to "+47" (Norway) when no country signal is present yet.
+ */
+export function inferPhoneDialCode(context?: {
+  countryCode?: string | null;
+  country?: string | null;
+  domain?: string | null;
+  email?: string | null;
+  companyPhone?: string | null;
+}): string {
+  if (context?.countryCode?.trim()) {
+    const byIso = getDialCodeForCountry(context.countryCode);
+    if (byIso) return byIso;
+  }
+  if (context?.country?.trim()) {
+    const byName = getDialCodeForCountry(context.country);
+    if (byName) return byName;
+  }
+  if (context?.email?.includes("@")) {
+    const emailDomain = context.email.split("@")[1]?.trim() ?? "";
+    const inferredIso = inferCountryCodeFromDomain(emailDomain);
+    if (inferredIso) {
+      const byEmail = getDialCodeForCountry(inferredIso);
+      if (byEmail) return byEmail;
+    }
+  }
+  if (context?.domain?.trim()) {
+    const inferredIso = inferCountryCodeFromDomain(context.domain);
+    if (inferredIso) {
+      const byDomain = getDialCodeForCountry(inferredIso);
+      if (byDomain) return byDomain;
+    }
+  }
+  if (context?.companyPhone?.trim()) {
+    const match = context.companyPhone.trim().match(/^(\+\d{1,3})\b/);
+    if (match?.[1]) return match[1];
+  }
+  return "+47";
 }

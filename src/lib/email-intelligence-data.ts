@@ -385,12 +385,46 @@ async function upsertSeededOutlookMessage(
   }
 
   const isOutbound = Boolean(seed.isOutbound);
+  const explicitSender = seed.senderEmail?.trim().toLowerCase() || "";
+  const explicitRecipients = (seed.recipientEmails ?? [])
+    .map((address) => address.trim().toLowerCase())
+    .filter(Boolean);
+  const hasExplicitParticipants = Boolean(explicitSender || explicitRecipients.length > 0);
+  const addressSet = new Set(addresses.map((addr) => addr.trim().toLowerCase()).filter(Boolean));
+
+  const contactParticipates =
+    !hasExplicitParticipants ||
+    addressSet.size === 0 ||
+    (explicitSender && addressSet.has(explicitSender)) ||
+    explicitRecipients.some((addr) => addressSet.has(addr));
+
+  let resolvedContactId: string | null = contactParticipates ? contact.id : null;
+  if (!contactParticipates) {
+    const externalParticipants = (
+      isOutbound
+        ? [...explicitRecipients, explicitSender]
+        : [explicitSender, ...explicitRecipients]
+    ).filter((addr) => Boolean(addr && addr.includes("@") && !isInternalEmail(addr)));
+    for (const candidate of externalParticipants) {
+      const matched = await findPrismaContactByIdOrEmail(candidate).catch(() => null);
+      if (matched?.id) {
+        resolvedContactId = matched.id;
+        break;
+      }
+    }
+    const hasLinkIntent =
+      links?.opportunityId !== undefined || links?.projectId !== undefined;
+    if (!resolvedContactId && !hasLinkIntent) {
+      return false;
+    }
+  }
+
   const senderEmail =
-    seed.senderEmail?.trim().toLowerCase() ||
+    explicitSender ||
     (isOutbound ? "" : addresses[0]) ||
     "";
-  const recipientEmails = seed.recipientEmails?.length
-    ? seed.recipientEmails.map((address) => address.trim().toLowerCase()).filter(Boolean)
+  const recipientEmails = explicitRecipients.length
+    ? explicitRecipients
     : isOutbound
       ? addresses
       : addresses.filter((address) => address !== senderEmail);
@@ -404,7 +438,7 @@ async function upsertSeededOutlookMessage(
     create: {
       externalMessageId,
       conversationId,
-      contactId: contact.id,
+      contactId: resolvedContactId,
       subject,
       bodyPreview: bodyPreview ? bodyPreview.slice(0, 2000) : null,
       webLink: webLink ?? null,
@@ -420,7 +454,7 @@ async function upsertSeededOutlookMessage(
     },
     update: {
       conversationId,
-      contactId: contact.id,
+      ...(resolvedContactId ? { contactId: resolvedContactId } : {}),
       ...(subject !== "(no subject)" ? { subject } : {}),
       ...(bodyPreview ? { bodyPreview: bodyPreview.slice(0, 2000) } : {}),
       ...(webLink ? { webLink } : {}),
@@ -1163,6 +1197,9 @@ export async function readEmailsForContact(
   if (!contact) return [];
 
   const addresses = contactEmailsFromJson(contact.emails);
+  const addressSet = new Set(
+    addresses.map((addr) => addr.trim().toLowerCase()).filter(Boolean),
+  );
   const messages = await prisma.emailMessageRecord.findMany({
     where: {
       OR: [
@@ -1180,8 +1217,21 @@ export async function readEmailsForContact(
     take: 80,
   });
 
+  // Only list correspondence where the associated contact is actually a participant
+  // (sender or recipient), preventing unrelated project/opportunity mail from leaking.
+  const verified =
+    addressSet.size > 0
+      ? messages.filter((msg) => {
+          const sender = msg.senderEmail?.trim().toLowerCase() ?? "";
+          if (sender && addressSet.has(sender)) return true;
+          return (msg.recipientEmails ?? []).some((rec) =>
+            addressSet.has(rec?.trim().toLowerCase() ?? ""),
+          );
+        })
+      : messages;
+
   // Return chronological within conversation for thread grouping.
-  return [...messages]
+  return [...verified]
     .sort((a, b) => {
       const conv = a.conversationId.localeCompare(b.conversationId);
       if (conv !== 0) return conv;
@@ -1193,6 +1243,8 @@ export async function readEmailsForContact(
 /**
  * Load EmailMessageRecord rows for a company (people-linked mail).
  * EmailMessageRecord has no companyId — match Prisma contact UUIDs and known addresses.
+ * Only correspondence to/from this company (its contacts or company email addresses) is listed;
+ * project/opportunity mail with other companies is never mixed into Company 360.
  */
 export async function readEmailsForCompany(
   companyKey: string,
@@ -1212,8 +1264,9 @@ export async function readEmailsForCompany(
     select: {
       id: true,
       code: true,
+      emails: true,
       contacts: {
-        where: { status: "active" },
+        where: { status: { in: ["active", "archived"] } },
         select: { id: true, emails: true },
       },
     },
@@ -1221,8 +1274,19 @@ export async function readEmailsForCompany(
   if (!company) return [];
 
   const contactIds = company.contacts.map((row) => row.id);
-  const addresses = company.contacts.flatMap((row) =>
-    contactEmailsFromJson(row.emails),
+  const contactWithoutEmailIds = new Set(
+    company.contacts
+      .filter((row) => contactEmailsFromJson(row.emails).length === 0)
+      .map((row) => row.id),
+  );
+  const addresses = [
+    ...new Set([
+      ...contactEmailsFromJson(company.emails),
+      ...company.contacts.flatMap((row) => contactEmailsFromJson(row.emails)),
+    ]),
+  ];
+  const addressSet = new Set(
+    addresses.map((addr) => addr.trim().toLowerCase()).filter(Boolean),
   );
   const orClauses: Prisma.EmailMessageRecordWhereInput[] = [];
   if (contactIds.length > 0) {
@@ -1231,35 +1295,6 @@ export async function readEmailsForCompany(
   if (addresses.length > 0) {
     orClauses.push({ senderEmail: { in: addresses } });
     orClauses.push({ recipientEmails: { hasSome: addresses } });
-  }
-
-  const companyKeys = [company.id, company.code].filter(
-    (value): value is string => Boolean(value?.trim()),
-  );
-  try {
-    const { readProjects } = await import("@/lib/project-db");
-    const { getProjectsForCompany } = await import("@/lib/project-team-utils");
-    const projects = await readProjects();
-    const linked = companyKeys.flatMap((key) =>
-      getProjectsForCompany(key, projects),
-    );
-    const projectIds = [...new Set(linked.map((project) => project.id))];
-    if (projectIds.length > 0) {
-      orClauses.push({ projectId: { in: projectIds } });
-    }
-  } catch (error) {
-    console.warn("[readEmailsForCompany] project mail match skipped", error);
-  }
-
-  const opportunities = await prisma.opportunity.findMany({
-    where: { companyId: company.id },
-    select: { id: true },
-    take: 80,
-  });
-  if (opportunities.length > 0) {
-    orClauses.push({
-      opportunityId: { in: opportunities.map((row) => row.id) },
-    });
   }
 
   if (orClauses.length === 0) return [];
@@ -1274,7 +1309,22 @@ export async function readEmailsForCompany(
     take: 80,
   });
 
-  return [...messages]
+  // Strictly verify that the message is to/from a known address of this company or its contacts
+  // (or linked to a company contact that has no email address on file).
+  const verified = messages.filter((msg) => {
+    const sender = msg.senderEmail?.trim().toLowerCase() ?? "";
+    if (sender && addressSet.has(sender)) return true;
+    if (
+      (msg.recipientEmails ?? []).some((rec) =>
+        addressSet.has(rec?.trim().toLowerCase() ?? ""),
+      )
+    ) {
+      return true;
+    }
+    return Boolean(msg.contactId && contactWithoutEmailIds.has(msg.contactId));
+  });
+
+  return [...verified]
     .sort((a, b) => {
       const conv = a.conversationId.localeCompare(b.conversationId);
       if (conv !== 0) return conv;

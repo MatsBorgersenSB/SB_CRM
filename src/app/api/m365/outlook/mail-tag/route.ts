@@ -483,18 +483,31 @@ export async function POST(request: Request) {
       };
 
       // Resolve the contact for each message when bulk-selecting across different senders.
-      let targetContactId = contactId;
-      const candidateAddresses = [
-        seedMessage.senderEmail?.trim().toLowerCase(),
-        ...(seedMessage.recipientEmails ?? []).map((addr) => addr.trim().toLowerCase()),
-      ].filter((addr): addr is string => Boolean(addr && addr.includes("@")));
+      const senderNorm = seedMessage.senderEmail?.trim().toLowerCase() || "";
+      const recipientNorms = (seedMessage.recipientEmails ?? [])
+        .map((addr) => addr.trim().toLowerCase())
+        .filter(Boolean);
+      const orderedCandidates = seedMessage.isOutbound
+        ? [...recipientNorms, senderNorm]
+        : [senderNorm, ...recipientNorms];
+      const candidateAddresses = orderedCandidates.filter((addr): addr is string =>
+        Boolean(addr && addr.includes("@") && !addr.endsWith("@standard.bio")),
+      );
 
+      let targetContactId: string | null = null;
       for (const candidateEmail of candidateAddresses) {
         const matched = await findPrismaContactByIdOrEmail(candidateEmail).catch(() => null);
         if (matched?.id) {
           targetContactId = matched.id;
           break;
         }
+      }
+      if (!targetContactId && candidateAddresses.length === 0) {
+        targetContactId = contactId;
+      }
+      if (!targetContactId) {
+        failed += 1;
+        continue;
       }
 
       if (opportunityId !== undefined || projectId !== undefined) {

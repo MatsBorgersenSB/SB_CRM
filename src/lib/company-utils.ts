@@ -6,6 +6,11 @@ export function getLinkedPipelines(
   pipelines: PipelineRow[],
 ): PipelineRow[] {
   const linked = new Set(company.pipelineIds);
+  const companyKeys = new Set(
+    [company.CompanyID, company.code]
+      .map((value) => value?.trim().toUpperCase())
+      .filter((value): value is string => Boolean(value)),
+  );
   const contactIds = new Set(
     (company.contacts ?? [])
       .map((contact) => contact.ContactID?.trim())
@@ -14,10 +19,21 @@ export function getLinkedPipelines(
 
   return pipelines.filter((pipeline) => {
     if (linked.has(pipeline.id)) return true;
-    // If a company contact sits on the opportunity roster, the company is in play.
+    if (pipeline.code && linked.has(pipeline.code)) return true;
+    if (
+      pipeline.linkedCompanyIds?.some((id) =>
+        companyKeys.has(id.trim().toUpperCase()),
+      )
+    ) {
+      return true;
+    }
+    // If a company contact or company entry sits on the opportunity roster, the company is in play.
     return Boolean(
       pipeline.team?.some(
-        (member) => member.contactId && contactIds.has(member.contactId),
+        (member) =>
+          (member.contactId && contactIds.has(member.contactId)) ||
+          (member.companyId &&
+            companyKeys.has(member.companyId.trim().toUpperCase())),
       ),
     );
   });

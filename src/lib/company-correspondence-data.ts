@@ -59,13 +59,18 @@ export async function loadCorrespondenceEvidenceByCompanyId(
 
   for (const company of companies) {
     result.set(company.CompanyID, { ...EMPTY_CORRESPONDENCE });
+    const companyEmail = company.Email?.trim().toLowerCase();
+    if (companyEmail) {
+      emails.push(companyEmail);
+      emailToCompany.set(companyEmail, company.CompanyID);
+    }
     for (const contact of company.contacts ?? []) {
       const contactId = contact.ContactID?.trim();
-      if (contactId) {
+      const email = contact.Email?.trim().toLowerCase();
+      if (contactId && !email) {
         contactIds.push(contactId);
         contactToCompany.set(contactId, company.CompanyID);
       }
-      const email = contact.Email?.trim().toLowerCase();
       if (email) {
         emails.push(email);
         emailToCompany.set(email, company.CompanyID);
@@ -96,8 +101,9 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       select: {
         id: true,
         code: true,
+        emails: true,
         contacts: {
-          where: { status: "active" },
+          where: { status: { in: ["active", "archived"] } },
           select: { id: true, emails: true },
         },
       },
@@ -113,14 +119,22 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       );
       if (!appCompany) continue;
 
+      for (const address of addressesFromEmailsJson(row.emails)) {
+        emails.push(address);
+        emailToCompany.set(address, appCompany.CompanyID);
+      }
+
       for (const contact of row.contacts) {
-        contactIds.push(contact.id);
-        contactToCompany.set(contact.id, appCompany.CompanyID);
-        contactToCompany.set(
-          toContactTrackingId(contact.id),
-          appCompany.CompanyID,
-        );
-        for (const address of addressesFromEmailsJson(contact.emails)) {
+        const contactAddresses = addressesFromEmailsJson(contact.emails);
+        if (contactAddresses.length === 0) {
+          contactIds.push(contact.id);
+          contactToCompany.set(contact.id, appCompany.CompanyID);
+          contactToCompany.set(
+            toContactTrackingId(contact.id),
+            appCompany.CompanyID,
+          );
+        }
+        for (const address of contactAddresses) {
           emails.push(address);
           emailToCompany.set(address, appCompany.CompanyID);
         }
@@ -137,30 +151,6 @@ export async function loadCorrespondenceEvidenceByCompanyId(
   if (uniqueEmails.length > 0) {
     orClauses.push({ senderEmail: { in: uniqueEmails } });
     orClauses.push({ recipientEmails: { hasSome: uniqueEmails } });
-  }
-
-  const projectToCompanies = new Map<string, string[]>();
-  try {
-    const { readProjects } = await import("@/lib/project-db");
-    const { getProjectsForCompany } = await import("@/lib/project-team-utils");
-    const projects = await readProjects();
-    for (const company of companies) {
-      const keys = [company.CompanyID, company.code].filter(
-        (value): value is string => Boolean(value?.trim()),
-      );
-      const linked = keys.flatMap((key) => getProjectsForCompany(key, projects));
-      for (const project of linked) {
-        const list = projectToCompanies.get(project.id) ?? [];
-        if (!list.includes(company.CompanyID)) list.push(company.CompanyID);
-        projectToCompanies.set(project.id, list);
-      }
-    }
-    const projectIds = [...projectToCompanies.keys()];
-    if (projectIds.length > 0) {
-      orClauses.push({ projectId: { in: projectIds } });
-    }
-  } catch (error) {
-    console.warn("[correspondence] project mail match skipped", error);
   }
 
   if (orClauses.length === 0) return result;
@@ -209,11 +199,6 @@ export async function loadCorrespondenceEvidenceByCompanyId(
       const normalized = recipient.trim().toLowerCase();
       if (normalized && emailToCompany.has(normalized)) {
         companyIds.add(emailToCompany.get(normalized)!);
-      }
-    }
-    if (message.projectId) {
-      for (const companyId of projectToCompanies.get(message.projectId) ?? []) {
-        companyIds.add(companyId);
       }
     }
 
