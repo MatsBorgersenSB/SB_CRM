@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
+import { linkedWorkByPillar } from "@/lib/development-pillars";
 import type { ActivityWorkspaceContext } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
@@ -119,6 +120,10 @@ export function ProjectMissionControl({
         : `Working view (assumed): ${project.objective}`;
 
   const stageLabel = project.stage ? PROJECT_STAGE_LABELS[project.stage] : "Planning";
+  const linkedWork = useMemo(
+    () => linkedWorkByPillar(project.milestones, project.decisions),
+    [project.milestones, project.decisions],
+  );
   const developmentGaps = developmentPipeline
     ? buildGapsFromUnderstandingModel(developmentPipeline)
     : [];
@@ -249,6 +254,7 @@ export function ProjectMissionControl({
               <>
                 <OpportunityUnderstandingCapturePanel
                   pipeline={developmentPipeline}
+                  linkedWork={linkedWork}
                   focusFieldId={focusFieldId}
                   onSaveField={onSaveUnderstandingField}
                   onSaveFindings={onSaveFindings}

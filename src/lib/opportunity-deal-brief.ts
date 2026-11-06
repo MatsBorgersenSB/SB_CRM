@@ -49,9 +49,22 @@ export type BriefElement = {
   source: string | null;
 };
 
+/** One box on the development checklist (FS-005B): secured, in progress, or not started. */
+export type BriefChecklistItem = {
+  id: BriefElementId;
+  /** Plain words, e.g. "Land plot". */
+  label: string;
+  state: KnowledgeState;
+  /** What the team has recorded so far. Null when nothing is recorded. */
+  note: string | null;
+  fieldId?: UnderstandingFieldId;
+};
+
 export type BriefRow = {
   /** One line, plain words. */
   headline: string;
+  /** Development checklist, one box per pillar (Build-Own-Operate only). */
+  checklist?: BriefChecklistItem[];
   /** Why it matters. Mandatory — a row without impact is never produced. */
   impact: string;
   /** Behind the "Why" toggle. */
@@ -325,8 +338,27 @@ function hasCustomerContact(activity: Activity): boolean {
   );
 }
 
-const OPEN_WORK_NOTE_PATTERN =
-  /\b(not yet decided|yet to be discussed|to be discussed|to be investigated|to be determined|to be agreed|to be secured|must apply|must prepare|must secure|supplier requested|tbd|tbc)\b/i;
+/**
+ * Wording that says the work is still open ("to be secured", "must be confirmed", "ikke avklart").
+ */
+const OPEN_WORK_NOTE_PATTERN = new RegExp(
+  "(?<![\\p{L}\\p{N}])(?:" +
+    [
+      "not (?:yet )?(?:decided|agreed|secured|confirmed|clarified|signed|started|settled|in place|determined)",
+      "yet to be \\w+",
+      "to be (?:discussed|investigated|determined|agreed|secured|confirmed|decided|clarified|applied|negotiated|signed|finalised|finalized)",
+      "(?:must|need to|needs to|have to|has to|should|will) (?:still )?(?:be )?(?:apply|applied|prepare|prepared|secure|secured|confirm|confirmed|agree|agreed|sign|signed|decide|decided|negotiate|negotiated|establish|established|clarify|clarified)",
+      "partly|partially|pending|in progress|under (?:discussion|negotiation|review)|unclear|supplier requested",
+      "tbd|tbc",
+    ].join("|") +
+    ")(?![\\p{L}\\p{N}])",
+  "iu",
+);
+
+/** True when a recorded answer says the work is still open rather than done. */
+export function isOpenWorkNote(text: string | null | undefined): boolean {
+  return Boolean(text && OPEN_WORK_NOTE_PATTERN.test(text));
+}
 
 function customerFieldElement(
   pipeline: PipelineRow,
@@ -341,13 +373,17 @@ function customerFieldElement(
     const entered = pipeline.understanding?.fields?.[fieldId]?.trim();
     const isPendingWork =
       (BOO_LATE_GATES.includes(id) || (boo && BOO_FIELD_ELEMENTS.includes(id))) &&
-      OPEN_WORK_NOTE_PATTERN.test(resolved.value);
+      isOpenWorkNote(resolved.value);
     return {
       id,
       label,
       state: isPendingWork ? "assumed" : "confirmed",
       statement: resolved.value,
-      source: entered ? "Entered on this opportunity" : "Confirmed from a source finding",
+      source: entered
+        ? boo
+          ? "Entered by the team"
+          : "Entered on this opportunity"
+        : "Confirmed from a source finding",
     };
   }
   if (assumed?.trim()) {
@@ -480,12 +516,16 @@ function buildWhatChanged(
   pipeline: PipelineRow,
   now: Date,
   lastVisitedAt: Date | null,
+  boo = false,
 ): string {
   const touch = lastCustomerTouch(activities, now);
+  const who = boo ? "partner" : "customer";
   const parts: string[] = [
     touch
-      ? `Last customer contact: ${touch.activity.ActivityType.toLowerCase()} ${describeAge(daysBetween(touch.when, now))}.`
-      : "No customer contact logged yet.",
+      ? `Last ${who} contact: ${touch.activity.ActivityType.toLowerCase()} ${describeAge(daysBetween(touch.when, now))}.`
+      : boo
+        ? "No contact with the partners logged yet."
+        : "No customer contact logged yet.",
   ];
 
   if (lastVisitedAt) {
@@ -513,6 +553,7 @@ function findRisk(
   input: BuildDealBriefInput,
   now: Date,
   silenceDays: number,
+  boo = false,
 ): RiskCause | null {
   const alert = input.fatalFlawAlerts?.find(
     (entry) => entry.severity === "critical" || entry.severity === "high",
@@ -549,6 +590,14 @@ function findRisk(
   if (touch) {
     const quiet = daysBetween(touch.when, now);
     if (quiet > silenceDays) {
+      if (boo) {
+        return {
+          headline: `No contact with the partners for ${quiet} days`,
+          impact: `No contact with the host or partners for ${quiet} days; the agreements may be going cold.`,
+          action: "Contact the host or partners and agree a dated next step",
+          why: `The last partner contact was ${describeAge(quiet)}. Silence beyond ${silenceDays} days is a risk signal.`,
+        };
+      }
       return {
         headline: `No customer contact for ${quiet} days`,
         impact: `No customer contact for ${quiet} days; the deal may be going cold.`,
@@ -630,50 +679,47 @@ function buildBooDevelopmentWantRow(
     "site_control";
   const focusFieldId = elementFieldId(focusId) ?? "site_readiness";
 
+  // One box per pillar: ticked (secured), half (in progress) or empty (not started).
+  const checklist: BriefChecklistItem[] = pillars.map((el) => {
+    const short = el.label.replace(/^Secure\s+/i, "");
+    return {
+      id: el.id,
+      label: short.charAt(0).toUpperCase() + short.slice(1),
+      state: el.state,
+      note: el.statement,
+      fieldId: elementFieldId(el.id),
+    };
+  });
+
   if (confirmed.length === 0 && assumed.length === 0) {
     return {
-      headline: `0 of ${pillars.length} project development pillars confirmed`,
+      headline: `0 of ${pillars.length} secured — nothing recorded yet`,
+      checklist,
       impact:
         "Taking our development project from FEL 1 to realisation requires securing land plot, feedstock, utilities, energy & biochar offtake, subsidies, and permitting.",
-      why: `Open pillars: ${pillars.map((el) => el.label).join(" · ")}`,
       state: "unknown",
       source: null,
       fieldId: focusFieldId,
     };
   }
 
-  const securedNames = confirmed.map((el) => el.label.replace(/^Secure\s+/i, ""));
-  const inProgressNames = assumed.map((el) => el.label.replace(/^Secure\s+/i, ""));
-  const missingNames = pillars
-    .filter((el) => el.state === "unknown")
-    .map((el) => el.label.replace(/^Secure\s+/i, ""));
-
-  const summaryBits: string[] = [];
-  if (securedNames.length > 0) {
-    summaryBits.push(`Secured (${securedNames.length}/${pillars.length}): ${securedNames.join(", ")}`);
-  }
-  if (inProgressNames.length > 0) {
-    summaryBits.push(`In progress (${inProgressNames.length}): ${inProgressNames.join(", ")}`);
-  }
-  if (missingNames.length > 0) {
-    summaryBits.push(`Not started (${missingNames.length}): ${missingNames.join(", ")}`);
-  }
-
-  const detailLines = pillars
-    .filter((el) => el.statement)
-    .map((el) => `• ${el.label}: ${el.statement}`);
-
   const allConfirmed = confirmed.length === pillars.length;
+  const headlineBits = [`${confirmed.length} of ${pillars.length} secured`];
+  if (assumed.length > 0) headlineBits.push(`${assumed.length} in progress`);
+  const notStarted = pillars.length - confirmed.length - assumed.length;
+  if (notStarted > 0) headlineBits.push(`${notStarted} not started`);
+
   return {
     headline: allConfirmed
-      ? `All ${pillars.length} project development pillars secured for realisation`
-      : summaryBits.join(" · "),
+      ? `All ${pillars.length} secured for realisation`
+      : headlineBits.join(" · "),
+    checklist,
     impact: allConfirmed
       ? "Land plot, feedstock, utilities, energy & biochar offtake, subsidies, and permitting are secured."
-      : "Standard Bio's own project development (FEL 1 → realisation): every pillar must be secured to finance and build the plant.",
-    why: detailLines.length > 0 ? detailLines.join("\n") : undefined,
-    state: allConfirmed ? "confirmed" : confirmed.length > 0 ? "confirmed" : "assumed",
-    source: `${confirmed.length} confirmed, ${assumed.length} in progress, ${missingNames.length} open`,
+      : "Standard Bio's own project development (FEL 1 → realisation): every box must be ticked to finance and build the plant.",
+    // The whole checklist is only "Confirmed" when every box is ticked.
+    state: allConfirmed ? "confirmed" : undefined,
+    source: null,
     fieldId: focusFieldId,
   };
 }
@@ -721,7 +767,7 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
       (id) => byId[id].state !== "confirmed",
     ) ?? null;
 
-  const risk = findRisk(input, now, silenceDays);
+  const risk = findRisk(input, now, silenceDays, boo);
 
   // Items that stop "Clear path". Permits, subsidies and financing join them from the financing stage.
   const gates: readonly BriefElementId[] = boo
@@ -887,7 +933,7 @@ export function buildDealBrief(input: BuildDealBriefInput): DealBrief {
           blocker: "What is blocking progress",
           next: "What should happen next",
         },
-    whatChanged: buildWhatChanged(activities, pipeline, now, parseDate(input.lastVisitedAt)),
+    whatChanged: buildWhatChanged(activities, pipeline, now, parseDate(input.lastVisitedAt), boo),
     weakestLink,
     elements,
   };

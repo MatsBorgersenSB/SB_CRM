@@ -52,7 +52,12 @@ export function ProjectCreateButton() {
         throw new Error(payload.error ?? "Failed to create project");
       }
       const project = (await response.json()) as { id: string };
-      router.push(`${project360Href(project.id)}?view=actions&action=questions`);
+      // Development projects start on the checklist; the others start with discovery questions.
+      router.push(
+        kind === "development"
+          ? `${project360Href(project.id)}?view=understanding`
+          : `${project360Href(project.id)}?view=actions&action=questions`,
+      );
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");
@@ -113,7 +118,7 @@ export function ProjectCreateButton() {
               onClick={() => {
                 setOpen(false);
                 setName("");
-                setKind("internal");
+                setKind("development");
                 setError(null);
               }}
               className="px-3 py-1.5 text-xs font-semibold text-carbon-blue/55"

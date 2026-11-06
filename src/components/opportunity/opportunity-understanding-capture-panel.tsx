@@ -5,6 +5,14 @@ import type { PipelineRow } from "@/types/pipeline";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
 import { isUnderstandingFieldId } from "@/types/opportunity-understanding";
 import { resolveSalesMotion, understandingFieldsForPipeline } from "@/lib/sales-motion";
+import { isOpenWorkNote } from "@/lib/opportunity-deal-brief";
+import {
+  DEVELOPMENT_PILLARS,
+  isDevelopmentAlsoNeededField,
+  isDevelopmentPillarField,
+  isHostPlantClaim,
+  type LinkedWorkItem,
+} from "@/lib/development-pillars";
 import {
   confirmedFindingClaimsForField,
   proposedFindingClaimsForField,
@@ -22,6 +30,18 @@ import {
 import type { InsightCategory } from "@/types/smartassist-intelligence";
 import { EDITORIAL_LABEL } from "@/lib/editorial-design-system";
 
+/** Development checklist fields (FS-005B): answers here can say the work is still open. */
+const BOO_CHECKLIST_FIELD_IDS: UnderstandingFieldId[] = [
+  "site_readiness",
+  "feedstock_agreement",
+  "utilities",
+  "offtake_strategy",
+  "end_product",
+  "public_funding",
+  "permitting",
+  "funding_source",
+];
+
 function categoryForSource(source: "captured" | "derived" | "empty"): InsightCategory {
   if (source === "captured") return "known";
   if (source === "derived") return "assumed";
@@ -36,8 +56,11 @@ export function OpportunityUnderstandingCapturePanel({
   onReadDocuments,
   documentCount = 0,
   readOnly = false,
+  linkedWork,
 }: {
   pipeline: PipelineRow;
+  /** Project milestones and decisions grouped under the development step they belong to. */
+  linkedWork?: Partial<Record<UnderstandingFieldId, LinkedWorkItem[]>>;
   focusFieldId?: string | null;
   onSaveField?: (fieldId: UnderstandingFieldId, value: string) => Promise<void>;
   onSaveFindings?: (findings: SourceFinding[]) => Promise<void>;
@@ -137,16 +160,39 @@ export function OpportunityUnderstandingCapturePanel({
     await onSaveFindings(next);
   };
 
-  const renderRow = (field: (typeof fields)[number]) => (
+  const development = resolveSalesMotion(pipeline).motion === "boo";
+
+  const renderRow = (field: (typeof fields)[number], step?: number) => (
     <UnderstandingFieldRow
       key={field.id}
       pipeline={pipeline}
       fieldId={field.id}
+      step={step}
+      development={development}
+      linkedWork={linkedWork?.[field.id]}
       focused={focusId === field.id}
       readOnly={readOnly || !onSaveField}
       onSave={onSaveField}
       onDecideClaim={onSaveFindings ? handleDecideFindingClaim : undefined}
     />
+  );
+
+  // Development checklist: one card per step, in order. Each card holds only that step's issues.
+  const steps = useMemo(
+    () =>
+      DEVELOPMENT_PILLARS.map((pillar) => fields.find((f) => f.id === pillar.fieldId)).filter(
+        (f): f is (typeof fields)[number] => Boolean(f),
+      ),
+    [fields],
+  );
+  const alsoNeeded = useMemo(
+    () => fields.filter((f) => isDevelopmentAlsoNeededField(f.id)),
+    [fields],
+  );
+  const background = useMemo(
+    () =>
+      fields.filter((f) => !isDevelopmentPillarField(f.id) && !isDevelopmentAlsoNeededField(f.id)),
+    [fields],
   );
 
   return (
@@ -185,7 +231,42 @@ export function OpportunityUnderstandingCapturePanel({
         </p>
       ) : null}
 
-      {unknown.length > 0 ? (
+      {development ? (
+        <>
+          <section aria-labelledby="development-steps">
+            <h2 id="development-steps" className="text-[13px] font-semibold text-carbon-blue">
+              The {steps.length} things we must secure
+            </h2>
+            <p className="mt-1 text-[12px] text-carbon-blue/55">
+              Each step shows only what belongs to that step.
+            </p>
+            <div className="mt-3 flex flex-col gap-4">
+              {steps.map((field, index) => renderRow(field, index + 1))}
+            </div>
+          </section>
+          {alsoNeeded.length > 0 ? (
+            <section aria-labelledby="development-also">
+              <h2 id="development-also" className="text-[13px] font-semibold text-carbon-blue">
+                Also needed for the plant
+              </h2>
+              <div className="mt-3 flex flex-col gap-4">{alsoNeeded.map((f) => renderRow(f))}</div>
+            </section>
+          ) : null}
+          {background.length > 0 ? (
+            <details className="group">
+              <summary className="cursor-pointer text-[13px] font-semibold text-carbon-blue">
+                Background and engineering ({background.length})
+              </summary>
+              <p className="mt-1 text-[12px] text-carbon-blue/55">
+                Useful context. Not one of the steps above.
+              </p>
+              <div className="mt-3 flex flex-col gap-4">{background.map((f) => renderRow(f))}</div>
+            </details>
+          ) : null}
+        </>
+      ) : null}
+
+      {!development && unknown.length > 0 ? (
         <section aria-labelledby="understanding-unknown">
           <h2 id="understanding-unknown" className="text-[13px] font-semibold text-carbon-blue">
             Not known yet ({unknown.length})
@@ -194,7 +275,7 @@ export function OpportunityUnderstandingCapturePanel({
         </section>
       ) : null}
 
-      {known.length > 0 ? (
+      {!development && known.length > 0 ? (
         <section aria-labelledby="understanding-known">
           <h2 id="understanding-known" className="text-[13px] font-semibold text-carbon-blue">
             What we know ({known.length})
@@ -209,6 +290,9 @@ export function OpportunityUnderstandingCapturePanel({
 function UnderstandingFieldRow({
   pipeline,
   fieldId,
+  step,
+  development = false,
+  linkedWork,
   focused,
   readOnly,
   onSave,
@@ -216,6 +300,11 @@ function UnderstandingFieldRow({
 }: {
   pipeline: PipelineRow;
   fieldId: UnderstandingFieldId;
+  /** Position on the development checklist (1-based). */
+  step?: number;
+  /** Development project: evidence about the host's own plant is not shown on our steps. */
+  development?: boolean;
+  linkedWork?: LinkedWorkItem[];
   focused: boolean;
   readOnly: boolean;
   onSave?: (fieldId: UnderstandingFieldId, value: string) => Promise<void>;
@@ -230,12 +319,18 @@ function UnderstandingFieldRow({
     [pipeline, fieldId],
   );
   const proposedClaims = useMemo(
-    () => proposedFindingClaimsForField(pipeline.understanding?.findings, fieldId),
-    [pipeline.understanding?.findings, fieldId],
+    () =>
+      proposedFindingClaimsForField(pipeline.understanding?.findings, fieldId).filter(
+        ({ claim }) => !development || !isHostPlantClaim(claim.statement),
+      ),
+    [pipeline.understanding?.findings, fieldId, development],
   );
   const confirmedClaims = useMemo(
-    () => confirmedFindingClaimsForField(pipeline.understanding?.findings, fieldId),
-    [pipeline.understanding?.findings, fieldId],
+    () =>
+      confirmedFindingClaimsForField(pipeline.understanding?.findings, fieldId).filter(
+        ({ claim }) => !development || !isHostPlantClaim(claim.statement),
+      ),
+    [pipeline.understanding?.findings, fieldId, development],
   );
   const [claimBusy, setClaimBusy] = useState<string | null>(null);
   const [draft, setDraft] = useState(
@@ -272,13 +367,21 @@ function UnderstandingFieldRow({
     window.setTimeout(() => inputRef.current?.focus(), 200);
   }, [focused, readOnly]);
 
-  const category = categoryForSource(
-    editing && draft.trim()
-      ? "captured"
-      : displaySource === "empty" && !draft.trim()
-        ? "empty"
-        : displaySource,
-  );
+  // Same rule as the Overview checklist: an answer that says "to be secured" is still open work.
+  const stillOpen =
+    BOO_CHECKLIST_FIELD_IDS.includes(fieldId) &&
+    resolveSalesMotion(pipeline).motion === "boo" &&
+    isOpenWorkNote(capturedValue);
+
+  const category = stillOpen
+    ? ("assumed" as const)
+    : categoryForSource(
+        editing && draft.trim()
+          ? "captured"
+          : displaySource === "empty" && !draft.trim()
+            ? "empty"
+            : displaySource,
+      );
 
   const displayValue =
     displaySource === "empty" && !editing
@@ -314,14 +417,21 @@ function UnderstandingFieldRow({
     >
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-[13px] font-semibold text-carbon-blue">
+          {step ? `${step}. ` : ""}
           {resolved.definition.label}
         </p>
         <SmartAssistCategoryBadge category={category} />
-        <SmartAssistConfidenceLabel
-          confidence={
-            category === "known" ? "high" : category === "assumed" ? "medium" : "low"
-          }
-        />
+        {stillOpen ? (
+          <span className="text-[11px] font-medium text-upcycle-orange">
+            Still open — not secured yet
+          </span>
+        ) : (
+          <SmartAssistConfidenceLabel
+            confidence={
+              category === "known" ? "high" : category === "assumed" ? "medium" : "low"
+            }
+          />
+        )}
       </div>
       <p className="mt-1 text-[13px] text-carbon-blue/55">{resolved.definition.prompt}</p>
 
@@ -389,11 +499,34 @@ function UnderstandingFieldRow({
             ) : null}
           </div>
 
+          {linkedWork && linkedWork.length > 0 ? (
+            <div className="mt-1 rounded-md border border-carbon-blue/10 bg-carbon-blue/[0.02] px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
+                Being done for this step
+              </p>
+              <ul className="mt-1 flex flex-col gap-1">
+                {linkedWork.map((item) => (
+                  <li key={item.id} className="text-[12px] leading-snug text-carbon-blue">
+                    <span className="font-semibold">
+                      {item.kind === "decided" ? "Decided" : "To do"}
+                      {item.date ? ` ${item.date}` : ""}:
+                    </span>{" "}
+                    {item.text}
+                    <span className="text-carbon-blue/60">
+                      {item.owner ? ` — ${item.owner}` : ""}
+                      {item.status ? ` · ${item.status}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {confirmedClaims.length > 0 ? (
             <div className="mt-1 flex flex-wrap gap-1.5">
               {confirmedClaims.map(({ finding, claim }) => (
                 <span
-                  key={claim.id}
+                  key={`${finding.id}:${claim.id}`}
                   className="inline-flex items-center gap-1 rounded border border-emerald-600/25 bg-emerald-50/70 px-2 py-0.5 text-[11px] font-medium text-emerald-800"
                 >
                   Confirmed from {finding.title}
@@ -409,7 +542,7 @@ function UnderstandingFieldRow({
               </p>
               {proposedClaims.map(({ finding, claim }) => (
                 <div
-                  key={claim.id}
+                  key={`${finding.id}:${claim.id}`}
                   className="flex flex-wrap items-start justify-between gap-2 border-t border-upcycle-orange/15 pt-1.5 first:border-t-0 first:pt-0"
                 >
                   <div className="min-w-0 flex-1">

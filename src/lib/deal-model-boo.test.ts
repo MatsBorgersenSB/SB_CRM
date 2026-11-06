@@ -321,6 +321,46 @@ describe("Build-Own-Operate Brief (FS-005B 6)", () => {
     const feedstock = brief.elements.find((element) => element.id === "feedstock_agreement");
     assert.equal(feedstock?.state, "unknown");
   });
+
+  it("shows one checklist box per pillar and only ticks what is secured", () => {
+    const brief = buildDealBrief({
+      pipeline: boo({
+        feedstock_agreement: INPUTS.feedstock_agreement,
+        utilities: "Ducts partly prepared; capacity and tie-in terms must be confirmed",
+        end_product: "Biochar offtake must be secured",
+      }),
+      activities: [],
+      now: NOW,
+    });
+    const items = brief.want.checklist ?? [];
+    assert.equal(items.length, 7);
+    const state = (id: string) => items.find((item) => item.id === id)?.state;
+    assert.equal(state("feedstock_agreement"), "confirmed");
+    assert.equal(state("utilities"), "assumed");
+    assert.equal(state("biochar_offtake"), "assumed");
+    assert.equal(state("site_control"), "unknown");
+    assert.match(brief.want.headline, /^1 of 7 secured/);
+    assert.equal(brief.want.state, undefined);
+  });
+
+  it("treats 'not settled yet' notes as open work, not secured", () => {
+    const brief = buildDealBrief({
+      pipeline: boo({
+        site_readiness: "Plot available, lease or purchase not yet agreed",
+        permitting: "Application must be prepared, not in place",
+      }),
+      activities: [],
+      now: NOW,
+    });
+    const state = (id: string) => brief.elements.find((e) => e.id === id)?.state;
+    assert.equal(state("site_control"), "assumed");
+    assert.equal(state("permitting"), "assumed");
+  });
+
+  it("speaks of partners, not customers, on a development project", () => {
+    const brief = buildDealBrief({ pipeline: boo({}), activities: [], now: NOW });
+    assert.match(brief.whatChanged, /No contact with the partners logged yet/);
+  });
 });
 
 describe("Project related organization company picker helpers (FS-015)", () => {

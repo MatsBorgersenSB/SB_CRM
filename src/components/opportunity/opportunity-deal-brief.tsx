@@ -29,6 +29,18 @@ const STATE_STYLE: Record<KnowledgeState, string> = {
   unknown: "border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
 };
 
+const CHECK_MARK: Record<KnowledgeState, string> = { confirmed: "✓", assumed: "…", unknown: "" };
+const CHECK_SR: Record<KnowledgeState, string> = {
+  confirmed: "secured",
+  assumed: "in progress",
+  unknown: "not started",
+};
+const CHECK_STYLE: Record<KnowledgeState, string> = {
+  confirmed: "border-emerald-500 bg-emerald-500 text-white",
+  assumed: "border-upcycle-orange/60 bg-upcycle-orange/10 text-upcycle-orange",
+  unknown: "border-slate-300 bg-white text-transparent dark:border-slate-600 dark:bg-slate-900",
+};
+
 /**
  * FS-005A Deal Brief — verdict, three answers, one line of change.
  * Reasoning stays behind "Why"; nothing here shows scores or engine detail.
@@ -41,6 +53,7 @@ export function OpportunityDealBriefHero({
   onAnswerNow?: (fieldId: string) => void;
 }) {
   const { verdict } = brief;
+  const development = Boolean(brief.want.checklist);
   return (
     <section aria-label="Deal brief" className={`${ATTIO_SURFACE} overflow-hidden`}>
       <div className="flex flex-col gap-1 border-b border-slate-200/80 px-4 py-4 sm:px-5 dark:border-slate-800">
@@ -59,9 +72,9 @@ export function OpportunityDealBriefHero({
       </div>
 
       <div className="grid divide-y divide-slate-200/80 lg:grid-cols-3 lg:divide-x lg:divide-y-0 dark:divide-slate-800">
-        <BriefColumn label={brief.columns.want} row={brief.want} onAnswerNow={onAnswerNow} />
-        <BriefColumn label={brief.columns.blocker} row={brief.blocker} onAnswerNow={onAnswerNow} />
-        <BriefColumn label={brief.columns.next} row={brief.next} onAnswerNow={onAnswerNow} />
+        <BriefColumn label={brief.columns.want} row={brief.want} onAnswerNow={onAnswerNow} development={development} />
+        <BriefColumn label={brief.columns.blocker} row={brief.blocker} onAnswerNow={onAnswerNow} development={development} />
+        <BriefColumn label={brief.columns.next} row={brief.next} onAnswerNow={onAnswerNow} development={development} />
       </div>
 
       <p className="border-t border-slate-200/80 px-4 py-3 text-[13px] text-slate-500 sm:px-5 dark:border-slate-800 dark:text-slate-400">
@@ -75,10 +88,12 @@ function BriefColumn({
   label,
   row,
   onAnswerNow,
+  development = false,
 }: {
   label: string;
   row: BriefRow;
   onAnswerNow?: (fieldId: string) => void;
+  development?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -89,7 +104,7 @@ function BriefColumn({
           <span
             className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${STATE_STYLE[row.state]}`}
           >
-            {STATE_LABEL[row.state]}
+            {development && row.state === "assumed" ? "In progress" : STATE_LABEL[row.state]}
           </span>
           {row.source ? (
             <span className="text-[12px] text-slate-500 dark:text-slate-400">{row.source}</span>
@@ -99,6 +114,37 @@ function BriefColumn({
       <p className="text-[15px] font-medium leading-snug text-slate-900 dark:text-slate-50">
         {row.headline}
       </p>
+      {row.checklist ? (
+        <ul aria-label="Development checklist" className="flex flex-col gap-0.5">
+          {row.checklist.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                disabled={!item.fieldId || !onAnswerNow}
+                onClick={() => item.fieldId && onAnswerNow?.(item.fieldId)}
+                title={item.note ?? "Nothing recorded yet. Click to answer."}
+                className="flex w-full items-start gap-2 rounded px-1 py-1 text-left text-[13px] leading-snug text-slate-700 transition-colors enabled:hover:bg-slate-100 dark:text-slate-200 dark:enabled:hover:bg-slate-800"
+              >
+                <span
+                  aria-hidden
+                  className={`mt-px inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[11px] font-bold ${CHECK_STYLE[item.state]}`}
+                >
+                  {CHECK_MARK[item.state]}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className={item.state === "confirmed" ? "text-slate-500 line-through decoration-slate-300" : "font-medium"}>
+                    {item.label}
+                  </span>
+                  <span className="sr-only"> — {CHECK_SR[item.state]}</span>
+                  {item.state === "assumed" ? (
+                    <span className="ml-1.5 text-[12px] text-upcycle-orange">in progress</span>
+                  ) : null}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <p className="text-[13px] leading-relaxed text-slate-600 dark:text-slate-300">
         {row.impact}
       </p>
