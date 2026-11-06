@@ -19,6 +19,7 @@ Gate: [QUALITY.md](QUALITY.md).
 | Skill | Job | Status |
 |-------|-----|--------|
 | [m365-colleague-work](m365-colleague-work/SKILL.md) | Assign ≠ share; Teams then mail; identity by email | **Step 4 — written (skill, not super)** |
+| [crm-hillclimb](crm-hillclimb/SKILL.md) | Score-driven 5-gate improvement loop (`npm run hillclimb` + `/loop`) | **Active — protocol skill** |
 
 ## References (not skills)
 

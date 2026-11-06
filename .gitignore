@@ -51,6 +51,8 @@ next-env.d.ts
 graphify-out/
 
 .cursor/mcp.json
+.cursor/hillclimb-state.json
+.cursor/hillclimb-hook-cache.json
 
 # Sentry Config File
 .env.sentry-build-plugin
