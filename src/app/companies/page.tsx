@@ -1,3 +1,4 @@
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
 import { Suspense } from "react";
 import { CompaniesOperationsShell } from "@/components/layout/companies-operations-shell";
 import { compactCorrespondenceForLists } from "@/lib/company-correspondence";
@@ -27,7 +28,7 @@ export default async function CompaniesPage() {
   );
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WorkspaceLoading label="Loading companies" />}>
       <CompaniesOperationsShell
         companies={companies}
         pipelines={pipelines}

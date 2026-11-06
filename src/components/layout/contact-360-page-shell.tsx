@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Contact360LivingWorkspace } from "@/components/contacts/contact-360-living-workspace";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { WorkspaceMain } from "@/components/ui/workspace-main";
 import { useAuth } from "@/context/auth-context";
 import type { Company } from "@/lib/companies-data";
@@ -63,25 +64,12 @@ export function Contact360PageShell({
   const [projectRows, setProjectRows] = useState(projects);
   const [pipelineRows, setPipelineRows] = useState(pipelines);
 
-  useEffect(() => {
-    setCompanyRows(companies);
-  }, [companies]);
-
-  useEffect(() => {
-    setPipelineRows(pipelines);
-  }, [pipelines]);
-
-  useEffect(() => {
-    setActivityRows(activities);
-  }, [activities]);
-
-  useEffect(() => {
-    setEvidenceRows(outlookEvidence);
-  }, [outlookEvidence]);
-
-  useEffect(() => {
-    setProjectRows(projects);
-  }, [projects]);
+  // Rows follow the server data; reset local edits whenever fresh data arrives.
+  useWhenChanged([companies], () => setCompanyRows(companies), { runOnMount: false });
+  useWhenChanged([pipelines], () => setPipelineRows(pipelines), { runOnMount: false });
+  useWhenChanged([activities], () => setActivityRows(activities), { runOnMount: false });
+  useWhenChanged([outlookEvidence], () => setEvidenceRows(outlookEvidence), { runOnMount: false });
+  useWhenChanged([projects], () => setProjectRows(projects), { runOnMount: false });
 
   const handleProjectUpdated = useCallback((updated: Project) => {
     setProjectRows((current) => {
@@ -276,7 +264,7 @@ export function Contact360PageShell({
       <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
         <div className="min-w-0 truncate text-[12px] text-carbon-blue/55">
           <Link href="/contacts" className="font-semibold text-carbon-blue/65 hover:text-upcycle-orange">
-            Contacts
+            People
           </Link>
           <span className="text-carbon-blue/25"> / </span>
           <span className="font-semibold text-carbon-blue">{displayName}</span>
@@ -286,7 +274,7 @@ export function Contact360PageShell({
             </span>
           ) : null}
         </div>
-        <ThemeToggle />
+        <RoleSwitcher />
       </header>
 
       <WorkspaceMain>

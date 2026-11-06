@@ -23,6 +23,8 @@ import {
   COMPANY_TYPE_SELECT_OPTIONS,
   type CompanyType,
 } from "@/types/company-type";
+import { useEscapeKey } from "@/hooks/use-escape-key";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 type OutlookAddContactDialogProps = {
   open: boolean;
@@ -39,6 +41,7 @@ export function OutlookAddContactDialog({
   onClose,
   onCreated,
 }: OutlookAddContactDialogProps) {
+  useEscapeKey(open, onClose);
   const searchParams = useSearchParams();
   const [prepopulation, setPrepopulation] = useState<OutlookSenderPrepopulation | null>(null);
   const [companyName, setCompanyName] = useState("");
@@ -61,7 +64,7 @@ export function OutlookAddContactDialog({
     };
   }, []);
 
-  useEffect(() => {
+  useWhenChanged([open, email, displayName, searchParams], () => {
     if (!open) {
       setEnrichmentDismissed(false);
       setAcceptedSuggestions(null);
@@ -72,10 +75,14 @@ export function OutlookAddContactDialog({
       setCompanyType("");
       return;
     }
-
-    let active = true;
     setError(null);
     setLoading(true);
+  });
+
+  useEffect(() => {
+    if (!open) return;
+
+    let active = true;
 
     void (async () => {
       const devBody = resolveDevMessageBody(searchParams);

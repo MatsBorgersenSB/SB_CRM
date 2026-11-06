@@ -17,6 +17,8 @@ import {
   companyNeedsSelectDisambiguation,
   formatCompanySelectLabel,
 } from "@/lib/m365/company-resolution";
+import { useEscapeKey } from "@/hooks/use-escape-key";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 type WizardMode = "transfer" | "merge" | "position";
 
@@ -59,6 +61,7 @@ export function ContactLifecycleWizard({
   onPositionCompleted,
   onContactUpdate,
 }: ContactLifecycleWizardProps) {
+  useEscapeKey(open, onClose);
   const [targetCompanyId, setTargetCompanyId] = useState("");
   const [secondaryContactId, setSecondaryContactId] = useState("");
   const [newRole, setNewRole] = useState(contact.Role);
@@ -67,7 +70,7 @@ export function ContactLifecycleWizard({
     contact.EmploymentStatus ?? "Active",
   );
   const [preview, setPreview] = useState<TransferPreview | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadedPreviewKey, setLoadedPreviewKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,20 +82,29 @@ export function ContactLifecycleWizard({
     [companies, companyId],
   );
 
-  useEffect(() => {
-    if (!open) return;
+  const firstDuplicateId = duplicateCandidates[0]?.contactId ?? "";
+  useWhenChanged([open, contact, transferOptions, firstDuplicateId], () => {
+    if (!open) {
+      setLoadedPreviewKey(null);
+      return;
+    }
     setError(null);
     setTargetCompanyId(transferOptions[0]?.CompanyID ?? "");
-    setSecondaryContactId(duplicateCandidates[0]?.contactId ?? "");
+    setSecondaryContactId(firstDuplicateId);
     setNewRole(contact.Role);
     setNewJobTitle(contact.JobTitle);
     setEmploymentStatus(contact.EmploymentStatus ?? "Active");
-  }, [open, contact, transferOptions, duplicateCandidates]);
+  });
+
+  const previewKey =
+    open && mode === "transfer" && targetCompanyId
+      ? `:${targetCompanyId}`
+      : null;
+  const loading = previewKey !== null && loadedPreviewKey !== previewKey;
 
   useEffect(() => {
-    if (!open || mode !== "transfer" || !targetCompanyId) return;
+    if (!previewKey) return;
 
-    setLoading(true);
     void fetch(`/api/contacts/${encodeURIComponent(contact.ContactID)}/transfer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -106,8 +118,8 @@ export function ContactLifecycleWizard({
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "Failed to load preview");
       })
-      .finally(() => setLoading(false));
-  }, [open, mode, contact.ContactID, targetCompanyId]);
+      .finally(() => setLoadedPreviewKey(previewKey));
+  }, [previewKey, contact.ContactID, targetCompanyId]);
 
   if (!open) return null;
 

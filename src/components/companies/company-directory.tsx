@@ -196,7 +196,7 @@ export function CompanyDirectory({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50" />
-            <input
+            <input aria-label="Search name, ID, industry, location"
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}

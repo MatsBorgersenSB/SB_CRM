@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Plus, X } from "lucide-react";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 import type { Company } from "@/types/company";
 import {
   COMPANY_SECTOR_PRESETS,
@@ -40,12 +41,12 @@ export function SectorTagManager({
     normalizeCompanySectors(sectors),
   );
 
-  useEffect(() => {
+  useWhenChanged([companyId], () => {
     setLocalSectors(normalizeCompanySectors(sectors));
     setError(null);
     setOpen(false);
     setQuery("");
-  }, [companyId]);
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -167,7 +168,7 @@ export function SectorTagManager({
             }}
           >
             <div className="border-b border-carbon-blue/8 p-1.5">
-              <input
+              <input aria-label="Search or create"
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}

@@ -1,3 +1,4 @@
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Company360Shell } from "@/components/company-360/company-360-shell";
@@ -131,7 +132,7 @@ export default async function Company360Page({ params }: Company360PageProps) {
   ]);
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WorkspaceLoading label="Opening company" />}>
       <Company360Shell
         initialCompany={company}
         companies={shellCompanies}

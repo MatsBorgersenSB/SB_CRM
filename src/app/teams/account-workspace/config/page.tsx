@@ -183,7 +183,7 @@ export default function TeamsAccountWorkspaceConfigPage() {
         </p>
       ) : null}
 
-      <input
+      <input aria-label="Search Escalante, company name"
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}

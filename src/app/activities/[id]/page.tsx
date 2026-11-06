@@ -1,3 +1,4 @@
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
 import { Suspense } from "react";
 import { ActivityDetailKnowledge } from "@/components/activities/activity-detail-knowledge";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
@@ -45,7 +46,7 @@ export default async function ActivityDetailPage({
   return (
     <WorkspaceChrome>
       <WorkspaceMain>
-        <Suspense fallback={null}>
+        <Suspense fallback={<WorkspaceLoading label="Opening activity" />}>
           <ActivityDetailKnowledge
             activity={activity}
             companies={companies}

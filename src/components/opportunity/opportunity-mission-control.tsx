@@ -514,34 +514,11 @@ function OverviewPanel({
 
   return (
     <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
-      {lean ? null : (
-        <>
-          <AddFindingPanel
-            targetLabel="this opportunity"
-            findings={findings}
-            onFindingsChange={
-              onSaveFindings ??
-              (async () => {
-                throw new Error("You cannot add findings with this role");
-              })
-            }
-            documentCount={documentCount}
-            onReadDocuments={onReadDocuments}
-            knownFieldIds={knownFieldIds}
-          />
-          <MarketFactsOnDeal country={country} feedstock={feedstock} industry={industry} />
-        </>
-      )}
-
       <MissionInsight
         label="What the customer wants"
         answer={objectiveLabel}
         detail={objectiveConfidenceReason}
       />
-
-      {mailSignals}
-
-      {knowledgeReview}
 
       {lean ? null : blocker ? (
         <ExplainabilityBlock
@@ -594,6 +571,37 @@ function OverviewPanel({
           {stakeholdersOverview}
         </section>
       ) : null}
+
+      {lean ? (
+        <>
+          {mailSignals}
+          {knowledgeReview}
+        </>
+      ) : (
+        <details className="border-t border-slate-200/80 pt-6 dark:border-slate-800">
+          <summary className="cursor-pointer list-none text-[13px] font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200">
+            Evidence and inbox
+          </summary>
+          <div className={`mt-4 flex flex-col ${EDITORIAL_GAP_SECTION}`}>
+            <AddFindingPanel
+              targetLabel="this opportunity"
+              findings={findings}
+              onFindingsChange={
+                onSaveFindings ??
+                (async () => {
+                  throw new Error("You cannot add findings with this role");
+                })
+              }
+              documentCount={documentCount}
+              onReadDocuments={onReadDocuments}
+              knownFieldIds={knownFieldIds}
+            />
+            <MarketFactsOnDeal country={country} feedstock={feedstock} industry={industry} />
+            {mailSignals}
+            {knowledgeReview}
+          </div>
+        </details>
+      )}
     </div>
   );
 }

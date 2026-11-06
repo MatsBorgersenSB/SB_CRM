@@ -7,6 +7,7 @@ import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
 import type { UserRole } from "@/types/auth";
 import { COMPANY_ROLES, type CompanyRole } from "@/types/pipeline";
 import { deal360Href } from "@/types/relationship-navigation";
+import { useEscapeKey } from "@/hooks/use-escape-key";
 
 type OutlookAddOpportunityDialogProps = {
   open: boolean;
@@ -27,6 +28,7 @@ export function OutlookAddOpportunityDialog({
   onClose,
   onCreated,
 }: OutlookAddOpportunityDialogProps) {
+  useEscapeKey(open, onClose);
   const [title, setTitle] = useState(suggestedTitle);
   const [companyRole, setCompanyRole] = useState<CompanyRole>("Technology Buyer");
   const [offeringIds, setOfferingIds] = useState<string[]>([]);

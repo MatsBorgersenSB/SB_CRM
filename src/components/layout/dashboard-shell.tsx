@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
+
 import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -54,7 +56,7 @@ type DashboardShellProps = {
 
 export function DashboardShell(props: DashboardShellProps) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WorkspaceLoading label="Preparing your day" />}>
       <DashboardShellContent {...props} />
     </Suspense>
   );
@@ -193,7 +195,7 @@ function DashboardShellContent({
     <WorkspaceChrome>
         <WorkspaceHeader
           scope="Today"
-          title={ownerFilter ? `${ownerFilter} — Attention Queue` : "My Attention"}
+          title={ownerFilter ? `${ownerFilter} — needs attention` : "My Attention"}
           context={
             ownerFilter
               ? "Filtered queue for this owner"
@@ -222,7 +224,7 @@ function DashboardShellContent({
 
             <SmartAssistCopilotHost compact />
 
-            <WorkspacePanel title="Attention">
+            <WorkspacePanel title="Most important first">
               <MyAttentionPanel queue={attentionQueue} ownerFilter={ownerFilter} />
             </WorkspacePanel>
 

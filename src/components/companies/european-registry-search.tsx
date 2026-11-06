@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 import type { UnifiedEuropeanCompany } from "@/lib/integrations/company-registers/types";
 
 type EuropeanRegistrySearchProps = {
@@ -29,9 +30,20 @@ export function EuropeanRegistrySearch({
   const rootRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [settledKey, setSettledKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<UnifiedEuropeanCompany[]>([]);
+
+  const trimmed = query.trim();
+  const searchKey =
+    trimmed.length >= 2 ? `|${countryHint ?? ""}|${domainHint ?? ""}` : null;
+  // Loading until the request for the current query has settled.
+  const loading = searchKey !== null && settledKey !== searchKey;
+  const visibleResults = searchKey ? results : [];
+  const visibleError = searchKey && settledKey === searchKey ? error : null;
+  useWhenChanged([searchKey], () => {
+    if (!searchKey) setSettledKey(null);
+  });
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
@@ -57,16 +69,8 @@ export function EuropeanRegistrySearch({
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      setResults([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+    if (!searchKey) return;
 
-    setLoading(true);
-    setError(null);
     debounceRef.current = setTimeout(() => {
       void (async () => {
         const requestId = ++requestIdRef.current;
@@ -92,7 +96,7 @@ export function EuropeanRegistrySearch({
           setResults([]);
           setError("Registry search unavailable");
         } finally {
-          if (requestId === requestIdRef.current) setLoading(false);
+          if (requestId === requestIdRef.current) setSettledKey(searchKey);
         }
       })();
     }, 350);
@@ -100,7 +104,7 @@ export function EuropeanRegistrySearch({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query, countryHint, domainHint]);
+  }, [searchKey, trimmed, countryHint, domainHint]);
 
   const handleSelect = (company: UnifiedEuropeanCompany) => {
     setSelectedLabel(
@@ -117,7 +121,7 @@ export function EuropeanRegistrySearch({
         <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
           {label}
         </span>
-        <input
+        <input aria-label={placeholder}
           type="search"
           role="combobox"
           aria-expanded={isOpen}
@@ -130,7 +134,7 @@ export function EuropeanRegistrySearch({
             setIsOpen(true);
           }}
           onFocus={() => {
-            if (results.length > 0) setIsOpen(true);
+            if (visibleResults.length > 0) setIsOpen(true);
           }}
           placeholder={placeholder}
           className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
@@ -139,7 +143,7 @@ export function EuropeanRegistrySearch({
       {loading ? (
         <p className="mt-1 text-[11px] text-carbon-blue/65">Searching registries…</p>
       ) : null}
-      {error ? <p className="mt-1 text-[11px] text-thermal-red">{error}</p> : null}
+      {visibleError ? <p className="mt-1 text-[11px] text-thermal-red">{visibleError}</p> : null}
       {selectedLabel && !isOpen ? (
         <p className="mt-1 text-[11px] text-carbon-blue/50">Selected: {selectedLabel}</p>
       ) : null}
@@ -149,12 +153,12 @@ export function EuropeanRegistrySearch({
           role="listbox"
           className="absolute z-20 mt-1 max-h-56 w-full overflow-auto border border-carbon-blue/15 bg-white shadow-sm"
         >
-          {results.length === 0 ? (
+          {visibleResults.length === 0 ? (
             <li className="px-2 py-2 text-[12px] text-carbon-blue/65">
               No registry matches. Try a national number, VAT, or a legal form (AB, GmbH, Ltd, S.L., B.V.).
             </li>
           ) : (
-            results.map((company) => (
+            visibleResults.map((company) => (
               <li key={`${company.countryCode}-${company.registrationNumber}-${company.legalName}`}>
                 <button
                   type="button"

@@ -26,6 +26,7 @@ import {
   isSharePointServiceError,
 } from "@/services/sharepoint/client/errors";
 import Link from "next/link";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 function normalizeOrganizationNumber(value: string): string {
   return value.trim().toLowerCase().replace(/[\s.-]/g, "");
@@ -104,17 +105,16 @@ export function CompaniesActionBar({
   });
 
   // Keep Account Owner aligned once SSO/session resolves (never leave Guest id 0).
-  useEffect(() => {
+  const sessionOwnerId = authUserToAccountOwner(user).Id;
+  useWhenChanged([sessionOwnerId], () => {
     const owner =
-      authUserToAccountOwner(user).Id > 0
-        ? authUserToAccountOwner(user)
-        : STANDARD_BIO_USERS[0]!;
+      sessionOwnerId > 0 ? authUserToAccountOwner(user) : STANDARD_BIO_USERS[0]!;
     setForm((current) =>
       current.accountOwnerId > 0
         ? current
         : { ...current, accountOwnerId: owner.Id },
     );
-  }, [user]);
+  });
 
   const missingRequired = missingCreateFields(form);
   const canCreate = missingRequired.length === 0;
@@ -146,6 +146,9 @@ export function CompaniesActionBar({
   useEffect(() => {
     const prefill = consumeEventCompanyPrefill();
     if (!prefill) return;
+    // One-shot hand-off from another screen; also opens the parent's create panel,
+    // so it cannot be turned into a render-time adjustment.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm((current) => ({
       ...current,
       Title: prefill.Title || current.Title,
@@ -315,12 +318,13 @@ export function CompaniesActionBar({
           </div>
           <label className="block sm:col-span-2">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-              Company Name (Title) <span className="text-thermal-red">*</span>
+              Company name <span className="text-thermal-red">*</span>
             </span>
             <input
               type="text"
               value={form.Title}
               required
+              autoFocus
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,

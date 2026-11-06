@@ -317,7 +317,7 @@ export function FilterToolbar({
               className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50"
               strokeWidth={1.75}
             />
-            <input
+            <input aria-label={searchPlaceholder}
               type="search"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}

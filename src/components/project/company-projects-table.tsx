@@ -19,6 +19,7 @@ import { HealthStatusIcon, IconLabel } from "@/components/ui/smartcrm-icon";
 import {
   resolveStakeholderOrganizationName,
 } from "@/lib/project-relationship-utils";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 function organizationTypeForCompany(company: Company): ProjectOrganizationType {
   const posture = getCompanyRelationshipPosture(company);
@@ -39,6 +40,7 @@ export function CompanyProjectsTable({
   companies = [],
   role,
   onProjectUpdated,
+  linkRequestId = 0,
 }: {
   projects: Project[];
   companyId: string;
@@ -47,6 +49,7 @@ export function CompanyProjectsTable({
   companies?: Company[];
   role?: UserRole;
   onProjectUpdated?: (project: Project) => void;
+  linkRequestId?: number;
 }) {
   const contactIds = useMemo(
     () => (company?.contacts ?? []).map((contact) => contact.ContactID),
@@ -59,6 +62,14 @@ export function CompanyProjectsTable({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  useWhenChanged([linkRequestId, canManage], () => {
+    if (linkRequestId > 0 && canManage) {
+      setLinkOpen(true);
+      setPickerOpen(true);
+      setError(null);
+    }
+  });
 
   const linkedIds = useMemo(
     () => new Set(projects.map((project) => project.id)),

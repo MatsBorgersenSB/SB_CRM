@@ -34,6 +34,7 @@ export function ActivityFiltersBar({
         />
         <input
           type="search"
+ aria-label="Search activities"
           placeholder="Search activities…"
           value={filters.search}
           onChange={(e) => set({ search: e.target.value })}

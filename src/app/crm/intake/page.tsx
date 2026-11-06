@@ -353,7 +353,15 @@ export default function CardIntakePage() {
     <div className="min-h-dvh bg-slate-900 text-slate-100">
       <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
         <div className="mx-auto flex min-h-[56px] max-w-xl items-center justify-between gap-3 px-4">
-          <h1 className="text-lg font-semibold tracking-tight">Card Intake</h1>
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/contacts"
+              className="inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1 text-xs font-medium text-slate-200 transition-colors hover:border-slate-600 hover:bg-slate-800 hover:text-white"
+            >
+              <span aria-hidden>←</span> Back to SmartCRM
+            </Link>
+            <h1 className="truncate text-lg font-semibold tracking-tight">Card Intake</h1>
+          </div>
           <div className="flex min-w-0 items-center gap-2 text-right">
             <span
               aria-hidden

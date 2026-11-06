@@ -9,6 +9,7 @@ import {
   Camera,
   FolderKanban,
   LayoutDashboard,
+  Mail,
   Search,
   Settings,
   Sparkles,
@@ -38,8 +39,15 @@ const navItems: NavItem[] = [
     label: "Today",
     href: "/",
     icon: LayoutDashboard,
-    match: (p) => p === "/",
+    match: (p) => p === "/" || p.startsWith("/attention") || p.startsWith("/prospecting"),
     section: "home",
+  },
+  {
+    label: "Mail",
+    href: "/mail",
+    icon: Mail,
+    match: (p) => p.startsWith("/mail"),
+    section: "work",
   },
   {
     label: "Companies",
@@ -136,46 +144,50 @@ export function Sidebar() {
   }, []);
 
   return (
-    <aside className="flex w-52 shrink-0 flex-col border-r border-border/60 bg-card text-foreground">
-      <div className="border-b border-border/60 px-4 py-4">
+    <aside className="flex w-14 shrink-0 flex-col md:w-52 border-r border-border/60 bg-card text-foreground">
+      <div className="hidden border-b border-border/60 px-4 py-4 md:block">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold tracking-tight text-foreground">SmartCRM</p>
           <EnterpriseRoleBadge accessRole={user.role} tone="light" />
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5 border-b border-border/60 px-3 py-3">
+      <div className="flex flex-col gap-1.5 border-b border-border/60 px-1.5 py-3 md:px-3">
         <button
           type="button"
           onClick={() => openSearch({ mode: "search" })}
+          aria-label="Search"
+          title="Search"
           className={cn(
-            "flex w-full items-center gap-2 rounded-md border border-border/60 bg-muted/50 px-2.5 py-2",
+            "flex w-full items-center justify-center gap-2 rounded-md border border-border/60 bg-muted/50 px-2.5 py-2 md:justify-start",
             "text-left text-xs text-muted-foreground transition-colors",
             "hover:border-border hover:bg-accent/80 hover:text-foreground",
           )}
         >
           <Search className="size-3.5 shrink-0" strokeWidth={2} />
-          <span className="flex-1">Search…</span>
-          <kbd className="font-mono text-[10px] text-muted-foreground/70">
+          <span className="hidden flex-1 md:inline">Search…</span>
+          <kbd className="hidden font-mono text-[10px] md:inline text-muted-foreground/70">
             {isMac ? "⌘K" : "Ctrl+K"}
           </kbd>
         </button>
         <button
           type="button"
           onClick={() => openSearch({ mode: "ask" })}
+          aria-label="Ask SmartAssist"
+          title="Ask SmartAssist"
           className={cn(
-            "flex w-full items-center gap-2 rounded-md border border-upcycle-orange/30 bg-upcycle-orange/[0.06] px-2.5 py-2",
+            "flex w-full items-center justify-center gap-2 rounded-md border border-upcycle-orange/30 bg-upcycle-orange/[0.06] px-2.5 py-2 md:justify-start",
             "text-left text-xs font-medium text-upcycle-orange transition-colors",
             "hover:bg-upcycle-orange/[0.12]",
           )}
         >
           <Sparkles className="size-3.5 shrink-0" strokeWidth={2} />
-          <span className="flex-1">Ask SmartAssist</span>
+          <span className="hidden flex-1 md:inline">Ask SmartAssist</span>
         </button>
-        <QuickActions showMail={canAccessRoute(user.role, "/mail")} />
+        <div className="hidden md:block"><QuickActions showMail={canAccessRoute(user.role, "/mail")} /></div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 py-3" onKeyDown={handleKeyDown}>
+      <nav aria-label="Main" className="flex-1 overflow-y-auto px-1 py-3 md:px-2" onKeyDown={handleKeyDown}>
         <ul className="flex flex-col gap-0.5">
           {visibleItems.map(({ label, icon: Icon, href, match, section }, index) => {
             const active = match ? match(pathname) : pathname === href;
@@ -190,8 +202,10 @@ export function Sidebar() {
                 <Link
                   href={href}
                   data-nav-link
+                  title={label}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex w-full items-center gap-2.5 border-l-2 px-2.5 py-2 text-left text-xs tracking-tight transition-colors",
+                    "flex w-full items-center justify-center gap-2.5 border-l-2 px-2.5 py-2 md:justify-start text-left text-xs tracking-tight transition-colors",
                     active
                       ? "border-primary bg-accent/80 font-medium text-foreground"
                       : "border-transparent text-muted-foreground hover:bg-muted/80 hover:text-foreground",
@@ -201,7 +215,7 @@ export function Sidebar() {
                     className={cn("size-4 shrink-0", active ? "text-primary" : "")}
                     strokeWidth={1.75}
                   />
-                  {label}
+                  <span className="hidden md:inline">{label}</span>
                 </Link>
               </li>
             );
@@ -209,7 +223,7 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="border-t border-border/60 px-3 py-3">
+      <div className="hidden border-t border-border/60 px-3 py-3 md:block">
         <M365MailSyncHeaderButton compact />
       </div>
     </aside>

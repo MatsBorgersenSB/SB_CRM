@@ -23,6 +23,7 @@ import { HealthStatusIcon, IconLabel } from "@/components/ui/smartcrm-icon";
 import { project360Href } from "@/types/relationship-navigation";
 import { getCompanyRelationshipPosture } from "@/lib/company-classification";
 import type { ProjectOrganizationType } from "@/types/project-relationships";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 const INFLUENCE_OPTIONS: StakeholderInfluence[] = ["High", "Medium", "Low"];
 const DEFAULT_ROLE = "Decision Maker";
@@ -35,6 +36,7 @@ type ContactProjectRolesTableProps = {
   projects: Project[];
   role: UserRole;
   onProjectUpdated?: (project: Project) => void;
+  assignRequestId?: number;
 };
 
 /**
@@ -49,6 +51,7 @@ export function ContactProjectRolesTable({
   projects,
   role,
   onProjectUpdated,
+  assignRequestId = 0,
 }: ContactProjectRolesTableProps) {
   const canManage = canManageProjectStakeholders(role);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -59,6 +62,14 @@ export function ContactProjectRolesTable({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  useWhenChanged([assignRequestId, canManage], () => {
+    if (assignRequestId > 0 && canManage) {
+      setAssignOpen(true);
+      setPickerOpen(true);
+      setError(null);
+    }
+  });
 
   const assignedProjectIds = useMemo(
     () => new Set(roles.map((entry) => entry.projectId)),
@@ -258,6 +269,7 @@ export function ContactProjectRolesTable({
               </span>
               <input
                 type="search"
+ aria-label="Search projects… e.g. Escalante"
                 value={
                   selectedProject && !pickerOpen
                     ? selectedProject.name

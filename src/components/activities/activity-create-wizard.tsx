@@ -41,6 +41,7 @@ import { TaskShareWithPicker } from "@/components/activities/task-share-control"
 import { RegionalDateInput, RegionalTimeInput } from "@/components/ui/regional-inputs";
 import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import type { StandardBioUserRecord } from "@/types/user-access";
+import { useEscapeKey } from "@/hooks/use-escape-key";
 
 /**
  * One screen to plan or log any activity.
@@ -179,6 +180,7 @@ function ActivityForm({
   defaultOwner,
   assignableUsers = [],
 }: Omit<ActivityCreateWizardProps, "open">) {
+  useEscapeKey(true, onClose);
   const me = useMemo<SharePointPerson | null>(
     () => (defaultOwner ? { Id: defaultOwner.id, Title: defaultOwner.displayName } : null),
     [defaultOwner],

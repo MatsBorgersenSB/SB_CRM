@@ -15,6 +15,7 @@ import {
   type CreateUserInput,
   type StandardBioUserRecord,
 } from "@/types/user-access";
+import { useEscapeKey } from "@/hooks/use-escape-key";
 
 type WizardStep = "function" | "details" | "recommendation";
 
@@ -25,6 +26,7 @@ type UserCreateWizardProps = {
 };
 
 export function UserCreateWizard({ open, onClose, onCreated }: UserCreateWizardProps) {
+  useEscapeKey(open, onClose);
   const { user: authUser } = useAuth();
   const [step, setStep] = useState<WizardStep>("function");
   const [businessFunction, setBusinessFunction] = useState<BusinessFunction | null>(null);

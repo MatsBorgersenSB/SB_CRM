@@ -105,18 +105,7 @@ export function CompanyDocumentKnowledgePanel({
   );
 
   if (snapshot.documentCount === 0 && snapshot.facts.length === 0) {
-    return (
-      <p className="px-1 text-[13px] text-carbon-blue/50">
-        No documents on file yet.{" "}
-        <Link
-          href={company360Href(companyId, "documents")}
-          className="font-semibold text-upcycle-orange hover:underline"
-        >
-          Add a document
-        </Link>{" "}
-        so SmartAssist can turn it into company knowledge.
-      </p>
-    );
+    return null;
   }
 
   const decide = async (claimId: string, decision: DocumentKnowledgeDecision) => {

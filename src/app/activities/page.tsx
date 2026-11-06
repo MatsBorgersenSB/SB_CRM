@@ -1,3 +1,4 @@
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
 import { Suspense } from "react";
 import { ActivitiesShell } from "@/components/layout/activities-shell";
 import {
@@ -21,7 +22,7 @@ export default async function ActivitiesPage() {
   ]);
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WorkspaceLoading label="Loading activities" />}>
       <ActivitiesShell
         activities={activities}
         companies={companies}

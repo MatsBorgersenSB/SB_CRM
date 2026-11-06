@@ -1,3 +1,4 @@
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Contact360PageShell } from "@/components/layout/contact-360-page-shell";
@@ -142,7 +143,7 @@ export default async function Contact360Page({
     : undefined;
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WorkspaceLoading label="Opening contact" />}>
       <Contact360PageShell
         contactId={record.contact.ContactID}
         companies={shellCompanies}

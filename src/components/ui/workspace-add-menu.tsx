@@ -76,6 +76,8 @@ export function WorkspaceAddMenu<T extends string>({
   }, [open]);
 
   const active = items.find((item) => item.id === activeTool) ?? null;
+  const primaryItem = items.find((item) => item.primary) ?? null;
+  const secondaryItems = primaryItem ? items.filter((item) => item.id !== primaryItem.id) : items;
 
   if (active) {
     return (
@@ -92,51 +94,65 @@ export function WorkspaceAddMenu<T extends string>({
   }
 
   return (
-    <div ref={rootRef} className="relative inline-block">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
-      >
-        {label}
-      </button>
-      {open && box
-        ? createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              style={{ top: box.top, left: box.left, maxHeight: box.maxHeight }}
-              className="fixed z-[80] min-w-[15rem] overflow-y-auto border border-carbon-blue/15 bg-white py-1 shadow-lg"
-            >
-              {items.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setOpen(false);
-                    onSelect(item.id);
-                  }}
-                  className="block w-full px-3 py-2 text-left hover:bg-carbon-blue/[0.04]"
+    <div className="inline-flex flex-wrap items-center gap-2">
+      {primaryItem ? (
+        <button
+          type="button"
+          onClick={() => onSelect(primaryItem.id)}
+          className="inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
+        >
+          + {primaryItem.label}
+        </button>
+      ) : null}
+
+      {secondaryItems.length > 0 ? (
+        <div ref={rootRef} className="relative inline-block">
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+            className={
+              primaryItem
+                ? "inline-flex items-center gap-1.5 border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange"
+                : "inline-flex items-center gap-1.5 border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-upcycle-orange/90"
+            }
+          >
+            {primaryItem ? "Import…" : label}
+          </button>
+          {open && box
+            ? createPortal(
+                <div
+                  ref={menuRef}
+                  role="menu"
+                  style={{ top: box.top, left: box.left, maxHeight: box.maxHeight }}
+                  className="fixed z-[80] min-w-[15rem] overflow-y-auto border border-carbon-blue/15 bg-white py-1 shadow-lg"
                 >
-                  <span
-                    className={`block text-[13px] font-semibold ${
-                      item.primary ? "text-upcycle-orange" : "text-carbon-blue"
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                  {item.hint ? (
-                    <span className="block text-[12px] text-carbon-blue/55">{item.hint}</span>
-                  ) : null}
-                </button>
-              ))}
-            </div>,
-            document.body,
-          )
-        : null}
+                  {secondaryItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setOpen(false);
+                        onSelect(item.id);
+                      }}
+                      className="block w-full px-3 py-2 text-left hover:bg-carbon-blue/[0.04]"
+                    >
+                      <span className="block text-[13px] font-semibold text-carbon-blue">
+                        {item.label}
+                      </span>
+                      {item.hint ? (
+                        <span className="block text-[12px] text-carbon-blue/55">{item.hint}</span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>,
+                document.body,
+              )
+            : null}
+        </div>
+      ) : null}
     </div>
   );
 }

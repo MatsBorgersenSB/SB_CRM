@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import {
   AccountWorkspace,
@@ -94,43 +94,54 @@ export function M365PreviewWorkspace({
 }: M365PreviewWorkspaceProps) {
   const [surface, setSurface] = useState<SurfaceId>("relationship-card");
   const [companyId, setCompanyId] = useState(defaultCompanyId);
-  const [payload, setPayload] = useState<M365Payload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
   const activeSurface = SURFACES.find((item) => item.id === surface)!;
 
-  const fetchPayload = useCallback(async () => {
-    if (surface === "reconciliation") {
-      setPayload(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    const query = activeSurface.needsCompany ? `?companyId=${encodeURIComponent(companyId)}` : "";
-    const response = await fetch(`/api/m365/${surface}${query}`);
-
-    if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as { error?: string } | null;
-      setPayload(null);
-      setError(body?.error ?? `Request failed (${response.status})`);
-      setLoading(false);
-      return;
-    }
-
-    const data = (await response.json()) as M365Payload;
-    setPayload(data);
-    setLoading(false);
-  }, [activeSurface.needsCompany, companyId, surface]);
+  // One request per surface/company. `loading` simply means "the current request has not settled".
+  const needsCompany = activeSurface.needsCompany;
+  const requestKey =
+    surface === "reconciliation" ? null : `${surface}|${needsCompany ? companyId : ""}`;
+  const [settled, setSettled] = useState<{
+    key: string;
+    payload: M365Payload | null;
+    error: string | null;
+  } | null>(null);
+  const current = requestKey !== null && settled?.key === requestKey ? settled : null;
+  const payload = current?.payload ?? null;
+  const error = current?.error ?? null;
+  const loading = requestKey !== null && current === null;
 
   useEffect(() => {
-    void fetchPayload();
-  }, [fetchPayload]);
+    if (requestKey === null) return;
+    let cancelled = false;
+    const query = needsCompany ? `?companyId=${encodeURIComponent(companyId)}` : "";
 
+    void (async () => {
+      try {
+        const response = await fetch(`/api/m365/${surface}${query}`);
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          if (!cancelled) {
+            setSettled({
+              key: requestKey,
+              payload: null,
+              error: body?.error ?? `Request failed (${response.status})`,
+            });
+          }
+          return;
+        }
+        const data = (await response.json()) as M365Payload;
+        if (!cancelled) setSettled({ key: requestKey, payload: data, error: null });
+      } catch {
+        if (!cancelled) {
+          setSettled({ key: requestKey, payload: null, error: "Request failed" });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestKey, surface, needsCompany, companyId]);
   const validation = useMemo(
     () => (payload ? validateM365Payload(payload) : null),
     [payload],
@@ -214,7 +225,7 @@ export function M365PreviewWorkspace({
               </div>
             ) : loading ? (
               <div className={`dashboard-card ${activeSurface.maxWidth} px-5 py-8`}>
-                <p className="text-[13px] text-carbon-blue/65">Loading intelligence payload…</p>
+                <p className="text-[13px] text-carbon-blue/65">Loading…</p>
               </div>
             ) : error ? (
               <div className={`dashboard-card ${activeSurface.maxWidth} border-red-200/60 px-5 py-8`}>

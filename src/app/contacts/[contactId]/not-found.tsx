@@ -11,7 +11,7 @@ export default function Contact360NotFound() {
         href="/contacts"
         className="mt-2 border border-upcycle-orange/30 bg-upcycle-orange px-4 py-2 text-sm font-semibold text-white"
       >
-        Back to contacts
+        Back to people
       </Link>
     </div>
   );

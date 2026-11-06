@@ -16,6 +16,7 @@ import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
+import { WorkspaceNotice } from "@/components/ui/workspace-feedback";
 import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
@@ -89,6 +90,7 @@ export function CompaniesOperationsShell({
   const [owner, setOwner] = useState("all");
   const [activeTool, setActiveTool] = useState<CompaniesWorkspaceTool>(null);
   const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
+  const [ownerError, setOwnerError] = useState<string | null>(null);
 
   if (prevCompanies !== companies) {
     setPrevCompanies(companies);
@@ -238,11 +240,13 @@ export function CompaniesOperationsShell({
   const handleOwnerChange = useCallback(
     async (companyId: string, owner: SharePointPerson) => {
       setSavingOwnerId(companyId);
+      setOwnerError(null);
       try {
         const updated = await syncCompanyRecord(companyId, { AccountOwner: owner });
         upsertCompany(updated);
       } catch (error) {
         console.error("[companies] Could not change account owner", error);
+        setOwnerError("The account owner was not changed. Nothing was lost — please try again.");
       } finally {
         setSavingOwnerId(null);
       }
@@ -262,6 +266,10 @@ export function CompaniesOperationsShell({
               activeTool={activeTool}
               onToolChange={setActiveTool}
             />
+
+            {ownerError ? (
+              <WorkspaceNotice onDismiss={() => setOwnerError(null)}>{ownerError}</WorkspaceNotice>
+            ) : null}
 
             {activeTool === "new-company" ? (
               <div className="mt-4 border border-carbon-blue/10 bg-white p-3">

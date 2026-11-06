@@ -1,3 +1,4 @@
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Deal360PageShell } from "@/components/layout/deal-360-page-shell";
@@ -119,7 +120,7 @@ export async function OpportunityDetailWorkspace({
       : [opportunity, ...portfolioPipelines];
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WorkspaceLoading label="Opening opportunity" />}>
       <Deal360PageShell
         dealId={opportunity.id}
         companies={companies}

@@ -17,6 +17,7 @@ import { canManageOpportunityStakeholders } from "@/lib/permissions";
 import { DealLink } from "@/components/relationship/relationship-links";
 import { IconLabel } from "@/components/ui/smartcrm-icon";
 import { deal360Href } from "@/types/relationship-navigation";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 type ContactOpportunityRole = {
   dealId: string;
@@ -33,6 +34,7 @@ type ContactOpportunityRolesTableProps = {
   role: UserRole;
   onPipelineUpdated?: (pipeline: PipelineRow) => void;
   onCompanyUpdated?: (company: Company) => void;
+  assignRequestId?: number;
 };
 
 function buildContactOpportunityRoles(
@@ -65,6 +67,7 @@ export function ContactOpportunityRolesTable({
   role,
   onPipelineUpdated,
   onCompanyUpdated,
+  assignRequestId = 0,
 }: ContactOpportunityRolesTableProps) {
   const canManage = canManageOpportunityStakeholders(role);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -76,6 +79,14 @@ export function ContactOpportunityRolesTable({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  useWhenChanged([assignRequestId, canManage], () => {
+    if (assignRequestId > 0 && canManage) {
+      setAssignOpen(true);
+      setPickerOpen(true);
+      setError(null);
+    }
+  });
 
   const roles = useMemo(
     () => buildContactOpportunityRoles(contact.ContactID, pipelines),
@@ -249,6 +260,7 @@ export function ContactOpportunityRolesTable({
               </span>
               <input
                 type="search"
+ aria-label="Search opportunities"
                 value={selectedDeal && !pickerOpen ? selectedDeal.assetName : dealQuery}
                 disabled={busy}
                 placeholder="Search opportunities…"

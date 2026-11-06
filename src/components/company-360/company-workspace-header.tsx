@@ -8,11 +8,19 @@ import { CompanyOwnerSelect } from "@/components/companies/company-owner-select"
 import type { Company, SharePointPerson } from "@/types/company";
 import type { UserRole } from "@/types/auth";
 import type { StandardBioUserRecord } from "@/types/user-access";
-import { PhoneActionMenu } from "@/components/relationship/relationship-links";
+import type { PipelineRow } from "@/types/pipeline";
+import { opportunityPublicCode } from "@/types/pipeline";
+import type { Project } from "@/types/project";
+import {
+  DealLink,
+  PhoneActionMenu,
+  ProjectLink,
+} from "@/components/relationship/relationship-links";
 import { decodePhoneForDisplay } from "@/lib/company-identity";
 import {
   ActionableField,
   HealthStatusIcon,
+  IconLabel,
   SmartCRMIcon,
 } from "@/components/ui/smartcrm-icon";
 import type { ReactNode } from "react";
@@ -62,6 +70,11 @@ export function CompanyWorkspaceHeader({
   onOwnerChange,
   ownerSaving = false,
   verdict,
+  linkedDeals = [],
+  linkedProjects = [],
+  onConnectOpportunity,
+  onConnectProject,
+  onExecuteRecommendedAction,
 }: {
   header: Company360Header;
   identity: CompanyHeroIdentityView;
@@ -77,6 +90,11 @@ export function CompanyWorkspaceHeader({
   onOwnerChange?: (owner: SharePointPerson) => void;
   ownerSaving?: boolean;
   verdict?: Company360Verdict | null;
+  linkedDeals?: PipelineRow[];
+  linkedProjects?: Project[];
+  onConnectOpportunity?: () => void;
+  onConnectProject?: () => void;
+  onExecuteRecommendedAction?: (actionLabel: string) => void;
 }) {
   const websiteHref = identity.website
     ? identity.website.startsWith("http")
@@ -134,6 +152,15 @@ export function CompanyWorkspaceHeader({
           >
             {nextLabel}
           </a>
+        ) : onExecuteRecommendedAction ? (
+          <button
+            type="button"
+            onClick={() => onExecuteRecommendedAction(nextLabel)}
+            className="mt-0.5 inline-flex items-center gap-1.5 text-left text-[15px] font-semibold leading-snug text-upcycle-orange underline-offset-2 hover:underline"
+          >
+            <span>{nextLabel}</span>
+            <span aria-hidden className="text-xs">→</span>
+          </button>
         ) : (
           <p className="mt-0.5 text-[15px] font-semibold leading-snug text-carbon-blue">
             {nextLabel}
@@ -214,6 +241,80 @@ export function CompanyWorkspaceHeader({
             <PhoneActionMenu phone={decodePhoneForDisplay(identity.mainPhone)} />
           </ActionableField>
         ) : null}
+      </div>
+
+      <div className="mt-4 grid gap-2 border-t border-carbon-blue/8 pt-3 text-[13px] sm:grid-cols-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <IconLabel
+            icon="opportunity"
+            iconSize="xs"
+            className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+          >
+            Opportunities:
+          </IconLabel>
+          {linkedDeals.length === 0 ? (
+            <span className="text-carbon-blue/50">None linked</span>
+          ) : (
+            linkedDeals.map((deal) => (
+              <DealLink
+                key={deal.id}
+                dealId={deal.id}
+                showIcon={false}
+                className="inline-flex items-center gap-1 border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2 py-0.5 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange/35 hover:text-upcycle-orange"
+              >
+                <span>{deal.assetName}</span>
+                <span className="font-mono text-[10px] text-carbon-blue/55">
+                  {opportunityPublicCode(deal)}
+                </span>
+              </DealLink>
+            ))
+          )}
+          {onConnectOpportunity ? (
+            <button
+              type="button"
+              onClick={onConnectOpportunity}
+              className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange/[0.06] px-2 py-0.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+            >
+              + Connect opportunity
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <IconLabel
+            icon="project"
+            iconSize="xs"
+            className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60"
+          >
+            Projects:
+          </IconLabel>
+          {linkedProjects.length === 0 ? (
+            <span className="text-carbon-blue/50">None linked</span>
+          ) : (
+            linkedProjects.map((project) => (
+              <ProjectLink
+                key={project.id}
+                projectId={project.id}
+                showIcon={false}
+                className="inline-flex items-center gap-1 border border-carbon-blue/12 bg-carbon-blue/[0.03] px-2 py-0.5 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange/35 hover:text-upcycle-orange"
+              >
+                <span>{project.name}</span>
+                <span className="text-[11px] font-normal text-carbon-blue/55">
+                  · {project.status}
+                </span>
+              </ProjectLink>
+            ))
+          )}
+          {onConnectProject ? (
+            <button
+              type="button"
+              onClick={onConnectProject}
+              className="inline-flex items-center gap-1 border border-upcycle-orange/30 bg-upcycle-orange/[0.06] px-2 py-0.5 text-[11px] font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15"
+            >
+              + Connect project
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ContactSpreadsheetImportPanel } from "@/components/contacts/contact-spreadsheet-import-panel";
 import { QuickImportPanel } from "@/components/companies/quick-import-panel";
@@ -17,9 +17,11 @@ import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
+import { WorkspaceNotice } from "@/components/ui/workspace-feedback";
 import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import { useAuth } from "@/context/auth-context";
 import { useEscapeKey } from "@/hooks/use-escape-key";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
 import type { Company, Contact } from "@/lib/companies-data";
 import { getGlobalContactRecords } from "@/lib/contact-utils";
@@ -73,24 +75,19 @@ export function ContactsShell({
   const router = useRouter();
   const lastMailByEmail = useMemo(() => lastMailByEmailFromRecord(correspondence), [correspondence]);
   const [companyRows, setCompanyRows] = useState(companies);
-  const [pipelineRows, setPipelineRows] = useState(pipelines);
+  // Rows follow the server data; reset local edits whenever fresh data arrives.
+  useWhenChanged([companies], () => setCompanyRows(companies), { runOnMount: false });
+  const pipelineRows = pipelines;
   const [toolbarFilters, setToolbarFilters] = useState<WorkspaceFilterValues>(DEFAULT_FILTERS);
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("all");
   const [activeTool, setActiveTool] = useState<ContactsWorkspaceTool>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
+  const [ownerError, setOwnerError] = useState<string | null>(null);
 
   const closeActiveTool = useCallback(() => setActiveTool(null), []);
   useEscapeKey(Boolean(activeTool), closeActiveTool);
-
-  useEffect(() => {
-    setCompanyRows(companies);
-  }, [companies]);
-
-  useEffect(() => {
-    setPipelineRows(pipelines);
-  }, [pipelines]);
 
   const applyBridge = useCallback(
     (patch: { filters?: WorkspaceFilterValues; search?: string; owner?: string }) => {
@@ -300,10 +297,12 @@ export function ContactsShell({
   const handleOwnerChange = useCallback(
     async (companyId: string, contactId: string, owner: SharePointPerson) => {
       setSavingOwnerId(contactId);
+      setOwnerError(null);
       try {
         await handleContactUpdate(companyId, contactId, { ContactOwner: owner });
       } catch (error) {
         console.error("[contacts] Could not change contact owner", error);
+        setOwnerError("The contact owner was not changed. Nothing was lost — please try again.");
       } finally {
         setSavingOwnerId(null);
       }
@@ -323,6 +322,10 @@ export function ContactsShell({
               activeTool={activeTool}
               onToolChange={setActiveTool}
             />
+
+            {ownerError ? (
+              <WorkspaceNotice onDismiss={() => setOwnerError(null)}>{ownerError}</WorkspaceNotice>
+            ) : null}
 
             {activeTool === "new-contact" ? (
               <div className="mt-4 border border-carbon-blue/10 bg-white p-3">

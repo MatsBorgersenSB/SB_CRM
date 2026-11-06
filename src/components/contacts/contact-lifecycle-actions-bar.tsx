@@ -57,7 +57,14 @@ export function ContactLifecycleActionsBar({
   };
 
   return (
-    <div ref={rootRef} className="relative shrink-0">
+    <div ref={rootRef} className="relative inline-flex shrink-0 items-center gap-1.5">
+      <button
+        type="button"
+        onClick={onEditOpen}
+        className="inline-flex items-center border border-carbon-blue/15 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange"
+      >
+        {editing ? "Close edit" : "Edit"}
+      </button>
       <button
         type="button"
         aria-haspopup="menu"

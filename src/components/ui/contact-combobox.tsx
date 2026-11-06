@@ -8,6 +8,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import { getContactDisplayName } from "@/types/contact";
 import type { ProjectContactOption } from "@/lib/project-stakeholder-contacts";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 type ContactComboboxProps = {
   options: ProjectContactOption[];
@@ -57,7 +58,7 @@ export function ContactCombobox({
     [options, selectedContactId],
   );
 
-  useEffect(() => {
+  useWhenChanged([selected, selectedContactId], () => {
     if (selected) {
       setQuery(
         `${getContactDisplayName(selected.contact)} · ${selected.companyName}`,
@@ -65,7 +66,7 @@ export function ContactCombobox({
     } else if (!selectedContactId) {
       setQuery("");
     }
-  }, [selected, selectedContactId]);
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -111,7 +112,7 @@ export function ContactCombobox({
         {label}
       </span>
       <div className="relative mt-1">
-        <input
+        <input aria-label={placeholder}
           type="search"
           value={query}
           disabled={disabled}

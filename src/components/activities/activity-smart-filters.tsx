@@ -37,7 +37,7 @@ export function ActivitySmartFilters({
         active={active}
         onChange={(id) => onChange(id as ActivityWorkFilter)}
       />
-      <input
+      <input aria-label="Search activities"
         type="search"
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}

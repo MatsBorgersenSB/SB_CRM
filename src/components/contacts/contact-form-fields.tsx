@@ -272,6 +272,7 @@ export function ContactFormFields({
             <input
               type="text"
               value={form.FirstName}
+              autoFocus
               onChange={(event) => onChange({ ...form, FirstName: event.target.value })}
               className={FIELD_CLASS}
             />

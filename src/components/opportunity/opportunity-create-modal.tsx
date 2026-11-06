@@ -1,7 +1,7 @@
 "use client";
 
 import { RegionalDateInput } from "@/components/ui/regional-inputs";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { CompanyCombobox } from "@/components/companies/company-combobox";
 import { OpportunityOfferingsPicker } from "@/components/opportunity/opportunity-offerings-picker";
@@ -19,6 +19,8 @@ import { ContactRoleSelect } from "@/components/ui/contact-role-select";
 import type { UserRole } from "@/types/auth";
 import type { CompanyRole, PipelineCurrency, PipelineRow } from "@/types/pipeline";
 import { COMPANY_ROLES } from "@/types/pipeline";
+import { useEscapeKey } from "@/hooks/use-escape-key";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 type FormState = {
   companyId: string;
@@ -81,6 +83,7 @@ export function OpportunityCreateModal({
   companies: Company[];
   role: UserRole;
 }) {
+  useEscapeKey(open, onClose);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [localCompanies, setLocalCompanies] = useState<Company[]>(companies);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
@@ -90,7 +93,7 @@ export function OpportunityCreateModal({
   const [error, setError] = useState<string | null>(null);
   const allowCreateCompany = canCreateCompany(role);
 
-  useEffect(() => {
+  useWhenChanged([open, companies], () => {
     if (open) {
       setLocalCompanies(companies);
       setForm(EMPTY_FORM);
@@ -99,7 +102,7 @@ export function OpportunityCreateModal({
       setNewContactData(EMPTY_NEW_CONTACT);
       setError(null);
     }
-  }, [open, companies]);
+  });
 
   const companyOptions = useMemo(
     () =>

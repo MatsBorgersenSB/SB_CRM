@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -54,9 +55,11 @@ import type { StandardBioUserRecord } from "@/types/user-access";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { CompanyDuplicateHintBanner } from "@/components/company-360/company-duplicate-hint-banner";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
+import { WorkspaceNotice } from "@/components/ui/workspace-feedback";
 import {
   canCreateOpportunity,
   canManageOpportunityStakeholders,
+  canManageProjectStakeholders,
 } from "@/lib/permissions";
 import {
   companyHasType,
@@ -80,6 +83,8 @@ import {
   linkMailConversationToOpportunity,
   type MailOpportunityDraft,
 } from "@/lib/mail-opportunity-draft";
+
+const subscribeNever = () => () => {};
 
 /** Information budget — attention rows beyond this are noise, not prioritisation. */
 const MAX_ATTENTION_ROWS = 5;
@@ -149,19 +154,27 @@ export function Company360LivingWorkspace({
   const searchParams = useSearchParams();
   const focusMailId = searchParams.get("mail")?.trim() || null;
   const [documentCount, setDocumentCount] = useState(smartDocs.length);
-  const [findings, setFindings] = useState<SourceFinding[]>(
-    documentKnowledge.findings ?? [],
+  const [findings, setFindings] = useState<SourceFinding[]>(documentKnowledge.findings ?? []);
+  useWhenChanged(
+    [documentKnowledge.findings],
+    () => setFindings(documentKnowledge.findings ?? []),
+    { runOnMount: false },
   );
   const [activeTool, setActiveTool] = useState<Company360ActiveTool>(null);
   const [createRequestId, setCreateRequestId] = useState(0);
   const [attentionDismissTick, setAttentionDismissTick] = useState(0);
-  const [attentionHydrated, setAttentionHydrated] = useState(false);
+  // true only after hydration, so server and first client render agree
+  const attentionHydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
   const [discoveryUrl, setDiscoveryUrl] = useState(
     company.Domain ? companyWebsiteHref(company.Domain) : "",
   );
   const [lastMailAt, setLastMailAt] = useState<string | null>(initialLastMailAt);
   const [linkedRevealed, setLinkedRevealed] = useState(false);
+  const [opportunitiesRevealed, setOpportunitiesRevealed] = useState(false);
+  const [linkOpportunityRequestId, setLinkOpportunityRequestId] = useState(0);
+  const [linkProjectRequestId, setLinkProjectRequestId] = useState(0);
   const [ownerSaving, setOwnerSaving] = useState(false);
+  const [ownerError, setOwnerError] = useState<string | null>(null);
   const [lastMailByContactId, setLastMailByContactId] = useState<Record<string, string>>(
     initialLastMailByContactId,
   );
@@ -170,10 +183,6 @@ export function Company360LivingWorkspace({
     draft: MailOpportunityDraft;
   } | null>(null);
   const [outlookReload, setOutlookReload] = useState(0);
-
-  useEffect(() => {
-    setFindings(documentKnowledge.findings ?? []);
-  }, [documentKnowledge.findings]);
 
   const saveCompanyFindings = useCallback(
     async (next: SourceFinding[]) => {
@@ -205,13 +214,7 @@ export function Company360LivingWorkspace({
     [company.CompanyID, findings, role],
   );
 
-  useEffect(() => {
-    setAttentionHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    setAttentionDismissTick(0);
-  }, [attentionItems]);
+  useWhenChanged([attentionItems], () => setAttentionDismissTick(0));
 
   const companyActivities = useMemo(
     () => getActivitiesForCompany(scopedActivities, company),
@@ -329,12 +332,14 @@ export function Company360LivingWorkspace({
   const handleOwnerChange = async (owner: SharePointPerson) => {
     if (owner.Id === company.AccountOwner?.Id) return;
     setOwnerSaving(true);
+    setOwnerError(null);
     try {
       const { syncCompanyRecord } = await import("@/lib/sync-company");
       const updated = await syncCompanyRecord(company.CompanyID, { AccountOwner: owner });
       onCompanyUpdated(updated);
     } catch (error) {
       console.error("[company-360] Could not change account owner", error);
+      setOwnerError("The account owner was not changed. Nothing was lost — please try again.");
     } finally {
       setOwnerSaving(false);
     }
@@ -383,19 +388,72 @@ export function Company360LivingWorkspace({
   const sellTo = isOpportunityEligibleCompany(company);
   const canCreateOpp =
     canCreateOpportunity(role) && Boolean(onCreateOpportunity) && sellTo;
+  const canLinkOpp = canManageOpportunityStakeholders(role);
+  const canLinkProj = canManageProjectStakeholders(role);
 
-  // Opportunities stay on the page: the list when any are linked, and for every
-  // sell-to company so a new one can be opened here. Suppliers are not offered a deal.
-  // Empty projects stay one line until the user asks to add one.
+  const handleConnectOpportunity = () => {
+    setOpportunitiesRevealed(true);
+    setLinkOpportunityRequestId((value) => value + 1);
+    requestAnimationFrame(() => {
+      document.getElementById("opportunities")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const handleConnectProject = () => {
+    setLinkedRevealed(true);
+    setLinkProjectRequestId((value) => value + 1);
+    requestAnimationFrame(() => {
+      document.getElementById("projects")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const handleExecuteRecommendedAction = useCallback(
+    (actionLabel: string) => {
+      const lower = actionLabel.toLowerCase();
+      if (lower.includes("classify") || lower.includes("edit") || lower.includes("owner")) {
+        setActiveTool("edit-company");
+        return;
+      }
+      if (lower.includes("contact") || lower.includes("stakeholder")) {
+        handleNewContact();
+        return;
+      }
+      if (lower.includes("opportunity") || lower.includes("deal")) {
+        handleConnectOpportunity();
+        return;
+      }
+      if (lower.includes("document")) {
+        document.getElementById("documents")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      if (lower.includes("write") || lower.includes("mail") || lower.includes("call") || lower.includes("follow")) {
+        document.getElementById("outlook")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      const targetId = visibleAttentionItems.length > 0 ? "attention" : "contacts";
+      document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    [handleNewContact, visibleAttentionItems.length],
+  );
+
+  // Opportunities stay on the page when any are linked, for every sell-to company,
+  // or when the user chooses to connect an existing opportunity.
   const opportunitiesEmpty = linkedPipelines.length === 0;
   const projectsEmpty = linkedProjects.length === 0;
-  const showOpportunitiesPanel = !opportunitiesEmpty || sellTo;
+  const showOpportunitiesPanel = !opportunitiesEmpty || sellTo || opportunitiesRevealed;
   const showProjectsPanel = !projectsEmpty || linkedRevealed;
   const showFoldedLine = !linkedRevealed && projectsEmpty;
 
   return (
     <WorkspaceStack>
       <CompanyDuplicateHintBanner hint={duplicateHint} />
+      {ownerError ? (<WorkspaceNotice onDismiss={() => setOwnerError(null)}>{ownerError}</WorkspaceNotice>) : null}
       <section className="dashboard-card overflow-hidden">
         <div className="px-6 py-5">
           {activeTool === "edit-company" ? (
@@ -430,13 +488,30 @@ export function Company360LivingWorkspace({
               onOwnerChange={handleOwnerChange}
               ownerSaving={ownerSaving}
               verdict={verdict}
+              linkedDeals={linkedPipelines}
+              linkedProjects={linkedProjects}
+              onConnectOpportunity={canLinkOpp ? handleConnectOpportunity : undefined}
+              onConnectProject={canLinkProj ? handleConnectProject : undefined}
+              onExecuteRecommendedAction={handleExecuteRecommendedAction}
               trailing={
-                <Company360ActionsBar
-                  role={role}
-                  activeTool={activeTool}
-                  onToolChange={setActiveTool}
-                  onNewContact={handleNewContact}
-                />
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <EntityNewActivityButton
+                    context={{
+                      companyId: company.CompanyID,
+                      companyName: company.Title,
+                    }}
+                    companies={companies}
+                    pipelines={linkedPipelines}
+                    showNewTask={false}
+                    documentCount={documentCount}
+                  />
+                  <Company360ActionsBar
+                    role={role}
+                    activeTool={activeTool}
+                    onToolChange={setActiveTool}
+                    onNewContact={handleNewContact}
+                  />
+                </div>
               }
             />
           )}
@@ -469,25 +544,6 @@ export function Company360LivingWorkspace({
         </div>
       </section>
 
-      <CompanyDocumentKnowledgePanel
-        companyId={company.CompanyID}
-        documents={smartDocs}
-        initialState={documentKnowledge}
-      />
-
-      <div className="flex justify-end">
-        <EntityNewActivityButton
-          context={{
-            companyId: company.CompanyID,
-            companyName: company.Title,
-          }}
-          companies={companies}
-          pipelines={linkedPipelines}
-          showNewTask={false}
-          documentCount={documentCount}
-        />
-      </div>
-
       <Company360OverviewStrips
         company={company}
         companies={companies}
@@ -502,7 +558,9 @@ export function Company360LivingWorkspace({
         onContactDelete={onContactDelete}
         onContactReassign={onContactReassign}
         onContactArchive={onContactArchive}
+        onProjectUpdated={onProjectUpdated}
         createRequestId={createRequestId}
+        linkOpportunityRequestId={linkOpportunityRequestId}
         lastMailByContactId={lastMailByContactId}
         outlook={
           <WorkspacePanel title="Recent Outlook" id="outlook" icon="email">
@@ -546,6 +604,7 @@ export function Company360LivingWorkspace({
             companies={companies}
             role={role}
             onProjectUpdated={onProjectUpdated}
+            linkRequestId={linkProjectRequestId}
           />
         </WorkspacePanel>
       ) : null}
@@ -555,11 +614,23 @@ export function Company360LivingWorkspace({
           No projects linked yet.{" "}
           <button
             type="button"
-            onClick={() => setLinkedRevealed(true)}
+            onClick={handleConnectProject}
             className="font-semibold text-upcycle-orange hover:underline"
           >
-            Add
+            Connect project
           </button>
+          {!showOpportunitiesPanel && canLinkOpp ? (
+            <>
+              {" · "}
+              <button
+                type="button"
+                onClick={handleConnectOpportunity}
+                className="font-semibold text-upcycle-orange hover:underline"
+              >
+                Connect opportunity
+              </button>
+            </>
+          ) : null}
         </p>
       ) : null}
 
@@ -596,13 +667,20 @@ export function Company360LivingWorkspace({
         defaultCollapsed
         collapseStorageKey={`company-${company.CompanyID}-documents`}
       >
-        <WorkspaceDocumentsPanel
-          context={workspaceDocumentsContextFromCompany(company)}
-          pipelines={linkedPipelines}
-          companies={companies}
-          activities={scopedActivities}
-          onDocumentCountChange={setDocumentCount}
-        />
+        <div className="space-y-4">
+          <CompanyDocumentKnowledgePanel
+            companyId={company.CompanyID}
+            documents={smartDocs}
+            initialState={documentKnowledge}
+          />
+          <WorkspaceDocumentsPanel
+            context={workspaceDocumentsContextFromCompany(company)}
+            pipelines={linkedPipelines}
+            companies={companies}
+            activities={scopedActivities}
+            onDocumentCountChange={setDocumentCount}
+          />
+        </div>
       </WorkspacePanel>
 
       {/* Writing comes after reading — the finding form lives collapsed at the bottom. */}

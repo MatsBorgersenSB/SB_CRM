@@ -80,13 +80,13 @@ export function AttentionQueueTable({
   return (
     <WorkspaceTable>
       <colgroup>
-        <col className="w-[11%]" />
-        <col className="w-[14%]" />
-        <col className="w-[23%]" />
-        <col className="w-[18%]" />
-        <col className="w-[11%]" />
-        <col className="w-[11%]" />
-        <col className="w-[12%]" />
+        <col className="w-[10%]" />
+        <col className="w-[15%]" />
+        <col className="w-[26%]" />
+        <col className="w-[17%]" />
+        <col className="w-[9%]" />
+        <col className="w-[10%]" />
+        <col className="w-[13%]" />
       </colgroup>
       <WorkspaceTableHead>
         <WorkspaceTableHeadRow>
@@ -125,7 +125,7 @@ export function AttentionQueueTable({
               <WorkspaceTableBodyCell>
                 <AttentionIssueLink
                   item={item}
-                  className="block line-clamp-2 text-carbon-blue/70 underline-offset-2 hover:text-upcycle-orange hover:underline"
+                  className="block line-clamp-2 text-[13px] leading-snug text-carbon-blue/80 underline-offset-2 hover:text-upcycle-orange hover:underline"
                 >
                   {item.recommendation}
                 </AttentionIssueLink>
@@ -133,9 +133,10 @@ export function AttentionQueueTable({
               <WorkspaceTableBodyCell>
                 <AttentionIssueLink
                   item={item}
-                  className="block truncate font-medium text-carbon-blue underline-offset-2 hover:text-upcycle-orange hover:underline"
+                  className="inline-flex max-w-full items-center gap-1 truncate text-[13px] font-semibold text-upcycle-orange underline-offset-2 hover:underline"
                 >
-                  {item.suggestedAiAction}
+                  <span className="truncate">{item.suggestedAiAction}</span>
+                  <span aria-hidden className="shrink-0 text-xs">→</span>
                 </AttentionIssueLink>
               </WorkspaceTableBodyCell>
               <WorkspaceTableBodyCell className="tabular-nums text-carbon-blue/65">

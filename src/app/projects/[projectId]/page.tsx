@@ -1,3 +1,4 @@
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Project360PageShell } from "@/components/layout/project-360-page-shell";
@@ -48,7 +49,7 @@ export default async function Project360Page({ params }: Project360PageProps) {
   }
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WorkspaceLoading label="Opening project" />}>
       <Project360PageShell
         projectId={project.id}
         project={project}

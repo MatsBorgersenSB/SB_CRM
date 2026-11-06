@@ -28,9 +28,12 @@ export function WorkspaceTopBar({
   return (
     <header className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between gap-4 border-b border-carbon-blue/8 bg-[var(--dashboard-surface)]/95 px-4 backdrop-blur-sm">
       <div className="flex min-w-0 items-center gap-4">
-        <div className="flex min-w-0 items-center gap-2 text-[13px]">
-          <SmartCRMIcon name={icon} size="sm" className="text-carbon-blue/60" />
-          <span className="truncate font-semibold text-carbon-blue">{title}</span>
+        <div
+          className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/50"
+          aria-label={`${title} workspace`}
+        >
+          <SmartCRMIcon name={icon} size="xs" className="text-carbon-blue/45" />
+          <span className="truncate">{title}</span>
         </div>
         {children}
       </div>

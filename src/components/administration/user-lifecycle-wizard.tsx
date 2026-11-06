@@ -8,6 +8,8 @@ import type {
   StandardBioUserRecord,
   SuccessorRecommendation,
 } from "@/types/user-access";
+import { useEscapeKey } from "@/hooks/use-escape-key";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 type TransferMode = "transfer" | "replace";
 
@@ -34,10 +36,11 @@ export function UserLifecycleWizard({
   onClose,
   onCompleted,
 }: UserLifecycleWizardProps) {
+  useEscapeKey(open, onClose);
   const { user: authUser } = useAuth();
   const [preview, setPreview] = useState<OwnershipTransferPreview | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadedOwner, setLoadedOwner] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,10 +48,14 @@ export function UserLifecycleWizard({
     (candidate) => candidate.status === "active" && candidate.id !== user.id,
   );
 
+  useWhenChanged([open, user.id], () => {
+    if (open) setError(null);
+    else setLoadedOwner(null);
+  });
+  const loading = open && loadedOwner !== user.id;
+
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    setError(null);
     void fetch(`/api/administration/users/${user.id}/transfer-ownership`, {
       method: "POST",
       headers: withAuthRoleHeaders(authUser.role, {
@@ -65,7 +72,7 @@ export function UserLifecycleWizard({
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "Failed to load preview");
       })
-      .finally(() => setLoading(false));
+      .finally(() => setLoadedOwner(user.id));
   }, [open, user.id, authUser.role]);
 
   useEffect(() => {

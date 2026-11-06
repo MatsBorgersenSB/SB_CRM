@@ -1,3 +1,4 @@
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
 import { Suspense } from "react";
 import { OpportunitiesOperationsShell } from "@/components/layout/opportunities-operations-shell";
 import {
@@ -17,7 +18,7 @@ export default async function OpportunitiesPage() {
   ]);
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WorkspaceLoading label="Loading opportunities" />}>
       <OpportunitiesOperationsShell
         pipelines={pipelines}
         companies={companies}

@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { CalendarPlus, FilePlus2, FileText, Mail, PenSquare, X } from "lucide-react";
+import { CalendarPlus, FilePlus2, PenSquare, X } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -223,35 +222,25 @@ export function QuickActions({ showMail = true }: { showMail?: boolean }) {
         </button>
         {showMail ? (
           <a
-          href={outlookComposeUrl()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={ACTION_CLASS}
-          title="Write a new mail in Outlook"
-        >
-          <PenSquare className="size-3.5 shrink-0 text-primary" strokeWidth={2} />
-          New mail
-        </a>
-        ) : null}
-        {showMail ? (
-        <Link href="/mail" className={ACTION_CLASS} title="Recent mail tied to your relationships">
-          <Mail className="size-3.5 shrink-0" strokeWidth={2} />
-          Mail
-        </Link>
+            href={outlookComposeUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={ACTION_CLASS}
+            title="Write a new mail in Outlook"
+          >
+            <PenSquare className="size-3.5 shrink-0 text-primary" strokeWidth={2} />
+            New mail
+          </a>
         ) : null}
         <button
           type="button"
           onClick={addDocument}
-          className={ACTION_CLASS}
+          className={cn(ACTION_CLASS, !showMail && "col-span-2")}
           title="Add a document to the record you are viewing"
         >
           <FilePlus2 className="size-3.5 shrink-0 text-primary" strokeWidth={2} />
           Add doc
         </button>
-        <Link href="/knowledge" className={ACTION_CLASS} title="All documents">
-          <FileText className="size-3.5 shrink-0" strokeWidth={2} />
-          Docs
-        </Link>
       </div>
       {picking ? <CompanyPicker onClose={() => setPicking(false)} /> : null}
       <ActivityCreateWizard

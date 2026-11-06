@@ -168,7 +168,7 @@ export function CompanyTypeMultiSelect({
           className="absolute z-50 mt-1 w-full overflow-hidden border border-carbon-blue/12 bg-white shadow-lg"
         >
           <div className="border-b border-carbon-blue/8 p-2">
-            <input
+            <input aria-label="Filter types"
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}

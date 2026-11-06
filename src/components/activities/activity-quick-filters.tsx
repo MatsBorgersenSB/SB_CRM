@@ -64,7 +64,7 @@ export function ActivitySearchBar({
         className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-carbon-blue/50"
         strokeWidth={1.75}
       />
-      <input
+      <input aria-label={placeholder}
         type="search"
         placeholder={placeholder}
         value={value}

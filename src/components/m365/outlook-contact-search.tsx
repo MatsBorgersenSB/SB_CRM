@@ -30,20 +30,16 @@ export function OutlookContactSearch({
   const rootRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [hits, setHits] = useState<OutlookContactHit[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [rawHits, setHits] = useState<OutlookContactHit[]>([]);
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      setHits([]);
-      setLoading(false);
-      return;
-    }
+    if (trimmed.length < 2) return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      setLoading(true);
+      setSearching(true);
       void (async () => {
         try {
           const response = await fetch(
@@ -67,7 +63,7 @@ export function OutlookContactSearch({
           if ((error as { name?: string }).name === "AbortError") return;
           setHits([]);
         } finally {
-          setLoading(false);
+          setSearching(false);
         }
       })();
     }, 220);
@@ -97,6 +93,10 @@ export function OutlookContactSearch({
   }, [isOpen]);
 
   const trimmed = query.trim();
+  // Short queries show nothing and never spin, regardless of what an earlier search left behind.
+  const longEnough = trimmed.length >= 2;
+  const loading = searching && longEnough;
+  const hits = longEnough ? rawHits : [];
   const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed.toLowerCase());
   const createDraft = {
     query: trimmed,
@@ -110,6 +110,7 @@ export function OutlookContactSearch({
         Find contact in SmartCRM
         <input
           type="search"
+ aria-label="Name, email, or company"
           value={query}
           disabled={disabled}
           placeholder="Name, email, or company…"

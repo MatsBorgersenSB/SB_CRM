@@ -1,7 +1,7 @@
 "use client";
 
 import { RegionalDateInput } from "@/components/ui/regional-inputs";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company } from "@/types/company";
 import type { Contact } from "@/types/contact";
@@ -31,6 +31,7 @@ import {
 import { linkCompanyToOpportunity } from "@/lib/sync-company-opportunity-link";
 import type { MailOpportunityDraft } from "@/lib/mail-opportunity-draft";
 import { useAuth } from "@/context/auth-context";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 
 type CreateFormState = {
   assetName: string;
@@ -61,6 +62,7 @@ export function CompanyOpportunitiesSection({
   onAssignStakeholder,
   onCompanyUpdated,
   createRequestId = 0,
+  linkRequestId = 0,
   mailRequest = null,
   onOpportunityCreated,
   onMailDraftDismiss,
@@ -84,6 +86,7 @@ export function CompanyOpportunitiesSection({
   ) => Promise<PipelineRow>;
   onCompanyUpdated?: (company: Company) => void;
   createRequestId?: number;
+  linkRequestId?: number;
   /** Opens the create form prefilled from a mail. The user still confirms. */
   mailRequest?: { id: number; draft: MailOpportunityDraft } | null;
   onOpportunityCreated?: (deal: PipelineRow) => void | Promise<void>;
@@ -157,16 +160,23 @@ export function CompanyOpportunitiesSection({
     }
   };
 
-  useEffect(() => {
+  useWhenChanged([createRequestId, canCreate], () => {
     if (createRequestId > 0 && canCreate) {
       setCreateOpen(true);
       setCreatedDeal(null);
       setStakeholderOpen(false);
       setError(null);
     }
-  }, [createRequestId, canCreate]);
+  });
 
-  useEffect(() => {
+  useWhenChanged([linkRequestId, canManageStakeholders], () => {
+    if (linkRequestId > 0 && canManageStakeholders) {
+      setLinkOpen(true);
+      setError(null);
+    }
+  });
+
+  useWhenChanged([mailRequest?.id, canCreate], () => {
     if (!mailRequest || !canCreate) return;
     const { draft } = mailRequest;
     setCreatedDeal(null);
@@ -180,8 +190,7 @@ export function CompanyOpportunitiesSection({
     setSelectedContactId(draft.contactId ?? "");
     setCreateOpen(true);
     // Refill only when a new mail is chosen, not on every parent render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mailRequest?.id, canCreate]);
+  });
 
   const extraRoles = useMemo(() => {
     const fromOfferings = createdDeal

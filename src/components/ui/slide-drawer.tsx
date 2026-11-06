@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FileUp, Sparkles, X } from "lucide-react";
 import { useEscapeKey } from "@/hooks/use-escape-key";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 import { simulateDocIntelligence } from "@/lib/mock-ai-parser";
 import {
   buildSmartDocsFilename,
@@ -143,19 +144,22 @@ function DocumentUploadZone({
     toSmartDocsDocument(smartDocs ?? {}),
   );
 
-  useEffect(() => {
-    setFileName(smartDocs?.FileLeafRef ?? null);
-    setDocument(toSmartDocsDocument(smartDocs ?? {}));
-    setParsing(false);
-    setIsDragOver(false);
-  }, [
-    pipelineId,
-    smartDocs?.ClientLookup,
-    smartDocs?.DocCategory,
-    smartDocs?.DocType,
-    smartDocs?.Revision,
-    smartDocs?.FileLeafRef,
-  ]);
+  useWhenChanged(
+    [
+      pipelineId,
+      smartDocs?.ClientLookup,
+      smartDocs?.DocCategory,
+      smartDocs?.DocType,
+      smartDocs?.Revision,
+      smartDocs?.FileLeafRef,
+    ],
+    () => {
+      setFileName(smartDocs?.FileLeafRef ?? null);
+      setDocument(toSmartDocsDocument(smartDocs ?? {}));
+      setParsing(false);
+      setIsDragOver(false);
+    },
+  );
 
   const persistDocument = useCallback(
     async (patch: SmartDocsDocument) => {
@@ -340,13 +344,13 @@ export function SlideDrawer({
 
   useEscapeKey(open, onClose);
 
-  useEffect(() => {
+  useWhenChanged([open], () => {
     if (open) setMounted(true);
-  }, [open]);
+  });
 
-  useEffect(() => {
+  useWhenChanged([open, subtitle], () => {
     if (open) setActiveTab("overview");
-  }, [open, subtitle]);
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -395,6 +399,7 @@ export function SlideDrawer({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close"
             className="border border-carbon-blue/10 p-1 text-carbon-blue/50 transition-colors hover:border-carbon-blue/20 hover:text-carbon-blue"
           >
             <X className="size-3.5" strokeWidth={1.75} />

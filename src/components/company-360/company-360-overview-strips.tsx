@@ -63,11 +63,15 @@ function PeopleOverviewStrip({
   role,
   activities,
   allProjects,
+  pipelines,
   onCreateContact,
   onContactUpdate,
   onContactDelete,
   onContactReassign,
   onContactArchive,
+  onAssignOpportunityStakeholder,
+  onProjectUpdated,
+  onCompanyUpdated,
   createRequestId,
   lastMailByContactId,
 }: {
@@ -76,11 +80,19 @@ function PeopleOverviewStrip({
   role: UserRole;
   activities: Activity[];
   allProjects: Project[];
+  pipelines?: PipelineRow[];
   onCreateContact?: (input: CreateContactInput) => Promise<void>;
   onContactUpdate?: (contactId: string, patch: UpdateContactInput) => Promise<void>;
   onContactDelete?: (contactId: string) => Promise<void>;
   onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
+  onAssignOpportunityStakeholder?: (
+    dealId: string,
+    contactId: string,
+    projectRole: string,
+  ) => Promise<PipelineRow>;
+  onProjectUpdated?: (project: Project) => void;
+  onCompanyUpdated?: (company: Company) => void;
   createRequestId?: number;
   lastMailByContactId?: Record<string, string>;
 }) {
@@ -97,11 +109,15 @@ function PeopleOverviewStrip({
         role={role}
         activities={activities}
         projects={allProjects}
+        pipelines={pipelines}
         onCreateContact={onCreateContact}
         onContactUpdate={onContactUpdate}
         onContactDelete={onContactDelete}
         onContactReassign={onContactReassign}
         onContactArchive={onContactArchive}
+        onAssignOpportunityStakeholder={onAssignOpportunityStakeholder}
+        onProjectUpdated={onProjectUpdated}
+        onCompanyUpdated={onCompanyUpdated}
         createRequestId={createRequestId}
         lastMailByContactId={lastMailByContactId}
       />
@@ -125,6 +141,7 @@ function OpportunitiesOverviewStrip({
   mailRequest = null,
   onOpportunityCreated,
   onMailDraftDismiss,
+  linkRequestId = 0,
 }: {
   company: Company;
   companies: Company[];
@@ -146,6 +163,7 @@ function OpportunitiesOverviewStrip({
   mailRequest?: { id: number; draft: MailOpportunityDraft } | null;
   onOpportunityCreated?: (deal: PipelineRow) => void | Promise<void>;
   onMailDraftDismiss?: () => void;
+  linkRequestId?: number;
 }) {
   const [createRequestId, setCreateRequestId] = useState(0);
   const [deleteDealId, setDeleteDealId] = useState<string | null>(null);
@@ -306,6 +324,7 @@ function OpportunitiesOverviewStrip({
           onAssignStakeholder={onAssignStakeholder}
           onCompanyUpdated={onCompanyUpdated}
           createRequestId={createRequestId}
+          linkRequestId={linkRequestId}
           mailRequest={mailRequest}
           onOpportunityCreated={onOpportunityCreated}
           onMailDraftDismiss={onMailDraftDismiss}
@@ -335,7 +354,9 @@ export function Company360OverviewStrips({
   onContactDelete,
   onContactReassign,
   onContactArchive,
+  onProjectUpdated,
   createRequestId,
+  linkOpportunityRequestId = 0,
   lastMailByContactId,
   outlook,
   showOpportunities = true,
@@ -362,7 +383,9 @@ export function Company360OverviewStrips({
   onContactDelete?: (contactId: string) => Promise<void>;
   onContactReassign?: (contactId: string, targetCompanyId: string) => Promise<void>;
   onContactArchive?: (contactId: string, archived: boolean) => Promise<void>;
+  onProjectUpdated?: (project: Project) => void;
   createRequestId?: number;
+  linkOpportunityRequestId?: number;
   lastMailByContactId?: Record<string, string>;
   outlook?: ReactNode;
   /** False folds an empty Opportunities panel away (the page shows a one-line "nothing linked"). */
@@ -389,11 +412,15 @@ export function Company360OverviewStrips({
         role={role}
         activities={activities}
         allProjects={allProjects}
+        pipelines={pipelines ?? deals}
         onCreateContact={onCreateContact}
         onContactUpdate={onContactUpdate}
         onContactDelete={onContactDelete}
         onContactReassign={onContactReassign}
         onContactArchive={onContactArchive}
+        onAssignOpportunityStakeholder={onAssignOpportunityStakeholder}
+        onProjectUpdated={onProjectUpdated}
+        onCompanyUpdated={onCompanyUpdated}
         createRequestId={createRequestId}
         lastMailByContactId={lastMailByContactId}
       />
@@ -415,6 +442,7 @@ export function Company360OverviewStrips({
           mailRequest={mailRequest}
           onOpportunityCreated={onOpportunityCreated}
           onMailDraftDismiss={onMailDraftDismiss}
+          linkRequestId={linkOpportunityRequestId}
         />
       ) : null}
     </>
