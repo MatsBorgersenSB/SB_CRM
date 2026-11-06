@@ -1,9 +1,11 @@
+import type { Company } from "@/types/company";
 import type { CoPilotActionProposal } from "@/types/smartassist-copilot";
 import type {
   BusinessImpactCategory,
   BusinessImpactPriority,
   BusinessImpactRecommendation,
 } from "@/types/smart-assist-business-impact";
+import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 import { SMARTASSIST_BUSINESS_IMPACT } from "@/lib/smart-assist-config";
 
 const CATEGORY_RANK: Record<BusinessImpactCategory, number> = {
@@ -92,29 +94,39 @@ export function formatBusinessImpactSummary(
 export function copilotProposalToBusinessImpact(
   proposal: CoPilotActionProposal,
   impactScore: number,
+  company?: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
 ): BusinessImpactRecommendation {
-  const category = categoryFromCopilot(proposal);
+  const effectiveProposal: CoPilotActionProposal =
+    proposal.kind === "create_opportunity" && company && !isOpportunityEligibleCompany(company)
+      ? {
+          ...proposal,
+          kind: "classify_company",
+          sourceType: "relationship",
+          title: `Classify ${proposal.companyName ?? proposal.objectName ?? "this company"} before opening an opportunity`,
+        }
+      : proposal;
+  const category = categoryFromCopilot(effectiveProposal);
   const weightedScore = applyCategoryWeight(impactScore, category);
 
-  const situation = proposal.observedChange;
+  const situation = effectiveProposal.observedChange;
   const isCommercial =
-    proposal.sourceType === "opportunity" || proposal.sourceType === "document";
+    effectiveProposal.sourceType === "opportunity" || effectiveProposal.sourceType === "document";
 
   return {
-    id: proposal.id,
-    entityName: proposal.companyName ?? proposal.objectName ?? "Account",
+    id: effectiveProposal.id,
+    entityName: effectiveProposal.companyName ?? effectiveProposal.objectName ?? "Account",
     category,
     situation,
     impact: isCommercial
-      ? proposal.impact.replace(/CRM hygiene/i, "Commercial momentum and contract timing")
-      : proposal.impact,
-    recommendedAction: proposal.title,
+      ? effectiveProposal.impact.replace(/CRM hygiene/i, "Commercial momentum and contract timing")
+      : effectiveProposal.impact,
+    recommendedAction: effectiveProposal.title,
     estimatedEffort:
-      proposal.kind === "complete_commitment" ? "Less than 5 minutes" : "Less than 10 minutes",
-    expectedOutcome: expectedOutcomeForCopilot(proposal),
+      effectiveProposal.kind === "complete_commitment" ? "Less than 5 minutes" : "Less than 10 minutes",
+    expectedOutcome: expectedOutcomeForCopilot(effectiveProposal),
     priority: priorityFromScore(weightedScore),
     impactScore: weightedScore,
-    href: proposal.href,
+    href: effectiveProposal.href,
     source: "CRM Co-Pilot",
   };
 }

@@ -1,4 +1,6 @@
+import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 import { buildCoPilotSuppressionKey } from "@/lib/smartassist-copilot-keys";
+import type { Company } from "@/types/company";
 import type { CoPilotActionProposal } from "@/types/smartassist-copilot";
 
 const HANDLED_KEY = "smartcrm-copilot-handled";
@@ -83,7 +85,15 @@ export function isCoPilotProposalHandled(
     CoPilotActionProposal,
     "id" | "kind" | "companyId" | "title" | "suppressionKey"
   >,
+  company?: Pick<Company, "CompanyTypes" | "companyType" | "Status">,
 ): boolean {
+  if (
+    proposal?.kind === "create_opportunity" &&
+    company &&
+    !isOpportunityEligibleCompany(company)
+  ) {
+    return true;
+  }
   const record = readHandled();
   const keys = new Set([idOrKey]);
   if (proposal) {

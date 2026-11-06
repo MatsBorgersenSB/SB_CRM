@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 import { getServerSharePointServices } from "@/services/sharepoint/factory";
 import type { CreateActivityInput } from "@/types/activity";
 import type {
@@ -176,6 +177,19 @@ export async function executeCoPilotProposal(
       message: `Open ${fieldLabel || "company"} to confirm the update — SmartAssist prepared it; you decide.`,
       prefill: payload.prefill,
     };
+  }
+
+  if (kind === "create_opportunity" && proposal.companyId) {
+    const { readLiveCompanies } = await import("@/lib/prisma-data");
+    const companies = await readLiveCompanies();
+    const company = companies.find((c) => c.CompanyID === proposal.companyId);
+    if (company && !isOpportunityEligibleCompany(company)) {
+      return {
+        mode: "navigate",
+        href: `/companies/${encodeURIComponent(proposal.companyId)}`,
+        message: `Opening ${proposal.companyName ?? proposal.objectName ?? "company"} — set a sell-to relationship role before creating an opportunity.`,
+      };
+    }
   }
 
   if (

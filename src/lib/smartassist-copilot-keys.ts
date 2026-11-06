@@ -1,3 +1,5 @@
+import { isOpportunityEligibleCompany } from "@/lib/company-classification";
+import type { Company } from "@/types/company";
 import type { CoPilotActionKind } from "@/types/smartassist-copilot";
 
 /** Stable suppress identity — survives proposal id format changes across sessions. */
@@ -5,6 +7,7 @@ export function buildCoPilotSuppressionKey(input: {
   id: string;
   kind: CoPilotActionKind;
   companyId?: string;
+  company?: Pick<Company, "CompanyTypes" | "companyType" | "Status">;
   ruleId?: string;
   title?: string;
 }): string {
@@ -15,6 +18,9 @@ export function buildCoPilotSuppressionKey(input: {
     input.title === "Create New Opportunity";
 
   if (isCreateOpportunity && companyId) {
+    if (input.company && !isOpportunityEligibleCompany(input.company)) {
+      return `classify_company:${companyId}`;
+    }
     return `create_opportunity:${companyId}`;
   }
 

@@ -5,9 +5,11 @@
 
 import "server-only";
 
+import { isOpportunityEligibleCompany } from "@/lib/company-classification";
 import { getPrisma } from "@/lib/prisma";
 import { normalizeCoPilotUserEmail } from "@/lib/smartassist-copilot-dismissals";
 import { COPILOT_DISMISS_ANONYMOUS } from "@/lib/smartassist-copilot-dismiss-constants";
+import type { Company } from "@/types/company";
 
 const SUPPLIER_PATTERN =
   /\b(supplier|vendor|not\s+a\s+customer|not\s+a\s+client|buy\s+from|purchasing)\b/i;
@@ -25,6 +27,7 @@ export function deriveLearningSuppressKeys(input: {
   suggestionKey: string;
   note: string;
   companyId?: string | null;
+  company?: Pick<Company, "CompanyTypes" | "companyType" | "Status">;
   actionKind?: string | null;
 }): string[] {
   const keys = new Set<string>();
@@ -33,7 +36,11 @@ export function deriveLearningSuppressKeys(input: {
 
   keys.add(input.suggestionKey);
 
-  if (SUPPLIER_PATTERN.test(note) && companyId) {
+  if (
+    companyId &&
+    (SUPPLIER_PATTERN.test(note) ||
+      (input.company && !isOpportunityEligibleCompany(input.company)))
+  ) {
     keys.add(`create_opportunity:${companyId}`);
     keys.add(`policy:no_opportunity:${companyId}`);
   }
