@@ -40,6 +40,7 @@ export function NotificationBell() {
   useEscapeKey(open, close);
 
   const load = useCallback(async (silent = false) => {
+    await Promise.resolve();
     if (!silent) {
       setLoading(true);
       setError(null);
@@ -81,22 +82,23 @@ export function NotificationBell() {
   }, [user.displayName, user.email, user.id, user.role]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    if (open) void load();
-  }, [open, load]);
-
-  useEffect(() => {
+    const initial = window.setTimeout(() => {
+      void load();
+    }, 0);
     const tick = () => {
       if (document.visibilityState === "visible") void load(true);
     };
+    const refreshNow = () => {
+      void load(false);
+    };
     const interval = window.setInterval(tick, 30_000);
     document.addEventListener("visibilitychange", tick);
+    window.addEventListener("smartcrm:notifications-refresh", refreshNow);
     return () => {
+      window.clearTimeout(initial);
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", tick);
+      window.removeEventListener("smartcrm:notifications-refresh", refreshNow);
     };
   }, [load]);
 
@@ -122,14 +124,20 @@ export function NotificationBell() {
         /* ignore */
       }
     },
-    [user.id, user.role],
+    [user.email, user.id, user.role],
   );
 
   return (
     <div className="relative" ref={panelRef}>
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() =>
+          setOpen((value) => {
+            const next = !value;
+            if (next) void load();
+            return next;
+          })
+        }
         className="relative inline-flex size-8 items-center justify-center border border-carbon-blue/15 bg-white text-carbon-blue transition-colors hover:border-upcycle-orange/40 hover:text-upcycle-orange"
         aria-label={
           unreadCount > 0

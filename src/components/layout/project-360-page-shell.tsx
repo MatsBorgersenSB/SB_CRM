@@ -216,6 +216,9 @@ export function Project360PageShell({
         removedStakeholders,
       );
       setCurrentProject(updated);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("smartcrm:notifications-refresh"));
+      }
     },
     [resolvedProject, user.role],
   );

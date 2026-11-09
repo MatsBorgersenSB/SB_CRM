@@ -24,7 +24,9 @@ export async function pingColleagueAboutAssignment(input: {
   if (!email.includes("@")) return null;
 
   const oid = await getSessionAzureOid().catch(() => undefined);
-  const token = await getActiveM365AccessToken(oid);
+  const token =
+    (await getActiveM365AccessToken(oid)) ??
+    (oid ? await getActiveM365AccessToken() : null);
   if (!token?.accessToken) {
     console.warn("[assignment-notify] No M365 token — colleague was not pinged outside SmartCRM");
     return null;

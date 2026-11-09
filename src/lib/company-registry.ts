@@ -214,7 +214,37 @@ export async function createRegistryCompany(
     ).catch(() => undefined);
   }
 
-  return loadMappedPrismaCompany(created.id);
+  const mapped = await loadMappedPrismaCompany(created.id);
+  await notifyCompanyOwner(null, null, mapped);
+  return mapped;
+}
+
+async function notifyCompanyOwner(
+  previousOwnerId: number | null,
+  previousOwnerTitle: string | null,
+  next: Company,
+): Promise<void> {
+  const after = next.AccountOwner;
+  if (!after?.Id) return;
+  try {
+    const { notifyOwnershipAssigned } = await import(
+      "@/lib/notifications/living-signals"
+    );
+    await notifyOwnershipAssigned({
+      kind: "company",
+      entityId: next.code?.trim() || next.CompanyID,
+      subject: next.Title || next.CompanyID,
+      assigneeId: after.Id,
+      assigneeTitle: after.Title,
+      previousOwnerId,
+      previousOwnerTitle,
+    });
+  } catch (error) {
+    console.warn(
+      "[company] owner assign notify failed",
+      error instanceof Error ? error.message : error,
+    );
+  }
 }
 
 export async function updateRegistryCompany(
@@ -304,8 +334,21 @@ export async function updateRegistryCompany(
       ).catch(() => undefined);
     }
 
-    return loadMappedPrismaCompany(created.id);
+    const mapped = await loadMappedPrismaCompany(created.id);
+    if (patch.AccountOwner !== undefined) {
+      await notifyCompanyOwner(
+        jsonCompany.AccountOwner?.Id ?? null,
+        jsonCompany.AccountOwner?.Title ?? null,
+        mapped,
+      );
+    }
+    return mapped;
   }
+
+  const previousOwnerId =
+    existing.ownerId && existing.ownerId !== "system" && Number.isFinite(Number(existing.ownerId))
+      ? Number(existing.ownerId)
+      : null;
 
   const parentCompanyId = await resolvePrismaParentId(patch.ParentCompany);
   const domain =
@@ -383,7 +426,11 @@ export async function updateRegistryCompany(
     });
   }
 
-  return loadMappedPrismaCompany(updated.id);
+  const mapped = await loadMappedPrismaCompany(updated.id);
+  if (patch.AccountOwner !== undefined) {
+    await notifyCompanyOwner(previousOwnerId, null, mapped);
+  }
+  return mapped;
 }
 
 export async function deleteRegistryCompany(id: string | number): Promise<boolean> {

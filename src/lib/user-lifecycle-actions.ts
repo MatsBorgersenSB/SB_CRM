@@ -34,12 +34,24 @@ export async function executeOwnershipTransfer(
   toUser: StandardBioUserRecord,
   context: LifecycleContext,
 ): Promise<OwnershipTransferResult> {
-  const { updateActivity, updateCompany, updatePipeline } = await import("@/lib/pipeline-db");
+  const { updateActivity, updateCompany, updateCompanyContact, updatePipeline } =
+    await import("@/lib/pipeline-db");
+  const { matchesOwner } = await import("@/lib/user-lifecycle-analysis");
   const analysis = analyzeUserOwnership(fromUser, context);
   const toPerson = userToSharePointPerson(toUser);
 
   for (const companyRef of analysis.ownedCompanies) {
     await updateCompany(companyRef.id, { AccountOwner: toPerson });
+  }
+
+  for (const company of context.companies) {
+    for (const contact of company.contacts) {
+      if (matchesOwner(contact.ContactOwner, fromUser)) {
+        await updateCompanyContact(company.CompanyID, contact.ContactID, {
+          ContactOwner: toPerson,
+        });
+      }
+    }
   }
 
   for (const oppRef of analysis.ownedOpportunities) {

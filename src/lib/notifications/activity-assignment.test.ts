@@ -4,6 +4,8 @@ import {
   assignmentNoticeCopy,
   assignmentNoticeLink,
   assignmentShouldNotify,
+  ownershipNoticeCopy,
+  ownershipNoticeLink,
 } from "./activity-assignment";
 
 describe("assignmentShouldNotify", () => {
@@ -86,5 +88,75 @@ describe("assignmentNoticeCopy", () => {
     assert.match(copy.message, /Mats Borgersen assigned you: Follow-up with Eramet/);
     assert.match(copy.html, /Open in SmartCRM/);
     assert.match(copy.html, /Eramet/);
+  });
+
+  it("builds ownership notice copy and links for companies, contacts, opportunities, and projects", () => {
+    const companyLink = ownershipNoticeLink({
+      kind: "company",
+      entityId: "CO-1044",
+      assigneeId: 102,
+      previousOwnerId: 1,
+    });
+    assert.equal(companyLink, "/companies/CO-1044?assigned=102&from=1");
+
+    const companyCopy = ownershipNoticeCopy({
+      kind: "company",
+      subject: "Mjørud AS",
+      assignerTitle: "Mats Borgersen",
+      openUrl: `https://sb-crm-seven.vercel.app${companyLink}`,
+    });
+    assert.equal(companyCopy.title, "Account ownership assigned to you");
+    assert.match(
+      companyCopy.message,
+      /Mats Borgersen assigned you responsibility for company: Mjørud AS/,
+    );
+    assert.match(companyCopy.html, /Account Owner/);
+
+    const contactLink = ownershipNoticeLink({
+      kind: "contact",
+      entityId: "CT-1001",
+      assigneeId: 102,
+      previousOwnerId: 1,
+    });
+    assert.equal(contactLink, "/contacts/CT-1001?assigned=102&from=1");
+
+    const contactCopy = ownershipNoticeCopy({
+      kind: "contact",
+      subject: "Aleksander Lindh",
+      companyName: "Mjørud AS",
+      assignerTitle: "Mats Borgersen",
+      openUrl: `https://sb-crm-seven.vercel.app${contactLink}`,
+    });
+    assert.equal(contactCopy.title, "Contact ownership assigned to you");
+    assert.match(
+      contactCopy.message,
+      /Mats Borgersen assigned you responsibility for contact: Aleksander Lindh \(Mjørud AS\)/,
+    );
+    assert.match(contactCopy.html, /Contact Owner/);
+
+    const dealCopy = ownershipNoticeCopy({
+      kind: "opportunity",
+      subject: "VEAS Biokull",
+      companyName: "VEAS",
+      assignerTitle: "Mats Borgersen",
+      openUrl: "https://sb-crm-seven.vercel.app/opportunities/OPP-1001",
+    });
+    assert.equal(dealCopy.title, "Opportunity ownership assigned to you");
+    assert.match(
+      dealCopy.message,
+      /Mats Borgersen assigned you responsibility for opportunity: VEAS Biokull \(VEAS\)/,
+    );
+
+    const projectCopy = ownershipNoticeCopy({
+      kind: "project",
+      subject: "VEAS Pilot",
+      assignerTitle: "Mats Borgersen",
+      openUrl: "https://sb-crm-seven.vercel.app/projects/PRJ-VEAS",
+    });
+    assert.equal(projectCopy.title, "Project ownership assigned to you");
+    assert.match(
+      projectCopy.message,
+      /Mats Borgersen assigned you responsibility for project: VEAS Pilot/,
+    );
   });
 });

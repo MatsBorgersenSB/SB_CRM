@@ -249,7 +249,41 @@ export async function createRegistryContact(
     }),
   );
 
-  return loadMappedContact(created.id);
+  const mapped = await loadMappedContact(created.id);
+  await notifyContactOwner(null, null, mapped);
+  return mapped;
+}
+
+async function notifyContactOwner(
+  previousOwnerId: number | null,
+  previousOwnerTitle: string | null,
+  next: Contact,
+): Promise<void> {
+  const after = next.ContactOwner;
+  if (!after?.Id) return;
+  try {
+    const { notifyOwnershipAssigned } = await import(
+      "@/lib/notifications/living-signals"
+    );
+    await notifyOwnershipAssigned({
+      kind: "contact",
+      entityId: next.ContactID,
+      subject:
+        next.Title ||
+        `${next.FirstName ?? ""} ${next.LastName ?? ""}`.trim() ||
+        next.ContactID,
+      assigneeId: after.Id,
+      assigneeTitle: after.Title,
+      previousOwnerId,
+      previousOwnerTitle,
+      companyName: next.Company?.Title ?? null,
+    });
+  } catch (error) {
+    console.warn(
+      "[contact] owner assign notify failed",
+      error instanceof Error ? error.message : error,
+    );
+  }
 }
 
 export async function updateRegistryContact(
@@ -258,7 +292,7 @@ export async function updateRegistryContact(
 ): Promise<Contact | null> {
   if (!(await prismaRegistryAvailable())) return null;
 
-  let existing = await findPrismaContactByIdOrEmail(String(id));
+  const existing = await findPrismaContactByIdOrEmail(String(id));
 
   // Promote JSON-seeded CT-… contacts into Prisma on first save (local/CI only).
   if (!existing) {
@@ -353,8 +387,21 @@ export async function updateRegistryContact(
       }),
     );
 
-    return loadMappedContact(created.id);
+    const mapped = await loadMappedContact(created.id);
+    if (patch.ContactOwner !== undefined) {
+      await notifyContactOwner(
+        jsonContact.ContactOwner?.Id ?? null,
+        jsonContact.ContactOwner?.Title ?? null,
+        mapped,
+      );
+    }
+    return mapped;
   }
+
+  const previousOwnerId =
+    existing.ownerId && existing.ownerId !== "system" && Number.isFinite(Number(existing.ownerId))
+      ? Number(existing.ownerId)
+      : null;
 
   const data: Record<string, unknown> = {};
 
@@ -543,7 +590,11 @@ export async function updateRegistryContact(
     }),
   );
 
-  return loadMappedContact(updated.id);
+  const mapped = await loadMappedContact(updated.id);
+  if (patch.ContactOwner !== undefined) {
+    await notifyContactOwner(previousOwnerId, null, mapped);
+  }
+  return mapped;
 }
 
 export async function deleteRegistryContact(id: string | number): Promise<boolean> {

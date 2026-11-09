@@ -280,6 +280,8 @@ export async function updateProject(projectId: string, patch: ProjectPatch): Pro
 
   const current = rowToProject(existing);
   const previousName = current.name;
+  const { resolveProjectOwner } = await import("@/lib/project-owner");
+  const previousOwner = resolveProjectOwner(current);
 
   let nextPatch = { ...patch };
   if (
@@ -340,7 +342,44 @@ export async function updateProject(projectId: string, patch: ProjectPatch): Pro
     });
   }
 
+  if (
+    patch.owner !== undefined ||
+    patch.projectStakeholders !== undefined ||
+    patch.team !== undefined
+  ) {
+    await notifyProjectOwner(previousOwner, updated);
+  }
+
   return updated;
+}
+
+async function notifyProjectOwner(
+  previousOwner: { Id: number; Title: string } | null,
+  next: Project,
+): Promise<void> {
+  try {
+    const { resolveProjectOwner } = await import("@/lib/project-owner");
+    const after = resolveProjectOwner(next);
+    if (!after?.Title?.trim()) return;
+    const { notifyOwnershipAssigned } = await import(
+      "@/lib/notifications/living-signals"
+    );
+    await notifyOwnershipAssigned({
+      kind: "project",
+      entityId: next.id,
+      subject: next.name || next.id,
+      assigneeId: after.Id > 0 ? after.Id : null,
+      assigneeTitle: after.Title,
+      previousOwnerId:
+        previousOwner && previousOwner.Id > 0 ? previousOwner.Id : null,
+      previousOwnerTitle: previousOwner?.Title ?? null,
+    });
+  } catch (error) {
+    console.warn(
+      "[project] owner assign notify failed",
+      error instanceof Error ? error.message : error,
+    );
+  }
 }
 
 /**
@@ -532,6 +571,10 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
       data: project as unknown as Prisma.InputJsonValue,
     },
   });
+
+  if (project.owner?.trim()) {
+    await notifyProjectOwner(null, project);
+  }
 
   return project;
 }

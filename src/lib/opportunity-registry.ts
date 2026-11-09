@@ -108,7 +108,40 @@ export async function createRegistryOpportunity(
     opportunityTitle: assetName,
   });
 
-  return mapPrismaOpportunityToPipelineRow(created);
+  const mapped = mapPrismaOpportunityToPipelineRow(created);
+  await notifyOpportunityOwner(null, null, mapped, company.name);
+  return mapped;
+}
+
+async function notifyOpportunityOwner(
+  previousOwnerId: number | null,
+  previousOwnerTitle: string | null,
+  next: PipelineRow,
+  companyName?: string | null,
+): Promise<void> {
+  const after = next.opportunityOwner;
+  if (!after?.Id) return;
+  try {
+    const { notifyOwnershipAssigned } = await import(
+      "@/lib/notifications/living-signals"
+    );
+    await notifyOwnershipAssigned({
+      kind: "opportunity",
+      entityId: next.code?.trim() || next.id,
+      subject: next.assetName || next.code || next.id,
+      assigneeId: after.Id,
+      assigneeTitle: after.Title,
+      previousOwnerId,
+      previousOwnerTitle,
+      companyName: companyName ?? null,
+      dueDate: next.expectedCloseDate ?? null,
+    });
+  } catch (error) {
+    console.warn(
+      "[opportunity] owner assign notify failed",
+      error instanceof Error ? error.message : error,
+    );
+  }
 }
 
 export async function getRegistryOpportunity(
@@ -156,6 +189,11 @@ export async function updateRegistryOpportunity(
   );
   const existing = await findPrismaOpportunityByRouteKey(id);
   if (!existing) return null;
+
+  const previousOwnerId =
+    existing.ownerId && existing.ownerId !== "system" && Number.isFinite(Number(existing.ownerId))
+      ? Number(existing.ownerId)
+      : null;
 
   const data: Prisma.OpportunityUpdateInput = {};
 
@@ -249,7 +287,16 @@ export async function updateRegistryOpportunity(
     }),
   );
 
-  return loadMappedOpportunity(existing.id);
+  const mapped = await loadMappedOpportunity(existing.id);
+  if (patch.opportunityOwner !== undefined) {
+    await notifyOpportunityOwner(
+      previousOwnerId,
+      null,
+      mapped,
+      existing.company?.name ?? null,
+    );
+  }
+  return mapped;
 }
 
 export async function deleteRegistryOpportunity(

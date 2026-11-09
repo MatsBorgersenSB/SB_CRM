@@ -1,13 +1,15 @@
 import "server-only";
 
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
 import { toCompanyTrackingId } from "@/lib/prisma-mappers";
 import { pingColleagueAboutAssignment } from "@/lib/m365/colleague-assignment-notify";
 import {
-  assignmentNoticeCopy,
-  assignmentNoticeLink,
   assignmentShouldNotify,
+  ownershipNoticeCopy,
+  ownershipNoticeLink,
+  type OwnershipEntityKind,
 } from "@/lib/notifications/activity-assignment";
 import { createNotification } from "@/lib/notifications/notification-service";
 import { resolvePublicAppOrigin } from "@/lib/smartcrm-origin";
@@ -61,18 +63,47 @@ async function resolveSessionAssigner(): Promise<{
   title: string | null;
   email: string | null;
 }> {
+  let email: string | null = null;
+  let name: string | null = null;
+  let id: number | null = null;
+
   try {
     const session = await auth();
-    const email = session?.user?.email?.trim() || null;
-    const name = session?.user?.name?.trim() || null;
-    const match = await findColleague({ email, name });
+    email = session?.user?.email?.trim() || null;
+    name = session?.user?.name?.trim() || null;
+  } catch {
+    /* session unavailable outside request context */
+  }
+
+  if (!email || !name) {
+    try {
+      const reqHeaders = await headers();
+      const headerEmail = reqHeaders.get("x-sb-user-email")?.trim() || null;
+      const headerName = reqHeaders.get("x-sb-user-name")?.trim() || null;
+      const headerId = Number(reqHeaders.get("x-sb-user-id") ?? "");
+      if (!email && headerEmail && !headerEmail.endsWith("@smartcrm.local")) {
+        email = headerEmail;
+      }
+      if (!name && headerName) {
+        name = headerName;
+      }
+      if (Number.isFinite(headerId) && headerId > 0) {
+        id = headerId;
+      }
+    } catch {
+      /* headers unavailable outside request context */
+    }
+  }
+
+  try {
+    const match = await findColleague({ email, name, id });
     return {
-      id: match?.id ?? null,
+      id: match?.id ?? id,
       title: match?.displayName ?? name,
       email: match?.email ?? email,
     };
   } catch {
-    return { id: null, title: null, email: null };
+    return { id, title: name, email };
   }
 }
 
@@ -169,47 +200,70 @@ export async function notifyInboundMail(input: {
   });
 }
 
-/** Bell + Teams/Outlook ping when a colleague is given an activity. */
-export async function notifyActivityAssigned(input: {
-  activityId: string;
+/** Bell + Teams/Outlook ping when a colleague is given responsibility for a record. */
+export async function notifyOwnershipAssigned(input: {
+  kind: OwnershipEntityKind;
+  entityId: string;
   subject: string;
-  assigneeId: number;
-  assigneeTitle: string;
+  assigneeId?: number | null;
+  assigneeTitle?: string | null;
   previousOwnerId?: number | null;
+  previousOwnerTitle?: string | null;
   companyName?: string | null;
   dueDate?: string | null;
   assignerTitle?: string | null;
 }): Promise<void> {
   const assigner = await resolveSessionAssigner();
   const assignee = await findColleague({
-    id: input.assigneeId,
+    id: input.assigneeId != null && input.assigneeId > 0 ? input.assigneeId : null,
     name: input.assigneeTitle,
   });
+  const previousColleague =
+    (input.previousOwnerId == null || input.previousOwnerId <= 0) &&
+    input.previousOwnerTitle?.trim()
+      ? await findColleague({ name: input.previousOwnerTitle })
+      : null;
+
+  const resolvedAssigneeId =
+    assignee?.id ??
+    (input.assigneeId != null && input.assigneeId > 0 ? input.assigneeId : null);
+  if (!resolvedAssigneeId) return;
+
+  const resolvedPreviousOwnerId =
+    input.previousOwnerId != null && input.previousOwnerId > 0
+      ? input.previousOwnerId
+      : (previousColleague?.id ?? null);
+
   const assignerTitle = assigner.title || input.assignerTitle;
+  const assigneeTitle = assignee?.displayName ?? input.assigneeTitle ?? null;
+
   if (
     !assignmentShouldNotify({
-      previousOwnerId: input.previousOwnerId,
-      nextOwnerId: input.assigneeId,
+      previousOwnerId: resolvedPreviousOwnerId,
+      nextOwnerId: resolvedAssigneeId,
+      previousOwnerTitle: input.previousOwnerTitle,
       assignerId: assigner.id,
       assignerEmail: assigner.email,
       assigneeEmail: assignee?.email,
       assignerTitle,
-      assigneeTitle: assignee?.displayName ?? input.assigneeTitle,
+      assigneeTitle,
     })
   ) {
     return;
   }
 
-  const userId = String(assignee?.id ?? input.assigneeId);
-  const link = assignmentNoticeLink({
-    activityId: input.activityId,
-    assigneeId: input.assigneeId,
-    previousOwnerId: input.previousOwnerId,
+  const userId = String(resolvedAssigneeId);
+  const link = ownershipNoticeLink({
+    kind: input.kind,
+    entityId: input.entityId,
+    assigneeId: resolvedAssigneeId,
+    previousOwnerId: resolvedPreviousOwnerId,
   });
   if (await alreadyNotified(userId, link)) return;
 
   const openUrl = `${resolvePublicAppOrigin()}${link}`;
-  const copy = assignmentNoticeCopy({
+  const copy = ownershipNoticeCopy({
+    kind: input.kind,
     subject: input.subject,
     assignerTitle,
     companyName: input.companyName,
@@ -239,4 +293,28 @@ export async function notifyActivityAssigned(input: {
       );
     }
   }
+}
+
+/** Bell + Teams/Outlook ping when a colleague is given an activity. */
+export async function notifyActivityAssigned(input: {
+  activityId: string;
+  subject: string;
+  assigneeId: number;
+  assigneeTitle: string;
+  previousOwnerId?: number | null;
+  companyName?: string | null;
+  dueDate?: string | null;
+  assignerTitle?: string | null;
+}): Promise<void> {
+  await notifyOwnershipAssigned({
+    kind: "activity",
+    entityId: input.activityId,
+    subject: input.subject,
+    assigneeId: input.assigneeId,
+    assigneeTitle: input.assigneeTitle,
+    previousOwnerId: input.previousOwnerId,
+    companyName: input.companyName,
+    dueDate: input.dueDate,
+    assignerTitle: input.assignerTitle,
+  });
 }

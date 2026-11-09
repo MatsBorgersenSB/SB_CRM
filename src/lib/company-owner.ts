@@ -5,6 +5,14 @@ import type { PipelineRow } from "@/types/pipeline";
 import { STANDARD_BIO_USERS } from "@/types/bio-user";
 import { resolveActivityCompany } from "@/lib/activity-utils";
 
+const CANONICAL_USER_EMAILS: Record<number, string> = {
+  1: "mats.borgersen@standard.bio",
+  100: "walter.aker@standard.bio",
+  101: "hugo.jansson@standard.bio",
+  102: "okr@standard.bio",
+  103: "bjorn.molskred@standard.bio",
+};
+
 export function authUserToAccountOwner(user: AuthUser): SharePointPerson {
   const display = user.displayName?.trim().toLowerCase() ?? "";
   const email = user.email?.trim().toLowerCase() ?? "";
@@ -14,6 +22,9 @@ export function authUserToAccountOwner(user: AuthUser): SharePointPerson {
       return true;
     }
     if (!email) return false;
+    if (CANONICAL_USER_EMAILS[bioUser.Id]?.toLowerCase() === email) {
+      return true;
+    }
     const local = email.split("@")[0] ?? "";
     const compactTitle = bioUser.Title.toLowerCase().replace(/[^a-z]/g, "");
     const compactLocal = local.replace(/[^a-z]/g, "");

@@ -37,6 +37,14 @@ describe("authUserToAccountOwner", () => {
     assert.equal(owner.Id, 101);
     assert.equal(owner.Title, "Hugo Jansson");
   });
+
+  it("maps short colleague emails like okr@standard.bio even without matching display name", () => {
+    const owner = authUserToAccountOwner(
+      user({ id: 1, displayName: "Ola", email: "okr@standard.bio" }),
+    );
+    assert.equal(owner.Id, 102);
+    assert.equal(owner.Title, "Ola Kjelsoas Rogndokken");
+  });
 });
 
 describe("resolveAccountOwner", () => {

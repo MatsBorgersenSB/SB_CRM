@@ -47,6 +47,7 @@ import type { UserRole } from "@/types/auth";
 import { getContactProjectRoles } from "@/lib/project-team-utils";
 import { ContactProjectRolesTable } from "@/components/project/contact-project-roles-table";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
+import { WorkspaceNotice } from "@/components/ui/workspace-feedback";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { deal360Href, project360Href } from "@/types/relationship-navigation";
 import type { CompanyCorrespondenceEvidence } from "@/lib/company-correspondence";
@@ -130,6 +131,7 @@ export function Contact360LivingWorkspace({
   const [workRevealed, setWorkRevealed] = useState(false);
   const [assignOpportunityRequestId, setAssignOpportunityRequestId] = useState(0);
   const [assignProjectRequestId, setAssignProjectRequestId] = useState(0);
+  const [ownerNotice, setOwnerNotice] = useState<string | null>(null);
 
   const { user } = useAuth();
   const { openEmailAssistant, EmailAssistantModal } = useSmartAssistActionHost({
@@ -311,6 +313,11 @@ export function Contact360LivingWorkspace({
 
   return (
     <WorkspaceStack>
+      {ownerNotice ? (
+        <WorkspaceNotice tone="info" onDismiss={() => setOwnerNotice(null)}>
+          {ownerNotice}
+        </WorkspaceNotice>
+      ) : null}
       {contactEditOpen ? (
         <div>
           <div className="mb-3 flex justify-end">{contactTools}</div>
@@ -342,9 +349,15 @@ export function Contact360LivingWorkspace({
           onBuyingRoleChange={(next) =>
             onContactUpdate(contact.ContactID, { buyingRole: (next ?? "") as BuyingRole })
           }
-          onOwnerChange={(owner: SharePointPerson) =>
-            onContactUpdate(contact.ContactID, { ContactOwner: owner })
-          }
+          onOwnerChange={async (owner: SharePointPerson) => {
+            await onContactUpdate(contact.ContactID, { ContactOwner: owner });
+            setOwnerNotice(
+              `Responsibility for ${getContactDisplayName(contact)} assigned to ${owner.Title} — they have been informed.`,
+            );
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("smartcrm:notifications-refresh"));
+            }
+          }}
         />
       )}
 

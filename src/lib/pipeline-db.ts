@@ -455,15 +455,41 @@ export async function updateActivity(
     throw new Error(`Activity not found: ${activityId}`);
   }
 
+  const previous = database.activities[index];
   const updated: Activity = {
-    ...database.activities[index],
+    ...previous,
     ...patch,
-    ActivityID: database.activities[index].ActivityID,
-    id: database.activities[index].id,
+    ActivityID: previous.ActivityID,
+    id: previous.id,
   };
 
   database.activities[index] = updated;
   await writeDb(database);
+
+  if (patch.ActivityOwner !== undefined && updated.ActivityOwner?.Id) {
+    try {
+      const { notifyOwnershipAssigned } = await import(
+        "@/lib/notifications/living-signals"
+      );
+      await notifyOwnershipAssigned({
+        kind: "activity",
+        entityId: updated.ActivityID,
+        subject: updated.Subject || "Activity",
+        assigneeId: updated.ActivityOwner.Id,
+        assigneeTitle: updated.ActivityOwner.Title,
+        previousOwnerId: previous.ActivityOwner?.Id ?? null,
+        previousOwnerTitle: previous.ActivityOwner?.Title ?? null,
+        companyName: updated.Company?.Title ?? updated.ProjectName ?? null,
+        dueDate: updated.NextActionDate ?? null,
+      });
+    } catch (error) {
+      console.warn(
+        "[pipeline-db] activity owner notify failed",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
   return updated;
 }
 
@@ -492,14 +518,42 @@ export async function updatePipeline(
     throw new Error(`Pipeline not found: ${id}`);
   }
 
+  const previous = database.pipelines[index];
   const updated: PipelineRow = {
-    ...database.pipelines[index],
+    ...previous,
     ...patch,
-    id: database.pipelines[index].id,
+    id: previous.id,
   };
 
   database.pipelines[index] = updated;
   await writeDb(database);
+
+  if (patch.opportunityOwner !== undefined && updated.opportunityOwner?.Id) {
+    try {
+      const company = database.companies.find((record) =>
+        record.pipelineIds.includes(updated.id),
+      );
+      const { notifyOwnershipAssigned } = await import(
+        "@/lib/notifications/living-signals"
+      );
+      await notifyOwnershipAssigned({
+        kind: "opportunity",
+        entityId: updated.code?.trim() || updated.id,
+        subject: updated.assetName || updated.code || updated.id,
+        assigneeId: updated.opportunityOwner.Id,
+        assigneeTitle: updated.opportunityOwner.Title,
+        previousOwnerId: previous.opportunityOwner?.Id ?? null,
+        previousOwnerTitle: previous.opportunityOwner?.Title ?? null,
+        companyName: company?.Title ?? null,
+        dueDate: updated.expectedCloseDate ?? null,
+      });
+    } catch (error) {
+      console.warn(
+        "[pipeline-db] opportunity owner notify failed",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
 
   return updated;
 }
@@ -783,6 +837,32 @@ export async function updateCompanyContact(
   database.companies[companyIndex].contacts[contactIndex] = updatedContact;
   await writeDb(database);
 
+  if (patch.ContactOwner !== undefined && updatedContact.ContactOwner?.Id) {
+    try {
+      const { notifyOwnershipAssigned } = await import(
+        "@/lib/notifications/living-signals"
+      );
+      await notifyOwnershipAssigned({
+        kind: "contact",
+        entityId: updatedContact.ContactID,
+        subject:
+          updatedContact.Title ||
+          `${updatedContact.FirstName} ${updatedContact.LastName}`.trim() ||
+          updatedContact.ContactID,
+        assigneeId: updatedContact.ContactOwner.Id,
+        assigneeTitle: updatedContact.ContactOwner.Title,
+        previousOwnerId: existing.ContactOwner?.Id ?? null,
+        previousOwnerTitle: existing.ContactOwner?.Title ?? null,
+        companyName: company.Title,
+      });
+    } catch (error) {
+      console.warn(
+        "[pipeline-db] contact owner notify failed",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
   return updatedContact;
 }
 
@@ -847,6 +927,28 @@ export async function updateCompany(
   database.companies[companyIndex] = updated;
   await writeDb(database);
 
+  if (patch.AccountOwner !== undefined && updated.AccountOwner?.Id) {
+    try {
+      const { notifyOwnershipAssigned } = await import(
+        "@/lib/notifications/living-signals"
+      );
+      await notifyOwnershipAssigned({
+        kind: "company",
+        entityId: updated.code?.trim() || updated.CompanyID,
+        subject: updated.Title || updated.CompanyID,
+        assigneeId: updated.AccountOwner.Id,
+        assigneeTitle: updated.AccountOwner.Title,
+        previousOwnerId: existing.AccountOwner?.Id ?? null,
+        previousOwnerTitle: existing.AccountOwner?.Title ?? null,
+      });
+    } catch (error) {
+      console.warn(
+        "[pipeline-db] company owner notify failed",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
   return updated;
 }
 
@@ -889,6 +991,26 @@ export async function createCompany(input: NewCompanyInput): Promise<Company> {
 
   database.companies.push(company);
   await writeDb(database);
+
+  if (company.AccountOwner?.Id) {
+    try {
+      const { notifyOwnershipAssigned } = await import(
+        "@/lib/notifications/living-signals"
+      );
+      await notifyOwnershipAssigned({
+        kind: "company",
+        entityId: company.code?.trim() || company.CompanyID,
+        subject: company.Title || company.CompanyID,
+        assigneeId: company.AccountOwner.Id,
+        assigneeTitle: company.AccountOwner.Title,
+      });
+    } catch (error) {
+      console.warn(
+        "[pipeline-db] company owner notify failed",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
 
   return company;
 }
@@ -1261,6 +1383,30 @@ export async function createCompanyContact(
 
   database.companies[companyIndex].contacts.push(contact);
   await writeDb(database);
+
+  if (contact.ContactOwner?.Id) {
+    try {
+      const { notifyOwnershipAssigned } = await import(
+        "@/lib/notifications/living-signals"
+      );
+      await notifyOwnershipAssigned({
+        kind: "contact",
+        entityId: contact.ContactID,
+        subject:
+          contact.Title ||
+          `${contact.FirstName} ${contact.LastName}`.trim() ||
+          contact.ContactID,
+        assigneeId: contact.ContactOwner.Id,
+        assigneeTitle: contact.ContactOwner.Title,
+        companyName: company.Title,
+      });
+    } catch (error) {
+      console.warn(
+        "[pipeline-db] contact owner notify failed",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
 
   return contact;
 }

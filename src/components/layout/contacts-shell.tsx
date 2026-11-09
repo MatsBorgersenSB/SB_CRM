@@ -85,6 +85,7 @@ export function ContactsShell({
   const [showArchived, setShowArchived] = useState(false);
   const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
   const [ownerError, setOwnerError] = useState<string | null>(null);
+  const [ownerNotice, setOwnerNotice] = useState<string | null>(null);
 
   const closeActiveTool = useCallback(() => setActiveTool(null), []);
   useEscapeKey(Boolean(activeTool), closeActiveTool);
@@ -298,8 +299,15 @@ export function ContactsShell({
     async (companyId: string, contactId: string, owner: SharePointPerson) => {
       setSavingOwnerId(contactId);
       setOwnerError(null);
+      setOwnerNotice(null);
       try {
         await handleContactUpdate(companyId, contactId, { ContactOwner: owner });
+        setOwnerNotice(
+          `Responsibility assigned to ${owner.Title} — they have been informed.`,
+        );
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("smartcrm:notifications-refresh"));
+        }
       } catch (error) {
         console.error("[contacts] Could not change contact owner", error);
         setOwnerError("The contact owner was not changed. Nothing was lost — please try again.");
@@ -325,6 +333,11 @@ export function ContactsShell({
 
             {ownerError ? (
               <WorkspaceNotice onDismiss={() => setOwnerError(null)}>{ownerError}</WorkspaceNotice>
+            ) : null}
+            {ownerNotice ? (
+              <WorkspaceNotice tone="info" onDismiss={() => setOwnerNotice(null)}>
+                {ownerNotice}
+              </WorkspaceNotice>
             ) : null}
 
             {activeTool === "new-contact" ? (

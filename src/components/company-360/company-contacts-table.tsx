@@ -18,7 +18,10 @@ import {
   canDeleteContact,
   canManageOpportunityStakeholders,
   canManageProjectStakeholders,
+  canReassignContactOwner,
 } from "@/lib/permissions";
+import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
+import { formatAccountOwnerDisplay, hasContactOwner } from "@/lib/company-owner";
 import {
   buildOpportunityStakeholderRoleOptions,
   suggestOpportunityRoleForContact,
@@ -723,6 +726,8 @@ function ContactTableRow({
   const lastTouchIsOutlook =
     Boolean(lastMailAt) && lastInteractionAt === lastMailAt;
   const canManage = canDeleteContact(role);
+  const canEditOwner = canReassignContactOwner(role) && Boolean(onContactUpdate);
+  const [ownerBusy, setOwnerBusy] = useState(false);
   const canAssociate =
     canManageProjectStakeholders(role) ||
     (canManageOpportunityStakeholders(role) && Boolean(onAssignOpportunityStakeholder));
@@ -843,6 +848,42 @@ function ContactTableRow({
           <PhoneActionMenu phone={phone} />
         ) : (
           <span className="text-carbon-blue/50">—</span>
+        )}
+      </td>
+      <td className="px-3 py-2.5 text-[13px]">
+        {canEditOwner ? (
+          <span
+            className={
+              hasContactOwner(contact)
+                ? "text-carbon-blue"
+                : "font-medium text-thermal-red"
+            }
+          >
+            <CompanyOwnerSelect
+              appearance="inline"
+              label={`Contact owner for ${getContactDisplayName(contact)}`}
+              companies={companies}
+              extraUsers={contact.ContactOwner ? [contact.ContactOwner] : []}
+              value={hasContactOwner(contact) ? contact.ContactOwner ?? null : null}
+              disabled={ownerBusy}
+              onChange={(owner) => {
+                setOwnerBusy(true);
+                void onContactUpdate?.(contact.ContactID, { ContactOwner: owner }).finally(
+                  () => setOwnerBusy(false),
+                );
+              }}
+            />
+          </span>
+        ) : (
+          <span
+            className={
+              hasContactOwner(contact)
+                ? "text-carbon-blue/70"
+                : "text-carbon-blue/50"
+            }
+          >
+            {formatAccountOwnerDisplay(contact.ContactOwner) ?? "Unassigned"}
+          </span>
         )}
       </td>
       <td className="truncate px-3 py-2.5 text-[13px] text-carbon-blue/50">
@@ -1011,13 +1052,14 @@ export function CompanyContactsTable({
       {sortedContacts.length > 0 ? (
         <div className="w-full overflow-x-auto"><table className="w-full min-w-[760px] table-fixed border-collapse text-left">
           <colgroup>
-            <col className="w-[16%]" />
-            <col className="w-[11%]" />
+            <col className="w-[15%]" />
+            <col className="w-[10%]" />
+            <col className="w-[12%]" />
+            <col className="w-[12%]" />
             <col className="w-[14%]" />
-            <col className="w-[13%]" />
-            <col className="w-[16%]" />
-            <col className="w-[12%]" />
-            <col className="w-[12%]" />
+            <col className="w-[11%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
             {canManage ? <col className="w-[6%]" /> : null}
           </colgroup>
           <thead>
@@ -1045,6 +1087,9 @@ export function CompanyContactsTable({
                 <IconLabel icon="phone" iconSize="xs" className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
                   Phone
                 </IconLabel>
+              </th>
+              <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">
+                Owner
               </th>
               <th className="px-3 py-2 text-left">
                 <IconLabel icon="meeting" iconSize="xs" className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/65">

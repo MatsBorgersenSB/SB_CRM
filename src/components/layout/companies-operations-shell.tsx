@@ -91,6 +91,7 @@ export function CompaniesOperationsShell({
   const [activeTool, setActiveTool] = useState<CompaniesWorkspaceTool>(null);
   const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
   const [ownerError, setOwnerError] = useState<string | null>(null);
+  const [ownerNotice, setOwnerNotice] = useState<string | null>(null);
 
   if (prevCompanies !== companies) {
     setPrevCompanies(companies);
@@ -241,9 +242,16 @@ export function CompaniesOperationsShell({
     async (companyId: string, owner: SharePointPerson) => {
       setSavingOwnerId(companyId);
       setOwnerError(null);
+      setOwnerNotice(null);
       try {
         const updated = await syncCompanyRecord(companyId, { AccountOwner: owner });
         upsertCompany(updated);
+        setOwnerNotice(
+          `Responsibility for ${updated.Title} assigned to ${owner.Title} — they have been informed.`,
+        );
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("smartcrm:notifications-refresh"));
+        }
       } catch (error) {
         console.error("[companies] Could not change account owner", error);
         setOwnerError("The account owner was not changed. Nothing was lost — please try again.");
@@ -269,6 +277,11 @@ export function CompaniesOperationsShell({
 
             {ownerError ? (
               <WorkspaceNotice onDismiss={() => setOwnerError(null)}>{ownerError}</WorkspaceNotice>
+            ) : null}
+            {ownerNotice ? (
+              <WorkspaceNotice tone="info" onDismiss={() => setOwnerNotice(null)}>
+                {ownerNotice}
+              </WorkspaceNotice>
             ) : null}
 
             {activeTool === "new-company" ? (

@@ -175,6 +175,7 @@ export function Company360LivingWorkspace({
   const [linkProjectRequestId, setLinkProjectRequestId] = useState(0);
   const [ownerSaving, setOwnerSaving] = useState(false);
   const [ownerError, setOwnerError] = useState<string | null>(null);
+  const [ownerNotice, setOwnerNotice] = useState<string | null>(null);
   const [lastMailByContactId, setLastMailByContactId] = useState<Record<string, string>>(
     initialLastMailByContactId,
   );
@@ -333,10 +334,17 @@ export function Company360LivingWorkspace({
     if (owner.Id === company.AccountOwner?.Id) return;
     setOwnerSaving(true);
     setOwnerError(null);
+    setOwnerNotice(null);
     try {
       const { syncCompanyRecord } = await import("@/lib/sync-company");
       const updated = await syncCompanyRecord(company.CompanyID, { AccountOwner: owner });
       onCompanyUpdated(updated);
+      setOwnerNotice(
+        `Responsibility for ${updated.Title} assigned to ${owner.Title} — they have been informed.`,
+      );
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("smartcrm:notifications-refresh"));
+      }
     } catch (error) {
       console.error("[company-360] Could not change account owner", error);
       setOwnerError("The account owner was not changed. Nothing was lost — please try again.");
@@ -454,6 +462,7 @@ export function Company360LivingWorkspace({
     <WorkspaceStack>
       <CompanyDuplicateHintBanner hint={duplicateHint} />
       {ownerError ? (<WorkspaceNotice onDismiss={() => setOwnerError(null)}>{ownerError}</WorkspaceNotice>) : null}
+      {ownerNotice ? (<WorkspaceNotice tone="info" onDismiss={() => setOwnerNotice(null)}>{ownerNotice}</WorkspaceNotice>) : null}
       <section className="dashboard-card overflow-hidden">
         <div className="px-6 py-5">
           {activeTool === "edit-company" ? (

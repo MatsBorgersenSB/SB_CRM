@@ -105,6 +105,9 @@ export function OpportunityWorkspaceHeader({
 
   const handleOwnerChange = async (nextOwner: SharePointPerson) => {
     await onPipelinePatch?.({ opportunityOwner: nextOwner });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("smartcrm:notifications-refresh"));
+    }
   };
 
   const handleCloseDateChange = async (nextDate: string | undefined) => {
