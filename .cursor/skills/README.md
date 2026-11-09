@@ -13,6 +13,7 @@ Gate: [QUALITY.md](QUALITY.md).
 | [strategic-marketing-intelligence](strategic-marketing-intelligence/SKILL.md) | Where Standard Bio should be seen — events, memberships, channels | **Step 2 — split** |
 | [living-workspace](living-workspace/SKILL.md) | How 360s, lists, owners, and Attention are built as decision surfaces | **Step 3 — written** |
 | [mail-intelligence](mail-intelligence/SKILL.md) | Correspondence triage, bounce recovery, work/SmartDocs filing, and 1-click mail execution across `/mail` and Outlook | **Step 5 — written** |
+| [project-development](project-development/SKILL.md) | FEL 1 → Realisation & Build-Own-Operate plant development: 7 pillars, host-plant firewall, multi-party counterparties, 8-condition Won gate, and 1-click pillar execution | **Step 6 — written** |
 
 ## Skills (not super)
 

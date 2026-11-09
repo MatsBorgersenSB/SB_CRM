@@ -117,6 +117,11 @@ async function safeAuth(method: "GET" | "POST", req: NextRequest) {
       });
     }
 
+    const isOAuthCallbackRedirect =
+      path.startsWith("/api/auth/callback/") &&
+      res.status >= 300 &&
+      res.status < 400;
+
     // fetch() following a 302 to Microsoft → CORS. Return JSON instead.
     if (
       !documentNav &&
@@ -139,6 +144,25 @@ async function safeAuth(method: "GET" | "POST", req: NextRequest) {
         jsonRes.headers.append("Set-Cookie", cookie);
       }
       return jsonRes;
+    }
+
+    if (isOAuthCallbackRedirect) {
+      // Clear callback-url cookies on OAuth callback completion so an Outlook
+      // dialog sign-in (`/outlook/auth-complete`) never hijacks subsequent web logins.
+      const callbackRes = new NextResponse(res.body, {
+        status: res.status,
+        statusText: res.statusText,
+        headers: new Headers(res.headers),
+      });
+      callbackRes.headers.append(
+        "Set-Cookie",
+        "__Secure-authjs.callback-url=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax",
+      );
+      callbackRes.headers.append(
+        "Set-Cookie",
+        "authjs.callback-url=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
+      );
+      return callbackRes;
     }
 
     return res;

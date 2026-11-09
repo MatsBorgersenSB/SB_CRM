@@ -535,6 +535,7 @@ export function Project360LivingWorkspace({
         stakeholdersOverview={stakeholdersOverview}
         companies={companies}
         pipelines={pipelines}
+        activities={projectActivities}
         activityContext={{
           projectId: project.id,
           projectName: project.name,

@@ -77,8 +77,11 @@ export async function whenOfficeReady(
 }
 
 /** messageParent only after onReady — never touch Office.context earlier. */
-export async function messageParentSafe(message: string): Promise<boolean> {
-  const office = await whenOfficeReady();
+export async function messageParentSafe(
+  message: string,
+  timeoutMs: number = 4_000,
+): Promise<boolean> {
+  const office = await whenOfficeReady(timeoutMs);
   if (!office?.context?.ui?.messageParent) return false;
   try {
     office.context.ui.messageParent(message);

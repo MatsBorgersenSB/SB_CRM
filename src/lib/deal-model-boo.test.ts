@@ -9,6 +9,17 @@ import {
   filterAvailableProjectCompanies,
   suggestProjectOrganizationType,
 } from "./project-relationship-utils";
+import {
+  buildPillarExecutionDraft,
+  isHostPlantClaim,
+  resolvePillarCounterparties,
+} from "./development-pillars";
+import {
+  computeFelMassEnergyBalance,
+  evaluatePipelineFelMassEnergy,
+} from "./fel-mass-energy-engine";
+import { buildCitedSubsidyAndCarbonFindings } from "./integrations/project-fel-radar";
+import { PROJECTS } from "@/data/projects-data";
 import { resolveSalesMotion, understandingFieldsForPipeline } from "./sales-motion";
 
 const NOW = new Date("2026-11-04T12:00:00Z");
@@ -409,5 +420,97 @@ describe("Project related organization company picker helpers (FS-015)", () => {
     assert.equal(suggestProjectOrganizationType(companies[0]!), "partner");
     assert.equal(companyTypeForProjectOrganizationType("supplier"), "Supplier / Vendor");
     assert.equal(companyTypeForProjectOrganizationType("regulator"), "Public / Government");
+  });
+
+  it("binds FEL development pillars to real project counterparties, signatories, and 1-click execution drafts", () => {
+    const hornindal = PROJECTS.find((p) => p.id === "PRJ-ANTEC-HORNINDAL")!;
+    const bindings = resolvePillarCounterparties(hornindal, companies, [plannedStep]);
+
+    // Pillar 2 (Feedstock) -> Allskog + Jostein Smemo
+    assert.equal(bindings.feedstock_agreement?.companyId, "CO-1031");
+    assert.equal(bindings.feedstock_agreement?.companyName, "Allskog");
+    assert.equal(bindings.feedstock_agreement?.stakeholderName, "Jostein Smemo");
+
+    // Pillar 4 (Energy offtake) -> Vest Biogass + Erik Rynning
+    assert.equal(bindings.offtake_strategy?.companyId, "CO-1020");
+    assert.equal(bindings.offtake_strategy?.stakeholderName, "Erik Rynning");
+
+    // Pillar 5 (Biochar offtake) -> TerraMarine
+    assert.equal(bindings.end_product?.companyId, "CO-1032");
+
+    // Pillar 7 (Permitting) -> no regulator linked yet -> truthful missingCounterpartyReason
+    assert.equal(bindings.permitting?.companyId, undefined);
+    assert.match(bindings.permitting?.missingCounterpartyReason ?? "", /No regulatory or permitting authority/i);
+
+    // 1-Click execution draft greets Jostein and includes already-known context
+    const feedstockDraft = buildPillarExecutionDraft({
+      projectName: hornindal.name,
+      fieldId: "feedstock_agreement",
+      capturedNote: "8,000-10,000 t/yr G30 wood chips discussed; moisture % to be determined",
+      binding: bindings.feedstock_agreement,
+    });
+    assert.match(feedstockDraft.emailSubject, /Antec - Hornindal — Feedstock \(Allskog\)/);
+    assert.match(feedstockDraft.emailBody, /Hi Jostein,/);
+    assert.match(feedstockDraft.emailBody, /Current status on our side: 8,000-10,000 t\/yr/);
+    assert.match(feedstockDraft.emailBody, /Dry matter \/ moisture % specification/);
+  });
+
+  it("filters host-plant claims via plantScope and statement patterns while allowing our_plant claims", () => {
+    assert.equal(isHostPlantClaim("Any statement about host biogas", "host_plant"), true);
+    assert.equal(
+      isHostPlantClaim("Permit 2024.0802.T granted for Vest Biogass.", undefined),
+      true,
+    );
+    assert.equal(
+      isHostPlantClaim(
+        "Permit / certificate filed on record: Separate pyrolysis permit",
+        "our_plant",
+      ),
+      false,
+    );
+  });
+
+  it("computes FEL 1 mass, energy, biochar, and CORC balance from captured feedstock terms and refuses to guess when volume is absent", () => {
+    const emptyEval = evaluatePipelineFelMassEnergy(boo({}));
+    assert.equal(emptyEval.ready, false);
+    assert.match(emptyEval.missingReason, /No annual feedstock volume/i);
+
+    const hornindalEval = evaluatePipelineFelMassEnergy(
+      boo({
+        feedstock_agreement:
+          "SV: Hornindal - G30 Tørket flis - 8 000 til 10 000 t/år, tørrstoff 70%",
+      }),
+    );
+    assert.equal(hornindalEval.ready, true);
+    if (hornindalEval.ready) {
+      assert.equal(hornindalEval.input.wetTonnesPerYear, 9000);
+      assert.equal(hornindalEval.input.moistureSource, "captured");
+      assert.equal(hornindalEval.dryMatterTonnesPerYear, 6300);
+      assert.equal(hornindalEval.reactorLines, 2);
+      assert.ok(hornindalEval.netExportThermalGwhPerYear >= 7 && hornindalEval.netExportThermalGwhPerYear <= 8.5);
+      assert.ok(hornindalEval.biocharTonnesPerYear > 1500);
+      assert.ok(hornindalEval.corcTonnesCo2ePerYear > 4000);
+      assert.match(hornindalEval.pillarSummaries.offtake_strategy ?? "", /GWh\/yr/);
+    }
+
+    const direct = computeFelMassEnergyBalance({
+      wetTonnesPerYear: 9000,
+      inletMoistureFraction: 0.3,
+      moistureSource: "captured",
+      archetype: "wood_chips",
+    });
+    const radarFindings = buildCitedSubsidyAndCarbonFindings({
+      projectId: "PRJ-ANTEC-HORNINDAL",
+      projectName: "Antec - Hornindal",
+      counterpartyNames: ["ANTEC BIOGAS AS"],
+      netExportThermalGwhPerYear: direct.netExportThermalGwhPerYear,
+      biocharTonnesPerYear: direct.biocharTonnesPerYear,
+      corcTonnesCo2ePerYear: direct.corcTonnesCo2ePerYear,
+    });
+    assert.equal(radarFindings.length, 2);
+    assert.equal(radarFindings[0]?.claims[0]?.fieldId, "public_funding");
+    assert.equal(radarFindings[0]?.claims[0]?.plantScope, "our_plant");
+    assert.equal(radarFindings[1]?.claims[0]?.fieldId, "end_product");
+    assert.equal(radarFindings[1]?.claims[0]?.plantScope, "our_plant");
   });
 });

@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
-import { linkedWorkByPillar } from "@/lib/development-pillars";
-import type { ActivityWorkspaceContext } from "@/types/activity";
+import { useMemo, useState, type ReactNode } from "react";
+import { linkedWorkByPillar, resolvePillarCounterparties } from "@/lib/development-pillars";
+import { evaluatePipelineFelMassEnergy } from "@/lib/fel-mass-energy-engine";
+import type { Activity, ActivityWorkspaceContext } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project, ProjectIntelligence } from "@/types/project";
@@ -57,6 +58,7 @@ export function ProjectMissionControl({
   stakeholdersOverview,
   companies = [],
   pipelines = [],
+  activities = [],
   activityContext,
   role = "superuser",
   emailsReadOnly = false,
@@ -81,6 +83,7 @@ export function ProjectMissionControl({
   stakeholdersOverview?: ReactNode;
   companies?: Company[];
   pipelines?: PipelineRow[];
+  activities?: Activity[];
   activityContext: ActivityWorkspaceContext;
   role?: UserRole;
   emailsReadOnly?: boolean;
@@ -124,6 +127,41 @@ export function ProjectMissionControl({
     () => linkedWorkByPillar(project.milestones, project.decisions),
     [project.milestones, project.decisions],
   );
+  const pillarCounterparties = useMemo(
+    () => resolvePillarCounterparties(project, companies, activities),
+    [project, companies, activities],
+  );
+  const felEvaluation = useMemo(
+    () => (developmentPipeline ? evaluatePipelineFelMassEnergy(developmentPipeline) : null),
+    [developmentPipeline],
+  );
+  const [scanningHero, setScanningHero] = useState(false);
+  const [heroScanNotice, setHeroScanNotice] = useState<string | null>(null);
+
+  const handleHeroScan = async () => {
+    if (!onReadDocuments || !onSaveFindings || scanningHero) return;
+    setScanningHero(true);
+    setHeroScanNotice(null);
+    try {
+      const proposed = await onReadDocuments();
+      if (proposed.length > 0) {
+        const { appendSourceFinding } = await import("@/lib/source-findings");
+        let next = developmentPipeline?.understanding?.findings ?? [];
+        for (const item of proposed) {
+          next = appendSourceFinding(next, item);
+        }
+        await onSaveFindings(next);
+        setHeroScanNotice(`Extracted ${proposed.length} source & FEL radar finding(s)`);
+        onViewChange("understanding");
+      } else {
+        setHeroScanNotice("All filed sources & FEL registries up to date");
+      }
+    } catch {
+      setHeroScanNotice("Could not scan sources");
+    } finally {
+      setScanningHero(false);
+    }
+  };
   const developmentGaps = developmentPipeline
     ? buildGapsFromUnderstandingModel(developmentPipeline)
     : [];
@@ -160,7 +198,15 @@ export function ProjectMissionControl({
             <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
               <OpportunityDealBriefHero
                 brief={developmentBrief}
+                projectName={project.name}
+                pillarCounterparties={pillarCounterparties}
+                felEvaluation={felEvaluation}
                 onAnswerNow={onAnswerNow}
+                onScanFelRadar={
+                  onReadDocuments && onSaveFindings ? () => void handleHeroScan() : undefined
+                }
+                scanningFelRadar={scanningHero}
+                scanNotice={heroScanNotice}
               />
               {organizationsOverview ? (
                 <section className="border-t border-carbon-blue/10 pt-8">
@@ -255,6 +301,11 @@ export function ProjectMissionControl({
                 <OpportunityUnderstandingCapturePanel
                   pipeline={developmentPipeline}
                   linkedWork={linkedWork}
+                  pillarCounterparties={pillarCounterparties}
+                  onLinkCounterparty={() => {
+                    onViewChange("actions");
+                    onActionTabChange("organizations");
+                  }}
                   focusFieldId={focusFieldId}
                   onSaveField={onSaveUnderstandingField}
                   onSaveFindings={onSaveFindings}

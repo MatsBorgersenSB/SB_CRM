@@ -151,6 +151,74 @@ export function runPostureAndConstitutionGate(targetFiles?: string[]): {
     }
   }
 
+  // Project Development & FEL Integrity checks (FS-005B / FS-015 / FS-022)
+  if (!targetFiles) {
+    const pillarsPath = path.join(SRC_DIR, "lib", "development-pillars.ts");
+    if (fs.existsSync(pillarsPath)) {
+      const pillarsContent = fs.readFileSync(pillarsPath, "utf8");
+      const requiredPillars = [
+        "site_readiness",
+        "feedstock_agreement",
+        "utilities",
+        "offtake_strategy",
+        "end_product",
+        "public_funding",
+        "permitting",
+      ];
+      for (const fieldId of requiredPillars) {
+        if (!pillarsContent.includes(`"${fieldId}"`)) {
+          findings.push({
+            id: `fel-missing-pillar:${fieldId}`,
+            gate: "posture-constitution",
+            severity: "blocker",
+            file: "src/lib/development-pillars.ts",
+            summary: `Missing required FEL development pillar '${fieldId}' in DEVELOPMENT_PILLARS (FS-005B).`,
+            remediation:
+              "Restore all 7 FEL 1 -> Realisation development pillars in src/lib/development-pillars.ts.",
+          });
+        }
+      }
+      if (
+        !pillarsContent.includes("isHostPlantClaim") ||
+        !pillarsContent.includes("resolvePillarCounterparties") ||
+        !pillarsContent.includes("buildPillarExecutionDraft")
+      ) {
+        findings.push({
+          id: "fel-missing-pillar-helpers:src/lib/development-pillars.ts",
+          gate: "posture-constitution",
+          severity: "warning",
+          file: "src/lib/development-pillars.ts",
+          summary:
+            "Missing FEL host-plant firewall, counterparty binder, or 1-click pillar execution builder.",
+          remediation:
+            "Export isHostPlantClaim, resolvePillarCounterparties, and buildPillarExecutionDraft in src/lib/development-pillars.ts.",
+        });
+      }
+    }
+
+    const capturePanelPath = path.join(
+      SRC_DIR,
+      "components",
+      "opportunity",
+      "opportunity-understanding-capture-panel.tsx",
+    );
+    if (fs.existsSync(capturePanelPath)) {
+      const panelContent = fs.readFileSync(capturePanelPath, "utf8");
+      if (!panelContent.includes("isHostPlantClaim")) {
+        findings.push({
+          id: "fel-missing-host-plant-firewall:opportunity-understanding-capture-panel.tsx",
+          gate: "posture-constitution",
+          severity: "blocker",
+          file: "src/components/opportunity/opportunity-understanding-capture-panel.tsx",
+          summary:
+            "Development checklist does not filter host-plant claims via isHostPlantClaim (FS-005B).",
+          remediation:
+            "Filter proposed and confirmed claims with isHostPlantClaim on development steps.",
+        });
+      }
+    }
+  }
+
   const penalty = findings.reduce(
     (sum, f) => sum + (f.severity === "blocker" ? 50 : 15),
     0,

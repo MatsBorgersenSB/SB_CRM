@@ -28,7 +28,7 @@ State is persisted locally to `.cursor/hillclimb-state.json` so each pass report
 
 | Gate | Max Score | What It Enforces |
 |------|-----------|------------------|
-| `posture-constitution` | 250 | No default-to-`Customer` fallbacks, `isOpportunityEligibleCompany` / `shouldOfferCreateOpportunity` gates on commercial creation surfaces, no raw confidence `%` leaks in primary UI |
+| `posture-constitution` | 250 | No default-to-`Customer` fallbacks, `isOpportunityEligibleCompany` / `shouldOfferCreateOpportunity` gates on commercial creation surfaces, no raw confidence `%` leaks in primary UI, and FEL 7-pillar + host-plant firewall integrity (`FS-005B`) |
 | `ad001-filter-transparency` | 200 | Filtered tables/lists/workspaces with search/filter state wire `FilterToolbar`, `FilterTransparencyBar`, or `Showing {filtered} of {total}` (`docs/AD-001-filter-transparency.md`) |
 | `unit-eval-suite` | 250 | All `src/**/*.test.ts` suites pass (including `approval-policy.test.ts`, `meeting-knowledge.test.ts`, `company-classification.test.ts`, `smart-attention-engine.test.ts`) |
 | `typecheck` | 200 | Zero `tsc --noEmit` errors |

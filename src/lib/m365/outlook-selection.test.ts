@@ -12,6 +12,7 @@ import {
   saveOutlookSessionToken,
 } from "../outlook-office";
 import { OUTLOOK_SESSION_HEADER } from "../outlook-dialog-bridge";
+import { isNonCanonicalVercelHost } from "../smartcrm-origin";
 
 describe("outlookSelectionFingerprint", () => {
   it("changes when another mail is checked and the open item is gone", () => {
@@ -56,5 +57,15 @@ describe("Mac / WebKit Outlook session token bridge", () => {
     assert.equal(readOutlookSessionToken(), "jwe-token-for-mac-webkit");
     saveOutlookSessionToken(null);
     assert.equal(readOutlookSessionToken(), null);
+  });
+
+  it("detects per-deployment Vercel hosts so browser sign-in redirects to canonical origin", () => {
+    assert.equal(
+      isNonCanonicalVercelHost("sb-j5d63jacv-mats-borgersen-s-projects.vercel.app"),
+      true,
+    );
+    assert.equal(isNonCanonicalVercelHost("sb-crm-seven.vercel.app"), false);
+    assert.equal(isNonCanonicalVercelHost("crm.standard.bio"), false);
+    assert.equal(isNonCanonicalVercelHost("localhost:3000"), false);
   });
 });

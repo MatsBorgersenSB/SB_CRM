@@ -32,6 +32,7 @@ This is a super skill because it owns **bet selection on live commercial reality
 |----------|--------|
 | What is the next action on this company / deal / activity? | `smartassist` |
 | Which event, membership, or channel? Should we attend? | `strategic-marketing-intelligence` |
+| How do we secure the 7 FEL pillars on a BOO / development project? | `project-development` |
 | How should a 360 or Attention table be built? | `living-workspace` |
 
 If an event is already chosen: you own **who to meet and which offer** (`GrowthMeetingTarget`). Marketing owns attend vs skip.

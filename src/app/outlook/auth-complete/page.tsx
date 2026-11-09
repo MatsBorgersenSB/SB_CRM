@@ -71,6 +71,12 @@ export default function OutlookAuthCompletePage() {
         });
 
         const sent = await messageParentSafe(payload);
+        if (!sent) {
+          // Reached in a normal browser tab outside an Office Dialog (e.g. stale
+          // callback-url cookie). Navigate to the web workspace instead of closing the tab.
+          window.location.replace("/");
+          return;
+        }
         if (!cancelled) {
           setState({ status: "done" });
         }
@@ -81,7 +87,7 @@ export default function OutlookAuthCompletePage() {
           } catch {
             /* Office Dialog may ignore window.close; parent closes via dialog.close() */
           }
-        }, sent ? 400 : 1200);
+        }, 400);
       } catch (error) {
         if (!cancelled) {
           setState({

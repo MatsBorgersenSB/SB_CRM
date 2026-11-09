@@ -2,6 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { signIn } from "@/lib/auth";
 import { authTrace } from "@/lib/auth-debug";
 import { isSecureAuthCookies } from "@/lib/outlook-dialog-bridge";
+import {
+  SMARTCRM_PRODUCTION_ORIGIN,
+  isNonCanonicalVercelHost,
+} from "@/lib/smartcrm-origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +58,12 @@ export async function GET(req: NextRequest) {
     secFetchMode: req.headers.get("sec-fetch-mode"),
   });
 
+  if (isNonCanonicalVercelHost(req.nextUrl.hostname)) {
+    const canonicalStart = new URL("/api/azure-start", SMARTCRM_PRODUCTION_ORIGIN);
+    canonicalStart.searchParams.set("callbackUrl", callbackUrl);
+    return NextResponse.redirect(canonicalStart);
+  }
+
   try {
     const url = await signIn("azure-ad", {
       redirectTo: callbackUrl,
@@ -62,6 +72,25 @@ export async function GET(req: NextRequest) {
 
     if (!url || typeof url !== "string") {
       throw new Error("signIn returned empty redirect URL");
+    }
+
+    // Ensure the callback-url cookie is written on the same origin that will
+    // receive Microsoft's /api/auth/callback/azure-ad redirect.
+    let oauthCallbackOrigin = req.nextUrl.origin;
+    try {
+      const authorizeUrl = new URL(url);
+      const redirectUri = authorizeUrl.searchParams.get("redirect_uri");
+      if (redirectUri) {
+        oauthCallbackOrigin = new URL(redirectUri).origin;
+      }
+    } catch {
+      /* keep req.nextUrl.origin */
+    }
+
+    if (oauthCallbackOrigin !== req.nextUrl.origin) {
+      const canonicalStart = new URL("/api/azure-start", oauthCallbackOrigin);
+      canonicalStart.searchParams.set("callbackUrl", callbackUrl);
+      return NextResponse.redirect(canonicalStart);
     }
 
     authTrace("azure-start.redirect", {
@@ -103,6 +132,7 @@ export async function GET(req: NextRequest) {
       sameSite: "lax",
       path: "/",
       secure,
+      maxAge: 60 * 10,
     });
 
     return response;

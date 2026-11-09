@@ -24,6 +24,7 @@ import {
   readEmailsForProject,
 } from "@/lib/email-intelligence-data";
 import { isInternalEmail } from "@/lib/domain-rules";
+import { runProjectExternalFelRadar } from "@/lib/integrations/project-fel-radar";
 import { isUnderstandingFieldId, UNDERSTANDING_FIELDS } from "@/types/opportunity-understanding";
 import { smartDocHref } from "@/types/smartdoc";
 
@@ -87,7 +88,7 @@ async function extractVisualOrDocumentClaimsWithLlm(input: {
     const raw = await transport({
       task: "opportunity-visual-finding",
       system:
-        "You extract factual business and engineering knowledge from a document, drawing, or picture attached to an opportunity. Never invent facts, people, or companies. Return concise 1-sentence business statements and why each matters.",
+        "You extract factual business and engineering knowledge from a document, drawing, or picture attached to an opportunity or development project. Never invent facts, people, or companies. Extract quantitative FEL specs (plot m², t/yr feedstock, moisture %, GWh/yr heat, kW power, permit authority) when visible, and classify plantScope as 'our_plant' (Standard Bio's pyrolysis/dryer installation) or 'host_plant' (the host's existing biogas/industrial facility).",
       user: `File name: ${input.name}\nExtract up to 5 concrete facts visible in this file.`,
       toolName: "record_visual_findings",
       toolDescription: "Record factual claims extracted from the file.",
@@ -102,6 +103,7 @@ async function extractVisualOrDocumentClaimsWithLlm(input: {
                 statement: { type: "string" },
                 impact: { type: "string" },
                 fieldId: { type: "string", enum: fieldEnum },
+                plantScope: { type: "string", enum: ["our_plant", "host_plant"] },
               },
               required: ["statement", "impact"],
             },
@@ -136,11 +138,16 @@ async function extractVisualOrDocumentClaimsWithLlm(input: {
         typeof item.fieldId === "string" && isUnderstandingFieldId(item.fieldId)
           ? item.fieldId
           : undefined;
+      const plantScope =
+        item.plantScope === "our_plant" || item.plantScope === "host_plant"
+          ? item.plantScope
+          : undefined;
       claims.push({
         id: `llm-${i + 1}`,
         statement,
         impact,
         fieldId,
+        ...(plantScope ? { plantScope } : {}),
       });
     }
     return claims;
@@ -910,6 +917,17 @@ export async function buildProjectDocumentFindings(
         findings.push(companyFinding);
       }
     }
+  }
+
+  // 5. External FEL Truth Radar (Kartverket Matrikkel, Statsforvalteren Permit Radar, Enova/IN & Puro.earth CORC)
+  if (project.kind === "development" || project.understanding) {
+    const radarFindings = await runProjectExternalFelRadar({
+      projectId: project.id,
+      projectName: project.name,
+      siteQuery: project.mailKeywords?.[0] || project.name,
+      counterpartyNames: relatedCompanies.map((c) => c.name).filter(Boolean),
+    }).catch(() => []);
+    findings.push(...radarFindings);
   }
 
   return { findings, unread };

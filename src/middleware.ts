@@ -6,6 +6,10 @@ import {
   OUTLOOK_SESSION_HEADER,
   sessionCookieName,
 } from "@/lib/outlook-dialog-bridge";
+import {
+  SMARTCRM_PRODUCTION_ORIGIN,
+  isNonCanonicalVercelHost,
+} from "@/lib/smartcrm-origin";
 import { applyTrustedRoleHeader } from "@/lib/security/trusted-role-header";
 
 function appendOutlookSessionCookies(headers: Headers, sessionToken: string): void {
@@ -81,6 +85,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({
       request: { headers: requestHeaders },
     });
+  }
+
+  // Redirect per-deployment *.vercel.app URLs (e.g. Vercel "Visit" button) to the
+  // canonical host before auth checks so cookies and OAuth callbacks share one origin.
+  if (
+    !pathname.startsWith("/api/") &&
+    (request.method === "GET" || request.method === "HEAD") &&
+    isNonCanonicalVercelHost(request.nextUrl.hostname)
+  ) {
+    const canonicalUrl = new URL(
+      `${pathname}${request.nextUrl.search}`,
+      SMARTCRM_PRODUCTION_ORIGIN,
+    );
+    return NextResponse.redirect(canonicalUrl);
   }
 
   // Vercel is HTTPS — Auth.js sets `__Secure-authjs.session-token`.

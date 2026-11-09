@@ -529,49 +529,65 @@ export async function getActiveM365AccessToken(
   userObjectId?: string,
 ): Promise<{ accessToken: string; integrationId: string } | null> {
   const prisma = getPrisma();
-  const integration = await prisma.externalIntegration.findFirst({
+  const integrations = await prisma.externalIntegration.findMany({
     where: {
       provider: "m365_graph",
       status: "active",
       ...(userObjectId ? { userObjectId } : {}),
     },
     orderBy: { updatedAt: "desc" },
-  });
-  if (!integration?.accessToken) return null;
-
-  const accessToken = decryptToken(integration.accessToken);
-
-  const expiresSoon =
-    integration.tokenExpiresAt != null &&
-    integration.tokenExpiresAt.getTime() < Date.now() + 60_000;
-
-  if (!expiresSoon) {
-    return { accessToken, integrationId: integration.id };
-  }
-
-  if (!integration.refreshToken) {
-    await prisma.externalIntegration.update({
-      where: { id: integration.id },
-      data: { status: "error" },
-    });
-    return null;
-  }
-
-  const refreshToken = decryptToken(integration.refreshToken);
-  const refreshed = await refreshM365AccessToken(refreshToken);
-  await prisma.externalIntegration.update({
-    where: { id: integration.id },
-    data: {
-      accessToken: encryptToken(refreshed.accessToken),
-      refreshToken: refreshed.refreshToken
-        ? encryptToken(refreshed.refreshToken)
-        : integration.refreshToken,
-      tokenExpiresAt: refreshed.expiresAt,
-      status: "active",
-    },
+    take: 5,
   });
 
-  return { accessToken: refreshed.accessToken, integrationId: integration.id };
+  for (const integration of integrations) {
+    if (!integration.accessToken) continue;
+
+    let accessToken: string;
+    try {
+      accessToken = decryptToken(integration.accessToken);
+    } catch {
+      // Encrypted with a different environment's TOKEN_ENCRYPTION_SECRET; try next row.
+      continue;
+    }
+
+    const expiresSoon =
+      integration.tokenExpiresAt != null &&
+      integration.tokenExpiresAt.getTime() < Date.now() + 60_000;
+
+    if (!expiresSoon) {
+      return { accessToken, integrationId: integration.id };
+    }
+
+    if (!integration.refreshToken) {
+      await prisma.externalIntegration.update({
+        where: { id: integration.id },
+        data: { status: "error" },
+      });
+      continue;
+    }
+
+    try {
+      const refreshToken = decryptToken(integration.refreshToken);
+      const refreshed = await refreshM365AccessToken(refreshToken);
+      await prisma.externalIntegration.update({
+        where: { id: integration.id },
+        data: {
+          accessToken: encryptToken(refreshed.accessToken),
+          refreshToken: refreshed.refreshToken
+            ? encryptToken(refreshed.refreshToken)
+            : integration.refreshToken,
+          tokenExpiresAt: refreshed.expiresAt,
+          status: "active",
+        },
+      });
+
+      return { accessToken: refreshed.accessToken, integrationId: integration.id };
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
 }
 
 /** Load a decrypted access token for a specific ExternalIntegration id. */
@@ -591,7 +607,11 @@ export async function getAccessTokenForIntegration(
     integration.tokenExpiresAt.getTime() < Date.now() + 60_000;
 
   if (!expiresSoon) {
-    return decryptToken(integration.accessToken);
+    try {
+      return decryptToken(integration.accessToken);
+    } catch {
+      return null;
+    }
   }
 
   const resolved = await getActiveM365AccessToken(integration.userObjectId ?? undefined);

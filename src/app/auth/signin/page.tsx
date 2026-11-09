@@ -1,4 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import {
+  SMARTCRM_PRODUCTION_ORIGIN,
+  isNonCanonicalVercelHost,
+} from "@/lib/smartcrm-origin";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -31,6 +37,17 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   const params = await searchParams;
   const callbackUrl = params.callbackUrl?.trim() || "/";
   const error = params.error;
+
+  const reqHeaders = await headers();
+  const host =
+    reqHeaders.get("x-forwarded-host") || reqHeaders.get("host") || "";
+  if (isNonCanonicalVercelHost(host)) {
+    const target = new URL("/auth/signin", SMARTCRM_PRODUCTION_ORIGIN);
+    target.searchParams.set("callbackUrl", callbackUrl);
+    if (error) target.searchParams.set("error", error);
+    redirect(target.toString());
+  }
+
   const startHref = `/api/azure-start?${new URLSearchParams({ callbackUrl }).toString()}`;
   const message = errorMessage(error);
 

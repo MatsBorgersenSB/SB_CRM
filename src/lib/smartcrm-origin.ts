@@ -40,6 +40,23 @@ export function isUnsupportedOutlookHost(hostnameOrOrigin: string): boolean {
   return false;
 }
 
+/**
+ * Per-deployment or team-alias `*.vercel.app` hosts (e.g. from Vercel's "Visit" button)
+ * are not registered as Entra ID redirect URIs and do not share cookies with
+ * `sb-crm-seven.vercel.app`. Redirect interactive browser traffic to the canonical host.
+ */
+export function isNonCanonicalVercelHost(hostnameOrOrigin: string): boolean {
+  const host = hostnameOrOrigin
+    .replace(/^https?:\/\//i, "")
+    .split("/")[0]
+    ?.split(":")[0]
+    ?.toLowerCase();
+  if (!host) return false;
+  if (host === SMARTCRM_PRODUCTION_HOST) return false;
+  if (isRetiredOutlookHost(host)) return true;
+  return host.endsWith(".vercel.app");
+}
+
 export function resolvePublicAppOrigin(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
   if (fromEnv) return fromEnv;

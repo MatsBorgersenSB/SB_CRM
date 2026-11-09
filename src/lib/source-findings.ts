@@ -11,6 +11,8 @@ export type SourceFindingClaim = {
   impact: string;
   /** When confirmed, this writes the matching understanding field. */
   fieldId?: UnderstandingFieldId;
+  /** Whether the extracted fact describes Standard Bio's plant or the host's existing facility. */
+  plantScope?: "our_plant" | "host_plant";
   decision?: SourceFindingDecision;
 };
 
@@ -118,7 +120,11 @@ function parseClaims(raw: unknown): SourceFindingClaim[] {
       row.decision === "confirmed" || row.decision === "dismissed"
         ? row.decision
         : undefined;
-    claims.push({ id, statement, impact, fieldId, decision });
+    const plantScope =
+      row.plantScope === "our_plant" || row.plantScope === "host_plant"
+        ? row.plantScope
+        : undefined;
+    claims.push({ id, statement, impact, fieldId, plantScope, decision });
   }
   return claims;
 }
@@ -423,8 +429,9 @@ function claim(
   statement: string,
   impact: string,
   fieldId?: UnderstandingFieldId,
+  plantScope?: "our_plant" | "host_plant",
 ): SourceFindingClaim {
-  return { id, statement, impact, fieldId };
+  return { id, statement, impact, fieldId, ...(plantScope ? { plantScope } : {}) };
 }
 
 function uniqueClaims(claims: SourceFindingClaim[]): SourceFindingClaim[] {
@@ -530,17 +537,45 @@ export function extractSourceFindingPreview(
     );
   }
 
-  if (/enova/i.test(text) || /innovasjon norge/i.test(text)) {
+  if (/enova/i.test(text) || /innovasjon norge|innovation norway|skattefunn/i.test(text)) {
     const funders = [
       /enova/i.test(text) ? "Enova" : null,
-      /innovasjon norge/i.test(text) ? "Innovasjon Norge" : null,
+      /innovasjon norge|innovation norway/i.test(text) ? "Innovasjon Norge" : null,
+      /skattefunn/i.test(text) ? "Skattefunn" : null,
     ].filter(Boolean);
+    const schemeList = funders.join(" and ");
     claims.push(
       claim(
         "funding",
-        `Public funding mentioned: ${funders.join(" and ")}.`,
+        `Public funding mentioned: ${schemeList}.`,
         "Funding path determines timeline realism. Confirm what is granted vs applied.",
         "funding_source",
+      ),
+    );
+    claims.push(
+      claim(
+        "public-funding-pillar",
+        `Public subsidy scheme identified on record: ${schemeList}${/søknad|apply|applied|kvalifiserer|qualif/i.test(text) ? " (application / qualification noted)" : ""}.`,
+        "Securing public subsidies reduces Standard Bio equity exposure before financial close.",
+        "public_funding",
+        "our_plant",
+      ),
+    );
+  }
+
+  // Separate pyrolysis / dryer permit pathway for Standard Bio's plant (Pillar 7: our_plant)
+  if (
+    /separat\s+tillatelse|separate\s+permit|egen\s+(?:utslipps)?tillatelse|pyrolysis\s+permit|pyrolyse.*tillatelse|tillatelse.*pyrolyse|ny\s+tørke.*tillatelse/i.test(
+      text,
+    )
+  ) {
+    claims.push(
+      claim(
+        "pyrolysis-permitting",
+        "Separate environmental/building permit pathway identified for the Standard Bio pyrolysis and dryer installation.",
+        "Our pyrolysis plant requires its own permit clearance distinct from the host biogas permit.",
+        "permitting",
+        "our_plant",
       ),
     );
   }
@@ -576,6 +611,7 @@ export function extractSourceFindingPreview(
     );
   }
 
+  const plotDimMatch = text.match(/\b(\d{2,3}\s*[x×]\s*\d{2,3}\s*m(?:[²2]|\b))/i);
   if (/raudemel|volda kommune/i.test(text)) {
     claims.push(
       claim(
@@ -583,15 +619,17 @@ export function extractSourceFindingPreview(
         "The site is named in the source (Raudemel / Volda).",
         "Site identity and zoning are permitting evidence — not a blank.",
         "site_readiness",
+        "host_plant",
       ),
     );
-  } else if (/m[²2]|kvadratmeter|20[\s.]?000 m/i.test(text)) {
+  } else if (!plotDimMatch && /m[²2]|kvadratmeter|20[\s.]?000 m/i.test(text)) {
     claims.push(
       claim(
         "site",
         "The source describes plant buildings or tank volume on site.",
         "Site scale is a readiness signal — confirm before assuming installation windows.",
         "site_readiness",
+        "host_plant",
       ),
     );
   }
@@ -769,34 +807,42 @@ export function extractSourceFindingPreview(
     );
   }
 
-  // Site space confirmation from client / site visit
+  // Site space confirmation from client / site visit (including quantitative plot dimensions)
   if (
-    !claims.some((c) => c.fieldId === "site_readiness") &&
-    (/nok\s+plass\s+på\s+anlegget|80\s*x\s*120\s*m|footprint\s+approved|equipment\s+footprint/i.test(
-      text,
-    ))
+    !claims.some((c) => c.fieldId === "site_readiness" && c.plantScope === "our_plant") &&
+    (plotDimMatch ||
+      /nok\s+plass\s+på\s+anlegget|footprint\s+approved|equipment\s+footprint|festekontrakt|leieavtale\s+for\s+tomt/i.test(
+        text,
+      ))
   ) {
+    const dimLabel = plotDimMatch?.[1] ? ` (${plotDimMatch[1].replace(/\s+/g, " ").trim()})` : "";
     claims.push(
       claim(
         "site-space",
-        "Client confirmed sufficient plot space at the biogas plant for a pyrolysis installation.",
+        `Client confirmed sufficient plot space${dimLabel} at the biogas plant for a pyrolysis installation.`,
         "Site availability unblocks layout engineering and permitting.",
         "site_readiness",
+        "our_plant",
       ),
     );
   }
 
-  // Thermal energy / utility integration
+  // Thermal energy / utility integration (quantitative kW / MW / GWh / tie-in ducts)
+  const powerTieInMatch = text.match(/\b(\d{2,4}\s*kw|\d+(?:[.,]\d+)?\s*mw)\b/i);
   if (
-    !claims.some((c) => c.fieldId === "utilities") &&
-    (/overskuddsenergi|7\s*[-–]\s*8\s*gwh|thermal\s+heat\s+exchange|utility\s+capacity/i.test(text))
+    !claims.some((c) => c.fieldId === "utilities" && c.plantScope === "our_plant") &&
+    (/overskuddsenergi|7\s*[-–]\s*8\s*gwh|thermal\s+heat\s+exchange|utility\s+capacity|rørgate|tie-?in|varmeveksler/i.test(
+      text,
+    ))
   ) {
+    const powerNote = powerTieInMatch?.[1] ? ` (${powerTieInMatch[1].trim()} electrical/thermal interface noted)` : "";
     claims.push(
       claim(
         "utilities-heat",
-        "Surplus thermal energy integration between pyrolysis and digestate drying is part of the scope.",
+        `Surplus thermal energy integration and utility tie-ins between pyrolysis and digestate drying are part of the scope${powerNote}.`,
         "Heat tie-in and utility capacity define the technical interface with the client plant.",
         "utilities",
+        "our_plant",
       ),
     );
   }

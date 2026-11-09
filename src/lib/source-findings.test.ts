@@ -241,4 +241,32 @@ describe("URL findings stay unconfirmed until a person validates them", () => {
     );
     assert.equal(list.length, 2);
   });
+
+  it("extracts FEL plot dimensions, public subsidies (Pillar 6), and separate pyrolysis permitting (Pillar 7) with our_plant scope", () => {
+    const felNotes = extractSourceFindingPreview(
+      "Site visit summary: Client confirmed sufficient plot space (80 x 120 m²) at the biogas plant. Standard Bio qualifies for Enova and Innovasjon Norge support and must apply for a separate permit for the pyrolysis plant and new dryer (450 kW tie-in).",
+      "/projects/PRJ-ANTEC-HORNINDAL",
+      "FEL 1 Site Visit",
+    );
+    const siteClaim = felNotes.claims.find((c) => c.fieldId === "site_readiness");
+    assert.ok(siteClaim);
+    assert.equal(siteClaim.plantScope, "our_plant");
+    assert.match(siteClaim.statement, /80 x 120 m²/);
+
+    const subsidyClaim = felNotes.claims.find((c) => c.fieldId === "public_funding");
+    assert.ok(subsidyClaim);
+    assert.equal(subsidyClaim.plantScope, "our_plant");
+    assert.match(subsidyClaim.statement, /Enova and Innovasjon Norge/);
+
+    const permitClaim = felNotes.claims.find(
+      (c) => c.fieldId === "permitting" && c.plantScope === "our_plant",
+    );
+    assert.ok(permitClaim);
+    assert.match(permitClaim.statement, /Separate environmental\/building permit pathway/i);
+
+    const utilityClaim = felNotes.claims.find((c) => c.fieldId === "utilities");
+    assert.ok(utilityClaim);
+    assert.equal(utilityClaim.plantScope, "our_plant");
+    assert.match(utilityClaim.statement, /450 kW/);
+  });
 });

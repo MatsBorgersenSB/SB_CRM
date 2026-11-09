@@ -35,6 +35,7 @@ This is a super skill because it owns **product craft already shipped**: living 
 | Feasibility vs machinery vs walk away? | `growth-intelligence` |
 | Which event or channel? | `strategic-marketing-intelligence` |
 | `/mail` triage, bounce recovery, reply drafts, or attachment filing | `mail-intelligence` |
+| FEL 1 → Realisation 7 pillars, BOO deals, host-plant firewall, or project counterparties | `project-development` |
 | Teams / mail ping when assigning a colleague | `m365-colleague-work` (skill, not super) |
 
 ## Loop (always)
