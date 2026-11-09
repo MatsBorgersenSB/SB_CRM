@@ -131,8 +131,6 @@ export function SmartAssistEmailAssistant({
           </a>
           <a
             href={outlookComposeHref(briefing.to, briefing.subject, briefing.body)}
-            target="_blank"
-            rel="noopener noreferrer"
             className={secondaryButtonClass}
           >
             Open Outlook

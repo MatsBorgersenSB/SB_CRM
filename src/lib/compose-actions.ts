@@ -26,8 +26,17 @@ function buildComposeQueryString(
     .join("&");
 }
 
-export function outlookComposeHref(
-  email: string,
+/**
+ * Outlook on the web compose. Trailing slash matches Outlook's own route.
+ * `popoutv2=1` asks the web app for a separate compose window.
+ *
+ * Do not use this for "open a new mail" on Windows. New Outlook registers an
+ * App URI handler for outlook.office.com / outlook.cloud.microsoft and only
+ * focuses the inbox. Its compose protocol also reports "This action isn't
+ * supported yet". Desktop new mail goes through {@link outlookComposeHref}.
+ */
+export function outlookWebComposeHref(
+  email?: string,
   subject?: string,
   body?: string,
 ): string {
@@ -36,12 +45,28 @@ export function outlookComposeHref(
     ["subject", subject],
     ["body", body ? normalizeComposeBody(body) : undefined],
   ]);
-  return `https://outlook.office.com/mail/deeplink/compose?${query}`;
+  const qs = [query, "popoutv2=1"].filter(Boolean).join("&");
+  return `https://outlook.office.com/mail/deeplink/compose/?${qs}`;
+}
+
+/**
+ * New message in the desktop mail client.
+ *
+ * `mailto` is what Windows routes to a real compose window
+ * (`OUTLOOK.EXE -c IPM.Note /mailto` on this install). The https compose
+ * deeplink is claimed by New Outlook and never opens that window.
+ */
+export function outlookComposeHref(
+  email: string,
+  subject?: string,
+  body?: string,
+): string {
+  return mailtoHref(email, subject, body);
 }
 
 /** M365 web mail compose (Outlook on the web). */
 export function m365ComposeHref(email: string, subject?: string, body?: string): string {
-  return outlookComposeHref(email, subject, body);
+  return outlookWebComposeHref(email, subject, body);
 }
 
 export function mailtoHref(email: string, subject?: string, body?: string): string {

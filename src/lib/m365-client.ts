@@ -1,3 +1,4 @@
+import { outlookComposeHref } from "@/lib/compose-actions";
 import { getPrisma } from "@/lib/prisma";
 import { decryptToken, encryptToken } from "@/lib/encryption";
 import {
@@ -854,14 +855,5 @@ export function generateOutlookDeepLink(input: {
   subject: string;
   body: string;
 }): string {
-  const params = new URLSearchParams();
-  params.set("to", input.toEmail);
-  params.set("subject", input.subject);
-  // Outlook compose expects CRLF line breaks in body.
-  params.set("body", input.body.replace(/\r\n/g, "\n").replace(/\n/g, "\r\n"));
-  // URLSearchParams uses + for spaces; Outlook prefers %20.
-  const query = params
-    .toString()
-    .replace(/\+/g, "%20");
-  return `https://outlook.office.com/mail/deeplink/compose?${query}`;
+  return outlookComposeHref(input.toEmail, input.subject, input.body);
 }

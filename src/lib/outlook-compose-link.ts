@@ -1,11 +1,12 @@
-/** Outlook on the web compose window — opens a blank, editable new mail. */
+import { mailtoHref } from "@/lib/compose-actions";
+
+/**
+ * Blank (or prefilled) new message in the desktop mail client.
+ * See outlookComposeHref — the https deeplink only focuses the Outlook inbox.
+ */
 export function outlookComposeUrl(options?: {
   to?: string;
   subject?: string;
 }): string {
-  const params = new URLSearchParams();
-  if (options?.to) params.set("to", options.to);
-  if (options?.subject) params.set("subject", options.subject);
-  const query = params.toString();
-  return `https://outlook.office.com/mail/deeplink/compose${query ? `?${query}` : ""}`;
+  return mailtoHref(options?.to ?? "", options?.subject);
 }

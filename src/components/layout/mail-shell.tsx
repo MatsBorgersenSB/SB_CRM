@@ -528,8 +528,6 @@ export function MailShell({
               </button>
               <a
                 href={outlookComposeUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[13px] font-semibold text-white hover:bg-upcycle-orange/90"
               >
                 <PenSquare className="size-4" aria-hidden />

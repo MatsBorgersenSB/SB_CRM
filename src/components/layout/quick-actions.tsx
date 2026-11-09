@@ -223,8 +223,6 @@ export function QuickActions({ showMail = true }: { showMail?: boolean }) {
         {showMail ? (
           <a
             href={outlookComposeUrl()}
-            target="_blank"
-            rel="noopener noreferrer"
             className={ACTION_CLASS}
             title="Write a new mail in Outlook"
           >

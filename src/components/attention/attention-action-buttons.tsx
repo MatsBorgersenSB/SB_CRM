@@ -212,8 +212,14 @@ function AttentionActionButton({
     action.href?.startsWith("mailto:") ||
     action.href?.startsWith("tel:")
   ) {
+    const openInTab = action.href.startsWith("http");
     return (
-      <a href={action.href} target="_blank" rel="noopener noreferrer" className={className}>
+      <a
+        href={action.href}
+        target={openInTab ? "_blank" : undefined}
+        rel={openInTab ? "noopener noreferrer" : undefined}
+        className={className}
+      >
         {label}
       </a>
     );

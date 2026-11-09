@@ -168,11 +168,14 @@ export function ActionMenuItem({
     "block w-full px-3 py-1.5 text-left text-[12px] text-carbon-blue/75 hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange";
 
   if (href) {
+    // mailto / tel must stay in the user gesture. target=_blank opens a blank
+    // tab and the mail client never receives the new-message request.
+    const openInTab = Boolean(external && /^https?:/i.test(href));
     return (
       <a
         href={href}
-        target={external ? "_blank" : undefined}
-        rel={external ? "noopener noreferrer" : undefined}
+        target={openInTab ? "_blank" : undefined}
+        rel={openInTab ? "noopener noreferrer" : undefined}
         className={className}
         role="menuitem"
         onClick={(event) => {

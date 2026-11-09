@@ -161,12 +161,7 @@ export function Contact360Header({
         {/* What you can do right now — one row, no hunting. */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {email ? (
-            <a
-              href={outlookComposeHref(email)}
-              target="_blank"
-              rel="noreferrer"
-              className={ACTION_PRIMARY}
-            >
+            <a href={outlookComposeHref(email)} className={ACTION_PRIMARY}>
               <Mail className="size-3.5" strokeWidth={2} aria-hidden />
               Email {firstName}
             </a>

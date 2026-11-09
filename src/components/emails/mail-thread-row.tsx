@@ -318,8 +318,6 @@ export function MailThreadRow({
           {resendTo ? (
             <a
               href={outlookComposeUrl({ to: resendTo, subject })}
-              target="_blank"
-              rel="noopener noreferrer"
               className="inline-flex items-center border border-upcycle-orange bg-upcycle-orange px-2.5 py-1 text-[12px] font-semibold text-white hover:opacity-90"
             >
               Resend
