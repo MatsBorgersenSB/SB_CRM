@@ -367,14 +367,28 @@ export function OutlookMailTagPanel({
             !attachmentRelationId
           ? `Select the related ${attachmentRelationKind}.`
           : null;
+  // Tell the user what is attached before they save — the save files it in one click.
+  const seedAttachments = seeds.flatMap((row) => row.attachments ?? []);
+  const attachmentsKnown = seeds.length > 0 && seeds.every((row) => Array.isArray(row.attachments));
+  const attachmentNoun =
+    seedAttachments.length === 1
+      ? `1 attachment (${seedAttachments[0]!.name})`
+      : seedAttachments.length > 1
+        ? `${seedAttachments.length} attachments (${seedAttachments
+            .slice(0, 2)
+            .map((row) => row.name)
+            .join(", ")}${seedAttachments.length > 2 ? ", …" : ""})`
+        : "Attachments";
   const destinationSummary =
-    attachmentTarget === "company"
-      ? attachmentRelationKind === "none" || !relationLabel
-        ? `Attachments will be stored under ${selectedCompanyLabel}.`
-        : `Attachments will be stored under ${selectedCompanyLabel} and related to ${relationLabel}.`
-      : selectedTagLabel
-        ? `Attachments will be stored under ${selectedTagLabel}.`
-        : `Select a ${attachmentTarget} in Tag mail to file attachments there.`;
+    attachmentsKnown && seedAttachments.length === 0
+      ? "No attachments in the selected mail."
+      : attachmentTarget === "company"
+        ? attachmentRelationKind === "none" || !relationLabel
+          ? `${attachmentNoun} will be stored under ${selectedCompanyLabel}.`
+          : `${attachmentNoun} will be stored under ${selectedCompanyLabel} and related to ${relationLabel}.`
+        : selectedTagLabel
+          ? `${attachmentNoun} will be stored under ${selectedTagLabel}.`
+          : `Select a ${attachmentTarget} in Tag mail to file attachments there.`;
 
   /** Save the calendar meeting behind this invite/response as an Activity. Throws on failure. */
   const saveMeetingActivity = async (row: OutlookOpenMessageSeed) => {
@@ -526,8 +540,14 @@ export function OutlookMailTagPanel({
       if (crmState?.isMeeting && seeds.length === 1 && seeds[0]) {
         await saveMeetingActivity(seeds[0]);
       }
-      // One click = mail + attachments. Failures here never undo the saved mail.
-      void syncAttachmentsToSmartDocs({ seeds: matchedSeeds, link });
+      // One click = mail + attachments (announced in destinationSummary before save).
+      // Failures here never undo the saved mail. Skip when Outlook told us there is nothing attached.
+      const matchedHaveAttachments =
+        !matchedSeeds.every((row) => Array.isArray(row.attachments)) ||
+        matchedSeeds.some((row) => (row.attachments?.length ?? 0) > 0);
+      if (matchedHaveAttachments) {
+        void syncAttachmentsToSmartDocs({ seeds: matchedSeeds, link });
+      }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not save mail");
     } finally {

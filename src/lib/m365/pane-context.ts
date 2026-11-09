@@ -179,15 +179,25 @@ function pickEmailFromJson(emails: unknown): string {
   return primary?.address?.trim().toLowerCase() || "";
 }
 
-function mapResolvedFromRow(row: NonNullable<CompanyCardRow>, email?: string): M365PaneResolved {
+function mapResolvedFromRow(
+  row: NonNullable<CompanyCardRow>,
+  email?: string,
+  preferContactId?: string,
+): M365PaneResolved {
   const company = mapPrismaCompanyToApp({
     ...row,
     contacts: row.contacts as PrismaContactListRow[],
   });
   const normalized = email?.trim().toLowerCase();
-  const contact = normalized
-    ? company.contacts.find((entry) => entry.Email?.trim().toLowerCase() === normalized)
-    : undefined;
+  // Match by registry id first — the sender may have written from an alias
+  // address that is not the contact's primary Email.
+  const contact =
+    (preferContactId
+      ? company.contacts.find((entry) => entry.ContactID === preferContactId)
+      : undefined) ??
+    (normalized
+      ? company.contacts.find((entry) => entry.Email?.trim().toLowerCase() === normalized)
+      : undefined);
   return contact ? { company, contact } : { company };
 }
 
@@ -243,6 +253,7 @@ export async function resolveM365PaneCompany(input: {
           const mapped = mapResolvedFromRow(
             companyRow,
             pickEmailFromJson(found.emails) || email || undefined,
+            found.id,
           );
           if (mapped.contact) return mapped;
           const company = mapPrismaCompanyToApp({
@@ -268,7 +279,7 @@ export async function resolveM365PaneCompany(input: {
         );
         if (contact?.companyId) {
           const companyRow = await fetchCompanyCard(contact.companyId, contact.id);
-          if (companyRow) return mapResolvedFromRow(companyRow, email);
+          if (companyRow) return mapResolvedFromRow(companyRow, email, contact.id);
         }
       }
     }

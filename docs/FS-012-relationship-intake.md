@@ -51,6 +51,8 @@ On Outlook relationship pane for an unknown sender email, SmartAssist shall:
 
 Hard rule: **unknown contact never opens the Relationship Card.** Company-domain match without a Contact Registry hit must open Relationship Intake (“Add this contact?”). Missing company must open intake for company + contact.
 
+Hard rule: **a known contact never sees a create proposal.** The proposal builder itself re-checks the Contact Registry (every alias email, every status) before proposing. If the person exists the proposal resolves as `contact_exists` and the pane shows *Already in SmartCRM* with **Open relationship card** / **View contact** — never *Yes, add contact*. Archived contacts resolve the same way with *reactivate* guidance. The Relationship Card pane must match a contact by registry id, not only by primary email, so alias senders do not fall through to intake.
+
 **Internal colleagues are users, not contacts.** `@standard.bio` (and other internal domains) must never open Add Contact. Outlook shows the person as a SmartCRM user (Users & Access) or as a colleague who can be added there — never as a Contact Registry record.
 
 Confidence:
@@ -104,8 +106,20 @@ On Yes + confirm:
 1. Create contact (and company if needed) via Contact / Company Registry (Prisma when available).
 2. New companies: `Status = Active` + user-chosen `CompanyTypes` — never default to Prospect/Customer.
 3. If user selected an opportunity or project and a conversation id is available: tag the thread intentionally (same rules as Outlook mail tag).
-4. Return refreshed relationship card.
+4. Return refreshed relationship card with `contactCreated` / `companyCreated` flags.
 5. Offer **View contact in SmartCRM** and **View company in SmartCRM** deep links after successful create.
+6. **Honest outcome.** If persist found the person already registered and reused the record, the success surface must say *Already in SmartCRM — nothing new created*, never *Added to SmartCRM*.
+
+### FR-005A Attachments are a separate decision
+
+The mail may carry file attachments (inline images excluded). SmartAssist shall:
+
+1. Read the attachment list from the open Outlook item and show count + file names.
+2. After the mail is imported, ask **Store attachment(s) in SmartDocs under {company | linked opportunity | linked project}?** with **Store** / **Skip**.
+3. Write nothing to SmartDocs until the user chooses Store; report the filed count or the failure reason in place.
+4. On the Tag mail surface (known contact), the pre-save line names the attachments and the destination before the one-click save files them; after save it reports what was filed.
+
+Never file attachments silently and never report an import as complete without stating what happened to the attachments.
 
 ### FR-006 Posture-gated commercial CTAs
 
@@ -201,6 +215,9 @@ Single source of truth: no duplicate contact/company rows across JSON and Prisma
 6. Create Opportunity CTA absent for Supplier / unclassified after create.
 7. User never leaves Outlook to complete create + optional thread link.
 8. Internal Standard Bio addresses never create a contact — Outlook treats them as users (Users & Access).
+9. Sender already in Contact Registry (any alias, any status) → pane shows *Already in SmartCRM* with open/view actions; no create button.
+10. If persist reuses an existing contact, the result banner says so — it never claims a create.
+11. Mail with file attachments → after import the user sees the file names and chooses Store / Skip; nothing is filed before that choice; the outcome is shown.
 
 ---
 

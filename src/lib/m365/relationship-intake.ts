@@ -13,10 +13,13 @@ import { getPrisma } from "@/lib/prisma";
 import { readProjects } from "@/lib/project-db";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
 import { prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
+import { emailsIncludeAddress } from "@/lib/entity-route-utils";
+import { toCompanyTrackingId } from "@/lib/prisma-mappers";
 import type {
   RelationshipIntakeApproveInput,
   RelationshipIntakeApproveResult,
   RelationshipIntakeConfidence,
+  RelationshipIntakeExistingContact,
   RelationshipIntakeLinkOption,
   RelationshipIntakeProposal,
 } from "@/types/relationship-intake";
@@ -33,6 +36,54 @@ const PERSONAL_DOMAINS = new Set([
 function domainIsPersonal(domain: string): boolean {
   const normalized = domain.trim().toLowerCase();
   return Boolean(normalized) && PERSONAL_DOMAINS.has(normalized);
+}
+
+/**
+ * Knowledge before questions — look the person up in the Contact Registry
+ * (any alias email, any status) before proposing a create.
+ */
+export async function findExistingContactForIntake(
+  email: string,
+): Promise<RelationshipIntakeExistingContact | null> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized.includes("@")) return null;
+  try {
+    const prisma = getPrisma();
+    const candidates = await prisma.contact.findMany({
+      select: {
+        id: true,
+        emails: true,
+        status: true,
+        fullName: true,
+        firstName: true,
+        lastName: true,
+        companyId: true,
+        company: { select: { id: true, code: true, name: true } },
+      },
+    });
+    const ranked = candidates
+      .filter((row) => emailsIncludeAddress(row.emails, normalized))
+      .sort((a, b) => (a.status === "active" ? 0 : 1) - (b.status === "active" ? 0 : 1));
+    const match = ranked[0];
+    if (!match) return null;
+    const displayName =
+      match.fullName?.trim() ||
+      [match.firstName, match.lastName].filter(Boolean).join(" ").trim() ||
+      normalized;
+    return {
+      contactId: match.id,
+      companyId: match.company
+        ? match.company.code?.trim() || toCompanyTrackingId(match.company.id)
+        : match.companyId
+          ? toCompanyTrackingId(match.companyId)
+          : "",
+      displayName,
+      companyName: match.company?.name?.trim() ?? "",
+      status: match.status ?? "active",
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function loadLinkOptions(companyId: string | null): Promise<{
@@ -164,6 +215,41 @@ export async function buildRelationshipIntakeProposal(input: {
       projectOptions: [],
       companyOptions: [],
       colleague,
+    };
+  }
+
+  // FS-012 FR-001: contact already exists → never propose a create.
+  const existingContact = await findExistingContactForIntake(prepopulation.email);
+  if (existingContact) {
+    const archived = existingContact.status !== "active";
+    return {
+      email: prepopulation.email,
+      displayName: existingContact.displayName || prepopulation.displayName,
+      firstName: prepopulation.firstName,
+      lastName: prepopulation.lastName,
+      domain: prepopulation.domain,
+      resolutionKind: "contact_exists",
+      confidence: "high",
+      companyResolved: Boolean(existingContact.companyId),
+      companyId: existingContact.companyId || null,
+      companyName: existingContact.companyName,
+      companyHint: "",
+      decisionQuestion: archived
+        ? `${existingContact.displayName} is already in SmartCRM but archived.`
+        : `${existingContact.displayName} is already in SmartCRM${
+            existingContact.companyName ? ` at ${existingContact.companyName}` : ""
+          }.`,
+      decisionImpact: archived
+        ? "Reactivate the existing contact instead of creating a duplicate — history and relationship intelligence stay on one record."
+        : "Nothing to create. Open the relationship card to tag this mail and file attachments on the existing record.",
+      requiresCompanyType: false,
+      requiresIndustry: false,
+      enrichment: { suggestions: [] },
+      opportunityOptions: [],
+      projectOptions: [],
+      companyOptions: [],
+      existingContact,
+      colleague: null,
     };
   }
 

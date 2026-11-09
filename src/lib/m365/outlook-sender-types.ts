@@ -62,5 +62,10 @@ export type OutlookAddContactResult = {
   contactId: string;
   companyId: string;
   companyCreated: boolean;
+  /**
+   * False when the person was already in the Contact Registry and the existing
+   * record was reused. The UI must say so — never report a create that did not happen.
+   */
+  contactCreated: boolean;
   relationshipCard: import("@/types/m365").M365RelationshipCardPayload | null;
 };

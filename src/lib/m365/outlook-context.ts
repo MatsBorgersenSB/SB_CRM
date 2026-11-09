@@ -192,7 +192,39 @@ export type OutlookOpenMessageSeed = {
   recipientEmails?: string[];
   bodyPreview?: string;
   webLink?: string;
+  /**
+   * File attachments on the open item (inline images excluded). Lets the pane
+   * tell the user what is attached and ask before filing into SmartDocs.
+   */
+  attachments?: OutlookSeedAttachment[];
 };
+
+export type OutlookSeedAttachment = {
+  name: string;
+  size?: number;
+  contentType?: string;
+};
+
+/** Read file attachments from an Office item — never inline images. */
+export function readOutlookItemAttachments(item: unknown): OutlookSeedAttachment[] {
+  const raw = (item as { attachments?: unknown } | null | undefined)?.attachments;
+  if (!Array.isArray(raw)) return [];
+  const result: OutlookSeedAttachment[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const record = row as Record<string, unknown>;
+    const name = typeof record.name === "string" ? record.name.trim() : "";
+    if (!name) continue;
+    if (record.isInline === true) continue;
+    if (typeof record.attachmentType === "string" && record.attachmentType === "item") continue;
+    result.push({
+      name,
+      ...(typeof record.size === "number" ? { size: record.size } : {}),
+      ...(typeof record.contentType === "string" ? { contentType: record.contentType } : {}),
+    });
+  }
+  return result;
+}
 
 export type OutlookComposeRecipient = {
   email: string;
@@ -1128,6 +1160,7 @@ async function seedFromLoadedItem(
     recipientEmails,
     bodyPreview,
     webLink: buildOutlookReadDeeplink(externalMessageId) ?? undefined,
+    attachments: readOutlookItemAttachments(item),
   };
 }
 
@@ -1202,6 +1235,7 @@ async function seedFromOpenMailboxItem(
       recipientEmails,
       bodyPreview,
       webLink: buildOutlookReadDeeplink(externalMessageId) ?? undefined,
+      attachments: readOutlookItemAttachments(item),
     };
   } catch {
     return null;

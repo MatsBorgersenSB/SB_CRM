@@ -13,6 +13,7 @@ import {
   buildSmartCrmUrl,
   ensureOutlookComposeSeed,
   resolveOutlookOpenMessageSeed,
+  type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
 import {
   showOutlookImportCompletedBanner,
@@ -65,6 +66,12 @@ export function OutlookNoContactState({
   const [created, setCreated] = useState<RelationshipIntakeApproveResult | null>(null);
   const [opportunityOpen, setOpportunityOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  /** Open mail seed captured at approve — carries the attachment list. */
+  const [approvedSeed, setApprovedSeed] = useState<OutlookOpenMessageSeed | null>(null);
+  const [attachmentDecision, setAttachmentDecision] = useState<
+    "pending" | "filing" | "filed" | "skipped" | "failed"
+  >("pending");
+  const [attachmentOutcome, setAttachmentOutcome] = useState<string | null>(null);
 
   const [role, setRole] = useState<ContactListRole | "">("");
   const [industry, setIndustry] = useState<CompanyIndustry | "">("");
@@ -270,27 +277,83 @@ export function OutlookNoContactState({
       const result = (await response.json()) as RelationshipIntakeApproveResult;
       if (result.threadLinked) {
         void showSmartCrmCategoryOnOpenMail();
-        void showOutlookImportCompletedBanner("Import completed (Outlook → SmartCRM)");
+        void showOutlookImportCompletedBanner(
+          result.contactCreated === false
+            ? "Mail imported (Outlook → SmartCRM) · contact already existed"
+            : "Import completed (Outlook → SmartCRM)",
+        );
       }
-      if (seed?.externalMessageId?.trim()) {
-        void fetch("/api/m365/sync-attachments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            emailExternalMessageIds: [seed.externalMessageId.trim()],
-            ...(result.companyId ? { companyId: result.companyId } : {}),
-            ...(result.linkedOpportunityId ? { opportunityId: result.linkedOpportunityId } : {}),
-            ...(result.linkedProjectId ? { projectId: result.linkedProjectId } : {}),
-          }),
-        }).catch(() => undefined);
-      }
+      // Attachments are a separate decision — the user is told what is attached
+      // and chooses to file or skip. Nothing is written to SmartDocs here.
+      setApprovedSeed(seed);
+      setAttachmentDecision("pending");
+      setAttachmentOutcome(null);
       setCreated(result);
       setPhase("done");
       setBusy(false);
     } catch {
       setError("Unable to create in SmartCRM.");
       setBusy(false);
+    }
+  };
+
+  const pendingAttachments = approvedSeed?.attachments ?? [];
+  const attachmentDestination = created
+    ? created.linkedOpportunityId
+      ? "the linked opportunity"
+      : created.linkedProjectId
+        ? "the linked project"
+        : proposal?.companyName || companyName || "the company"
+    : "";
+
+  const fileAttachments = async () => {
+    if (!created || !approvedSeed?.externalMessageId?.trim()) return;
+    setAttachmentDecision("filing");
+    setAttachmentOutcome(null);
+    try {
+      const response = await fetch("/api/m365/sync-attachments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          emailExternalMessageIds: [approvedSeed.externalMessageId.trim()],
+          ...(created.companyId ? { companyId: created.companyId } : {}),
+          ...(created.linkedOpportunityId ? { opportunityId: created.linkedOpportunityId } : {}),
+          ...(created.linkedProjectId ? { projectId: created.linkedProjectId } : {}),
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        detail?: string;
+        documentsSaved?: number;
+        skippedAttachments?: Array<{ name: string; reason: string }>;
+      };
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.error || "Could not file attachments.");
+      }
+      const saved = payload.documentsSaved ?? 0;
+      const notFiled = (payload.skippedAttachments ?? []).filter(
+        (row) => row.reason !== "inline_image",
+      );
+      setAttachmentDecision(saved > 0 ? "filed" : "failed");
+      setAttachmentOutcome(
+        saved > 0
+          ? `${saved} attachment${saved === 1 ? "" : "s"} filed into SmartDocs under ${attachmentDestination}.${
+              notFiled.length > 0
+                ? ` Not filed: ${notFiled.map((row) => row.name).join(", ")}.`
+                : ""
+            }`
+          : `No attachments were filed.${
+              notFiled.length > 0
+                ? ` ${notFiled.map((row) => `${row.name} (${row.reason})`).join(", ")}.`
+                : " The mail may not be imported yet — open the relationship card and use File attachments."
+            }`,
+      );
+    } catch (fileError) {
+      setAttachmentDecision("failed");
+      setAttachmentOutcome(
+        fileError instanceof Error ? fileError.message : "Could not file attachments.",
+      );
     }
   };
 
@@ -358,6 +421,53 @@ export function OutlookNoContactState({
           </>
         ) : null}
 
+        {phase === "propose" && proposal?.resolutionKind === "contact_exists" ? (
+          <>
+            <p className="mt-2 text-sm font-semibold text-carbon-blue">Already in SmartCRM</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
+              {proposal.decisionQuestion}
+            </p>
+            <p className="mt-3 text-[13px] font-medium text-carbon-blue">
+              {proposal.displayName || email}
+            </p>
+            <p className="mt-0.5 text-[11px] text-carbon-blue/60">{proposal.email}</p>
+            {proposal.companyName ? (
+              <p className="mt-2 text-[12px] text-carbon-blue/70">
+                Company already in SmartCRM: {proposal.companyName}
+              </p>
+            ) : null}
+            <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/65">
+              {proposal.decisionImpact}
+            </p>
+            {proposal.existingContact?.status === "active" ? (
+              <button
+                type="button"
+                onClick={onContactCreated}
+                className="mt-5 border border-upcycle-orange bg-upcycle-orange px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
+              >
+                Open relationship card
+              </button>
+            ) : null}
+            {proposal.existingContact ? (
+              <a
+                href={buildSmartCrmUrl(
+                  contact360Href(
+                    proposal.existingContact.contactId,
+                    proposal.existingContact.companyId || undefined,
+                  ),
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex w-full items-center justify-center border border-carbon-blue/20 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+              >
+                {proposal.existingContact.status === "active"
+                  ? "View contact in SmartCRM"
+                  : "Open contact to reactivate"}
+              </a>
+            ) : null}
+          </>
+        ) : null}
+
         {phase === "dismissed" ? (
           <>
             <p className="mt-2 text-sm font-semibold text-carbon-blue">Left unchanged</p>
@@ -382,25 +492,109 @@ export function OutlookNoContactState({
               className="mt-3 border-2 border-emerald-600 bg-emerald-600 px-3 py-2.5 text-white"
             >
               <p className="text-[11px] font-bold uppercase tracking-[0.12em]">
-                ✓ Import completed (Outlook → SmartCRM)
+                {created.contactCreated === false
+                  ? "✓ Already in SmartCRM — nothing new created"
+                  : "✓ Import completed (Outlook → SmartCRM)"}
               </p>
               <p className="mt-1 text-[12px] leading-snug text-white/95">
-                {created.companyCreated
-                  ? "Contact, company, and mail imported into SmartCRM."
-                  : "Contact linked to the existing company and mail imported into SmartCRM."}
+                {created.contactCreated === false
+                  ? created.threadLinked
+                    ? "This person was already registered. The existing contact was reused and the mail imported."
+                    : "This person was already registered. The existing contact was reused — no duplicate was made."
+                  : created.companyCreated
+                    ? "Contact, company, and mail imported into SmartCRM."
+                    : "Contact linked to the existing company and mail imported into SmartCRM."}
               </p>
             </div>
-            <p className="mt-3 text-sm font-semibold text-carbon-blue">Added to SmartCRM</p>
+            <p className="mt-3 text-sm font-semibold text-carbon-blue">
+              {created.contactCreated === false ? "Existing contact reused" : "Added to SmartCRM"}
+            </p>
             <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
-              {created.companyCreated
-                ? "Contact and company created — stay in Outlook, or open SmartCRM."
-                : "Contact linked to the existing company."}
+              {created.contactCreated === false
+                ? "SmartCRM already knew this person — open the record to check it is current."
+                : created.companyCreated
+                  ? "Contact and company created — stay in Outlook, or open SmartCRM."
+                  : "Contact linked to the existing company."}
               {created.threadLinked
                 ? variant === "compose"
                   ? " This draft was imported into SmartCRM."
                   : " This mail thread was imported into SmartCRM."
                 : ""}
             </p>
+            {pendingAttachments.length > 0 ? (
+              <div
+                className="mt-4 border border-carbon-blue/15 bg-carbon-blue/[0.03] px-3 py-2.5"
+                aria-live="polite"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/60">
+                  {pendingAttachments.length === 1
+                    ? "1 attachment in this mail"
+                    : `${pendingAttachments.length} attachments in this mail`}
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  {pendingAttachments.slice(0, 5).map((row) => (
+                    <li
+                      key={row.name}
+                      className="truncate text-[12px] text-carbon-blue/80"
+                      title={row.name}
+                    >
+                      {row.name}
+                    </li>
+                  ))}
+                  {pendingAttachments.length > 5 ? (
+                    <li className="text-[11px] text-carbon-blue/50">
+                      +{pendingAttachments.length - 5} more
+                    </li>
+                  ) : null}
+                </ul>
+                {attachmentDecision === "pending" || attachmentDecision === "filing" ? (
+                  <>
+                    <p className="mt-2 text-[11px] leading-relaxed text-carbon-blue/65">
+                      Store {pendingAttachments.length === 1 ? "it" : "them"} in SmartDocs under{" "}
+                      {attachmentDestination}? Not stored until you decide.
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        disabled={attachmentDecision === "filing" || !created.threadLinked}
+                        onClick={() => void fileAttachments()}
+                        className="flex-1 border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white disabled:opacity-50"
+                      >
+                        {attachmentDecision === "filing"
+                          ? "Storing…"
+                          : pendingAttachments.length === 1
+                            ? "Store attachment"
+                            : "Store attachments"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={attachmentDecision === "filing"}
+                        onClick={() => {
+                          setAttachmentDecision("skipped");
+                          setAttachmentOutcome("Attachments were not stored.");
+                        }}
+                        className="flex-1 border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue disabled:opacity-50"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                    {!created.threadLinked ? (
+                      <p className="mt-1.5 text-[11px] text-carbon-blue/55">
+                        The mail was not imported, so attachments cannot be filed from here.
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <p
+                    className={`mt-2 text-[11px] leading-relaxed ${
+                      attachmentDecision === "failed" ? "text-red-700" : "text-carbon-blue/65"
+                    }`}
+                  >
+                    {attachmentOutcome}
+                  </p>
+                )}
+              </div>
+            ) : null}
             <a
               href={buildSmartCrmUrl(
                 contact360Href(created.contactId, created.companyId),
@@ -440,7 +634,8 @@ export function OutlookNoContactState({
 
         {phase === "propose" &&
         proposal &&
-        proposal.resolutionKind !== "internal_colleague" ? (
+        proposal.resolutionKind !== "internal_colleague" &&
+        proposal.resolutionKind !== "contact_exists" ? (
           <>
             <p className="mt-2 text-sm font-semibold text-carbon-blue">
               {proposal.companyResolved ? "Add contact?" : "New relationship"}

@@ -385,6 +385,7 @@ export async function addOutlookContact(
     contactId: refreshedContact.ContactID,
     companyId: refreshedCompany.CompanyID,
     companyCreated,
+    contactCreated: true,
     relationshipCard,
   };
 }
@@ -435,6 +436,7 @@ async function finishExistingContact(
     contactId: refreshedContact.ContactID,
     companyId: refreshedCompany.CompanyID,
     companyCreated: false,
+    contactCreated: false,
     relationshipCard,
   };
 }

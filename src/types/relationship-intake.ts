@@ -12,7 +12,18 @@ export type RelationshipIntakeConfidence = "high" | "medium" | "low" | "none";
 export type RelationshipIntakeResolutionKind =
   | "company_match"
   | "new_company"
-  | "internal_colleague";
+  | "internal_colleague"
+  /** Person already in the Contact Registry — show the card, never offer create. */
+  | "contact_exists";
+
+export type RelationshipIntakeExistingContact = {
+  contactId: string;
+  companyId: string;
+  displayName: string;
+  companyName: string;
+  /** Registry status — "active" opens the card; anything else needs reactivation. */
+  status: string;
+};
 
 export type RelationshipIntakeLinkOption = {
   id: string;
@@ -41,6 +52,8 @@ export type RelationshipIntakeProposal = {
   opportunityOptions: RelationshipIntakeLinkOption[];
   projectOptions: RelationshipIntakeLinkOption[];
   companyOptions: OutlookCompanyOption[];
+  /** Set when `resolutionKind === "contact_exists"`. */
+  existingContact?: RelationshipIntakeExistingContact | null;
   colleague?: {
     email: string;
     knownUser: boolean;
