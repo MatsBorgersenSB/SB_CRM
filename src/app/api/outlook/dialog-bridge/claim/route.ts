@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   authCookieOptions,
+  isSecureAuthCookies,
   mintSessionTokenFromBridge,
   readOutlookBridgeToken,
   sessionCookieName,
-  useSecureAuthCookies,
 } from "@/lib/outlook-dialog-bridge";
 import { authTrace } from "@/lib/auth-debug";
 
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const secure = useSecureAuthCookies();
+  const secure = isSecureAuthCookies();
   const sessionJwt = await mintSessionTokenFromBridge(bridge);
   const cookieName = sessionCookieName(secure);
   const maxAge = 60 * 60 * 8;
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
   const response = NextResponse.json(
     {
       ok: true,
+      sessionToken: sessionJwt,
       user: {
         email: bridge.email,
         name: typeof bridge.name === "string" ? bridge.name : null,

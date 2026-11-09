@@ -119,7 +119,14 @@ export function Sidebar() {
   // Detected after mount so server and first client render agree (no hydration mismatch).
   const isMac = useSyncExternalStore(
     subscribeNever,
-    () => navigator.platform.toLowerCase().includes("mac"),
+    () => {
+      const platform =
+        (navigator as { userAgentData?: { platform?: string } }).userAgentData?.platform ||
+        navigator.platform ||
+        navigator.userAgent ||
+        "";
+      return /mac|iphone|ipad|ipod/i.test(platform);
+    },
     () => false,
   );
 

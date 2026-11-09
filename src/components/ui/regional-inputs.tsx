@@ -115,7 +115,7 @@ export function RegionalDateInput({
           setDraft(null);
           onValueChange(e.target.value);
         }}
-        className="pointer-events-none absolute bottom-0 right-0 h-0 w-0 opacity-0"
+        className="pointer-events-none absolute inset-y-0 right-0 h-full w-8 opacity-0"
       />
     </div>
   );

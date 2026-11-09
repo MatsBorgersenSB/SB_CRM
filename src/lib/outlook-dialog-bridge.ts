@@ -4,12 +4,18 @@ import { resolveAuthSecret } from "@/lib/auth-env";
 /** Salt must stay distinct from the Auth.js session cookie salt. */
 export const OUTLOOK_BRIDGE_SALT = "smartcrm.outlook-dialog-bridge";
 
+/**
+ * Header fallback for Outlook task panes on macOS (WKWebView) and Safari,
+ * where WebKit ITP blocks third-party cookies even with SameSite=None; Partitioned.
+ */
+export const OUTLOOK_SESSION_HEADER = "x-smartcrm-outlook-session";
+
 /** Auth.js session cookie name on HTTPS / Vercel. */
 export function sessionCookieName(secure: boolean): string {
   return secure ? "__Secure-authjs.session-token" : "authjs.session-token";
 }
 
-export function useSecureAuthCookies(): boolean {
+export function isSecureAuthCookies(): boolean {
   return (
     process.env.NODE_ENV === "production" ||
     process.env.VERCEL === "1" ||
@@ -17,6 +23,8 @@ export function useSecureAuthCookies(): boolean {
     Boolean(process.env.NEXTAUTH_URL?.startsWith("https://"))
   );
 }
+
+export const useSecureAuthCookies = isSecureAuthCookies;
 
 /**
  * Cookie options for Outlook Web task panes (cross-site iframe).
@@ -70,15 +78,13 @@ export async function readOutlookBridgeToken(token: string): Promise<JWT | null>
 /** Rebuild a normal Auth.js session JWT from a validated bridge payload. */
 export async function mintSessionTokenFromBridge(bridge: JWT): Promise<string> {
   const secret = resolveAuthSecret();
-  const secure = useSecureAuthCookies();
+  const secure = isSecureAuthCookies();
   const salt = sessionCookieName(secure);
-  const {
-    purpose: _purpose,
-    iat: _iat,
-    exp: _exp,
-    jti: _jti,
-    ...sessionClaims
-  } = bridge;
+  const sessionClaims: JWT = { ...bridge };
+  delete sessionClaims.purpose;
+  delete sessionClaims.iat;
+  delete sessionClaims.exp;
+  delete sessionClaims.jti;
 
   return encode({
     token: sessionClaims,

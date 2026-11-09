@@ -9,7 +9,11 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from "react";
-import { whenOfficeReady } from "@/lib/outlook-office";
+import {
+  installOutlookSessionFetchBridge,
+  saveOutlookSessionToken,
+  whenOfficeReady,
+} from "@/lib/outlook-office";
 import { markOutlookPaneReady } from "@/lib/outlook-addin-shell";
 import {
   isUnsupportedOutlookHost,
@@ -54,6 +58,19 @@ function appOrigin(): string {
 }
 
 async function claimBridgeToken(bridgeToken: string): Promise<boolean> {
+  installOutlookSessionFetchBridge();
+  if (
+    typeof document !== "undefined" &&
+    typeof (document as { requestStorageAccess?: () => Promise<void> }).requestStorageAccess ===
+      "function"
+  ) {
+    await (
+      document as { requestStorageAccess: () => Promise<void> }
+    )
+      .requestStorageAccess()
+      .catch(() => undefined);
+  }
+
   const response = await fetch("/api/outlook/dialog-bridge/claim", {
     method: "POST",
     credentials: "include",
@@ -61,7 +78,15 @@ async function claimBridgeToken(bridgeToken: string): Promise<boolean> {
     body: JSON.stringify({ bridgeToken }),
     cache: "no-store",
   });
-  return response.ok;
+  if (!response.ok) return false;
+
+  const payload = (await response.json().catch(() => null)) as {
+    sessionToken?: string;
+  } | null;
+  if (payload?.sessionToken) {
+    saveOutlookSessionToken(payload.sessionToken);
+  }
+  return true;
 }
 
 function parseDialogMessage(raw: string): {
@@ -493,16 +518,23 @@ export function OutlookAuthGate({ children }: { children: ReactNode }) {
 
   // Office.onReady must run on mount regardless of authentication status
   useEffect(() => {
+    installOutlookSessionFetchBridge();
     if (typeof window !== "undefined") {
-      pushTrace(traceLine("pane.host", window.location.host));
-      pushTrace(traceLine("signin.url", buildOutlookSignInUrl()));
+      const host = window.location.host;
+      const signInUrl = buildOutlookSignInUrl();
+      queueMicrotask(() => {
+        pushTrace(traceLine("pane.host", host));
+        pushTrace(traceLine("signin.url", signInUrl));
+      });
     }
     markOutlookPaneReady();
     void whenOfficeReady().catch(() => null);
   }, [pushTrace]);
 
   useEffect(() => {
-    void checkSession("soft");
+    queueMicrotask(() => {
+      void checkSession("soft");
+    });
   }, [checkSession]);
 
   // Hard timeout: never leave the user on "Connecting to SmartCRM…"

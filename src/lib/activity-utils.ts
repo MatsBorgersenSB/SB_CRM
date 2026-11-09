@@ -388,12 +388,18 @@ export function computeActivityIntelligence(
   const openFollowUps = activities.filter(isFollowUpOpen).length;
   const overdueFollowUps = activities.filter(isFollowUpOverdue).length;
 
+  const toNextActionSortTime = (raw: string | undefined): number => {
+    if (!raw?.trim()) return Number.MAX_SAFE_INTEGER;
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
+  };
+
   const upcomingActions = activities
     .filter(isFollowUpOpen)
     .sort(
       (a, b) =>
-        new Date(a.NextActionDate || "9999").getTime() -
-        new Date(b.NextActionDate || "9999").getTime(),
+        toNextActionSortTime(a.NextActionDate) -
+        toNextActionSortTime(b.NextActionDate),
     )
     .slice(0, 5);
 

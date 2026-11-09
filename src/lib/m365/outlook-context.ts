@@ -109,18 +109,28 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
     const selfEmails = mailboxSelfEmails(mailbox);
 
     // Multi-select: mailbox.item is the last opened mail (often Adobe Sign),
-    // not the checked set. Always resolve from the selection.
-    const selectedSeeds = await resolveOutlookSelectedMessageSeeds();
-    if (selectedSeeds.length > 1) {
-      const fromSeeds = pickBestCounterpartyFromSeeds(selectedSeeds, selfEmails);
-      if (fromSeeds) return fromSeeds;
+    // not the checked set. Only resolve full seeds upfront when multiple mails
+    // are selected or when there is no open item.
+    const selectedLite = mailbox ? await getSelectedItemsLite(mailbox) : [];
+    if (selectedLite.length > 1 || !item) {
+      const selectedSeeds = await resolveOutlookSelectedMessageSeeds();
+      if (selectedSeeds.length > 0) {
+        const fromSeeds = pickBestCounterpartyFromSeeds(selectedSeeds, selfEmails);
+        if (fromSeeds) return fromSeeds;
+      }
+      if (!item) return null;
     }
 
-    const fromEmail = item?.from?.emailAddress?.trim().toLowerCase() ?? "";
-    const senderEmail =
-      (
-        item as { sender?: { emailAddress?: string; displayName?: string } } | undefined
-      )?.sender?.emailAddress?.trim().toLowerCase() ?? "";
+    const fromDetails =
+      (await readSingleEmailAddressAsync(item?.from)) ??
+      (await readSingleEmailAddressAsync(
+        (item as { organizer?: unknown } | undefined)?.organizer,
+      ));
+    const senderDetails = await readSingleEmailAddressAsync(
+      (item as { sender?: unknown } | undefined)?.sender,
+    );
+    const fromEmail = fromDetails?.email ?? "";
+    const senderEmail = senderDetails?.email ?? "";
     const fromIsSelfOrInternal =
       Boolean(fromEmail) && !isUsableCounterpartyEmail(fromEmail, selfEmails);
 
@@ -131,15 +141,12 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
 
     const picked = pickOutlookCounterparty({
       from: fromEmail
-        ? { email: fromEmail, displayName: item?.from?.displayName?.trim() ?? "" }
+        ? { email: fromEmail, displayName: fromDetails?.displayName ?? "" }
         : null,
       sender: senderEmail
         ? {
             email: senderEmail,
-            displayName:
-              (
-                item as { sender?: { displayName?: string } } | undefined
-              )?.sender?.displayName?.trim() ?? "",
+            displayName: senderDetails?.displayName ?? "",
           }
         : null,
       recipients,
@@ -149,6 +156,7 @@ export async function resolveOutlookSenderDetails(): Promise<OutlookSenderDetail
       return { email: picked.email, displayName: picked.displayName ?? "" };
     }
 
+    const selectedSeeds = await resolveOutlookSelectedMessageSeeds();
     return pickBestCounterpartyFromSeeds(selectedSeeds, selfEmails);
   } catch {
     return null;
@@ -210,6 +218,57 @@ function mapEmailAddressDetails(
       displayName: entry.displayName?.trim() ?? "",
     }))
     .filter((entry) => Boolean(entry.email));
+}
+
+/**
+ * Read a single EmailAddressDetails from either synchronous properties
+ * (Message Read / Appointment Read) or getAsync (Compose / Mac Outlook organizer/from).
+ */
+function readSingleEmailAddressAsync(
+  source: unknown,
+): Promise<OutlookComposeRecipient | null> {
+  if (!source || typeof source !== "object") return Promise.resolve(null);
+
+  const direct = source as { emailAddress?: string; displayName?: string };
+  if (typeof direct.emailAddress === "string" && direct.emailAddress.trim()) {
+    return Promise.resolve({
+      email: direct.emailAddress.trim().toLowerCase(),
+      displayName: direct.displayName?.trim() ?? "",
+    });
+  }
+
+  const withGetAsync = source as {
+    getAsync?: (
+      callback: (
+        result: Office.AsyncResult<{ emailAddress?: string; displayName?: string }>,
+      ) => void,
+    ) => void;
+  };
+  if (typeof withGetAsync.getAsync !== "function") {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    try {
+      withGetAsync.getAsync!((result) => {
+        if (!isOfficeAsyncSuccess(result.status) || !result.value?.emailAddress) {
+          resolve(null);
+          return;
+        }
+        const email = result.value.emailAddress.trim().toLowerCase();
+        if (!email) {
+          resolve(null);
+          return;
+        }
+        resolve({
+          email,
+          displayName: result.value.displayName?.trim() ?? "",
+        });
+      });
+    } catch {
+      resolve(null);
+    }
+  });
 }
 
 /**
@@ -828,7 +887,7 @@ function makeEwsRequest(mailbox: Office.Mailbox, xml: string): Promise<string | 
       }
     }),
     null,
-    8000,
+    3000,
   );
 }
 
@@ -1024,14 +1083,18 @@ async function seedFromLoadedItem(
     });
   }
   const ewsOrRestId = item.itemId?.trim() || selected.itemId?.trim() || "";
-  if (!conversationId || !ewsOrRestId) return null;
+  if (!ewsOrRestId) return null;
 
   const externalMessageId = convertToRestId(mailbox, ewsOrRestId);
+  if (!conversationId) {
+    conversationId = selected.internetMessageId?.trim() || externalMessageId;
+  }
   const created = item.dateTimeCreated
     ? new Date(item.dateTimeCreated)
     : new Date();
   const selfEmail = mailbox.userProfile?.emailAddress?.trim().toLowerCase() || "";
-  const fromEmail = item.from?.emailAddress?.trim().toLowerCase() || "";
+  const fromDetails = await readSingleEmailAddressAsync(item.from);
+  const fromEmail = fromDetails?.email || "";
   const fromIsMailboxOwner = Boolean(fromEmail) && isMailboxOwnerEmail(fromEmail, [selfEmail]);
   const isOutbound =
     Boolean(options?.preferOutbound) || fromIsMailboxOwner;
@@ -1057,7 +1120,7 @@ async function seedFromLoadedItem(
     externalMessageId,
     subject: subject !== "(no subject)" ? subject : fallbackSubject,
     senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail,
-    senderDisplayName: item.from?.displayName?.trim() || "",
+    senderDisplayName: fromDetails?.displayName || "",
     sentAt: Number.isNaN(created.getTime())
       ? new Date().toISOString()
       : created.toISOString(),
@@ -1089,18 +1152,24 @@ async function seedFromOpenMailboxItem(
         });
       });
     }
-    if (!conversationId) return null;
-
     const ewsOrRestId = item.itemId?.trim() || "";
     if (!ewsOrRestId) return null;
 
     const externalMessageId = convertToRestId(mailbox, ewsOrRestId);
+    if (!conversationId) {
+      conversationId = externalMessageId;
+    }
     const created = item.dateTimeCreated
       ? new Date(item.dateTimeCreated)
       : new Date();
     const selfEmail =
       mailbox?.userProfile?.emailAddress?.trim().toLowerCase() || "";
-    const fromEmail = item.from?.emailAddress?.trim().toLowerCase() || "";
+    const fromDetails =
+      (await readSingleEmailAddressAsync(item.from)) ??
+      (await readSingleEmailAddressAsync(
+        (item as { organizer?: unknown }).organizer,
+      ));
+    const fromEmail = fromDetails?.email || "";
     const fromIsMailboxOwner = Boolean(fromEmail) && isMailboxOwnerEmail(fromEmail, [selfEmail]);
     const isOutbound =
       Boolean(options?.preferOutbound) || fromIsMailboxOwner;
@@ -1125,7 +1194,7 @@ async function seedFromOpenMailboxItem(
       externalMessageId,
       subject,
       senderEmail: isOutbound ? selfEmail || fromEmail : fromEmail,
-      senderDisplayName: item.from?.displayName?.trim() || "",
+      senderDisplayName: fromDetails?.displayName || "",
       sentAt: Number.isNaN(created.getTime())
         ? new Date().toISOString()
         : created.toISOString(),

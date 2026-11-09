@@ -47,14 +47,15 @@ export function UniversalSearchProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (open) void loadIndex();
+    if (!open) return;
+    queueMicrotask(() => {
+      void loadIndex();
+    });
   }, [open, loadIndex]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const isMac = navigator.platform.toLowerCase().includes("mac");
-      const modifier = isMac ? event.metaKey : event.ctrlKey;
-      if (modifier && event.key.toLowerCase() === "k") {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setOpen((current) => !current);
       }

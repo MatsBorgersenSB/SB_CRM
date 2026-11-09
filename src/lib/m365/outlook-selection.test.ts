@@ -7,6 +7,11 @@ import {
   toEwsMessageId,
   toGraphRestMessageId,
 } from "./outlook-selection";
+import {
+  readOutlookSessionToken,
+  saveOutlookSessionToken,
+} from "../outlook-office";
+import { OUTLOOK_SESSION_HEADER } from "../outlook-dialog-bridge";
 
 describe("outlookSelectionFingerprint", () => {
   it("changes when another mail is checked and the open item is gone", () => {
@@ -41,5 +46,15 @@ describe("toGraphRestMessageId", () => {
     assert.equal(toGraphRestMessageId(restId), restId);
     assert.equal(toEwsMessageId(restId), ewsId);
     assert.deepEqual(messageIdVariants(ewsId), [ewsId, restId]);
+  });
+});
+
+describe("Mac / WebKit Outlook session token bridge", () => {
+  it("persists and clears the session token in memory when WebKit blocks third-party cookies", () => {
+    assert.equal(OUTLOOK_SESSION_HEADER, "x-smartcrm-outlook-session");
+    saveOutlookSessionToken("  jwe-token-for-mac-webkit  ");
+    assert.equal(readOutlookSessionToken(), "jwe-token-for-mac-webkit");
+    saveOutlookSessionToken(null);
+    assert.equal(readOutlookSessionToken(), null);
   });
 });

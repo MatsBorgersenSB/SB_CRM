@@ -421,7 +421,11 @@ function EditableCloseDate({
   useEffect(() => {
     if (editing) {
       inputRef.current?.focus();
-      inputRef.current?.showPicker?.();
+      try {
+        inputRef.current?.showPicker?.();
+      } catch {
+        /* Safari on macOS requires a synchronous user gesture for showPicker() */
+      }
     }
   }, [editing]);
 

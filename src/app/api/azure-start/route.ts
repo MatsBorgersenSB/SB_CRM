@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { signIn } from "@/lib/auth";
 import { authTrace } from "@/lib/auth-debug";
+import { isSecureAuthCookies } from "@/lib/outlook-dialog-bridge";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,13 +85,27 @@ export async function GET(req: NextRequest) {
 </body>
 </html>`;
 
-    return new NextResponse(html, {
+    const response = new NextResponse(html, {
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
       },
     });
+
+    const secure = isSecureAuthCookies();
+    const callbackCookieName = secure
+      ? "__Secure-authjs.callback-url"
+      : "authjs.callback-url";
+    const absoluteCallbackUrl = new URL(callbackUrl, req.nextUrl.origin).toString();
+    response.cookies.set(callbackCookieName, absoluteCallbackUrl, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure,
+    });
+
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     authTrace("azure-start.error", { message, callbackUrl });

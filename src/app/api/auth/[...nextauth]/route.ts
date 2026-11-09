@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { handlers } from "@/lib/auth";
 import { authTrace } from "@/lib/auth-debug";
+import { OUTLOOK_SESSION_HEADER } from "@/lib/outlook-dialog-bridge";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,6 +86,18 @@ async function safeAuth(method: "GET" | "POST", req: NextRequest) {
     const headers = new Headers(req.headers);
     if (!documentNav) {
       headers.set("X-Auth-Return-Redirect", "1");
+    }
+
+    const outlookHeaderToken = req.headers.get(OUTLOOK_SESSION_HEADER)?.trim() || "";
+    if (outlookHeaderToken) {
+      const existingCookies = headers.get("cookie")?.trim() || "";
+      if (
+        !existingCookies.includes("__Secure-authjs.session-token=") &&
+        !existingCookies.includes("authjs.session-token=")
+      ) {
+        const extra = `__Secure-authjs.session-token=${outlookHeaderToken}; authjs.session-token=${outlookHeaderToken}`;
+        headers.set("cookie", existingCookies ? `${existingCookies}; ${extra}` : extra);
+      }
     }
 
     const forwarded = new NextRequest(req.url, {

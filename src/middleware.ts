@@ -1,8 +1,26 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { decode, getToken } from "next-auth/jwt";
 import { resolveAuthSecret } from "@/lib/auth-env";
+import {
+  OUTLOOK_SESSION_HEADER,
+  sessionCookieName,
+} from "@/lib/outlook-dialog-bridge";
 import { applyTrustedRoleHeader } from "@/lib/security/trusted-role-header";
+
+function appendOutlookSessionCookies(headers: Headers, sessionToken: string): void {
+  const clean = sessionToken.trim();
+  if (!clean) return;
+  const existing = headers.get("cookie")?.trim() || "";
+  if (
+    existing.includes("__Secure-authjs.session-token=") ||
+    existing.includes("authjs.session-token=")
+  ) {
+    return;
+  }
+  const appended = `__Secure-authjs.session-token=${clean}; authjs.session-token=${clean}`;
+  headers.set("cookie", existing ? `${existing}; ${appended}` : appended);
+}
 
 /**
  * Strict auth guard for application pages.
@@ -20,6 +38,11 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-pathname", pathname);
   // Never trust a client-supplied role; it is re-derived from the session below.
   applyTrustedRoleHeader(requestHeaders, undefined);
+
+  const outlookHeaderToken = request.headers.get(OUTLOOK_SESSION_HEADER)?.trim() || "";
+  if (outlookHeaderToken) {
+    appendOutlookSessionCookies(requestHeaders, outlookHeaderToken);
+  }
 
   // Ghost CRA /static/js chunks (not shipped by this Next app). Never redirect them
   // to HTML /auth/signin — that produces script SyntaxErrors and confusing stacks.
@@ -68,11 +91,26 @@ export async function middleware(request: NextRequest) {
     process.env.NODE_ENV === "production" ||
     process.env.VERCEL === "1";
 
-  const token = await getToken({
+  const secret = resolveAuthSecret();
+  let token = await getToken({
     req: request,
-    secret: resolveAuthSecret(),
+    secret,
     secureCookie,
   });
+
+  if (!token && outlookHeaderToken) {
+    token =
+      (await decode({
+        token: outlookHeaderToken,
+        secret,
+        salt: sessionCookieName(secureCookie),
+      }).catch(() => null)) ??
+      (await decode({
+        token: outlookHeaderToken,
+        secret,
+        salt: sessionCookieName(!secureCookie),
+      }).catch(() => null));
+  }
 
   if (!token) {
     if (process.env.AUTH_TRACE === "1") console.log(

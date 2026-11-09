@@ -290,10 +290,11 @@ function buildAzureAdProvider() {
 }
 
 /**
- * Outlook Web task panes are cross-site iframes. Auth.js defaults (SameSite=Lax)
- * mean cookies set in the Office Dialog never reach the task pane. Use
- * SameSite=None; Secure in production for dialog SSO cookies. The dialog-bridge
- * claim route adds Partitioned when writing the session into the Outlook iframe.
+ * Top-level Auth.js cookies (Safari / Chrome web app + Office Dialog top-level window).
+ * Use SameSite=Lax so WebKit Intelligent Tracking Prevention on macOS/iOS never drops
+ * callback-url or session-token across Microsoft OAuth top-level redirects.
+ * Cross-site Outlook task-pane iframes receive their session via dialog-bridge
+ * (SameSite=None; Partitioned + x-smartcrm-outlook-session header bridge).
  */
 function buildAuthCookies(): NextAuthConfig["cookies"] {
   const secure =
@@ -306,7 +307,7 @@ function buildAuthCookies(): NextAuthConfig["cookies"] {
 
   const base = {
     httpOnly: true as const,
-    sameSite: "none" as const,
+    sameSite: "lax" as const,
     path: "/",
     secure: true,
   };

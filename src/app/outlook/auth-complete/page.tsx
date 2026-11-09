@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { markOutlookPaneReady } from "@/lib/outlook-addin-shell";
 import { messageParentSafe } from "@/lib/outlook-office";
 
 type CompleteState =
@@ -18,6 +19,7 @@ export default function OutlookAuthCompletePage() {
   const [state, setState] = useState<CompleteState>({ status: "working" });
 
   useEffect(() => {
+    markOutlookPaneReady();
     let cancelled = false;
 
     void (async () => {
