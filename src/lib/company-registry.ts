@@ -20,6 +20,7 @@ import { readCompanies } from "@/lib/pipeline-db";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { CompanyType } from "@/types/company-type";
 import { normalizeCompanySectors } from "@/lib/company-sectors";
+import { ownerIdFromPerson } from "@/lib/company-owner";
 
 async function prismaRegistryAvailable(): Promise<boolean> {
   try {
@@ -46,7 +47,13 @@ export async function loadMappedPrismaCompany(prismaId: string): Promise<Company
       },
     }),
   );
-  return mapPrismaCompanyToApp(row);
+  const mapped = mapPrismaCompanyToApp(row);
+  try {
+    const { enrichCompanyOwners } = await import("@/lib/company-owner-server");
+    return await enrichCompanyOwners(mapped);
+  } catch {
+    return mapped;
+  }
 }
 
 function toPrismaCompanyTypes(types: CompanyType[] | undefined): string[] {
@@ -124,7 +131,7 @@ export async function createRegistryCompany(
   if (!(await prismaRegistryAvailable())) return null;
 
   const domain = normalizeCompanyDomain(input.Domain);
-  const ownerId = input.AccountOwner?.Id != null ? String(input.AccountOwner.Id) : null;
+  const ownerId = ownerIdFromPerson(input.AccountOwner);
   const countryGeo = geoFromCountryTitle(countryTitle(input.Country));
   const storedTypes = toPrismaCompanyTypes(input.CompanyTypes);
   const organizationNumber = input.organizationNumber?.trim() || null;
@@ -299,7 +306,7 @@ export async function updateRegistryCompany(
           continent: countryGeo.continent,
           organizationNumber: patch.organizationNumber ?? jsonCompany.organizationNumber ?? null,
           vatNumber: patch.vatNumber ?? jsonCompany.vatNumber ?? null,
-          ownerId: owner?.Id != null ? String(owner.Id) : null,
+          ownerId: ownerIdFromPerson(owner),
           emails: (patch.Email ?? jsonCompany.Email)
             ? [
                 {
@@ -384,8 +391,7 @@ export async function updateRegistryCompany(
     data.vatNumber = patch.vatNumber?.trim() || null;
   }
   if (patch.AccountOwner !== undefined) {
-    data.ownerId =
-      patch.AccountOwner?.Id != null ? String(patch.AccountOwner.Id) : null;
+    data.ownerId = ownerIdFromPerson(patch.AccountOwner);
   }
   if (parentCompanyId !== undefined) data.parentCompanyId = parentCompanyId;
   if (patch.Email !== undefined) {

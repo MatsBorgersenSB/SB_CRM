@@ -13,36 +13,86 @@ const CANONICAL_USER_EMAILS: Record<number, string> = {
   103: "bjorn.molskred@standard.bio",
 };
 
-export function authUserToAccountOwner(user: AuthUser): SharePointPerson {
-  const display = user.displayName?.trim().toLowerCase() ?? "";
-  const email = user.email?.trim().toLowerCase() ?? "";
+const PLACEHOLDER_SSO_USER_ID = 1;
 
-  const matchByNameOrEmail = STANDARD_BIO_USERS.find((bioUser) => {
-    if (display && display !== "guest" && bioUser.Title.toLowerCase() === display) {
-      return true;
-    }
-    if (!email) return false;
-    if (CANONICAL_USER_EMAILS[bioUser.Id]?.toLowerCase() === email) {
-      return true;
-    }
-    const local = email.split("@")[0] ?? "";
-    const compactTitle = bioUser.Title.toLowerCase().replace(/[^a-z]/g, "");
-    const compactLocal = local.replace(/[^a-z]/g, "");
-    return Boolean(compactLocal && compactTitle && compactTitle === compactLocal);
-  });
-  // Name/email first — SSO sessions often share a placeholder id, so id must not steal ownership.
-  const canonical =
-    matchByNameOrEmail ??
-    STANDARD_BIO_USERS.find((bioUser) => user.id > 0 && bioUser.Id === user.id);
+export type ColleagueOwnerRecord = {
+  id: number;
+  email: string;
+  displayName: string;
+};
 
-  if (canonical) return canonical;
+export function seedColleagueDirectory(): ColleagueOwnerRecord[] {
+  return STANDARD_BIO_USERS.map((bioUser) => ({
+    id: bioUser.Id,
+    email: CANONICAL_USER_EMAILS[bioUser.Id] ?? "",
+    displayName: bioUser.Title,
+  }));
+}
 
-  // Signed-in users must never get Guest id 0 — fall back to primary Standard Bio owner.
-  if (user.id <= 0 || display === "guest" || !display) {
-    return STANDARD_BIO_USERS[0]!;
+function compactName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z]/g, "");
+}
+
+/** Email → name → id>0. Never let placeholder id 1 steal Mats from another colleague. */
+export function matchColleagueOwner(
+  identity: { email?: string | null; displayName?: string | null; id?: number | null },
+  colleagues: ColleagueOwnerRecord[],
+): SharePointPerson | null {
+  const email = identity.email?.trim().toLowerCase() ?? "";
+  if (email && !email.endsWith("@smartcrm.local")) {
+    const byEmail = colleagues.find(
+      (entry) => entry.email.trim().toLowerCase() === email,
+    );
+    if (byEmail) return { Id: byEmail.id, Title: byEmail.displayName };
   }
 
-  return { Id: user.id > 0 ? user.id : STANDARD_BIO_USERS[0]!.Id, Title: user.displayName };
+  const name = identity.displayName?.trim().toLowerCase() ?? "";
+  if (name && name !== "guest") {
+    const byName = colleagues.find(
+      (entry) => entry.displayName.trim().toLowerCase() === name,
+    );
+    if (byName) return { Id: byName.id, Title: byName.displayName };
+  }
+
+  const local = email.split("@")[0] ?? "";
+  const compactLocal = compactName(local);
+  if (compactLocal) {
+    const byCompact = colleagues.find(
+      (entry) => compactName(entry.displayName) === compactLocal,
+    );
+    if (byCompact) return { Id: byCompact.id, Title: byCompact.displayName };
+  }
+
+  const id = identity.id;
+  if (id == null || !Number.isFinite(id) || id <= 0) return null;
+  const byId = colleagues.find((entry) => entry.id === id);
+  if (!byId) return null;
+
+  const emailConflicts = Boolean(email) && byId.email && byId.email.toLowerCase() !== email;
+  const nameConflicts =
+    Boolean(name) &&
+    name !== "guest" &&
+    byId.displayName.toLowerCase() !== name &&
+    compactName(byId.displayName) !== compactName(name);
+  if (emailConflicts || nameConflicts) return null;
+
+  return { Id: byId.id, Title: byId.displayName };
+}
+
+export function authUserToAccountOwner(user: AuthUser): SharePointPerson {
+  const matched = matchColleagueOwner(
+    { email: user.email, displayName: user.displayName, id: user.id },
+    seedColleagueDirectory(),
+  );
+  if (matched) return matched;
+
+  const display = user.displayName?.trim() ?? "";
+  if (display && display.toLowerCase() !== "guest") {
+    const id = user.id > 0 && user.id !== PLACEHOLDER_SSO_USER_ID ? user.id : 0;
+    return { Id: id, Title: display };
+  }
+
+  return { Id: 0, Title: display || "Guest" };
 }
 
 export function isCompanyOwnedByUser(company: Company, user: AuthUser): boolean {
@@ -67,6 +117,45 @@ export function ownerIdFromPerson(owner: SharePointPerson | null | undefined): s
   if (typeof owner.Id === "number" && Number.isFinite(owner.Id) && owner.Id > 0) {
     return String(owner.Id);
   }
+  return null;
+}
+
+/** Map a stored Prisma ownerId back to a person. Unknown ids are kept so a change is not dropped. */
+export function personFromStoredOwnerId(
+  ownerId: string | null | undefined,
+): SharePointPerson | null {
+  if (!ownerId) return null;
+  if (ownerId.trim().toLowerCase() === "system") return null;
+
+  const numeric = Number(ownerId);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    const known = STANDARD_BIO_USERS.find((user) => user.Id === numeric);
+    if (known) return { Id: known.Id, Title: known.Title };
+    return { Id: numeric, Title: "" };
+  }
+
+  if (/[A-Za-z]/.test(ownerId) && !/^\d+$/.test(ownerId.trim())) {
+    return { Id: 0, Title: ownerId.trim() };
+  }
+
+  return null;
+}
+
+export function enrichOwnerFromDirectory(
+  owner: SharePointPerson | null | undefined,
+  colleagues: ColleagueOwnerRecord[],
+): SharePointPerson | null {
+  if (!owner) return null;
+  const matched = matchColleagueOwner(
+    {
+      id: owner.Id > 0 ? owner.Id : null,
+      displayName: owner.Title,
+      email: null,
+    },
+    colleagues,
+  );
+  if (matched) return matched;
+  if (owner.Title?.trim() || owner.Id > 0) return owner;
   return null;
 }
 
@@ -123,15 +212,23 @@ export function accountOwnerChanged(
 
 export function resolveAccountOwner(
   explicit: SharePointPerson | null | undefined,
+  fallbackUser: AuthUser,
+): SharePointPerson;
+export function resolveAccountOwner(
+  explicit: SharePointPerson | null | undefined,
   fallbackUser?: AuthUser | null,
-): SharePointPerson {
+): SharePointPerson | null;
+export function resolveAccountOwner(
+  explicit: SharePointPerson | null | undefined,
+  fallbackUser?: AuthUser | null,
+): SharePointPerson | null {
   if (explicit?.Title?.trim()) {
     return explicit;
   }
   if (fallbackUser) {
     return authUserToAccountOwner(fallbackUser);
   }
-  return STANDARD_BIO_USERS[0]!;
+  return null;
 }
 
 export function resolveOwnerById(

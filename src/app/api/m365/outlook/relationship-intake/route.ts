@@ -1,5 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { resolveRequestRole } from "@/lib/api-auth";
+import { resolveRegistrarAccountOwner } from "@/lib/company-owner-server";
 import { m365Error } from "@/lib/m365/api-response";
 import { INTERNAL_CONTACT_REFUSED } from "@/lib/internal-colleague";
 import { SharePointServiceError } from "@/services/sharepoint/client/errors";
@@ -73,6 +75,8 @@ export async function POST(request: Request) {
     }
 
     if (action === "approve") {
+      const role = await resolveRequestRole(request);
+      const accountOwner = await resolveRegistrarAccountOwner(request, role);
       const result = await approveRelationshipIntake({
         email,
         firstName: body.firstName?.trim() ?? "",
@@ -84,6 +88,7 @@ export async function POST(request: Request) {
         matchedCompanyId: body.matchedCompanyId,
         skipAutoCompanyMatch: body.skipAutoCompanyMatch,
         enrichment: body.enrichment,
+        accountOwner,
         conversationId: body.conversationId,
         opportunityId: body.opportunityId,
         projectId: body.projectId,

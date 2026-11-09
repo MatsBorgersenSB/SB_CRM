@@ -3,7 +3,10 @@ import { describe, it } from "node:test";
 import {
   accountOwnerChanged,
   authUserToAccountOwner,
+  enrichOwnerFromDirectory,
+  matchColleagueOwner,
   ownerIdFromPerson,
+  personFromStoredOwnerId,
   resolveAccountOwner,
 } from "./company-owner";
 import type { AuthUser } from "@/types/auth";
@@ -45,6 +48,19 @@ describe("authUserToAccountOwner", () => {
     assert.equal(owner.Id, 102);
     assert.equal(owner.Title, "Ola Kjelsoas Rogndokken");
   });
+
+  it("does not assign Mats when SSO placeholder id 1 belongs to someone else", () => {
+    const owner = authUserToAccountOwner(
+      user({
+        id: 1,
+        displayName: "Ada Lovelace",
+        email: "ada@standard.bio",
+      }),
+    );
+    assert.notEqual(owner.Title, "Mats Borgersen");
+    assert.notEqual(owner.Id, 1);
+    assert.equal(owner.Title, "Ada Lovelace");
+  });
 });
 
 describe("resolveAccountOwner", () => {
@@ -64,12 +80,58 @@ describe("resolveAccountOwner", () => {
     assert.equal(owner.Id, 103);
     assert.equal(owner.Title, "Bjørn Molskred");
   });
+
+  it("does not invent Mats when no registrar is known", () => {
+    const owner = resolveAccountOwner(null);
+    assert.notEqual(owner?.Title, "Mats Borgersen");
+    assert.equal(owner, null);
+  });
 });
 
 describe("ownerIdFromPerson", () => {
   it("stores a colleague id and clears when ownership is removed", () => {
     assert.equal(ownerIdFromPerson({ Id: 101, Title: "Hugo Jansson" }), "101");
     assert.equal(ownerIdFromPerson(null), null);
+  });
+
+  it("persists the new owner id when responsibility is reassigned", () => {
+    const previous = ownerIdFromPerson({ Id: 1, Title: "Mats Borgersen" });
+    const next = ownerIdFromPerson({ Id: 101, Title: "Hugo Jansson" });
+    assert.equal(previous, "1");
+    assert.equal(next, "101");
+    assert.notEqual(previous, next);
+  });
+});
+
+describe("matchColleagueOwner", () => {
+  const directory = [
+    { id: 1, email: "mats.borgersen@standard.bio", displayName: "Mats Borgersen" },
+    { id: 104, email: "ada@standard.bio", displayName: "Ada Lovelace" },
+  ];
+
+  it("resolves the importer by email before placeholder id 1", () => {
+    const owner = matchColleagueOwner(
+      { email: "ada@standard.bio", displayName: "Ada", id: 1 },
+      directory,
+    );
+    assert.equal(owner?.Id, 104);
+    assert.equal(owner?.Title, "Ada Lovelace");
+  });
+});
+
+describe("personFromStoredOwnerId", () => {
+  it("keeps a reassigned Users & Access owner instead of dropping them", () => {
+    const owner = personFromStoredOwnerId("104");
+    assert.equal(owner?.Id, 104);
+  });
+
+  it("fills the colleague name after owner is changed", () => {
+    const stored = personFromStoredOwnerId("104");
+    const enriched = enrichOwnerFromDirectory(stored, [
+      { id: 104, email: "ada@standard.bio", displayName: "Ada Lovelace" },
+    ]);
+    assert.equal(enriched?.Id, 104);
+    assert.equal(enriched?.Title, "Ada Lovelace");
   });
 });
 

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma";
-import { getRequestRole } from "@/lib/api-auth";
+import { resolveRequestRole } from "@/lib/api-auth";
+import { ownerIdFromPerson } from "@/lib/company-owner";
+import { resolveRegistrarAccountOwner } from "@/lib/company-owner-server";
 import { canCreateCompany } from "@/lib/permissions";
 import { allocateNextCompanyCode } from "@/lib/data/companies";
 import { normalizePhoneNumber } from "@/lib/m365/phone-normalization";
@@ -270,7 +272,7 @@ async function runApproval(
 }
 
 export async function POST(request: Request) {
-  const role = getRequestRole(request);
+  const role = await resolveRequestRole(request);
   if (!canCreateCompany(role)) {
     return NextResponse.json(
       { error: "Insufficient role to approve business card intake" },
@@ -323,7 +325,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const userId = request.headers.get("x-sb-user-id")?.trim() || null;
+  const accountOwner = await resolveRegistrarAccountOwner(request, role);
+  const ownerId = ownerIdFromPerson(accountOwner);
 
   try {
     const result = await runApproval(getPrisma(), {
@@ -331,8 +334,8 @@ export async function POST(request: Request) {
       companyId,
       contact: parsedContact,
       evidenceUrl,
-      ownerId: userId,
-      authorId: userId ?? `role:${role}`,
+      ownerId,
+      authorId: ownerId ?? `role:${role}`,
     });
     return NextResponse.json({ status: "created", ...result }, { status: 201 });
   } catch (error) {

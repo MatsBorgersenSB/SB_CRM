@@ -956,7 +956,7 @@ export async function createCompany(input: NewCompanyInput): Promise<Company> {
   const database = await ensureDb();
   const accountOwner = resolveAccountOwner(input.AccountOwner);
 
-  if (!accountOwner.Title.trim()) {
+  if (!accountOwner || !accountOwner.Title.trim()) {
     throw new Error("Account owner is required");
   }
 

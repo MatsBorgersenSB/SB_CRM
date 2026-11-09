@@ -4,7 +4,7 @@ import { resolveCompanyIndustry } from "@/types/company";
 import { normalizeCompanySectors } from "@/lib/company-sectors";
 import type { CompanyType } from "@/types/company-type";
 import { canonicalizeCompanyType } from "@/types/company-type";
-import { STANDARD_BIO_USERS } from "@/types/bio-user";
+import { personFromStoredOwnerId } from "@/lib/company-owner";
 import type {
   BuyingRole,
   Contact,
@@ -243,21 +243,12 @@ function mapOwnerPerson(ownerId: string | null | undefined): {
   Id: number;
   Title: string;
 } | null {
-  if (!ownerId) return null;
-  // "system" is a creation placeholder, not a person — treat as unassigned.
-  if (ownerId.trim().toLowerCase() === "system") return null;
-
-  const numeric = Number(ownerId);
-  if (Number.isFinite(numeric) && numeric > 0) {
-    const known = STANDARD_BIO_USERS.find((user) => user.Id === numeric);
-    if (known) return { Id: known.Id, Title: known.Title };
+  const mapped = personFromStoredOwnerId(ownerId);
+  if (!mapped) return null;
+  if (mapped.Id > 0) return mapped;
+  if (mapped.Title.trim()) {
+    return { Id: stableNumericId(mapped.Title), Title: mapped.Title };
   }
-
-  // Prefer a human name — never surface a bare numeric id as Title.
-  if (/[A-Za-z]/.test(ownerId) && !/^\d+$/.test(ownerId.trim())) {
-    return { Id: stableNumericId(ownerId), Title: ownerId.trim() };
-  }
-
   return null;
 }
 

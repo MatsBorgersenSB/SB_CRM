@@ -169,7 +169,13 @@ export async function findPrismaCompanyByRouteKey(routeKey: string) {
 async function mapPrismaOrNull(routeKey: string): Promise<Company | null> {
   const row = await findPrismaCompanyByRouteKey(routeKey);
   if (!row) return null;
-  return mapPrismaCompanyToApp(row);
+  const mapped = mapPrismaCompanyToApp(row);
+  try {
+    const { enrichCompanyOwners } = await import("@/lib/company-owner-server");
+    return await enrichCompanyOwners(mapped);
+  } catch {
+    return mapped;
+  }
 }
 
 /**

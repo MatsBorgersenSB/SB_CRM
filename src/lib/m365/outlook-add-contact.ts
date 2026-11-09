@@ -272,7 +272,7 @@ export async function addOutlookContact(
       AddressLine1: addressFields?.AddressLine1 ?? "",
       Email: "",
       Country: addressFields?.Country ?? null,
-      AccountOwner: resolveAccountOwner(input.accountOwner),
+      AccountOwner: resolveAccountOwner(input.accountOwner) ?? undefined,
     };
 
     company = await createRegistryCompany(newCompanyInput);
@@ -314,7 +314,7 @@ export async function addOutlookContact(
     streetAddress: addressFields?.AddressLine1?.trim() || undefined,
     city: addressFields?.City?.trim() || undefined,
     country: addressFields?.Country?.Title?.trim() || undefined,
-    ContactOwner: resolveAccountOwner(input.accountOwner),
+    ContactOwner: resolveAccountOwner(input.accountOwner) ?? undefined,
   };
 
   // Registry-first only — never Prisma company + JSON-only contact (list disappears).

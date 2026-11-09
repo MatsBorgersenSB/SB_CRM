@@ -322,6 +322,7 @@ export async function approveRelationshipIntake(
     matchedCompanyId: input.matchedCompanyId,
     skipAutoCompanyMatch: input.skipAutoCompanyMatch,
     enrichment: input.enrichment,
+    accountOwner: input.accountOwner,
   });
 
   let threadLinked = false;

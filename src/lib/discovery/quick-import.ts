@@ -639,7 +639,7 @@ async function upsertCompanyFromQuickImport(
     Email: extracted.email.trim().toLowerCase(),
     AddressLine1: addressPatch.AddressLine1 ?? "",
     Country: addressPatch.Country ?? null,
-    AccountOwner: resolveAccountOwner(options?.accountOwner),
+    AccountOwner: resolveAccountOwner(options?.accountOwner) ?? undefined,
   });
 
   if (addressPatch.PostalCode || addressPatch.AddressLine2) {
@@ -699,7 +699,7 @@ async function upsertContactFromQuickImport(
     LinkedInURL: extracted.linkedInUrl,
     Status: "Prospecting",
     RelationshipLevel: "Operational",
-    ContactOwner: resolveAccountOwner(options?.accountOwner),
+    ContactOwner: resolveAccountOwner(options?.accountOwner) ?? undefined,
   });
 
   return { contact, created: true, updated: false, skipped: false };

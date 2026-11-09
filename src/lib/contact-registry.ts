@@ -152,6 +152,12 @@ async function loadMappedContact(prismaId: string): Promise<Contact> {
   };
 
   const mapped = mapPrismaContactToApp(row, companyLookup);
+  try {
+    const { enrichStoredOwner } = await import("@/lib/company-owner-server");
+    mapped.ContactOwner = await enrichStoredOwner(mapped.ContactOwner);
+  } catch {
+    /* directory unavailable — keep mapped owner */
+  }
   const meta = parseContactMeta(row.personalNotes);
   return {
     ...mapped,

@@ -221,8 +221,16 @@ export async function readLivePortfolio(): Promise<LivePortfolio> {
         : { ...appCompany, pipelineIds: mergedIds };
     });
 
+    let companiesWithOwners = mappedCompanies;
+    try {
+      const { enrichCompaniesOwners } = await import("@/lib/company-owner-server");
+      companiesWithOwners = await enrichCompaniesOwners(mappedCompanies);
+    } catch {
+      companiesWithOwners = mappedCompanies;
+    }
+
     return {
-      companies: mappedCompanies,
+      companies: companiesWithOwners,
       pipelines: mappedPipelines,
       source: "prisma",
     };

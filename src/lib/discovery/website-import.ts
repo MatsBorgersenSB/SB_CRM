@@ -17,7 +17,7 @@ import {
 } from "@/lib/pipeline-db";
 import { readLiveCompanies } from "@/lib/prisma-data";
 import { prismaLiveCompanyWhere } from "@/lib/demo-seed-markers";
-import { resolveAccountOwner } from "@/lib/company-owner";
+import { ownerIdFromPerson, resolveAccountOwner } from "@/lib/company-owner";
 import { emailsIncludeAddress } from "@/lib/entity-route-utils";
 import { isInternalEmail } from "@/lib/domain-rules";
 import { findPrismaCompanyByRouteKey } from "@/lib/resolve-company-route";
@@ -267,7 +267,7 @@ async function upsertCompanyFromDiscoveryPrisma(
             organizationNumber:
               patch.organizationNumber?.trim() || existing.organizationNumber,
             vatNumber: patch.vatNumber?.trim() || existing.vatNumber,
-            ownerId: existing.ownerId ?? (accountOwner?.Title ? String(owner.Id) : null),
+            ownerId: existing.ownerId ?? (accountOwner?.Title ? ownerIdFromPerson(owner) : null),
             ...(emailJson.length > 0 ? { emails: emailJson } : {}),
             ...(phoneJson.length > 0 ? { phoneNumbers: phoneJson } : {}),
           },
@@ -303,7 +303,7 @@ async function upsertCompanyFromDiscoveryPrisma(
           }
           const createdContact = await tx.contact.create({
             data: {
-              ...buildContactCreateData(discovered, String(owner.Id)),
+              ...buildContactCreateData(discovered, ownerIdFromPerson(owner)),
               companyId: existing.id,
             },
           });
@@ -317,7 +317,7 @@ async function upsertCompanyFromDiscoveryPrisma(
         ).length;
         const contactCreates = selectedContacts
           .filter((discovered) => !isInternalEmail(discovered.email))
-          .map((discovered) => buildContactCreateData(discovered, String(owner.Id)));
+          .map((discovered) => buildContactCreateData(discovered, ownerIdFromPerson(owner)));
         const createdCompany = await tx.company.create({
           data: {
             code,
@@ -337,7 +337,7 @@ async function upsertCompanyFromDiscoveryPrisma(
             continent: geo.continent || "Europe",
             organizationNumber: patch.organizationNumber?.trim() || null,
             vatNumber: patch.vatNumber?.trim() || null,
-            ownerId: String(owner.Id),
+            ownerId: ownerIdFromPerson(owner),
             emails: emailJson,
             phoneNumbers: phoneJson,
             contacts:
@@ -422,7 +422,7 @@ async function importContactPrisma(
   const created = await withPrismaRetry((prisma) =>
     prisma.contact.create({
       data: {
-        ...buildContactCreateData(discovered, String(owner.Id)),
+        ...buildContactCreateData(discovered, ownerIdFromPerson(owner)),
         companyId: prismaCompany.id,
       },
     }),
@@ -478,7 +478,7 @@ async function upsertCompanyFromDiscoveryJson(
   if (company) {
     const ownerPatch =
       accountOwner?.Title && !company.AccountOwner
-        ? { AccountOwner: resolveAccountOwner(accountOwner) }
+        ? { AccountOwner: resolveAccountOwner(accountOwner) ?? undefined }
         : {};
     company = await updateCompany(company.CompanyID, { ...patch, ...ownerPatch });
   } else {
@@ -499,7 +499,7 @@ async function upsertCompanyFromDiscoveryJson(
       organizationNumber: patch.organizationNumber ?? null,
       vatNumber: patch.vatNumber ?? null,
       Notes: patch.Notes,
-      AccountOwner: resolveAccountOwner(accountOwner),
+      AccountOwner: resolveAccountOwner(accountOwner) ?? undefined,
     });
 
     if (patch.PostalCode || patch.City || patch.AddressLine2 || patch.stateRegion) {
@@ -588,7 +588,7 @@ async function importDiscoveredContactJson(
     LinkedInURL: "",
     Status: "Prospecting",
     RelationshipLevel: "Operational",
-    ContactOwner: resolveAccountOwner(accountOwner),
+    ContactOwner: resolveAccountOwner(accountOwner) ?? undefined,
   });
 }
 

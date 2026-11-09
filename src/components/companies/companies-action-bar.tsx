@@ -23,7 +23,6 @@ import { findCountryEntry, inferPhoneDialCode } from "@/lib/geo/country-continen
 import { stripBareDialCode } from "@/lib/m365/phone-normalization";
 import { PhoneInputWithCountryCode } from "@/components/ui/phone-input-with-country-code";
 import { useWhenChanged } from "@/hooks/use-when-changed";
-import { STANDARD_BIO_USERS } from "@/types/bio-user";
 import { company360Href, companyRouteKey } from "@/types/company-360";
 import {
   isSharePointServiceError,
@@ -82,10 +81,7 @@ export function CompaniesActionBar({
   const [saving, setSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createErrorHref, setCreateErrorHref] = useState<string | null>(null);
-  const defaultOwner =
-    authUserToAccountOwner(user).Id > 0
-      ? authUserToAccountOwner(user)
-      : STANDARD_BIO_USERS[0]!;
+  const defaultOwner = authUserToAccountOwner(user);
   const [form, setForm] = useState({
     Title: "",
     Industry: "" as CompanyIndustry,
@@ -106,11 +102,10 @@ export function CompaniesActionBar({
     industryNote: "",
   });
 
-  // Keep Account Owner aligned once SSO/session resolves (never leave Guest id 0).
-  const sessionOwnerId = authUserToAccountOwner(user).Id;
+  // Keep Account Owner aligned once SSO/session resolves — never invent Mats.
+  const sessionOwnerId = defaultOwner.Id;
   useWhenChanged([sessionOwnerId], () => {
-    const owner =
-      sessionOwnerId > 0 ? authUserToAccountOwner(user) : STANDARD_BIO_USERS[0]!;
+    const owner = authUserToAccountOwner(user);
     setForm((current) =>
       current.accountOwnerId > 0
         ? current

@@ -4,6 +4,7 @@
  */
 
 import type { SignatureEnrichment } from "@/lib/m365/signature-intelligence";
+import type { SharePointPerson } from "@/types/company";
 import type { OutlookAddContactResult, OutlookContactEnrichment } from "@/lib/m365/outlook-sender-types";
 import type { OutlookCompanyOption } from "@/lib/m365/company-resolution";
 
@@ -75,6 +76,8 @@ export type RelationshipIntakeApproveInput = {
   matchedCompanyId?: string;
   skipAutoCompanyMatch?: boolean;
   enrichment?: OutlookContactEnrichment;
+  /** Person who confirmed the import — becomes company and contact owner. */
+  accountOwner?: SharePointPerson | null;
   /** Optional intentional thread link after create. */
   conversationId?: string;
   opportunityId?: string | null;
