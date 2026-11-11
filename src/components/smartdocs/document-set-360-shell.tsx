@@ -1,21 +1,20 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import type { DocumentSet360Snapshot } from "@/lib/document-set-engine";
+import type { DocumentLocationTrail } from "@/lib/document-location";
 import { DocumentSet360LivingWorkspace } from "@/components/smartdocs/document-set-360-living-workspace";
+import { DocumentLocationTrailBar } from "@/components/smartdocs/document-location-trail";
 
-export function DocumentSet360Shell({ snapshot }: { snapshot: DocumentSet360Snapshot }) {
+export function DocumentSet360Shell({
+  snapshot,
+  trail,
+}: {
+  snapshot: DocumentSet360Snapshot;
+  trail: DocumentLocationTrail;
+}) {
   return (
     <div className="flex flex-col gap-4">
-      <Link
-        href="/knowledge"
-        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-carbon-blue/65 hover:text-upcycle-orange"
-      >
-        <ArrowLeft className="size-3.5" />
-        Knowledge
-      </Link>
-
+      <DocumentLocationTrailBar trail={trail} />
       <DocumentSet360LivingWorkspace snapshot={snapshot} />
     </div>
   );

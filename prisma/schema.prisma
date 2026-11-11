@@ -676,6 +676,10 @@ model DocumentRecord {
   /// Company owner for company-owned SmartDocs (FS-006).
   companyId      String?
   company        Company?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  /// FS-006 Phase 2 — optional opportunity link without moving ownership off the company.
+  linkedOpportunityId String?
+  /// FS-006 Phase 2 — optional project link (project code) without moving ownership.
+  linkedProjectId     String?
   emailMessageId String?
   emailMessage   EmailMessageRecord? @relation(fields: [emailMessageId], references: [id], onDelete: Cascade)
 
@@ -685,6 +689,8 @@ model DocumentRecord {
   @@unique([emailMessageId, externalAttachmentId])
   @@index([opportunityId])
   @@index([companyId])
+  @@index([linkedOpportunityId])
+  @@index([linkedProjectId])
   @@index([emailMessageId])
   @@index([source])
   @@index([sharepointItemId])

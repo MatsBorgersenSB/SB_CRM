@@ -8,6 +8,8 @@ import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 import type { AttentionItem } from "@/types/attention-item";
+import { company360Href } from "@/types/company-360";
+import { deal360Href } from "@/types/relationship-navigation";
 import {
   WorkspaceTable,
   WorkspaceTableBody,
@@ -27,6 +29,10 @@ export function DocumentSet360LivingWorkspace({
 }) {
   const { documentSet, members, completeness } = snapshot;
   const missingMembers = members.filter((member) => !member.present);
+  const dealHref = deal360Href(documentSet.dealId, "documents");
+  const companyHref = documentSet.companyId
+    ? company360Href(documentSet.companyId, "documents")
+    : undefined;
 
   return (
     <WorkspaceStack>
@@ -52,8 +58,23 @@ export function DocumentSet360LivingWorkspace({
           </div>
           <div className="text-right text-[13px] text-carbon-blue/65">
             <p>{documentSet.typeLabel}</p>
-            <p>{documentSet.dealId}</p>
-            <p>{documentSet.clientName}</p>
+            <p>
+              <Link href={dealHref} className="font-semibold text-carbon-blue hover:text-upcycle-orange">
+                {documentSet.dealName || documentSet.dealId}
+              </Link>
+            </p>
+            {companyHref ? (
+              <p>
+                <Link
+                  href={companyHref}
+                  className="font-semibold text-carbon-blue hover:text-upcycle-orange"
+                >
+                  {documentSet.clientName}
+                </Link>
+              </p>
+            ) : (
+              <p>{documentSet.clientName}</p>
+            )}
           </div>
         </div>
       </WorkspacePanel>

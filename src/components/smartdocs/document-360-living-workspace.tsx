@@ -5,19 +5,23 @@ import type { Document360Snapshot } from "@/lib/document-360-data";
 import { Document360LinkedTab } from "@/components/smartdocs/tabs/document-360-linked-tab";
 import { Document360IntelligenceTab } from "@/components/smartdocs/tabs/document-360-intelligence-tab";
 import { DocumentWorkspaceHeader } from "@/components/smartdocs/document-workspace-header";
+import { DocumentOptionalLinksPanel } from "@/components/smartdocs/document-optional-links-panel";
 import { AttentionQueueTable } from "@/components/attention/attention-queue-table";
 import { IntelligenceLead } from "@/components/ui/intelligence-lead";
 import { WorkspaceStack } from "@/components/ui/workspace-main";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import type { AttentionItem } from "@/types/attention-item";
+import type { PipelineRow } from "@/types/pipeline";
 
 export function Document360LivingWorkspace({
   snapshot,
   attentionItems = [],
+  pipelines = [],
   onDocumentDelete,
 }: {
   snapshot: Document360Snapshot;
   attentionItems?: AttentionItem[];
+  pipelines?: PipelineRow[];
   onDocumentDelete?: () => Promise<void>;
 }) {
   const { businessContext, intelligence, relatedGroups } = snapshot;
@@ -178,6 +182,11 @@ export function Document360LivingWorkspace({
               {snapshot.memberOf ?? snapshot.documentSet.documentSetId}
             </Link>
           </p>
+        ) : null}
+        {snapshot.businessContext.ownershipKind === "company" ? (
+          <div className="mt-4">
+            <DocumentOptionalLinksPanel snapshot={snapshot} pipelines={pipelines} />
+          </div>
         ) : null}
       </WorkspacePanel>
 

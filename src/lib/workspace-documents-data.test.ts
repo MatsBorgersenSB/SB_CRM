@@ -3,10 +3,13 @@ import { describe, it } from "node:test";
 import { workspaceDocumentsHref } from "../types/relationship-navigation";
 import {
   buildAllWorkspaceDocumentRows,
+  buildWorkspaceDocumentRows,
+  workspaceDocumentsContextFromContact,
   workspaceDocumentsContextFromProject,
   WORKSPACE_PROJECT_DOCUMENT_PRESETS,
   workspaceDocumentsLinkSummary,
 } from "./workspace-documents-data";
+import type { Activity } from "../types/activity";
 import {
   buildWorkspaceDocumentFilterDefinitions,
   filterWorkspaceDocumentRows,
@@ -162,5 +165,64 @@ describe("project documents stay on the project", () => {
     assert.equal(snapshot.businessContext.ownershipKind, "company");
     assert.equal(snapshot.businessContext.clientName, "Vest Biogass AS");
     assert.equal(snapshot.businessContext.originLabel, "External");
+  });
+
+  it("labels contact documents as company knowledge and keeps from= on open", () => {
+    const company = {
+      CompanyID: "CO-1009",
+      Title: "DorsetGM",
+      pipelineIds: [],
+      contacts: [],
+    } as unknown as Company;
+    const context = workspaceDocumentsContextFromContact(
+      "CT-1",
+      "Ada",
+      company,
+      [],
+    );
+    assert.match(workspaceDocumentsLinkSummary(context), /Company knowledge for DorsetGM/);
+
+    const companyDoc: SmartDocLibraryRecord = {
+      id: 3,
+      SmartDocID: "CO-1009-S-SUQ-0001",
+      DealId: null,
+      OwnerCompanyId: "CO-1009",
+      Ownership: "company",
+      PlNumber: "CO-1009",
+      ClientName: "DorsetGM",
+      DealName: "",
+      CommercialStage: "",
+      CreatedAt: "2026-10-15T10:00:00.000Z",
+      DocCategory: "Sales & Marketing",
+      DocType: "Supplier Quotation",
+      DocumentName: "Quote S02325",
+      Revision: "01",
+      FileLeafRef: "quote.pdf",
+    };
+    const rows = buildWorkspaceDocumentRows([companyDoc], context, [], [company]);
+    assert.equal(rows.length, 1);
+    assert.match(rows[0]!.href, /from=contact/);
+    assert.match(rows[0]!.href, /contactId=CT-1/);
+  });
+
+  it("never opens activity-linked docs via a deal id pretending to be a SmartDoc", () => {
+    const company = {
+      CompanyID: "CO-1",
+      Title: "Acme",
+      pipelineIds: ["PL-9"],
+      contacts: [],
+    } as unknown as Company;
+    const context = workspaceDocumentsContextFromContact("CT-9", "Bo", company, ["PL-9"]);
+    const activity = {
+      ActivityID: "ACT-1",
+      ActivityDate: "2026-10-01T10:00:00.000Z",
+      Contact: { Title: "CT-9" },
+      LinkedDocuments: [{ Title: "Notes.pdf", DealId: "PL-9" }],
+    } as unknown as Activity;
+
+    const rows = buildWorkspaceDocumentRows([], context, [], [company], [activity]);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]!.href, "/activities/ACT-1");
+    assert.equal(rows[0]!.statusKind, "activity_link");
   });
 });

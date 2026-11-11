@@ -29,6 +29,8 @@ export type DocumentSet = {
   documentSetId: string;
   packageId: string;
   dealId: string;
+  /** Company registry id when known — used for relationship links. */
+  companyId?: string;
   clientName: string;
   dealName: string;
   type: CommercialPackageKind;

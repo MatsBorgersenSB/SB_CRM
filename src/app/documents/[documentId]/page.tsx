@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Document360PageShell } from "@/components/layout/document-360-page-shell";
 import {
   readLiveActivities,
@@ -25,13 +26,15 @@ export default async function Document360Page({ params }: PageProps) {
   ]);
 
   return (
-    <Document360PageShell
-      documentId={decodeURIComponent(documentId)}
-      companies={companies}
-      pipelines={pipelines}
-      activities={activities}
-      library={library}
-      commercialPackages={commercialPackages}
-    />
+    <Suspense fallback={null}>
+      <Document360PageShell
+        documentId={decodeURIComponent(documentId)}
+        companies={companies}
+        pipelines={pipelines}
+        activities={activities}
+        library={library}
+        commercialPackages={commercialPackages}
+      />
+    </Suspense>
   );
 }

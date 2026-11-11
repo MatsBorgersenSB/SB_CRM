@@ -517,6 +517,11 @@ export function Contact360LivingWorkspace({
         collapsible
         defaultCollapsed
         collapseStorageKey={`contact-${contact.ContactID}-documents`}
+        headerTrailing={
+          <span className="text-[11px] font-medium text-carbon-blue/50">
+            Company knowledge · {company.Title}
+          </span>
+        }
       >
         <WorkspaceDocumentsPanel
           context={workspaceDocumentsContextFromContact(

@@ -82,5 +82,6 @@ export function companyLivingPageSection(
   if (viewParam === "work") return "opportunities";
   if (viewParam === "actions") return "activities";
   if (viewParam === "people" || viewParam === "contacts") return "contacts";
+  if (viewParam === "documents") return "documents";
   return null;
 }

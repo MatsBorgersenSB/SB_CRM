@@ -63,6 +63,10 @@ import {
 } from "@/lib/add-document-intent";
 import { importSmartDocWithFile } from "@/lib/smartdoc-browser-upload";
 import { deleteSmartDocRecord } from "@/lib/sync-smartdoc";
+import {
+  documentHrefWithLocation,
+  documentLocationFromWorkspace,
+} from "@/lib/document-location";
 
 type DocumentsMode = "browse" | "create" | "import";
 
@@ -198,6 +202,11 @@ export function WorkspaceDocumentsPanel({
     companies.find((row) =>
       targetPipeline ? row.pipelineIds.includes(targetPipeline.id) : false,
     );
+
+  const locationFrom = useMemo(
+    () => documentLocationFromWorkspace(context),
+    [context],
+  );
 
   const rows = useMemo(
     () => buildWorkspaceDocumentRows(library, context, pipelines, companies, activities),
@@ -861,7 +870,10 @@ export function WorkspaceDocumentsPanel({
             <>
               Created{" "}
               <Link
-                href={`/documents/${encodeURIComponent(createdDocuments[0]!.SmartDocID)}`}
+                href={documentHrefWithLocation(
+                  createdDocuments[0]!.SmartDocID,
+                  locationFrom,
+                )}
                 className="font-semibold text-upcycle-orange hover:underline"
               >
                 {createdDocuments[0]!.DocumentName}
@@ -889,7 +901,7 @@ export function WorkspaceDocumentsPanel({
                 <span key={doc.SmartDocID}>
                   {index > 0 ? ", " : null}
                   <Link
-                    href={`/documents/${encodeURIComponent(doc.SmartDocID)}`}
+                    href={documentHrefWithLocation(doc.SmartDocID, locationFrom)}
                     className="font-semibold text-upcycle-orange hover:underline"
                   >
                     {doc.DocumentName}

@@ -19,10 +19,15 @@ import { company360Href } from "@/types/company-360";
 import {
   deal360Href,
   documentHref,
-  contact360Href,
   projectDocumentsHref,
 } from "@/types/relationship-navigation";
+import {
+  documentHrefWithLocation,
+  documentLocationFromWorkspace,
+  type DocumentLocationFrom,
+} from "@/lib/document-location";
 import { formatRelativeTime } from "@/lib/relative-time";
+import { isSmartDocIdentityId } from "@/lib/smartdoc-identity";
 
 export type WorkspaceDocumentsScope = "company" | "contact" | "opportunity" | "project";
 
@@ -175,6 +180,7 @@ function workspaceDocumentRowFromLibraryRecord(
   record: SmartDocLibraryRecord,
   pipelines: PipelineRow[],
   companies: Company[],
+  from?: DocumentLocationFrom | null,
 ): WorkspaceDocumentRow {
   const companyOwned = isCompanyOwnedSmartDoc(record);
   const projectOwned = isProjectOwnedSmartDoc(record);
@@ -208,7 +214,7 @@ function workspaceDocumentRowFromLibraryRecord(
     relatedObjectHref: related.href,
     modifiedLabel: formatModifiedDate(record.CreatedAt),
     modifiedAt: record.CreatedAt,
-    href: documentHref(record.SmartDocID),
+    href: documentHrefWithLocation(record.SmartDocID, from),
   };
 }
 
@@ -263,12 +269,15 @@ export function buildWorkspaceDocumentRows(
   const pipelineSet = new Set(context.pipelineIds);
   const rows: WorkspaceDocumentRow[] = [];
   const seen = new Set<string>();
+  const from = documentLocationFromWorkspace(context);
 
   for (const record of library) {
     if (!recordMatchesCompanyContext(record, context, pipelineSet)) continue;
     if (seen.has(record.SmartDocID)) continue;
     seen.add(record.SmartDocID);
-    rows.push(workspaceDocumentRowFromLibraryRecord(record, pipelines, companies));
+    rows.push(
+      workspaceDocumentRowFromLibraryRecord(record, pipelines, companies, from),
+    );
   }
 
   if (context.scope === "contact" && context.contactId) {
@@ -282,13 +291,11 @@ export function buildWorkspaceDocumentRows(
         const dealId = linked.DealId;
         if (dealId && !pipelineSet.has(dealId)) continue;
 
-        const id = linked.DealId ?? `activity-${activity.ActivityID}-${linked.Title}`;
+        const id = `activity-${activity.ActivityID}-${linked.Title}`;
         if (seen.has(id)) continue;
+        // Skip when the same SmartDoc already appears from the library.
+        if (dealId && isSmartDocIdentityId(dealId) && seen.has(dealId)) continue;
         seen.add(id);
-
-        const related = dealId
-          ? relatedObjectForDeal(dealId, pipelines, companies)
-          : { label: context.contactName ?? "Contact" };
 
         rows.push({
           id,
@@ -300,13 +307,15 @@ export function buildWorkspaceDocumentRows(
           version: linked.Revision ? `Rev ${linked.Revision}` : "—",
           status: "Activity link",
           statusKind: "activity_link",
-          relatedObjectLabel: `${context.contactName ?? "Contact"} · ${context.companyName ?? "Company"}`,
-          relatedObjectHref: context.contactId
-            ? contact360Href(context.contactId, context.companyId)
-            : undefined,
+          relatedObjectLabel: `Activity · ${context.contactName ?? "Contact"}`,
+          relatedObjectHref: `/activities/${encodeURIComponent(activity.ActivityID)}`,
           modifiedLabel: formatRelativeTime(activity.ActivityDate),
           modifiedAt: activity.ActivityDate,
-          href: dealId ? documentHref(dealId) : `/activities/${activity.ActivityID}`,
+          // LinkedDocument has no SmartDocID — open the activity, never a deal id as a document.
+          href:
+            dealId && isSmartDocIdentityId(dealId)
+              ? documentHrefWithLocation(dealId, from)
+              : `/activities/${encodeURIComponent(activity.ActivityID)}`,
         });
       }
     }
@@ -369,12 +378,10 @@ export function buildAllWorkspaceDocumentRows(
   for (const activity of activities) {
     for (const linked of activity.LinkedDocuments ?? []) {
       const dealId = linked.DealId;
-      if (dealId && seen.has(dealId)) continue;
+      if (dealId && isSmartDocIdentityId(dealId) && seen.has(dealId)) continue;
       if (dealId && seenFilesByDeal.has(`${dealId}:${linked.Title}`)) continue;
 
-      const id =
-        dealId ??
-        `doc-${linked.Title.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48)}`;
+      const id = `activity-${activity.ActivityID}-${linked.Title}`;
       if (seen.has(id)) continue;
       seen.add(id);
 
@@ -401,7 +408,10 @@ export function buildAllWorkspaceDocumentRows(
         relatedObjectHref: related.href,
         modifiedLabel: formatRelativeTime(activity.ActivityDate),
         modifiedAt: activity.ActivityDate,
-        href: documentHref(id),
+        href:
+          dealId && isSmartDocIdentityId(dealId)
+            ? documentHref(dealId)
+            : `/activities/${encodeURIComponent(activity.ActivityID)}`,
       });
     }
   }
@@ -416,7 +426,7 @@ export function workspaceDocumentsLinkSummary(context: WorkspaceDocumentsContext
     case "company":
       return `Documents are owned by ${context.companyName ?? "this company"} (company SmartDocs + linked opportunity docs). SharePoint: /Companies/{Name}/Documents.`;
     case "contact":
-      return `Documents are linked to ${context.contactName ?? "this contact"} and ${context.companyName ?? "company"}.`;
+      return `Company knowledge for ${context.companyName ?? "this company"} — filed on the company, shown here because you are with ${context.contactName ?? "this person"}. Activity links appear when this contact is on the interaction.`;
     case "opportunity":
       return `Documents are linked to ${context.dealName ?? "this opportunity"} and ${context.companyName ?? "company"}.`;
     case "project":

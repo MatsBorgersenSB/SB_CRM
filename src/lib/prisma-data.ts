@@ -465,8 +465,14 @@ export async function readLiveSmartDocsLibrary(): Promise<SmartDocLibraryRecord[
         Origin: classified.Origin,
         Counterparty: classified.Counterparty,
         SharePointWebUrl: row.sharepointWebUrl ?? undefined,
-        LinkedDealId: projectOwned ? null : row.opportunityId,
-        LinkedProjectId: projectOwned ? projectCode || null : null,
+        LinkedDealId: projectOwned
+          ? null
+          : companyOwned
+            ? row.linkedOpportunityId ?? null
+            : row.opportunityId,
+        LinkedProjectId: projectOwned
+          ? projectCode || null
+          : row.linkedProjectId ?? null,
       } satisfies SmartDocLibraryRecord;
     });
   } catch (error) {

@@ -12,8 +12,11 @@ import {
   type DocumentSet,
   type DocumentSetStatus,
 } from "@/types/document-set";
-import { document360Href } from "@/types/smartdoc";
 import { smartDocDisplayName } from "@/types/smartdoc";
+import {
+  documentHrefWithLocation,
+  type DocumentLocationFrom,
+} from "@/lib/document-location";
 
 const PACKAGE_PRIORITY: CommercialPackage["kind"][] = [
   "execution",
@@ -86,6 +89,7 @@ export function commercialPackageToDocumentSet(
     documentSetId: pkg.DocumentSetID ?? pkg.PackageID,
     packageId: pkg.PackageID,
     dealId: pkg.DealId,
+    companyId: company?.CompanyID,
     clientName: company?.Title ?? pkg.ClientName ?? pkg.DealId,
     dealName: pipeline?.assetName ?? pkg.DealId,
     type: pkg.kind,
@@ -205,8 +209,18 @@ export function buildDocumentSet360Snapshot(
   library: SmartDocLibraryRecord[],
   packages: CommercialPackage[],
   pipelines: PipelineRow[],
+  from?: DocumentLocationFrom | null,
 ): DocumentSet360Snapshot {
   const pipeline = pipelines.find((row) => row.id === documentSet.dealId);
+  const openFrom: DocumentLocationFrom | null =
+    from ??
+    (documentSet.dealId
+      ? {
+          scope: "opportunity",
+          dealId: documentSet.dealId,
+          companyId: documentSet.companyId,
+        }
+      : null);
 
   const members: DocumentSetMemberView[] = documentSet.members.map((member) => {
     const libraryMatch = library.find(
@@ -218,7 +232,9 @@ export function buildDocumentSet360Snapshot(
       documentName: libraryMatch?.DocumentName ?? smartDocDisplayName(member.fileName),
       fileName: member.fileName,
       smartDocId: libraryMatch?.SmartDocID ?? null,
-      href: libraryMatch ? document360Href(libraryMatch.SmartDocID) : null,
+      href: libraryMatch
+        ? documentHrefWithLocation(libraryMatch.SmartDocID, openFrom)
+        : null,
       present: Boolean(libraryMatch),
     };
   });
@@ -246,7 +262,7 @@ export function buildDocumentSet360Snapshot(
   const relatedDocuments = sameDealLibrary.slice(0, 6).map((record) => ({
     id: record.SmartDocID,
     name: record.DocumentName,
-    href: document360Href(record.SmartDocID),
+    href: documentHrefWithLocation(record.SmartDocID, openFrom),
     meta: `${record.DocCategory} · ${record.DocType}`,
   }));
 
