@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
+import { OutlookConnectCard } from "@/components/m365/outlook-connect-action";
 import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
@@ -182,14 +183,11 @@ export function TeamsAssignMessagePane({ role: roleProp }: { role?: UserRole }) 
   if (phase.status === "auth-required") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
-        <button
-          type="button"
-          onClick={() => void openOutlookSignInDialog(() => window.location.reload())}
-          className="mt-4 border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
-        >
-          Sign In
-        </button>
+        <OutlookConnectCard
+          onConnect={() => {
+            void openOutlookSignInDialog(() => window.location.reload());
+          }}
+        />
       </div>
     );
   }

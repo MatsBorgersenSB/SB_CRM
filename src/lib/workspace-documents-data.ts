@@ -77,18 +77,20 @@ export type WorkspaceCreateDocumentPreset = {
 };
 
 export const WORKSPACE_CREATE_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[] = [
-  { label: "Quotation", category: "Sales & Marketing", type: "Quotation" },
+  { label: "Memo", category: "General", type: "Memo" },
   { label: "Presentation", category: "Sales & Marketing", type: "Presentation" },
+  { label: "Quotation", category: "Sales & Marketing", type: "Quotation" },
   { label: "Request for Quotation", category: "Sales & Marketing", type: "Request for Quotation" },
   { label: "Datasheet", category: "Engineering", type: "Datasheet" },
   { label: "Certificate / permit", category: "Quality", type: "Certificate" },
   { label: "Minutes of meeting", category: "Project Management", type: "Minutes og Meeting" },
   { label: "Contract", category: "Legal", type: "Contract" },
-  { label: "Memo", category: "General", type: "Memo" },
 ];
 
 /** Prefer supplier-first presets when importing on a company with no deals. */
 export const WORKSPACE_COMPANY_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[] = [
+  { label: "Memo", category: "General", type: "Memo" },
+  { label: "Presentation", category: "Sales & Marketing", type: "Presentation" },
   { label: "Quotation", category: "Sales & Marketing", type: "Quotation" },
   { label: "Certificate / permit", category: "Quality", type: "Certificate" },
   { label: "Datasheet", category: "Engineering", type: "Datasheet" },
@@ -96,7 +98,6 @@ export const WORKSPACE_COMPANY_DOCUMENT_PRESETS: WorkspaceCreateDocumentPreset[]
   { label: "Contract", category: "Legal", type: "Contract" },
   { label: "Invoice", category: "Finance", type: "Invoice" },
   { label: "Minutes of meeting", category: "Project Management", type: "Minutes og Meeting" },
-  { label: "Memo", category: "General", type: "Memo" },
 ];
 
 /** Project Create shortcuts — SharePoint types as filed on an operating plant, not a deal. */

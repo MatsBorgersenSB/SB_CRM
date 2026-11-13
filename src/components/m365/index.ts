@@ -13,3 +13,10 @@ export { OutlookContactSearch } from "./outlook-contact-search";
 export { OutlookNoContactState } from "./outlook-no-contact-state";
 export { OutlookAddContactDialog } from "./outlook-add-contact-dialog";
 export { OutlookEnrichmentPanel } from "./outlook-enrichment-panel";
+export {
+  OutlookConnectCard,
+  OutlookGraphConsentStrip,
+  OutlookSessionConnectButton,
+  OutlookGraphConsentButton,
+} from "./outlook-connect-action";
+export { OutlookMailSaveExpander } from "./outlook-mail-save-expander";

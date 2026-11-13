@@ -37,7 +37,7 @@ describe("project documents stay on the project", () => {
     });
     assert.equal(
       href,
-      "/projects/PRJ-CARBON-EMERGENTE?view=actions&action=documents",
+      "/projects/PRJ-CARBON-EMERGENTE?view=work#documents",
     );
   });
 

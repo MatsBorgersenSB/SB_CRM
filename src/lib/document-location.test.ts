@@ -71,7 +71,7 @@ describe("document location continuity", () => {
         ownershipKind: "opportunity",
         dealId: "PL-1",
       }),
-      "/opportunities/PL-1?view=actions&action=documents",
+      "/opportunities/PL-1?view=work#documents",
     );
   });
 

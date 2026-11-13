@@ -190,7 +190,7 @@ const KEYWORD_RULES: KeywordRule[] = [
     reason: "Filename indicates an invoice or billing document",
   },
   {
-    keywords: ["nda"],
+    keywords: ["nda", "non disclosure", "nondisclosure", "taushetserklæring", "taushetsavtale"],
     DocCategory: "Legal",
     DocType: "NDA",
     Origin: "external",
@@ -269,6 +269,19 @@ const KEYWORD_RULES: KeywordRule[] = [
     reason: "Filename indicates a calculation",
   },
   {
+    keywords: [
+      "mulighetsstudie",
+      "konseptstudie",
+      "forstudie",
+      "feasibility study",
+      "feasibility",
+    ],
+    DocCategory: "Engineering",
+    DocType: "Report",
+    Origin: "standard_bio",
+    reason: "Filename indicates a feasibility study",
+  },
+  {
     keywords: ["report", "summary", "analysis", "rapport"],
     DocCategory: "Engineering",
     DocType: "Report",
@@ -324,6 +337,24 @@ export function extractCounterpartyHint(fileName: string): string | undefined {
   return undefined;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Whole word or phrase. Substring matching treated "nda" inside "StandardBio"
+ * as a non-disclosure agreement.
+ */
+function filenameContainsKeyword(normalizedFileName: string, keyword: string): boolean {
+  const needle = keyword.toLowerCase().replace(/[_\-\s]+/g, " ").trim();
+  if (!needle) return false;
+  const pattern = new RegExp(
+    `(?:^|[^a-z0-9æøå])${escapeRegExp(needle)}(?:[^a-z0-9æøå]|$)`,
+    "i",
+  );
+  return pattern.test(normalizedFileName);
+}
+
 function ensureKnownType(
   category: SmartDocCategory,
   docType: string,
@@ -365,7 +396,7 @@ export function classifyByFileName(fileName: string): DocIntelligenceResult {
   }
 
   for (const rule of KEYWORD_RULES) {
-    if (rule.keywords.some((keyword) => normalized.includes(keyword.replace(/[_\-\s]+/g, " ")))) {
+    if (rule.keywords.some((keyword) => filenameContainsKeyword(normalized, keyword))) {
       const resolved = ensureKnownType(rule.DocCategory, rule.DocType);
       const origin = rule.Origin ?? suggestOriginForDocType(resolved.DocType);
       return {

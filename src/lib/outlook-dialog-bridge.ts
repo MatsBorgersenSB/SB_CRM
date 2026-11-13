@@ -1,5 +1,7 @@
 import { encode, decode, type JWT } from "next-auth/jwt";
 import { resolveAuthSecret } from "@/lib/auth-env";
+import type { UserRole } from "@/types/auth";
+import { isUserRole } from "@/types/auth";
 
 /** Salt must stay distinct from the Auth.js session cookie salt. */
 export const OUTLOOK_BRIDGE_SALT = "smartcrm.outlook-dialog-bridge";
@@ -91,5 +93,28 @@ export async function mintSessionTokenFromBridge(bridge: JWT): Promise<string> {
     secret,
     salt,
     maxAge: 60 * 60 * 8,
+  });
+}
+
+/** Mint a normal Auth.js session JWT from validated Entra / Teams claims. */
+export async function mintSessionTokenFromUserClaims(claims: {
+  email: string;
+  name?: string | null;
+  accessRole?: UserRole | string;
+  azureOid?: string | null;
+  azureTenantId?: string | null;
+}): Promise<string> {
+  const email = claims.email.trim().toLowerCase();
+  const accessRole: UserRole =
+    typeof claims.accessRole === "string" && isUserRole(claims.accessRole)
+      ? claims.accessRole
+      : "commercial";
+  return mintSessionTokenFromBridge({
+    email,
+    name: claims.name?.trim() || email,
+    accessRole,
+    azureOid: claims.azureOid || undefined,
+    azureTenantId: claims.azureTenantId || undefined,
+    sub: claims.azureOid || email,
   });
 }

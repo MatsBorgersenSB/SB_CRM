@@ -16,9 +16,10 @@ export const M365_BUDGETS = {
     scroll: false,
   },
   accountWorkspace: {
-    maxOpportunities: 3,
-    maxRecentActivity: 3,
-    maxKnowledgeAtRisk: 2,
+    maxWhatChanged: 3,
+    maxCommitments: 3,
+    maxLinkedItems: 3,
+    maxPeople: 4,
     sections: 7,
   },
 } as const;

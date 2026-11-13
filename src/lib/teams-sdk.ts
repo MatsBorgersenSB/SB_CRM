@@ -34,6 +34,19 @@ export type TeamsSdk = {
       page?: { frameContext?: string };
     }>;
   };
+  authentication?: {
+    getAuthToken: (options?: {
+      silent?: boolean;
+      resources?: string[];
+    }) => Promise<string>;
+    authenticate?: (options: {
+      url: string;
+      width?: number;
+      height?: number;
+      successCallback?: (result: string) => void;
+      failureCallback?: (reason: string) => void;
+    }) => void;
+  };
   pages?: {
     config?: TeamsPagesConfig;
   };

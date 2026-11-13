@@ -8,15 +8,15 @@ import {
 } from "./opportunity-mission-control";
 
 describe("mission control tabs", () => {
-  it("has exactly four tabs", () => {
+  it("has exactly four tabs including Work", () => {
     assert.deepEqual(
       OPPORTUNITY_MISSION_CONTROL_VIEWS.map((view) => view.id),
-      ["overview", "understanding", "actions", "ask"],
+      ["overview", "understanding", "work", "ask"],
     );
   });
 
   it("no longer treats removed tabs as views", () => {
-    for (const removed of ["gaps", "influence", "meetings", "emails"]) {
+    for (const removed of ["gaps", "influence", "meetings", "emails", "actions"]) {
       assert.equal(isOpportunityMissionControlView(removed), false);
     }
   });
@@ -28,11 +28,13 @@ describe("mapLegacyDealLocation", () => {
     assert.deepEqual(mapLegacyDealLocation("influence", null), { view: "understanding" });
   });
 
-  it("sends meetings and emails to Actions sub-tabs that exist", () => {
+  it("sends meetings, emails, and actions to Work", () => {
     const meetings = mapLegacyDealLocation("meetings", null);
     const emails = mapLegacyDealLocation("emails", null);
-    assert.deepEqual(meetings, { view: "actions", action: "meetings" });
-    assert.deepEqual(emails, { view: "actions", action: "emails" });
+    const actions = mapLegacyDealLocation("actions", "documents");
+    assert.deepEqual(meetings, { view: "work", action: "meetings" });
+    assert.deepEqual(emails, { view: "work", action: "emails" });
+    assert.deepEqual(actions, { view: "work", action: "documents" });
     assert.ok(isOpportunityActionTab(meetings!.action!));
     assert.ok(isOpportunityActionTab(emails!.action!));
   });
@@ -44,7 +46,7 @@ describe("mapLegacyDealLocation", () => {
 
   it("leaves current locations alone", () => {
     assert.equal(mapLegacyDealLocation("understanding", null), null);
-    assert.equal(mapLegacyDealLocation("actions", "documents"), null);
+    assert.equal(mapLegacyDealLocation("work", "documents"), null);
     assert.equal(mapLegacyDealLocation(null, null), null);
   });
 });

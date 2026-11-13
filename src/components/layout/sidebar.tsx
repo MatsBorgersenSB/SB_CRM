@@ -191,7 +191,7 @@ export function Sidebar() {
           <Sparkles className="size-3.5 shrink-0" strokeWidth={2} />
           <span className="hidden flex-1 md:inline">Ask SmartAssist</span>
         </button>
-        <div className="hidden md:block"><QuickActions showMail={canAccessRoute(user.role, "/mail")} /></div>
+        <QuickActions showMail={canAccessRoute(user.role, "/mail")} />
       </div>
 
       <nav aria-label="Main" className="flex-1 overflow-y-auto px-1 py-3 md:px-2" onKeyDown={handleKeyDown}>

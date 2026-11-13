@@ -26,7 +26,7 @@ import { AttentionQueueTable } from "@/components/attention/attention-queue-tabl
 import { Company360OverviewStrips } from "@/components/company-360/company-360-overview-strips";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
 import { CompanyRecentOutlook } from "@/components/company-360/company-recent-outlook";
-import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
+import { CreateMenu } from "@/components/layout/create-menu";
 import { CompanyDocumentKnowledgePanel } from "@/components/company-360/company-document-knowledge-panel";
 import { AddFindingPanel } from "@/components/knowledge/add-finding-panel";
 import { workspaceDocumentsContextFromCompany } from "@/lib/workspace-documents-data";
@@ -504,15 +504,19 @@ export function Company360LivingWorkspace({
               onExecuteRecommendedAction={handleExecuteRecommendedAction}
               trailing={
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <EntityNewActivityButton
-                    context={{
-                      companyId: company.CompanyID,
-                      companyName: company.Title,
+                  <CreateMenu
+                    variant="header"
+                    activityPreset={{
+                      Company: { CompanyID: company.CompanyID },
                     }}
                     companies={companies}
                     pipelines={linkedPipelines}
-                    showNewTask={false}
-                    documentCount={documentCount}
+                    mailTo={
+                      company.contacts.find((c) => c.Email?.trim())?.Email?.trim() ||
+                      company.Email?.trim() ||
+                      undefined
+                    }
+                    meetingSubject={company.Title}
                   />
                   <Company360ActionsBar
                     role={role}

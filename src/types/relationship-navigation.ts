@@ -55,7 +55,7 @@ export function deal360Href(
 
 /** Associated SmartDocs for this opportunity — last action on every mission-control view. */
 export function dealDocumentsHref(dealId: string): string {
-  return `/opportunities/${encodeURIComponent(dealId)}?view=actions&action=documents`;
+  return `/opportunities/${encodeURIComponent(dealId)}?view=work#documents`;
 }
 
 /** Read an opportunity id from either canonical or legacy `/deals/` hrefs. */
@@ -93,7 +93,7 @@ export function projectEmailsHref(projectId: string): string {
 
 /** Associated SmartDocs for this project — last action on every mission-control view. */
 export function projectDocumentsHref(projectId: string): string {
-  return `/projects/${encodeURIComponent(projectId)}?view=actions&action=documents`;
+  return `/projects/${encodeURIComponent(projectId)}?view=work#documents`;
 }
 
 export function contactDocumentsHref(contactId: string, companyId?: string): string {

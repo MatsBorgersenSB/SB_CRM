@@ -217,9 +217,8 @@ Within 5 seconds the user must understand:
 | Tab | Purpose |
 |-----|---------|
 | Overview | Three answers only — want, block, next |
-| Gaps | Full gap depth |
-| Understanding | Confirmed insights |
-| Actions | Discovery prep + workspace execution |
+| Understanding | Gaps + confirmed insights |
+| Work | Activity, mail, meetings, documents (one living surface) |
 | Ask | Opportunity-scoped question (not generic chat) |
 
 One tab visible at a time. Default: **Overview**. No AI thinking prompts on screen — answers only.
@@ -230,7 +229,7 @@ One tab visible at a time. Default: **Overview**. No AI thinking prompts on scre
 |---------|------------------|
 | Header | Title + one metadata line |
 | Overview | 3 insights |
-| Gaps / Understanding | Lists only — no CRM tables |
+| Understanding / Work | Lists only — no CRM tables |
 
 Avoid dashboards, reports, and traditional CRM layouts on primary surfaces.
 

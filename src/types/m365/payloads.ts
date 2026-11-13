@@ -169,19 +169,53 @@ export type M365DailyFocusPayload = {
   nextBestAction: M365ActionBlock;
 };
 
-/** Teams Account Workspace — max 7 sections. */
+/** FS-018 Account Workspace — open commitment row. */
+export type M365AccountCommitmentItem = {
+  id: string;
+  title: string;
+  dueLabel: string;
+  overdue: boolean;
+  impact: string[];
+  href: string;
+};
+
+/** FS-018 linked opportunity or project (posture-aware). */
+export type M365AccountLinkedItem = {
+  id: string;
+  kind: "opportunity" | "project";
+  label: string;
+  detail: string;
+  impact: string[];
+  href: string;
+};
+
+/** FS-018 people who matter — Reality First contacts only. */
+export type M365AccountPerson = {
+  id: string;
+  name: string;
+  roleLabel: string;
+  href: string;
+};
+
+/**
+ * Teams Account Workspace — FS-018 fixed 7 blocks:
+ * looking at · what changed · top risk · NBA · commitments · linked · people.
+ */
 export type M365AccountWorkspacePayload = {
   kind: "account-workspace";
   meta: M365IntelligenceMeta;
   companyName: string;
+  companyId: string;
+  /** Ecosystem role — Supplier, Prospect, Unclassified, etc. */
+  relationshipRoleLabel: string;
   health: M365HealthBlock;
-  relationshipSnapshot: string;
   lastContactLabel: string;
-  nextBestAction: M365ActionBlock;
+  whatChanged: string[];
   topRisk: M365RiskBlock | null;
-  openOpportunities: M365OpportunityBlock[];
-  recentActivity: M365ActivityBlock[];
-  knowledgeAtRisk: M365KnowledgeRiskBlock[];
+  nextBestAction: M365ActionBlock;
+  openCommitments: M365AccountCommitmentItem[];
+  linkedItems: M365AccountLinkedItem[];
+  peopleWhoMatter: M365AccountPerson[];
   deepLink: string;
 };
 

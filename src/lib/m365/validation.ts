@@ -368,37 +368,41 @@ export function validateDailyFocus(payload: M365DailyFocusPayload): M365SurfaceV
 export function validateAccountWorkspace(
   payload: M365AccountWorkspacePayload,
 ): M365SurfaceValidation {
-  const visibleSections =
-    1 +
-    1 +
-    1 +
-    1 +
-    (payload.openOpportunities.length > 0 ? 1 : 0) +
-    (payload.recentActivity.length > 0 ? 1 : 0) +
-    (payload.knowledgeAtRisk.length > 0 ? 1 : 0);
+  /** FS-018 fixed seven blocks — always counted, empty states included. */
+  const visibleSections = 7;
 
   const budget: ValidationSection = {
     title: "Information Budget",
     checks: [
       withinBudget(
-        "Open opportunities capped",
-        payload.openOpportunities.length,
-        M365_BUDGETS.accountWorkspace.maxOpportunities,
+        "What changed capped",
+        payload.whatChanged.length,
+        M365_BUDGETS.accountWorkspace.maxWhatChanged,
       ),
       withinBudget(
-        "Recent activity capped",
-        payload.recentActivity.length,
-        M365_BUDGETS.accountWorkspace.maxRecentActivity,
+        "Open commitments capped",
+        payload.openCommitments.length,
+        M365_BUDGETS.accountWorkspace.maxCommitments,
       ),
       withinBudget(
-        "Knowledge at risk capped",
-        payload.knowledgeAtRisk.length,
-        M365_BUDGETS.accountWorkspace.maxKnowledgeAtRisk,
+        "Linked items capped",
+        payload.linkedItems.length,
+        M365_BUDGETS.accountWorkspace.maxLinkedItems,
+      ),
+      withinBudget(
+        "People who matter capped",
+        payload.peopleWhoMatter.length,
+        M365_BUDGETS.accountWorkspace.maxPeople,
       ),
       {
-        label: "Seven sections max (North Star)",
+        label: "Seven sections fixed (FS-018)",
         status: visibleSections <= M365_BUDGETS.accountWorkspace.sections ? "pass" : "warn",
-        detail: `${visibleSections} visible sections`,
+        detail: `${visibleSections} sections`,
+      },
+      {
+        label: "Looking-at block has role",
+        status: payload.relationshipRoleLabel.trim() ? "pass" : "fail",
+        detail: payload.relationshipRoleLabel || "missing relationship role",
       },
     ],
   };
@@ -409,11 +413,11 @@ export function validateAccountWorkspace(
       ...metaChecks(payload.meta),
       ...riskImpactChecks([payload.topRisk]),
       ...actionImpactChecks([payload.nextBestAction]),
-      ...payload.openOpportunities.map((opp) =>
-        checkImpactBlock(`Opportunity: ${opp.label}`, opp.impact),
+      ...payload.openCommitments.map((item) =>
+        checkImpactBlock(`Commitment: ${item.title}`, item.impact),
       ),
-      ...payload.knowledgeAtRisk.map((doc) =>
-        checkImpactBlock(`Knowledge: ${doc.label}`, doc.impact),
+      ...payload.linkedItems.map((item) =>
+        checkImpactBlock(`${item.kind}: ${item.label}`, item.impact),
       ),
     ],
   };

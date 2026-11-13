@@ -48,11 +48,14 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
   const mountedRef = useRef(false);
   const requestIdRef = useRef(0);
   const resolvedEmailRef = useRef<string | null>(null);
-  resolvedEmailRef.current = resolvedEmail;
 
   const reload = useCallback(() => {
     setReloadKey((current) => current + 1);
   }, []);
+
+  useEffect(() => {
+    resolvedEmailRef.current = resolvedEmail;
+  }, [resolvedEmail]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -140,7 +143,7 @@ export function useOutlookM365PaneLoad<T extends { kind: string }>({
           message:
             selected.length > 1
               ? outlookSelectionNeedsMicrosoftConsent()
-                ? `${selected.length} mails are selected. Allow Microsoft 365 so SmartCRM can read who they are from, then save them.`
+                ? `${selected.length} mails are selected. Connect Microsoft 365 so SmartCRM can read who they are from, then save them.`
                 : `${selected.length} mails are selected. SmartCRM could not read who they are from yet.`
               : emptyMessage,
         });

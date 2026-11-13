@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MeetingBriefing } from "@/components/m365/meeting-briefing";
+import { OutlookConnectCard } from "@/components/m365/outlook-connect-action";
 import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
 import { resolveTeamsUserHint } from "@/lib/teams-sdk";
 import type { M365MeetingBriefingPayload } from "@/types/m365";
@@ -109,26 +110,14 @@ export function TeamsMeetingBriefingPane() {
   if (state.status === "auth-required") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
-            SmartCRM · Meeting Briefing
-          </p>
-          <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
-            {state.message}
-          </p>
-          <button
-            type="button"
-            onClick={() =>
-              void openOutlookSignInDialog(() => {
-                window.location.reload();
-              })
-            }
-            className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
-          >
-            Sign In to SmartCRM
-          </button>
-        </div>
+        <OutlookConnectCard
+          detail={state.message}
+          onConnect={() => {
+            void openOutlookSignInDialog(() => {
+              window.location.reload();
+            });
+          }}
+        />
       </div>
     );
   }

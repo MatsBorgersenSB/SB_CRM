@@ -56,7 +56,7 @@ export function ProjectCreateButton() {
       router.push(
         kind === "development"
           ? `${project360Href(project.id)}?view=understanding`
-          : `${project360Href(project.id)}?view=actions&action=questions`,
+          : `${project360Href(project.id)}?view=work`,
       );
       router.refresh();
     } catch (err) {

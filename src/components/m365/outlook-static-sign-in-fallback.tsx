@@ -1,9 +1,11 @@
+import { buildOutlookSignInPath } from "@/lib/outlook-addin-shell";
 import {
-  buildOutlookSignInPath,
-} from "@/lib/outlook-addin-shell";
+  OUTLOOK_CONNECT_BODY,
+  OUTLOOK_CONNECT_TITLE,
+} from "@/lib/m365/outlook-connect-copy";
 
 /**
- * Static Sign In markup for Outlook task panes.
+ * Static Connect markup for Outlook task panes.
  * Hidden while React owns the UI; hydration watchdog reveals it if the gate never mounts.
  * The <a> works without JavaScript.
  */
@@ -21,10 +23,9 @@ export function OutlookStaticSignInFallback() {
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
           SmartCRM
         </p>
-        <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
+        <p className="mt-2 text-sm font-semibold text-carbon-blue">{OUTLOOK_CONNECT_TITLE}</p>
         <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
-          Relationship intelligence stays in SmartCRM. Sign in with your Microsoft work account —
-          then this pane answers what matters and what to do next.
+          {OUTLOOK_CONNECT_BODY}
         </p>
         <a
           href={signInUrl}
@@ -32,10 +33,10 @@ export function OutlookStaticSignInFallback() {
           rel="noopener noreferrer"
           className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-white"
         >
-          Sign In to SmartCRM
+          {OUTLOOK_CONNECT_TITLE}
         </a>
         <p className="mt-3 text-center text-[11px] text-carbon-blue/60">
-          If this pane stayed on Connecting, open sign-in above.
+          If this pane stayed on Connecting, open Connect above.
         </p>
       </div>
     </div>

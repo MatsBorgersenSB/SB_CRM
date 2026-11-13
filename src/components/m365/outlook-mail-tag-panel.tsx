@@ -1,27 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DraftInOutlookButton } from "@/components/opportunities/draft-in-outlook-button";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import { buildSmartCrmUrl } from "@/lib/m365/outlook-context";
 import { company360Href } from "@/types/company-360";
-import { contact360Href, deal360Href, project360Href } from "@/types/relationship-navigation";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
 import {
   resolveOutlookSelectedMessageSeeds,
   subscribeOutlookMailboxItemChanged,
   type OutlookOpenMessageSeed,
 } from "@/lib/m365/outlook-context";
+import { OutlookGraphConsentStrip } from "@/components/m365/outlook-connect-action";
 import {
   showOutlookImportCompletedBanner,
   showSmartCrmCategoryOnOpenMail,
-  openMicrosoftConsentDialog,
 } from "@/lib/m365/outlook-smartcrm-category";
-import {
-  SMARTDOC_CATEGORIES,
-  SMARTDOC_TYPES,
-  type SmartDocCategory,
-} from "@/types/smartdoc-library";
 import { mailTopic, matchingOpportunityForTopic } from "@/lib/mail-opportunity-draft";
 import type { UserRole } from "@/types/auth";
 
@@ -48,13 +41,6 @@ type TagContextPayload = {
   savedMails?: SavedOutlookMail[];
   needsMicrosoftConsent?: boolean;
   error?: string;
-};
-
-type FiledDocumentReview = {
-  id: string;
-  name: string;
-  docCategory: SmartDocCategory;
-  docType: string;
 };
 
 type SavedMeeting = { activityId: string; subject: string; startDate: string };
@@ -112,24 +98,11 @@ export function OutlookMailTagPanel({
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [reviewBusy, setReviewBusy] = useState(false);
-  const [reviewStatus, setReviewStatus] = useState<string | null>(null);
-  const [reviewError, setReviewError] = useState<string | null>(null);
-  const [reviewDocs, setReviewDocs] = useState<FiledDocumentReview[]>([]);
-  const [attachmentTarget, setAttachmentTarget] = useState<"company" | "opportunity" | "project">(
-    "company",
-  );
-  const [attachmentCompanyId, setAttachmentCompanyId] = useState("");
-  const [attachmentRelationKind, setAttachmentRelationKind] = useState<
-    "none" | "opportunity" | "project"
-  >("none");
-  const [attachmentRelationId, setAttachmentRelationId] = useState("");
   const [crmState, setCrmState] = useState<CrmSavedState | null>(null);
   const [savedMails, setSavedMails] = useState<SavedOutlookMail[]>([]);
   const [savedMailTick, setSavedMailTick] = useState(0);
   const [needsMicrosoftConsent, setNeedsMicrosoftConsent] = useState(false);
   const [smartSuggestedLabel, setSmartSuggestedLabel] = useState<string | null>(null);
-  const [showAdvancedFiling, setShowAdvancedFiling] = useState(false);
   const [importCompletedBanner, setImportCompletedBanner] = useState<{
     headline: string;
     detail: string;
@@ -270,9 +243,6 @@ export function OutlookMailTagPanel({
           setLinkKind("project");
           setSelectedId("");
         }
-        setAttachmentCompanyId(payload.selectedCompanyId ?? "");
-        setAttachmentRelationKind("none");
-        setAttachmentRelationId("");
       } catch (loadError) {
         if (!cancelled) {
           setError(loadError instanceof Error ? loadError.message : "Unable to load tags");
@@ -319,13 +289,7 @@ export function OutlookMailTagPanel({
     void showSmartCrmCategoryOnOpenMail();
   }, [openMailSaved, seedMessageId]);
 
-  // Keep filing destination valid when no opportunity/project is selected.
-  if ((attachmentTarget === "opportunity" || attachmentTarget === "project") && !selectedId) {
-    setAttachmentTarget("company");
-  }
-
-  // Relating an email or attachment in Outlook to an existing Opportunity or Project
-  // is always allowed (including when correspondents are partners, consultants, or prospects).
+  // Relating mail to an existing Opportunity or Project is always allowed.
   const opportunityTagging = true;
 
   const options =
@@ -335,60 +299,16 @@ export function OutlookMailTagPanel({
         ? context?.opportunityOptions ?? []
         : [];
   const selectedCount = seeds.length;
-  const companyOptions = context?.companyOptions ?? [];
-  const selectedCompanyLabel =
-    companyOptions.find((row) => row.id === attachmentCompanyId)?.label ??
-    context?.companyName ??
-    "selected company";
   const selectedTagLabel = options.find((row) => row.id === selectedId)?.label ?? "";
-  const relationOptions =
-    attachmentRelationKind === "project"
-      ? context?.projectOptions ?? []
-      : context?.opportunityOptions ?? [];
-  const relationLabel = relationOptions.find((row) => row.id === attachmentRelationId)?.label ?? "";
-  const canFileAttachments =
-    seed != null &&
-    !busy &&
-    !syncBusy &&
-    !(
-      (attachmentTarget === "company" && !attachmentCompanyId) ||
-      ((attachmentTarget === "opportunity" || attachmentTarget === "project") && !selectedId) ||
-      (attachmentTarget === "company" &&
-        attachmentRelationKind !== "none" &&
-        !attachmentRelationId)
-    );
-  const attachmentBlockingReason =
-    attachmentTarget === "company" && !attachmentCompanyId
-      ? "Select a company for filing."
-      : (attachmentTarget === "opportunity" || attachmentTarget === "project") && !selectedId
-        ? `Select a ${attachmentTarget} in the Tag mail section first.`
-        : attachmentTarget === "company" &&
-            attachmentRelationKind !== "none" &&
-            !attachmentRelationId
-          ? `Select the related ${attachmentRelationKind}.`
-          : null;
-  // Tell the user what is attached before they save — the save files it in one click.
   const seedAttachments = seeds.flatMap((row) => row.attachments ?? []);
-  const attachmentsKnown = seeds.length > 0 && seeds.every((row) => Array.isArray(row.attachments));
-  const attachmentNoun =
-    seedAttachments.length === 1
-      ? `1 attachment (${seedAttachments[0]!.name})`
-      : seedAttachments.length > 1
-        ? `${seedAttachments.length} attachments (${seedAttachments
-            .slice(0, 2)
-            .map((row) => row.name)
-            .join(", ")}${seedAttachments.length > 2 ? ", …" : ""})`
-        : "Attachments";
   const destinationSummary =
-    attachmentsKnown && seedAttachments.length === 0
-      ? "No attachments in the selected mail."
-      : attachmentTarget === "company"
-        ? attachmentRelationKind === "none" || !relationLabel
-          ? `${attachmentNoun} will be stored under ${selectedCompanyLabel}.`
-          : `${attachmentNoun} will be stored under ${selectedCompanyLabel} and related to ${relationLabel}.`
-        : selectedTagLabel
-          ? `${attachmentNoun} will be stored under ${selectedTagLabel}.`
-          : `Select a ${attachmentTarget} in Tag mail to file attachments there.`;
+    seedAttachments.length === 0
+      ? selectedTagLabel
+        ? `Saving links to ${selectedTagLabel}. Deep attachment filing is in SmartCRM web.`
+        : "Save links the mail. Deep attachment filing is in SmartCRM web."
+      : selectedTagLabel
+        ? `${seedAttachments.length} attachment(s) auto-file with save · link ${selectedTagLabel}. Review/classify in SmartCRM if needed.`
+        : `${seedAttachments.length} attachment(s) auto-file with save. Review/classify in SmartCRM if needed.`;
 
   /** Save the calendar meeting behind this invite/response as an Activity. Throws on failure. */
   const saveMeetingActivity = async (row: OutlookOpenMessageSeed) => {
@@ -566,21 +486,18 @@ export function OutlookMailTagPanel({
   };
 
   /**
-   * Files attachments of the selected mails into SmartDocs.
-   * `auto` is used right after "Save mail": no extra click, destination follows the
-   * save link (opportunity / project) or the contact's company.
+   * Auto-files attachments after Save — destination follows the save link.
+   * Multi-step classify/filing UI lives on web SmartCRM (Michelin hard-cap).
    */
-  const syncAttachmentsToSmartDocs = async (auto?: {
+  const syncAttachmentsToSmartDocs = async (auto: {
     seeds: OutlookOpenMessageSeed[];
     link?: { opportunityId?: string | null; projectId?: string | null };
   }) => {
-    const sourceSeeds = auto?.seeds ?? seeds;
+    const sourceSeeds = auto.seeds;
     if (sourceSeeds.length === 0) return;
     setSyncBusy(true);
     setSyncError(null);
     setSyncStatus(null);
-    setReviewStatus(null);
-    setReviewError(null);
     try {
       const emailExternalMessageIds = sourceSeeds
         .map((row) => row.externalMessageId?.trim())
@@ -596,36 +513,11 @@ export function OutlookMailTagPanel({
           [AUTH_ROLE_HEADER]: role,
         },
         credentials: "include",
-        body: JSON.stringify(
-          auto
-            ? {
-                emailExternalMessageIds,
-                ...(auto.link?.opportunityId ? { opportunityId: auto.link.opportunityId } : {}),
-                ...(auto.link?.projectId ? { projectId: auto.link.projectId } : {}),
-              }
-            : {
-                emailExternalMessageIds,
-                ...(attachmentTarget === "company" && attachmentCompanyId
-                  ? { companyId: attachmentCompanyId }
-                  : {}),
-                ...(attachmentTarget === "opportunity" && selectedId
-                  ? { opportunityId: selectedId }
-                  : {}),
-                ...(attachmentTarget === "project" && selectedId
-                  ? { projectId: selectedId }
-                  : {}),
-                ...(attachmentTarget === "company" &&
-                attachmentRelationKind === "opportunity" &&
-                attachmentRelationId
-                  ? { opportunityId: attachmentRelationId }
-                  : {}),
-                ...(attachmentTarget === "company" &&
-                attachmentRelationKind === "project" &&
-                attachmentRelationId
-                  ? { projectId: attachmentRelationId }
-                  : {}),
-              },
-        ),
+        body: JSON.stringify({
+          emailExternalMessageIds,
+          ...(auto.link?.opportunityId ? { opportunityId: auto.link.opportunityId } : {}),
+          ...(auto.link?.projectId ? { projectId: auto.link.projectId } : {}),
+        }),
       });
 
       const payload = (await response.json().catch(() => ({}))) as {
@@ -635,12 +527,6 @@ export function OutlookMailTagPanel({
         fetchedAttachments?: number;
         skippedEmailCount?: number;
         skippedAttachments?: Array<{ name: string; reason: string }>;
-        documents?: Array<{
-          id: string;
-          name: string;
-          docCategory: SmartDocCategory;
-          docType: string;
-        }>;
       };
 
       if (!response.ok) {
@@ -664,60 +550,15 @@ export function OutlookMailTagPanel({
       ].join("");
       setSyncStatus(
         saved > 0
-          ? `${auto ? "" : `${destinationSummary} `}Filed ${saved} attachment(s) into SmartDocs (${fetched} fetched).${skippedNote}`
+          ? `Filed ${saved} attachment(s) into SmartDocs (${fetched} fetched).${skippedNote}`
           : `No attachments were filed into SmartDocs (${fetched} fetched).${skippedNote}`,
       );
-      setReviewDocs(Array.isArray(payload.documents) ? payload.documents.slice(0, 20) : []);
     } catch (syncErr) {
       setSyncError(
         syncErr instanceof Error ? syncErr.message : "Could not file attachments",
       );
     } finally {
       setSyncBusy(false);
-    }
-  };
-
-  const saveReviewClassification = async () => {
-    if (reviewDocs.length === 0) return;
-    setReviewBusy(true);
-    setReviewError(null);
-    setReviewStatus(null);
-    try {
-      const response = await fetch("/api/m365/sync-attachments/classification", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          [AUTH_ROLE_HEADER]: role,
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          updates: reviewDocs.map((doc) => ({
-            documentId: doc.id,
-            docCategory: doc.docCategory,
-            docType: doc.docType,
-          })),
-        }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        detail?: string;
-        updated?: number;
-        failed?: number;
-      };
-      if (!response.ok) {
-        throw new Error(payload.detail || payload.error || "Could not update classification");
-      }
-      setReviewStatus(
-        payload.failed && payload.failed > 0
-          ? `Updated ${payload.updated ?? 0} file(s); ${payload.failed} failed.`
-          : `Updated classification for ${payload.updated ?? reviewDocs.length} file(s).`,
-      );
-    } catch (err) {
-      setReviewError(
-        err instanceof Error ? err.message : "Could not update category and type",
-      );
-    } finally {
-      setReviewBusy(false);
     }
   };
 
@@ -740,7 +581,7 @@ export function OutlookMailTagPanel({
   return (
     <div className="border border-upcycle-orange/25 bg-upcycle-orange/[0.03] px-3 py-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-upcycle-orange">
-        Tag mail
+        Save / link
       </p>
       <p className="mt-1 text-[12px] leading-snug text-carbon-blue/55">
         {selectedCount > 1
@@ -753,20 +594,7 @@ export function OutlookMailTagPanel({
       </p>
       <SelectedMailSubjects seeds={seeds} />
 
-      {needsMicrosoftConsent ? (
-        <div className="mt-2 border border-upcycle-orange/30 bg-white px-2.5 py-2">
-          <p className="text-[12px] leading-snug text-carbon-blue">
-            Microsoft 365 needs your approval before SmartCRM can mark these mails.
-          </p>
-          <button
-            type="button"
-            onClick={() => void openMicrosoftConsentDialog()}
-            className="mt-2 inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white hover:brightness-105"
-          >
-            Allow in Microsoft 365
-          </button>
-        </div>
-      ) : null}
+      {needsMicrosoftConsent ? <OutlookGraphConsentStrip /> : null}
 
       {importCompletedBanner && !error ? (
         <div
@@ -863,21 +691,6 @@ export function OutlookMailTagPanel({
         </div>
       ) : null}
 
-      <Outlook360Links
-        companyId={context.companyId ?? context.selectedCompanyId}
-        contactId={context.contactId}
-        opportunityId={
-          linkKind === "opportunity"
-            ? selectedId || context.currentOpportunityId
-            : context.currentOpportunityId
-        }
-        projectId={
-          linkKind === "project"
-            ? selectedId || context.currentProjectId
-            : context.currentProjectId
-        }
-      />
-
       <div className="mt-2 flex gap-1">
         {(
           [
@@ -964,7 +777,8 @@ export function OutlookMailTagPanel({
 
       {smartSuggestedLabel && selectedId ? (
         <p className="mt-1 text-[11px] text-emerald-700">
-          SmartAssist pre-selected <span className="font-semibold">{smartSuggestedLabel}</span> from this email subject.
+          SmartAssist pre-selected <span className="font-semibold">{smartSuggestedLabel}</span>{" "}
+          from this email subject.
         </p>
       ) : null}
 
@@ -1006,246 +820,26 @@ export function OutlookMailTagPanel({
           </p>
         )}
 
-        {seed ? (
-          <div className="mt-1 border border-carbon-blue/10 bg-white px-2.5 py-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] leading-snug text-carbon-blue/70">
-                {destinationSummary}
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowAdvancedFiling((prev) => !prev)}
-                className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange hover:underline"
-              >
-                {showAdvancedFiling ? "Hide options" : "Options"}
-              </button>
-            </div>
-            {showAdvancedFiling ? (
-              <div className="mt-2 space-y-1.5">
-                <AttachmentFilingControls
-                  attachmentTarget={attachmentTarget}
-                  setAttachmentTarget={setAttachmentTarget}
-                  attachmentCompanyId={attachmentCompanyId}
-                  setAttachmentCompanyId={setAttachmentCompanyId}
-                  attachmentRelationKind={attachmentRelationKind}
-                  setAttachmentRelationKind={setAttachmentRelationKind}
-                  attachmentRelationId={attachmentRelationId}
-                  setAttachmentRelationId={setAttachmentRelationId}
-                  selectedId={selectedId}
-                  linkKind={linkKind}
-                  selectedTagLabel={selectedTagLabel}
-                  destinationSummary={destinationSummary}
-                  companyOptions={companyOptions}
-                  opportunityOptions={
-                    opportunityTagging ? context.opportunityOptions : []
-                  }
-                  projectOptions={context.projectOptions}
-                  allowOpportunity={opportunityTagging}
-                />
-                <button
-                  type="button"
-                  disabled={!canFileAttachments}
-                  onClick={() => void syncAttachmentsToSmartDocs()}
-                  className="inline-flex w-full items-center justify-center border border-carbon-blue/15 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-                >
-                  {syncBusy ? "Filing attachments…" : `File attachments only (${selectedCount})`}
-                </button>
-                {attachmentBlockingReason ? (
-                  <p className="text-[11px] text-carbon-blue/65">{attachmentBlockingReason}</p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+        {/* Michelin hard-cap: multi-step SmartDoc filing lives on web, not in the pane. */}
+        {(context.companyId || context.selectedCompanyId) && seed ? (
+          <a
+            href={buildSmartCrmUrl(
+              company360Href(context.companyId ?? context.selectedCompanyId ?? "", "outlook"),
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
+          >
+            File attachments in SmartCRM
+          </a>
         ) : null}
-
-        <DraftInOutlookButton
-          toEmail={email}
-          subject={
-            linkKind === "project"
-              ? `Re: ${options.find((row) => row.id === selectedId)?.name ?? "project"}`
-              : `Re: ${options.find((row) => row.id === selectedId)?.name ?? "opportunity"}`
-          }
-          bodyHtml="<p>Hi,</p><p></p><p>Best regards</p>"
-          opportunityId={linkKind === "opportunity" ? selectedId || undefined : undefined}
-          projectId={linkKind === "project" ? selectedId || undefined : undefined}
-          role={role}
-          disabled={!selectedId}
-          label="New tagged mail"
-          className="inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-        />
       </div>
 
       {syncStatus ? <p className="mt-1.5 text-[11px] text-emerald-700">{syncStatus}</p> : null}
-      {reviewDocs.length > 0 ? (
-        <FiledDocumentsReviewPanel
-          docs={reviewDocs}
-          setDocs={setReviewDocs}
-          onSave={saveReviewClassification}
-          busy={reviewBusy}
-          status={reviewStatus}
-          error={reviewError}
-        />
-      ) : null}
       {syncError ? <p className="mt-1.5 text-[11px] text-thermal-red">{syncError}</p> : null}
-    </div>
-  );
-}
-
-function Outlook360Links({
-  companyId,
-  contactId,
-  opportunityId,
-  projectId,
-}: {
-  companyId?: string | null;
-  contactId?: string | null;
-  opportunityId?: string | null;
-  projectId?: string | null;
-}) {
-  if (!companyId && !contactId && !opportunityId && !projectId) return null;
-  const linkClass =
-    "font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange";
-  return (
-    <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
-      {companyId ? (
-        <a
-          href={buildSmartCrmUrl(company360Href(companyId))}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={linkClass}
-        >
-          Company 360
-        </a>
+      {destinationSummary ? (
+        <p className="mt-1.5 text-[11px] leading-snug text-carbon-blue/55">{destinationSummary}</p>
       ) : null}
-      {contactId && companyId ? (
-        <a
-          href={buildSmartCrmUrl(contact360Href(contactId, companyId))}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={linkClass}
-        >
-          Contact 360
-        </a>
-      ) : contactId ? (
-        <a
-          href={buildSmartCrmUrl(contact360Href(contactId))}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={linkClass}
-        >
-          Contact 360
-        </a>
-      ) : null}
-      {opportunityId ? (
-        <a
-          href={buildSmartCrmUrl(deal360Href(opportunityId))}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={linkClass}
-        >
-          Opportunity 360
-        </a>
-      ) : null}
-      {projectId ? (
-        <a
-          href={buildSmartCrmUrl(project360Href(projectId))}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={linkClass}
-        >
-          Project 360
-        </a>
-      ) : null}
-    </p>
-  );
-}
-
-function FiledDocumentsReviewPanel({
-  docs,
-  setDocs,
-  onSave,
-  busy,
-  status,
-  error,
-}: {
-  docs: FiledDocumentReview[];
-  setDocs: React.Dispatch<React.SetStateAction<FiledDocumentReview[]>>;
-  onSave: () => Promise<void>;
-  busy: boolean;
-  status: string | null;
-  error: string | null;
-}) {
-  return (
-    <div className="mt-2 border border-carbon-blue/10 bg-white px-2 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/65">
-        Review category and type
-      </p>
-      <p className="mt-1 text-[11px] text-carbon-blue/55">
-        SmartAssist suggested values. Adjust if needed, then save.
-      </p>
-      <div className="mt-2 max-h-56 space-y-2 overflow-auto">
-        {docs.map((doc) => {
-          const types = SMARTDOC_TYPES;
-          return (
-            <div key={doc.id} className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-2">
-              <p className="truncate text-[11px] font-medium text-carbon-blue/70">{doc.name}</p>
-              <div className="mt-1 grid grid-cols-2 gap-2">
-                <select
-                  value={doc.docCategory}
-                  onChange={(event) => {
-                    const nextCategory = event.target.value as SmartDocCategory;
-                    setDocs((current) =>
-                      current.map((row) =>
-                        row.id === doc.id
-                          ? {
-                              ...row,
-                              docCategory: nextCategory,
-                            }
-                          : row,
-                      ),
-                    );
-                  }}
-                  className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue"
-                >
-                  {SMARTDOC_CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={doc.docType}
-                  onChange={(event) => {
-                    const nextType = event.target.value;
-                    setDocs((current) =>
-                      current.map((row) =>
-                        row.id === doc.id ? { ...row, docType: nextType } : row,
-                      ),
-                    );
-                  }}
-                  className="w-full border border-carbon-blue/15 bg-white px-2 py-1 text-[12px] text-carbon-blue"
-                >
-                  {types.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void onSave()}
-        className="mt-2 inline-flex w-full items-center justify-center border border-carbon-blue/15 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-      >
-        {busy ? "Saving classification…" : "Save category and type"}
-      </button>
-      {status ? <p className="mt-1 text-[11px] text-emerald-700">{status}</p> : null}
-      {error ? <p className="mt-1 text-[11px] text-thermal-red">{error}</p> : null}
     </div>
   );
 }
@@ -1260,148 +854,5 @@ function SelectedMailSubjects({ seeds }: { seeds: OutlookOpenMessageSeed[] }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-function AttachmentFilingControls({
-  attachmentTarget,
-  setAttachmentTarget,
-  attachmentCompanyId,
-  setAttachmentCompanyId,
-  attachmentRelationKind,
-  setAttachmentRelationKind,
-  attachmentRelationId,
-  setAttachmentRelationId,
-  selectedId,
-  linkKind,
-  selectedTagLabel,
-  destinationSummary,
-  companyOptions,
-  opportunityOptions,
-  projectOptions,
-  allowOpportunity = true,
-}: {
-  attachmentTarget: "company" | "opportunity" | "project";
-  setAttachmentTarget: (value: "company" | "opportunity" | "project") => void;
-  attachmentCompanyId: string;
-  setAttachmentCompanyId: (value: string) => void;
-  attachmentRelationKind: "none" | "opportunity" | "project";
-  setAttachmentRelationKind: (value: "none" | "opportunity" | "project") => void;
-  attachmentRelationId: string;
-  setAttachmentRelationId: (value: string) => void;
-  selectedId: string;
-  linkKind: "opportunity" | "project";
-  selectedTagLabel: string;
-  destinationSummary: string;
-  companyOptions: LinkOption[];
-  opportunityOptions: LinkOption[];
-  projectOptions: LinkOption[];
-  allowOpportunity?: boolean;
-}) {
-  const relationOptions =
-    attachmentRelationKind === "project" ? projectOptions : opportunityOptions;
-  const canUseCurrentTag = selectedId.length > 0;
-  return (
-    <div className="mt-2 border border-carbon-blue/10 bg-white px-2 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-carbon-blue/65">
-        Attachment filing
-      </p>
-      <p className="mt-1 text-[11px] leading-snug text-carbon-blue/70 font-semibold">
-        {destinationSummary}
-      </p>
-      <label className="mt-1 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-        Where to store
-        <select
-          value={attachmentTarget}
-          onChange={(event) =>
-            setAttachmentTarget(event.target.value as "company" | "opportunity" | "project")
-          }
-          className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
-        >
-          <option value="company">Company</option>
-          {allowOpportunity ? <option value="opportunity">Opportunity</option> : null}
-          <option value="project">Project</option>
-        </select>
-      </label>
-      <div className="mt-1 flex gap-1">
-        <button
-          type="button"
-          onClick={() => setAttachmentTarget("company")}
-          className="flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange"
-        >
-          Store under company
-        </button>
-        <button
-          type="button"
-          disabled={!canUseCurrentTag}
-          onClick={() => setAttachmentTarget(linkKind)}
-          className="flex-1 border border-carbon-blue/15 bg-white px-2 py-1 text-[11px] font-semibold text-carbon-blue/70 hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-        >
-          Use selected {linkKind === "opportunity" ? "opportunity" : "project"}
-        </button>
-      </div>
-      {attachmentTarget === "company" ? (
-        <>
-          <label className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-            Company
-            <select
-              value={attachmentCompanyId}
-              onChange={(event) => setAttachmentCompanyId(event.target.value)}
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
-            >
-              <option value="">Select company…</option>
-              {companyOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-            Related to (optional)
-            <select
-              value={attachmentRelationKind}
-              onChange={(event) => {
-                setAttachmentRelationKind(
-                  event.target.value as "none" | "opportunity" | "project",
-                );
-                setAttachmentRelationId("");
-              }}
-              className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
-            >
-              <option value="none">Company only</option>
-              {allowOpportunity ? <option value="opportunity">Opportunity</option> : null}
-              <option value="project">Project</option>
-            </select>
-          </label>
-          {attachmentRelationKind !== "none" ? (
-            <label className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-              {attachmentRelationKind === "project" ? "Project" : "Opportunity"}
-              <select
-                value={attachmentRelationId}
-                onChange={(event) => setAttachmentRelationId(event.target.value)}
-                className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue"
-              >
-                <option value="">Select…</option>
-                {relationOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-        </>
-      ) : (
-        <p className="mt-2 text-[11px] text-carbon-blue/50">
-          Will use the selected {attachmentTarget} from the Tag mail section.
-          {!selectedId
-            ? " Select one first."
-            : selectedTagLabel
-              ? ` Current: ${selectedTagLabel}.`
-              : ""}
-        </p>
-      )}
-    </div>
   );
 }

@@ -61,6 +61,11 @@ import {
   ADD_DOCUMENT_EVENT,
   consumeAddDocumentPending,
 } from "@/lib/add-document-intent";
+import {
+  DOCUMENT_INTENT_EVENT,
+  consumeDocumentIntent,
+  type DocumentIntent,
+} from "@/lib/create-document-intent";
 import { importSmartDocWithFile } from "@/lib/smartdoc-browser-upload";
 import { deleteSmartDocRecord } from "@/lib/sync-smartdoc";
 import {
@@ -232,19 +237,52 @@ export function WorkspaceDocumentsPanel({
     onDocumentCountChange?.(rows.length);
   }, [onDocumentCountChange, rows.length]);
 
-  // Sidebar "Add doc": open the upload area (now if we are mounted, or on arrival).
+  // Global Create → Document / Add doc: open Create or Import (optionally with type).
   useEffect(() => {
     if (readOnly) return;
-    const openUpload = () => {
-      if (consumeAddDocumentPending()) setMode("import");
+    const applyIntent = (intent: DocumentIntent | null) => {
+      if (!intent) {
+        if (consumeAddDocumentPending()) setMode("import");
+        return;
+      }
+      if (intent.mode === "import") {
+        setMode("import");
+        return;
+      }
+      setMode("create");
+      if (intent.type) {
+        const presets = isProjectScope
+          ? WORKSPACE_PROJECT_DOCUMENT_PRESETS
+          : useCompanyOwnership
+            ? WORKSPACE_COMPANY_DOCUMENT_PRESETS
+            : WORKSPACE_CREATE_DOCUMENT_PRESETS;
+        const index = presets.findIndex(
+          (item) => item.type.toLowerCase() === intent.type!.toLowerCase(),
+        );
+        if (index >= 0) {
+          setPresetIndex(index);
+          setDocumentName("");
+        } else {
+          // Type not in shortcuts — leave create open; user picks from the list.
+          setPresetIndex(0);
+        }
+      }
     };
-    const onArrival = window.setTimeout(openUpload, 0);
-    window.addEventListener(ADD_DOCUMENT_EVENT, openUpload);
+    const onEvent = (event: Event) => {
+      const detail = (event as CustomEvent<DocumentIntent>).detail;
+      applyIntent(detail ?? consumeDocumentIntent());
+    };
+    const onArrival = window.setTimeout(() => {
+      applyIntent(consumeDocumentIntent());
+    }, 0);
+    window.addEventListener(ADD_DOCUMENT_EVENT, onEvent);
+    window.addEventListener(DOCUMENT_INTENT_EVENT, onEvent);
     return () => {
       window.clearTimeout(onArrival);
-      window.removeEventListener(ADD_DOCUMENT_EVENT, openUpload);
+      window.removeEventListener(ADD_DOCUMENT_EVENT, onEvent);
+      window.removeEventListener(DOCUMENT_INTENT_EVENT, onEvent);
     };
-  }, [readOnly]);
+  }, [readOnly, isProjectScope, useCompanyOwnership]);
 
   const identityPreview = useMemo(() => {
     if (isProjectScope && context.projectId) {

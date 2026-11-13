@@ -180,11 +180,11 @@ export function Deal360PageShell({
       intelligence: "view=understanding",
       knowledge: "view=understanding",
       influence: "view=understanding",
-      meetings: "view=actions&action=meetings",
-      emails: "view=actions&action=emails",
-      viability: "view=actions&action=activities",
-      cvm: "view=actions&action=activities",
-      commercial: "view=actions&action=activities",
+      meetings: "view=work#meetings",
+      emails: "view=work#emails",
+      viability: "view=work",
+      cvm: "view=work",
+      commercial: "view=work",
     };
     const resolved = aliases[tabParam];
     if (resolved !== undefined) {
@@ -195,11 +195,11 @@ export function Deal360PageShell({
       return;
     }
     if (isOpportunityActionTab(tabParam) && !searchParams.get("view")) {
-      router.replace(`/opportunities/${dealId}?view=actions&action=${tabParam}`, { scroll: false });
+      router.replace(`/opportunities/${dealId}?view=work#${tabParam}`, { scroll: false });
       return;
     }
     if (isOpportunityWorkspaceTab(tabParam) && !searchParams.get("view")) {
-      router.replace(`/opportunities/${dealId}?view=actions&action=${tabParam}`, { scroll: false });
+      router.replace(`/opportunities/${dealId}?view=work#${tabParam}`, { scroll: false });
     }
   }, [tabParam, dealId, router, searchParams]);
 

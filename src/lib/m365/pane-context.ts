@@ -14,6 +14,9 @@ import { emptyInventory } from "@/lib/inventory-data";
 import { resolveCompanyFromInput, type M365DataContext } from "@/lib/m365/resolve-context";
 import { withPrismaRetry } from "@/lib/prisma";
 import { readActivities, readCompanies, readPipelines } from "@/lib/pipeline-db";
+import { readProjects } from "@/lib/project-db";
+import { getProjectsForCompany } from "@/lib/project-team-utils";
+import type { Project } from "@/types/project";
 import {
   CONTACT_LIST_SELECT,
   OPPORTUNITY_LIST_SELECT,
@@ -349,6 +352,7 @@ export async function loadM365PaneContext(input: {
         companies: [],
         pipelines: [],
         activities: [],
+        projects: [],
         inventory: emptyInventory,
       },
       resolved: null,
@@ -356,19 +360,26 @@ export async function loadM365PaneContext(input: {
     };
   }
 
-  const [pipelines, jsonActivities, correspondence] = await Promise.all([
+  const [pipelines, jsonActivities, correspondence, allProjects] = await Promise.all([
     loadCompanyPipelines(resolved.company).catch(() => [] as PipelineRow[]),
     readActivities().catch(() => [] as Activity[]),
     loadCorrespondenceEvidenceForCompany(resolved.company, {
       take: M365_SIDEBAR_TAKE,
     }).catch(() => EMPTY_CORRESPONDENCE),
+    readProjects().catch(() => [] as Project[]),
   ]);
+
+  const contactIds = (resolved.company.contacts ?? []).map((contact) => contact.ContactID);
+  const projects = getProjectsForCompany(resolved.company.CompanyID, allProjects, {
+    contactIds,
+  }).slice(0, M365_SIDEBAR_TAKE);
 
   return {
     ctx: {
       companies: [resolved.company],
       pipelines,
       activities: pickSidebarActivities(jsonActivities, resolved.company),
+      projects,
       inventory: emptyInventory,
     },
     resolved,

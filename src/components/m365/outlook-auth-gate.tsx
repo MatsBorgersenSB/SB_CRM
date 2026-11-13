@@ -21,6 +21,7 @@ import {
   SMARTCRM_PRODUCTION_HOST,
   SMARTCRM_PRODUCTION_ORIGIN,
 } from "@/lib/smartcrm-origin";
+import { OutlookConnectCard } from "@/components/m365/outlook-connect-action";
 
 type GateState =
   | { status: "checking" }
@@ -314,33 +315,14 @@ function SignInToSmartCrmCard({
 
   return (
     <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-      <div className="w-full max-w-sm border border-carbon-blue/10 bg-carbon-blue/[0.02] p-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
-          SmartCRM
-        </p>
-        <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
-        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
-          Relationship intelligence stays in SmartCRM. Sign in with your Microsoft work
-          account — then this pane answers what matters and what to do next.
-        </p>
-        {verifying ? (
-          <p className="mt-3 text-[11px] text-carbon-blue/60">Checking session…</p>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => {
-            void openOutlookSignInDialog(onSignedIn, onTrace).catch(() => {
-              openSignInInBrowser(signInUrl);
-            });
-          }}
-          className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
-        >
-          Sign In to SmartCRM
-        </button>
-        <p className="mt-3 text-[11px] leading-relaxed text-carbon-blue/65">
-          Use the button above inside Outlook. Opening sign-in in a separate browser tab
-          cannot pass the session into this pane.
-        </p>
+      <OutlookConnectCard
+        verifying={verifying}
+        onConnect={() => {
+          void openOutlookSignInDialog(onSignedIn, onTrace).catch(() => {
+            openSignInInBrowser(signInUrl);
+          });
+        }}
+      >
         {traceLines.length > 0 ? (
           <div className="mt-3 border border-carbon-blue/10 bg-white/60 p-2">
             <div className="flex items-center justify-between gap-2">
@@ -373,7 +355,7 @@ function SignInToSmartCrmCard({
             </pre>
           </div>
         ) : null}
-      </div>
+      </OutlookConnectCard>
     </div>
   );
 }
@@ -422,9 +404,8 @@ export class OutlookAddinErrorBoundary extends Component<
  * Never throws.
  */
 export function OutlookAuthGate({ children }: { children: ReactNode }) {
-  // Default to Sign In so SSR / failed hydration never leave a blank "Connecting…" pane.
-  // Session probe upgrades to authenticated when a session exists.
-  const [state, setState] = useState<GateState>({ status: "needs-sign-in" });
+  // Quiet first: probe session before showing Connect (Connect is emergency-only).
+  const [state, setState] = useState<GateState>({ status: "checking" });
   const [probePending, setProbePending] = useState(true);
   const [traceLines, setTraceLines] = useState<string[]>([]);
   const pushTrace = useCallback((line: string) => {

@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OutlookNoContactState } from "@/components/m365/outlook-no-contact-state";
 import { OutlookContactSearch, type OutlookContactHit } from "@/components/m365/outlook-contact-search";
+import { OutlookConnectCard } from "@/components/m365/outlook-connect-action";
 import { openOutlookSignInDialog } from "@/components/m365/outlook-auth-gate";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
 import type { CompanyRelationshipPosture } from "@/lib/company-classification";
@@ -453,24 +454,14 @@ export function OutlookComposeAssignPane({ role = "superuser" }: { role?: UserRo
   if (phase.status === "auth-required") {
     return (
       <div className="flex h-[100dvh] flex-col justify-center bg-white px-6">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-upcycle-orange">
-          SmartCRM
-        </p>
-        <p className="mt-2 text-sm font-semibold text-carbon-blue">Sign In to SmartCRM</p>
-        <p className="mt-1 text-[12px] leading-relaxed text-carbon-blue/50">
-          Sign in to assign this mail to an opportunity or project.
-        </p>
-        <button
-          type="button"
-          onClick={() =>
+        <OutlookConnectCard
+          detail="Connect once to assign this mail to an opportunity or project."
+          onConnect={() => {
             void openOutlookSignInDialog(() => {
               window.location.reload();
-            })
-          }
-          className="mt-5 inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white"
-        >
-          Sign In to SmartCRM
-        </button>
+            });
+          }}
+        />
       </div>
     );
   }

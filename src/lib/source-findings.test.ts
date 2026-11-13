@@ -148,7 +148,7 @@ describe("URL findings stay unconfirmed until a person validates them", () => {
   it("extracts subsupplier feedstock terms and client site confirmations from correspondence", () => {
     const subsupplierMail = extractSourceFindingPreview(
       "SV: Hornindal - G30 Tørket flis - 8 000 til 10 000 t/år\nHvilket krav til fukt % er det på leveransen og hvor stor lagerplass er planlagt tilgjengelig?",
-      "/opportunities/PL-1044?view=actions&action=emails",
+      "/opportunities/PL-1044?view=work#emails",
       "Subsupplier mail (allskog.no)",
     );
     const feedstockClaim = subsupplierMail.claims.find(
@@ -160,7 +160,7 @@ describe("URL findings stay unconfirmed until a person validates them", () => {
 
     const clientMail = extractSourceFindingPreview(
       "Jeg har nå hatt en prat med Erik. Han bekrefter at det er nok plass på anlegget til Vest Biogass til et pyrolyseanlegg.",
-      "/opportunities/PL-1044?view=actions&action=emails",
+      "/opportunities/PL-1044?view=work#emails",
       "Client mail",
     );
     assert.ok(clientMail.claims.some((c) => c.fieldId === "site_readiness"));

@@ -23,7 +23,7 @@ import {
 import { OpportunitiesOverviewTable } from "@/components/opportunity/opportunities-overview-table";
 import { ContactOpportunityRolesTable } from "@/components/opportunity/contact-opportunity-roles-table";
 import { WorkspaceDocumentsPanel } from "@/components/documents/workspace-documents-panel";
-import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
+import { CreateMenu } from "@/components/layout/create-menu";
 import { useSmartAssistActionHost } from "@/components/smartassist/smartassist-action-host";
 import { useAuth } from "@/context/auth-context";
 import { workspaceDocumentsContextFromContact } from "@/lib/workspace-documents-data";
@@ -368,17 +368,16 @@ export function Contact360LivingWorkspace({
       ) : null}
 
       <div className="flex justify-end">
-        <EntityNewActivityButton
-          context={{
-            companyId: record.companyId,
-            companyName: record.companyName,
-            contactId: contact.ContactID,
-            contactName: displayName,
+        <CreateMenu
+          variant="header"
+          activityPreset={{
+            Company: record.companyId ? { CompanyID: record.companyId } : null,
+            Contact: { ContactID: contact.ContactID },
           }}
           companies={companies}
           pipelines={pipelines}
-          showNewTask={false}
-          documentCount={documentCount}
+          mailTo={contact.Email?.trim() || undefined}
+          meetingSubject={displayName}
         />
       </div>
 

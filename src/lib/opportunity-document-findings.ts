@@ -389,7 +389,7 @@ export async function buildOpportunityDocumentFindings(
 
     const preview = extractSourceFindingPreview(
       combinedText,
-      `/opportunities/${encodeURIComponent(opportunity.id)}?view=actions&action=emails`,
+      `/opportunities/${encodeURIComponent(opportunity.id)}?view=work#emails`,
       `${counterpartyLabel}: ${latestSubject}`,
     );
     const meaningfulClaims = preview.claims.filter((c) => c.id !== "attached");
@@ -397,7 +397,7 @@ export async function buildOpportunityDocumentFindings(
       findings.push(
         createSourceFinding({
           title: `${counterpartyLabel}: ${latestSubject}`,
-          url: `/opportunities/${encodeURIComponent(opportunity.id)}?view=actions&action=emails`,
+          url: `/opportunities/${encodeURIComponent(opportunity.id)}?view=work#emails`,
           note: `mail-thread:${conversationId}`,
           kind: "email",
           claims: meaningfulClaims,
@@ -499,7 +499,7 @@ export async function buildOpportunityDocumentFindings(
 
     const preview = extractSourceFindingPreview(
       summaryText,
-      `/opportunities/${encodeURIComponent(opportunity.id)}?view=actions&action=meetings`,
+      `/opportunities/${encodeURIComponent(opportunity.id)}?view=work#meetings`,
       `Meeting: ${meeting.subject}`,
     );
     const claims = preview.claims.filter((c) => c.id !== "attached");
@@ -507,7 +507,7 @@ export async function buildOpportunityDocumentFindings(
       findings.push(
         createSourceFinding({
           title: `Meeting: ${meeting.subject}`,
-          url: `/opportunities/${encodeURIComponent(opportunity.id)}?view=actions&action=meetings`,
+          url: `/opportunities/${encodeURIComponent(opportunity.id)}?view=work#meetings`,
           note: `meeting:${meeting.id}`,
           kind: "activity",
           claims,
@@ -891,7 +891,7 @@ export async function buildProjectDocumentFindings(
 
     const preview = extractSourceFindingPreview(
       summaryText,
-      `/projects/${encodeURIComponent(project.id)}?view=actions&action=activities`,
+      `/projects/${encodeURIComponent(project.id)}?view=work`,
       `Meeting: ${meeting.subject}`,
     );
     const claims = preview.claims.filter((c) => c.id !== "attached");
@@ -899,7 +899,7 @@ export async function buildProjectDocumentFindings(
       findings.push(
         createSourceFinding({
           title: `Meeting: ${meeting.subject}`,
-          url: `/projects/${encodeURIComponent(project.id)}?view=actions&action=activities`,
+          url: `/projects/${encodeURIComponent(project.id)}?view=work`,
           note: `meeting:${meeting.id}`,
           kind: "activity",
           claims,

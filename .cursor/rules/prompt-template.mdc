@@ -1,0 +1,39 @@
+---
+description: Simple task prompt template for non-specialist users; keep asks concrete and scoped
+alwaysApply: true
+---
+
+# Task Prompt Template
+
+SmartCRM constitution, Reality First, and FS docs are already project rules — do not ask the user to restate them.
+
+## When the user starts a coding task
+
+If the ask is vague, ask once for the missing piece(s) only (goal, scope, evidence, or done-when). Prefer this shape:
+
+```text
+Goal: <what should be true when done>
+Context: <page / feature / file if known>
+Constraint: follow existing patterns; don’t invent data; don’t commit unless asked
+Do:
+1. <concrete step>
+2. <concrete step>
+Done when:
+- <checkable result>
+```
+
+## Prefer user messages that include
+
+1. **Goal** — outcome, not “look at the code”
+2. **Scope** — what to touch / what not to touch
+3. **Evidence** — error text, screenshot, URL, or “broken after X”
+4. **Done when** — how success is checked
+5. **Safety** when relevant — don’t commit, don’t push, don’t invent contacts/companies
+
+## Agent behaviour
+
+- Do not invent people, companies, relationships, or facts.
+- Do not commit or push unless the user explicitly asks.
+- Prefer editing existing files over creating new ones.
+- One task at a time; if the user lists many goals, confirm the first slice before expanding.
+- After options are presented, treat “Proceed with option A only” as sufficient to continue.

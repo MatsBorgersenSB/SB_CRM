@@ -2,11 +2,11 @@
 
 import { useSearchParams } from "next/navigation";
 import { OutlookComposeAssignPane } from "@/components/m365/outlook-compose-assign-pane";
-import { OutlookTaskPaneTabs } from "@/components/m365/outlook-task-pane-tabs";
+import { OutlookRelationshipCardPane } from "@/components/m365/outlook-relationship-card-pane";
 
 /**
  * Routes Outlook add-in task pane by ?mode=compose vs read (default).
- * Read mode: Relationship | Tender Radar.
+ * Read mode: Relationship Card only (Tender Radar lives on web, not the mail pane).
  */
 export function OutlookAddinModeRouter() {
   const searchParams = useSearchParams();
@@ -16,5 +16,5 @@ export function OutlookAddinModeRouter() {
     return <OutlookComposeAssignPane />;
   }
 
-  return <OutlookTaskPaneTabs />;
+  return <OutlookRelationshipCardPane />;
 }

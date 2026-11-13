@@ -23,11 +23,11 @@ function contactDocumentsHref(contactId: string, companyId?: string): string {
 }
 
 function dealDocumentsHref(dealId: string): string {
-  return `/opportunities/${encodeURIComponent(dealId)}?view=actions&action=documents`;
+  return `/opportunities/${encodeURIComponent(dealId)}?view=work#documents`;
 }
 
 function projectDocumentsHref(projectId: string): string {
-  return `/projects/${encodeURIComponent(projectId)}?view=actions&action=documents`;
+  return `/projects/${encodeURIComponent(projectId)}?view=work#documents`;
 }
 
 export type DocumentLocationScope =

@@ -21,10 +21,7 @@ function BlockLabel({ children }: { children: string }) {
 }
 
 const PRIMARY_BTN =
-  "inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50";
-
-const SECONDARY_BTN =
-  "inline-flex items-center justify-center border border-carbon-blue/20 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-carbon-blue transition-colors hover:border-upcycle-orange/45 hover:text-upcycle-orange";
+  "inline-flex w-full items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50";
 
 const TEXT_LINK =
   "text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/55 hover:text-upcycle-orange";
@@ -76,7 +73,7 @@ function SmartCrmLink({
 
 /**
  * Meeting Briefing — seven sections, Michelin layout.
- * Above fold: who → objective → NBA. Soft scroll for supporting context only.
+ * One primary action only. Language / preview / depth links stay secondary.
  */
 export function MeetingBriefing({
   payload,
@@ -94,11 +91,13 @@ export function MeetingBriefing({
   const [replyLanguage, setReplyLanguage] = useState<MeetingReplyLanguageCode>("en");
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
+  const [replyOptionsOpen, setReplyOptionsOpen] = useState(false);
   const [showDraftPreview, setShowDraftPreview] = useState(false);
 
   const primaryRisk = payload.topRisks[0] ?? null;
   const moreRisks = payload.topRisks.slice(1);
   const primaryOpp = payload.openOpportunities[0] ?? null;
+  const canPrepareReply = Boolean(payload.counterpartyEmail?.trim());
 
   const replyDraft = useMemo(
     () => buildMeetingBriefingReplyDraft(payload, replyLanguage),
@@ -162,71 +161,22 @@ export function MeetingBriefing({
           aria-label="Next Best Action"
           className="border border-upcycle-orange/35 bg-upcycle-orange/[0.05] px-3 py-3"
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <BlockLabel>Next best action</BlockLabel>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-upcycle-orange/80">
-              {payload.nextBestAction.priority} priority
-            </span>
-          </div>
+          <BlockLabel>Next best action</BlockLabel>
           <p className="mt-2 text-sm font-semibold text-carbon-blue">
             {payload.nextBestAction.action}
           </p>
           <ImpactContext items={payload.nextBestAction.impact} />
 
-          {payload.counterpartyEmail ? (
-            <div className="mt-3 space-y-2 border-t border-upcycle-orange/20 pt-3">
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/65">
-                  Reply language
-                </span>
-                <select
-                  value={replyLanguage}
-                  onChange={(event) =>
-                    setReplyLanguage(event.target.value as MeetingReplyLanguageCode)
-                  }
-                  className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue outline-none focus:border-upcycle-orange"
-                >
-                  {MEETING_REPLY_LANGUAGES.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+          <div className="mt-3 space-y-2">
+            {canPrepareReply ? (
               <button
                 type="button"
                 disabled={replyBusy}
                 onClick={() => void prepareReply()}
-                className={`w-full ${PRIMARY_BTN}`}
+                className={PRIMARY_BTN}
               >
                 {replyBusy ? "Opening draft…" : "Prepare reply"}
               </button>
-              <button
-                type="button"
-                onClick={() => setShowDraftPreview((open) => !open)}
-                className="w-full text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
-              >
-                {showDraftPreview ? "Hide draft preview" : "Preview draft"}
-              </button>
-              {showDraftPreview ? (
-                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap border border-carbon-blue/10 bg-white px-2.5 py-2 font-sans text-[12px] leading-relaxed text-carbon-blue/75">
-                  {replyDraft.bodyPlain}
-                </pre>
-              ) : null}
-              {replyError ? (
-                <p className="text-[11px] text-thermal-red">{replyError}</p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="mt-3 flex flex-col gap-2">
-            {primaryOpp ? (
-              <SmartCrmLink
-                href={primaryOpp.href}
-                label={`Open ${primaryOpp.label}`}
-                outlookHost={outlookHost}
-                className={SECONDARY_BTN}
-              />
             ) : (
               <SmartCrmLink
                 href={payload.nextBestAction.href || payload.deepLink}
@@ -235,7 +185,64 @@ export function MeetingBriefing({
                 className={PRIMARY_BTN}
               />
             )}
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-0.5">
+
+            {canPrepareReply ? (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setReplyOptionsOpen((open) => !open)}
+                  className="w-full text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
+                >
+                  {replyOptionsOpen ? "Hide reply options" : "Reply language & preview"}
+                </button>
+                {replyOptionsOpen ? (
+                  <div className="mt-2 space-y-2 border border-upcycle-orange/20 bg-white px-2.5 py-2">
+                    <label className="block">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-carbon-blue/65">
+                        Reply language
+                      </span>
+                      <select
+                        value={replyLanguage}
+                        onChange={(event) =>
+                          setReplyLanguage(event.target.value as MeetingReplyLanguageCode)
+                        }
+                        className="mt-1 w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] font-medium text-carbon-blue outline-none focus:border-upcycle-orange"
+                      >
+                        {MEETING_REPLY_LANGUAGES.map((lang) => (
+                          <option key={lang.code} value={lang.code}>
+                            {lang.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowDraftPreview((open) => !open)}
+                      className="w-full text-center text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/50 hover:text-upcycle-orange"
+                    >
+                      {showDraftPreview ? "Hide draft preview" : "Preview draft"}
+                    </button>
+                    {showDraftPreview ? (
+                      <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap border border-carbon-blue/10 bg-white px-2.5 py-2 font-sans text-[12px] leading-relaxed text-carbon-blue/75">
+                        {replyDraft.bodyPlain}
+                      </pre>
+                    ) : null}
+                  </div>
+                ) : null}
+                {replyError ? (
+                  <p className="mt-2 text-[11px] text-thermal-red">{replyError}</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-1">
+              {primaryOpp ? (
+                <SmartCrmLink
+                  href={primaryOpp.href}
+                  label={`Open ${primaryOpp.label}`}
+                  outlookHost={outlookHost}
+                />
+              ) : null}
               <SmartCrmLink
                 href={payload.deepLink}
                 label="Open account"
