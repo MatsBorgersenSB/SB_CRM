@@ -1,13 +1,13 @@
 import type { OpportunityActionTab } from "@/types/opportunity-actions";
 
 /**
- * FS-005A — four tabs. Gaps merged into Understanding; Influence lives under
- * Understanding; Meetings and Emails live under Actions.
+ * Four tabs. Actions renamed to Work; nested action sub-tabs removed from chrome.
+ * Work is one living surface (activity + mail + meetings + documents).
  */
 export const OPPORTUNITY_MISSION_CONTROL_VIEWS = [
   { id: "overview", label: "Overview" },
   { id: "understanding", label: "Understanding" },
-  { id: "actions", label: "Actions" },
+  { id: "work", label: "Work" },
   { id: "ask", label: "Ask" },
 ] as const;
 
@@ -29,12 +29,13 @@ export const DEFAULT_MISSION_CONTROL_VIEW: OpportunityMissionControlView = "over
 
 export type DealLocation = {
   view: OpportunityMissionControlView;
+  /** Optional deep-link into a Work section (legacy action=). */
   action?: OpportunityActionTab;
 };
 
 /**
- * Old links keep working: gaps/influence → Understanding, meetings/emails → Actions,
- * stakeholders → Overview. Returns null when the location is already current.
+ * Old links keep working: gaps/influence → Understanding, meetings/emails/actions → Work.
+ * Returns null when the location is already current.
  */
 export function mapLegacyDealLocation(
   view: string | null,
@@ -44,10 +45,16 @@ export function mapLegacyDealLocation(
     case "gaps":
     case "influence":
       return { view: "understanding" };
+    case "actions":
+      if (action === "stakeholders") return { view: "overview" };
+      return {
+        view: "work",
+        action: action ? (action as OpportunityActionTab) : undefined,
+      };
     case "meetings":
-      return { view: "actions", action: "meetings" };
+      return { view: "work", action: "meetings" };
     case "emails":
-      return { view: "actions", action: "emails" };
+      return { view: "work", action: "emails" };
     default:
       break;
   }

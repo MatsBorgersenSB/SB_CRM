@@ -1,8 +1,9 @@
 "use client";
 
-import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
+import { CreateMenu } from "@/components/layout/create-menu";
 import { WorkspaceModeNav } from "@/components/ui/workspace-mode-nav";
 import type { ActivityWorkspaceContext } from "@/types/activity";
+import type { CreateActivityInput } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import {
@@ -16,7 +17,6 @@ export function ProjectMissionControlTabBar({
   activityContext,
   companies = [],
   pipelines = [],
-  documentCount,
 }: {
   active: ProjectMissionControlView;
   onChange: (view: ProjectMissionControlView) => void;
@@ -25,6 +25,15 @@ export function ProjectMissionControlTabBar({
   pipelines?: PipelineRow[];
   documentCount?: number;
 }) {
+  const preset: Partial<CreateActivityInput> = {
+    Company: activityContext.companyId
+      ? { CompanyID: activityContext.companyId }
+      : null,
+    Deal: activityContext.dealId ? { DealID: activityContext.dealId } : null,
+    ProjectId: activityContext.projectId ?? null,
+    ProjectName: activityContext.projectName ?? null,
+  };
+
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
@@ -38,11 +47,12 @@ export function ProjectMissionControlTabBar({
           onChange={(id) => onChange(id as ProjectMissionControlView)}
         />
       </div>
-      <EntityNewActivityButton
-        context={activityContext}
+      <CreateMenu
+        variant="header"
+        activityPreset={preset}
         companies={companies}
         pipelines={pipelines}
-        documentCount={documentCount}
+        meetingSubject={activityContext.projectName}
       />
     </div>
   );

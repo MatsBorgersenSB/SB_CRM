@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { Activity, ActivityWorkspaceContext } from "@/types/activity";
 import type { AttentionItem } from "@/types/attention-item";
 import type { CommercialViabilityAssessment } from "@/types/commercial-viability";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
-import { OpportunityActionsTabBar } from "@/components/opportunity/opportunity-actions-tab-bar";
 import { OpportunityDealBriefHero } from "@/components/opportunity/opportunity-deal-brief";
 import {
   buildDealBrief,
@@ -60,6 +59,12 @@ import {
   EDITORIAL_LABEL,
 } from "@/lib/editorial-design-system";
 import { ATTIO_SURFACE, ATTIO_SURFACE_HEADER } from "@/lib/attio-workspace-surfaces";
+import { QueryPackStrip } from "@/components/opportunity/query-pack-strip";
+import {
+  QueryPackPanel,
+  type QueryPackRosterCompany,
+} from "@/components/opportunity/query-pack-panel";
+import type { OpportunityUnderstandingCapture } from "@/types/opportunity-understanding";
 
 export function OpportunityMissionControl({
   view: requestedView,
@@ -67,7 +72,8 @@ export function OpportunityMissionControl({
   actionTab,
   onActionTabChange,
   actionCounts,
-  actionContent,
+  activitiesContent,
+  documentsContent,
   stakeholdersOverview,
   pipeline,
   companies,
@@ -81,16 +87,20 @@ export function OpportunityMissionControl({
   onSaveUnderstandingField,
   onSaveDiscoveryAnswer,
   onSaveFindings,
+  onSaveUnderstandingCapture,
+  rosterCompaniesForQueryPack,
   onReadDocuments,
   role = "superuser",
   influenceReadOnly = false,
+  draftToEmail,
 }: {
   view: OpportunityMissionControlView;
   onViewChange: (view: OpportunityMissionControlView) => void;
   actionTab: OpportunityActionTab;
   onActionTabChange: (tab: OpportunityActionTab) => void;
   actionCounts?: Partial<Record<OpportunityActionTab, number>>;
-  actionContent: ReactNode;
+  activitiesContent: ReactNode;
+  documentsContent: ReactNode;
   stakeholdersOverview?: ReactNode;
   pipeline: PipelineRow;
   companies: Company[];
@@ -110,10 +120,16 @@ export function OpportunityMissionControl({
     value: string,
   ) => Promise<void>;
   onSaveFindings?: (findings: SourceFinding[]) => Promise<void>;
+  onSaveUnderstandingCapture?: (
+    understanding: OpportunityUnderstandingCapture,
+  ) => Promise<void>;
+  rosterCompaniesForQueryPack?: QueryPackRosterCompany[];
   onReadDocuments?: () => Promise<SourceFinding[]>;
   role?: UserRole;
   influenceReadOnly?: boolean;
+  draftToEmail?: string;
 }) {
+  const [queryPackOpen, setQueryPackOpen] = useState(false);
   // Product sale (dryer, biochar…): no investigation surfaces — buyer, quantity, date, quote.
   const isProductSale = resolveSalesMotion(pipeline).motion === "product";
   const view =
@@ -237,18 +253,9 @@ export function OpportunityMissionControl({
             pipelines={pipelines}
             documentCount={actionCounts?.documents}
             hiddenViews={isProductSale ? PRODUCT_SALE_HIDDEN_VIEWS : undefined}
+            mailTo={draftToEmail}
           />
         </div>
-
-        {view === "actions" ? (
-          <div className="border-b border-slate-200/80 px-3 py-2 dark:border-slate-800">
-            <OpportunityActionsTabBar
-              active={actionTab}
-              onChange={onActionTabChange}
-              counts={discoveryCounts}
-            />
-          </div>
-        ) : null}
 
         <div className="px-4 py-5 sm:px-5">
         {view === "overview" ? (
@@ -286,6 +293,29 @@ export function OpportunityMissionControl({
             industry={findCompanyForDeal(pipeline.id, companies)?.Industry}
             lean={isProductSale}
             brief={brief}
+            queryPackSlot={
+              onSaveUnderstandingCapture ? (
+                <div className="flex flex-col gap-3">
+                  <QueryPackStrip
+                    pack={pipeline.understanding?.queryPack}
+                    contextLabel={pipeline.assetName}
+                    onOpen={() => setQueryPackOpen(true)}
+                  />
+                  {queryPackOpen ? (
+                    <QueryPackPanel
+                      scope="opportunity"
+                      scopeId={pipeline.id}
+                      understanding={pipeline.understanding}
+                      rosterCompanies={rosterCompaniesForQueryPack ?? []}
+                      onSave={onSaveUnderstandingCapture}
+                      onClose={() => setQueryPackOpen(false)}
+                      uploadScope={{ kind: "opportunity", dealId: pipeline.id }}
+                      uploadRole={role}
+                    />
+                  ) : null}
+                </div>
+              ) : null
+            }
             knowledgeReview={
               <KnowledgeProposalReview
                 scope={{ opportunityId: pipeline.id }}
@@ -304,7 +334,10 @@ export function OpportunityMissionControl({
                         onSaveUnderstandingField(fieldId as UnderstandingFieldId, value)
                     : undefined
                 }
-                onOpenEmails={() => onActionTabChange("emails")}
+                onOpenEmails={() => {
+                  onViewChange("work");
+                  onActionTabChange("emails");
+                }}
               />
             }
           />
@@ -346,58 +379,111 @@ export function OpportunityMissionControl({
           </div>
         ) : null}
 
-        {view === "actions" ? (
-          <div className="pt-1">
-            {actionTab === "emails" ? (
+        {view === "work" ? (
+          <div className="flex flex-col gap-10 pt-1">
+            <nav
+              aria-label="Work sections"
+              className="flex flex-wrap gap-2 text-[12px] font-semibold text-slate-500"
+            >
+              {(
+                [
+                  ["activities", "Activities"],
+                  ["emails", "Emails"],
+                  ["meetings", "Meetings"],
+                  ["documents", "Documents"],
+                ] as const
+              ).map(([id, label]) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  className={
+                    actionTab === id
+                      ? "text-upcycle-orange"
+                      : "hover:text-slate-800 dark:hover:text-slate-200"
+                  }
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onActionTabChange(id);
+                    document.getElementById(id)?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }}
+                >
+                  {label}
+                  {id === "documents" && (actionCounts?.documents ?? 0) > 0
+                    ? ` (${actionCounts?.documents})`
+                    : null}
+                </a>
+              ))}
+            </nav>
+
+            <section id="activities" className="scroll-mt-24">
+              <h3 className={`${EDITORIAL_LABEL} mb-3`}>Activities</h3>
+              {activitiesContent}
+            </section>
+
+            <section id="emails" className="scroll-mt-24 border-t border-slate-200/80 pt-8 dark:border-slate-800">
               <EmailIntelligence
                 opportunityId={pipeline.id}
                 role={role}
                 readOnly={influenceReadOnly}
               />
-            ) : null}
-            {actionTab === "meetings" ? (
+            </section>
+
+            <section id="meetings" className="scroll-mt-24 border-t border-slate-200/80 pt-8 dark:border-slate-800">
               <MeetingIntelligence
                 opportunityId={pipeline.id}
                 role={role}
                 readOnly={influenceReadOnly}
               />
-            ) : null}
-            {actionTab === "questions" ? (
-              <OpportunityQuestionsWorkspace
-                pipeline={pipeline}
-                companies={companies}
-                commercialPackages={commercialPackages}
-                understanding={understanding}
-                questions={understanding.discoveryQuestionItems}
-                onSaveAnswer={onSaveDiscoveryAnswer}
-              />
-            ) : null}
-            {actionTab === "validations" ? (
-              <ActionInsightList
-                items={understanding.suggestedValidations}
-                emptyLabel="No validations suggested yet."
-              />
-            ) : null}
-            {actionTab === "conversations" ? (
-              <ActionInsightList
-                items={understanding.recommendedConversations}
-                emptyLabel="Log a customer interaction to unlock conversation angles."
-              />
-            ) : null}
-            {actionTab === "timeline" ? (
-              <OpportunityTimelineWorkspace
-                pipeline={pipeline}
-                companies={companies}
-                commercialPackages={commercialPackages}
-                understanding={understanding}
-                activities={activities.filter(
-                  (activity) =>
-                    activity.Deal?.Title === pipeline.id ||
-                    activity.LinkedDeals?.some((deal) => deal.Title === pipeline.id),
-                )}
-              />
-            ) : null}
-            {actionTab === "activities" || actionTab === "documents" ? actionContent : null}
+            </section>
+
+            <section id="documents" className="scroll-mt-24 border-t border-slate-200/80 pt-8 dark:border-slate-800">
+              <h3 className={`${EDITORIAL_LABEL} mb-3`}>Documents</h3>
+              {documentsContent}
+            </section>
+
+            <details className="group border-t border-slate-200/80 pt-6 dark:border-slate-800">
+              <summary className="cursor-pointer list-none text-[13px] font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200">
+                Discovery prep
+                {(discoveryCounts.questions ?? 0) +
+                  (discoveryCounts.validations ?? 0) +
+                  (discoveryCounts.conversations ?? 0) >
+                0
+                  ? ` (${(discoveryCounts.questions ?? 0) + (discoveryCounts.validations ?? 0) + (discoveryCounts.conversations ?? 0)})`
+                  : ""}
+              </summary>
+              <div className="mt-6 flex flex-col gap-8">
+                <OpportunityQuestionsWorkspace
+                  pipeline={pipeline}
+                  companies={companies}
+                  commercialPackages={commercialPackages}
+                  understanding={understanding}
+                  questions={understanding.discoveryQuestionItems}
+                  onSaveAnswer={onSaveDiscoveryAnswer}
+                />
+                <ActionInsightList
+                  items={understanding.suggestedValidations}
+                  emptyLabel="No validations suggested yet."
+                />
+                <ActionInsightList
+                  items={understanding.recommendedConversations}
+                  emptyLabel="Log a customer interaction to unlock conversation angles."
+                />
+                <OpportunityTimelineWorkspace
+                  pipeline={pipeline}
+                  companies={companies}
+                  commercialPackages={commercialPackages}
+                  understanding={understanding}
+                  activities={activities.filter(
+                    (activity) =>
+                      activity.Deal?.Title === pipeline.id ||
+                      activity.LinkedDeals?.some((deal) => deal.Title === pipeline.id),
+                  )}
+                />
+              </div>
+            </details>
           </div>
         ) : null}
 
@@ -435,9 +521,11 @@ function OverviewPanel({
   brief,
   mailSignals,
   knowledgeReview,
+  queryPackSlot,
 }: {
   brief?: DealBrief | null;
   knowledgeReview?: ReactNode;
+  queryPackSlot?: ReactNode;
   lean?: boolean;
   mailSignals?: ReactNode;
   objective: string;
@@ -470,6 +558,8 @@ function OverviewPanel({
     return (
       <div className={`flex flex-col ${EDITORIAL_GAP_SECTION} py-1`}>
         <OpportunityDealBriefHero brief={brief} onAnswerNow={onAnswerNow} />
+
+        {queryPackSlot}
 
         {stakeholdersOverview ? (
           <section>
@@ -561,6 +651,8 @@ function OverviewPanel({
         recommendedAction={nextAction}
         expectedOutcome={nextActionOutcome}
       />
+
+      {queryPackSlot}
 
       {stakeholdersOverview ? (
         <section className="border-t border-slate-200/80 pt-8 dark:border-slate-800">

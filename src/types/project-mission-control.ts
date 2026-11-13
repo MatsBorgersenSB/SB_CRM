@@ -1,10 +1,12 @@
+/**
+ * Project Mission Control — aligned with Opportunity: Overview · Understanding · Work · Ask.
+ * Gaps / Risks / Emails / Actions map via legacy helpers.
+ */
 export const PROJECT_MISSION_CONTROL_VIEWS = [
   { id: "overview", label: "Overview" },
-  { id: "gaps", label: "Gaps" },
   { id: "understanding", label: "Understanding" },
-  { id: "risks", label: "Risks" },
-  { id: "emails", label: "Emails" },
-  { id: "actions", label: "Actions" },
+  { id: "work", label: "Work" },
+  { id: "ask", label: "Ask" },
 ] as const;
 
 export type ProjectMissionControlView =
@@ -17,3 +19,19 @@ export function isProjectMissionControlView(
 }
 
 export const DEFAULT_PROJECT_MISSION_CONTROL_VIEW: ProjectMissionControlView = "overview";
+
+/** Map old project views onto the four-tab model. */
+export function mapLegacyProjectView(
+  view: string | null,
+): ProjectMissionControlView | null {
+  switch (view) {
+    case "gaps":
+    case "risks":
+      return "understanding";
+    case "emails":
+    case "actions":
+      return "work";
+    default:
+      return null;
+  }
+}

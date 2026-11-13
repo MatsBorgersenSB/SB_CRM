@@ -16,6 +16,7 @@ import {
 import {
   DEFAULT_PROJECT_MISSION_CONTROL_VIEW,
   isProjectMissionControlView,
+  mapLegacyProjectView,
   type ProjectMissionControlView,
 } from "@/types/project-mission-control";
 import type {
@@ -27,6 +28,7 @@ import type {
   OpportunityUnderstandingCapture,
   UnderstandingFieldId,
 } from "@/types/opportunity-understanding";
+import type { QueryPackRosterCompany } from "@/components/opportunity/query-pack-panel";
 import type { UserRole } from "@/types/auth";
 import type { SourceFinding } from "@/lib/source-findings";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
@@ -83,12 +85,13 @@ function buildProjectUrl(
   if (view !== DEFAULT_PROJECT_MISSION_CONTROL_VIEW) {
     params.set("view", view);
   }
-  if (view === "actions") {
-    const tab = actionTab ?? DEFAULT_PROJECT_ACTION_TAB;
-    params.set("action", tab);
+  if (view === "work" && actionTab && actionTab !== DEFAULT_PROJECT_ACTION_TAB) {
+    params.set("action", actionTab);
   }
   const query = params.toString();
-  return `/projects/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}`;
+  const hash =
+    view === "work" && actionTab && actionTab !== "activities" ? `#${actionTab}` : "";
+  return `/projects/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}${hash}`;
 }
 
 export function Project360LivingWorkspace({
@@ -159,8 +162,10 @@ export function Project360LivingWorkspace({
 
   const missionView = useMemo(() => {
     if (isProjectMissionControlView(viewParam)) return viewParam;
+    const legacy = mapLegacyProjectView(viewParam);
+    if (legacy) return legacy;
     if (legacyTabParam && LEGACY_HASH_TO_ACTION[legacyTabParam]) {
-      return "actions";
+      return "work";
     }
     return DEFAULT_PROJECT_MISSION_CONTROL_VIEW;
   }, [viewParam, legacyTabParam]);
@@ -168,7 +173,7 @@ export function Project360LivingWorkspace({
   const setMissionView = useCallback(
     (view: ProjectMissionControlView) => {
       const nextAction =
-        view === "actions" ? actionTab ?? DEFAULT_PROJECT_ACTION_TAB : null;
+        view === "work" ? actionTab ?? DEFAULT_PROJECT_ACTION_TAB : null;
       router.replace(buildProjectUrl(project.id, view, nextAction), { scroll: false });
     },
     [project.id, router, actionTab],
@@ -176,7 +181,7 @@ export function Project360LivingWorkspace({
 
   const setActionTab = useCallback(
     (tab: ProjectActionTab) => {
-      router.replace(buildProjectUrl(project.id, "actions", tab), { scroll: false });
+      router.replace(buildProjectUrl(project.id, "work", tab), { scroll: false });
     },
     [project.id, router],
   );
@@ -186,7 +191,7 @@ export function Project360LivingWorkspace({
     if (!hash) return;
     const mapped = LEGACY_HASH_TO_ACTION[hash];
     if (mapped) {
-      router.replace(buildProjectUrl(project.id, "actions", mapped), { scroll: false });
+      router.replace(buildProjectUrl(project.id, "work", mapped), { scroll: false });
     }
   }, [project.id, router]);
 
@@ -285,6 +290,14 @@ export function Project360LivingWorkspace({
     [onUnderstandingChange, effectiveUnderstanding],
   );
 
+  const handleSaveUnderstandingCapture = useCallback(
+    async (understanding: OpportunityUnderstandingCapture) => {
+      if (!onUnderstandingChange) return;
+      await onUnderstandingChange(understanding);
+    },
+    [onUnderstandingChange],
+  );
+
   const handleReadDocuments = useCallback(async (): Promise<SourceFinding[]> => {
     const response = await fetch(
       `/api/projects/${encodeURIComponent(project.id)}/findings/from-documents`,
@@ -318,6 +331,27 @@ export function Project360LivingWorkspace({
 
   const linkedCompany = companies.find((row) => row.CompanyID === project.linkedCompanyId);
   const documentsContext = workspaceDocumentsContextFromProject(project, linkedPipeline, linkedCompany);
+
+  const rosterCompaniesForQueryPack = useMemo((): QueryPackRosterCompany[] => {
+    const byId = new Map<string, QueryPackRosterCompany>();
+    if (linkedCompany?.CompanyID && linkedCompany.Title) {
+      byId.set(linkedCompany.CompanyID, {
+        companyId: linkedCompany.CompanyID,
+        companyTitle: linkedCompany.Title,
+      });
+    }
+    for (const org of organizations) {
+      const match = companies.find((row) => row.CompanyID === org.companyId);
+      if (!match?.CompanyID || !match.Title) continue;
+      byId.set(match.CompanyID, {
+        companyId: match.CompanyID,
+        companyTitle: match.Title,
+      });
+    }
+    return [...byId.values()].sort((a, b) =>
+      a.companyTitle.localeCompare(b.companyTitle),
+    );
+  }, [linkedCompany, organizations, companies]);
 
   const actionCounts = useMemo(
     () => ({
@@ -388,20 +422,10 @@ export function Project360LivingWorkspace({
     [intelligence.stakeholderIntelligence],
   );
 
-  const actionContent = useMemo(() => {
-    switch (actionTab) {
-      case "questions":
-        return intelligence.discovery ? (
-          <ProjectDiscoveryQuestionsPanel
-            projectId={project.id}
-            project={project}
-            questions={intelligence.discovery.discoveryQuestionItems}
-            validations={intelligence.discovery.suggestedValidations}
-            conversations={intelligence.discovery.recommendedConversations}
-          />
-        ) : null;
-      case "activities":
-        return (
+  const actionContent = useMemo(
+    () => (
+      <div className="flex flex-col gap-10">
+        <section id="activities" className="scroll-mt-24">
           <div className="flex flex-col gap-4">
             <ProjectActivitiesPanel {...activityBuckets} />
             <SmartActivityWorkspace
@@ -419,30 +443,8 @@ export function Project360LivingWorkspace({
               variant="embedded"
             />
           </div>
-        );
-      case "organizations":
-        return organizationsOverview;
-      case "stakeholders":
-        return (
-          <div className="flex flex-col gap-8">
-            {intelligence.stakeholderIntelligence ? (
-              <ProjectStakeholderIntelligencePanel
-                intelligence={intelligence.stakeholderIntelligence}
-              />
-            ) : null}
-            <ProjectStakeholdersRosterPanel
-              project={project}
-              stakeholders={stakeholders}
-              organizations={organizations}
-              companies={companies}
-              standardBioUsers={standardBioUsers}
-              readOnly={relationshipsReadOnly}
-              onChange={onStakeholdersChange}
-            />
-          </div>
-        );
-      case "documents":
-        return (
+        </section>
+        <section id="documents" className="scroll-mt-24 border-t border-carbon-blue/10 pt-8">
           <WorkspaceDocumentsPanel
             context={documentsContext}
             companies={companies}
@@ -467,42 +469,76 @@ export function Project360LivingWorkspace({
             }
             onOpenUnderstanding={() => setMissionView("understanding")}
           />
-        );
-      case "milestones":
-        return <ProjectMilestonesPanel milestones={project.milestones} />;
-      case "decisions":
-        return <ProjectDecisionsPanel decisions={project.decisions} />;
-      default:
-        return null;
-    }
-  }, [
-    actionTab,
-    activityBuckets,
-    projectActivities,
-    companies,
-    pipelines,
-    project,
-    linkedCompany,
-    attentionItems,
-    organizationsOverview,
-    stakeholders,
-    organizations,
-    standardBioUsers,
-    relationshipsReadOnly,
-    onStakeholdersChange,
-    intelligence.discovery,
-    intelligence.stakeholderIntelligence,
-    linkedPipeline?.id,
-    documentsContext,
-    activities,
-    project.milestones,
-    project.decisions,
-    onUnderstandingChange,
-    handleReadDocuments,
-    effectiveUnderstanding.findings,
-    handleSaveFindings,
-    setMissionView,
-  ]);
+        </section>
+        <section id="organizations" className="scroll-mt-24 border-t border-carbon-blue/10 pt-8">
+          {organizationsOverview}
+        </section>
+        <section id="stakeholders" className="scroll-mt-24 border-t border-carbon-blue/10 pt-8">
+          <div className="flex flex-col gap-8">
+            {intelligence.stakeholderIntelligence ? (
+              <ProjectStakeholderIntelligencePanel
+                intelligence={intelligence.stakeholderIntelligence}
+              />
+            ) : null}
+            <ProjectStakeholdersRosterPanel
+              project={project}
+              stakeholders={stakeholders}
+              organizations={organizations}
+              companies={companies}
+              standardBioUsers={standardBioUsers}
+              readOnly={relationshipsReadOnly}
+              onChange={onStakeholdersChange}
+            />
+          </div>
+        </section>
+        <details className="border-t border-carbon-blue/10 pt-6">
+          <summary className="cursor-pointer list-none text-[13px] font-semibold text-carbon-blue">
+            Questions, milestones, decisions
+          </summary>
+          <div className="mt-6 flex flex-col gap-8">
+            {intelligence.discovery ? (
+              <ProjectDiscoveryQuestionsPanel
+                projectId={project.id}
+                project={project}
+                questions={intelligence.discovery.discoveryQuestionItems}
+                validations={intelligence.discovery.suggestedValidations}
+                conversations={intelligence.discovery.recommendedConversations}
+              />
+            ) : null}
+            <ProjectMilestonesPanel milestones={project.milestones} />
+            <ProjectDecisionsPanel decisions={project.decisions} />
+          </div>
+        </details>
+      </div>
+    ),
+    [
+      activityBuckets,
+      projectActivities,
+      companies,
+      pipelines,
+      project,
+      linkedCompany,
+      attentionItems,
+      organizationsOverview,
+      stakeholders,
+      organizations,
+      standardBioUsers,
+      relationshipsReadOnly,
+      onStakeholdersChange,
+      intelligence.discovery,
+      intelligence.stakeholderIntelligence,
+      linkedPipeline?.id,
+      documentsContext,
+      activities,
+      project.milestones,
+      project.decisions,
+      onUnderstandingChange,
+      handleReadDocuments,
+      effectiveUnderstanding.findings,
+      handleSaveFindings,
+      setMissionView,
+    ],
+  );
 
   return (
     <WorkspaceStack className="gap-10 xl:gap-12">
@@ -517,7 +553,7 @@ export function Project360LivingWorkspace({
         onOwnerChange={onOwnerChange}
         onOrganizationsChange={relationshipsReadOnly ? undefined : onOrganizationsChange}
         onAddOrganization={() => {
-          router.replace(buildProjectUrl(project.id, "actions", "organizations"), { scroll: false });
+          router.replace(buildProjectUrl(project.id, "work", "organizations"), { scroll: false });
         }}
       />
 
@@ -559,6 +595,12 @@ export function Project360LivingWorkspace({
             ? handleSaveFindings
             : undefined
         }
+        onSaveUnderstandingCapture={
+          !relationshipsReadOnly && onUnderstandingChange
+            ? handleSaveUnderstandingCapture
+            : undefined
+        }
+        rosterCompaniesForQueryPack={rosterCompaniesForQueryPack}
         onReadDocuments={handleReadDocuments}
       />
     </WorkspaceStack>

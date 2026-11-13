@@ -1,6 +1,7 @@
 /** Phase 2.6B — Opportunity Understanding Capture model */
 
 import type { SourceFinding } from "@/lib/source-findings";
+import type { QueryPack } from "@/types/query-pack";
 
 export type UnderstandingCategory =
   | "customer"
@@ -342,6 +343,8 @@ export type OpportunityUnderstandingCapture = {
   discoveryNotes?: Record<string, string>;
   /** Public-source and user notes added via Add a finding. */
   findings?: SourceFinding[];
+  /** FS-024 Opportunity / Project Query Pack (current pack). */
+  queryPack?: QueryPack;
   updatedAt?: string;
 };
 

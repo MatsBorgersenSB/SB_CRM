@@ -15,7 +15,6 @@ import { OpportunityDealBriefHero } from "@/components/opportunity/opportunity-d
 import { OpportunityKnowledgeView } from "@/components/opportunity/opportunity-knowledge-view";
 import { OpportunityUnderstandingCapturePanel } from "@/components/opportunity/opportunity-understanding-capture-panel";
 import { AddFindingPanel } from "@/components/knowledge/add-finding-panel";
-import { ProjectActionsTabBar } from "@/components/project/project-actions-tab-bar";
 import { ProjectInsightCatalogPanel } from "@/components/project/project-insight-catalog-panel";
 import { ProjectMissionControlTabBar } from "@/components/project/project-mission-control-tab-bar";
 import { ProjectObjectivePanel } from "@/components/project/project-objective-panel";
@@ -43,6 +42,12 @@ import {
   EDITORIAL_INSIGHT_STANDARD,
   EDITORIAL_LABEL,
 } from "@/lib/editorial-design-system";
+import { QueryPackStrip } from "@/components/opportunity/query-pack-strip";
+import {
+  QueryPackPanel,
+  type QueryPackRosterCompany,
+} from "@/components/opportunity/query-pack-panel";
+import type { OpportunityUnderstandingCapture } from "@/types/opportunity-understanding";
 
 export function ProjectMissionControl({
   view,
@@ -68,6 +73,8 @@ export function ProjectMissionControl({
   onAnswerNow,
   onSaveUnderstandingField,
   onSaveFindings,
+  onSaveUnderstandingCapture,
+  rosterCompaniesForQueryPack,
   onReadDocuments,
 }: {
   view: ProjectMissionControlView;
@@ -93,8 +100,13 @@ export function ProjectMissionControl({
   onAnswerNow?: (fieldId: string) => void;
   onSaveUnderstandingField?: (fieldId: UnderstandingFieldId, value: string) => Promise<void>;
   onSaveFindings?: (findings: SourceFinding[]) => Promise<void>;
+  onSaveUnderstandingCapture?: (
+    understanding: OpportunityUnderstandingCapture,
+  ) => Promise<void>;
+  rosterCompaniesForQueryPack?: QueryPackRosterCompany[];
   onReadDocuments?: () => Promise<SourceFinding[]>;
 }) {
+  const [askCompaniesOpen, setAskCompaniesOpen] = useState(false);
   const discovery = intelligence.discovery;
   const discoveryReady = intelligence.discoveryReady ?? false;
   const realityFirst = intelligence.realityFirst ?? false;
@@ -182,16 +194,6 @@ export function ProjectMissionControl({
         documentCount={actionCounts?.documents}
       />
 
-      {view === "actions" ? (
-        <div className="mt-4">
-          <ProjectActionsTabBar
-            active={actionTab}
-            onChange={onActionTabChange}
-            counts={actionCounts}
-          />
-        </div>
-      ) : null}
-
       <div className="mt-10">
         {view === "overview" ? (
           developmentBrief ? (
@@ -208,6 +210,32 @@ export function ProjectMissionControl({
                 scanningFelRadar={scanningHero}
                 scanNotice={heroScanNotice}
               />
+              {onSaveUnderstandingCapture ? (
+                <div className="flex flex-col gap-3">
+                  <QueryPackStrip
+                    pack={
+                      project.understanding?.queryPack ??
+                      developmentPipeline?.understanding?.queryPack
+                    }
+                    contextLabel={project.name}
+                    onOpen={() => setAskCompaniesOpen(true)}
+                  />
+                  {askCompaniesOpen ? (
+                    <QueryPackPanel
+                      scope="project"
+                      scopeId={project.id}
+                      understanding={
+                        project.understanding ?? developmentPipeline?.understanding
+                      }
+                      rosterCompanies={rosterCompaniesForQueryPack ?? []}
+                      onSave={onSaveUnderstandingCapture}
+                      onClose={() => setAskCompaniesOpen(false)}
+                      uploadScope={{ kind: "project", projectId: project.id }}
+                      uploadRole={role}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
               {organizationsOverview ? (
                 <section className="border-t border-carbon-blue/10 pt-8">
                   <p className={`${EDITORIAL_LABEL} mb-1`}>Related organizations</p>
@@ -271,31 +299,28 @@ export function ProjectMissionControl({
           )
         ) : null}
 
-        {view === "gaps" && !realityFirst ? (
-          <OpportunityKnowledgeView
-            variant="gaps"
-            criticalGaps={
-              developmentPipeline
-                ? [
-                    ...developmentGaps,
-                    ...(discovery?.knowledgeModel.criticalGaps ?? []),
-                  ]
-                : (discovery?.knowledgeModel.criticalGaps ?? [])
-            }
-            confirmedUnderstanding={[]}
-            onAnswerNow={onAnswerNow}
-          />
-        ) : null}
-
-        {view === "gaps" && realityFirst ? (
-          <p className={`${EDITORIAL_CONTENT} ${EDITORIAL_BODY_MUTED}`}>
-            No critical discovery gaps for this operational project. Capture new issues only when
-            evidence appears.
-          </p>
-        ) : null}
-
         {view === "understanding" ? (
           <div className={`${EDITORIAL_CONTENT} flex flex-col gap-10`}>
+            {!realityFirst ? (
+              <OpportunityKnowledgeView
+                variant="gaps"
+                criticalGaps={
+                  developmentPipeline
+                    ? [
+                        ...developmentGaps,
+                        ...(discovery?.knowledgeModel.criticalGaps ?? []),
+                      ]
+                    : (discovery?.knowledgeModel.criticalGaps ?? [])
+                }
+                confirmedUnderstanding={[]}
+                onAnswerNow={onAnswerNow}
+              />
+            ) : (
+              <p className={EDITORIAL_BODY_MUTED}>
+                No critical discovery gaps for this operational project. Capture new issues only when
+                evidence appears.
+              </p>
+            )}
             {developmentPipeline ? (
               <>
                 <OpportunityUnderstandingCapturePanel
@@ -303,7 +328,7 @@ export function ProjectMissionControl({
                   linkedWork={linkedWork}
                   pillarCounterparties={pillarCounterparties}
                   onLinkCounterparty={() => {
-                    onViewChange("actions");
+                    onViewChange("work");
                     onActionTabChange("organizations");
                   }}
                   focusFieldId={focusFieldId}
@@ -342,28 +367,70 @@ export function ProjectMissionControl({
                 <p className="mt-2 text-[14px] leading-relaxed text-carbon-blue">{project.objective}</p>
               </div>
             ) : null}
+            <div className="border-t border-carbon-blue/10 pt-8">
+              <p className={`${EDITORIAL_LABEL} mb-3`}>Risks</p>
+              {project.risks.length === 0 ? (
+                <p className={EDITORIAL_BODY_MUTED}>No open risks.</p>
+              ) : (
+                <ProjectRisksPanel risks={project.risks} />
+              )}
+            </div>
           </div>
         ) : null}
 
-        {view === "risks" ? (
-          <div className={EDITORIAL_CONTENT}>
-            {project.risks.length === 0 ? (
-              <p className={EDITORIAL_BODY_MUTED}>No open risks.</p>
-            ) : (
-              <ProjectRisksPanel risks={project.risks} />
-            )}
+        {view === "work" ? (
+          <div className="flex flex-col gap-8 pt-1">
+            <nav
+              aria-label="Work sections"
+              className="flex flex-wrap gap-2 text-[12px] font-semibold text-carbon-blue/55"
+            >
+              {(
+                [
+                  ["activities", "Activities"],
+                  ["emails", "Emails"],
+                  ["documents", "Documents"],
+                  ["organizations", "Organizations"],
+                  ["stakeholders", "Stakeholders"],
+                ] as const
+              ).map(([id, label]) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  className={
+                    actionTab === id ? "text-upcycle-orange" : "hover:text-carbon-blue"
+                  }
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (id !== "emails") {
+                      onActionTabChange(id);
+                    }
+                    document.getElementById(id)?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }}
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+            <section id="emails" className="scroll-mt-24">
+              <EmailIntelligence
+                projectId={project.id}
+                role={role}
+                readOnly={emailsReadOnly}
+              />
+            </section>
+            {actionContent}
           </div>
         ) : null}
 
-        {view === "emails" ? (
-          <EmailIntelligence
-            projectId={project.id}
-            role={role}
-            readOnly={emailsReadOnly}
-          />
+        {view === "ask" ? (
+          <p className={`${EDITORIAL_CONTENT} ${EDITORIAL_BODY_MUTED}`}>
+            Ask from the global Ask SmartAssist control — project context is already in the
+            workspace.
+          </p>
         ) : null}
-
-        {view === "actions" ? <div className="pt-1">{actionContent}</div> : null}
       </div>
     </section>
   );

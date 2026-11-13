@@ -1,6 +1,6 @@
 "use client";
 
-import { EntityNewActivityButton } from "@/components/activities/entity-new-activity-button";
+import { CreateMenu } from "@/components/layout/create-menu";
 import {
   ATTIO_SEGMENT_TRACK,
   attioSegmentItemClass,
@@ -8,14 +8,14 @@ import {
 import type { ActivityWorkspaceContext } from "@/types/activity";
 import type { Company } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
+import type { CreateActivityInput } from "@/types/activity";
 import {
   OPPORTUNITY_MISSION_CONTROL_VIEWS,
   type OpportunityMissionControlView,
 } from "@/types/opportunity-mission-control";
 
 /**
- * Attio-style segment control — fixed-size pills, no layout shift on select.
- * New activity and Documents stay to the right of tabs on every mission-control view.
+ * Attio-style segment control. Create stays to the right on every view — never behind a tab.
  */
 export function OpportunityMissionControlTabBar({
   active,
@@ -23,8 +23,8 @@ export function OpportunityMissionControlTabBar({
   activityContext,
   companies = [],
   pipelines = [],
-  documentCount,
   hiddenViews,
+  mailTo,
 }: {
   hiddenViews?: readonly OpportunityMissionControlView[];
   active: OpportunityMissionControlView;
@@ -33,7 +33,20 @@ export function OpportunityMissionControlTabBar({
   companies?: Company[];
   pipelines?: PipelineRow[];
   documentCount?: number;
+  mailTo?: string;
 }) {
+  const preset: Partial<CreateActivityInput> = {
+    Company: activityContext.companyId
+      ? { CompanyID: activityContext.companyId }
+      : null,
+    Contact: activityContext.contactId
+      ? { ContactID: activityContext.contactId }
+      : null,
+    Deal: activityContext.dealId ? { DealID: activityContext.dealId } : null,
+    ProjectId: activityContext.projectId ?? null,
+    ProjectName: activityContext.projectName ?? null,
+  };
+
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <nav
@@ -59,11 +72,13 @@ export function OpportunityMissionControlTabBar({
           );
         })}
       </nav>
-      <EntityNewActivityButton
-        context={activityContext}
+      <CreateMenu
+        variant="header"
+        activityPreset={preset}
         companies={companies}
         pipelines={pipelines}
-        documentCount={documentCount}
+        mailTo={mailTo}
+        meetingSubject={activityContext.dealName}
       />
     </div>
   );
