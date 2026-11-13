@@ -15,11 +15,11 @@ describe("documentsUrlForPath", () => {
   it("opens the documents tab on opportunity and project pages", () => {
     assert.equal(
       documentsUrlForPath("/opportunities/xyz"),
-      "/opportunities/xyz?view=actions&action=documents",
+      "/opportunities/xyz?view=work#documents",
     );
     assert.equal(
       documentsUrlForPath("/projects/p1"),
-      "/projects/p1?view=actions&action=documents",
+      "/projects/p1?view=work#documents",
     );
   });
 
