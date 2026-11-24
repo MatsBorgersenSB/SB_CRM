@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import type { CompanyOperationsRow } from "@/lib/company-operations-data";
 import type { CompanyListColumnVisibility } from "@/lib/company-list-columns";
 import { CompanyTypeBadges } from "@/components/companies/company-type-badges";
@@ -17,6 +18,17 @@ import {
 } from "@/components/ui/workspace-table";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { StandardBioUserRecord } from "@/types/user-access";
+
+type SortKey =
+  | "company"
+  | "relationship"
+  | "whatMatters"
+  | "industry"
+  | "pipeline"
+  | "owner";
+
+/** Columns whose first click prefers descending (higher / more recent first). */
+const DESC_FIRST_KEYS: ReadonlySet<SortKey> = new Set(["pipeline"]);
 
 /**
  * Companies list — five decision columns, plus optional fields from Columns.
@@ -40,6 +52,62 @@ export function CompaniesOperationsTable({
   onOwnerChange?: (companyId: string, owner: SharePointPerson) => void;
 }) {
   const showIndustrySector = columnVisibility.industrySector;
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" } | null>(null);
+
+  const sortedRows = useMemo(() => {
+    if (!sort) return rows;
+    if (sort.key === "industry" && !showIndustrySector) return rows;
+
+    const text = (row: CompanyOperationsRow): string | null => {
+      switch (sort.key) {
+        case "company":
+          return row.companyName.trim() || null;
+        case "relationship":
+          return row.companyTypesLabel.trim() || null;
+        case "whatMatters":
+          return row.attentionLabel?.trim() || null;
+        case "industry": {
+          const industry = row.industry.trim();
+          const sectors = row.sectors.join(", ").trim();
+          const label = [industry, sectors].filter(Boolean).join(" ").trim();
+          return label || null;
+        }
+        case "owner":
+          return row.ownerLabel?.trim() || null;
+        default:
+          return null;
+      }
+    };
+
+    const dirFactor = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      // Empty values always sink to the bottom, whichever direction.
+      if (sort.key === "pipeline") {
+        const av = a.openOpportunities > 0 ? a.pipelineValue : null;
+        const bv = b.openOpportunities > 0 ? b.pipelineValue : null;
+        if (av === null && bv === null) return 0;
+        if (av === null) return 1;
+        if (bv === null) return -1;
+        if (av !== bv) return (av - bv) * dirFactor;
+        return (a.openOpportunities - b.openOpportunities) * dirFactor;
+      }
+      const av = text(a);
+      const bv = text(b);
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return av.localeCompare(bv, undefined, { sensitivity: "base", numeric: true }) * dirFactor;
+    });
+  }, [rows, sort, showIndustrySector]);
+
+  /** Click cycles: ascending → descending → original order (pipeline starts desc). */
+  const toggleSort = (key: SortKey) =>
+    setSort((prev) => {
+      const firstDir = DESC_FIRST_KEYS.has(key) ? "desc" : "asc";
+      if (!prev || prev.key !== key) return { key, dir: firstDir };
+      return prev.dir === firstDir ? { key, dir: firstDir === "asc" ? "desc" : "asc" } : null;
+    });
+  const dirFor = (key: SortKey) => (sort?.key === key ? sort.dir : null);
 
   if (rows.length === 0) {
     return (
@@ -61,18 +129,43 @@ export function CompaniesOperationsTable({
       </colgroup>
       <WorkspaceTableHead>
         <WorkspaceTableHeadRow>
-          <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Relationship</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>What matters</WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell sortDirection={dirFor("company")} onSort={() => toggleSort("company")}>
+            Company
+          </WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell
+            sortDirection={dirFor("relationship")}
+            onSort={() => toggleSort("relationship")}
+          >
+            Relationship
+          </WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell
+            sortDirection={dirFor("whatMatters")}
+            onSort={() => toggleSort("whatMatters")}
+          >
+            What matters
+          </WorkspaceTableHeadCell>
           {showIndustrySector ? (
-            <WorkspaceTableHeadCell>Industry / Sector</WorkspaceTableHeadCell>
+            <WorkspaceTableHeadCell
+              sortDirection={dirFor("industry")}
+              onSort={() => toggleSort("industry")}
+            >
+              Industry / Sector
+            </WorkspaceTableHeadCell>
           ) : null}
-          <WorkspaceTableHeadCell align="right">Pipeline</WorkspaceTableHeadCell>
-          <WorkspaceTableHeadCell>Owner</WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell
+            align="right"
+            sortDirection={dirFor("pipeline")}
+            onSort={() => toggleSort("pipeline")}
+          >
+            Pipeline
+          </WorkspaceTableHeadCell>
+          <WorkspaceTableHeadCell sortDirection={dirFor("owner")} onSort={() => toggleSort("owner")}>
+            Owner
+          </WorkspaceTableHeadCell>
         </WorkspaceTableHeadRow>
       </WorkspaceTableHead>
       <WorkspaceTableBody>
-        {rows.map((row) => (
+        {sortedRows.map((row) => (
           <WorkspaceTableBodyRow key={row.companyId}>
             <WorkspaceTableBodyCell>
               <Link
