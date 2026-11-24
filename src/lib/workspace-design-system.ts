@@ -55,10 +55,11 @@ export const WORKSPACE_PANEL_COLLAPSE_INNER = "min-h-0 overflow-hidden";
 export const WORKSPACE_TABLE_CLASS = "w-full min-w-[720px] table-fixed border-collapse text-left";
 
 export const WORKSPACE_TABLE_HEAD_ROW_CLASS =
-  "border-b-2 border-carbon-blue/10 bg-carbon-blue/[0.05]";
+  "border-b-2 border-carbon-blue/10";
 
+/** Sticky column headers — stay visible while the list scrolls (Companies, People, etc.). */
 export const WORKSPACE_TABLE_HEAD_CELL_CLASS =
-  "px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/75";
+  "sticky top-0 z-[1] bg-[color-mix(in_srgb,#0f2d42_5%,var(--dashboard-surface,#ffffff))] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/75";
 
 export const WORKSPACE_TABLE_BODY_ROW_CLASS =
   "border-b border-carbon-blue/10 last:border-b-0 transition-colors hover:bg-carbon-blue/[0.03]";

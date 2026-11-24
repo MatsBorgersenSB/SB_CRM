@@ -14,15 +14,18 @@ export function WorkspaceTable({
   children: ReactNode;
   className?: string;
 }) {
+  // No overflow-x-auto here: any non-visible overflow creates a scrollport and
+  // breaks sticky column headers against the page (WorkspaceMain) scroll.
+  // Wide tables scroll via WorkspaceMain instead.
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full max-w-full">
       <table className={`${WORKSPACE_TABLE_CLASS} ${className}`}>{children}</table>
     </div>
   );
 }
 
 export function WorkspaceTableHead({ children }: { children: ReactNode }) {
-  return <thead>{children}</thead>;
+  return <thead className="sticky top-0 z-[1]">{children}</thead>;
 }
 
 export function WorkspaceTableHeadRow({ children }: { children: ReactNode }) {
