@@ -40,7 +40,11 @@ export const WORKSPACE_PANEL_HEADER_WRAPPER =
 export const WORKSPACE_PANEL_HEADER_CLASS =
   "flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.18em] text-carbon-blue sm:text-[13px]";
 
-export const WORKSPACE_PANEL_BODY_CLASS = "min-h-0 flex-1 overflow-auto px-6 py-5";
+/**
+ * Panel body scrolls with the page (WorkspaceMain), not inside itself.
+ * `overflow-auto` here trapped sticky table headers in a non-scrolling scrollport.
+ */
+export const WORKSPACE_PANEL_BODY_CLASS = "min-h-0 flex-1 overflow-visible px-6 py-5";
 
 /** Smooth expand/collapse for collapsible workspace panels */
 export const WORKSPACE_PANEL_COLLAPSE_WRAPPER =
@@ -52,14 +56,16 @@ export const WORKSPACE_PANEL_COLLAPSE_COLLAPSED = "grid-rows-[0fr]";
 
 export const WORKSPACE_PANEL_COLLAPSE_INNER = "min-h-0 overflow-hidden";
 
-export const WORKSPACE_TABLE_CLASS = "w-full min-w-[720px] table-fixed border-collapse text-left";
+/** border-separate required — border-collapse breaks position:sticky on th/thead */
+export const WORKSPACE_TABLE_CLASS =
+  "w-full min-w-[720px] table-fixed border-separate border-spacing-0 text-left";
 
 export const WORKSPACE_TABLE_HEAD_ROW_CLASS =
   "border-b-2 border-carbon-blue/10";
 
 /** Sticky column headers — stay visible while the list scrolls (Companies, People, etc.). */
 export const WORKSPACE_TABLE_HEAD_CELL_CLASS =
-  "sticky top-0 z-[1] bg-[color-mix(in_srgb,#0f2d42_5%,var(--dashboard-surface,#ffffff))] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/75";
+  "sticky top-0 z-20 bg-[color-mix(in_srgb,#0f2d42_5%,var(--dashboard-surface,#ffffff))] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/75 shadow-[inset_0_-2px_0_0_rgba(15,45,66,0.1)]";
 
 export const WORKSPACE_TABLE_BODY_ROW_CLASS =
   "border-b border-carbon-blue/10 last:border-b-0 transition-colors hover:bg-carbon-blue/[0.03]";

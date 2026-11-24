@@ -371,7 +371,9 @@ export function WorkspacePanel({
   return (
     <section
       id={id}
-      className={`dashboard-card flex min-h-0 flex-col overflow-hidden ${className}`}
+      className={`dashboard-card flex min-h-0 flex-col ${
+        collapsible ? "overflow-hidden" : "overflow-visible"
+      } ${className}`}
     >
       <header className={WORKSPACE_PANEL_HEADER_WRAPPER}>
         {collapsible ? (
@@ -393,11 +395,15 @@ export function WorkspacePanel({
           </div>
         )}
       </header>
-      <div className={`${WORKSPACE_PANEL_COLLAPSE_WRAPPER} ${collapseClass}`}>
-        <div className={WORKSPACE_PANEL_COLLAPSE_INNER}>
-          <div className={WORKSPACE_PANEL_BODY_CLASS}>{children}</div>
+      {collapsible ? (
+        <div className={`${WORKSPACE_PANEL_COLLAPSE_WRAPPER} ${collapseClass}`}>
+          <div className={WORKSPACE_PANEL_COLLAPSE_INNER}>
+            <div className={WORKSPACE_PANEL_BODY_CLASS}>{children}</div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className={WORKSPACE_PANEL_BODY_CLASS}>{children}</div>
+      )}
     </section>
   );
 }

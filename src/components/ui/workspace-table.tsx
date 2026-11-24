@@ -25,7 +25,8 @@ export function WorkspaceTable({
 }
 
 export function WorkspaceTableHead({ children }: { children: ReactNode }) {
-  return <thead className="sticky top-0 z-[1]">{children}</thead>;
+  // Sticky lives on each <th> (design-system class) — more reliable than thead alone.
+  return <thead>{children}</thead>;
 }
 
 export function WorkspaceTableHeadRow({ children }: { children: ReactNode }) {
