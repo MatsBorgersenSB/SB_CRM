@@ -11,4 +11,6 @@ export type SharePointLookup = {
 export type SharePointPerson = {
   Id: number;
   Title: string;
+  /** Colleague email when known — preferred over Title for mine/shared/ping matching. */
+  Email?: string;
 };

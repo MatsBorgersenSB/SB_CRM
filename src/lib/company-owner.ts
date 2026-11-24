@@ -5,7 +5,7 @@ import type { PipelineRow } from "@/types/pipeline";
 import { STANDARD_BIO_USERS } from "@/types/bio-user";
 import { resolveActivityCompany } from "@/lib/activity-utils";
 
-const CANONICAL_USER_EMAILS: Record<number, string> = {
+export const CANONICAL_USER_EMAILS: Record<number, string> = {
   1: "mats.borgersen@standard.bio",
   100: "walter.aker@standard.bio",
   101: "hugo.jansson@standard.bio",
@@ -43,7 +43,13 @@ export function matchColleagueOwner(
     const byEmail = colleagues.find(
       (entry) => entry.email.trim().toLowerCase() === email,
     );
-    if (byEmail) return { Id: byEmail.id, Title: byEmail.displayName };
+    if (byEmail) {
+      return {
+        Id: byEmail.id,
+        Title: byEmail.displayName,
+        Email: byEmail.email || undefined,
+      };
+    }
   }
 
   const name = identity.displayName?.trim().toLowerCase() ?? "";
@@ -51,7 +57,13 @@ export function matchColleagueOwner(
     const byName = colleagues.find(
       (entry) => entry.displayName.trim().toLowerCase() === name,
     );
-    if (byName) return { Id: byName.id, Title: byName.displayName };
+    if (byName) {
+      return {
+        Id: byName.id,
+        Title: byName.displayName,
+        Email: byName.email || undefined,
+      };
+    }
   }
 
   const local = email.split("@")[0] ?? "";
@@ -60,7 +72,13 @@ export function matchColleagueOwner(
     const byCompact = colleagues.find(
       (entry) => compactName(entry.displayName) === compactLocal,
     );
-    if (byCompact) return { Id: byCompact.id, Title: byCompact.displayName };
+    if (byCompact) {
+      return {
+        Id: byCompact.id,
+        Title: byCompact.displayName,
+        Email: byCompact.email || undefined,
+      };
+    }
   }
 
   const id = identity.id;
@@ -76,7 +94,11 @@ export function matchColleagueOwner(
     compactName(byId.displayName) !== compactName(name);
   if (emailConflicts || nameConflicts) return null;
 
-  return { Id: byId.id, Title: byId.displayName };
+  return {
+    Id: byId.id,
+    Title: byId.displayName,
+    Email: byId.email || undefined,
+  };
 }
 
 export function authUserToAccountOwner(user: AuthUser): SharePointPerson {
@@ -96,9 +118,22 @@ export function authUserToAccountOwner(user: AuthUser): SharePointPerson {
 }
 
 export function isCompanyOwnedByUser(company: Company, user: AuthUser): boolean {
-  const owner = company.AccountOwner?.Title?.trim();
+  const owner = company.AccountOwner;
   if (!owner) return false;
-  return owner.toLowerCase() === user.displayName.toLowerCase();
+
+  const userEmail = user.email?.trim().toLowerCase() ?? "";
+  const ownerEmail =
+    owner.Email?.trim().toLowerCase() ||
+    (owner.Id > 0 ? CANONICAL_USER_EMAILS[owner.Id]?.toLowerCase() ?? "" : "");
+  if (userEmail && !userEmail.endsWith("@smartcrm.local") && ownerEmail) {
+    return userEmail === ownerEmail;
+  }
+  if (user.id > 0 && owner.Id > 0) {
+    return user.id === owner.Id;
+  }
+  const ownerTitle = owner.Title?.trim().toLowerCase() ?? "";
+  if (!ownerTitle) return false;
+  return ownerTitle === user.displayName.toLowerCase();
 }
 
 export function hasCompanyOwner(company: Company): boolean {
@@ -130,8 +165,11 @@ export function personFromStoredOwnerId(
   const numeric = Number(ownerId);
   if (Number.isFinite(numeric) && numeric > 0) {
     const known = STANDARD_BIO_USERS.find((user) => user.Id === numeric);
-    if (known) return { Id: known.Id, Title: known.Title };
-    return { Id: numeric, Title: "" };
+    const email = CANONICAL_USER_EMAILS[numeric];
+    if (known) {
+      return { Id: known.Id, Title: known.Title, Email: email };
+    }
+    return { Id: numeric, Title: "", Email: email };
   }
 
   if (/[A-Za-z]/.test(ownerId) && !/^\d+$/.test(ownerId.trim())) {

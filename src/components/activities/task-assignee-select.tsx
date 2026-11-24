@@ -18,7 +18,7 @@ export function TaskAssigneeSelect({
   options,
   disabled = false,
   required = false,
-  label = "Assign to",
+  label = "Give to",
   compact = false,
 }: {
   value: SharePointPerson | null;
@@ -52,7 +52,7 @@ export function TaskAssigneeSelect({
         className={compact ? `${FIELD_CLASS} mt-0 py-1 text-[12px]` : FIELD_CLASS}
       >
         <option value="" disabled>
-          {list.length === 0 ? "No assignable users" : "Select assignee…"}
+          {list.length === 0 ? "No teammates yet" : "Pick a person…"}
         </option>
         {list.map((option) => (
           <option key={option.Id} value={option.Id}>

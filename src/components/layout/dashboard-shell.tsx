@@ -7,7 +7,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { RoleSwitcher } from "@/components/auth/role-switcher";
 import { MyAttentionPanel } from "@/components/attention/my-attention-panel";
+import { MyWorkPanel } from "@/components/attention/my-work-panel";
 import { PortfolioRecommendationsPanel } from "@/components/attention/portfolio-recommendations-panel";
+import { buildMyWorkQueue } from "@/lib/my-work-queue";
 import { WorkspaceChrome } from "@/components/layout/workspace-chrome";
 import { WorkspaceHeader } from "@/components/ui/workspace-header";
 import { WorkspaceMain, WorkspaceStack } from "@/components/ui/workspace-main";
@@ -189,17 +191,28 @@ function DashboardShellContent({
     return countUpcomingTasks(live, user.displayName, surfaced);
   }, [scopedActivities, scopedCompanies, scopedPipelines, attentionQueue, user.displayName]);
 
+  const myWorkQueue = useMemo(
+    () =>
+      buildMyWorkQueue({
+        user,
+        companies: scopedCompanies,
+        pipelines: scopedPipelines,
+        activities: scopedActivities,
+      }),
+    [user, scopedCompanies, scopedPipelines, scopedActivities],
+  );
+
   const recentActivity = data.recentActivities.slice(0, 4);
 
   return (
     <WorkspaceChrome>
         <WorkspaceHeader
           scope="Today"
-          title={ownerFilter ? `${ownerFilter} — needs attention` : "My Attention"}
+          title={ownerFilter ? `${ownerFilter} — needs attention` : "Today"}
           context={
             ownerFilter
-              ? "Filtered queue for this owner"
-              : "What needs attention, why, and what to do next"
+              ? `Work for ${ownerFilter}`
+              : "Your jobs from teammates · then what needs attention"
           }
           actions={
             <div className="flex items-center gap-3">
@@ -224,7 +237,32 @@ function DashboardShellContent({
 
             <SmartAssistCopilotHost compact />
 
-            <WorkspacePanel title="Most important first">
+            {!ownerFilter ? (
+              <WorkspacePanel
+                title="From your team"
+                count={myWorkQueue.assigned.length + myWorkQueue.watching.length}
+                headerTrailing={
+                  <Link
+                    href="/team"
+                    className="text-[12px] font-semibold text-upcycle-orange hover:underline"
+                  >
+                    Open Team →
+                  </Link>
+                }
+              >
+                <MyWorkPanel queue={myWorkQueue} limit={5} />
+                <p className="mt-3 text-[13px] text-carbon-blue/60">
+                  Need help? Open{" "}
+                  <Link href="/team" className="font-semibold text-upcycle-orange hover:underline">
+                    Team
+                  </Link>{" "}
+                  in the left menu — or open a company and press{" "}
+                  <span className="font-semibold text-upcycle-orange">Ask a teammate</span>.
+                </p>
+              </WorkspacePanel>
+            ) : null}
+
+            <WorkspacePanel title="What needs attention">
               <MyAttentionPanel queue={attentionQueue} ownerFilter={ownerFilter} />
             </WorkspacePanel>
 

@@ -6,6 +6,7 @@ import {
   type ActivityIntelligentRow,
   type ActivityWorkFilter,
 } from "@/lib/activity-mission-control";
+import type { ActivityUserScope } from "@/lib/activity-workspace";
 import { WorkspaceModeNav } from "@/components/ui/workspace-mode-nav";
 
 export function ActivitySmartFilters({
@@ -15,6 +16,7 @@ export function ActivitySmartFilters({
   search,
   onSearchChange,
   currentUserName,
+  userScope,
 }: {
   active: ActivityWorkFilter;
   onChange: (filter: ActivityWorkFilter) => void;
@@ -22,8 +24,9 @@ export function ActivitySmartFilters({
   search: string;
   onSearchChange: (value: string) => void;
   currentUserName?: string;
+  userScope?: ActivityUserScope;
 }) {
-  const counts = countActivityWorkFilters(rows, currentUserName);
+  const counts = countActivityWorkFilters(rows, currentUserName, userScope);
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

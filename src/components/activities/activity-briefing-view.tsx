@@ -16,6 +16,7 @@ import { ActivityWorkspaceContextSidebar } from "@/components/activities/activit
 import { ActivityWorkspaceRecord } from "@/components/activities/activity-workspace-record";
 import { TaskAssigneeSelect } from "@/components/activities/task-assignee-select";
 import { TaskShareControl } from "@/components/activities/task-share-control";
+import { ColleagueDirectedNote } from "@/components/collaboration/colleague-directed-note";
 import { WorkspaceIntelContextLayout } from "@/components/ui/workspace-intel-context-layout";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -214,23 +215,6 @@ export function ActivityBriefingView({
           ← Activities
         </Link>
         <div className="flex items-center gap-3">
-          {assigneeOptions.length > 0 ? (
-            <TaskAssigneeSelect
-              value={activity.ActivityOwner}
-              onChange={(next) => void handleAssigneeChange(next)}
-              options={assigneeOptions}
-              label="Assign to"
-              compact
-            />
-          ) : null}
-          {isTask && assigneeOptions.length > 0 ? (
-            <TaskShareControl
-              activity={activity}
-              options={assigneeOptions}
-              currentUser={currentUserPerson}
-              onSharedWithChange={handleSharedWithChange}
-            />
-          ) : null}
           {activity.TeamsJoinUrl ? (
             <a
               href={activity.TeamsJoinUrl}
@@ -283,6 +267,34 @@ export function ActivityBriefingView({
           </p>
         ) : null}
       </div>
+
+      {assigneeOptions.length > 0 ? (
+        <div className="flex flex-col gap-3 border border-carbon-blue/10 bg-carbon-blue/[0.02] px-4 py-3">
+          <ColleagueDirectedNote
+            kind="activity"
+            entityId={activity.ActivityID}
+            subject={activity.Subject || "Activity"}
+            options={assigneeOptions}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <TaskAssigneeSelect
+              value={activity.ActivityOwner}
+              onChange={(next) => void handleAssigneeChange(next)}
+              options={assigneeOptions}
+              label="Give to"
+              compact
+            />
+            {isTask ? (
+              <TaskShareControl
+                activity={activity}
+                options={assigneeOptions}
+                currentUser={currentUserPerson}
+                onSharedWithChange={handleSharedWithChange}
+              />
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {activity.SlotProposal ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border border-carbon-blue/12 bg-carbon-blue/[0.02] px-4 py-2.5 text-xs text-carbon-blue">

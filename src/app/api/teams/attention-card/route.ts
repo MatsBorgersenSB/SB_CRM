@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
-import { buildM365DailyFocus } from "@/lib/m365";
-import { buildM365AccountWorkspace } from "@/lib/m365/account-workspace";
-import { loadM365PaneContext } from "@/lib/m365/pane-context";
-import { loadM365DataContext } from "@/lib/m365/resolve-context";
-import { readProjectById } from "@/lib/project-db";
-import { getTeamsChannelBinding } from "@/lib/teams-channel-binding";
+import { getRequestRole } from "@/lib/api-auth";
+import { buildTeamsAttentionCard } from "@/lib/m365/teams-attention-card";
+import { postAdaptiveCardToTeamsChannel } from "@/lib/m365/teams-attention-post";
+import { resolveAuditActor } from "@/lib/security/audit-logger";
+import {
+  listTeamsChannelBindings,
+} from "@/lib/teams-channel-binding";
 
 export const dynamic = "force-dynamic";
 
 /**
  * FS-018 Phase 4 — Adaptive Card JSON for channel attention (≤4 items).
- * Returns card payload for bots/Flow to post; does not send proactively itself.
- * GET ?teamId=&channelId=
+ * GET ?teamId=&channelId= — card for bots/Flow.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,100 +19,93 @@ export async function GET(request: Request) {
   const channelId = searchParams.get("channelId")?.trim() || "";
 
   try {
-    let title = "What deserves attention";
-    let facts: Array<{ title: string; value: string }> = [];
-    let openUrl = "https://sb-crm-seven.vercel.app";
-
-    if (teamId && channelId) {
-      const binding = await getTeamsChannelBinding(teamId, channelId);
-      let companyId = binding?.companyId?.trim() || "";
-      let contextLabel: string | undefined;
-
-      if (!companyId && binding?.projectId) {
-        const project = await readProjectById(binding.projectId);
-        companyId =
-          project?.linkedCompanyId?.trim() ||
-          project?.relatedOrganizations?.find((o) => o.isPrimary)?.companyId ||
-          project?.relatedOrganizations?.[0]?.companyId ||
-          "";
-        if (project) contextLabel = `Project · ${project.name}`;
-      }
-
-      if (companyId) {
-        const { ctx, resolved } = await loadM365PaneContext({ companyId });
-        if (resolved) {
-          const workspace = buildM365AccountWorkspace(resolved.company, ctx);
-          title = contextLabel
-            ? `${contextLabel} — attention`
-            : `${workspace.companyName} — attention`;
-          openUrl = workspace.deepLink;
-          facts = [
-            { title: "What matters", value: workspace.meta.whatMatters },
-            { title: "At risk", value: workspace.meta.whatIsAtRisk },
-            { title: "Next", value: workspace.meta.whatShouldHappenNext },
-            workspace.topRisk
-              ? { title: "Top risk", value: workspace.topRisk.label }
-              : { title: "Health", value: `${workspace.health.status}` },
-          ].slice(0, 4);
-        }
-      }
-    }
-
-    if (facts.length === 0) {
-      const focus = buildM365DailyFocus(await loadM365DataContext());
-      facts = [
-        {
-          title: "Who to engage",
-          value: focus.whoToEngage?.action ?? "No external engagement ranked",
-        },
-        {
-          title: "At risk",
-          value: focus.workAtRisk?.label ?? "Nothing urgent at risk",
-        },
-        {
-          title: "Commitment",
-          value: focus.openCommitmentDue?.title ?? "No due commitments",
-        },
-        { title: "Next", value: focus.nextBestAction.action },
-      ];
-    }
-
-    const card = {
-      type: "AdaptiveCard",
-      $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-      version: "1.5",
-      body: [
-        {
-          type: "TextBlock",
-          text: "SmartCRM",
-          size: "Small",
-          weight: "Bolder",
-          color: "Accent",
-        },
-        {
-          type: "TextBlock",
-          text: title,
-          size: "Medium",
-          weight: "Bolder",
-          wrap: true,
-        },
-        {
-          type: "FactSet",
-          facts,
-        },
-      ],
-      actions: [
-        {
-          type: "Action.OpenUrl",
-          title: "Open in SmartCRM",
-          url: openUrl,
-        },
-      ],
-    };
-
-    return NextResponse.json({ card, facts });
+    const result = await buildTeamsAttentionCard({ teamId, channelId });
+    return NextResponse.json({ card: result.card, facts: result.facts });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Card build failed";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+/**
+ * POST — deliver weekly attention card(s) to bound Teams channels.
+ * Body: { teamId?, channelId?, all?: true }
+ * Requires ChannelMessage.Send on the signed-in M365 session.
+ */
+export async function POST(request: Request) {
+  const role = getRequestRole(request);
+  resolveAuditActor(request, role);
+
+  let body: Record<string, unknown> = {};
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    body = {};
+  }
+
+  const deliverAll = body.all === true;
+  const teamId = typeof body.teamId === "string" ? body.teamId.trim() : "";
+  const channelId = typeof body.channelId === "string" ? body.channelId.trim() : "";
+
+  try {
+    const targets = deliverAll
+      ? await listTeamsChannelBindings()
+      : teamId && channelId
+        ? [{ teamId, channelId }]
+        : [];
+
+    if (targets.length === 0) {
+      return NextResponse.json(
+        { error: "Provide teamId+channelId or all:true with existing bindings" },
+        { status: 400 },
+      );
+    }
+
+    const results: Array<{
+      teamId: string;
+      channelId: string;
+      ok: boolean;
+      messageId?: string;
+      error?: string;
+    }> = [];
+
+    for (const target of targets) {
+      const cardResult = await buildTeamsAttentionCard({
+        teamId: target.teamId,
+        channelId: target.channelId,
+      });
+      const posted = await postAdaptiveCardToTeamsChannel({
+        teamId: target.teamId,
+        channelId: target.channelId,
+        card: cardResult.card,
+        fallbackText: `SmartCRM: ${cardResult.title}`,
+      });
+      if (posted) {
+        results.push({
+          teamId: target.teamId,
+          channelId: target.channelId,
+          ok: true,
+          messageId: posted.messageId,
+        });
+      } else {
+        results.push({
+          teamId: target.teamId,
+          channelId: target.channelId,
+          ok: false,
+          error: "Post failed or no M365 token",
+        });
+      }
+    }
+
+    const delivered = results.filter((row) => row.ok).length;
+    return NextResponse.json({
+      success: delivered > 0,
+      delivered,
+      total: results.length,
+      results,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Delivery failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

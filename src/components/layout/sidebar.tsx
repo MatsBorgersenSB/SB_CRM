@@ -8,6 +8,7 @@ import {
   FileText,
   Camera,
   FolderKanban,
+  Handshake,
   LayoutDashboard,
   Mail,
   Search,
@@ -40,6 +41,13 @@ const navItems: NavItem[] = [
     href: "/",
     icon: LayoutDashboard,
     match: (p) => p === "/" || p.startsWith("/attention") || p.startsWith("/prospecting"),
+    section: "home",
+  },
+  {
+    label: "Team",
+    href: "/team",
+    icon: Handshake,
+    match: (p) => p.startsWith("/team"),
     section: "home",
   },
   {
@@ -191,6 +199,17 @@ export function Sidebar() {
           <Sparkles className="size-3.5 shrink-0" strokeWidth={2} />
           <span className="hidden flex-1 md:inline">Ask SmartAssist</span>
         </button>
+        <Link
+          href="/team"
+          title="Team"
+          className={cn(
+            "flex w-full items-center justify-center gap-2 rounded-md border border-upcycle-orange bg-upcycle-orange px-2.5 py-2 md:justify-start",
+            "text-left text-xs font-semibold text-white transition-opacity hover:opacity-90",
+          )}
+        >
+          <Handshake className="size-3.5 shrink-0" strokeWidth={2} />
+          <span className="hidden flex-1 md:inline">Team</span>
+        </Link>
         <QuickActions showMail={canAccessRoute(user.role, "/mail")} />
       </div>
 

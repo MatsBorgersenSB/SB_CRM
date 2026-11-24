@@ -182,7 +182,14 @@ function ActivityForm({
 }: Omit<ActivityCreateWizardProps, "open">) {
   useEscapeKey(true, onClose);
   const me = useMemo<SharePointPerson | null>(
-    () => (defaultOwner ? { Id: defaultOwner.id, Title: defaultOwner.displayName } : null),
+    () =>
+      defaultOwner
+        ? {
+            Id: defaultOwner.id,
+            Title: defaultOwner.displayName,
+            Email: defaultOwner.email,
+          }
+        : null,
     [defaultOwner],
   );
   const presetDate = preset?.ActivityDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);

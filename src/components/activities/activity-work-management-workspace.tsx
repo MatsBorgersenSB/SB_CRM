@@ -70,8 +70,17 @@ export function ActivityWorkManagementWorkspace({
     [activities, pipelines],
   );
 
+  const userScope = useMemo(
+    () => ({
+      id: user.id,
+      email: user.email,
+      title: user.displayName,
+    }),
+    [user.id, user.email, user.displayName],
+  );
+
   const filteredRows = useMemo(() => {
-    const rows = filterActivityRows(allRows, filter, user.displayName);
+    const rows = filterActivityRows(allRows, filter, user.displayName, userScope);
     const query = search.trim().toLowerCase();
     if (!query) return rows;
 
@@ -92,7 +101,7 @@ export function ActivityWorkManagementWorkspace({
         .toLowerCase();
       return haystack.includes(query);
     });
-  }, [allRows, filter, search, user.displayName]);
+  }, [allRows, filter, search, user.displayName, userScope]);
 
   const primaryFocusActivityId =
     filteredRows.find((row) => row.requiresAttention)?.id ??
@@ -144,9 +153,14 @@ export function ActivityWorkManagementWorkspace({
   const assigneeOptions = useMemo(
     () =>
       mergeStandardBioUserOptions(assignableUsers, [
-        { Id: user.id, Title: user.displayName },
+        { Id: user.id, Title: user.displayName, Email: user.email },
       ]),
-    [assignableUsers, user.id, user.displayName],
+    [assignableUsers, user.id, user.displayName, user.email],
+  );
+
+  const currentUserPerson = useMemo(
+    () => ({ Id: user.id, Title: user.displayName, Email: user.email }),
+    [user.id, user.displayName, user.email],
   );
 
   const handleAssigneeChange = useCallback(
@@ -165,6 +179,19 @@ export function ActivityWorkManagementWorkspace({
         ActivityOwner: assignee,
         SharedWith: sharedWith,
       });
+      refreshActivities();
+    },
+    [refreshActivities],
+  );
+
+  const handleSharedWithChange = useCallback(
+    async (activity: Activity, sharedWith: SharePointPerson[]) => {
+      setActivities((current) =>
+        current.map((item) =>
+          item.ActivityID === activity.ActivityID ? { ...item, SharedWith: sharedWith } : item,
+        ),
+      );
+      await syncActivityUpdate(activity.ActivityID, { SharedWith: sharedWith });
       refreshActivities();
     },
     [refreshActivities],
@@ -220,6 +247,7 @@ export function ActivityWorkManagementWorkspace({
                 onChange={setFilter}
                 rows={allRows}
                 currentUserName={user.displayName}
+                userScope={userScope}
                 search={search}
                 onSearchChange={setSearch}
               />
@@ -242,6 +270,8 @@ export function ActivityWorkManagementWorkspace({
               embedded
               assigneeOptions={assigneeOptions}
               onAssigneeChange={handleAssigneeChange}
+              onSharedWithChange={handleSharedWithChange}
+              currentUser={currentUserPerson}
               onToggleComplete={handleToggleComplete}
             />
           </div>

@@ -583,6 +583,7 @@ export function Project360LivingWorkspace({
         emailsReadOnly={relationshipsReadOnly}
         developmentPipeline={developmentPipeline}
         developmentBrief={developmentBrief}
+        colleagueOptions={standardBioUsers}
         focusFieldId={focusFieldParam}
         onAnswerNow={handleAnswerNow}
         onSaveUnderstandingField={

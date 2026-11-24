@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { linkedWorkByPillar, resolvePillarCounterparties } from "@/lib/development-pillars";
 import { evaluatePipelineFelMassEnergy } from "@/lib/fel-mass-energy-engine";
 import type { Activity, ActivityWorkspaceContext } from "@/types/activity";
-import type { Company } from "@/types/company";
+import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { Project, ProjectIntelligence } from "@/types/project";
 import { PROJECT_STAGE_LABELS } from "@/types/project";
@@ -69,6 +69,7 @@ export function ProjectMissionControl({
   emailsReadOnly = false,
   developmentPipeline = null,
   developmentBrief = null,
+  colleagueOptions = [],
   focusFieldId = null,
   onAnswerNow,
   onSaveUnderstandingField,
@@ -96,6 +97,8 @@ export function ProjectMissionControl({
   emailsReadOnly?: boolean;
   developmentPipeline?: PipelineRow | null;
   developmentBrief?: DealBrief | null;
+  /** Standard Bio colleagues for Ask a teammate on the FEL next step. */
+  colleagueOptions?: SharePointPerson[];
   focusFieldId?: string | null;
   onAnswerNow?: (fieldId: string) => void;
   onSaveUnderstandingField?: (fieldId: UnderstandingFieldId, value: string) => Promise<void>;
@@ -201,8 +204,10 @@ export function ProjectMissionControl({
               <OpportunityDealBriefHero
                 brief={developmentBrief}
                 projectName={project.name}
+                projectId={project.id}
                 pillarCounterparties={pillarCounterparties}
                 felEvaluation={felEvaluation}
+                colleagueOptions={colleagueOptions}
                 onAnswerNow={onAnswerNow}
                 onScanFelRadar={
                   onReadDocuments && onSaveFindings ? () => void handleHeroScan() : undefined
@@ -301,7 +306,22 @@ export function ProjectMissionControl({
 
         {view === "understanding" ? (
           <div className={`${EDITORIAL_CONTENT} flex flex-col gap-10`}>
-            {!realityFirst ? (
+            {developmentBrief ? (
+              <OpportunityDealBriefHero
+                brief={developmentBrief}
+                projectName={project.name}
+                projectId={project.id}
+                pillarCounterparties={pillarCounterparties}
+                felEvaluation={felEvaluation}
+                colleagueOptions={colleagueOptions}
+                onAnswerNow={onAnswerNow}
+                onScanFelRadar={
+                  onReadDocuments && onSaveFindings ? () => void handleHeroScan() : undefined
+                }
+                scanningFelRadar={scanningHero}
+                scanNotice={heroScanNotice}
+              />
+            ) : !realityFirst ? (
               <OpportunityKnowledgeView
                 variant="gaps"
                 criticalGaps={

@@ -18,6 +18,7 @@ import { normalizeCompanySectors } from "@/lib/company-sectors";
 import type { CompanyType } from "@/types/company-type";
 import type { Company } from "@/types/company";
 import type { CoPilotActionProposal } from "@/types/smartassist-copilot";
+import { ExecuteInPlannerButton } from "@/components/m365/execute-in-planner-button";
 
 function BlockLabel({ children }: { children: string }) {
   return (
@@ -61,15 +62,12 @@ function CardActions({
           onNoAction={onNoAction}
         />
       ) : payload.nextBestAction.plannerEligible ? (
-        <a
-          href="https://tasks.office.com/"
-          {...(outlookHost
-            ? { target: "_blank" as const, rel: "noopener noreferrer" as const }
-            : {})}
-          className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
-        >
-          Execute in Planner
-        </a>
+        <ExecuteInPlannerButton
+          title={payload.nextBestAction.action}
+          body={payload.nextBestAction.impact.join(" · ")}
+          openUrl={payload.deepLink}
+          className="inline-flex items-center justify-center border border-upcycle-orange bg-upcycle-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        />
       ) : null}
       {outlookHost && !canApproveInPlace ? (
         <button
@@ -177,12 +175,15 @@ export function RelationshipCard({
   const [approveReady, setApproveReady] = useState(!proposal);
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- sync Outlook card when host payload identity changes */
     setCard(payload);
     setActionCleared(false);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [payload.companyId, payload.nextBestAction.id, payload.pendingCommitment?.activityId]);
 
   useEffect(() => {
     if (!outlookHost || !proposal) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- no proposal gate outside Outlook Active Assist
       setApproveReady(true);
       return;
     }

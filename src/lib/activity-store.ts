@@ -275,6 +275,7 @@ export async function createActivityRecord(input: CreateActivityInput): Promise<
   if (!isPrismaActivityStore()) {
     const created = await createJsonActivity(input);
     await notifyAssignment(null, created);
+    await notifyShare(null, created);
     return created;
   }
 
@@ -329,6 +330,7 @@ export async function createActivityRecord(input: CreateActivityInput): Promise<
   });
   const created = rowToActivity(row);
   await notifyAssignment(null, created);
+  await notifyShare(null, created);
   return created;
 }
 
@@ -341,6 +343,7 @@ async function notifyAssignment(previous: Activity | null, next: Activity): Prom
       subject: next.Subject || "Activity",
       assigneeId: after.Id,
       assigneeTitle: after.Title,
+      assigneeEmail: after.Email ?? null,
       previousOwnerId: previous?.ActivityOwner?.Id ?? null,
       companyName: next.Company?.Title ?? next.ProjectName ?? null,
       dueDate: next.NextActionDate ?? null,
@@ -349,6 +352,25 @@ async function notifyAssignment(previous: Activity | null, next: Activity): Prom
   } catch (error) {
     console.warn(
       "[activity] assign notify failed",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
+async function notifyShare(previous: Activity | null, next: Activity): Promise<void> {
+  if (next.ActivityType !== "Task") return;
+  try {
+    const { notifyTaskShared } = await import("@/lib/notifications/living-signals");
+    await notifyTaskShared({
+      activityId: next.ActivityID,
+      subject: next.Subject || "Task",
+      previousShared: previous?.SharedWith ?? [],
+      nextShared: next.SharedWith ?? [],
+      companyName: next.Company?.Title ?? next.ProjectName ?? null,
+    });
+  } catch (error) {
+    console.warn(
+      "[activity] share notify failed",
       error instanceof Error ? error.message : error,
     );
   }
@@ -376,7 +398,10 @@ export async function updateActivityRecord(
   if (!isPrismaActivityStore()) {
     const current = await getActivity(id);
     const updated = await updateJsonActivity(String(id), patch);
-    if (current) await notifyAssignment(current, updated);
+    if (current) {
+      await notifyAssignment(current, updated);
+      await notifyShare(current, updated);
+    }
     return updated;
   }
 
@@ -429,5 +454,6 @@ export async function updateActivityRecord(
   });
   const updated = rowToActivity(row);
   await notifyAssignment(current, updated);
+  await notifyShare(current, updated);
   return updated;
 }

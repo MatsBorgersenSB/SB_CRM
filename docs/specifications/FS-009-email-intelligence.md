@@ -216,6 +216,21 @@ Ambiguous attribution remains `opportunityId = null` until resolved—no silent 
 | FR-009-10 | System shall tombstone CRM records when mail is deleted in Outlook (`isDeletedInSource`) and surface `[Deleted in Outlook]`. |
 | FR-009-11 | System shall allow explicit **Purge from SmartCRM** deletion of a tombstoned or accidental sync record. |
 | FR-009-12 | System shall authenticate M365 via OAuth (`Mail.Read`, `Mail.Send`, `Calendars.Read`, `offline_access`) and persist tokens on `ExternalIntegration`. |
+| FR-009-13 | System shall expose **Clear My Mail** on `/mail`: an ordered one-card queue of open commitments (bounces, we-owe asks/promises, waiting-on-them) with impact and a single primary action. |
+| FR-009-14 | Clear My Mail shall automate detection, age-weighted ordering, quieting (`handledAt`), and auto-drop when sync evidence shows the commitment is resolved — and shall **not** auto-send mail or auto-create Activities, Contacts, Companies, or Opportunities. |
+| FR-009-15 | Clear My Mail primary actions shall reuse existing Reply draft, Resend / Check contact, Follow-up task preset, Assign colleague, and Done (`handledAt`) paths; Done / Assign / Skip shall auto-advance to the next card. |
+
+---
+
+## 8.5 Clear My Mail
+
+**Purpose:** Turn synced correspondence into a decide-first focus loop — one open commitment at a time — without building a second todo inbox.
+
+**Queue sources (priority order):** delivery failed → reply needed / we owe → open promises when triage is quiet → waiting on them. Cap applies. Machine-only and `handledAt`-quieted threads stay out.
+
+**Allowed automation:** rebuild queue after sync; drop resolved items from evidence; pre-fill Reply and Follow-up drafts; open Clear mode when the queue is non-empty on `/mail` load; auto-advance after Done / Assign / Skip.
+
+**Forbidden automation:** auto-send; auto-create tasks or registry records; mark Done merely because a Reply draft opened.
 
 ---
 
@@ -230,6 +245,8 @@ Ambiguous attribution remains `opportunityId = null` until resolved—no silent 
 - [ ] Tombstoned messages show `[Deleted in Outlook]` and support Purge from SmartCRM
 - [ ] OAuth login/callback routes persist `ExternalIntegration` for `m365_graph`
 - [ ] Graph category helper can PATCH `SmartCRM` (+ opportunity subcategory) onto messages
+- [ ] `/mail` opens Clear My Mail when the clear queue is non-empty; each card shows impact + one primary action
+- [ ] Done / Undo and sync auto-drop work; no Activity is created unless the user clicks Follow up or Assign
 
 ---
 

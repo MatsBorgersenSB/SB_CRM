@@ -17,6 +17,7 @@ import {
   resolveOpportunityOwner,
 } from "@/lib/opportunity-owner";
 import { CompanyLink } from "@/components/relationship/relationship-links";
+import { ColleagueDirectedNote } from "@/components/collaboration/colleague-directed-note";
 import { opportunityStageLabel } from "@/lib/opportunity-overview";
 import type { CommercialPackage } from "@/types/commercial-package";
 import {
@@ -203,6 +204,16 @@ export function OpportunityWorkspaceHeader({
               />
               {/* Mail create lives on Create (tab bar / sidebar) — one path. */}
             </div>
+            {ownerOptions.length > 0 ? (
+              <div className="mt-4">
+                <ColleagueDirectedNote
+                  kind="opportunity"
+                  entityId={pipeline.id}
+                  subject={pipeline.assetName || pipeline.id}
+                  options={ownerOptions}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -224,7 +235,7 @@ export function OpportunityWorkspaceHeader({
             />
           </AttributePill>
 
-          <AttributePill label="Owner">
+          <AttributePill label="Owned by">
             <OwnerSelect
               owner={owner}
               options={ownerOptions}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { FilterTransparencyBar } from "@/components/ui/filter-transparency-bar";
 import { buildActiveFilterChips } from "@/lib/workspace-filter-summary";
@@ -32,6 +32,8 @@ export type FilterToolbarProps = {
   defaultOwner?: string;
   extraActiveFilters?: FilterSummaryChip[];
   onClearAll?: () => void;
+  /** Controls placed after filters/owner and before search (e.g. Columns). */
+  endActions?: ReactNode;
 };
 
 function filterButtonLabel(
@@ -227,6 +229,7 @@ export function FilterToolbar({
   defaultOwner = "all",
   extraActiveFilters,
   onClearAll,
+  endActions,
 }: FilterToolbarProps) {
   const ownerDefinition: FilterDefinition | null =
     owners && owners.length > 0 && onOwnerChange
@@ -310,6 +313,8 @@ export function FilterToolbar({
             onChange={(value) => onOwnerChange!(normalizeSingleFilter(value, "all"))}
           />
         ) : null}
+
+        {endActions}
 
         {onSearchChange ? (
           <div className="relative ml-auto min-w-[10rem] flex-1 sm:max-w-xs">

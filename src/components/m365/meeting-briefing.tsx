@@ -11,6 +11,7 @@ import {
   buildMeetingBriefingReplyDraft,
   type MeetingReplyLanguageCode,
 } from "@/lib/m365/meeting-briefing-reply";
+import { ExecuteInPlannerButton } from "@/components/m365/execute-in-planner-button";
 
 function BlockLabel({ children }: { children: string }) {
   return (
@@ -249,14 +250,12 @@ export function MeetingBriefing({
                 outlookHost={outlookHost}
               />
               {payload.nextBestAction.plannerEligible ? (
-                <a
-                  href="https://tasks.office.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <ExecuteInPlannerButton
+                  title={payload.nextBestAction.action}
+                  body={payload.nextBestAction.impact.join(" · ")}
+                  openUrl={payload.deepLink}
                   className={TEXT_LINK}
-                >
-                  Execute in Planner
-                </a>
+                />
               ) : null}
             </div>
           </div>

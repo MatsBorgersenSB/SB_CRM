@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { CompanyOperationsRow } from "@/lib/company-operations-data";
+import type { CompanyListColumnVisibility } from "@/lib/company-list-columns";
 import { CompanyTypeBadges } from "@/components/companies/company-type-badges";
 import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
 import { SeverityIcon } from "@/components/ui/smartcrm-icon";
@@ -18,13 +19,13 @@ import type { Company, SharePointPerson } from "@/types/company";
 import type { StandardBioUserRecord } from "@/types/user-access";
 
 /**
- * Companies list — five columns, one decision per row.
- * Company · Posture · What matters · Pipeline · Owner
- * Health, location and last touch live on the Company 360; the sentence carries the signal here.
+ * Companies list — five decision columns, plus optional fields from Columns.
+ * Company · Posture · What matters · [Industry/Sector] · Pipeline · Owner
  */
 export function CompaniesOperationsTable({
   rows,
   companies,
+  columnVisibility,
   assignableUsers = [],
   canReassignOwner = false,
   savingOwnerId = null,
@@ -32,11 +33,14 @@ export function CompaniesOperationsTable({
 }: {
   rows: CompanyOperationsRow[];
   companies: Company[];
+  columnVisibility: CompanyListColumnVisibility;
   assignableUsers?: StandardBioUserRecord[];
   canReassignOwner?: boolean;
   savingOwnerId?: string | null;
   onOwnerChange?: (companyId: string, owner: SharePointPerson) => void;
 }) {
+  const showIndustrySector = columnVisibility.industrySector;
+
   if (rows.length === 0) {
     return (
       <p className="text-sm text-carbon-blue/65">
@@ -48,17 +52,21 @@ export function CompaniesOperationsTable({
   return (
     <WorkspaceTable>
       <colgroup>
-        <col className="w-[22%]" />
-        <col className="w-[14%]" />
-        <col className="w-[36%]" />
-        <col className="w-[13%]" />
-        <col className="w-[15%]" />
+        <col className={showIndustrySector ? "w-[18%]" : "w-[22%]"} />
+        <col className={showIndustrySector ? "w-[12%]" : "w-[14%]"} />
+        <col className={showIndustrySector ? "w-[28%]" : "w-[36%]"} />
+        {showIndustrySector ? <col className="w-[14%]" /> : null}
+        <col className={showIndustrySector ? "w-[13%]" : "w-[13%]"} />
+        <col className={showIndustrySector ? "w-[15%]" : "w-[15%]"} />
       </colgroup>
       <WorkspaceTableHead>
         <WorkspaceTableHeadRow>
           <WorkspaceTableHeadCell>Company</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>Relationship</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>What matters</WorkspaceTableHeadCell>
+          {showIndustrySector ? (
+            <WorkspaceTableHeadCell>Industry / Sector</WorkspaceTableHeadCell>
+          ) : null}
           <WorkspaceTableHeadCell align="right">Pipeline</WorkspaceTableHeadCell>
           <WorkspaceTableHeadCell>Owner</WorkspaceTableHeadCell>
         </WorkspaceTableHeadRow>
@@ -94,6 +102,11 @@ export function CompaniesOperationsTable({
                 </span>
               ) : null}
             </WorkspaceTableBodyCell>
+            {showIndustrySector ? (
+              <WorkspaceTableBodyCell>
+                <IndustrySectorCell industry={row.industry} sectors={row.sectors} />
+              </WorkspaceTableBodyCell>
+            ) : null}
             <WorkspaceTableBodyCell className="text-right">
               {row.openOpportunities > 0 ? (
                 <Link
@@ -135,5 +148,36 @@ export function CompaniesOperationsTable({
         ))}
       </WorkspaceTableBody>
     </WorkspaceTable>
+  );
+}
+
+function IndustrySectorCell({
+  industry,
+  sectors,
+}: {
+  industry: string;
+  sectors: string[];
+}) {
+  const sectorsLabel = sectors.length > 0 ? sectors.join(", ") : "";
+  if (!industry && !sectorsLabel) {
+    return <span className="text-carbon-blue/45">—</span>;
+  }
+
+  return (
+    <div className="min-w-0">
+      {industry ? (
+        <span className="block truncate text-carbon-blue" title={industry}>
+          {industry}
+        </span>
+      ) : null}
+      {sectorsLabel ? (
+        <span
+          className={`block truncate text-[12px] text-carbon-blue/65 ${industry ? "" : "text-carbon-blue"}`}
+          title={sectorsLabel}
+        >
+          {sectorsLabel}
+        </span>
+      ) : null}
+    </div>
   );
 }

@@ -116,8 +116,16 @@ export async function deleteUser(id: number): Promise<boolean> {
   return true;
 }
 
-export function userToSharePointPerson(user: StandardBioUserRecord): { Id: number; Title: string } {
-  return { Id: user.id, Title: user.displayName };
+export function userToSharePointPerson(user: StandardBioUserRecord): {
+  Id: number;
+  Title: string;
+  Email?: string;
+} {
+  return {
+    Id: user.id,
+    Title: user.displayName,
+    Email: user.email?.trim() || undefined,
+  };
 }
 
 export async function readActiveAssignableUsers(): Promise<StandardBioUserRecord[]> {

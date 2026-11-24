@@ -5,9 +5,11 @@ import type { CompanyHeroIdentityView } from "@/lib/company-identity";
 import { hasCompanyOwner } from "@/lib/company-owner";
 import { canReassignCompanyOwner } from "@/lib/permissions";
 import { CompanyOwnerSelect } from "@/components/companies/company-owner-select";
+import { ColleagueDirectedNote } from "@/components/collaboration/colleague-directed-note";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { UserRole } from "@/types/auth";
 import type { StandardBioUserRecord } from "@/types/user-access";
+import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import type { PipelineRow } from "@/types/pipeline";
 import { opportunityPublicCode } from "@/types/pipeline";
 import type { Project } from "@/types/project";
@@ -171,6 +173,20 @@ export function CompanyWorkspaceHeader({
         ) : null}
       </div>
 
+      {assignableUsers.length > 0 ? (
+        <div className="mt-4">
+          <ColleagueDirectedNote
+            kind="company"
+            entityId={company.CompanyID}
+            subject={company.Title}
+            options={mergeStandardBioUserOptions(
+              assignableUsers,
+              company.AccountOwner ? [company.AccountOwner] : [],
+            )}
+          />
+        </div>
+      ) : null}
+
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-carbon-blue/70">
         {canEditOwner ? (
           <span
@@ -178,10 +194,10 @@ export function CompanyWorkspaceHeader({
               ownerAssigned ? "text-carbon-blue/70" : "font-medium text-thermal-red"
             }`}
           >
-            <span>Owner</span>
+            <span>Owned by</span>
             <CompanyOwnerSelect
               appearance="inline"
-              label="Account owner"
+              label="Who owns this company"
               companies={companies}
               assignableUsers={assignableUsers}
               extraUsers={company.AccountOwner ? [company.AccountOwner] : []}
@@ -199,8 +215,8 @@ export function CompanyWorkspaceHeader({
             }
           >
             {ownerAssigned
-              ? `Owner ${header.accountOwner}`
-              : "Owner incomplete — assign an account owner"}
+              ? `Owned by ${header.accountOwner}`
+              : "Nobody owns this yet — pick a person"}
           </span>
         )}
 

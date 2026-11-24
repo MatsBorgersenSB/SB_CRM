@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { MailShell, type MailLinkOption } from "@/components/layout/mail-shell";
+import { WorkspaceLoading } from "@/components/ui/workspace-feedback";
 import { auth } from "@/lib/auth";
 import { prismaLiveOpportunityWhere } from "@/lib/demo-seed-markers";
 import { readRecentLinkedEmails } from "@/lib/email-intelligence-data";
@@ -65,11 +67,13 @@ export default async function MailPage() {
     readAssignableStandardBioUsers().catch(() => []),
   ]);
   return (
-    <MailShell
-      messages={messages}
-      role={user.role}
-      assignableUsers={assignableUsers}
-      {...linkOptions}
-    />
+    <Suspense fallback={<WorkspaceLoading label="Opening mail" />}>
+      <MailShell
+        messages={messages}
+        role={user.role}
+        assignableUsers={assignableUsers}
+        {...linkOptions}
+      />
+    </Suspense>
   );
 }

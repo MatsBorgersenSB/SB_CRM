@@ -5,6 +5,7 @@ import {
   correspondenceMapFromRecord,
   type CorrespondenceByCompanyId,
 } from "@/lib/company-correspondence";
+import { normalizeCompanySectors } from "@/lib/company-sectors";
 import { daysBetween } from "@/lib/relative-time";
 import type { Activity } from "@/types/activity";
 import type { AuthUser } from "@/types/auth";
@@ -12,7 +13,7 @@ import type { AttentionSeverity } from "@/types/attention-item";
 import { SEVERITY_RANK } from "@/types/attention-item";
 import type { CommercialPackage } from "@/types/commercial-package";
 import type { Company, SharePointPerson } from "@/types/company";
-import { formatCompanyLocation } from "@/types/company";
+import { formatCompanyLocation, normalizeCompanyIndustry } from "@/types/company";
 import type { CompanyType, CompanyTypeFilter } from "@/types/company-type";
 import { COMPANY_TYPE_META, COMPANY_TYPE_QUICK_FILTERS } from "@/types/company-type";
 import {
@@ -94,6 +95,10 @@ export type CompanyOperationsRow = {
   ownerLabel: string | null;
   accountOwner: SharePointPerson | null;
   locationLabel: string;
+  /** Normalized industry label; empty string when unknown. */
+  industry: string;
+  /** Normalized sector tags; empty until assigned. */
+  sectors: string[];
   healthScore: number;
   healthStatus: RelationshipHealthStatus;
   /** False when nothing is recorded — render "No data yet", never a status or score. */
@@ -221,6 +226,8 @@ export function buildCompanyOperationsWorkspace(
       ownerLabel,
       accountOwner,
       locationLabel: formatCompanyLocation(company),
+      industry: normalizeCompanyIndustry(company.Industry),
+      sectors: normalizeCompanySectors(company.Sectors),
       healthScore,
       healthStatus,
       hasSignal,
@@ -291,6 +298,8 @@ export function searchCompanyOperationsRows(
       row.companyName.toLowerCase().includes(q) ||
       row.locationLabel.toLowerCase().includes(q) ||
       row.companyTypesLabel.toLowerCase().includes(q) ||
+      row.industry.toLowerCase().includes(q) ||
+      row.sectors.some((sector) => sector.toLowerCase().includes(q)) ||
       (row.ownerLabel?.toLowerCase().includes(q) ?? false),
   );
 }

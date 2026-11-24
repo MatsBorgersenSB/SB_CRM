@@ -32,6 +32,10 @@ const DEFAULT_SCOPES = [
   "Calendars.ReadWrite",
   "Files.ReadWrite.All",
   "Sites.ReadWrite.All",
+  /** FS-018 Execute in Planner / To Do create */
+  "Tasks.ReadWrite",
+  /** FS-018 weekly Adaptive Card to bound project channels */
+  "ChannelMessage.Send",
 ];
 
 export const SMARTCRM_MASTER_CATEGORY = "SmartCRM";

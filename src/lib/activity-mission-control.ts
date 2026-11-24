@@ -10,7 +10,24 @@ import {
   isActiveStatus,
   isActivityThisWeek,
   isExecutionStatus,
+  type ActivityUserScope,
 } from "@/lib/activity-workspace";
+import { personMatchesColleague, type ColleagueIdentity } from "@/lib/colleague-identity";
+
+function toColleagueScope(
+  currentUserName?: string,
+  scope?: ActivityUserScope,
+): ColleagueIdentity | null {
+  if (scope) {
+    return {
+      id: scope.id,
+      email: scope.email,
+      title: scope.title ?? currentUserName ?? null,
+    };
+  }
+  if (!currentUserName?.trim()) return null;
+  return { title: currentUserName };
+}
 
 export type ActivityMissionView = "today" | "this_week" | "completed";
 
@@ -405,7 +422,9 @@ export function filterActivityRows(
   rows: ActivityIntelligentRow[],
   filter: ActivityWorkFilter,
   currentUserName?: string,
+  scope?: ActivityUserScope,
 ): ActivityIntelligentRow[] {
+  const colleague = toColleagueScope(currentUserName, scope);
   return rows.filter((row) => {
     const activity = row.activity;
     if (filter === "completed") return row.isCompleted;
@@ -417,16 +436,15 @@ export function filterActivityRows(
       case "my_tasks":
         return (
           activity.ActivityType === "Task" &&
-          Boolean(currentUserName) &&
-          activity.ActivityOwner?.Title?.toLowerCase() === currentUserName!.toLowerCase()
+          Boolean(colleague) &&
+          personMatchesColleague(activity.ActivityOwner, colleague!)
         );
       case "shared_with_me":
         return (
           activity.ActivityType === "Task" &&
-          Boolean(currentUserName) &&
-          (activity.SharedWith ?? []).some(
-            (person) =>
-              person.Title.toLowerCase() === currentUserName!.toLowerCase(),
+          Boolean(colleague) &&
+          (activity.SharedWith ?? []).some((person) =>
+            personMatchesColleague(person, colleague!),
           )
         );
       case "tasks":
@@ -448,16 +466,17 @@ export function filterActivityRows(
 export function countActivityWorkFilters(
   rows: ActivityIntelligentRow[],
   currentUserName?: string,
+  scope?: ActivityUserScope,
 ): Record<ActivityWorkFilter, number> {
   return {
     all: rows.filter((row) => !row.isCompleted).length,
-    my_tasks: filterActivityRows(rows, "my_tasks", currentUserName).length,
-    shared_with_me: filterActivityRows(rows, "shared_with_me", currentUserName).length,
-    tasks: filterActivityRows(rows, "tasks", currentUserName).length,
-    attention: filterActivityRows(rows, "attention", currentUserName).length,
-    overdue: filterActivityRows(rows, "overdue", currentUserName).length,
-    due_today: filterActivityRows(rows, "due_today", currentUserName).length,
-    this_week: filterActivityRows(rows, "this_week", currentUserName).length,
+    my_tasks: filterActivityRows(rows, "my_tasks", currentUserName, scope).length,
+    shared_with_me: filterActivityRows(rows, "shared_with_me", currentUserName, scope).length,
+    tasks: filterActivityRows(rows, "tasks", currentUserName, scope).length,
+    attention: filterActivityRows(rows, "attention", currentUserName, scope).length,
+    overdue: filterActivityRows(rows, "overdue", currentUserName, scope).length,
+    due_today: filterActivityRows(rows, "due_today", currentUserName, scope).length,
+    this_week: filterActivityRows(rows, "this_week", currentUserName, scope).length,
     completed: rows.filter((row) => row.isCompleted).length,
   };
 }

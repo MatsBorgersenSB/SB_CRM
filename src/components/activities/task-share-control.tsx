@@ -99,13 +99,13 @@ export function TaskShareControl({
         }
       >
         <Share2 className="size-3" strokeWidth={2} />
-        Share
+        Also show to…
         {shared.length > 0 ? (
           <span className="text-carbon-blue/60">({shared.length})</span>
         ) : null}
         {sharedWithMe ? (
           <span className="text-[10px] font-medium normal-case text-upcycle-orange">
-            with you
+            includes you
           </span>
         ) : null}
       </button>
@@ -114,9 +114,9 @@ export function TaskShareControl({
         <div className="absolute right-0 z-40 mt-1 w-72 border border-carbon-blue/15 bg-white p-3 shadow-lg">
           <div className="mb-2 flex items-start justify-between gap-2">
             <div>
-              <p className="text-[12px] font-semibold text-carbon-blue">Share task</p>
+              <p className="text-[12px] font-semibold text-carbon-blue">Also show to…</p>
               <p className="mt-0.5 text-[11px] text-carbon-blue/50">
-                Colleagues can follow this task. Assignee stays the owner.
+                They can watch. The person in “Give to” still owns it.
               </p>
             </div>
             <button
@@ -136,7 +136,7 @@ export function TaskShareControl({
               className="min-w-0 flex-1 border border-carbon-blue/15 px-2 py-1.5 text-[12px]"
             >
               <option value="">
-                {shareOptions.length === 0 ? "Everyone already shared" : "Add colleague…"}
+                {shareOptions.length === 0 ? "Everyone already included" : "Pick a person…"}
               </option>
               {shareOptions.map((person) => (
                 <option key={person.Id} value={person.Id}>
@@ -263,7 +263,7 @@ export function TaskShareWithPicker({
         className="w-full border border-carbon-blue/15 px-2.5 py-2 text-[13px]"
       >
         <option value="">
-          {available.length === 0 ? "No more colleagues to add" : "Add colleague…"}
+          {available.length === 0 ? "Everyone already included" : "Pick a person…"}
         </option>
         {available.map((person) => (
           <option key={person.Id} value={person.Id}>

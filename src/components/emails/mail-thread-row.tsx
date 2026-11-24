@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ChevronDown, ExternalLink, Trash2 } from "lucide-react";
+import { ColleagueDirectedNote } from "@/components/collaboration/colleague-directed-note";
 import { EmailMessageActions } from "@/components/emails/email-message-actions";
 import {
   MailAttachmentBadge,
@@ -428,6 +429,132 @@ export function MailThreadRow({
 
       {expanded ? (
         <div className="mt-3 space-y-3 border-t border-carbon-blue/10 pt-3">
+          {/* Sticky: Reply + Ask + Actions — no scroll needed for next step. */}
+          <div className="sticky top-0 z-20 -mx-5 border-b border-carbon-blue/10 bg-[var(--dashboard-surface,#fff)] px-5 py-2.5 shadow-[0_1px_0_rgba(15,45,66,0.06)]">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {canReply ? (
+                <EmailMessageActions
+                  toEmail={target}
+                  subject={lead.subject}
+                  bodyPreview={lead.bodyPreview}
+                  contactId={contactId}
+                  contactName={contactName}
+                  contactPhone={contactPhone}
+                  opportunityId={dealId ?? undefined}
+                  opportunityName={dealMessage?.opportunityName ?? null}
+                  projectId={projectId ?? undefined}
+                  projectName={projectMessage?.projectName ?? null}
+                  status={thread.status}
+                  role={role}
+                  trailing={
+                    assignableOptions.length > 0 && !lead.isDeletedInSource ? (
+                      <ColleagueDirectedNote
+                        compact
+                        kind="mail"
+                        entityId={thread.conversationId}
+                        subject={subject}
+                        options={assignableOptions}
+                        buttonLabel="Ask a teammate"
+                        defaultLinkUrl={lead.webLink ?? ""}
+                        defaultMessage={
+                          thread.status.kind === "reply_needed" && thread.status.ask
+                            ? `Need help answering this mail:\n“${thread.status.ask}”`
+                            : `Need help with this mail from ${contactName || lastFrom}.`
+                        }
+                      />
+                    ) : null
+                  }
+                  extraMenuItems={
+                    <>
+                      {!lead.isDeletedInSource ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => onCreateActivity(thread)}
+                          className="flex w-full items-center px-3 py-2 text-left text-[12px] font-semibold text-carbon-blue hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange"
+                        >
+                          Create task
+                        </button>
+                      ) : null}
+                      {!lead.isDeletedInSource &&
+                      onAssignColleague &&
+                      assignableOptions.length > 0 ? (
+                        <div className="border-t border-carbon-blue/10 px-3 py-2">
+                          <p className="mb-1 text-[11px] font-medium text-carbon-blue/55">
+                            Assign task to
+                          </p>
+                          <div className="flex max-h-36 flex-col gap-0.5 overflow-y-auto">
+                            {assignableOptions.map((option) => (
+                              <button
+                                key={option.Id}
+                                type="button"
+                                role="menuitem"
+                                disabled={busy}
+                                onClick={() => onAssignColleague(thread, option)}
+                                className="w-full px-1 py-1 text-left text-[12px] font-semibold text-carbon-blue hover:text-upcycle-orange disabled:opacity-50"
+                              >
+                                {option.Title}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {canFileAttachments ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          disabled={busy}
+                          onClick={() => onFileAttachments?.(thread)}
+                          className="flex w-full items-center px-3 py-2 text-left text-[12px] font-semibold text-carbon-blue hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange disabled:opacity-50"
+                        >
+                          File attachments
+                        </button>
+                      ) : null}
+                      {needsAnswerStatus ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          disabled={busy}
+                          onClick={() => onHandled(thread)}
+                          className="flex w-full items-center px-3 py-2 text-left text-[12px] font-semibold text-carbon-blue/70 hover:bg-carbon-blue/[0.04] hover:text-carbon-blue disabled:opacity-50"
+                        >
+                          No reply needed
+                        </button>
+                      ) : null}
+                      {lead.webLink ? (
+                        <a
+                          href={lead.webLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          role="menuitem"
+                          className="flex w-full items-center gap-1 border-t border-carbon-blue/10 px-3 py-2 text-left text-[12px] font-semibold text-carbon-blue/70 hover:bg-carbon-blue/[0.04] hover:text-upcycle-orange"
+                        >
+                          Open in Outlook
+                          <ExternalLink className="size-3" aria-hidden />
+                        </a>
+                      ) : null}
+                    </>
+                  }
+                />
+              ) : assignableOptions.length > 0 && !lead.isDeletedInSource ? (
+                <ColleagueDirectedNote
+                  compact
+                  kind="mail"
+                  entityId={thread.conversationId}
+                  subject={subject}
+                  options={assignableOptions}
+                  buttonLabel="Ask a teammate"
+                  defaultLinkUrl={lead.webLink ?? ""}
+                  defaultMessage={
+                    thread.status.kind === "reply_needed" && thread.status.ask
+                      ? `Need help answering this mail:\n“${thread.status.ask}”`
+                      : `Need help with this mail from ${contactName || lastFrom}.`
+                  }
+                />
+              ) : null}
+            </div>
+          </div>
+
           <ThreadCorrespondencePreview
             messages={readerMessages}
             contactName={contactName}
@@ -435,90 +562,6 @@ export function MailThreadRow({
             presentation="reader"
             dateSort={dateSort}
           />
-
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            {canReply ? (
-              <EmailMessageActions
-                toEmail={target}
-                subject={lead.subject}
-                bodyPreview={lead.bodyPreview}
-                contactId={contactId}
-                contactName={contactName}
-                contactPhone={contactPhone}
-                opportunityId={dealId ?? undefined}
-                opportunityName={dealMessage?.opportunityName ?? null}
-                projectId={projectId ?? undefined}
-                projectName={projectMessage?.projectName ?? null}
-                status={thread.status}
-                role={role}
-              />
-            ) : null}
-            {!lead.isDeletedInSource ? (
-              <button
-                type="button"
-                onClick={() => onCreateActivity(thread)}
-                className="inline-flex items-center border border-carbon-blue/20 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange"
-              >
-                Create task
-              </button>
-            ) : null}
-            {!lead.isDeletedInSource &&
-            onAssignColleague &&
-            assignableOptions.length > 0 ? (
-              <select
-                value=""
-                disabled={busy}
-                aria-label="Assign task from this conversation to a colleague"
-                onChange={(event) => {
-                  const chosen = assignableOptions.find(
-                    (option) => String(option.Id) === event.target.value,
-                  );
-                  if (chosen) onAssignColleague(thread, chosen);
-                }}
-                className="border border-carbon-blue/20 bg-white px-2 py-1 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange disabled:opacity-50"
-              >
-                <option value="" disabled>
-                  Assign to colleague…
-                </option>
-                {assignableOptions.map((option) => (
-                  <option key={option.Id} value={option.Id}>
-                    {option.Title}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {canFileAttachments ? (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => onFileAttachments?.(thread)}
-                className="inline-flex items-center border border-carbon-blue/20 bg-white px-2.5 py-1 text-[12px] font-semibold text-carbon-blue hover:border-upcycle-orange hover:text-upcycle-orange disabled:opacity-50"
-              >
-                File attachments
-              </button>
-            ) : null}
-            {needsAnswerStatus ? (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => onHandled(thread)}
-                className="inline-flex items-center text-[12px] font-medium text-carbon-blue/60 hover:text-carbon-blue disabled:opacity-50"
-              >
-                No reply needed
-              </button>
-            ) : null}
-            {lead.webLink ? (
-              <a
-                href={lead.webLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[12px] font-medium text-carbon-blue/60 hover:text-upcycle-orange"
-              >
-                Open in Outlook
-                <ExternalLink className="size-3" aria-hidden />
-              </a>
-            ) : null}
-          </div>
 
           {offerOpportunity && companyKey ? (
             <div className="border border-carbon-blue/10 bg-white px-3 py-2">

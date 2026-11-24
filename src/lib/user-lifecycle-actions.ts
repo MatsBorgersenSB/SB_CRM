@@ -8,9 +8,13 @@ import type { OwnershipTransferResult, StandardBioUserRecord } from "@/types/use
 /** Server-only lifecycle mutations — uses fs-backed stores. */
 
 function userToSharePointPerson(
-  user: Pick<StandardBioUserRecord, "id" | "displayName">,
+  user: Pick<StandardBioUserRecord, "id" | "displayName" | "email">,
 ): SharePointPerson {
-  return { Id: user.id, Title: user.displayName };
+  return {
+    Id: user.id,
+    Title: user.displayName,
+    Email: user.email?.trim() || undefined,
+  };
 }
 
 export async function loadLifecycleContext(): Promise<LifecycleContext> {

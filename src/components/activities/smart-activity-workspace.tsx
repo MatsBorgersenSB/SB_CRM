@@ -18,6 +18,7 @@ import { ActivityIntelligencePanel } from "@/components/activities/activity-inte
 import { useSmartAssistActionHost } from "@/components/smartassist/smartassist-action-host";
 import { SmartAssistCopilotHost } from "@/components/smartassist/smart-assist-copilot-host";
 import { useAuth } from "@/context/auth-context";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
 import {
   applyActivityQuickFilter,
@@ -164,19 +165,21 @@ export function SmartActivityWorkspace({
     [assignableUsers, user.id, user.displayName],
   );
 
-  useEffect(() => {
-    setActivities(initialActivities);
-  }, [initialActivities]);
+  useWhenChanged([initialActivities], () => setActivities(initialActivities), {
+    runOnMount: false,
+  });
 
   useEffect(() => {
     const prefill = consumeSmartAssistPrefill();
     if (!prefill) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- one-shot SmartAssist prefill from external store */
     setWizardPreset((current) => ({
       ...contextPreset(context),
       ...current,
       ...prefillToCreateActivityInput(prefill),
     }));
     setWizardOpen(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [context]);
 
   const scopeActivities = useCallback(
@@ -197,33 +200,59 @@ export function SmartActivityWorkspace({
     [context, companies],
   );
 
+  const userScope = useMemo(
+    () => ({
+      id: user.id,
+      email: user.email,
+      title: user.displayName,
+    }),
+    [user.id, user.email, user.displayName],
+  );
+
   const quickFilterCounts = useMemo(() => {
     const scoped = filterActivitiesForWorkspace(
       activities,
       { ...filters, quickFilter: "all" },
       companies,
       user.displayName,
+      userScope,
     );
     return {
       all: scoped.length,
-      mine: applyActivityQuickFilter(scoped, "mine", user.displayName).length,
-      my_tasks: applyActivityQuickFilter(scoped, "my_tasks", user.displayName).length,
-      shared_with_me: applyActivityQuickFilter(scoped, "shared_with_me", user.displayName)
+      mine: applyActivityQuickFilter(scoped, "mine", user.displayName, userScope).length,
+      my_tasks: applyActivityQuickFilter(scoped, "my_tasks", user.displayName, userScope).length,
+      shared_with_me: applyActivityQuickFilter(
+        scoped,
+        "shared_with_me",
+        user.displayName,
+        userScope,
+      ).length,
+      planned: applyActivityQuickFilter(scoped, "planned", user.displayName, userScope).length,
+      overdue: applyActivityQuickFilter(scoped, "overdue", user.displayName, userScope).length,
+      completed: applyActivityQuickFilter(scoped, "completed", user.displayName, userScope)
         .length,
-      planned: applyActivityQuickFilter(scoped, "planned", user.displayName).length,
-      overdue: applyActivityQuickFilter(scoped, "overdue", user.displayName).length,
-      completed: applyActivityQuickFilter(scoped, "completed", user.displayName).length,
-      this_week: applyActivityQuickFilter(scoped, "this_week", user.displayName).length,
-      needs_attention: applyActivityQuickFilter(scoped, "needs_attention", user.displayName)
+      this_week: applyActivityQuickFilter(scoped, "this_week", user.displayName, userScope)
         .length,
-      meetings: applyActivityQuickFilter(scoped, "meetings", user.displayName).length,
-      calls: applyActivityQuickFilter(scoped, "calls", user.displayName).length,
-      tasks: applyActivityQuickFilter(scoped, "tasks", user.displayName).length,
+      needs_attention: applyActivityQuickFilter(
+        scoped,
+        "needs_attention",
+        user.displayName,
+        userScope,
+      ).length,
+      meetings: applyActivityQuickFilter(scoped, "meetings", user.displayName, userScope).length,
+      calls: applyActivityQuickFilter(scoped, "calls", user.displayName, userScope).length,
+      tasks: applyActivityQuickFilter(scoped, "tasks", user.displayName, userScope).length,
     };
-  }, [activities, filters, companies, user.displayName]);
+  }, [activities, filters, companies, user.displayName, userScope]);
 
   const filtered = useMemo(() => {
-    let rows = filterActivitiesForWorkspace(activities, filters, companies, user.displayName);
+    let rows = filterActivitiesForWorkspace(
+      activities,
+      filters,
+      companies,
+      user.displayName,
+      userScope,
+    );
     if (selectedTypes.length > 0) {
       rows = rows.filter((activity) => selectedTypes.includes(activity.ActivityType));
     }
@@ -233,7 +262,7 @@ export function SmartActivityWorkspace({
       );
     }
     return rows;
-  }, [activities, filters, companies, user.displayName, owner, selectedTypes]);
+  }, [activities, filters, companies, user.displayName, userScope, owner, selectedTypes]);
 
   const ownerOptions = useMemo(() => {
     const labels = new Set<string>();

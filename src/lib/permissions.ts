@@ -247,6 +247,7 @@ export function canAccessRoute(role: UserRole, href: string): boolean {
   if (role === "client_lead") {
     return (
       href === "/" ||
+      href === "/team" ||
       href === "/companies" ||
       href === "/contacts" ||
       href === "/activities" ||

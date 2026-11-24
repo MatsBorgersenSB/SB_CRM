@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { TaskAssigneeSelect } from "@/components/activities/task-assignee-select";
+import { TaskShareControl } from "@/components/activities/task-share-control";
 import type { ActivityIntelligentRow } from "@/lib/activity-mission-control";
 import { EDITORIAL_EMPTY } from "@/lib/editorial-design-system";
 import { WORKSPACE_PANEL_SURFACE } from "@/lib/workspace-design-system";
@@ -32,6 +33,8 @@ export function ActivityIntelligentTable({
   embedded = false,
   assigneeOptions = [],
   onAssigneeChange,
+  onSharedWithChange,
+  currentUser,
   onToggleComplete,
 }: {
   rows: ActivityIntelligentRow[];
@@ -44,6 +47,11 @@ export function ActivityIntelligentTable({
     activity: Activity,
     assignee: SharePointPerson,
   ) => void | Promise<void>;
+  onSharedWithChange?: (
+    activity: Activity,
+    sharedWith: SharePointPerson[],
+  ) => void | Promise<void>;
+  currentUser?: SharePointPerson | null;
   onToggleComplete?: (activity: Activity, completed: boolean) => void | Promise<void>;
 }) {
   if (rows.length === 0) {
@@ -70,7 +78,7 @@ export function ActivityIntelligentTable({
               <WorkspaceTableHeadCell>What&apos;s blocking</WorkspaceTableHeadCell>
               <WorkspaceTableHeadCell>Next step</WorkspaceTableHeadCell>
               <WorkspaceTableHeadCell align="right">Due</WorkspaceTableHeadCell>
-              <WorkspaceTableHeadCell>Assign</WorkspaceTableHeadCell>
+              <WorkspaceTableHeadCell>Team</WorkspaceTableHeadCell>
             </WorkspaceTableHeadRow>
           </WorkspaceTableHead>
           <WorkspaceTableBody>
@@ -82,6 +90,8 @@ export function ActivityIntelligentTable({
                 onOpen={onOpen}
                 assigneeOptions={assigneeOptions}
                 onAssigneeChange={onAssigneeChange}
+                onSharedWithChange={onSharedWithChange}
+                currentUser={currentUser}
                 onToggleComplete={onToggleComplete}
               />
             ))}
@@ -101,6 +111,8 @@ function ActivityIntelligentTableRow({
   onOpen,
   assigneeOptions = [],
   onAssigneeChange,
+  onSharedWithChange,
+  currentUser,
   onToggleComplete,
 }: {
   row: ActivityIntelligentRow;
@@ -111,6 +123,11 @@ function ActivityIntelligentTableRow({
     activity: Activity,
     assignee: SharePointPerson,
   ) => void | Promise<void>;
+  onSharedWithChange?: (
+    activity: Activity,
+    sharedWith: SharePointPerson[],
+  ) => void | Promise<void>;
+  currentUser?: SharePointPerson | null;
   onToggleComplete?: (activity: Activity, completed: boolean) => void | Promise<void>;
 }) {
   const isPrimaryFocus = primaryFocusActivityId === row.id;
@@ -196,13 +213,16 @@ function ActivityIntelligentTableRow({
       </WorkspaceTableBodyCell>
 
       <WorkspaceTableBodyCell className="align-top overflow-visible">
-        <div onClick={(event) => event.stopPropagation()}>
+        <div
+          className="flex flex-col items-start gap-1.5"
+          onClick={(event) => event.stopPropagation()}
+        >
           {onAssigneeChange && assigneeOptions.length > 0 ? (
             <TaskAssigneeSelect
               value={row.activity.ActivityOwner}
               onChange={(next) => void onAssigneeChange(row.activity, next)}
               options={assigneeOptions}
-              label="Assign to"
+              label="Give to"
               compact
             />
           ) : row.activity.ActivityOwner?.Title ? (
@@ -212,6 +232,19 @@ function ActivityIntelligentTableRow({
           ) : (
             <span className="text-[12px] text-carbon-blue/40">Unassigned</span>
           )}
+          {row.activity.ActivityType === "Task" &&
+          onSharedWithChange &&
+          assigneeOptions.length > 0 ? (
+            <TaskShareControl
+              activity={row.activity}
+              options={assigneeOptions}
+              currentUser={currentUser}
+              onSharedWithChange={(sharedWith) =>
+                void onSharedWithChange(row.activity, sharedWith)
+              }
+              compact
+            />
+          ) : null}
         </div>
       </WorkspaceTableBodyCell>
     </WorkspaceTableBodyRow>

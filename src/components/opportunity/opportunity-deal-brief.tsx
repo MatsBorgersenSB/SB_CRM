@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ColleagueDirectedNote } from "@/components/collaboration/colleague-directed-note";
 import {
   type BriefRow,
   type DealBrief,
@@ -16,6 +17,7 @@ import {
   type FelMassEnergyEvaluation,
 } from "@/lib/fel-mass-energy-engine";
 import type { UnderstandingFieldId } from "@/types/opportunity-understanding";
+import type { SharePointPerson } from "@/types/company";
 import { ATTIO_SURFACE } from "@/lib/attio-workspace-surfaces";
 import { EDITORIAL_LABEL } from "@/lib/editorial-design-system";
 
@@ -57,8 +59,10 @@ const CHECK_STYLE: Record<KnowledgeState, string> = {
 export function OpportunityDealBriefHero({
   brief,
   projectName,
+  projectId,
   pillarCounterparties,
   felEvaluation,
+  colleagueOptions = [],
   onAnswerNow,
   onScanFelRadar,
   scanningFelRadar = false,
@@ -66,8 +70,11 @@ export function OpportunityDealBriefHero({
 }: {
   brief: DealBrief;
   projectName?: string;
+  /** When set with colleagues, Ask a teammate appears on the next-step column. */
+  projectId?: string;
   pillarCounterparties?: Partial<Record<UnderstandingFieldId, PillarCounterpartyBinding>>;
   felEvaluation?: FelMassEnergyEvaluation | null;
+  colleagueOptions?: SharePointPerson[];
   onAnswerNow?: (fieldId: string) => void;
   onScanFelRadar?: () => void;
   scanningFelRadar?: boolean;
@@ -87,6 +94,23 @@ export function OpportunityDealBriefHero({
       binding: nextCounterparty,
     });
   }, [development, nextFieldId, projectName, nextCounterparty]);
+
+  const askTeammate =
+    projectId && colleagueOptions.length > 0
+      ? {
+          projectId,
+          options: colleagueOptions,
+          subject: projectName?.trim() || "Project",
+          defaultMessage: [
+            `Need help on FEL for ${projectName?.trim() || "this project"}.`,
+            brief.next.headline ? `Next: ${brief.next.headline}` : null,
+            brief.blocker.headline ? `Blocked by: ${brief.blocker.headline}` : null,
+            brief.verdict.impact ? `Why it matters: ${brief.verdict.impact}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        }
+      : null;
 
   return (
     <section aria-label="Deal brief" className={`${ATTIO_SURFACE} overflow-hidden`}>
@@ -151,6 +175,7 @@ export function OpportunityDealBriefHero({
               ? `Email ${nextCounterparty.companyName} in Outlook`
               : "Prepare email in Outlook"
           }
+          askTeammate={askTeammate}
         />
       </div>
 
@@ -203,6 +228,7 @@ function BriefColumn({
   pillarCounterparties,
   outlookDraftHref,
   outlookDraftLabel,
+  askTeammate = null,
 }: {
   label: string;
   row: BriefRow;
@@ -211,6 +237,12 @@ function BriefColumn({
   pillarCounterparties?: Partial<Record<UnderstandingFieldId, PillarCounterpartyBinding>>;
   outlookDraftHref?: string;
   outlookDraftLabel?: string;
+  askTeammate?: {
+    projectId: string;
+    options: SharePointPerson[];
+    subject: string;
+    defaultMessage: string;
+  } | null;
 }) {
   const [open, setOpen] = useState(false);
   const boundParty =
@@ -302,6 +334,18 @@ function BriefColumn({
           >
             Answer now
           </button>
+        ) : null}
+        {askTeammate ? (
+          <ColleagueDirectedNote
+            compact
+            kind="project"
+            entityId={askTeammate.projectId}
+            subject={askTeammate.subject}
+            options={askTeammate.options}
+            buttonLabel="Ask a teammate"
+            defaultMessage={askTeammate.defaultMessage}
+            defaultLinkUrl={`/projects/${encodeURIComponent(askTeammate.projectId)}?view=understanding`}
+          />
         ) : null}
         {outlookDraftHref ? (
           <a

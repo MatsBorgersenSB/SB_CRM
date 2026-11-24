@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BulkImportPanel } from "@/components/companies/bulk-import-panel";
 import { CompaniesActionBar } from "@/components/companies/companies-action-bar";
+import { CompaniesColumnsControl } from "@/components/companies/companies-columns-control";
 import { CompaniesOperationsTable } from "@/components/companies/companies-operations-table";
 import {
   CompaniesWorkspaceHeader,
@@ -20,6 +21,13 @@ import { WorkspaceNotice } from "@/components/ui/workspace-feedback";
 import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
+import {
+  defaultCompanyListColumnVisibility,
+  readCompanyListColumnVisibility,
+  writeCompanyListColumnVisibility,
+  type CompanyListColumnVisibility,
+  type CompanyListOptionalColumnId,
+} from "@/lib/company-list-columns";
 import {
   buildCompanyOperationsWorkspace,
   COMPANY_ATTENTION_FILTERS,
@@ -92,11 +100,30 @@ export function CompaniesOperationsShell({
   const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
   const [ownerError, setOwnerError] = useState<string | null>(null);
   const [ownerNotice, setOwnerNotice] = useState<string | null>(null);
+  const [columnVisibility, setColumnVisibility] = useState<CompanyListColumnVisibility>(
+    defaultCompanyListColumnVisibility,
+  );
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate Columns preference from localStorage after mount
+    setColumnVisibility(readCompanyListColumnVisibility());
+  }, []);
 
   if (prevCompanies !== companies) {
     setPrevCompanies(companies);
     setCompanyRows(companies);
   }
+
+  const handleColumnVisibilityChange = useCallback(
+    (id: CompanyListOptionalColumnId, visible: boolean) => {
+      setColumnVisibility((current) => {
+        const next = { ...current, [id]: visible };
+        writeCompanyListColumnVisibility(next);
+        return next;
+      });
+    },
+    [],
+  );
 
   const applyBridge = useCallback(
     (patch: { filters?: WorkspaceFilterValues; search?: string; owner?: string }) => {
@@ -370,11 +397,18 @@ export function CompaniesOperationsShell({
                 filteredCount={filteredRows.length}
                 defaultValues={DEFAULT_FILTERS}
                 onClearAll={handleClearAllFilters}
+                endActions={
+                  <CompaniesColumnsControl
+                    visibility={columnVisibility}
+                    onChange={handleColumnVisibilityChange}
+                  />
+                }
               />
             </div>
             <CompaniesOperationsTable
               rows={filteredRows}
               companies={visibleCompanies}
+              columnVisibility={columnVisibility}
               assignableUsers={assignableUsers}
               canReassignOwner={canReassignCompanyOwner(user.role)}
               savingOwnerId={savingOwnerId}

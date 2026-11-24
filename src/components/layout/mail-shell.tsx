@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PenSquare, RefreshCw } from "lucide-react";
 import { ActivityCreateWizard } from "@/components/activities/activity-create-wizard";
 import { useAuth } from "@/context/auth-context";
+import { useWhenChanged } from "@/hooks/use-when-changed";
 import { buildMailActivityPreset } from "@/lib/mail-activity-draft";
 import { mergeStandardBioUserOptions } from "@/lib/standard-bio-users";
 import type { CreateActivityInput } from "@/types/activity";
 import type { Company, SharePointPerson } from "@/types/company";
 import type { PipelineRow } from "@/types/pipeline";
 import type { StandardBioUserRecord } from "@/types/user-access";
+import { MailClearLoop } from "@/components/emails/mail-clear-loop";
 import {
   filterAndSortMailThreads,
   MailSmartFilterBar,
@@ -27,6 +29,7 @@ import { WorkspacePageTitle } from "@/components/ui/workspace-page-title";
 import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { AUTH_ROLE_HEADER } from "@/lib/api-auth";
+import { buildMailClearQueue } from "@/lib/mail-clear-queue";
 import type { EmailMessageIntelligenceDto } from "@/lib/email-intelligence-data";
 import {
   countMailViews,
@@ -77,6 +80,8 @@ export function MailShell({
 }) {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const deepLinkConversationId = searchParams.get("c")?.trim() || null;
   const {
     state: filterState,
     searchQuery,
@@ -132,15 +137,35 @@ export function MailShell({
       setSyncingMailbox(false);
     }
   };
-  // Decide first: open on what needs the user, when anything does.
+  // Decide first: Clear My Mail when the queue has work; otherwise Needs you / all.
   const [view, setView] = useState<MailView>(() =>
     countMailViews(groupMailIntoThreads(messages)).needs_you > 0 ? "needs_you" : "all",
   );
+  const [clearMode, setClearMode] = useState(() => {
+    if (deepLinkConversationId) return false;
+    return buildMailClearQueue(groupMailIntoThreads(messages)).length > 0;
+  });
   const [undoHandledId, setUndoHandledId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(deepLinkConversationId);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useWhenChanged([deepLinkConversationId], () => {
+    if (!deepLinkConversationId) return;
+    setExpandedId(deepLinkConversationId);
+    setView("all");
+    setClearMode(false);
+  }, { runOnMount: false });
+
+  useEffect(() => {
+    if (!clearMode) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setClearMode(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [clearMode]);
 
   // Task from a mail. Companies and deals are only fetched the first time one is opened.
   const [activityPreset, setActivityPreset] = useState<Partial<CreateActivityInput> | null>(null);
@@ -302,6 +327,12 @@ export function MailShell({
   };
 
   const allThreads = useMemo(() => groupMailIntoThreads(localMessages), [localMessages]);
+  const clearQueue = useMemo(() => buildMailClearQueue(allThreads), [allThreads]);
+  const threadsByConversationId = useMemo(() => {
+    const map = new Map<string, Thread>();
+    for (const thread of allThreads) map.set(thread.conversationId, thread);
+    return map;
+  }, [allThreads]);
 
   // Message filters first; the conversation keeps the status worked out from the whole thread.
   const filteredThreads = useMemo(
@@ -511,9 +542,29 @@ export function MailShell({
             <WorkspacePageTitle
               icon="document"
               title="Mail"
-              subtitle="What needs you first — then everything SmartCRM has tied to your work."
+              subtitle={
+                clearMode
+                  ? "One open commitment at a time — decide, then the next."
+                  : "What needs you first — then everything SmartCRM has tied to your work."
+              }
             />
             <div className="flex flex-wrap items-center gap-2">
+              {clearMode || clearQueue.length > 0 ? (
+                <button
+                  type="button"
+                  aria-pressed={clearMode}
+                  onClick={() => setClearMode((current) => !current)}
+                  className={`inline-flex items-center gap-2 border px-3.5 py-2 text-[13px] font-semibold transition-colors ${
+                    clearMode
+                      ? "border-upcycle-orange bg-upcycle-orange text-white"
+                      : "border-upcycle-orange/40 bg-white text-upcycle-orange hover:border-upcycle-orange"
+                  }`}
+                >
+                  {clearMode
+                    ? "Exit clear"
+                    : `Clear my mail (${clearQueue.length})`}
+                </button>
+              ) : null}
               <button
                 type="button"
                 disabled={syncingMailbox}
@@ -536,9 +587,23 @@ export function MailShell({
             </div>
           </section>
 
+          {clearMode ? (
+            <MailClearLoop
+              items={clearQueue}
+              threadsByConversationId={threadsByConversationId}
+              role={role}
+              busyId={busyId}
+              assignableOptions={assignableOptions}
+              onDone={(thread) => void markHandled(thread)}
+              onFollowUp={openActivityFromThread}
+              onAssignColleague={assignThreadToColleague}
+              onExit={() => setClearMode(false)}
+            />
+          ) : null}
+
           <nav
             aria-label="Mail views"
-            className="flex flex-wrap items-center gap-2"
+            className={`flex flex-wrap items-center gap-2 ${clearMode ? "hidden" : ""}`}
           >
             {VIEW_ORDER.map((id) => {
               const active = view === id;
@@ -572,26 +637,28 @@ export function MailShell({
             })}
           </nav>
 
-          <MailSmartFilterBar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            sentimentFilter={sentimentFilter}
-            onSentimentChange={setSentimentFilter}
-            directionFilter={directionFilter}
-            onDirectionChange={setDirectionFilter}
-            deletedFilter={deletedFilter}
-            onDeletedChange={setDeletedFilter}
-            domainFilter={domainFilter}
-            onDomainChange={setDomainFilter}
-            dateSort={dateSort}
-            onDateSortChange={setDateSort}
-            filteredCount={visibleThreads.length}
-            totalCount={allThreads.length}
-            activeFilters={chips}
-            onClearAll={clearAll}
-            entityLabel="Conversations"
-            collapseSecondary
-          />
+          {!clearMode ? (
+            <MailSmartFilterBar
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              sentimentFilter={sentimentFilter}
+              onSentimentChange={setSentimentFilter}
+              directionFilter={directionFilter}
+              onDirectionChange={setDirectionFilter}
+              deletedFilter={deletedFilter}
+              onDeletedChange={setDeletedFilter}
+              domainFilter={domainFilter}
+              onDomainChange={setDomainFilter}
+              dateSort={dateSort}
+              onDateSortChange={setDateSort}
+              filteredCount={visibleThreads.length}
+              totalCount={allThreads.length}
+              activeFilters={chips}
+              onClearAll={clearAll}
+              entityLabel="Conversations"
+              collapseSecondary
+            />
+          ) : null}
 
           {notice ? (
             <p role="status" className="text-[12px] text-carbon-blue/70">
@@ -613,47 +680,49 @@ export function MailShell({
             </p>
           ) : null}
 
-          <WorkspacePanel title="Conversations" count={visibleThreads.length}>
-            {allThreads.length === 0 ? (
-              <p className="text-[13px] text-carbon-blue/60">
-                No mail is linked to your relationships yet. Sync your mailbox or tag a
-                mail in Outlook and it appears here.
-              </p>
-            ) : visibleThreads.length === 0 ? (
-              <p className="text-[13px] text-carbon-blue/60">
-                {view !== "all" && activeFilters.length === 0
-                  ? EMPTY_VIEW_COPY[view]
-                  : "No conversations match the active filters."}
-              </p>
-            ) : (
-              <ul className="-mx-6 -my-5 divide-y divide-border/60">
-                {visibleThreads.map((thread) => (
-                  <MailThreadRow
-                    key={thread.conversationId}
-                    thread={thread}
-                    role={role}
-                    expanded={expandedId === thread.conversationId}
-                    busy={busyId === thread.conversationId}
-                    dateSort={dateSort}
-                    opportunityOptions={opportunityOptions}
-                    projectOptions={projectOptions}
-                    assignableOptions={assignableOptions}
-                    onToggle={() =>
-                      setExpandedId((current) =>
-                        current === thread.conversationId ? null : thread.conversationId,
-                      )
-                    }
-                    onLink={linkThread}
-                    onRemove={removeThread}
-                    onCreateActivity={openActivityFromThread}
-                    onAssignColleague={assignThreadToColleague}
-                    onFileAttachments={fileThreadAttachments}
-                    onHandled={markHandled}
-                  />
-                ))}
-              </ul>
-            )}
-          </WorkspacePanel>
+          {!clearMode ? (
+            <WorkspacePanel title="Conversations" count={visibleThreads.length}>
+              {allThreads.length === 0 ? (
+                <p className="text-[13px] text-carbon-blue/60">
+                  No mail is linked to your relationships yet. Sync your mailbox or tag a
+                  mail in Outlook and it appears here.
+                </p>
+              ) : visibleThreads.length === 0 ? (
+                <p className="text-[13px] text-carbon-blue/60">
+                  {view !== "all" && activeFilters.length === 0
+                    ? EMPTY_VIEW_COPY[view]
+                    : "No conversations match the active filters."}
+                </p>
+              ) : (
+                <ul className="-mx-6 -my-5 divide-y divide-border/60">
+                  {visibleThreads.map((thread) => (
+                    <MailThreadRow
+                      key={thread.conversationId}
+                      thread={thread}
+                      role={role}
+                      expanded={expandedId === thread.conversationId}
+                      busy={busyId === thread.conversationId}
+                      dateSort={dateSort}
+                      opportunityOptions={opportunityOptions}
+                      projectOptions={projectOptions}
+                      assignableOptions={assignableOptions}
+                      onToggle={() =>
+                        setExpandedId((current) =>
+                          current === thread.conversationId ? null : thread.conversationId,
+                        )
+                      }
+                      onLink={linkThread}
+                      onRemove={removeThread}
+                      onCreateActivity={openActivityFromThread}
+                      onAssignColleague={assignThreadToColleague}
+                      onFileAttachments={fileThreadAttachments}
+                      onHandled={markHandled}
+                    />
+                  ))}
+                </ul>
+              )}
+            </WorkspacePanel>
+          ) : null}
         </WorkspaceStack>
       </WorkspaceMain>
       <ActivityCreateWizard

@@ -46,6 +46,17 @@ export async function getTeamsChannelBinding(
   return row ? mapRow(row) : null;
 }
 
+/** All channel bindings — for weekly attention delivery sweeps. */
+export async function listTeamsChannelBindings(): Promise<TeamsChannelBindingRecord[]> {
+  const rows = await withPrismaRetry((prisma) =>
+    prisma.teamsChannelBinding.findMany({
+      orderBy: { boundAt: "desc" },
+      take: 200,
+    }),
+  );
+  return rows.map(mapRow);
+}
+
 export async function upsertTeamsChannelBinding(input: {
   teamId: string;
   channelId: string;

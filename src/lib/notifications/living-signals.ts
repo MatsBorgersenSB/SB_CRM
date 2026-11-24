@@ -15,7 +15,10 @@ import { createNotification } from "@/lib/notifications/notification-service";
 import { resolvePublicAppOrigin } from "@/lib/smartcrm-origin";
 import { readUsers } from "@/lib/users-access-db";
 import { company360Href } from "@/types/company-360";
+import type { DirectedNoteEntityKind } from "@/types/colleague-note";
 import type { StandardBioUserRecord } from "@/types/user-access";
+
+export type { DirectedNoteEntityKind };
 
 async function notificationUserIdForEmail(email: string): Promise<string | null> {
   const match = await findColleague({ email });
@@ -207,6 +210,7 @@ export async function notifyOwnershipAssigned(input: {
   subject: string;
   assigneeId?: number | null;
   assigneeTitle?: string | null;
+  assigneeEmail?: string | null;
   previousOwnerId?: number | null;
   previousOwnerTitle?: string | null;
   companyName?: string | null;
@@ -215,6 +219,7 @@ export async function notifyOwnershipAssigned(input: {
 }): Promise<void> {
   const assigner = await resolveSessionAssigner();
   const assignee = await findColleague({
+    email: input.assigneeEmail,
     id: input.assigneeId != null && input.assigneeId > 0 ? input.assigneeId : null,
     name: input.assigneeTitle,
   });
@@ -301,6 +306,7 @@ export async function notifyActivityAssigned(input: {
   subject: string;
   assigneeId: number;
   assigneeTitle: string;
+  assigneeEmail?: string | null;
   previousOwnerId?: number | null;
   companyName?: string | null;
   dueDate?: string | null;
@@ -312,9 +318,216 @@ export async function notifyActivityAssigned(input: {
     subject: input.subject,
     assigneeId: input.assigneeId,
     assigneeTitle: input.assigneeTitle,
+    assigneeEmail: input.assigneeEmail,
     previousOwnerId: input.previousOwnerId,
     companyName: input.companyName,
     dueDate: input.dueDate,
     assignerTitle: input.assignerTitle,
   });
+}
+
+/**
+ * One directed note to a colleague on a living record.
+ * Bell always; Teams/mail via the same assignment ping path when email resolves.
+ */
+export async function notifyColleagueDirectedNote(input: {
+  kind: DirectedNoteEntityKind;
+  entityId: string;
+  subject: string;
+  note: string;
+  impact: string;
+  nextAction: string;
+  colleagueId: number;
+  colleagueTitle: string;
+  colleagueEmail?: string | null;
+  linkUrl?: string | null;
+  attachment?: {
+    name: string;
+    contentType: string;
+    contentBase64: string;
+  } | null;
+}): Promise<void> {
+  const note = input.note.trim();
+  const impact = input.impact.trim();
+  const nextAction = input.nextAction.trim();
+  if (!note || !impact || !nextAction) return;
+  if (!input.colleagueId || input.colleagueId <= 0) return;
+
+  const linkUrl = normalizeHttpUrl(input.linkUrl);
+  const attachmentName = input.attachment?.name?.trim() || "";
+  const hasAttachment = Boolean(
+    attachmentName && input.attachment?.contentBase64?.trim(),
+  );
+
+  const assigner = await resolveSessionAssigner();
+  if (assigner.id != null && assigner.id === input.colleagueId) return;
+
+  const colleague = await findColleague({
+    email: input.colleagueEmail,
+    id: input.colleagueId,
+    name: input.colleagueTitle,
+  });
+  const userId = String(colleague?.id ?? input.colleagueId);
+  const fingerprint = encodeURIComponent(
+    `${note}|${impact}|${nextAction}|${linkUrl ?? ""}|${attachmentName}`,
+  )
+    .replace(/%/g, "")
+    .slice(0, 24);
+  const basePath =
+    input.kind === "company"
+      ? `/companies/${encodeURIComponent(input.entityId)}`
+      : input.kind === "opportunity"
+        ? `/opportunities/${encodeURIComponent(input.entityId)}`
+        : input.kind === "contact"
+          ? `/contacts/${encodeURIComponent(input.entityId)}`
+          : input.kind === "project"
+            ? `/projects/${encodeURIComponent(input.entityId)}`
+            : input.kind === "mail"
+              ? `/mail?c=${encodeURIComponent(input.entityId)}`
+              : `/activities/${encodeURIComponent(input.entityId)}`;
+  const link =
+    input.kind === "mail"
+      ? `${basePath}&note=${fingerprint}`
+      : `${basePath}?note=${fingerprint}`;
+  if (await alreadyNotified(userId, link)) return;
+
+  const who = assigner.title?.trim() || "A colleague";
+  const openUrl = `${resolvePublicAppOrigin()}${basePath}`;
+  const title =
+    input.kind === "mail"
+      ? `${who} needs help with a mail`
+      : `${who} left you a note`;
+  const message = [
+    input.kind === "mail"
+      ? `Mail “${input.subject}”: ${note}`
+      : `On ${input.subject}: ${note}`,
+    `Why it matters: ${impact}`,
+    `What next: ${nextAction}`,
+    linkUrl ? `Link: ${linkUrl}` : null,
+    hasAttachment ? `File: ${attachmentName}` : null,
+    `Open: ${openUrl}`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  await createNotification({
+    userId,
+    type: "ALERT",
+    title,
+    message,
+    link,
+  });
+
+  const email = colleague?.email || input.colleagueEmail?.trim() || "";
+  if (!email) return;
+
+  const html = [
+    input.kind === "mail"
+      ? `<p><strong>${escapeHtml(who)}</strong> needs help answering a mail: <strong>${escapeHtml(input.subject)}</strong>.</p>`
+      : `<p><strong>${escapeHtml(who)}</strong> left you a note on <strong>${escapeHtml(input.subject)}</strong>.</p>`,
+    `<p>${escapeHtml(note)}</p>`,
+    `<p><strong>Why it matters:</strong> ${escapeHtml(impact)}</p>`,
+    `<p><strong>What next:</strong> ${escapeHtml(nextAction)}</p>`,
+    linkUrl
+      ? `<p><strong>Link:</strong> <a href="${escapeHtml(linkUrl)}">${escapeHtml(linkUrl)}</a></p>`
+      : "",
+    hasAttachment
+      ? `<p><strong>File:</strong> ${escapeHtml(attachmentName)} (attached to this email)</p>`
+      : "",
+    `<p><a href="${openUrl}">Open in SmartCRM</a></p>`,
+  ].join("");
+
+  try {
+    await pingColleagueAboutAssignment({
+      assigneeEmail: email,
+      html,
+      mailSubject: title,
+      attachment: hasAttachment
+        ? {
+            name: attachmentName,
+            contentType: input.attachment!.contentType || "application/octet-stream",
+            contentBase64: input.attachment!.contentBase64,
+          }
+        : null,
+    });
+  } catch (error) {
+    console.warn(
+      "[colleague-note] ping failed",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
+function normalizeHttpUrl(value: string | null | undefined): string | null {
+  const raw = value?.trim() ?? "";
+  if (!raw) return null;
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Soft CRM-bell when a task is shared (follow). Never Teams/mail — assign ≠ share.
+ */
+export async function notifyTaskShared(input: {
+  activityId: string;
+  subject: string;
+  previousShared: Array<{ Id: number; Title: string; Email?: string }>;
+  nextShared: Array<{ Id: number; Title: string; Email?: string }>;
+  companyName?: string | null;
+}): Promise<void> {
+  const previousIds = new Set(
+    input.previousShared
+      .map((person) => person.Id)
+      .filter((id) => Number.isFinite(id) && id > 0),
+  );
+  const added = input.nextShared.filter(
+    (person) => person.Id > 0 && !previousIds.has(person.Id),
+  );
+  if (added.length === 0) return;
+
+  const assigner = await resolveSessionAssigner();
+  const openUrl = `${resolvePublicAppOrigin()}/activities/${encodeURIComponent(input.activityId)}?shared=1`;
+
+  for (const person of added) {
+    if (assigner.id != null && assigner.id === person.Id) continue;
+    const colleague = await findColleague({
+      email: person.Email,
+      id: person.Id,
+      name: person.Title,
+    });
+    const userId = String(colleague?.id ?? person.Id);
+    const link = `/activities/${encodeURIComponent(input.activityId)}?shared=${userId}`;
+    if (await alreadyNotified(userId, link)) continue;
+
+    const who = assigner.title?.trim() || "A colleague";
+    const company = input.companyName?.trim();
+    await createNotification({
+      userId,
+      type: "INFO",
+      title: "Task shared with you",
+      message: [
+        `${who} shared “${input.subject}” with you to follow.`,
+        "You are a watcher — the assignee stays responsible.",
+        company ? `Company: ${company}.` : null,
+        `Open: ${openUrl}`,
+      ]
+        .filter(Boolean)
+        .join(" "),
+      link,
+    });
+  }
 }

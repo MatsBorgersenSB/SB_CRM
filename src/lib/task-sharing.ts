@@ -1,6 +1,10 @@
 import type { Activity } from "@/types/activity";
 import type { SharePointPerson } from "@/types/company";
 import { mailtoHref } from "@/lib/compose-actions";
+import {
+  personMatchesColleague,
+  type ColleagueIdentity,
+} from "@/lib/colleague-identity";
 
 export function taskDetailHref(activityId: string): string {
   return `/activities/${encodeURIComponent(activityId)}`;
@@ -43,15 +47,15 @@ export function taskShareMailtoHref(activity: Activity, toEmail?: string): strin
 
 export function isTaskSharedWithUser(
   activity: Pick<Activity, "ActivityType" | "SharedWith">,
-  user: Pick<SharePointPerson, "Id" | "Title">,
+  user: Pick<SharePointPerson, "Id" | "Title" | "Email"> | ColleagueIdentity,
 ): boolean {
   if (activity.ActivityType !== "Task") return false;
   const shared = activity.SharedWith ?? [];
-  return shared.some(
-    (person) =>
-      person.Id === user.Id ||
-      person.Title.trim().toLowerCase() === user.Title.trim().toLowerCase(),
-  );
+  const colleague: ColleagueIdentity =
+    "Title" in user
+      ? { id: user.Id, title: user.Title, email: user.Email }
+      : user;
+  return shared.some((person) => personMatchesColleague(person, colleague));
 }
 
 export function mergeSharedWith(

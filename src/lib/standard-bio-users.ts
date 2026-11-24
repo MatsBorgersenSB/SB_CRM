@@ -4,9 +4,13 @@ import type { StandardBioUserRecord } from "@/types/user-access";
 
 /** Client-safe conversion — mirrors users-access-db userToSharePointPerson. */
 export function standardBioUserToOption(
-  user: Pick<StandardBioUserRecord, "id" | "displayName">,
+  user: Pick<StandardBioUserRecord, "id" | "displayName" | "email">,
 ): SharePointPerson {
-  return { Id: user.id, Title: user.displayName };
+  return {
+    Id: user.id,
+    Title: user.displayName,
+    Email: user.email?.trim() || undefined,
+  };
 }
 
 /** Convert user records to SharePoint-style picker options (Id = user.id). */

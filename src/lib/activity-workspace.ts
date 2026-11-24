@@ -16,7 +16,29 @@ import {
   filterActivities,
 } from "@/lib/activity-utils";
 import type { Company } from "@/types/company";
+import {
+  personMatchesColleague,
+  type ColleagueIdentity,
+} from "@/lib/colleague-identity";
 import { isDraftEmailAction } from "@/lib/smartassist-email-engine";
+
+/** Prefer email/id; Title-only string remains supported for legacy callers. */
+export type ActivityUserScope = ColleagueIdentity & { title?: string | null };
+
+function toColleagueScope(
+  currentUserName?: string,
+  scope?: ActivityUserScope,
+): ColleagueIdentity | null {
+  if (scope) {
+    return {
+      id: scope.id,
+      email: scope.email,
+      title: scope.title ?? currentUserName ?? null,
+    };
+  }
+  if (!currentUserName?.trim()) return null;
+  return { title: currentUserName };
+}
 
 export type SuggestedActivityAssistantKind = "email" | "activity" | "call" | "meeting";
 
@@ -125,31 +147,29 @@ export function applyActivityQuickFilter(
   activities: Activity[],
   quickFilter: ActivityQuickFilter,
   currentUserName?: string,
+  scope?: ActivityUserScope,
 ): Activity[] {
   if (quickFilter === "all") return activities;
+  const colleague = toColleagueScope(currentUserName, scope);
 
   return activities.filter((activity) => {
     switch (quickFilter) {
       case "mine":
-        return (
-          Boolean(currentUserName) &&
-          activity.ActivityOwner?.Title?.toLowerCase() === currentUserName!.toLowerCase()
-        );
+        return Boolean(colleague) && personMatchesColleague(activity.ActivityOwner, colleague!);
       case "my_tasks":
         return (
           activity.ActivityType === "Task" &&
-          Boolean(currentUserName) &&
-          activity.ActivityOwner?.Title?.toLowerCase() === currentUserName!.toLowerCase() &&
+          Boolean(colleague) &&
+          personMatchesColleague(activity.ActivityOwner, colleague!) &&
           activity.ActionStatus !== "Completed" &&
           activity.ActionStatus !== "Cancelled"
         );
       case "shared_with_me":
         return (
           activity.ActivityType === "Task" &&
-          Boolean(currentUserName) &&
-          (activity.SharedWith ?? []).some(
-            (person) =>
-              person.Title.toLowerCase() === currentUserName!.toLowerCase(),
+          Boolean(colleague) &&
+          (activity.SharedWith ?? []).some((person) =>
+            personMatchesColleague(person, colleague!),
           )
         );
       case "planned":
@@ -179,9 +199,10 @@ export function filterActivitiesForWorkspace(
   filters: ActivityFilters,
   companies: Company[],
   currentUserName?: string,
+  scope?: ActivityUserScope,
 ): Activity[] {
   const base = filterActivities(activities, filters, companies);
-  return applyActivityQuickFilter(base, filters.quickFilter, currentUserName);
+  return applyActivityQuickFilter(base, filters.quickFilter, currentUserName, scope);
 }
 
 export function partitionActivitiesForWorkspace(

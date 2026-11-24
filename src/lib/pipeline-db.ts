@@ -477,6 +477,7 @@ export async function updateActivity(
         subject: updated.Subject || "Activity",
         assigneeId: updated.ActivityOwner.Id,
         assigneeTitle: updated.ActivityOwner.Title,
+        assigneeEmail: updated.ActivityOwner.Email ?? null,
         previousOwnerId: previous.ActivityOwner?.Id ?? null,
         previousOwnerTitle: previous.ActivityOwner?.Title ?? null,
         companyName: updated.Company?.Title ?? updated.ProjectName ?? null,
