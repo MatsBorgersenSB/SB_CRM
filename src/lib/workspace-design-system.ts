@@ -63,9 +63,12 @@ export const WORKSPACE_TABLE_CLASS =
 export const WORKSPACE_TABLE_HEAD_ROW_CLASS =
   "border-b-2 border-carbon-blue/10";
 
-/** Sticky column headers — stay visible while the list scrolls (Companies, People, etc.). */
+/**
+ * Sticky column headers — pair with WorkspaceTable freezeHeader (internal scrollport).
+ * Opaque surface so rows never show through while stuck.
+ */
 export const WORKSPACE_TABLE_HEAD_CELL_CLASS =
-  "sticky top-0 z-20 bg-[color-mix(in_srgb,#0f2d42_5%,var(--dashboard-surface,#ffffff))] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/75 shadow-[inset_0_-2px_0_0_rgba(15,45,66,0.1)]";
+  "sticky top-0 z-30 bg-[var(--dashboard-surface,#ffffff)] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-carbon-blue/75 shadow-[inset_0_-2px_0_0_rgba(15,45,66,0.12)]";
 
 export const WORKSPACE_TABLE_BODY_ROW_CLASS =
   "border-b border-carbon-blue/10 last:border-b-0 transition-colors hover:bg-carbon-blue/[0.03]";

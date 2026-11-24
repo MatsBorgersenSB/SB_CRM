@@ -146,7 +146,7 @@ export function ContactsOperationsTable({
 
   return (
     <div className="w-full">
-      <WorkspaceTable>
+      <WorkspaceTable freezeHeader>
         <colgroup>
           <col className="w-[22%]" />
           <col className="w-[14%]" />

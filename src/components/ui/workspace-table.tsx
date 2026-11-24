@@ -10,22 +10,31 @@ import {
 export function WorkspaceTable({
   children,
   className = "",
+  freezeHeader = false,
 }: {
   children: ReactNode;
   className?: string;
+  /**
+   * Freeze column headers while rows scroll.
+   * Uses an internal scrollport — required because page-level sticky is broken by
+   * workspace overflow ancestors.
+   */
+  freezeHeader?: boolean;
 }) {
-  // No overflow-x-auto here: any non-visible overflow creates a scrollport and
-  // breaks sticky column headers against the page (WorkspaceMain) scroll.
-  // Wide tables scroll via WorkspaceMain instead.
   return (
-    <div className="w-full max-w-full">
+    <div
+      className={
+        freezeHeader
+          ? "w-full max-w-full overflow-auto overscroll-contain [max-height:min(70dvh,calc(100dvh-13rem))]"
+          : "w-full max-w-full"
+      }
+    >
       <table className={`${WORKSPACE_TABLE_CLASS} ${className}`}>{children}</table>
     </div>
   );
 }
 
 export function WorkspaceTableHead({ children }: { children: ReactNode }) {
-  // Sticky lives on each <th> (design-system class) — more reliable than thead alone.
   return <thead>{children}</thead>;
 }
 

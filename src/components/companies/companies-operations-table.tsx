@@ -50,7 +50,7 @@ export function CompaniesOperationsTable({
   }
 
   return (
-    <WorkspaceTable>
+    <WorkspaceTable freezeHeader>
       <colgroup>
         <col className={showIndustrySector ? "w-[18%]" : "w-[22%]"} />
         <col className={showIndustrySector ? "w-[12%]" : "w-[14%]"} />
