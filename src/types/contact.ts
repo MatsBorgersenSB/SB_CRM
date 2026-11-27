@@ -136,13 +136,15 @@ export const CONTACT_SENTIMENTS: ContactSentiment[] = [
 
 export const INFLUENCE_LEVELS: InfluenceLevel[] = ["High", "Medium", "Low"];
 
+export const DEFAULT_ENGAGEMENT_CADENCE: EngagementCadence = "When needed";
+
 export const ENGAGEMENT_CADENCES: EngagementCadence[] = [
+  "When needed",
   "Weekly",
   "Bi-weekly",
   "Monthly",
   "Quarterly",
   "Yearly",
-  "When needed",
 ];
 
 export const CONTACT_STATUSES: ContactStatus[] = [

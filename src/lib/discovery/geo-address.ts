@@ -26,9 +26,114 @@ const EMPTY_GEO: StructuredGeoAddress = {
   continent: "",
 };
 
-const NORWEGIAN_POSTAL_CITY = /\b(\d{4})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]{1,})\b/;
+const POSTAL_COUNTRY_PREFIX_MAP: Record<string, string> = {
+  D: "DE",
+  DE: "DE",
+  A: "AT",
+  AT: "AT",
+  CH: "CH",
+  N: "NO",
+  NO: "NO",
+  S: "SE",
+  SE: "SE",
+  DK: "DK",
+  FI: "FI",
+  F: "FR",
+  FR: "FR",
+  NL: "NL",
+  B: "BE",
+  BE: "BE",
+  I: "IT",
+  IT: "IT",
+  E: "ES",
+  ES: "ES",
+  PT: "PT",
+  PL: "PL",
+};
+
 const US_STATE_ZIP = /\b([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\b/;
-const GENERIC_POSTAL_CITY = /\b(\d{4,6})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.-]{1,})\b/;
+const DUTCH_POSTAL_CITY = /\b(\d{4}\s?[A-Z]{2})\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s.-]{1,})\b/;
+const POLISH_POSTAL_CITY = /\b(\d{2}-\d{3})\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s.-]{1,})\b/;
+const SWEDISH_POSTAL_CITY =
+  /(?:\b(SE|S)-)?\b(\d{3}\s\d{2})\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s.-]{1,})\b/;
+const EUROPEAN_POSTAL_CITY =
+  /(?:\b(DE|AT|CH|NO|SE|DK|FI|FR|BE|NL|IT|ES|PT|PL|D|A|N|S|F|B|I|E)-)?\b(\d{4,6})\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s.-]{1,})\b/;
+
+function cleanCitySegment(value: string): string {
+  return value
+    .split(/[|/]/)
+    .map((part) => part.trim())
+    .find(Boolean)
+    ?.replace(/[,;.-]+$/, "")
+    .trim() ?? "";
+}
+
+function matchPostalAndCity(input: string): {
+  index: number;
+  postalCode: string;
+  city: string;
+  stateRegion: string;
+  countryCode: string;
+} | null {
+  const us = input.match(US_STATE_ZIP);
+  if (us?.[1] && us[2] && typeof us.index === "number") {
+    return {
+      index: us.index,
+      postalCode: us[2],
+      city: "",
+      stateRegion: us[1],
+      countryCode: "US",
+    };
+  }
+
+  const nl = input.match(DUTCH_POSTAL_CITY);
+  if (nl?.[1] && nl[2] && typeof nl.index === "number") {
+    return {
+      index: nl.index,
+      postalCode: nl[1].replace(/\s+/, " ").trim(),
+      city: cleanCitySegment(nl[2]),
+      stateRegion: "",
+      countryCode: "NL",
+    };
+  }
+
+  const pl = input.match(POLISH_POSTAL_CITY);
+  if (pl?.[1] && pl[2] && typeof pl.index === "number") {
+    return {
+      index: pl.index,
+      postalCode: pl[1],
+      city: cleanCitySegment(pl[2]),
+      stateRegion: "",
+      countryCode: "PL",
+    };
+  }
+
+  const se = input.match(SWEDISH_POSTAL_CITY);
+  if (se?.[2] && se[3] && typeof se.index === "number") {
+    const prefix = se[1] ? POSTAL_COUNTRY_PREFIX_MAP[se[1].toUpperCase()] ?? "" : "";
+    return {
+      index: se.index,
+      postalCode: se[2],
+      city: cleanCitySegment(se[3]),
+      stateRegion: "",
+      countryCode: prefix || "SE",
+    };
+  }
+
+  const eu = input.match(EUROPEAN_POSTAL_CITY);
+  if (eu?.[2] && eu[3] && typeof eu.index === "number") {
+    const prefix = eu[1] ? POSTAL_COUNTRY_PREFIX_MAP[eu[1].toUpperCase()] ?? "" : "";
+    return {
+      index: eu.index,
+      postalCode: eu[2],
+      city: cleanCitySegment(eu[3]),
+      stateRegion: "",
+      countryCode: prefix,
+    };
+  }
+
+  return null;
+}
 
 function applyCountryFields(
   geo: StructuredGeoAddress,
@@ -75,16 +180,16 @@ function finalizeGeo(
     geo.continent = getContinentByCountryCode(geo.countryCode);
   }
 
-  // Norwegian-style postal + city with no country → Norway
-  if (!geo.countryCode && geo.postalCode && /^\d{4}$/.test(geo.postalCode) && geo.city) {
-    geo = applyCountryFields(geo, "Norway");
-  }
-
   if (!geo.countryCode && domainHint) {
     const fromTld = inferCountryCodeFromDomain(domainHint);
     if (fromTld) {
       geo = applyCountryFields(geo, fromTld);
     }
+  }
+
+  // Norwegian-style 4-digit postal + city with no country and no country-code TLD → Norway
+  if (!geo.countryCode && geo.postalCode && /^\d{4}$/.test(geo.postalCode) && geo.city) {
+    geo = applyCountryFields(geo, "Norway");
   }
 
   return geo;
@@ -108,6 +213,7 @@ export function parseStructuredGeoAddress(
   let city = "";
   let stateRegion = "";
   let country = "";
+  let countryCode = "";
 
   const remaining = [...lines];
 
@@ -115,50 +221,50 @@ export function parseStructuredGeoAddress(
     const maybeCountry = resolveCountry(remaining[remaining.length - 1]!);
     if (maybeCountry) {
       country = maybeCountry.name;
+      countryCode = maybeCountry.code;
       remaining.pop();
     }
   }
 
   if (remaining.length > 0) {
     const last = remaining[remaining.length - 1]!;
-    const usMatch = last.match(US_STATE_ZIP);
-    const noMatch = last.match(NORWEGIAN_POSTAL_CITY) ?? last.match(GENERIC_POSTAL_CITY);
-    if (usMatch?.[1] && usMatch[2]) {
-      stateRegion = usMatch[1];
-      postalCode = usMatch[2];
+    const matched = matchPostalAndCity(last);
+    if (matched) {
+      postalCode = matched.postalCode;
+      city = matched.city;
+      stateRegion = matched.stateRegion;
+      countryCode = countryCode || matched.countryCode;
+      const before = last.slice(0, matched.index).replace(/[,;\s-]+$/, "").trim();
       remaining.pop();
-    } else if (noMatch?.[1] && noMatch[2]) {
-      postalCode = noMatch[1];
-      city = noMatch[2].trim();
-      remaining.pop();
+      if (before) {
+        remaining.push(before);
+      }
     }
   }
 
-  // "Street 12, 6000 Ålesund" already split — also try full string for postal/city
-  if (!postalCode || !city) {
-    const fullMatch =
-      raw.match(NORWEGIAN_POSTAL_CITY) ?? raw.match(GENERIC_POSTAL_CITY) ?? raw.match(US_STATE_ZIP);
+  // Also try full string for postal/city when split lines didn't isolate it
+  if (!postalCode || (!city && !stateRegion)) {
+    const fullMatch = matchPostalAndCity(raw);
     if (fullMatch) {
-      if (fullMatch[0].match(US_STATE_ZIP) && fullMatch[1] && fullMatch[2]) {
-        stateRegion = stateRegion || fullMatch[1];
-        postalCode = postalCode || fullMatch[2];
-      } else if (fullMatch[1] && fullMatch[2]) {
-        postalCode = postalCode || fullMatch[1];
-        city = city || fullMatch[2].trim();
+      postalCode = postalCode || fullMatch.postalCode;
+      city = city || fullMatch.city;
+      stateRegion = stateRegion || fullMatch.stateRegion;
+      countryCode = countryCode || fullMatch.countryCode;
+      if (remaining.length === 1 && fullMatch.index > 0) {
+        const before = raw.slice(0, fullMatch.index).replace(/[,;\s-]+$/, "").trim();
+        if (before) {
+          remaining[0] = before;
+        }
       }
     }
   }
 
   streetAddress = remaining.join(", ").trim();
   if (!streetAddress) {
-    // Drop trailing postal/city/country from the raw string for street
-    streetAddress = raw
-      .replace(NORWEGIAN_POSTAL_CITY, "")
-      .replace(GENERIC_POSTAL_CITY, "")
-      .replace(US_STATE_ZIP, "")
-      .replace(/,?\s*(Norway|Norge|Sweden|Denmark|Finland|France|Germany)\s*$/i, "")
-      .replace(/,\s*$/, "")
-      .trim();
+    const fullMatch = matchPostalAndCity(raw);
+    if (fullMatch && fullMatch.index > 0) {
+      streetAddress = raw.slice(0, fullMatch.index).replace(/[,;\s-]+$/, "").trim();
+    }
   }
 
   // Normalize house-number-first streets: "5 Industrivegen" stays as-is (already correct).
@@ -166,7 +272,7 @@ export function parseStructuredGeoAddress(
   streetAddress = streetAddress.replace(/^,+|,+$/g, "").trim();
 
   return finalizeGeo(
-    { streetAddress, postalCode, city, stateRegion, country },
+    { streetAddress, postalCode, city, stateRegion, country, countryCode },
     domainHint,
   );
 }

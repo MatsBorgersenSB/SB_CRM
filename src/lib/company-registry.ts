@@ -199,8 +199,8 @@ export async function createRegistryCompany(
         organizationNumber,
         vatNumber: input.vatNumber?.trim() || null,
         ownerId,
-        emails: input.Email
-          ? [{ address: input.Email, type: "work", isPrimary: true }]
+        emails: input.Email?.trim()
+          ? [{ address: input.Email.trim().toLowerCase(), type: "work", isPrimary: true }]
           : [],
         phoneNumbers: input.Phone
           ? [{ number: input.Phone, type: "office", isPrimary: true }]

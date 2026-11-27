@@ -48,6 +48,7 @@ import {
 import {
   BuyingRoleSelect,
   ContactFormFields,
+  contactFormValidationMessage,
   emptyContactForm,
   isContactFormValid,
 } from "@/components/contacts/contact-form-fields";
@@ -1135,31 +1136,44 @@ export function CompanyContactsTable({
       {onCreateContact ? (
         <div className="mt-4 shrink-0">
           {createOpen ? (
-            <div className="border border-carbon-blue/10 bg-carbon-blue/[0.02] p-4">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleCreateContact();
+              }}
+              className="mx-auto w-full max-w-5xl border border-carbon-blue/12 bg-carbon-blue/[0.015] p-4"
+            >
               <ContactFormFields
                 form={contactForm}
                 onChange={setContactForm}
+                mode="create"
                 companies={companies}
                 companyId={companyId}
               />
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  disabled={savingContact || !isContactFormValid(contactForm)}
-                  onClick={() => void handleCreateContact()}
-                  className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  {savingContact ? "Saving…" : "Create contact"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCreateOpen(false)}
-                  className="px-3 py-1.5 text-xs font-semibold text-carbon-blue/55 hover:text-carbon-blue"
-                >
-                  Cancel
-                </button>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-carbon-blue/10 pt-3">
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={savingContact || !isContactFormValid(contactForm)}
+                    className="border border-upcycle-orange bg-upcycle-orange px-4 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {savingContact ? "Saving…" : "Create contact"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateOpen(false)}
+                    className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-xs font-semibold text-carbon-blue/65 hover:text-carbon-blue"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {contactFormValidationMessage(contactForm) ? (
+                  <p className="text-[12px] text-carbon-blue/55" role="status">
+                    {contactFormValidationMessage(contactForm)}
+                  </p>
+                ) : null}
               </div>
-            </div>
+            </form>
           ) : (
             <button
               type="button"

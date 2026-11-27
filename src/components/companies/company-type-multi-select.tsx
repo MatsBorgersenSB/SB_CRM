@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import type { CompanyType } from "@/types/company-type";
 import {
@@ -28,14 +28,23 @@ export function CompanyTypeMultiSelect({
   options = COMPANY_TYPE_SELECT_OPTIONS,
   disabled = false,
   label = "Company Type",
-  placeholder = "Select company types…",
+  placeholder = "Select company type(s)…",
   required = false,
   density = "comfortable",
 }: CompanyTypeMultiSelectProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+
+  const closeDropdown = useCallback((restoreFocus: boolean) => {
+    setOpen(false);
+    setQuery("");
+    if (restoreFocus) {
+      triggerRef.current?.focus();
+    }
+  }, []);
 
   const selected = useMemo(() => {
     const next: CompanyType[] = [];
@@ -48,25 +57,23 @@ export function CompanyTypeMultiSelect({
 
   useEffect(() => {
     if (!open) return;
-    const onPointerDown = (event: MouseEvent) => {
+    const onPointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-        setQuery("");
+        closeDropdown(false);
       }
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpen(false);
-        setQuery("");
+        closeDropdown(true);
       }
     };
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
+  }, [open, closeDropdown]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -84,17 +91,19 @@ export function CompanyTypeMultiSelect({
   const toggle = (type: CompanyType) => {
     const canonical = canonicalizeCompanyType(type) ?? type;
     if (selected.includes(canonical)) {
-      const next = selected.filter((entry) => entry !== canonical);
-      onChange(next.length > 0 ? next : selected);
-      return;
+      onChange(selected.filter((entry) => entry !== canonical));
+    } else {
+      const base =
+        canonical === "Unclassified"
+          ? selected
+          : selected.filter((entry) => entry !== "Unclassified");
+      onChange([...base, canonical]);
     }
-    onChange([...selected, canonical]);
+    closeDropdown(true);
   };
 
   const remove = (type: CompanyType) => {
-    const next = selected.filter((entry) => entry !== type);
-    if (next.length === 0) return;
-    onChange(next);
+    onChange(selected.filter((entry) => entry !== type));
   };
 
   const labelClass =
@@ -102,20 +111,46 @@ export function CompanyTypeMultiSelect({
       ? "text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60"
       : "text-[11px] font-bold uppercase tracking-[0.14em] text-upcycle-orange/80";
 
+  const triggerText =
+    selected.length === 0
+      ? placeholder
+      : selected.length < options.length
+        ? `${selected.length} type${selected.length === 1 ? "" : "s"} selected — add another…`
+        : `${selected.length} types selected`;
+
   return (
-    <div ref={rootRef} className="relative w-full">
+    <div
+      ref={rootRef}
+      className="relative w-full"
+      onBlur={(event) => {
+        if (
+          open &&
+          event.relatedTarget instanceof Node &&
+          !rootRef.current?.contains(event.relatedTarget)
+        ) {
+          closeDropdown(false);
+        }
+      }}
+    >
       <p className={labelClass}>
         {label}
         {required ? <span className="text-thermal-red"> *</span> : null}
       </p>
 
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
-        aria-expanded={open}
+        aria-expanded={open && !disabled}
         aria-controls={listId}
         aria-haspopup="listbox"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (open) {
+            closeDropdown(false);
+          } else {
+            setOpen(true);
+          }
+        }}
         className={`mt-1 flex w-full items-center justify-between gap-2 border ${
           density === "compact"
             ? "border-carbon-blue/15 px-2 py-1"
@@ -127,9 +162,7 @@ export function CompanyTypeMultiSelect({
             density === "compact" ? "text-xs" : "text-[13px]"
           } text-carbon-blue/55`}
         >
-          {selected.length === 0
-            ? placeholder
-            : `${selected.length} type${selected.length === 1 ? "" : "s"} selected`}
+          {triggerText}
         </span>
         <ChevronsUpDown className="size-3.5 shrink-0 text-carbon-blue/50" aria-hidden />
       </button>
@@ -147,7 +180,7 @@ export function CompanyTypeMultiSelect({
                 {meta.label}
                 <button
                   type="button"
-                  disabled={disabled || selected.length <= 1}
+                  disabled={disabled}
                   onClick={() => remove(type)}
                   className="rounded-sm p-0.5 transition-colors hover:bg-upcycle-orange/20 disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label={`Remove ${meta.label}`}
@@ -160,7 +193,7 @@ export function CompanyTypeMultiSelect({
         </div>
       ) : null}
 
-      {open ? (
+      {open && !disabled ? (
         <div
           id={listId}
           role="listbox"
@@ -168,10 +201,17 @@ export function CompanyTypeMultiSelect({
           className="absolute z-50 mt-1 w-full overflow-hidden border border-carbon-blue/12 bg-white shadow-lg"
         >
           <div className="border-b border-carbon-blue/8 p-2">
-            <input aria-label="Filter types"
+            <input
+              aria-label="Filter types"
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && filtered.length > 0) {
+                  event.preventDefault();
+                  toggle(filtered[0]);
+                }
+              }}
               placeholder="Filter types…"
               className="w-full border border-carbon-blue/15 bg-white px-2 py-1.5 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange"
               autoFocus
@@ -191,7 +231,9 @@ export function CompanyTypeMultiSelect({
                       role="option"
                       aria-selected={isSelected}
                       onClick={() => toggle(type)}
-                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04]"
+                      className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04] ${
+                        isSelected ? "bg-upcycle-orange/[0.06] font-medium" : ""
+                      }`}
                     >
                       <span className="inline-flex items-center gap-2">
                         <CompanyTypeIcon icon={meta.icon} />

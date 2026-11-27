@@ -16,6 +16,7 @@ import {
 } from "@/components/relationship/relationship-links";
 import {
   ContactFormFields,
+  contactFormValidationMessage,
   emptyContactForm,
   isContactFormValid,
 } from "@/components/contacts/contact-form-fields";
@@ -156,17 +157,46 @@ export function Company360ContactsTab({
       </header>
 
       {createOpen ? (
-        <div className="border-b border-carbon-blue/8 bg-carbon-blue/[0.02] px-5 py-4">
-          <ContactFormFields form={form} onChange={setForm} />
-          <button
-            type="button"
-            disabled={saving || !isContactFormValid(form)}
-            onClick={() => void handleCreate()}
-            className="mt-3 border border-upcycle-orange/30 bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Create contact"}
-          </button>
-        </div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleCreate();
+          }}
+          className="border-b border-carbon-blue/8 bg-carbon-blue/[0.015] px-5 py-4"
+        >
+          <div className="mx-auto max-w-5xl">
+            <ContactFormFields
+              form={form}
+              onChange={setForm}
+              mode="create"
+              companies={[company]}
+              companyId={company.CompanyID}
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-carbon-blue/10 pt-3">
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={saving || !isContactFormValid(form)}
+                  className="border border-upcycle-orange bg-upcycle-orange px-4 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {saving ? "Saving…" : "Create contact"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateOpen(false)}
+                  className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-xs font-semibold text-carbon-blue/65 hover:text-carbon-blue"
+                >
+                  Cancel
+                </button>
+              </div>
+              {contactFormValidationMessage(form) ? (
+                <p className="text-[12px] text-carbon-blue/55" role="status">
+                  {contactFormValidationMessage(form)}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </form>
       ) : null}
 
       {company.contacts.length === 0 ? (

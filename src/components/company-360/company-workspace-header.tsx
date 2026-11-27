@@ -15,6 +15,7 @@ import { opportunityPublicCode } from "@/types/pipeline";
 import type { Project } from "@/types/project";
 import {
   DealLink,
+  EmailActionMenu,
   PhoneActionMenu,
   ProjectLink,
 } from "@/components/relationship/relationship-links";
@@ -249,6 +250,12 @@ export function CompanyWorkspaceHeader({
             ) : (
               identity.website
             )}
+          </ActionableField>
+        ) : null}
+
+        {identity.mainEmail ? (
+          <ActionableField icon="email" className="text-[13px] text-carbon-blue/60">
+            <EmailActionMenu email={identity.mainEmail} />
           </ActionableField>
         ) : null}
 

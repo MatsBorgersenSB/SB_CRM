@@ -13,7 +13,7 @@ type CompanyComboboxProps = {
   companies: CompanyComboboxOption[];
   selectedCompanyId: string | null;
   onSelectCompany: (company: CompanyComboboxOption | null) => void;
-  onCreateNewCompany: (typedName: string) => void | Promise<void>;
+  onCreateNewCompany?: (typedName: string) => void | Promise<void>;
   /** Typed name when creating a company that is not yet in the list. */
   draftName?: string | null;
   /** Called as the user types so a new name can become “create company”. */
@@ -22,6 +22,8 @@ type CompanyComboboxProps = {
   allowCreate?: boolean;
   disabled?: boolean;
   label?: string;
+  hideLabel?: boolean;
+  density?: "default" | "compact";
   placeholder?: string;
   required?: boolean;
 };
@@ -40,12 +42,14 @@ export function CompanyCombobox({
   allowCreate = true,
   disabled = false,
   label = "Company Name",
+  hideLabel = false,
+  density = "default",
   placeholder = "Search or type new company…",
   required = true,
 }: CompanyComboboxProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
-  const [query, setQuery] = useState("");
+  const [draftQuery, setDraftQuery] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -54,28 +58,20 @@ export function CompanyCombobox({
     [companies, selectedCompanyId],
   );
 
-  useEffect(() => {
-    if (selected) {
-      setQuery(selected.name);
-    } else if (draftName) {
-      setQuery(draftName);
-    } else if (!selectedCompanyId) {
-      setQuery("");
-    }
-  }, [selected, selectedCompanyId, draftName]);
+  const query = draftQuery ?? selected?.name ?? draftName ?? "";
 
   useEffect(() => {
     if (!isOpen) return;
     const onPointerDown = (event: MouseEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
         setIsOpen(false);
-        if (selected) setQuery(selected.name);
+        setDraftQuery(null);
       }
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
-        if (selected) setQuery(selected.name);
+        setDraftQuery(null);
       }
     };
     document.addEventListener("mousedown", onPointerDown);
@@ -84,7 +80,7 @@ export function CompanyCombobox({
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [isOpen, selected]);
+  }, [isOpen]);
 
   const trimmed = query.trim();
   const filteredCompanies =
@@ -100,14 +96,16 @@ export function CompanyCombobox({
     (company) => company.name.toLowerCase() === trimmed.toLowerCase(),
   );
 
-  const showCreate = allowCreate && trimmed.length > 0 && !exactMatch && !creating;
+  const showCreate =
+    allowCreate && Boolean(onCreateNewCompany) && trimmed.length > 0 && !exactMatch && !creating;
   const showMenu = isOpen && (trimmed.length > 0 || filteredCompanies.length > 0);
 
   const handleCreate = async () => {
-    if (!showCreate) return;
+    if (!showCreate || !onCreateNewCompany) return;
     setCreating(true);
     try {
       await onCreateNewCompany(trimmed);
+      setDraftQuery(null);
       setIsOpen(false);
     } finally {
       setCreating(false);
@@ -116,10 +114,12 @@ export function CompanyCombobox({
 
   return (
     <div ref={rootRef} className="relative w-full">
-      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
-        {label}
-        {required ? " *" : null}
-      </label>
+      {hideLabel ? null : (
+        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-carbon-blue/65">
+          {label}
+          {required ? " *" : null}
+        </label>
+      )}
 
       <div className="relative">
         <input
@@ -132,7 +132,7 @@ export function CompanyCombobox({
           value={query}
           onChange={(event) => {
             const next = event.target.value;
-            setQuery(next);
+            setDraftQuery(next);
             setIsOpen(true);
             onTypedNameChange?.(next);
             if (selected && next.trim() !== selected.name) {
@@ -141,7 +141,11 @@ export function CompanyCombobox({
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
-          className="w-full border border-carbon-blue/15 bg-white py-2 pl-3 pr-9 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 disabled:opacity-60"
+          className={
+            density === "compact"
+              ? "mt-0.5 w-full border border-carbon-blue/15 bg-white py-1.5 pl-2.5 pr-8 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 disabled:opacity-60"
+              : "w-full border border-carbon-blue/15 bg-white py-2 pl-3 pr-9 text-[13px] text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40 disabled:opacity-60"
+          }
           autoComplete="off"
         />
         <ChevronsUpDown
@@ -168,7 +172,7 @@ export function CompanyCombobox({
               aria-selected={selectedCompanyId === company.id}
               onClick={() => {
                 onSelectCompany(company);
-                setQuery(company.name);
+                setDraftQuery(null);
                 setIsOpen(false);
               }}
               className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] text-carbon-blue transition-colors hover:bg-carbon-blue/[0.04]"

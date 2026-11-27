@@ -341,7 +341,7 @@ export function ContactsShell({
             ) : null}
 
             {activeTool === "new-contact" ? (
-              <div className="mt-4 border border-carbon-blue/10 bg-white p-3">
+              <div className="mt-4">
                 <ContactsActionBar
                   embedded
                   open

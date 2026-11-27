@@ -51,7 +51,10 @@ function pickStreetAddress(address: Record<string, unknown> | undefined): string
   return typeof address?.display_name === "string" ? address.display_name.trim() : "";
 }
 
-export async function lookupAddressOSM(query: string): Promise<OsmLookupResult> {
+export async function lookupAddressOSM(
+  query: string,
+  options?: { timeoutMs?: number },
+): Promise<OsmLookupResult> {
   const trimmed = query.trim();
   if (!trimmed) {
     return {
@@ -66,11 +69,20 @@ export async function lookupAddressOSM(query: string): Promise<OsmLookupResult> 
   }
 
   const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&addressdetails=1&limit=1`;
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": USER_AGENT,
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options?.timeoutMs ?? 6_000);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": USER_AGENT,
+      },
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(`Nominatim lookup failed: ${response.status}`);
@@ -78,9 +90,11 @@ export async function lookupAddressOSM(query: string): Promise<OsmLookupResult> 
 
   const data = (await response.json()) as unknown;
   const first = Array.isArray(data) ? data[0] : undefined;
+  const firstRecord =
+    first && typeof first === "object" ? (first as { address?: unknown }) : undefined;
   const address =
-    first && typeof first === "object" && "address" in first && typeof (first as any).address === "object"
-      ? ((first as any).address as Record<string, unknown>)
+    firstRecord?.address && typeof firstRecord.address === "object"
+      ? (firstRecord.address as Record<string, unknown>)
       : undefined;
 
   const countryCodeRaw =

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { InteractionStream } from "@/components/companies/interaction-stream";
 import { PipelineDealBadge } from "@/components/ui/pipeline-deal-badge";
 import { EditableContactField } from "@/components/ui/editable-contact-field";
@@ -13,7 +13,7 @@ import type { GlobalContactRecord } from "@/lib/contact-utils";
 import type { Activity } from "@/types/activity";
 import { getActivitiesForContact } from "@/lib/activity-utils";
 import type { CreateContactInput, EditableContactField as EditableContactFieldName, UpdateContactInput } from "@/types/contact";
-import { buildContactTitle, getContactDisplayName } from "@/types/contact";
+import { buildContactTitle, DEFAULT_ENGAGEMENT_CADENCE, getContactDisplayName } from "@/types/contact";
 import { CompanyLink } from "@/components/relationship/relationship-links";
 import { EmailActionMenu, PhoneActionMenu } from "@/components/relationship/relationship-links";
 
@@ -44,6 +44,22 @@ function contactToForm(contact: GlobalContactRecord["contact"]): CreateContactIn
     LinkedInURL: contact.LinkedInURL,
     Status: contact.Status,
     RelationshipLevel: contact.RelationshipLevel,
+    buyingRole: contact.buyingRole,
+    sentiment: contact.sentiment,
+    influenceLevel: contact.influenceLevel,
+    reportsToId: contact.reportsToId ?? "",
+    streetAddress: contact.streetAddress ?? "",
+    postalCode: contact.postalCode ?? "",
+    stateRegion: contact.stateRegion ?? "",
+    countryCode: contact.countryCode ?? "",
+    continent: contact.continent ?? "",
+    city: contact.city ?? "",
+    country: contact.country ?? "",
+    timezone: contact.timezone ?? "",
+    isTimezoneOverridden: contact.isTimezoneOverridden ?? false,
+    engagementCadence: contact.engagementCadence ?? DEFAULT_ENGAGEMENT_CADENCE,
+    backgroundNotes: contact.backgroundNotes ?? "",
+    preferredLanguage: contact.preferredLanguage ?? "",
     EmploymentStatus: contact.EmploymentStatus ?? "Active",
     Company: contact.Company,
   };
@@ -60,14 +76,16 @@ export function ContactDetailPanel({
   onPipelineSelect,
 }: ContactDetailPanelProps) {
   const [editOpen, setEditOpen] = useState(initialEditOpen);
+  const [prevInitialEditOpen, setPrevInitialEditOpen] = useState(initialEditOpen);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [form, setForm] = useState<CreateContactInput>(() => contactToForm(record.contact));
 
-  useEffect(() => {
+  if (initialEditOpen !== prevInitialEditOpen) {
+    setPrevInitialEditOpen(initialEditOpen);
     if (initialEditOpen) setEditOpen(true);
-  }, [initialEditOpen]);
+  }
 
   const contactActivities = getActivitiesForContact(
     activities,
@@ -93,6 +111,22 @@ export function ContactDetailPanel({
         LinkedInURL: form.LinkedInURL.trim(),
         Status: form.Status,
         RelationshipLevel: form.RelationshipLevel,
+        buyingRole: form.buyingRole,
+        sentiment: form.sentiment,
+        influenceLevel: form.influenceLevel,
+        reportsToId: form.reportsToId?.trim() || undefined,
+        streetAddress: form.streetAddress?.trim() || undefined,
+        postalCode: form.postalCode?.trim() || undefined,
+        stateRegion: form.stateRegion?.trim() || undefined,
+        countryCode: form.countryCode?.trim() || undefined,
+        continent: form.continent?.trim() || undefined,
+        city: form.city?.trim() || undefined,
+        country: form.country?.trim() || undefined,
+        timezone: form.timezone?.trim() || undefined,
+        isTimezoneOverridden: Boolean(form.isTimezoneOverridden),
+        engagementCadence: form.engagementCadence,
+        backgroundNotes: form.backgroundNotes?.trim() || undefined,
+        preferredLanguage: form.preferredLanguage?.trim() || undefined,
         EmploymentStatus: form.EmploymentStatus,
       });
       setEditOpen(false);
@@ -136,12 +170,17 @@ export function ContactDetailPanel({
         </header>
         {editOpen ? (
           <div className="grid gap-2 border-b border-carbon-blue/10 p-3">
-            <ContactFormFields form={form} onChange={setForm} />
+            <ContactFormFields
+              form={form}
+              onChange={setForm}
+              mode="edit"
+              currentContactId={record.contact.ContactID}
+            />
             <button
               type="button"
               disabled={saving || !isContactFormValid(form)}
               onClick={() => void handleSave()}
-              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1.5 text-xs font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
+              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
             >
               {saving ? "Saving…" : "Save Contact"}
             </button>

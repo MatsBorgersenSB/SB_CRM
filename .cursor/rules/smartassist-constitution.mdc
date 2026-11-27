@@ -1,6 +1,6 @@
 ---
-description: SmartAssist Constitution — Business Development Intelligence Assistant. Observe before asking, automation first, sales/marketing/relationship/regulatory intelligence. Not a chatbot.
-alwaysApply: true
+description: SmartAssist Constitution — Business Development Intelligence Assistant rules for sales, marketing, relationship, research, regulatory, and project qualification intelligence. Apply when building or modifying SmartAssist, recommendations, NBA, or qualification logic.
+alwaysApply: false
 ---
 
 # SmartAssist Constitution

@@ -5,6 +5,7 @@ const STORAGE_KEY = "smartcrm-event-company-prefill";
 export type EventCompanyPrefill = {
   Title: string;
   Domain?: string;
+  Email?: string;
   Industry?: CompanyIndustry;
   City?: string;
   Phone?: string;

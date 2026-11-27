@@ -23,7 +23,7 @@ export function contactCadenceFromLastTouch(
   cadence: string | undefined,
   lastInteractionAt?: string | null,
 ): ContactCadence {
-  if (cadence === "When needed") return "Warm";
+  if (!cadence || cadence === "When needed") return "Warm";
   if (!lastInteractionAt) return "Cold / At Risk";
   const last = new Date(lastInteractionAt).getTime();
   if (!Number.isFinite(last)) return "Cold / At Risk";

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { X } from "lucide-react";
 import { createContactRecord } from "@/lib/sync-company";
 import { stripBareDialCode } from "@/lib/m365/phone-normalization";
 import type { Company, Contact } from "@/lib/companies-data";
 import type { CreateContactInput } from "@/types/contact";
 import {
   ContactFormFields,
+  contactFormValidationMessage,
   emptyContactForm,
   isContactFormValid,
 } from "@/components/contacts/contact-form-fields";
@@ -31,13 +33,29 @@ export function ContactsActionBar({
   const createOpen = controlledOpen ?? internalOpen;
   const setCreateOpen = onOpenChange ?? setInternalOpen;
   const [saving, setSaving] = useState(false);
-  const [companyId, setCompanyId] = useState(companies[0]?.CompanyID ?? "");
-  const [form, setForm] = useState<CreateContactInput>(emptyContactForm());
+  const [companyId, setCompanyId] = useState("");
+  const [form, setForm] = useState<CreateContactInput>(emptyContactForm);
+  const [error, setError] = useState<string | null>(null);
+
+  const validationMessage =
+    contactFormValidationMessage(form) ?? (!companyId ? "Select a company." : null);
+  const canSubmit = Boolean(companyId) && isContactFormValid(form);
+
+  const resetAndClose = () => {
+    setForm(emptyContactForm());
+    setCompanyId("");
+    setError(null);
+    setCreateOpen(false);
+  };
 
   const handleCreate = async () => {
-    if (!companyId || !isContactFormValid(form)) return;
+    if (!canSubmit) {
+      setError(validationMessage);
+      return;
+    }
 
     setSaving(true);
+    setError(null);
 
     try {
       const contact = await createContactRecord(companyId, {
@@ -71,16 +89,53 @@ export function ContactsActionBar({
         Company: { CompanyID: companyId },
       });
       onCreated(companyId, contact);
-      setForm(emptyContactForm());
-      setCreateOpen(false);
+      resetAndClose();
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error && saveError.message.trim()
+          ? saveError.message
+          : "Unable to create contact. Nothing was lost — please try again.",
+      );
     } finally {
       setSaving(false);
     }
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleCreate();
+  };
+
   return (
-    <section className={embedded ? "" : "border border-carbon-blue/15 bg-white"}>
-      {embedded ? null : (
+    <section
+      className={
+        embedded
+          ? "mx-auto w-full max-w-5xl border border-carbon-blue/15 bg-carbon-blue/[0.015]"
+          : "border border-carbon-blue/15 bg-white"
+      }
+    >
+      {embedded ? (
+        <header className="flex items-center justify-between gap-3 border-b border-carbon-blue/10 bg-white px-4 py-3">
+          <div>
+            <h2 className="text-[13px] font-bold uppercase tracking-[0.1em] text-carbon-blue">
+              New Contact
+            </h2>
+            <p className="mt-0.5 text-[12px] text-carbon-blue/55">
+              Start with name, company, and reach — expand optional details only when needed.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={resetAndClose}
+            aria-label="Close new contact card"
+            className="inline-flex items-center gap-1 border border-carbon-blue/12 px-2 py-1 text-[11px] font-semibold text-carbon-blue/60 transition-colors hover:border-carbon-blue/25 hover:text-carbon-blue disabled:opacity-50"
+          >
+            <X className="size-3.5" aria-hidden />
+            Esc
+          </button>
+        </header>
+      ) : (
         <div className="flex items-center justify-between border-b border-carbon-blue/10 px-3 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-carbon-blue/60">
             Entity Actions
@@ -95,38 +150,46 @@ export function ContactsActionBar({
         </div>
       )}
       {createOpen ? (
-        <div className={`grid gap-2 ${embedded ? "" : "p-3"}`}>
+        <form onSubmit={handleSubmit} className="space-y-3 p-4">
           <ContactFormFields
             form={form}
             onChange={setForm}
+            mode="create"
             showCompanySelect
+            requireCompany
             companies={companies}
             companyId={companyId}
             onCompanyChange={setCompanyId}
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={saving || !companyId || !isContactFormValid(form)}
-              onClick={() => void handleCreate()}
-              className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1.5 text-xs font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-upcycle-orange/40 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {saving ? "Saving…" : "Create Contact"}
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => {
-                setForm(emptyContactForm());
-                setCreateOpen(false);
-              }}
-              className="border border-carbon-blue/15 bg-white px-2 py-1.5 text-xs font-semibold text-carbon-blue/70 transition-colors hover:border-carbon-blue/25 hover:text-carbon-blue focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-upcycle-orange/40 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <span className="text-[11px] text-carbon-blue/60">Esc</span>
+          <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-carbon-blue/10 bg-white/95 px-3 py-2.5 backdrop-blur-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="submit"
+                disabled={saving || !canSubmit}
+                className="border border-upcycle-orange bg-upcycle-orange px-4 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-upcycle-orange/40 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {saving ? "Saving…" : "Create Contact"}
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={resetAndClose}
+                className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/70 transition-colors hover:border-carbon-blue/25 hover:text-carbon-blue focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-upcycle-orange/40 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+            {error ? (
+              <p className="text-[12px] font-medium text-thermal-red" role="alert">
+                {error}
+              </p>
+            ) : validationMessage ? (
+              <p className="text-[12px] text-carbon-blue/55" role="status">
+                {validationMessage}
+              </p>
+            ) : null}
           </div>
-        </div>
+        </form>
       ) : null}
     </section>
   );

@@ -119,6 +119,7 @@ export function CompanyContactsSection({
 
     try {
       await onCreateContact({
+        ...form,
         FirstName: form.FirstName.trim(),
         LastName: form.LastName.trim(),
         JobTitle: form.JobTitle.trim() || form.Role,
@@ -153,17 +154,31 @@ export function CompanyContactsSection({
         </button>
       </header>
       {createOpen ? (
-        <div className="grid gap-2 border-b border-carbon-blue/10 bg-carbon-blue/[0.02] p-2">
-          <ContactFormFields form={form} onChange={setForm} />
-          <button
-            type="button"
-            disabled={saving || !isContactFormValid(form)}
-            onClick={() => void handleCreate()}
-            className="border border-upcycle-orange/30 bg-upcycle-orange/10 px-2 py-1.5 text-xs font-semibold text-upcycle-orange transition-colors hover:bg-upcycle-orange/15 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Create Contact"}
-          </button>
-        </div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleCreate();
+          }}
+          className="grid gap-2 border-b border-carbon-blue/10 bg-carbon-blue/[0.015] p-3"
+        >
+          <ContactFormFields form={form} onChange={setForm} mode="create" />
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={saving || !isContactFormValid(form)}
+              className="border border-upcycle-orange bg-upcycle-orange px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {saving ? "Saving…" : "Create Contact"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateOpen(false)}
+              className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-xs font-semibold text-carbon-blue/65 hover:text-carbon-blue"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       ) : null}
       <div className="flex flex-col gap-2 p-2">
         {contacts.map((contact) => (

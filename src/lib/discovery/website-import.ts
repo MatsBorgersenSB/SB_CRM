@@ -89,7 +89,7 @@ function buildCompanyPatch(discovery: WebsiteDiscoveryResult) {
     Title: title,
     Domain: domain,
     Phone: normalizePhoneNumber(discovery.company.phone),
-    Email: discovery.company.email.trim(),
+    Email: discovery.company.email.trim().toLowerCase(),
     AddressLine1: streetAddress,
     AddressLine2: legacy.AddressLine2,
     PostalCode: postalCode,
@@ -480,7 +480,14 @@ async function upsertCompanyFromDiscoveryJson(
       accountOwner?.Title && !company.AccountOwner
         ? { AccountOwner: resolveAccountOwner(accountOwner) ?? undefined }
         : {};
-    company = await updateCompany(company.CompanyID, { ...patch, ...ownerPatch });
+    const emailPatch = patch.Email ? { Email: patch.Email } : {};
+    const { Email: _ignoredEmail, ...patchWithoutEmail } = patch;
+    void _ignoredEmail;
+    company = await updateCompany(company.CompanyID, {
+      ...patchWithoutEmail,
+      ...emailPatch,
+      ...ownerPatch,
+    });
   } else {
     created = true;
     company = await createCompany({

@@ -84,6 +84,11 @@ export function CompanyInlineEditPanel({
       return;
     }
 
+    if (form.CompanyTypes.length === 0) {
+      setError("Select at least one company type.");
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
@@ -334,7 +339,7 @@ export function CompanyInlineEditPanel({
           onChange={(types) =>
             setForm((current) => ({
               ...current,
-              CompanyTypes: types.length > 0 ? types : current.CompanyTypes,
+              CompanyTypes: types,
             }))
           }
           disabled={saving}

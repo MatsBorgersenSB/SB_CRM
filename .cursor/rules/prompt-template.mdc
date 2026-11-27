@@ -1,6 +1,6 @@
 ---
-description: Simple task prompt template for non-specialist users; keep asks concrete and scoped
-alwaysApply: true
+description: Task scoping prompt template — use only when the user's request is vague or missing goal/scope/acceptance criteria.
+alwaysApply: false
 ---
 
 # Task Prompt Template

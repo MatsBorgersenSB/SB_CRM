@@ -5,6 +5,28 @@
 
 const INTERNATIONAL_COMPACT = /^\+(\d{5,15})$/;
 const INTERNATIONAL_SPACED = /^(\+\d{1,3})\s+(.+)$/;
+const TRUNK_ZERO_COUNTRY_CODES = new Set([
+  "+49",
+  "+44",
+  "+33",
+  "+31",
+  "+32",
+  "+41",
+  "+43",
+  "+46",
+  "+358",
+  "+353",
+  "+61",
+  "+64",
+]);
+
+function stripTrunkZero(cc: string, national: string): string {
+  if (!TRUNK_ZERO_COUNTRY_CODES.has(cc)) return national;
+  const trimmed = national.trim();
+  if (!/^0(?:\s|\d)/.test(trimmed)) return national;
+  const stripped = trimmed.replace(/^0\s*/, "").trim();
+  return stripped.replace(/\D/g, "").length >= 7 ? stripped : national;
+}
 
 function groupNationalDigits(digits: string): string {
   const normalized = digits.replace(/\D/g, "");
@@ -50,19 +72,20 @@ export function normalizePhoneNumber(raw: string): string {
   if (!trimmed) return "";
 
   if (!trimmed.includes("+")) {
-    return trimmed.replace(/[().-]/g, " ").replace(/\s+/g, " ").trim();
+    return trimmed.replace(/[().\u2013\u2014/-]/g, " ").replace(/\s+/g, " ").trim();
   }
 
-  const cleaned = trimmed.replace(/[().-]/g, " ").replace(/\s+/g, " ").trim();
+  const cleaned = trimmed.replace(/[().\u2013\u2014/-]/g, " ").replace(/\s+/g, " ").trim();
   const compact = cleaned.replace(/[^\d+]/g, "");
 
   const spaced = cleaned.match(INTERNATIONAL_SPACED);
   if (spaced?.[1] && spaced[2]) {
     const cc = spaced[1];
-    const nationalDigits = spaced[2].replace(/\D/g, "");
+    const nationalRaw = stripTrunkZero(cc, spaced[2]);
+    const nationalDigits = nationalRaw.replace(/\D/g, "");
     if (!nationalDigits) return cc;
-    const national = spaced[2].includes(" ")
-      ? spaced[2].replace(/[().-]/g, " ").replace(/\s+/g, " ").trim()
+    const national = nationalRaw.includes(" ")
+      ? nationalRaw.replace(/[().\u2013\u2014/-]/g, " ").replace(/\s+/g, " ").trim()
       : groupNationalDigits(nationalDigits);
     return `${cc} ${national}`.trim();
   }
@@ -70,7 +93,8 @@ export function normalizePhoneNumber(raw: string): string {
   if (INTERNATIONAL_COMPACT.test(compact)) {
     const split = splitCompactInternational(compact);
     if (split) {
-      return `${split.cc} ${groupNationalDigits(split.national)}`.trim();
+      const nationalDigits = stripTrunkZero(split.cc, split.national).replace(/\D/g, "");
+      return `${split.cc} ${groupNationalDigits(nationalDigits)}`.trim();
     }
   }
 

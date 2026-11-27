@@ -86,11 +86,12 @@ export function CompaniesActionBar({
     Title: "",
     Industry: "" as CompanyIndustry,
     Status: "Prospecting" as CompanyStatus,
-    CompanyTypes: ["Prospect"] as CompanyType[],
+    CompanyTypes: [] as CompanyType[],
     parentCompanyId: "",
     accountOwnerId: defaultOwner.Id,
     City: "",
     Domain: "",
+    Email: "",
     Phone: "",
     AddressLine1: "",
     PostalCode: "",
@@ -151,6 +152,7 @@ export function CompaniesActionBar({
       Title: prefill.Title || current.Title,
       Industry: prefill.Industry ?? current.Industry,
       Domain: prefill.Domain ?? current.Domain,
+      Email: prefill.Email ?? current.Email,
       City: prefill.City ?? current.City,
       Phone: prefill.Phone ?? current.Phone,
     }));
@@ -160,7 +162,7 @@ export function CompaniesActionBar({
   const toggleCompanyType = (types: CompanyType[]) => {
     setForm((current) => ({
       ...current,
-      CompanyTypes: types.length > 0 ? types : current.CompanyTypes,
+      CompanyTypes: types,
     }));
   };
 
@@ -199,6 +201,7 @@ export function CompaniesActionBar({
           CompanyTypes: form.CompanyTypes,
           City: form.City.trim(),
           Domain: form.Domain.trim(),
+          Email: form.Email.trim().toLowerCase() || undefined,
           Phone: stripBareDialCode(form.Phone),
           AddressLine1: form.AddressLine1.trim() || undefined,
           PostalCode: form.PostalCode.trim() || undefined,
@@ -220,11 +223,12 @@ export function CompaniesActionBar({
         Title: "",
         Industry: "",
         Status: "Prospecting",
-        CompanyTypes: ["Prospect"],
+        CompanyTypes: [],
         parentCompanyId: "",
         accountOwnerId: defaultOwner.Id,
         City: "",
         Domain: "",
+        Email: "",
         Phone: "",
         AddressLine1: "",
         PostalCode: "",
@@ -534,6 +538,23 @@ export function CompaniesActionBar({
                 setForm((current) => ({
                   ...current,
                   Domain: event.target.value,
+                }))
+              }
+              className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
+              Company Email
+            </span>
+            <input
+              type="email"
+              value={form.Email}
+              placeholder="info@company.com"
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  Email: event.target.value,
                 }))
               }
               className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"

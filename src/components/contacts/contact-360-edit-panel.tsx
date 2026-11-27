@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { DestructiveConfirmPanel } from "@/components/ui/destructive-confirm-panel";
 import {
   ContactFormFields,
@@ -9,7 +9,7 @@ import {
 import type { GlobalContactRecord } from "@/lib/contact-utils";
 import type { Company } from "@/types/company";
 import type { CreateContactInput, UpdateContactInput } from "@/types/contact";
-import { buildContactTitle } from "@/types/contact";
+import { buildContactTitle, DEFAULT_ENGAGEMENT_CADENCE } from "@/types/contact";
 import { stripBareDialCode } from "@/lib/m365/phone-normalization";
 import { SmartCRMIcon } from "@/components/ui/smartcrm-icon";
 
@@ -39,8 +39,8 @@ function contactToForm(
     Status: contact.Status,
     RelationshipLevel: contact.RelationshipLevel,
     buyingRole: contact.buyingRole,
-    sentiment: contact.sentiment ?? "Neutral",
-    influenceLevel: contact.influenceLevel ?? "Medium",
+    sentiment: contact.sentiment,
+    influenceLevel: contact.influenceLevel,
     reportsToId: contact.reportsToId ?? "",
     streetAddress: contact.streetAddress ?? "",
     postalCode: contact.postalCode ?? "",
@@ -51,9 +51,9 @@ function contactToForm(
     country: contact.country ?? "",
     timezone: contact.timezone ?? "",
     isTimezoneOverridden: contact.isTimezoneOverridden ?? false,
-    engagementCadence: contact.engagementCadence ?? "Monthly",
+    engagementCadence: contact.engagementCadence ?? DEFAULT_ENGAGEMENT_CADENCE,
     backgroundNotes: contact.backgroundNotes ?? "",
-    preferredLanguage: contact.preferredLanguage ?? "English",
+    preferredLanguage: contact.preferredLanguage ?? "",
     EmploymentStatus: contact.EmploymentStatus ?? "Active",
     Company: { Id: 0, Title: companyName },
   };
@@ -164,9 +164,17 @@ export function Contact360EditPanel({
     }
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleSave();
+  };
+
   return (
-    <div className="border border-upcycle-orange/30 bg-upcycle-orange/[0.04] p-4">
-      <header className="mb-4 flex items-center gap-2">
+    <form
+      onSubmit={handleSubmit}
+      className="mx-auto w-full max-w-5xl border border-upcycle-orange/30 bg-upcycle-orange/[0.03] p-4"
+    >
+      <header className="mb-3 flex items-center gap-2">
         <SmartCRMIcon name="edit" size="sm" />
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-upcycle-orange">
@@ -184,16 +192,21 @@ export function Contact360EditPanel({
         <ContactFormFields
           form={form}
           onChange={setForm}
+          mode="edit"
           showCompanySelect
+          requireCompany
           companies={companies.map((company) => ({
             CompanyID: company.CompanyID,
             Title: company.Title,
             City: company.City,
             Domain: company.Domain,
+            Phone: company.Phone,
+            countryCode: company.countryCode,
             Country: company.Country?.Title ?? "",
             contacts: company.contacts.map((contact) => ({
               ContactID: contact.ContactID,
               Title: contact.Title,
+              Email: contact.Email,
             })),
           }))}
           companyId={companyId}
@@ -203,34 +216,38 @@ export function Contact360EditPanel({
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2 border-t border-carbon-blue/10 pt-4">
-        <button
-          type="button"
-          disabled={saving || Boolean(validationMessage)}
-          onClick={() => void handleSave()}
-          className="border border-upcycle-orange bg-upcycle-orange px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Save changes"}
-        </button>
-        <button
-          type="button"
-          disabled={saving}
-          onClick={onCancel}
-          className="border border-carbon-blue/15 bg-white px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-carbon-blue/70 hover:border-carbon-blue/25"
-        >
-          Cancel
-        </button>
+      <div className="sticky bottom-0 mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-carbon-blue/10 bg-white/95 px-3 py-2.5 backdrop-blur-sm">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="submit"
+            disabled={saving || Boolean(validationMessage) || !companyId}
+            className="border border-upcycle-orange bg-upcycle-orange px-4 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={onCancel}
+            className="border border-carbon-blue/15 bg-white px-3 py-1.5 text-[12px] font-semibold text-carbon-blue/70 hover:border-carbon-blue/25"
+          >
+            Cancel
+          </button>
+        </div>
+        {error ? (
+          <p className="text-[12px] font-medium text-thermal-red" role="alert">
+            {error}
+          </p>
+        ) : validationMessage ? (
+          <p className="text-[12px] text-carbon-blue/55" role="status">
+            {validationMessage}
+          </p>
+        ) : !companyId ? (
+          <p className="text-[12px] text-carbon-blue/55" role="status">
+            Select a company.
+          </p>
+        ) : null}
       </div>
-
-      {error ? (
-        <p className="mt-3 text-[13px] font-medium text-red-700" role="alert">
-          {error}
-        </p>
-      ) : validationMessage ? (
-        <p className="mt-3 text-[13px] font-medium text-carbon-blue/55" role="status">
-          {validationMessage}
-        </p>
-      ) : null}
 
       {canDelete && onContactDelete ? (
         <div className="mt-3">
@@ -255,6 +272,6 @@ export function Contact360EditPanel({
           )}
         </div>
       ) : null}
-    </div>
+    </form>
   );
 }
