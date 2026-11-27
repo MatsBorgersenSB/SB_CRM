@@ -10,8 +10,10 @@ type EuropeanRegistrySearchProps = {
   domainHint?: string;
   countryHint?: string;
   label?: string;
+  hideLabel?: boolean;
   placeholder?: string;
   className?: string;
+  inputClassName?: string;
 };
 
 /**
@@ -23,8 +25,10 @@ export function EuropeanRegistrySearch({
   domainHint,
   countryHint,
   label = "European Registry Search",
+  hideLabel = false,
   placeholder = "Search name, VAT, orgnr, GmbH, Ltd, S.L., B.V.…",
   className = "",
+  inputClassName,
 }: EuropeanRegistrySearchProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -118,9 +122,11 @@ export function EuropeanRegistrySearch({
   return (
     <div ref={rootRef} className={`relative ${className}`}>
       <label className="block">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
-          {label}
-        </span>
+        {hideLabel ? null : (
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-carbon-blue/60">
+            {label}
+          </span>
+        )}
         <input aria-label={placeholder}
           type="search"
           role="combobox"
@@ -137,7 +143,10 @@ export function EuropeanRegistrySearch({
             if (visibleResults.length > 0) setIsOpen(true);
           }}
           placeholder={placeholder}
-          className="mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+          className={
+            inputClassName ??
+            "mt-0.5 w-full border border-carbon-blue/15 bg-white px-2 py-1 text-xs text-carbon-blue outline-none focus:border-upcycle-orange focus:ring-1 focus:ring-upcycle-orange/40"
+          }
         />
       </label>
       {loading ? (

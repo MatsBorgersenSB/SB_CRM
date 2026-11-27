@@ -16,10 +16,12 @@ type CompanyTypeMultiSelectProps = {
   options?: CompanyType[];
   disabled?: boolean;
   label?: string;
+  hideLabel?: boolean;
   placeholder?: string;
   required?: boolean;
   /** Visual density for create vs edit forms */
   density?: "compact" | "comfortable";
+  triggerClassName?: string;
 };
 
 export function CompanyTypeMultiSelect({
@@ -28,9 +30,11 @@ export function CompanyTypeMultiSelect({
   options = COMPANY_TYPE_SELECT_OPTIONS,
   disabled = false,
   label = "Company Type",
+  hideLabel = false,
   placeholder = "Select company type(s)…",
   required = false,
   density = "comfortable",
+  triggerClassName,
 }: CompanyTypeMultiSelectProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -132,15 +136,18 @@ export function CompanyTypeMultiSelect({
         }
       }}
     >
-      <p className={labelClass}>
-        {label}
-        {required ? <span className="text-thermal-red"> *</span> : null}
-      </p>
+      {hideLabel ? null : (
+        <p className={labelClass}>
+          {label}
+          {required ? <span className="text-thermal-red"> *</span> : null}
+        </p>
+      )}
 
       <button
         ref={triggerRef}
         type="button"
         disabled={disabled}
+        aria-label={label}
         aria-expanded={open && !disabled}
         aria-controls={listId}
         aria-haspopup="listbox"
@@ -151,15 +158,22 @@ export function CompanyTypeMultiSelect({
             setOpen(true);
           }
         }}
-        className={`mt-1 flex w-full items-center justify-between gap-2 border ${
-          density === "compact"
-            ? "border-carbon-blue/15 px-2 py-1"
-            : "border-2 border-upcycle-orange/25 px-3 py-2"
-        } bg-white text-left outline-none transition-colors focus:border-upcycle-orange focus:ring-2 focus:ring-upcycle-orange/20 disabled:opacity-60`}
+        className={
+          triggerClassName ??
+          `mt-1 flex w-full items-center justify-between gap-2 border ${
+            density === "compact"
+              ? "border-carbon-blue/15 px-2 py-1"
+              : "border-2 border-upcycle-orange/25 px-3 py-2"
+          } bg-white text-left outline-none transition-colors focus:border-upcycle-orange focus:ring-2 focus:ring-upcycle-orange/20 disabled:opacity-60`
+        }
       >
         <span
           className={`min-w-0 flex-1 truncate ${
-            density === "compact" ? "text-xs" : "text-[13px]"
+            triggerClassName
+              ? "text-[13px]"
+              : density === "compact"
+                ? "text-xs"
+                : "text-[13px]"
           } text-carbon-blue/55`}
         >
           {triggerText}

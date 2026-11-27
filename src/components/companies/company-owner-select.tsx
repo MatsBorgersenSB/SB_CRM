@@ -23,8 +23,10 @@ export function CompanyOwnerSelect({
   disabled = false,
   required = false,
   label = "Account Owner",
+  hideLabel = false,
   compact = false,
   appearance = "field",
+  selectClassName,
 }: {
   value: SharePointPerson | null;
   onChange: (owner: SharePointPerson) => void;
@@ -34,8 +36,10 @@ export function CompanyOwnerSelect({
   disabled?: boolean;
   required?: boolean;
   label?: string;
+  hideLabel?: boolean;
   compact?: boolean;
   appearance?: "field" | "inline";
+  selectClassName?: string;
 }) {
   const options = buildCompanyOwnerOptions(
     companies,
@@ -54,7 +58,14 @@ export function CompanyOwnerSelect({
         const selected = options.find((owner) => owner.Id === Number(event.target.value));
         if (selected) onChange(selected);
       }}
-      className={appearance === "inline" ? INLINE_CLASS : compact ? `${FIELD_CLASS} mt-0 py-1 text-[12px]` : FIELD_CLASS}
+      className={
+        selectClassName ??
+        (appearance === "inline"
+          ? INLINE_CLASS
+          : compact
+            ? `${FIELD_CLASS} mt-0 py-1 text-[12px]`
+            : FIELD_CLASS)
+      }
     >
       {!value ? (
         <option value="">
@@ -69,7 +80,7 @@ export function CompanyOwnerSelect({
     </select>
   );
 
-  if (appearance === "inline") {
+  if (appearance === "inline" || hideLabel) {
     return select;
   }
 

@@ -20,6 +20,7 @@ import { WorkspacePanel } from "@/components/ui/smartcrm-icon";
 import { WorkspaceNotice } from "@/components/ui/workspace-feedback";
 import { WorkspaceTopBar } from "@/components/ui/workspace-top-bar";
 import { useAuth } from "@/context/auth-context";
+import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useWorkspaceFilterBridge } from "@/hooks/use-workspace-filter-bridge";
 import {
   defaultCompanyListColumnVisibility,
@@ -97,6 +98,8 @@ export function CompaniesOperationsShell({
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState("all");
   const [activeTool, setActiveTool] = useState<CompaniesWorkspaceTool>(null);
+  const closeActiveTool = useCallback(() => setActiveTool(null), []);
+  useEscapeKey(Boolean(activeTool), closeActiveTool);
   const [savingOwnerId, setSavingOwnerId] = useState<string | null>(null);
   const [ownerError, setOwnerError] = useState<string | null>(null);
   const [ownerNotice, setOwnerNotice] = useState<string | null>(null);
@@ -312,7 +315,7 @@ export function CompaniesOperationsShell({
             ) : null}
 
             {activeTool === "new-company" ? (
-              <div className="mt-4 border border-carbon-blue/10 bg-white p-3">
+              <div className="mt-4">
                 <CompaniesActionBar
                   embedded
                   open
